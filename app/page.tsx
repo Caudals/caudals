@@ -8,7 +8,7 @@ import { HeroSection } from "@/components/landing/hero";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.12),_transparent_55%),_linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(250,250,249,1))]">
+    <div className="relative min-h-screen">
       <Header
         links={[
           { href: "/browse", label: "Browse requests" },
@@ -22,7 +22,7 @@ export default function Home() {
 
         <section
           id="how-it-works"
-          className="grid gap-12 rounded-[2rem] border border-border bg-white/85 p-8 shadow-soft-md backdrop-blur-lg sm:p-12 lg:grid-cols-[1.1fr_0.9fr]"
+          className="grid gap-12 rounded-[2rem] border border-border bg-white/90 p-8 shadow-soft-md backdrop-blur-lg sm:p-12 lg:grid-cols-[1.1fr_0.9fr]"
         >
           <div className="space-y-6">
             <Badge
@@ -108,7 +108,7 @@ export default function Home() {
 
         <section
           id="why-us"
-          className="space-y-12 rounded-[2rem] bg-white/80 px-6 py-12 shadow-soft-md sm:px-12"
+          className="space-y-12 rounded-[2rem] bg-white/85 px-6 py-12 shadow-soft-md sm:px-12"
         >
           <div className="flex flex-col gap-6 text-center">
             <Badge
