@@ -7,7 +7,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
-  SheetTrigger
+  SheetTrigger,
 } from "@/components/ui/sheet";
 
 interface HeaderProps {
@@ -17,11 +17,13 @@ interface HeaderProps {
 export function Header({ links = [] }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/70 backdrop-blur-lg">
-      <div className="container flex h-16 items-center justify-between gap-6">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-semibold tracking-tight">Dataset Forge</span>
+          <span className="font-semibold tracking-tight">
+            Dataset Crowdsource
+          </span>
         </Link>
-        <nav className="hidden items-center gap-4 md:flex">
+        <nav className="hidden items-center gap-6 md:flex">
           {links.map(({ href, label }) => (
             <Link
               key={href}
@@ -44,7 +46,7 @@ export function Header({ links = [] }: HeaderProps) {
           </SheetTrigger>
           <SheetContent side="right" className="bg-background/95 backdrop-blur">
             <SheetHeader>
-              <span className="text-lg font-semibold">Dataset Forge</span>
+              <span className="text-lg font-semibold">Dataset Crowdsource</span>
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-3">
               {links.map(({ href, label }) => (
@@ -66,4 +68,3 @@ export function Header({ links = [] }: HeaderProps) {
     </header>
   );
 }
-

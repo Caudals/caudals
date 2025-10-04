@@ -15,11 +15,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Dataset Forge",
-    template: "%s | Dataset Forge"
+    default: "Dataset Crowdsource",
+    template: "%s | Dataset Crowdsource",
   },
   description:
-    "Crowdsource rich, real-world datasets with a platform built for requesters, contributors, and admins."
+    "Crowdsource rich, real-world datasets with a platform built for requesters, contributors, and admins.",
 };
 
 export default function RootLayout({
@@ -29,7 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <div className="pointer-events-none fixed inset-0 -z-10 bg-oa-radial" />
         {children}
         <Toaster richColors position="top-right" />
       </body>

@@ -73,25 +73,34 @@
 
 .bg-oa-radial {
   background: radial-gradient(
-      circle at 20% 20%,
-      rgba(121, 176, 255, 0.2),
+      1200px 600px at 10% -10%,
+      rgba(79, 70, 229, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 90% -20%,
+      rgba(14, 165, 233, 0.14),
       transparent 55%
     ),
-    radial-gradient(circle at 80% 0%, rgba(255, 167, 232, 0.2), transparent 60%),
     radial-gradient(
-      circle at 50% 80%,
-      rgba(149, 242, 222, 0.2),
+      800px 450px at 50% 120%,
+      rgba(236, 72, 153, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 300px at 20% 110%,
+      rgba(16, 185, 129, 0.1),
       transparent 65%
     );
 }
 
 .bg-oa-conic {
   background: conic-gradient(
-    from 160deg at 50% 50%,
-    rgba(99, 102, 241, 0.28),
-    rgba(14, 116, 144, 0.15),
-    rgba(236, 72, 153, 0.2),
-    rgba(99, 102, 241, 0.28)
+    from 210deg at 50% 50%,
+    rgba(99, 102, 241, 0.25),
+    rgba(14, 165, 233, 0.16),
+    rgba(236, 72, 153, 0.22),
+    rgba(99, 102, 241, 0.25)
   );
 }
 
