@@ -63,7 +63,7 @@ export function HeroSection() {
             className="h-12 px-8 text-base bg-zinc-800 text-white hover:bg-zinc-600 hover:text-zinc-100"
             asChild
           >
-            <Link href="/browse">Explore datasets</Link>
+            <Link href="/dashboard">Explore datasets</Link>
           </Button>
         </motion.div>
 
