@@ -20,7 +20,7 @@ export function HeroSection() {
             variant="outline"
             className="border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary"
           >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5 bg-primary/90" />
             Trusted by leading AI companies
           </Badge>
         </motion.div>
@@ -59,8 +59,8 @@ export function HeroSection() {
           </Button>
           <Button
             size="lg"
-            variant="outline"
-            className="h-12 px-8 text-base"
+            variant="default"
+            className="h-12 px-8 text-base bg-zinc-800 text-white hover:bg-zinc-600 hover:text-zinc-100"
             asChild
           >
             <Link href="/browse">Explore datasets</Link>

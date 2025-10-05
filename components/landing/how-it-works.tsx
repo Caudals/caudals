@@ -1,4 +1,7 @@
+"use client";
+
 import { FileText, Upload, CheckCircle, CreditCard } from "lucide-react";
+import { motion } from "framer-motion";
 
 const steps = [
   {
@@ -46,9 +49,16 @@ export function HowItWorksSection() {
 
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           {steps.map((step, index) => (
-            <div key={step.number} className="relative flex gap-6">
+            <motion.div
+              key={step.number}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.15 }}
+              viewport={{ once: true, margin: "-50px" }}
+              className="relative flex gap-6"
+            >
               <div className="flex flex-col items-center">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-xl font-bold text-white shadow-lg shadow-primary/25">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-xl font-bold text-slate-900 shadow-lg shadow-primary/25 transition-transform hover:scale-110">
                   {step.number}
                 </div>
                 {index < steps.length - 1 && (
@@ -56,7 +66,7 @@ export function HowItWorksSection() {
                 )}
               </div>
               <div className="flex-1 pb-8">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform hover:scale-110">
                   <step.icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold text-slate-900">
@@ -66,7 +76,7 @@ export function HowItWorksSection() {
                   {step.description}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
