@@ -114,9 +114,9 @@ export default function BrowsePage() {
       <Header
         links={[
           { href: "/browse", label: "Browse" },
-          { href: "/#features", label: "Features" },
-          { href: "/#how-it-works", label: "How it works" },
-          { href: "/#use-cases", label: "Use cases" },
+          // { href: "/#features", label: "Features" },
+          // { href: "/#how-it-works", label: "How it works" },
+          // { href: "/#use-cases", label: "Use cases" },
         ]}
       />
 

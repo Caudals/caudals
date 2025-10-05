@@ -145,3 +145,20 @@
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
 }
+
+/* Ensure all overlay menus have solid backgrounds (no transparency) */
+@layer base {
+  [data-slot="dropdown-menu-content"],
+  [data-slot="dropdown-menu-sub-content"],
+  [data-slot="select-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="navigation-menu-content"],
+  [data-slot="navigation-menu-viewport"],
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="sheet-content"] {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+  }
+}
