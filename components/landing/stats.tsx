@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 export function StatsSection() {
   const stats = [
     {
@@ -37,9 +41,16 @@ export function StatsSection() {
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="mb-2 bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center"
+              >
+                <div className="mb-2 bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-4xl font-bold text-zinc-900 sm:text-5xl">
                   {stat.value}
                 </div>
                 <div className="mb-1 font-semibold text-slate-900">
@@ -48,7 +59,7 @@ export function StatsSection() {
                 <div className="text-sm text-muted-foreground">
                   {stat.description}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

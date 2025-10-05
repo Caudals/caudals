@@ -1,6 +1,9 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Brain, MessageSquare, Mic, Video, MapPin } from "lucide-react";
+import { motion } from "framer-motion";
 
 const useCases = [
   {
@@ -68,36 +71,41 @@ export function UseCasesSection() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {useCases.map((useCase) => (
-            <Card
+          {useCases.map((useCase, index) => (
+            <motion.div
               key={useCase.title}
-              className="group relative overflow-hidden border-border/50 bg-white/80 backdrop-blur-sm transition-all hover:border-primary/20 hover:shadow-lg"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true, margin: "-50px" }}
             >
-              <CardContent className="p-6">
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5">
-                    <useCase.icon className="h-6 w-6 text-primary" />
+              <Card className="hover-lift group relative h-full overflow-hidden border-border/50 bg-white/80 backdrop-blur-sm transition-all hover:border-primary/20">
+                <CardContent className="p-6">
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-transform group-hover:scale-110">
+                      <useCase.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    {useCase.tag && (
+                      <Badge
+                        variant="outline"
+                        className="border-primary/20 bg-primary/5 text-primary"
+                      >
+                        {useCase.tag}
+                      </Badge>
+                    )}
                   </div>
-                  {useCase.tag && (
-                    <Badge
-                      variant="outline"
-                      className="border-primary/20 bg-primary/5 text-primary"
-                    >
-                      {useCase.tag}
-                    </Badge>
-                  )}
-                </div>
-                <div className="mb-1 text-xs font-medium uppercase tracking-wider text-primary">
-                  {useCase.category}
-                </div>
-                <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                  {useCase.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {useCase.description}
-                </p>
-              </CardContent>
-            </Card>
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wider text-primary">
+                    {useCase.category}
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-slate-900">
+                    {useCase.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {useCase.description}
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>

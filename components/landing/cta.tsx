@@ -6,10 +6,7 @@ export function CTASection() {
   return (
     <section className="relative py-24">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/5 via-primary/10 to-accent/10 px-8 py-16 shadow-2xl sm:px-16 lg:px-24 lg:py-24">
-          {/* Gradient overlay */}
-          <div className="pointer-events-none absolute inset-0 bg-oa-conic opacity-30" />
-
+        <div className="relative overflow-hidden rounded-[2rem] border border-border/50 bg-white/80 px-8 py-16 shadow-2xl sm:px-16 lg:px-24 lg:py-24">
           <div className="relative z-10 flex flex-col items-center text-center">
             <h2 className="mb-6 max-w-3xl text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
               Ready to build your next dataset?
