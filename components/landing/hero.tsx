@@ -2,96 +2,120 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, FileImage, Zap } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-
-const featureCards = [
-  {
-    icon: <FileImage className="h-5 w-5 text-primary" aria-hidden="true" />,
-    title: "Flexible task briefs",
-    description:
-      "Define modalities, formats, compliance, and consent in structured templates.",
-  },
-  {
-    icon: <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden="true" />,
-    title: "Programmatic approvals",
-    description:
-      "Review submissions with versioned feedback, checklists, and automated QA hooks.",
-  },
-  {
-    icon: <Zap className="h-5 w-5 text-primary" aria-hidden="true" />,
-    title: "Payout automation",
-    description:
-      "Stripe Connect handles contributor payouts and platform commissions when you approve.",
-  },
-];
+import { Badge } from "@/components/ui/badge";
 
 export function HeroSection() {
   return (
-    <section className="relative isolate overflow-hidden rounded-[3rem] border border-border bg-white/90 px-8 py-16 shadow-soft-lg backdrop-blur-xl sm:px-12 lg:px-20">
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-10 flex flex-col items-center gap-8 text-center lg:items-start lg:text-left"
-      >
-        <Badge
-          variant="outline"
-          className="border-primary/20 bg-primary/5 text-primary"
+    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20 sm:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-6"
         >
-          Built for data teams, loved by contributors
-        </Badge>
-        <div className="space-y-6">
-          <h1 className="max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Crowdsource rich, real-world datasets—at scale.
-          </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Post precise collection tasks. Contributors upload compliant data.
-            You review, approve, and pay—effortlessly. Discover a new way to
-            build production-grade datasets.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <Button size="lg" asChild className="min-w-[200px]">
+          <Badge
+            variant="outline"
+            className="border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary"
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Trusted by leading AI companies
+          </Badge>
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-6 max-w-4xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-5xl font-bold leading-tight tracking-tight text-transparent sm:text-6xl lg:text-7xl"
+        >
+          Build production-grade datasets with a global network
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
+        >
+          Collective connects your organization with skilled contributors
+          worldwide to create rich, diverse datasets for machine learning—faster
+          and more cost-effectively than ever before.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex flex-col gap-4 sm:flex-row"
+        >
+          <Button size="lg" className="h-12 px-8 text-base" asChild>
             <Link href="/dashboard/requests/new">
-              Post a dataset request
-              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              Post a request
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button
             size="lg"
             variant="outline"
+            className="h-12 px-8 text-base"
             asChild
-            className="min-w-[200px] border-muted bg-white/80 shadow-sm"
           >
-            <Link href="/browse">Start contributing</Link>
+            <Link href="/browse">Explore datasets</Link>
           </Button>
-        </div>
-        <div className="grid w-full gap-6 text-left sm:grid-cols-3">
-          {featureCards.map(({ icon, title, description }) => (
-            <Card
-              key={title}
-              className="border-muted/70 bg-white/80 shadow-soft-md"
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-12 flex items-center gap-8 text-sm text-muted-foreground"
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5 text-primary"
+              fill="currentColor"
+              viewBox="0 0 20 20"
             >
-              <CardContent className="space-y-3 px-5 py-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-                  {icon}
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {title}
-                </h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </motion.div>
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="gradient-mask absolute inset-0 bg-oa-radial opacity-70" />
-        <div className="absolute left-1/2 top-0 h-[240px] w-[600px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>No setup fees</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5 text-primary"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>Pay per submission</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5 text-primary"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>Quality guaranteed</span>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

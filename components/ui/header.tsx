@@ -19,8 +19,8 @@ export function Header({ links = [] }: HeaderProps) {
     <header className="sticky top-0 z-40 w-full border-b bg-background/70 backdrop-blur-lg">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-semibold tracking-tight">
-            Dataset Crowdsource
+          <span className="text-xl font-semibold tracking-tight">
+            Collective
           </span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
@@ -46,7 +46,7 @@ export function Header({ links = [] }: HeaderProps) {
           </SheetTrigger>
           <SheetContent side="right" className="bg-background/95 backdrop-blur">
             <SheetHeader>
-              <span className="text-lg font-semibold">Dataset Crowdsource</span>
+              <span className="text-lg font-semibold">Collective</span>
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-3">
               {links.map(({ href, label }) => (
