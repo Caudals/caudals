@@ -19,7 +19,7 @@ export function Header({ links = [] }: HeaderProps) {
   const { user, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2">
           <Telescope className="h-5 w-5" />
