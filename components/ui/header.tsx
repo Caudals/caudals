@@ -19,7 +19,7 @@ export function Header({ links = [] }: HeaderProps) {
   const { user, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/70 backdrop-blur-lg">
+    <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2">
           <Telescope className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function Header({ links = [] }: HeaderProps) {
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="bg-background/95 backdrop-blur">
+          <SheetContent side="right" className="bg-background">
             <SheetHeader>
               <span className="text-lg font-semibold">Collective</span>
             </SheetHeader>
