@@ -28,7 +28,7 @@ export function CTASection() {
                 className="h-12 bg-white px-8 text-base"
                 asChild
               >
-                <Link href="/browse">View example requests</Link>
+                <Link href="/">View example requests</Link>
               </Button>
             </div>
 
