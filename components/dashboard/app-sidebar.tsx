@@ -2,167 +2,126 @@
 
 import * as React from "react";
 import {
-  LayoutDashboard,
+  Telescope,
   FileText,
-  Upload,
+  LayoutDashboard,
+  Plus,
   Settings,
-  ChevronUp,
-  Database,
+  Users,
   CreditCard,
-  HelpCircle,
+  BarChart3,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NavUser } from "./nav-user";
+import Link from "next/link";
 
-const navItems = [
+const navMain = [
   {
     title: "Overview",
-    href: "/dashboard",
     icon: LayoutDashboard,
+    href: "/dashboard",
   },
   {
-    title: "My Requests",
-    href: "/dashboard/requests",
+    title: "Requests",
     icon: FileText,
+    href: "/dashboard/requests",
   },
   {
-    title: "Submissions",
-    href: "/dashboard/submissions",
-    icon: Upload,
+    title: "Contributors",
+    icon: Users,
+    href: "/dashboard/contributors",
   },
   {
-    title: "Datasets",
-    href: "/dashboard/datasets",
-    icon: Database,
+    title: "Analytics",
+    icon: BarChart3,
+    href: "/dashboard/analytics",
   },
   {
     title: "Billing",
-    href: "/dashboard/billing",
     icon: CreditCard,
+    href: "/dashboard/billing",
   },
-];
-
-const secondaryItems = [
   {
     title: "Settings",
-    href: "/dashboard/settings",
     icon: Settings,
-  },
-  {
-    title: "Help & Support",
-    href: "/dashboard/help",
-    icon: HelpCircle,
+    href: "/dashboard/settings",
   },
 ];
 
-export function AppSidebar() {
-  const pathname = usePathname();
-
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Database className="h-4 w-4" />
-          </div>
-          <span className="text-lg">Collective</span>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Main
-            </h2>
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </div>
-
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Settings
-            </h2>
-            {secondaryItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </div>
-        </SidebarMenu>
-      </SidebarContent>
-      <SidebarFooter>
+    <Sidebar variant="inset" {...props}>
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="hover:bg-accent">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder-user.jpg" />
-                    <AvatarFallback>AC</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-sm">
-                    <span className="font-medium">Acme Corp</span>
-                    <span className="text-xs text-muted-foreground">
-                      admin@acme.com
-                    </span>
-                  </div>
-                  <ChevronUp className="ml-auto h-4 w-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                className="w-[--radix-popper-anchor-width]"
-              >
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">Account Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/billing">Billing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/dashboard">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                  <Telescope className="size-5" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Collective</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Requester Dashboard
+                  </span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navMain.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.href}>
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm"
+                  variant="outline"
+                >
+                  <Link href="/dashboard/requests/new">
+                    <Plus className="size-4" />
+                    <span>New Request</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }
