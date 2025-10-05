@@ -4,22 +4,22 @@ import "./globals.css";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Dataset Crowdsource",
-    template: "%s | Dataset Crowdsource",
+    default: "Collective | AI Dataset Crowdsourcing Platform",
+    template: "%s | Collective",
   },
   description:
-    "Crowdsource rich, real-world datasets with a platform built for requesters, contributors, and admins.",
+    "Build production-grade AI datasets at scale. Collective connects organizations with a global network of contributors to create rich, diverse datasets for machine learning.",
 };
 
 export default function RootLayout({
@@ -30,9 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <div className="pointer-events-none fixed inset-0 -z-10 bg-oa-radial" />
+        <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),transparent)]" />
         {children}
         <Toaster richColors position="top-right" />
       </body>

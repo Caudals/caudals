@@ -3,25 +3,30 @@
 
 :root {
   --radius: 1rem;
-  --background: 42 35% 98%;
-  --foreground: 222 47% 12%;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 222 40% 18%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 15%;
-  --primary: 220 80% 56%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
   --primary-foreground: 210 40% 98%;
-  --secondary: 30 15% 94%;
-  --secondary-foreground: 222 47% 20%;
-  --muted: 30 12% 92%;
-  --muted-foreground: 218 15% 40%;
-  --accent: 190 68% 64%;
-  --accent-foreground: 214 50% 14%;
-  --destructive: 0 83% 62%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 30 20% 88%;
-  --input: 35 22% 86%;
-  --ring: 220 80% 60%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 220 13% 95%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 204 94% 94%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221 83% 53%;
   --chart-1: 220 70% 50%;
   --chart-2: 174 70% 41%;
   --chart-3: 12 76% 61%;
@@ -38,59 +43,55 @@
 }
 
 :is(.dark) {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --background: 222 47% 11%;
+  --foreground: 210 40% 98%;
+  --card: 222 47% 15%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 15%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 222 47% 20%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 224 77% 64%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+  --sidebar: 222 47% 15%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 217 33% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 17%;
+  --sidebar-ring: 224 77% 64%;
 }
 
 .bg-oa-radial {
   background: radial-gradient(
-      1200px 600px at 10% -10%,
-      rgba(79, 70, 229, 0.18),
-      transparent 60%
+      ellipse 80% 50% at 50% -20%,
+      rgba(120, 119, 198, 0.3),
+      transparent 50%
     ),
     radial-gradient(
-      900px 500px at 90% -20%,
-      rgba(14, 165, 233, 0.14),
-      transparent 55%
+      ellipse 60% 50% at 0% 50%,
+      rgba(147, 197, 253, 0.25),
+      transparent 50%
     ),
     radial-gradient(
-      800px 450px at 50% 120%,
-      rgba(236, 72, 153, 0.12),
-      transparent 60%
-    ),
-    radial-gradient(
-      600px 300px at 20% 110%,
-      rgba(16, 185, 129, 0.1),
-      transparent 65%
+      ellipse 60% 50% at 100% 50%,
+      rgba(196, 181, 253, 0.25),
+      transparent 50%
     );
 }
 
@@ -116,10 +117,16 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
-    outline-color: hsl(var(--ring) / 0.5);
   }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .shadow-xs {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
 }
