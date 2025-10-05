@@ -1,0 +1,530 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+
+const steps = [
+  {
+    id: 1,
+    title: "Basic Info",
+    description: "Title and description",
+  },
+  {
+    id: 2,
+    title: "Requirements",
+    description: "Data specifications",
+  },
+  {
+    id: 3,
+    title: "Compensation",
+    description: "Reward and pricing",
+  },
+  {
+    id: 4,
+    title: "Review",
+    description: "Review and publish",
+  },
+];
+
+export function NewRequestForm() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    dataType: "",
+    sampleCount: "",
+    qualityCriteria: "",
+    rewardAmount: "",
+    currency: "USD",
+    timeline: "",
+  });
+
+  const updateFormData = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const nextStep = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Progress Steps */}
+      <div className="relative">
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          {steps.map((step, index) => (
+            <div
+              key={step.id}
+              className="relative flex flex-1 flex-col items-center"
+            >
+              {/* Connector Line */}
+              {index < steps.length - 1 && (
+                <div
+                  className={`absolute left-[calc(50%+20px)] top-6 h-[2px] w-[calc(100%-40px)] transition-all ${
+                    currentStep > step.id ? "bg-emerald-500" : "bg-muted"
+                  }`}
+                />
+              )}
+
+              {/* Step Circle */}
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                    currentStep > step.id
+                      ? "bg-emerald-500 border-emerald-500 text-white shadow-md"
+                      : currentStep === step.id
+                      ? "bg-gray-100 border-gray-300 text-gray-700 shadow-md"
+                      : "border-muted bg-background text-muted-foreground"
+                  }`}
+                >
+                  {currentStep > step.id ? (
+                    <Check className="h-6 w-6" />
+                  ) : (
+                    <span className="text-base font-semibold">{step.id}</span>
+                  )}
+                </div>
+
+                {/* Step Info */}
+                <div className="flex flex-col items-center gap-1">
+                  <p
+                    className={`text-sm font-semibold transition-colors ${
+                      currentStep >= step.id
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {step.title}
+                  </p>
+                  <p className="hidden text-xs text-muted-foreground sm:block">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator className="my-8" />
+
+      {/* Step 1: Basic Info */}
+      {currentStep === 1 && (
+        <Card className="border-2 shadow-sm">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-2xl">Basic Information</CardTitle>
+            <CardDescription className="text-base">
+              Provide a clear title and description for your dataset request
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-base">
+                Request Title*
+              </Label>
+              <Input
+                id="title"
+                placeholder="e.g., Street Scene Images for Autonomous Driving"
+                value={formData.title}
+                onChange={(e) => updateFormData("title", e.target.value)}
+                className="h-11"
+              />
+              <p className="text-xs text-muted-foreground">
+                A descriptive title that clearly explains what data you need
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-base">
+                Description*
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Describe what kind of data you need, its purpose, and any specific requirements..."
+                rows={5}
+                value={formData.description}
+                onChange={(e) => updateFormData("description", e.target.value)}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Explain the purpose and context of your dataset request
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-base">
+                  Category*
+                </Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => updateFormData("category", value)}
+                >
+                  <SelectTrigger id="category" className="h-11">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="computer-vision">
+                      Computer Vision
+                    </SelectItem>
+                    <SelectItem value="nlp">Natural Language</SelectItem>
+                    <SelectItem value="speech">Speech & Audio</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dataType" className="text-base">
+                  Data Type*
+                </Label>
+                <Select
+                  value={formData.dataType}
+                  onValueChange={(value) => updateFormData("dataType", value)}
+                >
+                  <SelectTrigger id="dataType" className="h-11">
+                    <SelectValue placeholder="Select data type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="image">Images</SelectItem>
+                    <SelectItem value="video">Videos</SelectItem>
+                    <SelectItem value="audio">Audio</SelectItem>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="mixed">Mixed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Requirements */}
+      {currentStep === 2 && (
+        <Card className="border-2 shadow-sm">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-2xl">Data Requirements</CardTitle>
+            <CardDescription className="text-base">
+              Define the specifications and quality criteria for submissions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="sampleCount" className="text-base">
+                Target Sample Count*
+              </Label>
+              <Input
+                id="sampleCount"
+                type="number"
+                placeholder="e.g., 1000"
+                value={formData.sampleCount}
+                onChange={(e) => updateFormData("sampleCount", e.target.value)}
+                className="h-11"
+              />
+              <p className="text-xs text-muted-foreground">
+                How many samples do you need to collect?
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qualityCriteria" className="text-base">
+                Quality Criteria*
+              </Label>
+              <Textarea
+                id="qualityCriteria"
+                placeholder="Describe your quality requirements, such as resolution, lighting conditions, format specifications, etc."
+                rows={5}
+                value={formData.qualityCriteria}
+                onChange={(e) =>
+                  updateFormData("qualityCriteria", e.target.value)
+                }
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Specify what makes a submission acceptable
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base">Example Quality Standards</Label>
+              <div className="grid gap-2 rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Minimum resolution: 1920x1080</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Clear, well-lit conditions</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>No watermarks or text overlays</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Original content only (no stock photos)</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Compensation */}
+      {currentStep === 3 && (
+        <Card className="border-2 shadow-sm">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-2xl">Compensation & Timeline</CardTitle>
+            <CardDescription className="text-base">
+              Set the reward amount and expected timeline for completion
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="rewardAmount" className="text-base">
+                  Reward per Submission*
+                </Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.currency}
+                    onValueChange={(value) => updateFormData("currency", value)}
+                  >
+                    <SelectTrigger className="h-11 w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="rewardAmount"
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g., 2.50"
+                    value={formData.rewardAmount}
+                    onChange={(e) =>
+                      updateFormData("rewardAmount", e.target.value)
+                    }
+                    className="h-11"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Amount paid per approved submission
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeline" className="text-base">
+                  Expected Timeline
+                </Label>
+                <Select
+                  value={formData.timeline}
+                  onValueChange={(value) => updateFormData("timeline", value)}
+                >
+                  <SelectTrigger id="timeline" className="h-11">
+                    <SelectValue placeholder="Select timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-week">1 Week</SelectItem>
+                    <SelectItem value="2-weeks">2 Weeks</SelectItem>
+                    <SelectItem value="1-month">1 Month</SelectItem>
+                    <SelectItem value="flexible">Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When do you need the data?
+                </p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="rounded-lg border bg-muted/30 p-6">
+              <h4 className="mb-4 font-semibold">Cost Estimate</h4>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Target samples:</span>
+                  <span className="font-medium">
+                    {formData.sampleCount || "0"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Reward per sample:
+                  </span>
+                  <span className="font-medium">
+                    {formData.currency} {formData.rewardAmount || "0.00"}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-base">
+                  <span className="font-semibold">Estimated Total:</span>
+                  <span className="font-bold">
+                    {formData.currency}{" "}
+                    {(
+                      Number(formData.sampleCount || 0) *
+                      Number(formData.rewardAmount || 0)
+                    ).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Review */}
+      {currentStep === 4 && (
+        <Card className="border-2 shadow-sm">
+          <CardHeader className="space-y-2 pb-6">
+            <CardTitle className="text-2xl">Review Your Request</CardTitle>
+            <CardDescription className="text-base">
+              Review all details before publishing your dataset request
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h4 className="mb-3 font-semibold">Basic Information</h4>
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Title:</span>
+                    <span className="font-medium">
+                      {formData.title || "Not set"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Category:</span>
+                    <Badge variant="secondary">
+                      {formData.category || "Not set"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Data Type:</span>
+                    <Badge variant="secondary">
+                      {formData.dataType || "Not set"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="mb-3 font-semibold">Requirements</h4>
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Target Samples:
+                    </span>
+                    <span className="font-medium">
+                      {formData.sampleCount || "0"}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">
+                      Quality Criteria:
+                    </span>
+                    <p className="mt-1 text-xs">
+                      {formData.qualityCriteria || "Not specified"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="mb-3 font-semibold">Compensation</h4>
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Reward per Sample:
+                    </span>
+                    <span className="font-medium">
+                      {formData.currency} {formData.rewardAmount || "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Timeline:</span>
+                    <span className="font-medium">
+                      {formData.timeline || "Not set"}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Estimated Total:</span>
+                    <span className="font-bold">
+                      {formData.currency}{" "}
+                      {(
+                        Number(formData.sampleCount || 0) *
+                        Number(formData.rewardAmount || 0)
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between border-t pt-6">
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={prevStep}
+          disabled={currentStep === 1}
+          className="min-w-[120px]"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Previous
+        </Button>
+
+        {currentStep < steps.length ? (
+          <Button size="lg" onClick={nextStep} className="min-w-[120px]">
+            Next
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button size="lg" className="min-w-[180px]">
+            <Check className="mr-2 h-4 w-4" />
+            Publish Request
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
