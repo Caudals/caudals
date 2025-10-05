@@ -20,7 +20,7 @@ export function Header({ links = [] }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
+      <div className="container mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-4">
         <Link href="/" className="flex items-center gap-2">
           <Telescope className="h-5 w-5" />
           <span className="text-xl font-semibold tracking-tight">
