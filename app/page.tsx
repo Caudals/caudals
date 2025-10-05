@@ -25,7 +25,6 @@ export default function Home() {
           { href: "#how-it-works", label: "How it works" },
           { href: "#use-cases", label: "Use cases" },
         ]}
-        showDashboardCTA
       />
 
       <main className="flex flex-col">
