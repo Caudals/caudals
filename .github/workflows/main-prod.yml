@@ -66,6 +66,3 @@ jobs:
             .next/cache
             .vercel/cache
           key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
-
-      - name: Summary
-        run: echo "✅ Production deployed: ${{ steps.deploy.outputs.prod_url }}"
