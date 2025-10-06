@@ -49,7 +49,7 @@ export function NavUser() {
       toast.success("Signed out successfully");
       router.push("/");
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error("Failed to sign out");
     }
   };
