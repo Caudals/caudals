@@ -1,38 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
-  
-  // Get the pathname
-  const pathname = request.nextUrl.pathname;
-  
-  // Only apply role-based redirection for dashboard routes
-  if (pathname.startsWith('/dashboard')) {
-    // Get user from the response headers (set by updateSession)
-    const user = response.headers.get('x-user');
-    
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        const userRole = userData.role;
-        
-        // Redirect based on role
-        if (pathname === '/dashboard' && (userRole === 'contributor' || userRole === 'both')) {
-          return NextResponse.redirect(new URL('/dashboard/contributor', request.url));
-        }
-        
-        if (pathname === '/dashboard/contributor' && userRole === 'requester') {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
-        
-      } catch (error) {
-        console.error('Error parsing user data in middleware:', error);
-      }
-    }
-  }
-  
-  return response;
+  return await updateSession(request);
 }
 
 export const config = {

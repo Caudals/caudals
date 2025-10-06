@@ -4,11 +4,8 @@ import { ContributorStatsCards } from "@/components/dashboard/contributor-stats-
 import { RecentContributions } from "@/components/dashboard/recent-contributions";
 import { WalletOverview } from "@/components/dashboard/wallet-overview";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { requireContributor } from "@/lib/auth/route-guard";
 
 export default async function ContributorDashboardPage() {
-  // Protect this route - only contributors can access
-  await requireContributor();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />

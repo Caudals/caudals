@@ -8,6 +8,7 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.log('No user found, redirecting to sign-in');
       redirect('/auth/sign-in');
     }
 
@@ -18,13 +19,16 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
       .single();
 
     if (profileError || !profile) {
+      console.log('No profile found, redirecting to sign-in');
       redirect('/auth/sign-in');
     }
 
     const userRole = profile.role;
+    console.log('User role:', userRole, 'Allowed roles:', allowedRoles);
 
     // If user role is not in allowed roles, redirect to appropriate dashboard
     if (!allowedRoles.includes(userRole)) {
+      console.log('User role not allowed, redirecting...');
       if (userRole === 'contributor') {
         redirect('/dashboard/contributor');
       } else if (userRole === 'requester') {
@@ -36,6 +40,7 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
       }
     }
 
+    console.log('Access granted for role:', userRole);
     return { user, userRole };
   } catch (error) {
     console.error('Error in route guard:', error);

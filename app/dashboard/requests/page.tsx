@@ -6,11 +6,8 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getUserDatasetRequests } from "@/lib/actions/dataset-actions";
-import { requireRequester } from "@/lib/auth/route-guard";
 
 export default async function RequestsPage() {
-  // Protect this route - only requesters can access
-  await requireRequester();
   const requests = await getUserDatasetRequests();
   return (
     <SidebarProvider defaultOpen={true}>
