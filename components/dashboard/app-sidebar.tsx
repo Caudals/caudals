@@ -107,19 +107,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     fetchUserRole();
   }, [user]);
 
-  const navItems =
-    currentView === "contributor"
-      ? contributorNav
-      : currentView === "admin"
-      ? adminNav
-      : requesterNav;
+  // Determine navigation items based on user role, not current view
+  const navItems = userRole === "contributor" 
+    ? contributorNav 
+    : userRole === "admin" 
+    ? adminNav 
+    : requesterNav;
 
-  const viewLabel =
-    currentView === "contributor"
-      ? "Contributor"
-      : currentView === "admin"
-      ? "Admin"
-      : "Requester";
+  const viewLabel = userRole === "contributor"
+    ? "Contributor"
+    : userRole === "admin"
+    ? "Admin"
+    : "Requester";
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -127,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={userRole === 'contributor' || userRole === 'both' ? "/dashboard/contributor" : "/dashboard"}>
+              <Link href={userRole === 'contributor' ? "/dashboard/contributor" : "/dashboard"}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                   <Telescope className="size-5" />
                 </div>

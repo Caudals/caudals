@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { getUserRole, getRedirectPathForRole } from "@/lib/auth/role-redirect";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -13,8 +12,20 @@ export async function GET(request: Request) {
     
     if (!error && data.user) {
       // Get user role and determine redirect path
-      const userRole = await getUserRole(data.user.id);
-      const redirectPath = userRole ? await getRedirectPathForRole(userRole) : "/dashboard";
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+      
+      const userRole = profile?.role;
+      let redirectPath = "/dashboard"; // Default for requesters
+      
+      if (userRole === 'contributor') {
+        redirectPath = "/dashboard/contributor";
+      } else if (userRole === 'admin') {
+        redirectPath = "/admin";
+      }
       
       const finalPath = next || redirectPath;
       

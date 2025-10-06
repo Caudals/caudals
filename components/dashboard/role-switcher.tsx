@@ -35,7 +35,8 @@ export function RoleSwitcher({ userRole, onRoleChange }: RoleSwitcherProps) {
     }
   };
 
-  const canSwitchRoles = userRole === "both" || userRole === "admin";
+  // Only admins can switch roles, regular users are restricted to their role
+  const canSwitchRoles = userRole === "admin";
 
   if (!canSwitchRoles) {
     // Show current role only

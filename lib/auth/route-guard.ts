@@ -1,0 +1,57 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
+export async function requireRole(allowedRoles: string[], redirectPath?: string) {
+  const supabase = await createClient();
+  
+  try {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      redirect('/auth/sign-in');
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      redirect('/auth/sign-in');
+    }
+
+    const userRole = profile.role;
+
+    // If user role is not in allowed roles, redirect to appropriate dashboard
+    if (!allowedRoles.includes(userRole)) {
+      if (userRole === 'contributor') {
+        redirect('/dashboard/contributor');
+      } else if (userRole === 'requester') {
+        redirect('/dashboard');
+      } else if (userRole === 'admin') {
+        redirect('/admin');
+      } else {
+        redirect(redirectPath || '/dashboard');
+      }
+    }
+
+    return { user, userRole };
+  } catch (error) {
+    console.error('Error in route guard:', error);
+    redirect('/auth/sign-in');
+  }
+}
+
+// Helper functions for specific role checks
+export async function requireRequester() {
+  return await requireRole(['requester']);
+}
+
+export async function requireContributor() {
+  return await requireRole(['contributor']);
+}
+
+export async function requireAdmin() {
+  return await requireRole(['admin']);
+}
