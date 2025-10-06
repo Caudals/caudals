@@ -21,7 +21,7 @@ export function HeroSection() {
             className="border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary"
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5 bg-primary/90" />
-            Trusted by leading AI companies asandova
+            Trusted by leading AI companies asandova test
           </Badge>
         </motion.div>
 
