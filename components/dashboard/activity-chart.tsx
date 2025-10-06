@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Card,
   CardContent,
@@ -7,44 +5,51 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getActivityChartData } from "@/lib/actions/dashboard-actions";
 
-export function ActivityChart() {
-  const data = [
-    { month: "Jan", submissions: 186 },
-    { month: "Feb", submissions: 305 },
-    { month: "Mar", submissions: 237 },
-    { month: "Apr", submissions: 273 },
-    { month: "May", submissions: 409 },
-    { month: "Jun", submissions: 514 },
-  ];
+export async function ActivityChart() {
+  const rawData = await getActivityChartData();
+
+  // Format data for display (group by week or show last 30 days)
+  const data =
+    rawData.length > 0
+      ? rawData.slice(-7).map((d) => ({
+          date: new Date(d.date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          submissions: d.submissions,
+        }))
+      : [{ date: "No data", submissions: 0 }];
 
   const maxValue = Math.max(...data.map((d) => d.submissions));
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Submissions Over Time</CardTitle>
-        <CardDescription>
-          Total approved submissions in the last 6 months
-        </CardDescription>
+        <CardTitle>Recent Activity</CardTitle>
+        <CardDescription>Daily submissions in the last 7 days</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[200px] w-full">
           <div className="flex h-full items-end justify-between gap-2">
-            {data.map((item) => (
+            {data.map((item, index) => (
               <div
-                key={item.month}
+                key={index}
                 className="flex flex-1 flex-col items-center gap-2"
               >
                 <div
                   className="w-full rounded-t-md bg-primary transition-all hover:opacity-80"
                   style={{
-                    height: `${(item.submissions / maxValue) * 100}%`,
+                    height:
+                      maxValue > 0
+                        ? `${(item.submissions / maxValue) * 100}%`
+                        : "10%",
                     minHeight: "20px",
                   }}
                 />
                 <span className="text-xs text-muted-foreground">
-                  {item.month}
+                  {item.date}
                 </span>
               </div>
             ))}

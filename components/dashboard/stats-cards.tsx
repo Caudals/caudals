@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Users, CheckCircle, DollarSign } from "lucide-react";
+import { getUserDashboardStats } from "@/lib/actions/dashboard-actions";
 
-export function StatsCards() {
+export async function StatsCards() {
+  const dashboardStats = await getUserDashboardStats();
+
   const stats = [
     {
       title: "Active Requests",
-      value: "12",
-      description: "+2 from last month",
+      value: dashboardStats.activeRequests.toString(),
+      description: "Currently active datasets",
       icon: FileText,
       trend: "up",
       color: "text-blue-600",
@@ -14,8 +17,8 @@ export function StatsCards() {
     },
     {
       title: "Total Contributors",
-      value: "2,350",
-      description: "+180 from last month",
+      value: dashboardStats.totalContributors.toLocaleString(),
+      description: "Unique contributors",
       icon: Users,
       trend: "up",
       color: "text-emerald-600",
@@ -23,8 +26,8 @@ export function StatsCards() {
     },
     {
       title: "Approved Submissions",
-      value: "8,420",
-      description: "+1,234 from last month",
+      value: dashboardStats.approvedSubmissions.toLocaleString(),
+      description: "Total approved",
       icon: CheckCircle,
       trend: "up",
       color: "text-violet-600",
@@ -32,8 +35,11 @@ export function StatsCards() {
     },
     {
       title: "Total Spent",
-      value: "$45,231",
-      description: "+$8,420 from last month",
+      value: `$${dashboardStats.totalSpent.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      description: "Total rewards paid",
       icon: DollarSign,
       trend: "up",
       color: "text-amber-600",

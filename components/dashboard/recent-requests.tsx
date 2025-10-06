@@ -9,38 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { getUserDatasetRequests } from "@/lib/actions/dataset-actions";
 
-export function RecentRequests() {
-  const requests = [
-    {
-      id: 1,
-      title: "Street Scene Images",
-      status: "active",
-      submissions: 234,
-      target: 500,
-    },
-    {
-      id: 2,
-      title: "Voice Samples - English",
-      status: "active",
-      submissions: 89,
-      target: 200,
-    },
-    {
-      id: 3,
-      title: "Product Reviews Dataset",
-      status: "paused",
-      submissions: 450,
-      target: 500,
-    },
-    {
-      id: 4,
-      title: "Medical Image Labels",
-      status: "active",
-      submissions: 156,
-      target: 300,
-    },
-  ];
+export async function RecentRequests() {
+  const allRequests = await getUserDatasetRequests();
+  const requests = allRequests.slice(0, 4);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,34 +35,46 @@ export function RecentRequests() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {requests.map((request) => (
-          <div
-            key={request.id}
-            className="flex items-center justify-between space-x-4"
-          >
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">
-                {request.title}
-              </p>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={getStatusColor(request.status)}
-                >
-                  {request.status}
-                </Badge>
-                <p className="text-xs text-muted-foreground">
-                  {request.submissions}/{request.target} submissions
-                </p>
+        {requests.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No dataset requests yet. Create your first one!
+          </p>
+        ) : (
+          <>
+            {requests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between space-x-4"
+              >
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {request.title}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={getStatusColor(request.status)}
+                    >
+                      {request.status}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground">
+                      {request.samples_collected}/{request.samples_needed}{" "}
+                      submissions
+                    </p>
+                  </div>
+                </div>
+                <div className="flex h-full items-center">
+                  <div className="text-sm font-medium">
+                    {Math.round(
+                      (request.samples_collected / request.samples_needed) * 100
+                    )}
+                    %
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex h-full items-center">
-              <div className="text-sm font-medium">
-                {Math.round((request.submissions / request.target) * 100)}%
-              </div>
-            </div>
-          </div>
-        ))}
+            ))}
+          </>
+        )}
         <Button variant="outline" className="w-full" asChild>
           <Link href="/dashboard/requests">
             View All Requests

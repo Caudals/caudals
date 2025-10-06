@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { getUserDatasetRequests } from "@/lib/actions/dataset-actions";
 
-export default function RequestsPage() {
+export default async function RequestsPage() {
+  const requests = await getUserDatasetRequests();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />
@@ -35,7 +37,7 @@ export default function RequestsPage() {
               </Link>
             </Button>
           </div>
-          <RequestsTable />
+          <RequestsTable requests={requests} />
         </div>
       </SidebarInset>
     </SidebarProvider>
