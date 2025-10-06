@@ -59,34 +59,6 @@ const adminNav = [
   { title: "Users", icon: Users, href: "/admin/users" },
 ];
 
-const contributorNav = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard/contributor",
-  },
-  {
-    title: "Browse Projects",
-    icon: Search,
-    href: "/browse",
-  },
-  {
-    title: "My Contributions",
-    icon: Upload,
-    href: "/dashboard/contributor/contributions",
-  },
-  {
-    title: "Wallet",
-    icon: Wallet,
-    href: "/dashboard/contributor/wallet",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/dashboard/settings",
-  },
-];
-
 // Removed bothNav - users can only be contributor or requester
 
 const requesterProjects = [
