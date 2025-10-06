@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createDatasetRequest } from "@/lib/actions/dataset-actions";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,7 +50,9 @@ const steps = [
 ];
 
 export function NewRequestForm() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -55,6 +60,7 @@ export function NewRequestForm() {
     dataType: "",
     sampleCount: "",
     qualityCriteria: "",
+    requirements: "",
     rewardAmount: "",
     currency: "USD",
     timeline: "",
@@ -73,6 +79,68 @@ export function NewRequestForm() {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    try {
+      // Calculate deadline based on timeline
+      const deadline = new Date();
+      switch (formData.timeline) {
+        case "1-week":
+          deadline.setDate(deadline.getDate() + 7);
+          break;
+        case "2-weeks":
+          deadline.setDate(deadline.getDate() + 14);
+          break;
+        case "1-month":
+          deadline.setMonth(deadline.getMonth() + 1);
+          break;
+        case "flexible":
+          deadline.setMonth(deadline.getMonth() + 3);
+          break;
+        default:
+          deadline.setMonth(deadline.getMonth() + 1);
+      }
+
+      // Parse quality criteria and requirements (split by newline or comma)
+      const qualityCriteria = formData.qualityCriteria
+        .split(/\n|,/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      const requirements = formData.requirements
+        .split(/\n|,/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      const result = await createDatasetRequest({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        dataType: formData.dataType,
+        samplesNeeded: Number(formData.sampleCount),
+        qualityCriteria,
+        requirements,
+        rewardAmount: Number(formData.rewardAmount),
+        currency: formData.currency,
+        deadline: deadline.toISOString().split("T")[0],
+      });
+
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Dataset request created successfully!");
+        router.push("/dashboard/requests");
+        router.refresh();
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -260,7 +328,7 @@ export function NewRequestForm() {
               </Label>
               <Textarea
                 id="qualityCriteria"
-                placeholder="Describe your quality requirements, such as resolution, lighting conditions, format specifications, etc."
+                placeholder="Enter each criterion on a new line or separated by commas&#10;e.g., Minimum resolution: 1920x1080&#10;Clear, well-lit conditions&#10;No watermarks"
                 rows={5}
                 value={formData.qualityCriteria}
                 onChange={(e) =>
@@ -269,7 +337,24 @@ export function NewRequestForm() {
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground">
-                Specify what makes a submission acceptable
+                Specify what makes a submission acceptable (one per line)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="requirements" className="text-base">
+                Contributor Requirements
+              </Label>
+              <Textarea
+                id="requirements"
+                placeholder="Enter each requirement on a new line or separated by commas&#10;e.g., Smartphone with 12MP+ camera&#10;Access to outdoor spaces"
+                rows={4}
+                value={formData.requirements}
+                onChange={(e) => updateFormData("requirements", e.target.value)}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                What contributors need to participate (one per line)
               </p>
             </div>
 
@@ -519,9 +604,14 @@ export function NewRequestForm() {
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
-          <Button size="lg" className="min-w-[180px]">
+          <Button
+            size="lg"
+            className="min-w-[180px]"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
             <Check className="mr-2 h-4 w-4" />
-            Publish Request
+            {isSubmitting ? "Publishing..." : "Publish Request"}
           </Button>
         )}
       </div>

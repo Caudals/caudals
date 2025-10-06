@@ -25,6 +25,7 @@ import {
   Clock,
   Verified,
 } from "lucide-react";
+import { ContributeDialog } from "./contribute-dialog";
 
 interface DatasetCardProps {
   dataset: Dataset;
@@ -147,18 +148,23 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
         <Button variant="outline" className="flex-1">
           View Details
         </Button>
-        <Button
-          className="flex-1"
-          disabled={
-            dataset.status === "completed" || dataset.status === "paused"
-          }
-        >
-          {dataset.status === "completed"
-            ? "Completed"
-            : dataset.status === "paused"
-            ? "Paused"
-            : "Contribute"}
-        </Button>
+        {dataset.status === "completed" ? (
+          <Button className="flex-1" disabled>
+            Completed
+          </Button>
+        ) : dataset.status === "paused" ? (
+          <Button className="flex-1" disabled>
+            Paused
+          </Button>
+        ) : (
+          <ContributeDialog
+            datasetId={dataset.id}
+            datasetTitle={dataset.title}
+            dataType={dataset.dataType}
+          >
+            <Button className="flex-1">Contribute</Button>
+          </ContributeDialog>
+        )}
       </CardFooter>
     </Card>
   );

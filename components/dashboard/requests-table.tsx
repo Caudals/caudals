@@ -27,61 +27,53 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Pause, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
+import {
+  updateDatasetRequest,
+  deleteDatasetRequest,
+} from "@/lib/actions/dataset-actions";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { categoryLabels } from "@/lib/data/datasets";
 
-const requests = [
-  {
-    id: "req_001",
-    title: "Street Scene Images",
-    type: "Computer Vision",
-    status: "active",
-    submissions: 234,
-    target: 500,
-    reward: "$2.50",
-    created: "2024-01-15",
-  },
-  {
-    id: "req_002",
-    title: "Voice Samples - English",
-    type: "Speech & Audio",
-    status: "active",
-    submissions: 89,
-    target: 200,
-    reward: "$5.00",
-    created: "2024-01-20",
-  },
-  {
-    id: "req_003",
-    title: "Product Reviews Dataset",
-    type: "Natural Language",
-    status: "paused",
-    submissions: 450,
-    target: 500,
-    reward: "$1.50",
-    created: "2024-01-10",
-  },
-  {
-    id: "req_004",
-    title: "Medical Image Labels",
-    type: "Computer Vision",
-    status: "active",
-    submissions: 156,
-    target: 300,
-    reward: "$8.00",
-    created: "2024-01-25",
-  },
-  {
-    id: "req_005",
-    title: "Sentiment Analysis Data",
-    type: "Natural Language",
-    status: "completed",
-    submissions: 1000,
-    target: 1000,
-    reward: "$1.00",
-    created: "2023-12-15",
-  },
-];
+interface RequestsTableProps {
+  requests: any[];
+}
 
-export function RequestsTable() {
+export function RequestsTable({ requests }: RequestsTableProps) {
+  const router = useRouter();
+  const handleStatusChange = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === "active" ? "paused" : "active";
+    const result = await updateDatasetRequest(id, { status: newStatus });
+
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success(
+        `Request ${newStatus === "active" ? "resumed" : "paused"} successfully`
+      );
+      router.refresh();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this request? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    const result = await deleteDatasetRequest(id);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Request deleted successfully");
+      router.refresh();
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -100,6 +92,12 @@ export function RequestsTable() {
         return (
           <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20 hover:bg-blue-500/20">
             Completed
+          </Badge>
+        );
+      case "closing-soon":
+        return (
+          <Badge className="bg-orange-500/10 text-orange-700 border-orange-500/20 hover:bg-orange-500/20">
+            Closing Soon
           </Badge>
         );
       default:
@@ -129,68 +127,96 @@ export function RequestsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {requests.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell className="font-medium">{request.title}</TableCell>
-                <TableCell>{request.type}</TableCell>
-                <TableCell>{getStatusBadge(request.status)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-24 rounded-full bg-muted">
-                      <div
-                        className="h-2 rounded-full bg-primary"
-                        style={{
-                          width: `${
-                            (request.submissions / request.target) * 100
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {request.submissions}/{request.target}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>{request.reward}</TableCell>
-                <TableCell>{request.created}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/requests/${request.id}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {request.status === "active" ? (
-                        <DropdownMenuItem>
-                          <Pause className="mr-2 h-4 w-4" />
-                          Pause Request
-                        </DropdownMenuItem>
-                      ) : request.status === "paused" ? (
-                        <DropdownMenuItem>
-                          <Play className="mr-2 h-4 w-4" />
-                          Resume Request
-                        </DropdownMenuItem>
-                      ) : null}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Request
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {requests.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  No dataset requests found. Create your first one!
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              requests.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell className="font-medium">{request.title}</TableCell>
+                  <TableCell>
+                    {categoryLabels[request.category] || request.category}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(request.status)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 rounded-full bg-muted">
+                        <div
+                          className="h-2 rounded-full bg-primary"
+                          style={{
+                            width: `${
+                              (request.samples_collected /
+                                request.samples_needed) *
+                              100
+                            }%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {request.samples_collected}/{request.samples_needed}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>${request.reward_amount}</TableCell>
+                  <TableCell>
+                    {new Date(request.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/browse`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View in Browse
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {request.status === "active" ? (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleStatusChange(request.id, request.status)
+                            }
+                          >
+                            <Pause className="mr-2 h-4 w-4" />
+                            Pause Request
+                          </DropdownMenuItem>
+                        ) : request.status === "paused" ? (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleStatusChange(request.id, request.status)
+                            }
+                          >
+                            <Play className="mr-2 h-4 w-4" />
+                            Resume Request
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(request.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Request
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>
