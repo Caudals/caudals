@@ -4,11 +4,7 @@ import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
-import { requireRequester } from "@/lib/auth/route-protection";
-
 export default async function AnalyticsPage() {
-  // Protect this route - only requesters can access
-  await requireRequester();
   const metrics = [
     {
       title: "Avg. Completion Time",
