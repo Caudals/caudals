@@ -26,39 +26,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js 20
+      - name: Use Node.js 20 + cache
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - name: Cache npm
+      - name: Restore Next/Vercel build cache
         uses: actions/cache@v4
         with:
           path: |
-            ~/.npm
-            **/node_modules
-          key: ${{ runner.os }}-node20-npm-${{ hashFiles('**/package-lock.json') }}
+            .next/cache
+            .vercel/cache
+          key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts','**/*.tsx','**/*.js','**/*.jsx','**/*.cjs','**/*.mjs') }}
           restore-keys: |
-            ${{ runner.os }}-node20-npm-
+            next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
 
       - name: Install deps
         run: npm ci
 
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-
       - name: Pull Vercel env (production)
-        run: vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+        run: npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
 
       - name: Build (prebuilt)
-        run: vercel build --token "$VERCEL_TOKEN"
+        run: npx -y vercel@latest build --token "$VERCEL_TOKEN"
 
       - name: Deploy (production)
         id: deploy
         run: |
-          url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          url=$(npx -y vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
           echo "prod_url=$url" >> $GITHUB_OUTPUT
 
+      - name: Save Next/Vercel build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+            .vercel/cache
+          key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
+
       - name: Summary
-        run: |
-          echo "✅ Production deployed: ${{ steps.deploy.outputs.prod_url }}"
+        run: echo "✅ Production deployed: ${{ steps.deploy.outputs.prod_url }}"
