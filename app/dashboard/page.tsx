@@ -4,11 +4,8 @@ import { StatsCards } from "@/components/dashboard/stats-cards";
 import { RecentRequests } from "@/components/dashboard/recent-requests";
 import { ActivityChart } from "@/components/dashboard/activity-chart";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { requireRequester } from "@/lib/auth/route-guard";
 
 export default async function RequesterDashboardPage() {
-  // Protect this route - only requesters can access
-  await requireRequester();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />
