@@ -132,7 +132,7 @@ export function NewRequestForm() {
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Dataset request created successfully!");
+        toast.success("Dataset request submitted! Pending admin approval.");
         router.push("/dashboard/requests");
         router.refresh();
       }

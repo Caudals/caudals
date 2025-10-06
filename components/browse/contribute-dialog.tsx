@@ -38,6 +38,7 @@ export function ContributeDialog({
   const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const getAcceptedFormats = () => {
     switch (dataType) {
@@ -89,10 +90,13 @@ export function ContributeDialog({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Submission created successfully! Awaiting review.");
+        toast.success(
+          "Contribution submitted successfully! Pending admin approval."
+        );
         setOpen(false);
         setFiles([]);
         setNotes("");
+        setUploadProgress(0);
         router.refresh();
       }
     } catch (error) {
@@ -124,6 +128,20 @@ export function ContributeDialog({
               maxSize={50}
               onFilesSelected={setFiles}
             />
+            {isSubmitting && uploadProgress > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Uploading...</span>
+                  <span>{Math.round(uploadProgress)}%</span>
+                </div>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

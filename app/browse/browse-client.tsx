@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { DatasetCard } from "@/components/browse/dataset-card";
+import { DatasetCardImproved } from "@/components/browse/dataset-card-improved";
 import { SearchSortBar } from "@/components/browse/search-sort-bar";
 import { Dataset, DatasetFilters, SortOption } from "@/types/dataset";
 import { Button } from "@/components/ui/button";
@@ -161,7 +161,7 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
           }
         >
           {sortedDatasets.map((dataset) => (
-            <DatasetCard key={dataset.id} dataset={dataset} />
+            <DatasetCardImproved key={dataset.id} dataset={dataset} />
           ))}
         </div>
       )}

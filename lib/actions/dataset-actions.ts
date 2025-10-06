@@ -25,6 +25,7 @@ export async function getDatasets() {
       submissions(contributor_id)
     `
     )
+    .eq("approval_status", "approved") // Only show approved datasets
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -160,6 +161,7 @@ export async function createDatasetRequest(formData: {
       reward_amount: formData.rewardAmount,
       currency: formData.currency,
       deadline: formData.deadline,
+      approval_status: "pending", // All new requests need admin approval
     })
     .select()
     .single();
