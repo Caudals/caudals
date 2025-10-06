@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type UserRole = "contributor" | "requester" | "both" | "admin";
+export type UserRole = "contributor" | "requester" | "admin";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 
