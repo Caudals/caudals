@@ -34,9 +34,18 @@ import {
 import { ContributeDialog } from "@/components/browse/contribute-dialog";
 import Link from "next/link";
 
+interface Submission {
+  id: string;
+  created_at: string;
+  status: string;
+  profiles?: {
+    full_name: string;
+  };
+}
+
 interface DatasetDetailClientProps {
   dataset: Dataset;
-  submissions: any[];
+  submissions: Submission[];
 }
 
 export function DatasetDetailClient({
@@ -208,7 +217,7 @@ export function DatasetDetailClient({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentSubmissions.map((submission: any, index: number) => (
+                  {recentSubmissions.map((submission, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/50"

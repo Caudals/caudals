@@ -28,7 +28,22 @@ import { Separator } from "@/components/ui/separator";
 interface ApprovalDialogProps {
   open: boolean;
   onClose: () => void;
-  item: any;
+  item: {
+    id: string;
+    title?: string;
+    description?: string;
+    category?: string;
+    data_type?: string;
+    samples_needed?: number;
+    reward_amount?: number;
+    currency?: string;
+    quality_criteria?: string[];
+    requirements?: string[];
+    file_urls?: string[];
+    notes?: string;
+    dataset_requests?: { title: string };
+    profiles?: { full_name: string };
+  };
   type: "approve" | "reject" | "view";
   itemType: "request" | "submission";
 }
@@ -64,7 +79,7 @@ export function ApprovalDialog({
         onClose();
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred");
     } finally {
       setIsSubmitting(false);
@@ -96,7 +111,7 @@ export function ApprovalDialog({
         onClose();
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred");
     } finally {
       setIsSubmitting(false);
@@ -147,13 +162,17 @@ export function ApprovalDialog({
                 <div>
                   <h4 className="font-semibold mb-2">Category</h4>
                   <Badge variant="outline">
-                    {categoryLabels[item.category] || item.category}
+                    {item.category && categoryLabels[item.category]
+                      ? categoryLabels[item.category]
+                      : item.category || "N/A"}
                   </Badge>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Data Type</h4>
                   <Badge variant="secondary">
-                    {dataTypeLabels[item.data_type] || item.data_type}
+                    {item.data_type && dataTypeLabels[item.data_type]
+                      ? dataTypeLabels[item.data_type]
+                      : item.data_type || "N/A"}
                   </Badge>
                 </div>
               </div>
@@ -164,13 +183,13 @@ export function ApprovalDialog({
                 <div>
                   <h4 className="font-semibold mb-2">Samples Needed</h4>
                   <p className="text-sm">
-                    {item.samples_needed.toLocaleString()}
+                    {item.samples_needed?.toLocaleString() || "N/A"}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Reward per Sample</h4>
                   <p className="text-sm">
-                    ${item.reward_amount} {item.currency}
+                    ${item.reward_amount || 0} {item.currency || "USD"}
                   </p>
                 </div>
               </div>

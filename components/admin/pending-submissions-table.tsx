@@ -20,14 +20,26 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Eye } from "lucide-react";
 import { ApprovalDialog } from "./approval-dialog";
 
+interface Submission {
+  id: string;
+  file_urls?: string[];
+  created_at: string;
+  dataset_requests?: {
+    title: string;
+  };
+  profiles?: {
+    full_name: string;
+  };
+}
+
 interface PendingSubmissionsTableProps {
-  submissions: any[];
+  submissions: Submission[];
 }
 
 export function PendingSubmissionsTable({
   submissions,
 }: PendingSubmissionsTableProps) {
-  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [dialogType, setDialogType] = useState<"approve" | "reject" | null>(
     null
   );

@@ -22,12 +22,25 @@ import { CheckCircle, XCircle, Eye } from "lucide-react";
 import { ApprovalDialog } from "./approval-dialog";
 import { categoryLabels } from "@/lib/data/datasets";
 
+interface DatasetRequest {
+  id: string;
+  title: string;
+  category: string;
+  samples_needed: number;
+  reward_amount: number;
+  currency: string;
+  created_at: string;
+  profiles?: {
+    full_name: string;
+  };
+}
+
 interface PendingRequestsTableProps {
-  requests: any[];
+  requests: DatasetRequest[];
 }
 
 export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<DatasetRequest | null>(null);
   const [dialogType, setDialogType] = useState<"approve" | "reject" | null>(
     null
   );
