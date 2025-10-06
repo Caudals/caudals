@@ -36,7 +36,9 @@ export async function getDatasets() {
   // Transform database data to match Dataset type
   const datasets: Dataset[] = data.map((item) => {
     const uniqueContributors = new Set(
-      item.submissions?.map((s) => s.contributor_id) || []
+      item.submissions?.map(
+        (s: { contributor_id: string }) => s.contributor_id
+      ) || []
     );
 
     return {
@@ -93,7 +95,9 @@ export async function getDatasetById(id: string) {
   }
 
   const uniqueContributors = new Set(
-    data.submissions?.map((s) => s.contributor_id) || []
+    data.submissions?.map(
+      (s: { contributor_id: string }) => s.contributor_id
+    ) || []
   );
 
   const dataset: Dataset = {

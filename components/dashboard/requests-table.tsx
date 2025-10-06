@@ -189,9 +189,9 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
-                          <Link href={`/browse`}>
+                          <Link href={`/dashboard/requests/${request.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
-                            View in Browse
+                            Manage Submissions
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

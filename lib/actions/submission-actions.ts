@@ -3,6 +3,74 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// Get detailed submissions for a dataset (for requester view)
+export async function getDatasetSubmissionsDetailed(datasetId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Verify user owns this dataset
+  const { data: dataset } = await supabase
+    .from("dataset_requests")
+    .select("created_by")
+    .eq("id", datasetId)
+    .single();
+
+  if (dataset?.created_by !== user.id) {
+    return { error: "Unauthorized" };
+  }
+
+  const { data, error } = await supabase
+    .from("submissions")
+    .select(
+      `
+      *,
+      profiles:contributor_id (
+        id,
+        full_name,
+        avatar_url
+      )
+    `
+    )
+    .eq("dataset_request_id", datasetId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching submissions:", error);
+    return { error: error.message };
+  }
+
+  return { data };
+}
+
+// Bulk approve submissions
+export async function bulkApproveSubmissions(
+  submissionIds: string[],
+  notes?: string
+) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("submissions")
+    .update({ status: "approved", notes })
+    .in("id", submissionIds)
+    .select();
+
+  if (error) {
+    console.error("Error bulk approving:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/requests");
+  return { data };
+}
+
 export async function createSubmission(formData: {
   datasetRequestId: string;
   fileUrls: string[];

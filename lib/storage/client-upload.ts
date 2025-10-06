@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 export async function uploadFileClient(
   file: File,
   bucket: string,
-  path?: string
-): Promise<{ url: string | null; error: string | null }> {
+  datasetId?: string
+): Promise<{ url: string | null; path: string | null; error: string | null }> {
   const supabase = createClient();
 
   const {
@@ -14,15 +14,18 @@ export async function uploadFileClient(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { url: null, error: "Not authenticated" };
+    return { url: null, path: null, error: "Not authenticated" };
   }
 
-  // Generate unique filename
+  // Organize files by dataset and user
   const fileExt = file.name.split(".").pop();
-  const fileName = `${user.id}/${Date.now()}_${Math.random()
-    .toString(36)
-    .substring(7)}.${fileExt}`;
-  const filePath = path ? `${path}/${fileName}` : fileName;
+  const timestamp = Date.now();
+  const randomId = Math.random().toString(36).substring(7);
+
+  // Structure: {dataset_id}/{user_id}/{timestamp}_{filename}
+  const filePath = datasetId
+    ? `${datasetId}/${user.id}/${timestamp}_${randomId}.${fileExt}`
+    : `${user.id}/${timestamp}_${randomId}.${fileExt}`;
 
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -47,17 +50,31 @@ export async function uploadFileClient(
 export async function uploadMultipleFilesClient(
   files: File[],
   bucket: string,
-  path?: string
-): Promise<{ urls: string[]; errors: string[] }> {
-  const results = await Promise.all(
-    files.map((file) => uploadFileClient(file, bucket, path))
-  );
+  datasetId?: string,
+  onProgress?: (progress: number) => void
+): Promise<{ urls: string[]; paths: string[]; errors: string[] }> {
+  const urls: string[] = [];
+  const paths: string[] = [];
+  const errors: string[] = [];
 
-  const urls = results.filter((r) => r.url).map((r) => r.url as string);
+  for (let i = 0; i < files.length; i++) {
+    const result = await uploadFileClient(files[i], bucket, datasetId);
 
-  const errors = results.filter((r) => r.error).map((r) => r.error as string);
+    if (result.url && result.path) {
+      urls.push(result.url);
+      paths.push(result.path);
+    }
+    if (result.error) {
+      errors.push(result.error);
+    }
 
-  return { urls, errors };
+    // Update progress
+    if (onProgress) {
+      onProgress(((i + 1) / files.length) * 100);
+    }
+  }
+
+  return { urls, paths, errors };
 }
 
 export async function deleteFileClient(
