@@ -74,11 +74,14 @@ export default function SignUpPage() {
       if (error) {
         toast.error(error.message);
       } else {
-        // Update the profile with the selected role
+        // Update the profile with the selected role and email
         if (data.user) {
           const { error: profileError } = await supabase
             .from('profiles')
-            .update({ role: selectedRole })
+            .update({ 
+              role: selectedRole,
+              mail: email
+            })
             .eq('id', data.user.id);
 
           if (profileError) {
