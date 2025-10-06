@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Telescope,
   FileText,
@@ -11,10 +11,12 @@ import {
   Users,
   CreditCard,
   BarChart3,
-  Wallet,
-  Upload,
-  Search,
+  FileUp,
+  DollarSign,
+  Shield,
+  Database,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth/provider";
 
 import {
   Sidebar,
@@ -29,41 +31,32 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
+import { RoleSwitcher } from "./role-switcher";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { UserRole } from "@/types/database";
 
 const requesterNav = [
-  {
-    title: "Overview",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-  },
-  {
-    title: "Requests",
-    icon: FileText,
-    href: "/dashboard/requests",
-  },
-  {
-    title: "Contributors",
-    icon: Users,
-    href: "/dashboard/contributors",
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    href: "/dashboard/analytics",
-  },
-  {
-    title: "Billing",
-    icon: CreditCard,
-    href: "/dashboard/billing",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/dashboard/settings",
-  },
+  { title: "Overview", icon: LayoutDashboard, href: "/dashboard" },
+  { title: "My Requests", icon: FileText, href: "/dashboard/requests" },
+  { title: "Contributors", icon: Users, href: "/dashboard/contributors" },
+  { title: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
+  { title: "Billing", icon: CreditCard, href: "/dashboard/billing" },
+  { title: "Settings", icon: Settings, href: "/dashboard/settings" },
+];
+
+const contributorNav = [
+  { title: "Browse Datasets", icon: Database, href: "/browse" },
+  { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
+  { title: "Earnings", icon: DollarSign, href: "/dashboard/contributions" },
+  { title: "Settings", icon: Settings, href: "/dashboard/settings" },
+];
+
+const adminNav = [
+  { title: "Admin Dashboard", icon: Shield, href: "/admin" },
+  { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
+  { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
+  { title: "Users", icon: Users, href: "/admin/users" },
 ];
 
 const contributorNav = [
@@ -118,83 +111,43 @@ const contributorProjects = [
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [currentView, setCurrentView] = useState<string>("requester");
+  const [userRole, setUserRole] = useState<string>("requester");
 
   useEffect(() => {
-    async function fetchUserRole() {
-      const supabase = createClient();
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          setUserRole(profile?.role || null);
+    // Load saved view preference
+    const savedView = localStorage.getItem("dashboardView");
+    if (savedView) {
+      setCurrentView(savedView);
+    }
+
+    // Fetch user role from profile
+    const fetchUserRole = async () => {
+      if (user?.id) {
+        const response = await fetch("/api/user/role");
+        const data = await response.json();
+        if (data.role) {
+          setUserRole(data.role);
         }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-      } finally {
-        setLoading(false);
       }
-    }
-
+    };
     fetchUserRole();
-  }, []);
+  }, [user]);
 
-  const getNavItems = () => {
-    switch (userRole) {
-      case 'contributor':
-        return contributorNav;
-      case 'requester':
-        return requesterNav;
-      case 'both':
-        // Temporary: show contributor nav for 'both' users
-        return contributorNav;
-      default:
-        return requesterNav; // Default fallback
-    }
-  };
+  const navItems =
+    currentView === "contributor"
+      ? contributorNav
+      : currentView === "admin"
+      ? adminNav
+      : requesterNav;
 
-  const getProjectItems = () => {
-    switch (userRole) {
-      case 'contributor':
-        return contributorProjects;
-      case 'requester':
-        return requesterProjects;
-      case 'both':
-        // Temporary: show contributor projects for 'both' users
-        return contributorProjects;
-      default:
-        return requesterProjects; // Default fallback
-    }
-  };
-
-  const navMain = getNavItems();
-  const navProjects = getProjectItems();
-
-  if (loading) {
-    return (
-      <Sidebar variant="inset" {...props}>
-        <SidebarHeader>
-          <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-        </SidebarHeader>
-        <SidebarContent>
-          <div className="space-y-4">
-            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-8 bg-muted animate-pulse rounded" />
-              ))}
-            </div>
-          </div>
-        </SidebarContent>
-      </Sidebar>
-    );
-  }
+  const viewLabel =
+    currentView === "contributor"
+      ? "Contributor"
+      : currentView === "admin"
+      ? "Admin"
+      : "Requester";
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -207,24 +160,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Telescope className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">DataCollect</span>
-                  <span className="truncate text-xs">
-                    {userRole === 'contributor' ? 'Contributor' : 
-                     userRole === 'requester' ? 'Requester' : 
-                     userRole === 'both' ? 'Contributor' : 'Dashboard'}
+                  <span className="truncate font-semibold">Collective</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {viewLabel} Dashboard
                   </span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className="mt-3">
+          <RoleSwitcher userRole={userRole} onRoleChange={setCurrentView} />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.href}>
@@ -237,23 +191,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navProjects.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.title}</span>
+        {currentView === "requester" && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm"
+                    variant="outline"
+                  >
+                    <Link href="/dashboard/requests/new">
+                      <Plus className="size-4" />
+                      <span>New Request</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

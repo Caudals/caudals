@@ -186,11 +186,15 @@ export async function getContributorStats() {
 
   submissions?.forEach((sub) => {
     const contributorId = sub.contributor_id;
+    const profile = Array.isArray(sub.profiles)
+      ? sub.profiles[0]
+      : sub.profiles;
+
     if (!contributorMap[contributorId]) {
       contributorMap[contributorId] = {
         id: contributorId,
-        name: sub.profiles?.full_name || "Unknown",
-        avatar: sub.profiles?.avatar_url || null,
+        name: profile?.full_name || "Unknown",
+        avatar: profile?.avatar_url || null,
         totalSubmissions: 0,
         approvedSubmissions: 0,
       };
