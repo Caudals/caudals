@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
 import {
   Telescope,
   FileText,
@@ -61,22 +60,40 @@ const adminNav = [
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string>("requester");
+  const { userRole, loading } = useAuth();
 
-  useEffect(() => {
-    // Fetch user role from profile
-    const fetchUserRole = async () => {
-      if (user?.id) {
-        const response = await fetch("/api/user/role");
-        const data = await response.json();
-        if (data.role) {
-          setUserRole(data.role);
-        }
-      }
-    };
-    fetchUserRole();
-  }, [user]);
+  // Show loading state while fetching user role
+  if (loading || !userRole) {
+    return (
+      <Sidebar variant="inset" {...props}>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" disabled>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                  <Telescope className="size-5" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Collective</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Loading...
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading sidebar...</p>
+          </div>
+        </SidebarContent>
+        <SidebarFooter>
+          <NavUser />
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
 
   // Determine navigation items based on user role, not current view
   const navItems = userRole === "contributor" 
