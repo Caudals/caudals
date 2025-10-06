@@ -33,8 +33,6 @@ import {
 import { NavUser } from "./nav-user";
 import { RoleSwitcher } from "./role-switcher";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { UserRole } from "@/types/database";
 
 const requesterNav = [
   { title: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -61,39 +59,12 @@ const adminNav = [
 
 // Removed bothNav - users can only be contributor or requester
 
-const requesterProjects = [
-  {
-    title: "New Request",
-    icon: Plus,
-    href: "/dashboard/requests/new",
-  },
-  {
-    title: "Browse Datasets",
-    icon: Telescope,
-    href: "/browse",
-  },
-];
-
-const contributorProjects = [
-  {
-    title: "Browse Projects",
-    icon: Telescope,
-    href: "/browse",
-  },
-];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  const [currentView, setCurrentView] = useState<string>("requester");
   const [userRole, setUserRole] = useState<string>("requester");
 
   useEffect(() => {
-    // Load saved view preference
-    const savedView = localStorage.getItem("dashboardView");
-    if (savedView) {
-      setCurrentView(savedView);
-    }
-
     // Fetch user role from profile
     const fetchUserRole = async () => {
       if (user?.id) {
@@ -141,7 +112,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
         <div className="mt-3">
-          <RoleSwitcher userRole={userRole} onRoleChange={setCurrentView} />
+          <RoleSwitcher userRole={userRole} />
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -162,7 +133,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {currentView === "requester" && (
+        {userRole === "requester" && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>

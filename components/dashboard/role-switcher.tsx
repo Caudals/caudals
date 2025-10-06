@@ -13,10 +13,9 @@ import { Briefcase, User, Shield } from "lucide-react";
 
 interface RoleSwitcherProps {
   userRole: string;
-  onRoleChange?: (role: string) => void;
 }
 
-export function RoleSwitcher({ userRole, onRoleChange }: RoleSwitcherProps) {
+export function RoleSwitcher({ userRole }: RoleSwitcherProps) {
   const [selectedView, setSelectedView] = useState<string>("requester");
 
   useEffect(() => {
@@ -30,8 +29,13 @@ export function RoleSwitcher({ userRole, onRoleChange }: RoleSwitcherProps) {
   const handleChange = (value: string) => {
     setSelectedView(value);
     localStorage.setItem("dashboardView", value);
-    if (onRoleChange) {
-      onRoleChange(value);
+    // Redirect to appropriate dashboard based on selected view
+    if (value === "contributor") {
+      window.location.href = "/dashboard/contributor";
+    } else if (value === "requester") {
+      window.location.href = "/dashboard";
+    } else if (value === "admin") {
+      window.location.href = "/admin";
     }
   };
 
