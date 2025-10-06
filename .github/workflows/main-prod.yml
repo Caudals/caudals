@@ -1,20 +1,22 @@
-name: Vercel Production
+name: Vercel Preview
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches-ignore: [main]
+  pull_request:
+    branches: ["**"]
 
 jobs:
-  deploy-prod:
+  deploy-preview:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+      pull-requests: write
 
     concurrency:
-      group: production
+      group: preview-${{ github.ref }}
       cancel-in-progress: true
 
     env:
@@ -23,11 +25,9 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js 20 + cache
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
@@ -38,24 +38,31 @@ jobs:
           path: |
             .next/cache
             .vercel/cache
-          key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.ts','**/*.tsx','**/*.js','**/*.jsx','**/*.cjs','**/*.mjs') }}
+          key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.[tj]s','**/*.[tj]sx','**/*.mjs','**/*.cjs') }}
           restore-keys: |
             next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
 
-      - name: Install deps
-        run: npm ci
+      - run: npm ci
 
-      - name: Pull Vercel env (production)
-        run: npx -y vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+      - name: Pull Vercel env (preview)
+        run: npx -y vercel@latest pull --yes --environment=preview --token "$VERCEL_TOKEN"
+
+      - name: Ensure .env.local has Supabase vars
+        run: |
+          touch .env.local
+          grep -qxF "NEXT_PUBLIC_SUPABASE_URL=" .env.local || echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env.local
+          grep -qxF "NEXT_PUBLIC_SUPABASE_ANON_KEY=" .env.local || echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          grep -qxF "SUPABASE_URL=" .env.local || echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env.local
+          grep -qxF "SUPABASE_ANON_KEY=" .env.local || echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
 
       - name: Build (prebuilt)
         run: npx -y vercel@latest build --token "$VERCEL_TOKEN"
 
-      - name: Deploy (production)
+      - name: Deploy (preview)
         id: deploy
         run: |
-          url=$(npx -y vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
-          echo "prod_url=$url" >> $GITHUB_OUTPUT
+          url=$(npx -y vercel@latest deploy --prebuilt --token "$VERCEL_TOKEN")
+          echo "preview_url=$url" >> $GITHUB_OUTPUT
 
       - name: Save Next/Vercel build cache
         uses: actions/cache@v4
@@ -65,5 +72,17 @@ jobs:
             .vercel/cache
           key: next-vercel-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
 
-      - name: Summary
-        run: echo "✅ Production deployed: ${{ steps.deploy.outputs.prod_url }}"
+      - name: Comment PR with Preview URL
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.deploy.outputs.preview_url }}";
+            if (url?.startsWith("https://")) {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `🚀 **Vercel Preview** listo: ${url}`
+              });
+            }
