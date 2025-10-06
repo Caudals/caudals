@@ -3,8 +3,11 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { BillingOverview } from "@/components/dashboard/billing-overview";
 import { PaymentHistory } from "@/components/dashboard/payment-history";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { requireRequester } from "@/lib/auth/route-protection";
 
-export default function BillingPage() {
+export default async function BillingPage() {
+  // Protect this route - only requesters can access
+  await requireRequester();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />
