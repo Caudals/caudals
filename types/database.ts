@@ -6,8 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type UserRole = "contributor" | "requester" | "both";
+export type UserRole = "contributor" | "requester" | "both" | "admin";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
+export type ApprovalStatus = "pending" | "approved" | "rejected";
 
 export interface Database {
   public: {
@@ -58,6 +59,10 @@ export interface Database {
           quality_criteria: string[];
           requirements: string[];
           featured: boolean;
+          approval_status: ApprovalStatus;
+          admin_notes: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
           created_at: string;
           updated_at: string;
         };

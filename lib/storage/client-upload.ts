@@ -33,7 +33,7 @@ export async function uploadFileClient(
 
   if (error) {
     console.error("Error uploading file:", error);
-    return { url: null, error: error.message };
+    return { url: null, path: null, error: error.message };
   }
 
   // Get public URL
@@ -41,7 +41,7 @@ export async function uploadFileClient(
     data: { publicUrl },
   } = supabase.storage.from(bucket).getPublicUrl(data.path);
 
-  return { url: publicUrl, error: null };
+  return { url: publicUrl, path: data.path, error: null };
 }
 
 export async function uploadMultipleFilesClient(
