@@ -59,7 +59,7 @@ export default function SignUpPage() {
         );
         router.push("/auth/sign-in");
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -81,7 +81,7 @@ export default function SignUpPage() {
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
       setLoading(false);
     }

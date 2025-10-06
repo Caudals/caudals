@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 export async function createSubmission(formData: {
   datasetRequestId: string;
   fileUrls: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   notes?: string;
 }) {
   const supabase = await createClient();
@@ -110,7 +110,7 @@ export async function updateSubmissionStatus(
 ) {
   const supabase = await createClient();
 
-  const updates: any = { status };
+  const updates: { status: string; notes?: string } = { status };
   if (notes) {
     updates.notes = notes;
   }

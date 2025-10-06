@@ -35,8 +35,19 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { categoryLabels } from "@/lib/data/datasets";
 
+interface DatasetRequest {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  samples_collected: number;
+  samples_needed: number;
+  reward_amount: number;
+  created_at: string;
+}
+
 interface RequestsTableProps {
-  requests: any[];
+  requests: DatasetRequest[];
 }
 
 export function RequestsTable({ requests }: RequestsTableProps) {

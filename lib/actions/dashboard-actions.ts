@@ -184,7 +184,7 @@ export async function getContributorStats() {
     }
   > = {};
 
-  submissions?.forEach((sub: any) => {
+  submissions?.forEach((sub) => {
     const contributorId = sub.contributor_id;
     if (!contributorMap[contributorId]) {
       contributorMap[contributorId] = {

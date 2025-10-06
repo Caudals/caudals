@@ -90,24 +90,29 @@ export function FileUpload({
           className="hidden"
         />
 
-        <div className="flex flex-col items-center justify-center gap-3">
+        <div className="flex flex-col items-center justify-center gap-4">
           <Upload className="h-10 w-10 text-muted-foreground" />
-          <div className="text-center">
-            <p className="text-sm font-medium">
-              Drop files here or{" "}
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="text-primary hover:underline"
-              >
-                browse
-              </button>
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
+          <div className="text-center space-y-2">
+            <p className="text-sm font-medium">Drag and drop files here</p>
+            <p className="text-xs text-muted-foreground">
               {accept !== "*" ? `Accepted formats: ${accept}` : "Any file type"}{" "}
               • Max {maxSize}MB
             </p>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              inputRef.current?.click();
+            }}
+            className="mt-2"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Choose Files
+          </Button>
         </div>
       </div>
 

@@ -43,7 +43,7 @@ export default function SignInPage() {
         router.push("/dashboard");
         router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ export default function SignInPage() {
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
-    } catch (error) {
+    } catch {
       toast.error("An unexpected error occurred");
       setLoading(false);
     }
