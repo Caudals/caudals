@@ -2,11 +2,7 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ContributorsTable } from "@/components/dashboard/contributors-table";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { requireRequester } from "@/lib/auth/route-protection";
-
 export default async function ContributorsPage() {
-  // Protect this route - only requesters can access
-  await requireRequester();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />
