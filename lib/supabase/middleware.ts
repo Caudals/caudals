@@ -37,6 +37,18 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Get user profile if user exists
+  let userProfile = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    userProfile = profile;
+  }
+
   // Protected routes - require authentication
   if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();
@@ -53,6 +65,15 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  // Add user data to response headers for role-based routing
+  if (user && userProfile) {
+    supabaseResponse.headers.set('x-user', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      role: userProfile.role
+    }));
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
