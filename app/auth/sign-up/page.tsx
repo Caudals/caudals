@@ -16,16 +16,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Telescope } from "lucide-react";
+import { Telescope, User, Users, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { UserRole } from "@/types/database";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<UserRole>("contributor");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  const roleOptions = [
+    {
+      value: "contributor" as UserRole,
+      label: "Contributor",
+      description: "Contribute data to existing dataset requests and earn rewards",
+      icon: User,
+    },
+    {
+      value: "requester" as UserRole,
+      label: "Requester", 
+      description: "Create dataset requests and manage data collection projects",
+      icon: Briefcase,
+    },
+  ];
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,17 +60,32 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            role: selectedRole,
+          },
         },
       });
 
       if (error) {
         toast.error(error.message);
       } else {
+        // Update the profile with the selected role
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ role: selectedRole })
+            .eq('id', data.user.id);
+
+          if (profileError) {
+            console.error('Error updating profile:', profileError);
+          }
+        }
+
         toast.success(
           "Account created! Please check your email to verify your account."
         );
@@ -147,6 +179,53 @@ export default function SignUpPage() {
                   minLength={6}
                 />
               </div>
+              
+              <div className="space-y-3">
+                <Label>Choose your role</Label>
+                <div className="grid gap-3">
+                  {roleOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <div
+                        key={option.value}
+                        className={`relative flex cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent ${
+                          selectedRole === option.value
+                            ? "border-primary bg-accent"
+                            : "border-border"
+                        }`}
+                        onClick={() => setSelectedRole(option.value)}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <Icon className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id={option.value}
+                                name="role"
+                                value={option.value}
+                                checked={selectedRole === option.value}
+                                onChange={() => setSelectedRole(option.value)}
+                                className="h-4 w-4"
+                              />
+                              <Label
+                                htmlFor={option.value}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {option.label}
+                              </Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {option.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Sign up"}
               </Button>

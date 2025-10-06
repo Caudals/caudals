@@ -2,8 +2,11 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { NewRequestForm } from "@/components/dashboard/new-request-form";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { requireRequester } from "@/lib/auth/route-protection";
 
-export default function NewRequestPage() {
+export default async function NewRequestPage() {
+  // Protect this route - only requesters can access
+  await requireRequester();
   return (
     <SidebarProvider defaultOpen={true}>
       <AppSidebar collapsible="icon" />

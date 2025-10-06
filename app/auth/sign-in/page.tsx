@@ -40,7 +40,8 @@ export default function SignInPage() {
         toast.error(error.message);
       } else {
         toast.success("Signed in successfully!");
-        router.push("/dashboard");
+        // Let the callback handle role-based redirection
+        router.push("/auth/callback");
         router.refresh();
       }
     } catch {

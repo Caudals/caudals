@@ -33,6 +33,8 @@ import {
 import { NavUser } from "./nav-user";
 import { RoleSwitcher } from "./role-switcher";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { UserRole } from "@/types/database";
 
 const requesterNav = [
   { title: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -55,6 +57,57 @@ const adminNav = [
   { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
   { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
   { title: "Users", icon: Users, href: "/admin/users" },
+];
+
+const contributorNav = [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/dashboard/contributor",
+  },
+  {
+    title: "Browse Projects",
+    icon: Search,
+    href: "/browse",
+  },
+  {
+    title: "My Contributions",
+    icon: Upload,
+    href: "/dashboard/contributor/contributions",
+  },
+  {
+    title: "Wallet",
+    icon: Wallet,
+    href: "/dashboard/contributor/wallet",
+  },
+  {
+    title: "Settings",
+    icon: Settings,
+    href: "/dashboard/settings",
+  },
+];
+
+// Removed bothNav - users can only be contributor or requester
+
+const requesterProjects = [
+  {
+    title: "New Request",
+    icon: Plus,
+    href: "/dashboard/requests/new",
+  },
+  {
+    title: "Browse Datasets",
+    icon: Telescope,
+    href: "/browse",
+  },
+];
+
+const contributorProjects = [
+  {
+    title: "Browse Projects",
+    icon: Telescope,
+    href: "/browse",
+  },
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -102,7 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
+              <Link href={userRole === 'contributor' || userRole === 'both' ? "/dashboard/contributor" : "/dashboard"}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                   <Telescope className="size-5" />
                 </div>
@@ -129,7 +182,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.href}>
-                      <item.icon className="size-4" />
+                      <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
