@@ -26,18 +26,32 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { ContributeDialog } from "./contribute-dialog";
+import { useAuth } from "@/lib/auth/provider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface DatasetCardProps {
   dataset: Dataset;
 }
 
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
+  const { user } = useAuth();
+  const router = useRouter();
+  
   const progress = (dataset.samplesCollected / dataset.samplesNeeded) * 100;
   const daysUntilDeadline = Math.ceil(
     (new Date(dataset.deadline).getTime() - new Date().getTime()) /
       (1000 * 60 * 60 * 24)
   );
+
+  const handleContributeClick = () => {
+    if (!user) {
+      // Redirect to sign up page
+      router.push("/auth/sign-up");
+      return;
+    }
+    // If user is authenticated, the ContributeDialog will handle the rest
+  };
 
   const statusConfig = {
     active: {
@@ -204,15 +218,24 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
             Paused
           </Button>
         ) : (
-          <ContributeDialog
-            datasetId={dataset.id}
-            datasetTitle={dataset.title}
-            dataType={dataset.dataType}
-          >
-            <Button className="flex-1 bg-primary hover:bg-primary/90">
-              Contribute Now
+          user ? (
+            <ContributeDialog
+              datasetId={dataset.id}
+              datasetTitle={dataset.title}
+              dataType={dataset.dataType}
+            >
+              <Button className="flex-1 bg-primary hover:bg-primary/90">
+                Contribute Now
+              </Button>
+            </ContributeDialog>
+          ) : (
+            <Button 
+              className="flex-1 bg-primary hover:bg-primary/90"
+              onClick={handleContributeClick}
+            >
+              Sign Up to Contribute
             </Button>
-          </ContributeDialog>
+          )
         )}
       </CardFooter>
     </Card>
