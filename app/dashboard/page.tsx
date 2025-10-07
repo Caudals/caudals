@@ -8,10 +8,28 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, TrendingUp, AlertCircle } from "lucide-react";
 import { getUserWallet } from "@/lib/actions/payment-actions";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function RequesterDashboardPage() {
+  // Check user role and redirect if contributor
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    // Redirect contributors to their dashboard
+    if (profile?.role === 'contributor') {
+      redirect('/dashboard/contributor');
+    }
+  }
   // Get wallet data for display
   const walletResult = await getUserWallet();
   const walletBalance = walletResult.data?.balance || 0;

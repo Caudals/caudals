@@ -15,6 +15,7 @@ import {
   Database,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
+import { usePathname } from "next/navigation";
 
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const contributorNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
   { title: "Browse Datasets", icon: Database, href: "/browse" },
   { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
+  { title: "Billing", icon: CreditCard, href: "/dashboard/billing" },
   { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
@@ -55,11 +57,9 @@ const adminNav = [
   { title: "Users", icon: Users, href: "/admin/users" },
 ];
 
-// Removed bothNav - users can only be contributor or requester
-
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { userRole, loading } = useAuth();
+  const pathname = usePathname();
 
   // Show loading state while fetching user role
   if (loading || !userRole) {
@@ -94,28 +94,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  // Determine navigation items based on current view (path)
-  // Admin can access all views, others only their role's view
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  // Determine navigation based on current path and user role
   const isAdminView = pathname.startsWith('/admin');
-  const isContributorView = pathname.startsWith('/dashboard/contributor');
+  const isContributorView = pathname.startsWith('/dashboard/contributor') || 
+                            pathname.startsWith('/dashboard/contributions');
   
   let navItems = requesterNav;
   let viewLabel = "Requester";
+  let homeHref = "/dashboard";
   
-  if (isAdminView && userRole === "admin") {
-    navItems = adminNav;
-    viewLabel = "Admin";
-  } else if (isContributorView) {
+  // Admin users can switch between views
+  if (userRole === "admin") {
+    if (isAdminView) {
+      navItems = adminNav;
+      viewLabel = "Admin";
+      homeHref = "/admin";
+    } else if (isContributorView) {
+      navItems = contributorNav;
+      viewLabel = "Contributor";
+      homeHref = "/dashboard/contributor";
+    } else {
+      navItems = requesterNav;
+      viewLabel = "Requester";
+      homeHref = "/dashboard";
+    }
+  } 
+  // Contributors only see contributor nav
+  else if (userRole === "contributor") {
     navItems = contributorNav;
     viewLabel = "Contributor";
-  } else if (userRole === "contributor") {
-    navItems = contributorNav;
-    viewLabel = "Contributor";
-  } else if (userRole === "admin" && !isAdminView && !isContributorView) {
-    // Admin in requester view
+    homeHref = "/dashboard/contributor";
+  }
+  // Requesters only see requester nav
+  else if (userRole === "requester") {
     navItems = requesterNav;
     viewLabel = "Requester";
+    homeHref = "/dashboard";
   }
 
   return (
@@ -124,7 +138,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={userRole === 'contributor' ? "/dashboard/contributor" : "/dashboard"}>
+              <Link href={homeHref}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                   <Telescope className="size-5" />
                 </div>
@@ -138,9 +152,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mt-3">
-          <RoleSwitcher userRole={userRole} />
-        </div>
+        {/* Only show role switcher for admins */}
+        {userRole === "admin" && (
+          <div className="mt-3">
+            <RoleSwitcher userRole={userRole} currentView={viewLabel.toLowerCase()} />
+          </div>
+        )}
+        {/* Show badge for non-admin users */}
+        {userRole !== "admin" && (
+          <div className="mt-3 px-2">
+            <div className="text-xs font-medium text-muted-foreground">
+              {viewLabel} Account
+            </div>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -160,7 +185,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {userRole === "requester" && (
+        {/* Show "New Request" button only for requesters and admins in requester view */}
+        {(userRole === "requester" || (userRole === "admin" && !isAdminView && !isContributorView)) && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>

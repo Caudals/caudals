@@ -7,12 +7,29 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, TrendingUp, Send, Clock, CheckCircle, Database } from "lucide-react";
 import { getUserWallet, getUserTransactions } from "@/lib/actions/payment-actions";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function ContributorDashboardPage() {
+  // Check user role and redirect if requester
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    // Redirect requesters to their dashboard
+    if (profile?.role === 'requester') {
+      redirect('/dashboard');
+    }
+  }
   // Get wallet data
   const walletResult = await getUserWallet();
   const walletBalance = walletResult.data?.balance || 0;
@@ -21,10 +38,7 @@ export default async function ContributorDashboardPage() {
   const transactionsResult = await getUserTransactions(5);
   const recentTransactions = transactionsResult.data || [];
 
-  // Get submission stats
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  // Get submission stats using the already created supabase client
   let submissionStats = {
     total: 0,
     approved: 0,
