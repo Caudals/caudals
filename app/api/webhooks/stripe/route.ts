@@ -156,7 +156,7 @@ async function handlePaymentIntentSucceeded(
 
 async function handlePaymentIntentFailed(
   paymentIntent: Stripe.PaymentIntent,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient>
 ) {
   const datasetId = paymentIntent.metadata.dataset_id;
   const userId = paymentIntent.metadata.user_id;
@@ -195,7 +195,7 @@ async function handlePaymentIntentFailed(
 
 async function handleAccountUpdated(
   account: Stripe.Account,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient>
 ) {
   // Update Stripe account status
   await supabase
@@ -213,7 +213,7 @@ async function handleAccountUpdated(
 
 async function handleTransferCreated(
   transfer: Stripe.Transfer,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient>
 ) {
   console.log(`✅ Transfer created webhook received: ${transfer.id}`);
 

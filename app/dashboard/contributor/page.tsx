@@ -45,7 +45,12 @@ export default async function ContributorDashboardPage() {
         pending: submissions.filter(s => s.status === "pending").length,
         totalEarnings: submissions
           .filter(s => s.status === "approved")
-          .reduce((sum, s) => sum + (s.dataset_requests?.reward_amount || 0), 0),
+          .reduce((sum, s) => {
+            const rel = Array.isArray(s.dataset_requests)
+              ? s.dataset_requests[0]
+              : s.dataset_requests;
+            return sum + (rel?.reward_amount || 0);
+          }, 0),
       };
     }
   }
