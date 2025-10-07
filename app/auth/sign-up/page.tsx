@@ -48,12 +48,22 @@ export default function SignUpPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error("Passwords do not match", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error("Password must be at least 6 characters", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
       return;
     }
 
@@ -72,7 +82,12 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          action: {
+            label: "×",
+            onClick: () => toast.dismiss(),
+          },
+        });
       } else {
         // Update the profile with the selected role and email
         if (data.user) {
@@ -90,12 +105,23 @@ export default function SignUpPage() {
         }
 
         toast.success(
-          "Account created! Please check your email to verify your account."
+          "Account created! Please check your email to verify your account.",
+          {
+            action: {
+              label: "×",
+              onClick: () => toast.dismiss(),
+            },
+          }
         );
         router.push("/auth/sign-in");
       }
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -112,12 +138,22 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          action: {
+            label: "×",
+            onClick: () => toast.dismiss(),
+          },
+        });
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
       setLoading(false);
     }
   };
