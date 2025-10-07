@@ -47,10 +47,6 @@ export async function POST(request: NextRequest) {
         await handleTransferCreated(event.data.object, supabase);
         break;
 
-      case "transfer.failed":
-        await handleTransferFailed(event.data.object, supabase);
-        break;
-
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(event.data.object);
         break;
@@ -275,59 +271,6 @@ async function handleTransferCreated(
       stripeAccount.user_id
     }, amount: $${transfer.amount / 100}`
   );
-}
-
-async function handleTransferFailed(
-  transfer: Stripe.Transfer,
-  supabase: Awaited<ReturnType<typeof createClient>>
-) {
-  console.error(`❌ Transfer failed webhook received: ${transfer.id}`);
-
-  // Find the user by Stripe account ID
-  const { data: stripeAccount } = await supabase
-    .from("stripe_accounts")
-    .select("user_id")
-    .eq("stripe_account_id", transfer.destination)
-    .single();
-
-  if (!stripeAccount) {
-    console.error(
-      "No user found for transfer destination:",
-      transfer.destination
-    );
-    return;
-  }
-
-  // Extract metadata from transfer
-  const submissionId = transfer.metadata?.submission_id;
-  const datasetId = transfer.metadata?.dataset_id;
-
-  // Create failed transaction record
-  await supabase.from("transactions").insert({
-    user_id: stripeAccount.user_id,
-    type: "payout",
-    amount: transfer.amount / 100,
-    currency: transfer.currency.toUpperCase(),
-    status: "failed",
-    description: "Contribution payout (failed)",
-    reference_id: transfer.id,
-    metadata: {
-      stripe_transfer: transfer.id,
-      destination: transfer.destination,
-      submission_id: submissionId,
-      dataset_id: datasetId,
-      failure_code: (transfer as any).failure_code,
-      failure_message: (transfer as any).failure_message,
-    },
-  });
-
-  console.error(
-    `❌ Transfer failed for user ${stripeAccount.user_id}, amount: $${
-      transfer.amount / 100
-    }`
-  );
-
-  // TODO: Send notification to admin and contributor about failed payout
 }
 
 async function handleCheckoutSessionCompleted(
