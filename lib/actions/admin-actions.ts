@@ -234,7 +234,7 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     notes,
   });
 
-  // Trigger payout to contributor via Stripe Connect
+  // Add funds to contributor's wallet
   const datasetRequest = Array.isArray(submission.dataset_requests)
     ? submission.dataset_requests[0]
     : submission.dataset_requests;
@@ -255,11 +255,11 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     );
 
     if (payoutResult.error) {
-      console.error("Payout failed:", payoutResult.error);
+      console.error("Payout to wallet failed:", payoutResult.error);
       // Don't fail the approval, but log the error
       // The payout can be retried manually if needed
     } else {
-      console.log("✅ Payout successful:", payoutResult.data);
+      console.log("✅ Payout to wallet successful:", payoutResult.data);
     }
   } else {
     console.log("⚠️ Skipping payout - dataset not paid or no reward amount");
@@ -268,6 +268,7 @@ export async function approveSubmission(submissionId: string, notes?: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/submissions");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/contributor");
   revalidatePath("/dashboard/contributions");
 
   return { data };

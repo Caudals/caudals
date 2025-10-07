@@ -507,7 +507,8 @@ export async function payWithWallet(datasetId: string, amount: number) {
   }
 }
 
-// Payout to contributor via Stripe Connect transfer
+// Payout to contributor - adds funds to their internal wallet
+// Contributor can later withdraw to their bank account
 export async function payoutToContributor(
   submissionId: string,
   contributorId: string,
@@ -517,50 +518,14 @@ export async function payoutToContributor(
   const supabase = await createClient();
 
   try {
-    // Get contributor's Stripe Connect account
-    const { data: stripeAccount, error: accountError } = await supabase
-      .from("stripe_accounts")
-      .select("stripe_account_id, payouts_enabled, status")
-      .eq("user_id", contributorId)
-      .single();
-
-    if (accountError || !stripeAccount) {
-      console.error(
-        "No Stripe Connect account found for contributor:",
-        contributorId
-      );
-      return { error: "Contributor has not set up payout account" };
-    }
-
-    if (!stripeAccount.payouts_enabled) {
-      console.error("Payouts not enabled for contributor:", contributorId);
-      return { error: "Contributor payout account not active" };
-    }
-
     // Calculate net amount after platform fee (10%)
     const platformFeePercentage = 0.1;
     const platformFee = amount * platformFeePercentage;
     const netAmount = amount - platformFee;
 
-    // Create Stripe transfer to contributor's Connect account
-    const stripe = getStripeServer();
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(netAmount * 100), // Convert to cents
-      currency: "usd",
-      destination: stripeAccount.stripe_account_id,
-      description: `Payout for approved submission`,
-      metadata: {
-        submission_id: submissionId,
-        contributor_id: contributorId,
-        dataset_id: datasetId,
-        gross_amount: amount.toFixed(2),
-        platform_fee: platformFee.toFixed(2),
-        net_amount: netAmount.toFixed(2),
-      },
-    });
-
-    // Record payout transaction for contributor
-    const { error: payoutTxError } = await supabase
+    // Create payout transaction for contributor
+    // This will automatically update the wallet balance via database trigger
+    const { data: payoutTx, error: payoutTxError } = await supabase
       .from("transactions")
       .insert({
         user_id: contributorId,
@@ -568,19 +533,22 @@ export async function payoutToContributor(
         amount: netAmount,
         currency: "USD",
         status: "completed",
-        description: `Contribution payout for submission`,
-        reference_id: transfer.id,
+        description: `Contribution reward for approved submission`,
+        reference_id: `submission-${submissionId}`,
         metadata: {
           submission_id: submissionId,
           dataset_id: datasetId,
-          stripe_transfer_id: transfer.id,
           gross_amount: amount,
           platform_fee: platformFee,
+          net_amount: netAmount,
         },
-      });
+      })
+      .select()
+      .single();
 
     if (payoutTxError) {
       console.error("Error recording payout transaction:", payoutTxError);
+      return { error: "Failed to create payout transaction" };
     }
 
     // Record platform commission transaction
@@ -594,23 +562,34 @@ export async function payoutToContributor(
       amount: platformFee,
       currency: "USD",
       status: "completed",
-      description: `Platform commission (10%)`,
-      reference_id: transfer.id,
+      description: `Platform commission (10%) from submission`,
+      reference_id: `commission-${submissionId}`,
       metadata: {
         submission_id: submissionId,
         dataset_id: datasetId,
         contributor_id: contributorId,
-        stripe_transfer_id: transfer.id,
+        gross_amount: amount,
       },
     });
 
     console.log(
-      `✅ Payout successful: $${netAmount} transferred to contributor ${contributorId}`
+      `✅ Payout successful: $${netAmount} added to contributor ${contributorId} wallet`
     );
+
+    // Verify wallet was updated
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", contributorId)
+      .single();
+
+    if (wallet) {
+      console.log(`💰 Contributor wallet balance: $${wallet.balance}`);
+    }
 
     return {
       data: {
-        transfer_id: transfer.id,
+        transaction_id: payoutTx.id,
         net_amount: netAmount,
         platform_fee: platformFee,
         success: true,
