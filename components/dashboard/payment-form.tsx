@@ -41,8 +41,8 @@ interface PaymentFormInnerProps extends PaymentFormProps {
   clientSecret: string | null;
 }
 
-// Componente interno que usa Stripe Elements
-function PaymentFormInner({
+// Componente base sin Stripe Elements
+function PaymentFormBase({
   datasetId,
   datasetTitle,
   currentBudget = 0,
@@ -58,9 +58,6 @@ function PaymentFormInner({
   const [paymentType, setPaymentType] = useState<"stripe" | "wallet">("stripe");
   const [walletBalance, setWalletBalance] = useState(0);
 
-  const stripe = useStripe();
-  const elements = useElements();
-
   const amount = externalAmount;
   const setAmount = onAmountChange;
 
@@ -75,63 +72,25 @@ function PaymentFormInner({
     loadWalletBalance();
   }, []);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
+  const handleWalletPayment = async () => {
     const paymentAmount = parseFloat(amount);
     setIsProcessing(true);
 
     try {
-      if (paymentType === "wallet") {
-        // Pay with wallet
-        if (walletBalance < paymentAmount) {
-          toast.error("Insufficient wallet balance");
-          return;
-        }
-
-        const result = await payWithWallet(datasetId, paymentAmount);
-
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
-
-        toast.success("Payment successful! Paid with wallet balance.");
-        onPaymentSuccess?.();
-      } else {
-        // Pay with Stripe
-        if (!stripe || !elements) {
-          toast.error(
-            "Payment system is not ready. Please wait a moment and try again."
-          );
-          console.error("Stripe or Elements not available:", {
-            stripe: !!stripe,
-            elements: !!elements,
-          });
-          return;
-        }
-
-        // Confirm payment with Payment Element
-        const { error } = await stripe.confirmPayment({
-          elements,
-          confirmParams: {
-            return_url: `${window.location.origin}/dashboard/requests?payment=success`,
-          },
-          redirect: "if_required",
-        });
-
-        if (error) {
-          toast.error(error.message || "Payment failed");
-        } else {
-          toast.success("Payment successful!");
-          onPaymentSuccess?.();
-        }
+      if (walletBalance < paymentAmount) {
+        toast.error("Insufficient wallet balance");
+        return;
       }
+
+      const result = await payWithWallet(datasetId, paymentAmount);
+
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Payment successful! Paid with wallet balance.");
+      onPaymentSuccess?.();
     } catch (error) {
       toast.error("An error occurred during payment");
     } finally {
@@ -209,7 +168,7 @@ function PaymentFormInner({
         <Separator />
 
         {/* Amount Input */}
-        <form onSubmit={handlePayment} className="space-y-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (USD)</Label>
             <Input
@@ -270,6 +229,11 @@ function PaymentFormInner({
                 <div className="rounded-md">
                   <PaymentElement />
                 </div>
+              ) : amount && parseFloat(amount) > 0 ? (
+                <div className="p-4 border rounded-md bg-blue-50 text-sm text-blue-700 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Setting up payment...
+                </div>
               ) : (
                 <div className="p-4 border rounded-md bg-muted/50 text-sm text-muted-foreground">
                   Enter an amount above to see payment options
@@ -301,30 +265,45 @@ function PaymentFormInner({
             </div>
           )}
 
-          {/* Payment Button */}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={
-              isProcessing ||
-              !amount ||
-              parseFloat(amount) <= 0 ||
-              (paymentType === "wallet" && walletBalance < parseFloat(amount)) ||
-              (paymentType === "stripe" && !clientSecret)
-            }
-          >
-            {isProcessing ? (
+          {/* Payment Buttons */}
+          {paymentType === "wallet" ? (
+            <Button
+              onClick={handleWalletPayment}
+              className="w-full"
+              disabled={
+                isProcessing ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                walletBalance < parseFloat(amount)
+              }
+            >
+              {isProcessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <DollarSign className="mr-2 h-4 w-4" />
+              )}
+              {isProcessing
+                ? "Processing..."
+                : `Pay ${formatAmount(totalAmount)} with Wallet`}
+            </Button>
+          ) : clientSecret ? (
+            <StripePaymentButton
+              clientSecret={clientSecret}
+              amount={totalAmount}
+              isProcessing={isProcessing}
+              setIsProcessing={setIsProcessing}
+              onPaymentSuccess={onPaymentSuccess}
+            />
+          ) : (
+            <Button
+              className="w-full"
+              disabled={true}
+            >
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <DollarSign className="mr-2 h-4 w-4" />
-            )}
-            {isProcessing
-              ? "Processing..."
-              : paymentType === "wallet"
-              ? `Pay ${formatAmount(totalAmount)} with Wallet`
-              : `Pay ${formatAmount(totalAmount)} with Card`}
-          </Button>
-        </form>
+              Setting up payment...
+            </Button>
+          )}
+        </div>
 
         {/* Info */}
         <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
@@ -344,6 +323,118 @@ function PaymentFormInner({
   );
 }
 
+// Componente que usa Stripe Elements (solo para pagos con tarjeta)
+function StripePaymentButton({
+  clientSecret,
+  amount,
+  isProcessing,
+  setIsProcessing,
+  onPaymentSuccess,
+}: {
+  clientSecret: string | null;
+  amount: number;
+  isProcessing: boolean;
+  setIsProcessing: (processing: boolean) => void;
+  onPaymentSuccess?: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+
+  const handleStripePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      toast.error(
+        "Payment system is not ready. Please wait a moment and try again."
+      );
+      return;
+    }
+
+    if (!clientSecret) {
+      toast.error("Payment not ready. Please wait a moment and try again.");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard/requests?payment=success`,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        console.error("Payment error:", error);
+        toast.error(error.message || "Payment failed");
+      } else {
+        toast.success("Payment successful!");
+        onPaymentSuccess?.();
+      }
+    } catch (error) {
+      toast.error("An error occurred during payment");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  return (
+    <form onSubmit={handleStripePayment}>
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={
+          isProcessing ||
+          !clientSecret ||
+          amount <= 0
+        }
+      >
+        {isProcessing ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <DollarSign className="mr-2 h-4 w-4" />
+        )}
+        {isProcessing
+          ? "Processing..."
+          : `Pay ${formatAmount(amount)} with Card`}
+      </Button>
+    </form>
+  );
+}
+
+// Componente interno que usa Stripe Elements (mantenemos para compatibilidad)
+function PaymentFormInner({
+  datasetId,
+  datasetTitle,
+  currentBudget = 0,
+  onPaymentSuccess,
+  externalAmount,
+  onAmountChange,
+  clientSecret,
+}: PaymentFormInnerProps) {
+  // Este componente ahora solo renderiza PaymentFormBase
+  return (
+    <PaymentFormBase
+      datasetId={datasetId}
+      datasetTitle={datasetTitle}
+      currentBudget={currentBudget}
+      onPaymentSuccess={onPaymentSuccess}
+      externalAmount={externalAmount}
+      onAmountChange={onAmountChange}
+      clientSecret={clientSecret}
+    />
+  );
+}
+
 // Componente wrapper con Stripe Elements
 export function PaymentForm(props: PaymentFormProps) {
   const { stripe, loading, error } = useStripeHook();
@@ -354,9 +445,40 @@ export function PaymentForm(props: PaymentFormProps) {
   React.useEffect(() => {
     const createIntent = async () => {
       if (amount && parseFloat(amount) > 0) {
-        const result = await createPaymentIntent(props.datasetId, parseFloat(amount));
-        if (result.data?.client_secret) {
-          setClientSecret(result.data.client_secret);
+        try {
+          console.log("🔄 Creating payment intent for:", { datasetId: props.datasetId, amount: parseFloat(amount) });
+          
+          // Check if user is authenticated on frontend first
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (!user) {
+            console.error("❌ User not authenticated on frontend");
+            toast.error("Please sign in to continue");
+            setClientSecret(null);
+            return;
+          }
+          
+          console.log("✅ User authenticated on frontend:", user.id);
+          
+          const result = await createPaymentIntent(props.datasetId, parseFloat(amount));
+          
+          if (result.error) {
+            console.error("❌ Error creating payment intent:", result.error);
+            toast.error(`Payment setup failed: ${result.error}`);
+            setClientSecret(null);
+          } else if (result.data?.client_secret) {
+            console.log("✅ Payment intent created successfully");
+            setClientSecret(result.data.client_secret);
+          } else {
+            console.error("❌ No client secret returned from payment intent");
+            setClientSecret(null);
+          }
+        } catch (error) {
+          console.error("❌ Unexpected error creating payment intent:", error);
+          toast.error("Failed to setup payment. Please try again.");
+          setClientSecret(null);
         }
       } else {
         setClientSecret(null);
@@ -414,16 +536,20 @@ export function PaymentForm(props: PaymentFormProps) {
     );
   }
 
-  // Always provide Elements context, but only include clientSecret when available
-  const options = clientSecret ? {
+  // Always render the base form, but wrap Stripe payment button in Elements when needed
+  if (!clientSecret) {
+    return (
+      <PaymentFormInner 
+        {...props} 
+        externalAmount={amount}
+        onAmountChange={setAmount}
+        clientSecret={null}
+      />
+    );
+  }
+
+  const options = {
     clientSecret,
-    appearance: {
-      theme: 'stripe' as const,
-    },
-  } : {
-    mode: 'payment' as const,
-    amount: 1000, // placeholder amount
-    currency: 'usd',
     appearance: {
       theme: 'stripe' as const,
     },

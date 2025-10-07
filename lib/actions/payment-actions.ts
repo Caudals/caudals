@@ -64,10 +64,18 @@ export async function createPaymentIntent(
     const stripe = getStripeServer();
     const applicationFeeAmount = Math.round(amount * 0.1 * 100); // 10% platform fee in cents
 
+    console.log("Creating PaymentIntent with:", {
+      amount: Math.round(amount * 100),
+      currency: currency.toLowerCase(),
+      applicationFeeAmount,
+      datasetId,
+      userId: user.id
+    });
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: currency.toLowerCase(),
-      application_fee_amount: applicationFeeAmount,
+      application_fee_amount: applicationFeeAmount, // Re-enable application fee
       metadata: {
         dataset_id: datasetId,
         user_id: user.id,
@@ -76,6 +84,12 @@ export async function createPaymentIntent(
         platform_fee_amount: (amount * 0.1).toFixed(2),
       },
       description: `Funding for dataset: ${dataset.title}`,
+    });
+
+    console.log("PaymentIntent created successfully:", {
+      id: paymentIntent.id,
+      client_secret: paymentIntent.client_secret ? "present" : "missing",
+      status: paymentIntent.status
     });
 
     // Update dataset with payment intent ID
@@ -93,9 +107,21 @@ export async function createPaymentIntent(
         payment_intent_id: paymentIntent.id,
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating payment intent:", error);
-    return { error: "Failed to create payment intent" };
+    
+    // More detailed error handling
+    if (error.type === 'StripeInvalidRequestError') {
+      console.error("Stripe validation error:", error.message);
+      return { error: `Stripe error: ${error.message}` };
+    }
+    
+    if (error.code === 'application_fee_not_allowed') {
+      console.error("Application fee not allowed - Connect may not be set up properly");
+      return { error: "Payment system configuration error. Please contact support." };
+    }
+    
+    return { error: `Failed to create payment intent: ${error.message || 'Unknown error'}` };
   }
 }
 

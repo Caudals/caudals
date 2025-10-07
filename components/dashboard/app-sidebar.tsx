@@ -94,18 +94,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  // Determine navigation items based on user role, not current view
-  const navItems = userRole === "contributor" 
-    ? contributorNav 
-    : userRole === "admin" 
-    ? adminNav 
-    : requesterNav;
-
-  const viewLabel = userRole === "contributor"
-    ? "Contributor"
-    : userRole === "admin"
-    ? "Admin"
-    : "Requester";
+  // Determine navigation items based on current view (path)
+  // Admin can access all views, others only their role's view
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isAdminView = pathname.startsWith('/admin');
+  const isContributorView = pathname.startsWith('/dashboard/contributor');
+  
+  let navItems = requesterNav;
+  let viewLabel = "Requester";
+  
+  if (isAdminView && userRole === "admin") {
+    navItems = adminNav;
+    viewLabel = "Admin";
+  } else if (isContributorView) {
+    navItems = contributorNav;
+    viewLabel = "Contributor";
+  } else if (userRole === "contributor") {
+    navItems = contributorNav;
+    viewLabel = "Contributor";
+  } else if (userRole === "admin" && !isAdminView && !isContributorView) {
+    // Admin in requester view
+    navItems = requesterNav;
+    viewLabel = "Requester";
+  }
 
   return (
     <Sidebar variant="inset" {...props}>
