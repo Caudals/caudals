@@ -62,9 +62,61 @@ export async function POST(request: NextRequest) {
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent, supabase: Awaited<ReturnType<typeof createClient>>) {
   const datasetId = paymentIntent.metadata.dataset_id;
   const userId = paymentIntent.metadata.user_id;
+  const paymentType = paymentIntent.metadata.type;
 
-  if (!datasetId || !userId) {
-    console.error("Missing metadata in payment intent");
+  if (!userId) {
+    console.error("Missing user_id in payment intent metadata");
+    return;
+  }
+
+  // Handle wallet funding
+  if (paymentType === "wallet_funding") {
+    // Create transaction record for wallet funding
+    await supabase.from("transactions").insert({
+      user_id: userId,
+      type: "payment",
+      amount: paymentIntent.amount / 100,
+      currency: paymentIntent.currency.toUpperCase(),
+      status: "completed",
+      description: "Wallet funding payment",
+      reference_id: paymentIntent.id,
+      metadata: {
+        type: "wallet_funding",
+        stripe_payment_intent: paymentIntent.id,
+      },
+    });
+
+    // Update or create wallet balance
+    const { data: existingWallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", userId)
+      .single();
+
+    const newBalance = (existingWallet?.balance || 0) + (paymentIntent.amount / 100);
+
+    if (existingWallet) {
+      await supabase
+        .from("wallets")
+        .update({ balance: newBalance })
+        .eq("user_id", userId);
+    } else {
+      await supabase
+        .from("wallets")
+        .insert({
+          user_id: userId,
+          balance: newBalance,
+          currency: paymentIntent.currency.toUpperCase(),
+        });
+    }
+
+    console.log(`Wallet funding succeeded for user ${userId}`);
+    return;
+  }
+
+  // Handle dataset funding
+  if (!datasetId) {
+    console.error("Missing dataset_id in payment intent metadata");
     return;
   }
 

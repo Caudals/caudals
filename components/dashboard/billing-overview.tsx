@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Plus, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getUserTransactions } from "@/lib/actions/payment-actions";
+import { PaymentForm } from "./payment-form";
 
 interface BillingOverviewProps {
   onAddFunds?: () => void;
@@ -21,6 +22,7 @@ interface BillingOverviewProps {
 export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     loadBillingData();
@@ -84,7 +86,7 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
           <div className="space-y-4">
             <div className="text-4xl font-bold">{formatAmount(totalSpent)}</div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={onAddFunds}>
+              <Button size="sm" onClick={() => setShowPaymentForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Funds
               </Button>
@@ -129,6 +131,36 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Form Modal */}
+      {showPaymentForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Add Funds to Wallet</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowPaymentForm(false)}
+                >
+                  ×
+                </Button>
+              </div>
+              <PaymentForm
+                datasetId="wallet-funding"
+                datasetTitle="Wallet Funding"
+                currentBudget={0}
+                onPaymentSuccess={() => {
+                  setShowPaymentForm(false);
+                  toast.success("Funds added to wallet successfully!");
+                  loadBillingData();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

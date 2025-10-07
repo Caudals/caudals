@@ -47,6 +47,7 @@ import {
 } from "@/lib/actions/export-actions";
 import { DatasetExport } from "./dataset-export";
 import { FilePreviewDialog } from "./file-preview-dialog";
+import { DatasetPayment } from "./dataset-payment";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -296,6 +297,20 @@ export function RequesterDatasetDetail({
           </div>
         </CardContent>
       </Card>
+
+      {/* Dataset Payment */}
+      <DatasetPayment
+        datasetId={dataset.id}
+        datasetTitle={dataset.title}
+        currentBudget={0} // Will be loaded from database
+        samplesNeeded={dataset.samplesNeeded}
+        rewardPerSample={dataset.rewardAmount}
+        paymentStatus="unpaid" // Will be loaded from database
+        onPaymentSuccess={() => {
+          toast.success("Payment successful! Dataset funding updated.");
+          router.refresh();
+        }}
+      />
 
       {/* Submissions Table */}
       <Card>
