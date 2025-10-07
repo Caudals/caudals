@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { createPaymentIntent } from "@/lib/actions/payment-actions";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -50,7 +51,8 @@ function PaymentFormInner({
     }
 
     if (!stripe || !elements) {
-      toast.error("Stripe is not loaded");
+      toast.error("Payment system is not ready. Please wait a moment and try again.");
+      console.error("Stripe or Elements not available:", { stripe: !!stripe, elements: !!elements });
       return;
     }
 
@@ -253,10 +255,54 @@ function PaymentFormInner({
 
 // Componente wrapper con Stripe Elements
 export function PaymentForm(props: PaymentFormProps) {
-  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+  const { stripe, loading, error } = useStripeHook();
+
+  if (error) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Fund Dataset
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 p-4 bg-red-50 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Payment System Error</p>
+              <p className="text-xs text-red-600 mt-1">{error}</p>
+              <p className="text-xs text-gray-600 mt-2">
+                Please check your internet connection and try refreshing the page.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loading || !stripe) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Fund Dataset
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 p-4">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading payment system...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Elements stripe={stripePromise}>
+    <Elements stripe={stripe}>
       <PaymentFormInner {...props} />
     </Elements>
   );
