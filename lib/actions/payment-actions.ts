@@ -107,21 +107,30 @@ export async function createPaymentIntent(
         payment_intent_id: paymentIntent.id,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating payment intent:", error);
     
     // More detailed error handling
-    if (error.type === 'StripeInvalidRequestError') {
-      console.error("Stripe validation error:", error.message);
-      return { error: `Stripe error: ${error.message}` };
+    if (typeof error === "object" && error !== null) {
+      const maybeAny = error as { [key: string]: unknown };
+      const type = typeof maybeAny["type"] === "string" ? (maybeAny["type"] as string) : undefined;
+      const code = typeof maybeAny["code"] === "string" ? (maybeAny["code"] as string) : undefined;
+      const message = typeof maybeAny["message"] === "string" ? (maybeAny["message"] as string) : undefined;
+
+      if (type === "StripeInvalidRequestError") {
+        console.error("Stripe validation error:", message);
+        return { error: `Stripe error: ${message ?? "Invalid request"}` };
+      }
+      
+      if (code === "application_fee_not_allowed") {
+        console.error("Application fee not allowed - Connect may not be set up properly");
+        return { error: "Payment system configuration error. Please contact support." };
+      }
+
+      return { error: `Failed to create payment intent: ${message ?? "Unknown error"}` };
     }
-    
-    if (error.code === 'application_fee_not_allowed') {
-      console.error("Application fee not allowed - Connect may not be set up properly");
-      return { error: "Payment system configuration error. Please contact support." };
-    }
-    
-    return { error: `Failed to create payment intent: ${error.message || 'Unknown error'}` };
+
+    return { error: "Failed to create payment intent: Unknown error" };
   }
 }
 

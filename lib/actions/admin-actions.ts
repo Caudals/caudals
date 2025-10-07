@@ -335,6 +335,11 @@ export async function getAdminDashboardStats() {
     .select("*", { count: "exact", head: true })
     .eq("status", "pending");
 
+  // Get total submissions (all-time)
+  const { count: totalSubmissions } = await supabase
+    .from("submissions")
+    .select("*", { count: "exact", head: true });
+
   // Get total users
   const { count: totalUsers } = await supabase
     .from("profiles")
@@ -350,6 +355,7 @@ export async function getAdminDashboardStats() {
     data: {
       pendingRequests: pendingRequests || 0,
       pendingSubmissions: pendingSubmissions || 0,
+      totalSubmissions: totalSubmissions || 0,
       totalUsers: totalUsers || 0,
       approvedDatasets: approvedDatasets || 0,
     },
