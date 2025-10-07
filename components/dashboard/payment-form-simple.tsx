@@ -193,14 +193,18 @@ function PaymentFormInner({
           </div>
 
           {/* Payment Details */}
-          {clientSecret && (
-            <div className="space-y-2">
-              <Label>Payment Details</Label>
+          <div className="space-y-2">
+            <Label>Payment Details</Label>
+            {clientSecret ? (
               <div className="rounded-md">
                 <PaymentElement />
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="p-4 border rounded-md bg-muted/50 text-sm text-muted-foreground">
+                Enter an amount above to see payment options
+              </div>
+            )}
+          </div>
 
           {/* Cost Breakdown */}
           {totalAmount > 0 && (
@@ -229,7 +233,7 @@ function PaymentFormInner({
           <Button
             type="submit"
             className="w-full"
-            disabled={isProcessing || !amount || parseFloat(amount) <= 0}
+            disabled={isProcessing || !amount || parseFloat(amount) <= 0 || !clientSecret}
           >
             {isProcessing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -316,32 +320,29 @@ export function PaymentFormSimple(props: PaymentFormProps) {
 
   const stripePromise = loadStripe(publishableKey);
 
+  // Always provide Elements context, but only include clientSecret when available
   const options = clientSecret ? {
     clientSecret,
     appearance: {
       theme: 'stripe' as const,
     },
-  } : undefined;
+  } : {
+    mode: 'payment' as const,
+    amount: 1000, // placeholder amount
+    currency: 'usd',
+    appearance: {
+      theme: 'stripe' as const,
+    },
+  };
 
   return (
-    <>
-      {options ? (
-        <Elements stripe={stripePromise} options={options}>
-          <PaymentFormInner 
-            {...props} 
-            externalAmount={amount}
-            onAmountChange={setAmount}
-            clientSecret={clientSecret}
-          />
-        </Elements>
-      ) : (
-        <PaymentFormInner 
-          {...props} 
-          externalAmount={amount}
-          onAmountChange={setAmount}
-          clientSecret={null}
-        />
-      )}
-    </>
+    <Elements stripe={stripePromise} options={options}>
+      <PaymentFormInner 
+        {...props} 
+        externalAmount={amount}
+        onAmountChange={setAmount}
+        clientSecret={clientSecret}
+      />
+    </Elements>
   );
 }
