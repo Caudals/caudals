@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,11 @@ import {
   CreditCard, 
   DollarSign, 
   Loader2, 
-  CheckCircle,
   AlertCircle,
   Info
 } from "lucide-react";
 import { toast } from "sonner";
 import { createPaymentIntent } from "@/lib/actions/payment-actions";
-import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
 

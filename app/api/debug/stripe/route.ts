@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       origin: request.headers.get('origin'),
       referer: request.headers.get('referer')
     },
-    recommendations: []
+    recommendations: [] as string[]
   };
 
   // Generar recomendaciones
