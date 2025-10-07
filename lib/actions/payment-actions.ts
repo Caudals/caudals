@@ -389,6 +389,71 @@ export async function getStripeConnectAccount() {
   return { data: account };
 }
 
+// Get real-time Stripe Connect account status from Stripe API
+export async function getStripeConnectStatus() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Get account from database
+  const { data: account } = await supabase
+    .from("stripe_accounts")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!account) {
+    return { 
+      data: {
+        connected: false,
+        account_id: null,
+        charges_enabled: false,
+        payouts_enabled: false,
+        details_submitted: false,
+        requirements: [],
+      }
+    };
+  }
+
+  try {
+    // Fetch real-time status from Stripe
+    const stripe = getStripeServer();
+    const stripeAccount = await stripe.accounts.retrieve(account.stripe_account_id);
+
+    // Update database with latest info
+    await supabase
+      .from("stripe_accounts")
+      .update({
+        charges_enabled: stripeAccount.charges_enabled || false,
+        payouts_enabled: stripeAccount.payouts_enabled || false,
+        details_submitted: stripeAccount.details_submitted || false,
+        status: stripeAccount.charges_enabled && stripeAccount.payouts_enabled ? "active" : "pending",
+      })
+      .eq("user_id", user.id);
+
+    return {
+      data: {
+        connected: true,
+        account_id: account.stripe_account_id,
+        charges_enabled: stripeAccount.charges_enabled || false,
+        payouts_enabled: stripeAccount.payouts_enabled || false,
+        details_submitted: stripeAccount.details_submitted || false,
+        requirements: stripeAccount.requirements?.currently_due || [],
+        disabled_reason: stripeAccount.requirements?.disabled_reason || null,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching Stripe account status:", error);
+    return { error: "Failed to fetch account status" };
+  }
+}
+
 // Pay for dataset using wallet balance
 export async function payWithWallet(datasetId: string, amount: number) {
   const supabase = await createClient();

@@ -46,6 +46,7 @@ const contributorNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
   { title: "Browse Datasets", icon: Database, href: "/browse" },
   { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
+  { title: "Earnings & Payouts", icon: CreditCard, href: "/dashboard/earnings" },
   { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
