@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { categoryLabels, dataTypeLabels } from "@/lib/data/datasets";
 import { Separator } from "@/components/ui/separator";
+import { FileViewer } from "./file-viewer";
 
 interface ApprovalDialogProps {
   open: boolean;
@@ -40,6 +41,10 @@ interface ApprovalDialogProps {
     quality_criteria?: string[];
     requirements?: string[];
     file_urls?: string[];
+    metadata?: {
+      fileCount?: number;
+      totalSize?: number;
+    };
     notes?: string;
     dataset_requests?: { title: string };
     profiles?: { full_name: string };
@@ -242,9 +247,10 @@ export function ApprovalDialog({
 
               <div>
                 <h4 className="font-semibold mb-2">Files Submitted</h4>
-                <p className="text-sm text-muted-foreground">
-                  {item.file_urls?.length || 0} file(s)
-                </p>
+                <FileViewer 
+                  fileUrls={item.file_urls || []} 
+                  metadata={item.metadata}
+                />
               </div>
 
               {item.notes && (
