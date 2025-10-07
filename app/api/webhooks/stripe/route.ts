@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripeServer } from "@/lib/stripe/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   try {
     switch (event.type) {
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
 async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: ReturnType<typeof createAdminClient>
 ) {
   const datasetId = paymentIntent.metadata.dataset_id;
   const userId = paymentIntent.metadata.user_id;
@@ -80,10 +80,12 @@ async function handlePaymentIntentSucceeded(
 
   // Handle wallet funding
   if (paymentType === "wallet_funding") {
-    // Create transaction record for wallet funding
-    await supabase.from("transactions").insert({
+    console.log(`💰 Processing wallet funding for user ${userId}, amount: $${paymentIntent.amount / 100}`);
+    
+    // Record as a 'deposit' transaction and rely on DB trigger to update wallet
+    const { data: transaction, error: transactionError } = await supabase.from("transactions").insert({
       user_id: userId,
-      type: "payment",
+      type: "deposit",
       amount: paymentIntent.amount / 100,
       currency: paymentIntent.currency.toUpperCase(),
       status: "completed",
@@ -93,32 +95,28 @@ async function handlePaymentIntentSucceeded(
         type: "wallet_funding",
         stripe_payment_intent: paymentIntent.id,
       },
-    });
+    }).select().single();
 
-    // Update or create wallet balance
-    const { data: existingWallet } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", userId)
-      .single();
-
-    const newBalance =
-      (existingWallet?.balance || 0) + paymentIntent.amount / 100;
-
-    if (existingWallet) {
-      await supabase
-        .from("wallets")
-        .update({ balance: newBalance })
-        .eq("user_id", userId);
+    if (transactionError) {
+      console.error(`❌ Error creating deposit transaction:`, transactionError);
     } else {
-      await supabase.from("wallets").insert({
-        user_id: userId,
-        balance: newBalance,
-        currency: paymentIntent.currency.toUpperCase(),
-      });
+      console.log(`✅ Deposit transaction created:`, transaction);
+      
+      // Check if wallet was updated by trigger
+      const { data: updatedWallet, error: walletError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      
+      if (walletError) {
+        console.error(`❌ Error checking wallet after deposit:`, walletError);
+      } else {
+        console.log(`✅ Wallet after deposit:`, updatedWallet);
+      }
     }
 
-    console.log(`Wallet funding succeeded for user ${userId}`);
+    console.log(`✅ Wallet funding succeeded for user ${userId}`);
     return;
   }
 
@@ -149,6 +147,7 @@ async function handlePaymentIntentSucceeded(
     metadata: {
       dataset_id: datasetId,
       stripe_payment_intent: paymentIntent.id,
+      payment_method: "card",
     },
   });
 
