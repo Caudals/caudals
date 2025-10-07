@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -29,8 +30,8 @@ export function DashboardHeader({
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumbs.map((crumb, index) => (
-                <>
-                  <BreadcrumbItem key={crumb.label}>
+                <React.Fragment key={crumb.label}>
+                  <BreadcrumbItem>
                     {crumb.href ? (
                       <BreadcrumbLink href={crumb.href}>
                         {crumb.label}
@@ -40,7 +41,7 @@ export function DashboardHeader({
                     )}
                   </BreadcrumbItem>
                   {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                </>
+                </React.Fragment>
               ))}
             </BreadcrumbList>
           </Breadcrumb>
