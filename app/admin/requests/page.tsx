@@ -1,42 +1,59 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getPendingDatasetRequests } from "@/lib/actions/admin-actions";
 import { PendingRequestsTable } from "@/components/admin/pending-requests-table";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default async function AdminRequestsPage() {
   await requireAdmin();
   const result = await getPendingDatasetRequests();
 
   if ("error" in result) {
-    return <div>Error loading requests</div>;
+    return (
+      <SidebarProvider defaultOpen={true}>
+        <AppSidebar collapsible="icon" />
+        <SidebarInset>
+          <DashboardHeader
+            title="Pending Requests"
+            breadcrumbs={[
+              { label: "Admin", href: "/admin" },
+              { label: "Requests" },
+            ]}
+          />
+          <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="text-center p-12 border rounded-lg">
+              <p className="text-lg font-semibold text-destructive">Error loading requests</p>
+              <p className="text-sm text-muted-foreground mt-2">Please try again later</p>
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
   }
 
   const requests = result.data || [];
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+    <SidebarProvider defaultOpen={true}>
+      <AppSidebar collapsible="icon" />
+      <SidebarInset>
+        <DashboardHeader
+          title="Pending Dataset Requests"
+          breadcrumbs={[
+            { label: "Admin", href: "/admin" },
+            { label: "Requests" },
+          ]}
+        />
+        <div className="flex flex-1 flex-col gap-6 p-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Pending Dataset Requests
-            </h1>
             <p className="text-muted-foreground">
               Review and approve dataset requests from requesters
             </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/admin">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Admin
-            </Link>
-          </Button>
+          <PendingRequestsTable requests={requests} />
         </div>
-
-        <PendingRequestsTable requests={requests} />
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

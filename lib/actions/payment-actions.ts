@@ -60,14 +60,14 @@ export async function createPaymentIntent(
   }
 
   try {
-    // Create payment intent with 10% application fee
+    // Create payment intent - funds go to platform account
+    // NOTE: Application fees are NOT used here because requester payments go TO the platform
+    // Platform commission (10%) is deducted during contributor payouts via Stripe Transfers
     const stripe = getStripeServer();
-    const applicationFeeAmount = Math.round(amount * 0.1 * 100); // 10% platform fee in cents
 
-    console.log("Creating PaymentIntent with:", {
+    console.log("Creating PaymentIntent for dataset funding:", {
       amount: Math.round(amount * 100),
       currency: currency.toLowerCase(),
-      applicationFeeAmount,
       datasetId,
       userId: user.id
     });
@@ -75,13 +75,11 @@ export async function createPaymentIntent(
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: currency.toLowerCase(),
-      application_fee_amount: applicationFeeAmount, // Re-enable application fee
+      // NO application_fee_amount - this is a direct payment to platform
       metadata: {
         dataset_id: datasetId,
         user_id: user.id,
         type: "dataset_funding",
-        platform_fee_percentage: "10",
-        platform_fee_amount: (amount * 0.1).toFixed(2),
       },
       description: `Funding for dataset: ${dataset.title}`,
     });
