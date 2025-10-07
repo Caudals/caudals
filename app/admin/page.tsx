@@ -8,9 +8,11 @@ import {
   Database,
   AlertCircle,
   Send,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AdminAnalytics } from "@/components/admin/admin-analytics";
 
 export default async function AdminDashboard() {
   await requireAdmin();
@@ -130,8 +132,19 @@ export default async function AdminDashboard() {
                 Manage Users
               </Link>
             </Button>
+            <Button asChild variant="outline">
+              <Link href="#analytics">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                View Analytics
+              </Link>
+            </Button>
           </CardContent>
         </Card>
+
+        {/* Analytics Section */}
+        <div id="analytics">
+          <AdminAnalytics />
+        </div>
 
         {/* Navigation */}
         <div className="flex gap-4">
