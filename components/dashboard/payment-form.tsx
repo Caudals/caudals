@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ function PaymentFormBase({
   onAmountChange,
   clientSecret,
 }: PaymentFormInnerProps) {
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "upfront" | "per_contribution"
@@ -90,6 +92,7 @@ function PaymentFormBase({
       }
 
       toast.success("Payment successful! Paid with wallet balance.");
+      router.refresh(); // Refresh to update wallet balance in UI
       onPaymentSuccess?.();
     } catch (error) {
       toast.error("An error occurred during payment");
@@ -337,6 +340,7 @@ function StripePaymentButton({
   setIsProcessing: (processing: boolean) => void;
   onPaymentSuccess?: () => void;
 }) {
+  const router = useRouter();
   const stripe = useStripe();
   const elements = useElements();
 
@@ -371,6 +375,7 @@ function StripePaymentButton({
         toast.error(error.message || "Payment failed");
       } else {
         toast.success("Payment successful!");
+        router.refresh(); // Refresh to update wallet balance and dataset status
         onPaymentSuccess?.();
       }
     } catch (error) {

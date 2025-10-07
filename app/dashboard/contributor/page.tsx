@@ -2,11 +2,9 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ContributorStatsCards } from "@/components/dashboard/contributor-stats-cards";
 import { RecentContributions } from "@/components/dashboard/recent-contributions";
-import { WalletOverview } from "@/components/dashboard/wallet-overview";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, TrendingUp, Send, Clock, CheckCircle, Database } from "lucide-react";
-import { getUserWallet, getUserTransactions } from "@/lib/actions/payment-actions";
+import { TrendingUp, Send, Clock, CheckCircle, Database, DollarSign } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -30,13 +28,6 @@ export default async function ContributorDashboardPage() {
       redirect('/dashboard');
     }
   }
-  // Get wallet data
-  const walletResult = await getUserWallet();
-  const walletBalance = walletResult.data?.balance || 0;
-
-  // Get recent transactions
-  const transactionsResult = await getUserTransactions(5);
-  const recentTransactions = transactionsResult.data || [];
 
   // Get submission stats using the already created supabase client
   let submissionStats = {
@@ -81,84 +72,66 @@ export default async function ContributorDashboardPage() {
           {/* Main Stats */}
           <ContributorStatsCards />
 
-          {/* Wallet and Earnings Section */}
+          {/* Quick Actions */}
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Wallet Balance */}
-            <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            {/* Earnings Overview */}
+            <Card className="border-emerald-500/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-emerald-600" />
-                  Wallet Balance
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+                  Earnings Overview
                 </CardTitle>
                 <CardDescription>
-                  Your available earnings
+                  Track your earnings and payouts
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div>
-                  <p className="text-4xl font-bold text-emerald-600">
-                    ${walletBalance.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Ready for withdrawal
-                  </p>
-                  <div className="mt-4 flex gap-2">
-                    <Button asChild size="sm">
-                      <Link href="/dashboard/billing">
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Withdraw
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href="/dashboard/billing">
-                        View History
-                      </Link>
-                    </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Total Earned</span>
+                    <span className="text-lg font-semibold">
+                      ${submissionStats.totalEarnings.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Approved</span>
+                    <span className="text-sm font-medium">{submissionStats.approved} submissions</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Pending</span>
+                    <span className="text-sm font-medium">{submissionStats.pending} submissions</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Earnings Stats */}
-            <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
+            {/* Browse Datasets */}
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                  Total Earnings
+                  <Database className="h-5 w-5" />
+                  Find Opportunities
                 </CardTitle>
                 <CardDescription>
-                  Lifetime approved rewards
+                  Browse available datasets and contribute
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div>
-                  <p className="text-4xl font-bold text-blue-600">
-                    ${submissionStats.totalEarnings.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    From {submissionStats.approved} approved submissions
-                  </p>
-                  <div className="mt-4 flex gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/dashboard/contributions">
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        View All
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href="/browse">
-                        <Database className="mr-2 h-4 w-4" />
-                        Find More
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
+              <CardContent className="space-y-2">
+                <Button asChild className="w-full">
+                  <Link href="/browse">
+                    <Database className="mr-2 h-4 w-4" />
+                    Browse Datasets
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/dashboard/contributions">
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    My Contributions
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -209,81 +182,8 @@ export default async function ContributorDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>
-                Your latest earnings and withdrawals
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentTransactions.length > 0 ? (
-                <div className="space-y-3">
-                  {recentTransactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        {transaction.type === "payout" || transaction.type === "deposit" ? (
-                          <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                            <TrendingUp className="h-4 w-4 text-emerald-600" />
-                          </div>
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                            <Wallet className="h-4 w-4 text-blue-600" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium capitalize">
-                            {transaction.type.replace("_", " ")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {transaction.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-semibold ${
-                          transaction.type === "payout" || transaction.type === "deposit"
-                            ? "text-emerald-600"
-                            : "text-muted-foreground"
-                        }`}>
-                          {transaction.type === "withdrawal" ? "-" : "+"}$
-                          {transaction.amount.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(transaction.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No transactions yet</p>
-                  <Button asChild variant="outline" size="sm" className="mt-4">
-                    <Link href="/browse">Start Contributing</Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Activity Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <div className="col-span-4">
-              <WalletOverview />
-            </div>
-            <div className="col-span-3">
-              <RecentContributions />
-            </div>
-          </div>
+          {/* Recent Contributions */}
+          <RecentContributions />
         </div>
       </SidebarInset>
     </SidebarProvider>
