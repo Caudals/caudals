@@ -7,16 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CreditCard, 
-  DollarSign, 
-  Loader2, 
+import {
+  CreditCard,
+  DollarSign,
+  Loader2,
   AlertCircle,
-  Info
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { createPaymentIntent, payWithWallet, getUserWallet } from "@/lib/actions/payment-actions";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  createPaymentIntent,
+  payWithWallet,
+  getUserWallet,
+} from "@/lib/actions/payment-actions";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
 
 interface PaymentFormProps {
@@ -27,18 +36,21 @@ interface PaymentFormProps {
 }
 
 // Componente interno que usa Stripe Elements
-function PaymentFormInner({ 
-  datasetId, 
-  datasetTitle, 
+function PaymentFormInner({
+  datasetId,
+  datasetTitle,
   currentBudget = 0,
-  onPaymentSuccess 
+  onPaymentSuccess,
 }: PaymentFormProps) {
   const [amount, setAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"upfront" | "per_contribution">("upfront");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "upfront" | "per_contribution"
+  >("upfront");
   const [paymentType, setPaymentType] = useState<"stripe" | "wallet">("stripe");
   const [walletBalance, setWalletBalance] = useState(0);
-  
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
   const stripe = useStripe();
   const elements = useElements();
 
@@ -53,9 +65,24 @@ function PaymentFormInner({
     loadWalletBalance();
   }, []);
 
+  // Create payment intent when amount changes (for Stripe payments)
+  React.useEffect(() => {
+    const createIntent = async () => {
+      if (paymentType === "stripe" && amount && parseFloat(amount) > 0) {
+        const result = await createPaymentIntent(datasetId, parseFloat(amount));
+        if (result.data?.client_secret) {
+          setClientSecret(result.data.client_secret);
+        }
+      }
+    };
+
+    const timer = setTimeout(createIntent, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [amount, paymentType, datasetId]);
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -73,7 +100,7 @@ function PaymentFormInner({
         }
 
         const result = await payWithWallet(datasetId, paymentAmount);
-        
+
         if (result.error) {
           toast.error(result.error);
           return;
@@ -84,34 +111,25 @@ function PaymentFormInner({
       } else {
         // Pay with Stripe
         if (!stripe || !elements) {
-          toast.error("Payment system is not ready. Please wait a moment and try again.");
-          console.error("Stripe or Elements not available:", { stripe: !!stripe, elements: !!elements });
+          toast.error(
+            "Payment system is not ready. Please wait a moment and try again."
+          );
+          console.error("Stripe or Elements not available:", {
+            stripe: !!stripe,
+            elements: !!elements,
+          });
           return;
         }
 
-        // Create payment intent
-        const result = await createPaymentIntent(datasetId, paymentAmount);
-        
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
-
-        // Get card element
-        const cardElement = elements.getElement(CardElement);
-        
-        if (!cardElement) {
-          toast.error("Card element not found");
-          return;
-        }
-
-        // Confirm payment with card element
-        const { error } = await stripe.confirmCardPayment(result.data!.client_secret!, {
-          payment_method: {
-            card: cardElement,
-          }
+        // Confirm payment with Payment Element
+        const { error } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/dashboard/requests?payment=success`,
+          },
+          redirect: "if_required",
         });
-        
+
         if (error) {
           toast.error(error.message || "Payment failed");
         } else {
@@ -134,7 +152,7 @@ function PaymentFormInner({
   };
 
   const calculateCommission = (amount: number) => {
-    const commissionRate = 0.10; // 10% platform commission
+    const commissionRate = 0.1; // 10% platform commission
     return amount * commissionRate;
   };
 
@@ -183,7 +201,9 @@ function PaymentFormInner({
                 type="radio"
                 value="per_contribution"
                 checked={paymentMethod === "per_contribution"}
-                onChange={(e) => setPaymentMethod(e.target.value as "per_contribution")}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as "per_contribution")
+                }
                 className="rounded"
               />
               <span className="text-sm">Per-Contribution</span>
@@ -231,40 +251,28 @@ function PaymentFormInner({
                   onChange={(e) => setPaymentType(e.target.value as "wallet")}
                   className="rounded"
                 />
-                <span className="text-sm">Wallet Balance ({formatAmount(walletBalance)})</span>
+                <span className="text-sm">
+                  Wallet Balance ({formatAmount(walletBalance)})
+                </span>
               </label>
             </div>
-            {paymentType === "wallet" && walletBalance < parseFloat(amount || "0") && (
-              <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <span className="text-xs text-yellow-800">
-                  Insufficient wallet balance. Add funds to continue.
-                </span>
-              </div>
-            )}
+            {paymentType === "wallet" &&
+              walletBalance < parseFloat(amount || "0") && (
+                <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-xs text-yellow-800">
+                    Insufficient wallet balance. Add funds to continue.
+                  </span>
+                </div>
+              )}
           </div>
 
-          {/* Card Details - Only show for Stripe payments */}
-          {paymentType === "stripe" && (
+          {/* Payment Details - Only show for Stripe payments */}
+          {paymentType === "stripe" && clientSecret && (
             <div className="space-y-2">
-              <Label>Card Details</Label>
-              <div className="p-3 border rounded-md">
-                <CardElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: '16px',
-                        color: '#424770',
-                        '::placeholder': {
-                          color: '#aab7c4',
-                        },
-                      },
-                      invalid: {
-                        color: '#9e2146',
-                      },
-                    },
-                  }}
-                />
+              <Label>Payment Details</Label>
+              <div className="rounded-md">
+                <PaymentElement />
               </div>
             </div>
           )}
@@ -278,23 +286,27 @@ function PaymentFormInner({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Platform Commission (10%):</span>
-                <span className="text-orange-600">-{formatAmount(commission)}</span>
+                <span className="text-orange-600">
+                  -{formatAmount(commission)}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between text-sm font-medium">
                 <span>Available for Contributors:</span>
-                <span className="text-green-600">{formatAmount(netAmount)}</span>
+                <span className="text-green-600">
+                  {formatAmount(netAmount)}
+                </span>
               </div>
             </div>
           )}
 
           {/* Payment Button */}
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={
-              isProcessing || 
-              !amount || 
+              isProcessing ||
+              !amount ||
               parseFloat(amount) <= 0 ||
               (paymentType === "wallet" && walletBalance < parseFloat(amount))
             }
@@ -304,12 +316,11 @@ function PaymentFormInner({
             ) : (
               <DollarSign className="mr-2 h-4 w-4" />
             )}
-            {isProcessing 
-              ? "Processing..." 
-              : paymentType === "wallet" 
-                ? `Pay ${formatAmount(totalAmount)} with Wallet`
-                : `Pay ${formatAmount(totalAmount)} with Card`
-            }
+            {isProcessing
+              ? "Processing..."
+              : paymentType === "wallet"
+              ? `Pay ${formatAmount(totalAmount)} with Wallet`
+              : `Pay ${formatAmount(totalAmount)} with Card`}
           </Button>
         </form>
 
@@ -348,10 +359,13 @@ export function PaymentForm(props: PaymentFormProps) {
           <div className="flex items-center gap-2 p-4 bg-red-50 rounded-lg">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <div>
-              <p className="text-sm font-medium text-red-800">Payment System Error</p>
+              <p className="text-sm font-medium text-red-800">
+                Payment System Error
+              </p>
               <p className="text-xs text-red-600 mt-1">{error}</p>
               <p className="text-xs text-gray-600 mt-2">
-                Please check your internet connection and try refreshing the page.
+                Please check your internet connection and try refreshing the
+                page.
               </p>
             </div>
           </div>

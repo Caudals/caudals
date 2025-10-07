@@ -8,7 +8,10 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 export async function POST(request: NextRequest) {
   // Check if Stripe is configured
   if (!process.env.STRIPE_SECRET_KEY || !webhookSecret) {
-    return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Stripe not configured" },
+      { status: 500 }
+    );
   }
 
   const body = await request.text();
@@ -44,6 +47,10 @@ export async function POST(request: NextRequest) {
         await handleTransferCreated(event.data.object, supabase);
         break;
 
+      case "transfer.failed":
+        await handleTransferFailed(event.data.object, supabase);
+        break;
+
       case "checkout.session.completed":
         await handleCheckoutSessionCompleted(event.data.object);
         break;
@@ -55,11 +62,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("Error processing webhook:", error);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    );
   }
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent, supabase: Awaited<ReturnType<typeof createClient>>) {
+async function handlePaymentIntentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
   const datasetId = paymentIntent.metadata.dataset_id;
   const userId = paymentIntent.metadata.user_id;
   const paymentType = paymentIntent.metadata.type;
@@ -93,7 +106,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent,
       .eq("user_id", userId)
       .single();
 
-    const newBalance = (existingWallet?.balance || 0) + (paymentIntent.amount / 100);
+    const newBalance =
+      (existingWallet?.balance || 0) + paymentIntent.amount / 100;
 
     if (existingWallet) {
       await supabase
@@ -101,13 +115,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent,
         .update({ balance: newBalance })
         .eq("user_id", userId);
     } else {
-      await supabase
-        .from("wallets")
-        .insert({
-          user_id: userId,
-          balance: newBalance,
-          currency: paymentIntent.currency.toUpperCase(),
-        });
+      await supabase.from("wallets").insert({
+        user_id: userId,
+        balance: newBalance,
+        currency: paymentIntent.currency.toUpperCase(),
+      });
     }
 
     console.log(`Wallet funding succeeded for user ${userId}`);
@@ -147,7 +159,10 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent,
   console.log(`Payment succeeded for dataset ${datasetId}`);
 }
 
-async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent, supabase: Awaited<ReturnType<typeof createClient>>) {
+async function handlePaymentIntentFailed(
+  paymentIntent: Stripe.PaymentIntent,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
   const datasetId = paymentIntent.metadata.dataset_id;
   const userId = paymentIntent.metadata.user_id;
 
@@ -183,7 +198,10 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent, su
   console.log(`Payment failed for dataset ${datasetId}`);
 }
 
-async function handleAccountUpdated(account: Stripe.Account, supabase: Awaited<ReturnType<typeof createClient>>) {
+async function handleAccountUpdated(
+  account: Stripe.Account,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
   // Update Stripe account status
   await supabase
     .from("stripe_accounts")
@@ -198,7 +216,12 @@ async function handleAccountUpdated(account: Stripe.Account, supabase: Awaited<R
   console.log(`Account updated: ${account.id}`);
 }
 
-async function handleTransferCreated(transfer: Stripe.Transfer, supabase: Awaited<ReturnType<typeof createClient>>) {
+async function handleTransferCreated(
+  transfer: Stripe.Transfer,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  console.log(`✅ Transfer created webhook received: ${transfer.id}`);
+
   // Find the user by Stripe account ID
   const { data: stripeAccount } = await supabase
     .from("stripe_accounts")
@@ -207,9 +230,28 @@ async function handleTransferCreated(transfer: Stripe.Transfer, supabase: Awaite
     .single();
 
   if (!stripeAccount) {
-    console.error("No user found for transfer destination:", transfer.destination);
+    console.error(
+      "No user found for transfer destination:",
+      transfer.destination
+    );
     return;
   }
+
+  // Check if transaction already exists to avoid duplicates
+  const { data: existingTx } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("reference_id", transfer.id)
+    .single();
+
+  if (existingTx) {
+    console.log(`Transaction already exists for transfer ${transfer.id}`);
+    return;
+  }
+
+  // Extract metadata from transfer
+  const submissionId = transfer.metadata?.submission_id;
+  const datasetId = transfer.metadata?.dataset_id;
 
   // Create transaction record for the payout
   await supabase.from("transactions").insert({
@@ -223,13 +265,74 @@ async function handleTransferCreated(transfer: Stripe.Transfer, supabase: Awaite
     metadata: {
       stripe_transfer: transfer.id,
       destination: transfer.destination,
+      submission_id: submissionId,
+      dataset_id: datasetId,
     },
   });
 
-  console.log(`Transfer created for user ${stripeAccount.user_id}`);
+  console.log(
+    `✅ Transfer created successfully for user ${
+      stripeAccount.user_id
+    }, amount: $${transfer.amount / 100}`
+  );
 }
 
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+async function handleTransferFailed(
+  transfer: Stripe.Transfer,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  console.error(`❌ Transfer failed webhook received: ${transfer.id}`);
+
+  // Find the user by Stripe account ID
+  const { data: stripeAccount } = await supabase
+    .from("stripe_accounts")
+    .select("user_id")
+    .eq("stripe_account_id", transfer.destination)
+    .single();
+
+  if (!stripeAccount) {
+    console.error(
+      "No user found for transfer destination:",
+      transfer.destination
+    );
+    return;
+  }
+
+  // Extract metadata from transfer
+  const submissionId = transfer.metadata?.submission_id;
+  const datasetId = transfer.metadata?.dataset_id;
+
+  // Create failed transaction record
+  await supabase.from("transactions").insert({
+    user_id: stripeAccount.user_id,
+    type: "payout",
+    amount: transfer.amount / 100,
+    currency: transfer.currency.toUpperCase(),
+    status: "failed",
+    description: "Contribution payout (failed)",
+    reference_id: transfer.id,
+    metadata: {
+      stripe_transfer: transfer.id,
+      destination: transfer.destination,
+      submission_id: submissionId,
+      dataset_id: datasetId,
+      failure_code: (transfer as any).failure_code,
+      failure_message: (transfer as any).failure_message,
+    },
+  });
+
+  console.error(
+    `❌ Transfer failed for user ${stripeAccount.user_id}, amount: $${
+      transfer.amount / 100
+    }`
+  );
+
+  // TODO: Send notification to admin and contributor about failed payout
+}
+
+async function handleCheckoutSessionCompleted(
+  session: Stripe.Checkout.Session
+) {
   // Handle any additional logic for completed checkout sessions
   console.log(`Checkout session completed: ${session.id}`);
 }

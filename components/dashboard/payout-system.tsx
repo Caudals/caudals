@@ -5,18 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Wallet, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Wallet,
+  DollarSign,
+  TrendingUp,
   Loader2,
   CheckCircle,
   Clock,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getUserWallet, getStripeConnectAccount } from "@/lib/actions/payment-actions";
+import {
+  getUserWallet,
+  getStripeConnectAccount,
+} from "@/lib/actions/payment-actions";
 
 interface PayoutSystemProps {
   onPayoutSuccess?: () => void;
@@ -48,7 +51,7 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
     try {
       const [walletResult, accountResult] = await Promise.all([
         getUserWallet(),
-        getStripeConnectAccount()
+        getStripeConnectAccount(),
       ]);
 
       if (walletResult.data) setWallet(walletResult.data);
@@ -73,12 +76,15 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
 
     setPayoutLoading(true);
     try {
-      // In a real implementation, this would call a server action
-      // to create a payout through Stripe Connect
-      toast.success("Payout initiated! Funds will be transferred to your bank account within 1-2 business days.");
+      // Note: Payouts are now automatic via Stripe Connect when submissions are approved
+      // This manual payout is for any remaining wallet balance
+      toast.info(
+        "Automatic payouts are handled by Stripe Connect when your submissions are approved. Your wallet balance is for reference only."
+      );
       onPayoutSuccess?.();
+      await loadPayoutData();
     } catch {
-      toast.error("Failed to initiate payout");
+      toast.error("Failed to load payout information");
     } finally {
       setPayoutLoading(false);
     }
@@ -154,20 +160,26 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
               <span className="text-sm font-medium">Account Status</span>
               {getAccountStatusBadge()}
             </div>
-            
+
             {stripeAccount && (
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Charges:</span>
-                  <span>{stripeAccount.charges_enabled ? "Enabled" : "Disabled"}</span>
+                  <span>
+                    {stripeAccount.charges_enabled ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Payouts:</span>
-                  <span>{stripeAccount.payouts_enabled ? "Enabled" : "Disabled"}</span>
+                  <span>
+                    {stripeAccount.payouts_enabled ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Details:</span>
-                  <span>{stripeAccount.details_submitted ? "Submitted" : "Pending"}</span>
+                  <span>
+                    {stripeAccount.details_submitted ? "Submitted" : "Pending"}
+                  </span>
                 </div>
               </div>
             )}
@@ -199,22 +211,21 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
                 <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <p className="text-sm text-green-800">
-                    You have {formatAmount(wallet.balance)} available for withdrawal
+                    You have {formatAmount(wallet.balance)} available for
+                    withdrawal
                   </p>
                 </div>
 
-                <Button 
-                  onClick={handlePayout}
-                  disabled={payoutLoading || !stripeAccount?.payouts_enabled}
-                  className="w-full"
-                >
-                  {payoutLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <DollarSign className="mr-2 h-4 w-4" />
-                  )}
-                  {payoutLoading ? "Processing..." : "Withdraw to Bank Account"}
-                </Button>
+                <div className="text-sm text-center text-muted-foreground p-4 bg-blue-50 rounded-lg">
+                  <p className="font-medium text-blue-900">
+                    Automatic Payouts Enabled
+                  </p>
+                  <p className="mt-1 text-xs text-blue-800">
+                    Earnings are automatically transferred to your bank account
+                    when submissions are approved. Wallet balance shown is for
+                    tracking purposes only.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="text-center py-6">
@@ -229,10 +240,16 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
             <div className="space-y-2 text-xs text-muted-foreground">
               <p className="font-medium">Payout Information:</p>
               <ul className="space-y-1">
-                <li>• Payouts are processed within 1-2 business days</li>
-                <li>• Minimum withdrawal amount: $1.00</li>
-                <li>• Funds are transferred to your connected bank account</li>
-                <li>• Stripe handles all banking and compliance requirements</li>
+                <li>
+                  • <strong>Automatic payouts</strong> when submissions are
+                  approved
+                </li>
+                <li>
+                  • Funds transferred directly to your bank via Stripe Connect
+                </li>
+                <li>• 10% platform fee deducted automatically</li>
+                <li>• Payouts arrive in 1-2 business days</li>
+                <li>• Track your earnings in transaction history</li>
               </ul>
             </div>
           </div>

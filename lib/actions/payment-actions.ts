@@ -24,7 +24,7 @@ export async function createPaymentIntent(
   if (datasetId === "wallet-funding") {
     try {
       const stripe = getStripeServer();
-      
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: currency.toLowerCase(),
@@ -35,11 +35,11 @@ export async function createPaymentIntent(
         description: `Wallet funding for user`,
       });
 
-      return { 
-        data: { 
+      return {
+        data: {
           client_secret: paymentIntent.client_secret,
-          payment_intent_id: paymentIntent.id 
-        } 
+          payment_intent_id: paymentIntent.id,
+        },
       };
     } catch (error) {
       console.error("Error creating wallet funding payment intent:", error);
@@ -60,15 +60,20 @@ export async function createPaymentIntent(
   }
 
   try {
-    // Create payment intent
+    // Create payment intent with 10% application fee
     const stripe = getStripeServer();
+    const applicationFeeAmount = Math.round(amount * 0.1 * 100); // 10% platform fee in cents
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: currency.toLowerCase(),
+      application_fee_amount: applicationFeeAmount,
       metadata: {
         dataset_id: datasetId,
         user_id: user.id,
         type: "dataset_funding",
+        platform_fee_percentage: "10",
+        platform_fee_amount: (amount * 0.1).toFixed(2),
       },
       description: `Funding for dataset: ${dataset.title}`,
     });
@@ -82,11 +87,11 @@ export async function createPaymentIntent(
       })
       .eq("id", datasetId);
 
-    return { 
-      data: { 
+    return {
+      data: {
         client_secret: paymentIntent.client_secret,
-        payment_intent_id: paymentIntent.id 
-      } 
+        payment_intent_id: paymentIntent.id,
+      },
     };
   } catch (error) {
     console.error("Error creating payment intent:", error);
@@ -176,22 +181,28 @@ export async function getUserWallet() {
 
     if (error) {
       console.error("Error fetching wallet:", error);
-      
+
       // If wallet doesn't exist, return a default wallet object
-      if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
-        console.log("Wallet not found, returning default wallet for user:", user.id);
-        return { 
+      if (
+        error.code === "PGRST116" ||
+        error.message?.includes("No rows found")
+      ) {
+        console.log(
+          "Wallet not found, returning default wallet for user:",
+          user.id
+        );
+        return {
           data: {
-            id: 'default',
+            id: "default",
             user_id: user.id,
-            balance: 0.00,
-            currency: 'USD',
+            balance: 0.0,
+            currency: "USD",
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
+            updated_at: new Date().toISOString(),
+          },
         };
       }
-      
+
       return { error: `Failed to fetch wallet: ${error.message}` };
     }
     return { data: wallet };
@@ -248,11 +259,11 @@ export async function createStripeConnectAccount() {
     .single();
 
   if (existingAccount) {
-    return { 
-      data: { 
+    return {
+      data: {
         account_id: existingAccount.stripe_account_id,
-        onboarding_url: null // Already onboarded
-      } 
+        onboarding_url: null, // Already onboarded
+      },
     };
   }
 
@@ -281,17 +292,15 @@ export async function createStripeConnectAccount() {
     });
 
     // Save account to database
-    const { error: saveError } = await supabase
-      .from("stripe_accounts")
-      .insert({
-        user_id: user.id,
-        stripe_account_id: account.id,
-        account_type: "express",
-        status: "pending",
-        charges_enabled: false,
-        payouts_enabled: false,
-        details_submitted: false,
-      });
+    const { error: saveError } = await supabase.from("stripe_accounts").insert({
+      user_id: user.id,
+      stripe_account_id: account.id,
+      account_type: "express",
+      status: "pending",
+      charges_enabled: false,
+      payouts_enabled: false,
+      details_submitted: false,
+    });
 
     if (saveError) {
       console.error("Error saving Stripe account:", saveError);
@@ -301,16 +310,20 @@ export async function createStripeConnectAccount() {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/wallet?refresh=true`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/wallet?success=true`,
+      refresh_url: `${
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      }/dashboard/wallet?refresh=true`,
+      return_url: `${
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      }/dashboard/wallet?success=true`,
       type: "account_onboarding",
     });
 
-    return { 
-      data: { 
+    return {
+      data: {
         account_id: account.id,
-        onboarding_url: accountLink.url 
-      } 
+        onboarding_url: accountLink.url,
+      },
     };
   } catch (error) {
     console.error("Error creating Stripe account:", error);
@@ -366,7 +379,10 @@ export async function payWithWallet(datasetId: string, amount: number) {
 
     if (walletError || !walletData) {
       // If wallet doesn't exist, treat as having 0 balance
-      if (walletError?.code === 'PGRST116' || walletError?.message?.includes('No rows found')) {
+      if (
+        walletError?.code === "PGRST116" ||
+        walletError?.message?.includes("No rows found")
+      ) {
         if (amount > 0) {
           return { error: "Insufficient wallet balance" };
         }
@@ -453,5 +469,120 @@ export async function payWithWallet(datasetId: string, amount: number) {
   } catch (error) {
     console.error("Error paying with wallet:", error);
     return { error: "Failed to process wallet payment" };
+  }
+}
+
+// Payout to contributor via Stripe Connect transfer
+export async function payoutToContributor(
+  submissionId: string,
+  contributorId: string,
+  amount: number,
+  datasetId: string
+) {
+  const supabase = await createClient();
+
+  try {
+    // Get contributor's Stripe Connect account
+    const { data: stripeAccount, error: accountError } = await supabase
+      .from("stripe_accounts")
+      .select("stripe_account_id, payouts_enabled, status")
+      .eq("user_id", contributorId)
+      .single();
+
+    if (accountError || !stripeAccount) {
+      console.error(
+        "No Stripe Connect account found for contributor:",
+        contributorId
+      );
+      return { error: "Contributor has not set up payout account" };
+    }
+
+    if (!stripeAccount.payouts_enabled) {
+      console.error("Payouts not enabled for contributor:", contributorId);
+      return { error: "Contributor payout account not active" };
+    }
+
+    // Calculate net amount after platform fee (10%)
+    const platformFeePercentage = 0.1;
+    const platformFee = amount * platformFeePercentage;
+    const netAmount = amount - platformFee;
+
+    // Create Stripe transfer to contributor's Connect account
+    const stripe = getStripeServer();
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(netAmount * 100), // Convert to cents
+      currency: "usd",
+      destination: stripeAccount.stripe_account_id,
+      description: `Payout for approved submission`,
+      metadata: {
+        submission_id: submissionId,
+        contributor_id: contributorId,
+        dataset_id: datasetId,
+        gross_amount: amount.toFixed(2),
+        platform_fee: platformFee.toFixed(2),
+        net_amount: netAmount.toFixed(2),
+      },
+    });
+
+    // Record payout transaction for contributor
+    const { error: payoutTxError } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: contributorId,
+        type: "payout",
+        amount: netAmount,
+        currency: "USD",
+        status: "completed",
+        description: `Contribution payout for submission`,
+        reference_id: transfer.id,
+        metadata: {
+          submission_id: submissionId,
+          dataset_id: datasetId,
+          stripe_transfer_id: transfer.id,
+          gross_amount: amount,
+          platform_fee: platformFee,
+        },
+      });
+
+    if (payoutTxError) {
+      console.error("Error recording payout transaction:", payoutTxError);
+    }
+
+    // Record platform commission transaction
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+
+    await supabase.from("transactions").insert({
+      user_id: currentUser?.id || contributorId, // Platform user or fallback
+      type: "commission",
+      amount: platformFee,
+      currency: "USD",
+      status: "completed",
+      description: `Platform commission (10%)`,
+      reference_id: transfer.id,
+      metadata: {
+        submission_id: submissionId,
+        dataset_id: datasetId,
+        contributor_id: contributorId,
+        stripe_transfer_id: transfer.id,
+      },
+    });
+
+    console.log(
+      `✅ Payout successful: $${netAmount} transferred to contributor ${contributorId}`
+    );
+
+    return {
+      data: {
+        transfer_id: transfer.id,
+        net_amount: netAmount,
+        platform_fee: platformFee,
+        success: true,
+      },
+    };
+  } catch (error) {
+    console.error("Error processing payout:", error);
+    return { error: "Failed to process payout to contributor" };
   }
 }

@@ -1,23 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CreditCard, 
-  DollarSign, 
-  Loader2, 
+import {
+  CreditCard,
+  DollarSign,
+  Loader2,
   AlertCircle,
-  Info
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createPaymentIntent } from "@/lib/actions/payment-actions";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -27,74 +32,80 @@ interface PaymentFormProps {
 }
 
 // Componente interno que usa Stripe Elements
-function PaymentFormInner({ 
-  datasetId, 
-  datasetTitle, 
+function PaymentFormInner({
+  datasetId,
+  datasetTitle,
   currentBudget = 0,
-  onPaymentSuccess 
+  onPaymentSuccess,
 }: PaymentFormProps) {
   const [amount, setAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"upfront" | "per_contribution">("upfront");
-  
+  const [paymentMethod, setPaymentMethod] = useState<
+    "upfront" | "per_contribution"
+  >("upfront");
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
   const stripe = useStripe();
   const elements = useElements();
 
+  // Create payment intent when amount changes
+  React.useEffect(() => {
+    const createIntent = async () => {
+      if (amount && parseFloat(amount) > 0) {
+        const result = await createPaymentIntent(datasetId, parseFloat(amount));
+        if (result.data?.client_secret) {
+          setClientSecret(result.data.client_secret);
+        }
+      }
+    };
+
+    const timer = setTimeout(createIntent, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [amount, datasetId]);
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
     if (!stripe || !elements) {
-      toast.error("Payment system is not ready. Please wait a moment and try again.");
-      console.error("Stripe or Elements not available:", { stripe: !!stripe, elements: !!elements });
+      toast.error(
+        "Payment system is not ready. Please wait a moment and try again."
+      );
+      console.error("Stripe or Elements not available:", {
+        stripe: !!stripe,
+        elements: !!elements,
+      });
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      console.log('💳 Iniciando pago...', { datasetId, amount });
-      
-      // Create payment intent
-      const result = await createPaymentIntent(datasetId, parseFloat(amount));
-      
-      if (result.error) {
-        console.error('❌ Error creando payment intent:', result.error);
-        toast.error(result.error);
-        return;
-      }
+      console.log("💳 Iniciando pago...", { datasetId, amount });
 
-      console.log('✅ Payment intent creado:', result.data?.payment_intent_id);
-
-      // Get card element
-      const cardElement = elements.getElement(CardElement);
-      
-      if (!cardElement) {
-        toast.error("Card element not found");
-        return;
-      }
-
-      // Confirm payment with card element
-      const { error } = await stripe.confirmCardPayment(result.data!.client_secret!, {
-        payment_method: {
-          card: cardElement,
-        }
+      // Confirm payment with Payment Element
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/dashboard/requests?payment=success`,
+        },
+        redirect: "if_required",
       });
-      
+
       if (error) {
-        console.error('❌ Error en el pago:', error);
+        console.error("❌ Error en el pago:", error);
         toast.error(error.message || "Payment failed");
       } else {
-        console.log('✅ Pago exitoso!');
+        console.log("✅ Pago exitoso!");
         toast.success("Payment successful!");
         onPaymentSuccess?.();
       }
     } catch (error) {
-      console.error('❌ Error general:', error);
+      console.error("❌ Error general:", error);
       toast.error("An error occurred during payment");
     } finally {
       setIsProcessing(false);
@@ -109,7 +120,7 @@ function PaymentFormInner({
   };
 
   const calculateCommission = (amount: number) => {
-    const commissionRate = 0.10; // 10% platform commission
+    const commissionRate = 0.1; // 10% platform commission
     return amount * commissionRate;
   };
 
@@ -158,7 +169,9 @@ function PaymentFormInner({
                 type="radio"
                 value="per_contribution"
                 checked={paymentMethod === "per_contribution"}
-                onChange={(e) => setPaymentMethod(e.target.value as "per_contribution")}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as "per_contribution")
+                }
                 className="rounded"
               />
               <span className="text-sm">Per-Contribution</span>
@@ -184,28 +197,15 @@ function PaymentFormInner({
             />
           </div>
 
-          {/* Card Details */}
-          <div className="space-y-2">
-            <Label>Card Details</Label>
-            <div className="p-3 border rounded-md">
-              <CardElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: '16px',
-                      color: '#424770',
-                      '::placeholder': {
-                        color: '#aab7c4',
-                      },
-                    },
-                    invalid: {
-                      color: '#9e2146',
-                    },
-                  },
-                }}
-              />
+          {/* Payment Details */}
+          {clientSecret && (
+            <div className="space-y-2">
+              <Label>Payment Details</Label>
+              <div className="rounded-md">
+                <PaymentElement />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Cost Breakdown */}
           {totalAmount > 0 && (
@@ -216,20 +216,24 @@ function PaymentFormInner({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Platform Commission (10%):</span>
-                <span className="text-orange-600">-{formatAmount(commission)}</span>
+                <span className="text-orange-600">
+                  -{formatAmount(commission)}
+                </span>
               </div>
               <Separator />
               <div className="flex justify-between text-sm font-medium">
                 <span>Available for Contributors:</span>
-                <span className="text-green-600">{formatAmount(netAmount)}</span>
+                <span className="text-green-600">
+                  {formatAmount(netAmount)}
+                </span>
               </div>
             </div>
           )}
 
           {/* Payment Button */}
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={isProcessing || !amount || parseFloat(amount) <= 0}
           >
             {isProcessing ? (
@@ -237,7 +241,9 @@ function PaymentFormInner({
             ) : (
               <DollarSign className="mr-2 h-4 w-4" />
             )}
-            {isProcessing ? "Processing..." : `Pay ${formatAmount(totalAmount)}`}
+            {isProcessing
+              ? "Processing..."
+              : `Pay ${formatAmount(totalAmount)}`}
           </Button>
         </form>
 
@@ -262,9 +268,12 @@ function PaymentFormInner({
 // Componente wrapper con Stripe Elements - versión simple
 export function PaymentFormSimple(props: PaymentFormProps) {
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-  
-  console.log('🔑 PaymentFormSimple: Publishable key:', publishableKey ? 'Configurada' : 'No configurada');
-  
+
+  console.log(
+    "🔑 PaymentFormSimple: Publishable key:",
+    publishableKey ? "Configurada" : "No configurada"
+  );
+
   if (!publishableKey) {
     return (
       <Card className="w-full max-w-md">
@@ -278,8 +287,12 @@ export function PaymentFormSimple(props: PaymentFormProps) {
           <div className="flex items-center gap-2 p-4 bg-red-50 rounded-lg">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <div>
-              <p className="text-sm font-medium text-red-800">Configuration Error</p>
-              <p className="text-xs text-red-600 mt-1">Stripe publishable key is not configured</p>
+              <p className="text-sm font-medium text-red-800">
+                Configuration Error
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                Stripe publishable key is not configured
+              </p>
             </div>
           </div>
         </CardContent>
