@@ -11,7 +11,6 @@ import {
   CreditCard,
   BarChart3,
   FileUp,
-  DollarSign,
   Shield,
   Database,
 } from "lucide-react";
@@ -43,9 +42,9 @@ const requesterNav = [
 ];
 
 const contributorNav = [
+  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
   { title: "Browse Datasets", icon: Database, href: "/browse" },
   { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
-  { title: "Earnings", icon: DollarSign, href: "/dashboard/contributions" },
   { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 

@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Telescope, User, Users, Briefcase } from "lucide-react";
+import { Telescope, User, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { UserRole } from "@/types/database";
 
