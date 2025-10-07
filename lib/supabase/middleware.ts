@@ -56,6 +56,52 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/sign-in";
+    return NextResponse.redirect(url);
+  }
+
+  // Role-based route protection
+  if (user && userProfile) {
+    const pathname = request.nextUrl.pathname;
+    const userRole = userProfile.role;
+
+    // Contributors cannot access requester routes
+    if (userRole === "contributor") {
+      const requesterRoutes = [
+        "/dashboard/requests",
+        "/dashboard/contributors",
+        "/dashboard/analytics"
+      ];
+      
+      const isRequesterRoute = requesterRoutes.some(route => pathname.startsWith(route));
+      
+      // Redirect /dashboard to /dashboard/contributor for contributors
+      if (pathname === "/dashboard" || isRequesterRoute) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/contributor";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // Requesters cannot access contributor-specific routes
+    if (userRole === "requester") {
+      if (pathname.startsWith("/dashboard/contributor") || pathname.startsWith("/dashboard/contributions")) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // Only admins can access admin routes
+    if (pathname.startsWith("/admin") && userRole !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = userRole === "contributor" ? "/dashboard/contributor" : "/dashboard";
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Auth routes - redirect if already logged in
   if (
     (request.nextUrl.pathname.startsWith("/auth/sign-in") ||
@@ -63,7 +109,12 @@ export async function updateSession(request: NextRequest) {
     user
   ) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    // Redirect based on role
+    if (userProfile?.role === "contributor") {
+      url.pathname = "/dashboard/contributor";
+    } else {
+      url.pathname = "/dashboard";
+    }
     return NextResponse.redirect(url);
   }
 
