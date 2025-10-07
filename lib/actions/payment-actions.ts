@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStripeServer } from "@/lib/stripe/server";
 import { revalidatePath } from "next/cache";
 
-// Create payment intent for dataset request funding
+// Create payment intent for dataset request funding or wallet funding
 export async function createPaymentIntent(
   datasetId: string,
   amount: number,
@@ -18,6 +18,32 @@ export async function createPaymentIntent(
 
   if (!user) {
     return { error: "Not authenticated" };
+  }
+
+  // Handle wallet funding (special case)
+  if (datasetId === "wallet-funding") {
+    try {
+      const stripe = getStripeServer();
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: currency.toLowerCase(),
+        metadata: {
+          user_id: user.id,
+          type: "wallet_funding",
+        },
+        description: `Wallet funding for user`,
+      });
+
+      return { 
+        data: { 
+          client_secret: paymentIntent.client_secret,
+          payment_intent_id: paymentIntent.id 
+        } 
+      };
+    } catch (error) {
+      console.error("Error creating wallet funding payment intent:", error);
+      return { error: "Failed to create payment intent" };
+    }
   }
 
   // Verify user owns the dataset request
@@ -254,8 +280,8 @@ export async function createStripeConnectAccount() {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/wallet?refresh=true`,
-      return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/wallet?success=true`,
+      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/wallet?refresh=true`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/wallet?success=true`,
       type: "account_onboarding",
     });
 
