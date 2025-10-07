@@ -10,21 +10,29 @@ export async function createPaymentIntent(
   amount: number,
   currency: string = "USD"
 ) {
+  console.log('🔍 createPaymentIntent called with:', { datasetId, amount, currency });
+  
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  console.log('👤 User authentication result:', user ? 'authenticated' : 'not authenticated');
+
   if (!user) {
+    console.log('❌ User not authenticated');
     return { error: "Not authenticated" };
   }
 
   // Handle wallet funding (special case)
   if (datasetId === "wallet-funding") {
+    console.log('💰 Processing wallet funding payment');
     try {
       const stripe = getStripeServer();
-      const paymentIntent = await stripe.paymentIntents.create({
+      console.log('✅ Stripe server instance obtained');
+      
+      const paymentIntentData = {
         amount: Math.round(amount * 100), // Convert to cents
         currency: currency.toLowerCase(),
         metadata: {
@@ -32,7 +40,13 @@ export async function createPaymentIntent(
           type: "wallet_funding",
         },
         description: `Wallet funding for user`,
-      });
+      };
+      
+      console.log('📝 Creating payment intent with data:', paymentIntentData);
+      
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+      
+      console.log('✅ Payment intent created successfully:', paymentIntent.id);
 
       return { 
         data: { 
@@ -41,7 +55,13 @@ export async function createPaymentIntent(
         } 
       };
     } catch (error) {
-      console.error("Error creating wallet funding payment intent:", error);
+      console.error("❌ Error creating wallet funding payment intent:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       return { error: "Failed to create payment intent" };
     }
   }
