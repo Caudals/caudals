@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { createPaymentIntent } from "@/lib/actions/payment-actions";
 import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -26,7 +27,8 @@ interface PaymentFormProps {
   onPaymentSuccess?: () => void;
 }
 
-export function PaymentForm({ 
+// Componente interno que usa Stripe Elements
+function PaymentFormInner({ 
   datasetId, 
   datasetTitle, 
   currentBudget = 0,
@@ -35,12 +37,20 @@ export function PaymentForm({
   const [amount, setAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"upfront" | "per_contribution">("upfront");
+  
+  const stripe = useStripe();
+  const elements = useElements();
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (!stripe || !elements) {
+      toast.error("Stripe is not loaded");
       return;
     }
 
@@ -55,16 +65,20 @@ export function PaymentForm({
         return;
       }
 
-      // Load Stripe
-      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+      // Get card element
+      const cardElement = elements.getElement(CardElement);
       
-      if (!stripe) {
-        toast.error("Stripe failed to load");
+      if (!cardElement) {
+        toast.error("Card element not found");
         return;
       }
 
-      // Confirm payment
-      const { error } = await stripe.confirmCardPayment(result.data!.client_secret!);
+      // Confirm payment with card element
+      const { error } = await stripe.confirmCardPayment(result.data!.client_secret!, {
+        payment_method: {
+          card: cardElement,
+        }
+      });
       
       if (error) {
         toast.error(error.message || "Payment failed");
@@ -162,6 +176,29 @@ export function PaymentForm({
             />
           </div>
 
+          {/* Card Details */}
+          <div className="space-y-2">
+            <Label>Card Details</Label>
+            <div className="p-3 border rounded-md">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#424770',
+                      '::placeholder': {
+                        color: '#aab7c4',
+                      },
+                    },
+                    invalid: {
+                      color: '#9e2146',
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+
           {/* Cost Breakdown */}
           {totalAmount > 0 && (
             <div className="space-y-2 p-3 bg-muted rounded-lg">
@@ -211,5 +248,16 @@ export function PaymentForm({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Componente wrapper con Stripe Elements
+export function PaymentForm(props: PaymentFormProps) {
+  const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+  return (
+    <Elements stripe={stripePromise}>
+      <PaymentFormInner {...props} />
+    </Elements>
   );
 }
