@@ -35,24 +35,34 @@ interface PaymentFormProps {
   onPaymentSuccess?: () => void;
 }
 
+interface PaymentFormInnerProps extends PaymentFormProps {
+  externalAmount: string;
+  onAmountChange: (amount: string) => void;
+  clientSecret: string | null;
+}
+
 // Componente interno que usa Stripe Elements
 function PaymentFormInner({
   datasetId,
   datasetTitle,
   currentBudget = 0,
   onPaymentSuccess,
-}: PaymentFormProps) {
-  const [amount, setAmount] = useState<string>("");
+  externalAmount,
+  onAmountChange,
+  clientSecret,
+}: PaymentFormInnerProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "upfront" | "per_contribution"
   >("upfront");
   const [paymentType, setPaymentType] = useState<"stripe" | "wallet">("stripe");
   const [walletBalance, setWalletBalance] = useState(0);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const stripe = useStripe();
   const elements = useElements();
+
+  const amount = externalAmount;
+  const setAmount = onAmountChange;
 
   // Load wallet balance
   React.useEffect(() => {
@@ -64,21 +74,6 @@ function PaymentFormInner({
     };
     loadWalletBalance();
   }, []);
-
-  // Create payment intent when amount changes (for Stripe payments)
-  React.useEffect(() => {
-    const createIntent = async () => {
-      if (paymentType === "stripe" && amount && parseFloat(amount) > 0) {
-        const result = await createPaymentIntent(datasetId, parseFloat(amount));
-        if (result.data?.client_secret) {
-          setClientSecret(result.data.client_secret);
-        }
-      }
-    };
-
-    const timer = setTimeout(createIntent, 500); // Debounce
-    return () => clearTimeout(timer);
-  }, [amount, paymentType, datasetId]);
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,6 +340,25 @@ function PaymentFormInner({
 // Componente wrapper con Stripe Elements
 export function PaymentForm(props: PaymentFormProps) {
   const { stripe, loading, error } = useStripeHook();
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string>("");
+
+  // Create payment intent when amount changes
+  React.useEffect(() => {
+    const createIntent = async () => {
+      if (amount && parseFloat(amount) > 0) {
+        const result = await createPaymentIntent(props.datasetId, parseFloat(amount));
+        if (result.data?.client_secret) {
+          setClientSecret(result.data.client_secret);
+        }
+      } else {
+        setClientSecret(null);
+      }
+    };
+    
+    const timer = setTimeout(createIntent, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [amount, props.datasetId]);
 
   if (error) {
     return (
@@ -393,9 +407,32 @@ export function PaymentForm(props: PaymentFormProps) {
     );
   }
 
+  const options = clientSecret ? {
+    clientSecret,
+    appearance: {
+      theme: 'stripe' as const,
+    },
+  } : undefined;
+
   return (
-    <Elements stripe={stripe}>
-      <PaymentFormInner {...props} />
-    </Elements>
+    <>
+      {options ? (
+        <Elements stripe={stripe} options={options}>
+          <PaymentFormInner 
+            {...props} 
+            externalAmount={amount}
+            onAmountChange={setAmount}
+            clientSecret={clientSecret}
+          />
+        </Elements>
+      ) : (
+        <PaymentFormInner 
+          {...props} 
+          externalAmount={amount}
+          onAmountChange={setAmount}
+          clientSecret={null}
+        />
+      )}
+    </>
   );
 }

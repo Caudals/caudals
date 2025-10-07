@@ -31,37 +31,32 @@ interface PaymentFormProps {
   onPaymentSuccess?: () => void;
 }
 
+interface PaymentFormInnerProps extends PaymentFormProps {
+  externalAmount: string;
+  onAmountChange: (amount: string) => void;
+  clientSecret: string | null;
+}
+
 // Componente interno que usa Stripe Elements
 function PaymentFormInner({
   datasetId,
   datasetTitle,
   currentBudget = 0,
   onPaymentSuccess,
-}: PaymentFormProps) {
-  const [amount, setAmount] = useState<string>("");
+  externalAmount,
+  onAmountChange,
+  clientSecret,
+}: PaymentFormInnerProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "upfront" | "per_contribution"
   >("upfront");
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const stripe = useStripe();
   const elements = useElements();
 
-  // Create payment intent when amount changes
-  React.useEffect(() => {
-    const createIntent = async () => {
-      if (amount && parseFloat(amount) > 0) {
-        const result = await createPaymentIntent(datasetId, parseFloat(amount));
-        if (result.data?.client_secret) {
-          setClientSecret(result.data.client_secret);
-        }
-      }
-    };
-
-    const timer = setTimeout(createIntent, 500); // Debounce
-    return () => clearTimeout(timer);
-  }, [amount, datasetId]);
+  const amount = externalAmount;
+  const setAmount = onAmountChange;
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,11 +263,30 @@ function PaymentFormInner({
 // Componente wrapper con Stripe Elements - versión simple
 export function PaymentFormSimple(props: PaymentFormProps) {
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string>("");
 
   console.log(
     "🔑 PaymentFormSimple: Publishable key:",
     publishableKey ? "Configurada" : "No configurada"
   );
+
+  // Create payment intent when amount changes
+  React.useEffect(() => {
+    const createIntent = async () => {
+      if (amount && parseFloat(amount) > 0) {
+        const result = await createPaymentIntent(props.datasetId, parseFloat(amount));
+        if (result.data?.client_secret) {
+          setClientSecret(result.data.client_secret);
+        }
+      } else {
+        setClientSecret(null);
+      }
+    };
+    
+    const timer = setTimeout(createIntent, 500); // Debounce
+    return () => clearTimeout(timer);
+  }, [amount, props.datasetId]);
 
   if (!publishableKey) {
     return (
@@ -302,9 +316,32 @@ export function PaymentFormSimple(props: PaymentFormProps) {
 
   const stripePromise = loadStripe(publishableKey);
 
+  const options = clientSecret ? {
+    clientSecret,
+    appearance: {
+      theme: 'stripe' as const,
+    },
+  } : undefined;
+
   return (
-    <Elements stripe={stripePromise}>
-      <PaymentFormInner {...props} />
-    </Elements>
+    <>
+      {options ? (
+        <Elements stripe={stripePromise} options={options}>
+          <PaymentFormInner 
+            {...props} 
+            externalAmount={amount}
+            onAmountChange={setAmount}
+            clientSecret={clientSecret}
+          />
+        </Elements>
+      ) : (
+        <PaymentFormInner 
+          {...props} 
+          externalAmount={amount}
+          onAmountChange={setAmount}
+          clientSecret={null}
+        />
+      )}
+    </>
   );
 }
