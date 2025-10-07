@@ -45,6 +45,7 @@ import {
   exportDatasetToCSV,
   exportDatasetToJSON,
 } from "@/lib/actions/export-actions";
+import { DatasetExport } from "./dataset-export";
 import { FilePreviewDialog } from "./file-preview-dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -141,7 +142,7 @@ export function RequesterDatasetDetail({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = result.filename || "export.csv";
+      a.download = "export.csv";
       a.click();
       URL.revokeObjectURL(url);
       toast.success("CSV exported successfully!");
@@ -157,7 +158,7 @@ export function RequesterDatasetDetail({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = result.filename || "export.json";
+      a.download = "export.json";
       a.click();
       URL.revokeObjectURL(url);
       toast.success("JSON exported successfully!");
@@ -479,6 +480,15 @@ export function RequesterDatasetDetail({
           )}
         </CardContent>
       </Card>
+
+      {/* Dataset Export */}
+      <DatasetExport
+        datasetId={dataset.id}
+        datasetTitle={dataset.title}
+        samplesCollected={dataset.samplesCollected}
+        samplesNeeded={dataset.samplesNeeded}
+        status={dataset.status}
+      />
 
       {/* File Preview Dialog */}
       <FilePreviewDialog
