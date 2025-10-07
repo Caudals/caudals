@@ -157,28 +157,48 @@ export async function confirmPayment(paymentIntentId: string) {
 
 // Get user's wallet balance
 export async function getUserWallet() {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { error: "Not authenticated" };
+    if (!user) {
+      return { error: "Not authenticated" };
+    }
+
+    const { data: wallet, error } = await supabase
+      .from("wallets")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching wallet:", error);
+      
+      // If wallet doesn't exist, return a default wallet object
+      if (error.code === 'PGRST116' || error.message?.includes('No rows found')) {
+        console.log("Wallet not found, returning default wallet for user:", user.id);
+        return { 
+          data: {
+            id: 'default',
+            user_id: user.id,
+            balance: 0.00,
+            currency: 'USD',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        };
+      }
+      
+      return { error: `Failed to fetch wallet: ${error.message}` };
+    }
+    return { data: wallet };
+  } catch (error) {
+    console.error("Unexpected error in getUserWallet:", error);
+    return { error: "Unexpected error occurred" };
   }
-
-  const { data: wallet, error } = await supabase
-    .from("wallets")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  if (error) {
-    console.error("Error fetching wallet:", error);
-    return { error: "Failed to fetch wallet" };
-  }
-
-  return { data: wallet };
 }
 
 // Get user's transaction history
@@ -321,4 +341,117 @@ export async function getStripeConnectAccount() {
   }
 
   return { data: account };
+}
+
+// Pay for dataset using wallet balance
+export async function payWithWallet(datasetId: string, amount: number) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  try {
+    // Get user's wallet
+    let wallet;
+    const { data: walletData, error: walletError } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .single();
+
+    if (walletError || !walletData) {
+      // If wallet doesn't exist, treat as having 0 balance
+      if (walletError?.code === 'PGRST116' || walletError?.message?.includes('No rows found')) {
+        if (amount > 0) {
+          return { error: "Insufficient wallet balance" };
+        }
+        // If amount is 0, continue with the process
+        wallet = { balance: 0 };
+      } else {
+        return { error: "Wallet not found" };
+      }
+    } else {
+      wallet = walletData;
+    }
+
+    if (wallet.balance < amount) {
+      return { error: "Insufficient wallet balance" };
+    }
+
+    // Verify user owns the dataset request
+    const { data: dataset, error: datasetError } = await supabase
+      .from("dataset_requests")
+      .select("id, created_by, title, total_budget")
+      .eq("id", datasetId)
+      .eq("created_by", user.id)
+      .single();
+
+    if (datasetError || !dataset) {
+      return { error: "Dataset not found or access denied" };
+    }
+
+    // Deduct amount from wallet
+    const newBalance = wallet.balance - amount;
+    const { error: updateWalletError } = await supabase
+      .from("wallets")
+      .update({ balance: newBalance })
+      .eq("user_id", user.id);
+
+    if (updateWalletError) {
+      return { error: "Failed to update wallet balance" };
+    }
+
+    // Update dataset payment status
+    const { error: updateDatasetError } = await supabase
+      .from("dataset_requests")
+      .update({
+        payment_status: "paid",
+        paid_amount: amount,
+        total_budget: amount,
+      })
+      .eq("id", datasetId);
+
+    if (updateDatasetError) {
+      // Rollback wallet update
+      await supabase
+        .from("wallets")
+        .update({ balance: wallet.balance })
+        .eq("user_id", user.id);
+      return { error: "Failed to update dataset" };
+    }
+
+    // Create transaction record
+    const { error: transactionError } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: user.id,
+        type: "payment",
+        amount: amount,
+        currency: "USD",
+        status: "completed",
+        description: `Dataset funding payment (wallet)`,
+        reference_id: `wallet-${Date.now()}`,
+        metadata: {
+          dataset_id: datasetId,
+          payment_method: "wallet",
+        },
+      });
+
+    if (transactionError) {
+      console.error("Error creating transaction:", transactionError);
+    }
+
+    revalidatePath("/dashboard/requests");
+    revalidatePath("/dashboard/billing");
+
+    return { data: { success: true, newBalance } };
+  } catch (error) {
+    console.error("Error paying with wallet:", error);
+    return { error: "Failed to process wallet payment" };
+  }
 }

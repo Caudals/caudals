@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +15,9 @@ import {
   Info
 } from "lucide-react";
 import { toast } from "sonner";
-import { createPaymentIntent, payWithWallet, getUserWallet } from "@/lib/actions/payment-actions";
+import { createPaymentIntent } from "@/lib/actions/payment-actions";
+import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -36,22 +36,9 @@ function PaymentFormInner({
   const [amount, setAmount] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"upfront" | "per_contribution">("upfront");
-  const [paymentType, setPaymentType] = useState<"stripe" | "wallet">("stripe");
-  const [walletBalance, setWalletBalance] = useState(0);
   
   const stripe = useStripe();
   const elements = useElements();
-
-  // Load wallet balance
-  React.useEffect(() => {
-    const loadWalletBalance = async () => {
-      const result = await getUserWallet();
-      if (result.data) {
-        setWalletBalance(result.data.balance || 0);
-      }
-    };
-    loadWalletBalance();
-  }, []);
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,65 +48,53 @@ function PaymentFormInner({
       return;
     }
 
-    const paymentAmount = parseFloat(amount);
+    if (!stripe || !elements) {
+      toast.error("Payment system is not ready. Please wait a moment and try again.");
+      console.error("Stripe or Elements not available:", { stripe: !!stripe, elements: !!elements });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      if (paymentType === "wallet") {
-        // Pay with wallet
-        if (walletBalance < paymentAmount) {
-          toast.error("Insufficient wallet balance");
-          return;
-        }
+      console.log('💳 Iniciando pago...', { datasetId, amount });
+      
+      // Create payment intent
+      const result = await createPaymentIntent(datasetId, parseFloat(amount));
+      
+      if (result.error) {
+        console.error('❌ Error creando payment intent:', result.error);
+        toast.error(result.error);
+        return;
+      }
 
-        const result = await payWithWallet(datasetId, paymentAmount);
-        
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
+      console.log('✅ Payment intent creado:', result.data?.payment_intent_id);
 
-        toast.success("Payment successful! Paid with wallet balance.");
-        onPaymentSuccess?.();
+      // Get card element
+      const cardElement = elements.getElement(CardElement);
+      
+      if (!cardElement) {
+        toast.error("Card element not found");
+        return;
+      }
+
+      // Confirm payment with card element
+      const { error } = await stripe.confirmCardPayment(result.data!.client_secret!, {
+        payment_method: {
+          card: cardElement,
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error en el pago:', error);
+        toast.error(error.message || "Payment failed");
       } else {
-        // Pay with Stripe
-        if (!stripe || !elements) {
-          toast.error("Payment system is not ready. Please wait a moment and try again.");
-          console.error("Stripe or Elements not available:", { stripe: !!stripe, elements: !!elements });
-          return;
-        }
-
-        // Create payment intent
-        const result = await createPaymentIntent(datasetId, paymentAmount);
-        
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
-
-        // Get card element
-        const cardElement = elements.getElement(CardElement);
-        
-        if (!cardElement) {
-          toast.error("Card element not found");
-          return;
-        }
-
-        // Confirm payment with card element
-        const { error } = await stripe.confirmCardPayment(result.data!.client_secret!, {
-          payment_method: {
-            card: cardElement,
-          }
-        });
-        
-        if (error) {
-          toast.error(error.message || "Payment failed");
-        } else {
-          toast.success("Payment successful!");
-          onPaymentSuccess?.();
-        }
+        console.log('✅ Pago exitoso!');
+        toast.success("Payment successful!");
+        onPaymentSuccess?.();
       }
     } catch (error) {
+      console.error('❌ Error general:', error);
       toast.error("An error occurred during payment");
     } finally {
       setIsProcessing(false);
@@ -209,65 +184,28 @@ function PaymentFormInner({
             />
           </div>
 
-          {/* Payment Method Selection */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Payment Method</Label>
-            <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  value="stripe"
-                  checked={paymentType === "stripe"}
-                  onChange={(e) => setPaymentType(e.target.value as "stripe")}
-                  className="rounded"
-                />
-                <span className="text-sm">Credit/Debit Card</span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  value="wallet"
-                  checked={paymentType === "wallet"}
-                  onChange={(e) => setPaymentType(e.target.value as "wallet")}
-                  className="rounded"
-                />
-                <span className="text-sm">Wallet Balance ({formatAmount(walletBalance)})</span>
-              </label>
-            </div>
-            {paymentType === "wallet" && walletBalance < parseFloat(amount || "0") && (
-              <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <span className="text-xs text-yellow-800">
-                  Insufficient wallet balance. Add funds to continue.
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Card Details - Only show for Stripe payments */}
-          {paymentType === "stripe" && (
-            <div className="space-y-2">
-              <Label>Card Details</Label>
-              <div className="p-3 border rounded-md">
-                <CardElement
-                  options={{
-                    style: {
-                      base: {
-                        fontSize: '16px',
-                        color: '#424770',
-                        '::placeholder': {
-                          color: '#aab7c4',
-                        },
-                      },
-                      invalid: {
-                        color: '#9e2146',
+          {/* Card Details */}
+          <div className="space-y-2">
+            <Label>Card Details</Label>
+            <div className="p-3 border rounded-md">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#424770',
+                      '::placeholder': {
+                        color: '#aab7c4',
                       },
                     },
-                  }}
-                />
-              </div>
+                    invalid: {
+                      color: '#9e2146',
+                    },
+                  },
+                }}
+              />
             </div>
-          )}
+          </div>
 
           {/* Cost Breakdown */}
           {totalAmount > 0 && (
@@ -292,24 +230,14 @@ function PaymentFormInner({
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={
-              isProcessing || 
-              !amount || 
-              parseFloat(amount) <= 0 ||
-              (paymentType === "wallet" && walletBalance < parseFloat(amount))
-            }
+            disabled={isProcessing || !amount || parseFloat(amount) <= 0}
           >
             {isProcessing ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <DollarSign className="mr-2 h-4 w-4" />
             )}
-            {isProcessing 
-              ? "Processing..." 
-              : paymentType === "wallet" 
-                ? `Pay ${formatAmount(totalAmount)} with Wallet`
-                : `Pay ${formatAmount(totalAmount)} with Card`
-            }
+            {isProcessing ? "Processing..." : `Pay ${formatAmount(totalAmount)}`}
           </Button>
         </form>
 
@@ -331,11 +259,13 @@ function PaymentFormInner({
   );
 }
 
-// Componente wrapper con Stripe Elements
-export function PaymentForm(props: PaymentFormProps) {
-  const { stripe, loading, error } = useStripeHook();
-
-  if (error) {
+// Componente wrapper con Stripe Elements - versión simple
+export function PaymentFormSimple(props: PaymentFormProps) {
+  const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  
+  console.log('🔑 PaymentFormSimple: Publishable key:', publishableKey ? 'Configurada' : 'No configurada');
+  
+  if (!publishableKey) {
     return (
       <Card className="w-full max-w-md">
         <CardHeader>
@@ -348,11 +278,8 @@ export function PaymentForm(props: PaymentFormProps) {
           <div className="flex items-center gap-2 p-4 bg-red-50 rounded-lg">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <div>
-              <p className="text-sm font-medium text-red-800">Payment System Error</p>
-              <p className="text-xs text-red-600 mt-1">{error}</p>
-              <p className="text-xs text-gray-600 mt-2">
-                Please check your internet connection and try refreshing the page.
-              </p>
+              <p className="text-sm font-medium text-red-800">Configuration Error</p>
+              <p className="text-xs text-red-600 mt-1">Stripe publishable key is not configured</p>
             </div>
           </div>
         </CardContent>
@@ -360,27 +287,10 @@ export function PaymentForm(props: PaymentFormProps) {
     );
   }
 
-  if (loading || !stripe) {
-    return (
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Fund Dataset
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 p-4">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Loading payment system...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const stripePromise = loadStripe(publishableKey);
 
   return (
-    <Elements stripe={stripe}>
+    <Elements stripe={stripePromise}>
       <PaymentFormInner {...props} />
     </Elements>
   );

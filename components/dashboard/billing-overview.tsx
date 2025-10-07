@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Plus, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getUserTransactions } from "@/lib/actions/payment-actions";
+import { getUserTransactions, getUserWallet } from "@/lib/actions/payment-actions";
+import { ensureUserWallet } from "@/lib/actions/wallet-actions";
 import { PaymentForm } from "./payment-form";
 
 interface BillingOverviewProps {
@@ -21,6 +22,7 @@ interface BillingOverviewProps {
 
 export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const [totalSpent, setTotalSpent] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
 
@@ -31,19 +33,33 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const loadBillingData = async () => {
     setLoading(true);
     try {
-      const result = await getUserTransactions(100);
+      // Ensure wallet exists first
+      await ensureUserWallet();
+
+      // Load transactions
+      const transactionsResult = await getUserTransactions(100);
       
-      if (result.error) {
-        toast.error(result.error);
+      if (transactionsResult.error) {
+        toast.error(transactionsResult.error);
         return;
       }
 
-      const transactions = result.data || [];
+      const transactions = transactionsResult.data || [];
       const spent = transactions
         .filter(t => t.type === "payment" && t.status === "completed")
         .reduce((sum, t) => sum + t.amount, 0);
 
       setTotalSpent(spent);
+
+      // Load wallet balance
+      const walletResult = await getUserWallet();
+      
+      if (walletResult.error) {
+        console.error("Error loading wallet:", walletResult.error);
+        setWalletBalance(0);
+      } else {
+        setWalletBalance(walletResult.data?.balance || 0);
+      }
     } catch {
       toast.error("Failed to load billing data");
     } finally {
@@ -74,7 +90,30 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-3">
+      <Card>
+        <CardHeader>
+          <CardTitle>Wallet Balance</CardTitle>
+          <CardDescription>
+            Available funds in your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="text-4xl font-bold text-green-600">{formatAmount(walletBalance)}</div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => setShowPaymentForm(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Funds
+              </Button>
+              <Button size="sm" variant="outline" onClick={loadBillingData}>
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Total Spent</CardTitle>
@@ -85,14 +124,8 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
         <CardContent>
           <div className="space-y-4">
             <div className="text-4xl font-bold">{formatAmount(totalSpent)}</div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => setShowPaymentForm(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Funds
-              </Button>
-              <Button size="sm" variant="outline" onClick={loadBillingData}>
-                Refresh
-              </Button>
+            <div className="text-sm text-muted-foreground">
+              All time spending
             </div>
           </div>
         </CardContent>
@@ -154,7 +187,7 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
                 onPaymentSuccess={() => {
                   setShowPaymentForm(false);
                   toast.success("Funds added to wallet successfully!");
-                  loadBillingData();
+                  loadBillingData(); // This will refresh both transactions and wallet balance
                 }}
               />
             </div>

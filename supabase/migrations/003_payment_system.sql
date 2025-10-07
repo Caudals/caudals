@@ -125,6 +125,9 @@ ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own wallet" ON wallets
     FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can insert own wallet" ON wallets
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "Users can update own wallet" ON wallets
     FOR UPDATE USING (auth.uid() = user_id);
 
