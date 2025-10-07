@@ -187,6 +187,29 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // First, get submission details with dataset info
+  const { data: submission, error: fetchError } = await supabase
+    .from("submissions")
+    .select(
+      `
+      id,
+      contributor_id,
+      dataset_request_id,
+      dataset_requests:dataset_request_id (
+        reward_amount,
+        payment_status
+      )
+    `
+    )
+    .eq("id", submissionId)
+    .single();
+
+  if (fetchError || !submission) {
+    console.error("Error fetching submission:", fetchError);
+    return { error: "Submission not found" };
+  }
+
+  // Update submission status
   const { data, error } = await supabase
     .from("submissions")
     .update({
@@ -211,9 +234,41 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     notes,
   });
 
+  // Trigger payout to contributor via Stripe Connect
+  const datasetRequest = Array.isArray(submission.dataset_requests)
+    ? submission.dataset_requests[0]
+    : submission.dataset_requests;
+
+  if (
+    datasetRequest?.reward_amount &&
+    datasetRequest.payment_status === "paid"
+  ) {
+    const { payoutToContributor } = await import(
+      "@/lib/actions/payment-actions"
+    );
+
+    const payoutResult = await payoutToContributor(
+      submissionId,
+      submission.contributor_id,
+      datasetRequest.reward_amount,
+      submission.dataset_request_id
+    );
+
+    if (payoutResult.error) {
+      console.error("Payout failed:", payoutResult.error);
+      // Don't fail the approval, but log the error
+      // The payout can be retried manually if needed
+    } else {
+      console.log("✅ Payout successful:", payoutResult.data);
+    }
+  } else {
+    console.log("⚠️ Skipping payout - dataset not paid or no reward amount");
+  }
+
   revalidatePath("/admin");
   revalidatePath("/admin/submissions");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/contributions");
 
   return { data };
 }

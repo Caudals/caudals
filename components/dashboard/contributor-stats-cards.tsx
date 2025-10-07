@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  DollarSign, 
-  Upload, 
-  CheckCircle, 
+import {
+  DollarSign,
+  Upload,
+  CheckCircle,
   Clock,
   TrendingUp,
-  Users
+  Users,
 } from "lucide-react";
 
 interface ContributorStats {
@@ -35,33 +35,45 @@ export function ContributorStatsCards() {
   useEffect(() => {
     async function fetchStats() {
       const supabase = createClient();
-      
+
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         // Get user's submissions
         const { data: submissions } = await supabase
-          .from('submissions')
-          .select(`
+          .from("submissions")
+          .select(
+            `
             *,
             dataset_requests (
               reward_amount,
               status
             )
-          `)
-          .eq('contributor_id', user.id);
+          `
+          )
+          .eq("contributor_id", user.id);
 
         if (submissions) {
-          const approvedSubmissions = submissions.filter(s => s.status === 'approved');
-          const pendingSubmissions = submissions.filter(s => s.status === 'pending');
-          const totalEarnings = approvedSubmissions.reduce((sum, s) => 
-            sum + (s.dataset_requests?.reward_amount || 0), 0
+          const approvedSubmissions = submissions.filter(
+            (s) => s.status === "approved"
           );
-          const activeProjects = new Set(submissions.map(s => s.dataset_request_id)).size;
-          const averageEarning = approvedSubmissions.length > 0 
-            ? totalEarnings / approvedSubmissions.length 
-            : 0;
+          const pendingSubmissions = submissions.filter(
+            (s) => s.status === "pending"
+          );
+          const totalEarnings = approvedSubmissions.reduce(
+            (sum, s) => sum + (s.dataset_requests?.reward_amount || 0),
+            0
+          );
+          const activeProjects = new Set(
+            submissions.map((s) => s.dataset_request_id)
+          ).size;
+          const averageEarning =
+            approvedSubmissions.length > 0
+              ? totalEarnings / approvedSubmissions.length
+              : 0;
 
           setStats({
             totalEarnings,
@@ -73,7 +85,7 @@ export function ContributorStatsCards() {
           });
         }
       } catch (error) {
-        console.error('Error fetching contributor stats:', error);
+        console.error("Error fetching contributor stats:", error);
       } finally {
         setLoading(false);
       }
@@ -85,8 +97,8 @@ export function ContributorStatsCards() {
   const cards = [
     {
       title: "Total Earnings",
-      value: `$${stats.totalEarnings.toFixed(2)}`,
-      description: "Lifetime earnings from contributions",
+      value: `$${(stats.totalEarnings * 0.9).toFixed(2)}`,
+      description: "Net earnings (after 10% platform fee)",
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
