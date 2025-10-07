@@ -37,15 +37,30 @@ export default function SignInPage() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          action: {
+            label: "×",
+            onClick: () => toast.dismiss(),
+          },
+        });
       } else {
-        toast.success("Signed in successfully!");
+        toast.success("Signed in successfully!", {
+          action: {
+            label: "×",
+            onClick: () => toast.dismiss(),
+          },
+        });
         // Let the callback handle role-based redirection
         router.push("/auth/callback");
         router.refresh();
       }
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -62,12 +77,22 @@ export default function SignInPage() {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          action: {
+            label: "×",
+            onClick: () => toast.dismiss(),
+          },
+        });
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred", {
+        action: {
+          label: "×",
+          onClick: () => toast.dismiss(),
+        },
+      });
       setLoading(false);
     }
   };
