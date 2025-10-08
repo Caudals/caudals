@@ -10,12 +10,12 @@ const optionalString = (max: number, message: string) =>
 
 export const waitlistFormSchema = z.object({
   fullName: z
-    .string({ required_error: "Please enter your name" })
+    .string()
     .trim()
     .min(2, "Please enter your name")
     .max(120, "Name is too long"),
   email: z
-    .string({ required_error: "Please enter a valid email" })
+    .string()
     .trim()
     .email("Please enter a valid email")
     .max(320, "Email is too long"),

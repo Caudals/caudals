@@ -83,7 +83,10 @@ async function handlePaymentIntentSucceeded(
     console.log(`💰 Processing wallet funding for user ${userId}, amount: $${paymentIntent.amount / 100}`);
     
     // Record as a 'deposit' transaction and rely on DB trigger to update wallet
-    const { data: transaction, error: transactionError } = await supabase.from("transactions").insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow transaction table types in this context
+    const transactionsTable = supabase.from("transactions") as any;
+
+    const { data: transaction, error: transactionError } = await transactionsTable.insert({
       user_id: userId,
       type: "deposit",
       amount: paymentIntent.amount / 100,
@@ -127,8 +130,10 @@ async function handlePaymentIntentSucceeded(
   }
 
   // Update dataset payment status
-  await supabase
-    .from("dataset_requests")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow dataset request table types in this context
+  const datasetRequestsTable = supabase.from("dataset_requests") as any;
+
+  await datasetRequestsTable
     .update({
       payment_status: "paid",
       paid_amount: paymentIntent.amount / 100,
@@ -136,7 +141,8 @@ async function handlePaymentIntentSucceeded(
     .eq("id", datasetId);
 
   // Create transaction record
-  await supabase.from("transactions").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow transaction table types in this context
+  await (supabase.from("transactions") as any).insert({
     user_id: userId,
     type: "payment",
     amount: paymentIntent.amount / 100,
@@ -167,15 +173,18 @@ async function handlePaymentIntentFailed(
   }
 
   // Update dataset payment status
-  await supabase
-    .from("dataset_requests")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow dataset request table types in this context
+  const datasetRequestsTableFailed = supabase.from("dataset_requests") as any;
+
+  await datasetRequestsTableFailed
     .update({
       payment_status: "unpaid",
     })
     .eq("id", datasetId);
 
   // Create failed transaction record
-  await supabase.from("transactions").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow transaction table types in this context
+  await (supabase.from("transactions") as any).insert({
     user_id: userId,
     type: "payment",
     amount: paymentIntent.amount / 100,
@@ -198,8 +207,10 @@ async function handleAccountUpdated(
   supabase: ReturnType<typeof createAdminClient>
 ) {
   // Update Stripe account status
-  await supabase
-    .from("stripe_accounts")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow stripe account table types in this context
+  const stripeAccountsTable = supabase.from("stripe_accounts") as any;
+
+  await stripeAccountsTable
     .update({
       status: account.details_submitted ? "active" : "pending",
       charges_enabled: account.charges_enabled,
@@ -216,6 +227,11 @@ async function handleTransferCreated(
   supabase: ReturnType<typeof createAdminClient>
 ) {
   console.log(`✅ Transfer created webhook received: ${transfer.id}`);
+
+  if (!transfer.destination) {
+    console.error("Transfer missing destination account", transfer.id);
+    return;
+  }
 
   // Find the user by Stripe account ID
   const { data: stripeAccount } = await supabase
@@ -248,9 +264,12 @@ async function handleTransferCreated(
   const submissionId = transfer.metadata?.submission_id;
   const datasetId = transfer.metadata?.dataset_id;
 
+  const payoutAccount = stripeAccount as { user_id: string };
+
   // Create transaction record for the payout
-  await supabase.from("transactions").insert({
-    user_id: stripeAccount.user_id,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client fails to narrow transaction table types in this context
+  await (supabase.from("transactions") as any).insert({
+    user_id: payoutAccount.user_id,
     type: "payout",
     amount: transfer.amount / 100,
     currency: transfer.currency.toUpperCase(),
@@ -267,7 +286,7 @@ async function handleTransferCreated(
 
   console.log(
     `✅ Transfer created successfully for user ${
-      stripeAccount.user_id
+      payoutAccount.user_id
     }, amount: $${transfer.amount / 100}`
   );
 }
