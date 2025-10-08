@@ -50,11 +50,19 @@ export async function GET() {
       .select('type, status, amount')
       .eq('user_id', user.id);
 
-    const stats = transactionStats?.reduce((acc, t) => {
-      const key = `${t.type}_${t.status}`;
+    type TransactionStat = {
+      type: string | null;
+      status: string | null;
+      amount: number | null;
+    };
+
+    const stats = (transactionStats ?? ([] as TransactionStat[])).reduce((acc, t) => {
+      const type = t.type ?? 'unknown';
+      const status = t.status ?? 'unknown';
+      const key = `${type}_${status}`;
       if (!acc[key]) acc[key] = { count: 0, total: 0 };
       acc[key].count++;
-      acc[key].total += t.amount;
+      acc[key].total += t.amount ?? 0;
       return acc;
     }, {} as Record<string, { count: number; total: number }>);
 

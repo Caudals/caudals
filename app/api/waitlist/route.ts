@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getResendClient } from "@/lib/resend/client";
 import { WaitlistConfirmationEmail } from "@/emails/waitlist-confirmation";
-import type { Json } from "@/types/database";
+import type { Database, Json } from "@/types/database";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
 
 function splitFullName(input?: string | null): { firstName?: string; lastName?: string } {
@@ -68,6 +68,11 @@ export async function POST(request: NextRequest) {
 
   const emailLower = email.toLowerCase();
 
+  const metadataJson = metadata as Json;
+
+  type WaitlistSignupUpdate = Database["public"]["Tables"]["waitlist_signups"]["Update"];
+  type WaitlistSignupInsert = Database["public"]["Tables"]["waitlist_signups"]["Insert"];
+
   const { data: existingRecord, error: lookupError } = await supabase
     .from("waitlist_signups")
     .select("id, created_at, status")
@@ -85,16 +90,22 @@ export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString();
 
   if (existingRecord) {
-    const { error: updateError } = await supabase
-      .from("waitlist_signups")
-      .update({
-        full_name: fullName,
-        company: company ?? null,
-        use_case: useCase ?? null,
-        metadata,
-        updated_at: timestamp,
-      })
-      .eq("id", existingRecord.id);
+    const updatePayload: WaitlistSignupUpdate = {
+      full_name: fullName,
+      company: company ?? null,
+      use_case: useCase ?? null,
+      metadata: metadataJson,
+      updated_at: timestamp,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client typing fails to infer waitlist table fields in this context
+    const waitlistTable = supabase.from("waitlist_signups") as any;
+
+    const recordId = (existingRecord as { id: string }).id;
+
+    const { error: updateError } = await waitlistTable
+      .update(updatePayload)
+      .eq("id", recordId);
 
     if (updateError) {
       console.error("Waitlist update error", updateError);
@@ -111,17 +122,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { data: insertedRecord, error: insertError } = await supabase
-    .from("waitlist_signups")
-    .insert({
-      full_name: fullName,
-      email: emailLower,
-      company: company ?? null,
-      use_case: useCase ?? null,
-      metadata,
-      created_at: timestamp,
-      updated_at: timestamp,
-    })
+  const insertPayload: WaitlistSignupInsert = {
+    full_name: fullName,
+    email: emailLower,
+    company: company ?? null,
+    use_case: useCase ?? null,
+    metadata: metadataJson,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client typing fails to infer waitlist table fields in this context
+  const waitlistInsert = supabase.from("waitlist_signups") as any;
+
+  const { data: insertedRecord, error: insertError } = await waitlistInsert
+    .insert(insertPayload)
     .select("id")
     .single();
 
