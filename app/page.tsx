@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { HeroSection } from "@/components/landing/hero";
+import { WaitlistSection } from "@/components/landing/waitlist";
 import { FeaturesSection } from "@/components/landing/features";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { UseCasesSection } from "@/components/landing/use-cases";
@@ -29,6 +30,7 @@ export default function Home() {
 
       <main className="flex flex-col">
         <HeroSection />
+        <WaitlistSection />
 
         <div id="features">
           <FeaturesSection />
