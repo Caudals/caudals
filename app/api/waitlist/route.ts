@@ -5,6 +5,26 @@ import { WaitlistConfirmationEmail } from "@/emails/waitlist-confirmation";
 import type { Json } from "@/types/database";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
 
+function splitFullName(input?: string | null): { firstName?: string; lastName?: string } {
+  if (!input) {
+    return {};
+  }
+
+  const parts = input
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.length > 0);
+
+  if (parts.length === 0) {
+    return {};
+  }
+
+  const [firstName, ...rest] = parts;
+  const lastName = rest.length ? rest.join(" ") : undefined;
+
+  return { firstName, lastName };
+}
+
 export async function POST(request: NextRequest) {
   const requestBody = await request.json().catch(() => null);
 
@@ -25,11 +45,16 @@ export async function POST(request: NextRequest) {
   }
 
   const { fullName, email, company, useCase } = parsed.data;
+  const generalAudienceId = process.env.RESEND_GENERAL_AUDIENCE_ID;
   const supabase = createAdminClient();
 
   const metadata: Record<string, Json> = {
     source: "landing-page",
   };
+
+  if (generalAudienceId) {
+    metadata.resendAudienceId = generalAudienceId;
+  }
 
   const userAgent = request.headers.get("user-agent");
   if (userAgent) {
@@ -120,6 +145,38 @@ export async function POST(request: NextRequest) {
 
   try {
     const resend = getResendClient();
+
+    if (!generalAudienceId) {
+      console.warn(
+        "Waitlist submission saved but RESEND_GENERAL_AUDIENCE_ID is missing; skipping audience contact creation"
+      );
+    } else {
+      const { firstName, lastName } = splitFullName(fullName);
+
+      try {
+        await resend.contacts.create({
+          audienceId: generalAudienceId,
+          email: emailLower,
+          firstName,
+          lastName,
+          unsubscribed: false,
+        });
+      } catch (error) {
+        const statusCode =
+          typeof error === "object" && error !== null && "statusCode" in error
+            ? (error as { statusCode?: number }).statusCode
+            : undefined;
+
+        if (statusCode === 409) {
+          console.info("Waitlist contact already exists in Resend audience", {
+            email: emailLower,
+            audienceId: generalAudienceId,
+          });
+        } else {
+          console.error("Failed to upsert waitlist contact in Resend audience", error);
+        }
+      }
+    }
 
     await resend.emails.send({
       from: resendFrom,
