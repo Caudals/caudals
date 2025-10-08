@@ -77,6 +77,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM_EMAIL="Collective <team@yourdomain.com>"
+# Required for syncing waitlist signups to Resend contacts
+RESEND_GENERAL_AUDIENCE_ID=your_resend_audience_id
 # Optional: receive internal notifications when someone joins the waitlist
 WAITLIST_NOTIFICATION_EMAIL=team@yourdomain.com
 ```
