@@ -9,6 +9,7 @@ export type Json =
 export type UserRole = "contributor" | "requester" | "admin";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
+export type WaitlistStatus = "pending" | "contacted" | "qualified" | "converted";
 
 export interface Database {
   public: {
@@ -143,6 +144,44 @@ export interface Database {
           updated_at?: string;
         };
       };
+      waitlist_signups: {
+        Row: {
+          id: string;
+          full_name: string | null;
+          email: string;
+          company: string | null;
+          use_case: string | null;
+          status: WaitlistStatus;
+          metadata: Json;
+          last_notified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name?: string | null;
+          email: string;
+          company?: string | null;
+          use_case?: string | null;
+          status?: WaitlistStatus;
+          metadata?: Json;
+          last_notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string | null;
+          email?: string;
+          company?: string | null;
+          use_case?: string | null;
+          status?: WaitlistStatus;
+          metadata?: Json;
+          last_notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
@@ -153,6 +192,7 @@ export interface Database {
     Enums: {
       user_role: UserRole;
       submission_status: SubmissionStatus;
+      waitlist_status: WaitlistStatus;
     };
   };
 }
