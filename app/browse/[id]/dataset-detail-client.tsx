@@ -330,7 +330,7 @@ export function DatasetDetailClient({
               datasetTitle={dataset.title}
               dataType={dataset.dataType}
             >
-              <Button size="lg" className="w-full text-lg py-6" variant="ghost">
+              <Button size="lg" className="w-full text-lg py-6">
                 Contribute Now
               </Button>
             </ContributeDialog>
