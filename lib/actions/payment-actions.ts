@@ -193,7 +193,7 @@ export async function confirmPayment(paymentIntentId: string) {
   }
 }
 
-// Get user's wallet balance
+// Get user's wallet balance - Wallets table removed, using Stripe directly
 export async function getUserWallet() {
   try {
     const supabase = await createClient();
@@ -206,39 +206,18 @@ export async function getUserWallet() {
       return { error: "Not authenticated" };
     }
 
-    const { data: wallet, error } = await supabase
-      .from("wallets")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    if (error) {
-      console.error("Error fetching wallet:", error);
-
-      // If wallet doesn't exist, return a default wallet object
-      if (
-        error.code === "PGRST116" ||
-        error.message?.includes("No rows found")
-      ) {
-        console.log(
-          "Wallet not found, returning default wallet for user:",
-          user.id
-        );
-        return {
-          data: {
-            id: "default",
-            user_id: user.id,
-            balance: 0.0,
-            currency: "USD",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        };
-      }
-
-      return { error: `Failed to fetch wallet: ${error.message}` };
-    }
-    return { data: wallet };
+    // Since wallets table is removed, return a mock wallet object
+    // The actual balance is managed by Stripe, not our internal wallet
+    return {
+      data: {
+        id: "stripe-managed",
+        user_id: user.id,
+        balance: 0.0, // Balance is managed by Stripe, not internal wallet
+        currency: "USD",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    };
   } catch (error) {
     console.error("Unexpected error in getUserWallet:", error);
     return { error: "Unexpected error occurred" };
@@ -454,7 +433,7 @@ export async function getStripeConnectStatus() {
   }
 }
 
-// Pay for dataset using wallet balance
+// Pay for dataset using wallet balance - Updated to work without internal wallets
 export async function payWithWallet(datasetId: string, amount: number) {
   const supabase = await createClient();
 
@@ -467,111 +446,17 @@ export async function payWithWallet(datasetId: string, amount: number) {
   }
 
   try {
-    // Get user's wallet
-    let wallet;
-    const { data: walletData, error: walletError } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", user.id)
-      .single();
-
-    if (walletError || !walletData) {
-      // If wallet doesn't exist, treat as having 0 balance
-      if (
-        walletError?.code === "PGRST116" ||
-        walletError?.message?.includes("No rows found")
-      ) {
-        if (amount > 0) {
-          return { error: "Insufficient wallet balance" };
-        }
-        // If amount is 0, continue with the process
-        wallet = { balance: 0 };
-      } else {
-        return { error: "Wallet not found" };
-      }
-    } else {
-      wallet = walletData;
-    }
-
-    if (wallet.balance < amount) {
-      return { error: "Insufficient wallet balance" };
-    }
-
-    // Verify user owns the dataset request
-    const { data: dataset, error: datasetError } = await supabase
-      .from("dataset_requests")
-      .select("id, created_by, title, total_budget")
-      .eq("id", datasetId)
-      .eq("created_by", user.id)
-      .single();
-
-    if (datasetError || !dataset) {
-      return { error: "Dataset not found or access denied" };
-    }
-
-    // Deduct amount from wallet
-    const newBalance = wallet.balance - amount;
-    const { error: updateWalletError } = await supabase
-      .from("wallets")
-      .update({ balance: newBalance })
-      .eq("user_id", user.id);
-
-    if (updateWalletError) {
-      return { error: "Failed to update wallet balance" };
-    }
-
-    // Update dataset payment status
-    const { error: updateDatasetError } = await supabase
-      .from("dataset_requests")
-      .update({
-        payment_status: "paid",
-        paid_amount: amount,
-        total_budget: amount,
-      })
-      .eq("id", datasetId);
-
-    if (updateDatasetError) {
-      // Rollback wallet update
-      await supabase
-        .from("wallets")
-        .update({ balance: wallet.balance })
-        .eq("user_id", user.id);
-      return { error: "Failed to update dataset" };
-    }
-
-    // Create transaction record
-    const { error: transactionError } = await supabase
-      .from("transactions")
-      .insert({
-        user_id: user.id,
-        type: "payment",
-        amount: amount,
-        currency: "USD",
-        status: "completed",
-        description: `Dataset funding payment (wallet)`,
-        reference_id: `wallet-${Date.now()}`,
-        metadata: {
-          dataset_id: datasetId,
-          payment_method: "wallet",
-        },
-      });
-
-    if (transactionError) {
-      console.error("Error creating transaction:", transactionError);
-    }
-
-    revalidatePath("/dashboard/requests");
-    revalidatePath("/dashboard/billing");
-
-    return { data: { success: true, newBalance } };
+    // Since we removed internal wallets, this function now redirects to Stripe payment
+    // The actual payment processing should be done through Stripe directly
+    return { error: "Please use Stripe payment instead of internal wallet" };
   } catch (error) {
     console.error("Error paying with wallet:", error);
     return { error: "Failed to process wallet payment" };
   }
 }
 
-// Payout to contributor - adds funds to their internal wallet
-// Contributor can later withdraw to their bank account
+// Payout to contributor - Updated to work without internal wallets
+// Now uses Stripe Connect for direct payouts to contributors
 export async function payoutToContributor(
   submissionId: string,
   contributorId: string,
@@ -586,8 +471,7 @@ export async function payoutToContributor(
     const platformFee = amount * platformFeePercentage;
     const netAmount = amount - platformFee;
 
-    // Create payout transaction for contributor
-    // This will automatically update the wallet balance via database trigger
+    // Create payout transaction record (for tracking purposes)
     const { data: payoutTx, error: payoutTxError } = await supabase
       .from("transactions")
       .insert({
@@ -636,19 +520,8 @@ export async function payoutToContributor(
     });
 
     console.log(
-      `✅ Payout successful: $${netAmount} added to contributor ${contributorId} wallet`
+      `✅ Payout recorded: $${netAmount} for contributor ${contributorId} (use Stripe Connect for actual payout)`
     );
-
-    // Verify wallet was updated
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", contributorId)
-      .single();
-
-    if (wallet) {
-      console.log(`💰 Contributor wallet balance: $${wallet.balance}`);
-    }
 
     return {
       data: {

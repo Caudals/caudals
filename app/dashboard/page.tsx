@@ -6,7 +6,7 @@ import { ActivityChart } from "@/components/dashboard/activity-chart";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Plus } from "lucide-react";
-import { getUserWallet } from "@/lib/actions/payment-actions";
+// import { getUserWallet } from "@/lib/actions/payment-actions"; // Wallet functionality removed
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -29,9 +29,8 @@ export default async function RequesterDashboardPage() {
       redirect('/dashboard/contributor');
     }
   }
-  // Get wallet data for display
-  const walletResult = await getUserWallet();
-  const walletBalance = walletResult.data?.balance || 0;
+  // Wallet functionality removed - using default balance (managed by Stripe)
+  const walletBalance = 0;
 
   return (
     <SidebarProvider defaultOpen={true}>
