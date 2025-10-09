@@ -20,7 +20,7 @@ export function HeroSection() {
             variant="outline"
             className="border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary"
           >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5 bg-primary/90" />
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             Trusted by leading AI companies
           </Badge>
         </motion.div>
