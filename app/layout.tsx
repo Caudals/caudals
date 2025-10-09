@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth/provider";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster richColors position="top-right" />
+          <Analytics />
         </AuthProvider>
       </body>
     </html>
