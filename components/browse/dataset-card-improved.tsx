@@ -37,7 +37,7 @@ interface DatasetCardProps {
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const progress = (dataset.samplesCollected / dataset.samplesNeeded) * 100;
   const daysUntilDeadline = Math.ceil(
     (new Date(dataset.deadline).getTime() - new Date().getTime()) /
@@ -79,10 +79,13 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
     <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2">
       {/* Featured ribbon */}
       {dataset.featured && (
-        <div className="absolute top-4 -right-12 rotate-45 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-semibold py-1 px-12 shadow-lg z-10">
-          <Star className="h-3 w-3 inline mr-1" />
+        <Badge
+          className="absolute top-6 right-4 z-10 gap-1 bg-amber-400/90 text-white px-4  shadow font-semibold text-xs rounded-full flex items-center"
+          variant="default"
+        >
+          <Star className="h-3 w-3" />
           Featured
-        </div>
+        </Badge>
       )}
 
       <CardHeader className="space-y-4 pb-4">
@@ -217,25 +220,23 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
           <Button className="flex-1" disabled>
             Paused
           </Button>
-        ) : (
-          user ? (
-            <ContributeDialog
-              datasetId={dataset.id}
-              datasetTitle={dataset.title}
-              dataType={dataset.dataType}
-            >
-              <Button className="flex-1 bg-primary hover:bg-primary/90">
-                Contribute Now
-              </Button>
-            </ContributeDialog>
-          ) : (
-            <Button 
-              className="flex-1 bg-primary hover:bg-primary/90"
-              onClick={handleContributeClick}
-            >
-              Sign Up to Contribute
+        ) : user ? (
+          <ContributeDialog
+            datasetId={dataset.id}
+            datasetTitle={dataset.title}
+            dataType={dataset.dataType}
+          >
+            <Button className="flex-1 bg-primary hover:bg-primary/90">
+              Contribute Now
             </Button>
-          )
+          </ContributeDialog>
+        ) : (
+          <Button
+            className="flex-1 bg-primary hover:bg-primary/90"
+            onClick={handleContributeClick}
+          >
+            Sign Up to Contribute
+          </Button>
         )}
       </CardFooter>
     </Card>

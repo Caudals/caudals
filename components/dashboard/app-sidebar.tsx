@@ -46,7 +46,11 @@ const contributorNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
   { title: "Browse Datasets", icon: Database, href: "/browse" },
   { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
-  { title: "Earnings & Payouts", icon: CreditCard, href: "/dashboard/earnings" },
+  {
+    title: "Earnings & Payouts",
+    icon: CreditCard,
+    href: "/dashboard/earnings",
+  },
   { title: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
@@ -95,14 +99,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   // Determine navigation based on current path and user role
-  const isAdminView = pathname.startsWith('/admin');
-  const isContributorView = pathname.startsWith('/dashboard/contributor') || 
-                            pathname.startsWith('/dashboard/contributions');
-  
+  const isAdminView = pathname.startsWith("/admin");
+  const isContributorView =
+    pathname.startsWith("/dashboard/contributor") ||
+    pathname.startsWith("/dashboard/contributions");
+
   let navItems = requesterNav;
   let viewLabel = "Requester";
   let homeHref = "/dashboard";
-  
+
   // Admin users can switch between views
   if (userRole === "admin") {
     if (isAdminView) {
@@ -118,7 +123,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       viewLabel = "Requester";
       homeHref = "/dashboard";
     }
-  } 
+  }
   // Contributors only see contributor nav
   else if (userRole === "contributor") {
     navItems = contributorNav;
@@ -139,7 +144,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={homeHref}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
                   <Telescope className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -155,7 +160,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Only show role switcher for admins */}
         {userRole === "admin" && (
           <div className="mt-3">
-            <RoleSwitcher userRole={userRole} currentView={viewLabel.toLowerCase()} />
+            <RoleSwitcher
+              userRole={userRole}
+              currentView={viewLabel.toLowerCase()}
+            />
           </div>
         )}
         {/* Show badge for non-admin users */}
@@ -186,14 +194,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
         {/* Show "New Request" button only for requesters and admins in requester view */}
-        {(userRole === "requester" || (userRole === "admin" && !isAdminView && !isContributorView)) && (
+        {(userRole === "requester" ||
+          (userRole === "admin" && !isAdminView && !isContributorView)) && (
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-sm"
+                    className="rounded-sm"
                     variant="outline"
                   >
                     <Link href="/dashboard/requests/new">
