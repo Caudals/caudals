@@ -52,18 +52,18 @@ export function HeroSection() {
           className="flex flex-col gap-4 sm:flex-row"
         >
           <Button size="lg" className="h-12 px-8 text-base" asChild>
-            <Link href="/dashboard/requests/new">
-              Post a request
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+            <Link href="/dashboard/requests/new">Post a request</Link>
           </Button>
           <Button
             size="lg"
-            variant="default"
-            className="h-12 px-8 text-base bg-zinc-800 text-white hover:bg-zinc-600 hover:text-zinc-100"
+            className="h-12 px-8  hover:text-primary/70 hover:bg-transparent"
             asChild
+            variant="ghost"
           >
-            <Link href="/browse">Explore datasets</Link>
+            <Link href="/browse">
+              Explore datasets
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </Button>
         </motion.div>
 
