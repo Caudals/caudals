@@ -5,18 +5,40 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next");
+  const role = searchParams.get("role"); // Role from OAuth signup
 
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error && data.user) {
-      // Get user role and determine redirect path
-      const { data: profile } = await supabase
+      // Get user profile
+      let { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, mail')
         .eq('id', data.user.id)
         .single();
+      
+      // If this is an OAuth signup and we have a role parameter, update the profile
+      if (role && !profile?.role && ["contributor", "requester"].includes(role)) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            role: role as "contributor" | "requester",
+            mail: data.user.email
+          })
+          .eq('id', data.user.id);
+        
+        if (!updateError) {
+          // Refresh profile data
+          const { data: updatedProfile } = await supabase
+            .from('profiles')
+            .select('role, mail')
+            .eq('id', data.user.id)
+            .single();
+          profile = updatedProfile;
+        }
+      }
       
       const userRole = profile?.role;
       let redirectPath = "/dashboard"; // Default for requesters
@@ -25,6 +47,9 @@ export async function GET(request: Request) {
         redirectPath = "/dashboard/contributor";
       } else if (userRole === 'admin') {
         redirectPath = "/admin";
+      } else if (!userRole) {
+        // If no role is set, redirect to a role selection page or dashboard with a prompt
+        redirectPath = "/dashboard?select-role=true";
       }
       
       const finalPath = next || redirectPath;

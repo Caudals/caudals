@@ -77,6 +77,7 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             role: selectedRole,
+            email: email,
           },
         },
       });
@@ -89,21 +90,6 @@ export default function SignUpPage() {
           },
         });
       } else {
-        // Update the profile with the selected role and email
-        if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ 
-              role: selectedRole,
-              mail: email
-            })
-            .eq('id', data.user.id);
-
-          if (profileError) {
-            console.error('Error updating profile:', profileError);
-          }
-        }
-
         toast.success(
           "Account created! Please check your email to verify your account.",
           {
@@ -133,7 +119,7 @@ export default function SignUpPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
         },
       });
 
