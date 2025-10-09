@@ -77,7 +77,6 @@ export default function SignUpPage() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             role: selectedRole,
-            email: email,
           },
         },
       });
