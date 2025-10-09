@@ -1,0 +1,46 @@
+-- Fix user role enum to include admin and update trigger
+-- First, add 'admin' to the enum if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e 
+    JOIN pg_type t ON e.enumtypid = t.oid 
+    WHERE t.typname = 'user_role' AND e.enumlabel = 'admin'
+  ) THEN
+    ALTER TYPE user_role ADD VALUE 'admin';
+  END IF;
+END$$;
+
+-- Add mail column to profiles if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'profiles' AND column_name = 'mail'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN mail TEXT;
+  END IF;
+END$$;
+
+-- Update the handle_new_user function to properly set role and email
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Extract role from user metadata, default to 'contributor' if not provided
+    INSERT INTO public.profiles (id, full_name, avatar_url, role, mail)
+    VALUES (
+        NEW.id,
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'avatar_url',
+        COALESCE(
+            (NEW.raw_user_meta_data->>'role')::user_role,
+            'contributor'
+        ),
+        COALESCE(NEW.email, NEW.raw_user_meta_data->>'email')
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Also update profiles default role to be 'contributor' instead of 'both'
+ALTER TABLE profiles ALTER COLUMN role SET DEFAULT 'contributor';
