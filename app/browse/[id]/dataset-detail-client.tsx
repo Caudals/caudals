@@ -246,8 +246,8 @@ export function DatasetDetailClient({
                           submission.status === "approved"
                             ? "default"
                             : submission.status === "rejected"
-                            ? "destructive"
-                            : "secondary"
+                              ? "destructive"
+                              : "secondary"
                         }
                       >
                         {submission.status}
@@ -330,13 +330,12 @@ export function DatasetDetailClient({
               datasetTitle={dataset.title}
               dataType={dataset.dataType}
             >
-              <Button size="lg" className="w-full text-lg py-6">
-                <DollarSign className="mr-2 h-5 w-5" />
+              <Button size="lg" className="w-full text-lg py-6" variant="ghost">
                 Contribute Now
               </Button>
             </ContributeDialog>
           ) : dataset.status === "completed" ? (
-            <Button size="lg" className="w-full text-lg py-6" disabled>
+            <Button size="lg" className="w-full text-md py-6" disabled>
               <CheckCircle2 className="mr-2 h-5 w-5" />
               Completed
             </Button>
