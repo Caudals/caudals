@@ -6,7 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2, Mail, Sparkles, ShieldCheck, Timer } from "lucide-react";
 
-import { waitlistFormSchema, type WaitlistFormValues } from "@/lib/validators/waitlist";
+import {
+  waitlistFormSchema,
+  type WaitlistFormValues,
+} from "@/lib/validators/waitlist";
 import {
   Form,
   FormControl,
@@ -32,7 +35,7 @@ export function WaitlistSection() {
   return (
     <section className="relative px-6 pb-20 sm:px-8 lg:px-12">
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[420px] w-full max-w-4xl -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute left-1/2 top-0 h-[420px] w-full max-w-4xl -translate-x-1/2 rounded-full blur-3xl" />
       </div>
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
         <div className="space-y-6">
@@ -44,14 +47,24 @@ export function WaitlistSection() {
           </h2>
           <p className="text-lg text-muted-foreground">
             We onboard teams in cohorts to ensure dedicated support during your
-            first dataset launch. Share your details and we will reach out with a
-            tailored plan for your use case.
+            first dataset launch. Share your details and we will reach out with
+            a tailored plan for your use case.
           </p>
           <div className="grid gap-4 text-sm text-muted-foreground sm:grid-cols-2">
-            <FeatureItem icon={<Sparkles className="h-4 w-4 text-primary" />}>Priority onboarding and launch playbooks</FeatureItem>
-            <FeatureItem icon={<ShieldCheck className="h-4 w-4 text-primary" />}>Security and compliance consultation</FeatureItem>
-            <FeatureItem icon={<Mail className="h-4 w-4 text-primary" />}>Early product updates and roadmap previews</FeatureItem>
-            <FeatureItem icon={<Timer className="h-4 w-4 text-primary" />}>48-hour response time for qualified teams</FeatureItem>
+            <FeatureItem icon={<Sparkles className="h-4 w-4 text-primary" />}>
+              Priority onboarding and launch playbooks
+            </FeatureItem>
+            <FeatureItem
+              icon={<ShieldCheck className="h-4 w-4 text-primary" />}
+            >
+              Security and compliance consultation
+            </FeatureItem>
+            <FeatureItem icon={<Mail className="h-4 w-4 text-primary" />}>
+              Early product updates and roadmap previews
+            </FeatureItem>
+            <FeatureItem icon={<Timer className="h-4 w-4 text-primary" />}>
+              48-hour response time for qualified teams
+            </FeatureItem>
           </div>
         </div>
         <WaitlistFormCard />
@@ -108,14 +121,12 @@ function WaitlistFormCard() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        if (
-          response.status === 422 &&
-          payload &&
-          typeof payload === "object"
-        ) {
-          const detail = (payload as {
-            details?: { fieldErrors?: Record<string, string[]> };
-          }).details;
+        if (response.status === 422 && payload && typeof payload === "object") {
+          const detail = (
+            payload as {
+              details?: { fieldErrors?: Record<string, string[]> };
+            }
+          ).details;
           if (detail?.fieldErrors) {
             Object.entries(detail.fieldErrors).forEach(([field, messages]) => {
               if (messages?.length) {
@@ -164,7 +175,9 @@ function WaitlistFormCard() {
   }
 
   if (result) {
-    return <WaitlistSuccessCard result={result} onReset={() => setResult(null)} />;
+    return (
+      <WaitlistSuccessCard result={result} onReset={() => setResult(null)} />
+    );
   }
 
   return (
@@ -199,7 +212,11 @@ function WaitlistFormCard() {
                   <FormItem>
                     <FormLabel>Work email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="you@company.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@company.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -223,7 +240,9 @@ function WaitlistFormCard() {
                 name="useCase"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What dataset are you planning to launch?</FormLabel>
+                    <FormLabel>
+                      What dataset are you planning to launch?
+                    </FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Share a sentence or two about the dataset you want to build."
@@ -237,11 +256,14 @@ function WaitlistFormCard() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Join the waitlist
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              We will only use your information to contact you about early access.
+              We will only use your information to contact you about early
+              access.
             </p>
           </form>
         </Form>
@@ -272,8 +294,8 @@ function WaitlistSuccessCard({ result, onReset }: WaitlistSuccessCardProps) {
             {result.alreadyRegistered
               ? "We have your details on file and will keep you updated."
               : result.emailSent
-              ? "We just sent a confirmation to your inbox. We'll reach out soon with next steps."
-              : "We'll review your request and get back to you shortly."}
+                ? "We just sent a confirmation to your inbox. We'll reach out soon with next steps."
+                : "We'll review your request and get back to you shortly."}
           </p>
         </div>
         <Button variant="outline" onClick={onReset} className="w-full">
