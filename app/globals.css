@@ -1,6 +1,58 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@theme {
+  /* Color palette using CSS variables */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  /* Border radius using CSS variables */
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+  --radius-sm: var(--radius-sm);
+  --radius-xl: var(--radius-xl);
+
+  /* Box shadows */
+  --shadow-soft-lg: 0 22px 45px -25px rgba(15, 23, 42, 0.25);
+  --shadow-soft-md: 0 18px 30px -25px rgba(15, 23, 42, 0.18);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  /* Font families */
+  --font-family-sans: var(--font-sans), system-ui;
+  --font-family-mono: var(--font-mono), ui-monospace;
+
+  /* Transition timing functions */
+  --ease-soft-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Container */
+  --breakpoint-2xl: 1280px;
+}
+
 :root {
   --radius: 1rem;
   --radius-sm: calc(var(--radius) - 4px);
@@ -78,7 +130,8 @@
 }
 
 .bg-oa-radial {
-  background: radial-gradient(
+  background:
+    radial-gradient(
       ellipse 1400px 900px at 50% -10%,
       rgba(99, 102, 241, 0.42),
       transparent 60%
@@ -111,7 +164,8 @@
 }
 
 .hover-lift {
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -132,11 +186,15 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
+    border-style: solid;
+    border-width: 0;
   }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
 }
 
