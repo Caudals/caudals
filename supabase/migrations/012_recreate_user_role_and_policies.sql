@@ -125,6 +125,64 @@ BEGIN
   END IF;
 END $$;
 
+-- 3.c) Ensure dataset_category enum exists with allowed values and column uses it
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dataset_category') THEN
+    CREATE TYPE dataset_category AS ENUM (
+      'computer-vision',
+      'natural-language',
+      'speech-audio',
+      'healthcare',
+      'robotics',
+      'other'
+    );
+  ELSE
+    -- Add any missing allowed labels (we do not remove extras here)
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'computer-vision'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'computer-vision'; END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'natural-language'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'natural-language'; END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'speech-audio'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'speech-audio'; END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'healthcare'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'healthcare'; END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'robotics'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'robotics'; END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'dataset_category' AND e.enumlabel = 'other'
+    ) THEN ALTER TYPE dataset_category ADD VALUE 'other'; END IF;
+  END IF;
+
+  -- Ensure dataset_requests.category column is of type dataset_category
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='dataset_requests' AND column_name='category'
+  ) THEN
+    -- If it's not already enum, cast via text
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='dataset_requests' AND column_name='category' AND udt_name <> 'dataset_category'
+    ) THEN
+      ALTER TABLE public.dataset_requests ALTER COLUMN category TYPE text;
+      -- Attempt conversion; invalid values will error at runtime if present
+      ALTER TABLE public.dataset_requests ALTER COLUMN category TYPE dataset_category USING category::dataset_category;
+    END IF;
+  END IF;
+END $$;
+
 -- 4) Recreate handle_new_user function and trigger safely
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER

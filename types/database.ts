@@ -10,6 +10,15 @@ export type UserRole = "contributor" | "requester" | "admin";
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 export type WaitlistStatus = "pending" | "contacted" | "qualified" | "converted";
+export type DatasetCategory =
+  | "computer-vision"
+  | "natural-language"
+  | "speech-audio"
+  | "healthcare"
+  | "robotics"
+  | "other";
+export type DataType = "image" | "video" | "audio" | "text" | "mixed";
+export type DatasetStatus = "active" | "closing-soon" | "completed" | "paused";
 
 export interface Database {
   public: {
@@ -52,9 +61,9 @@ export interface Database {
           created_by: string;
           title: string;
           description: string;
-          category: string;
-          data_type: string;
-          status: string;
+          category: DatasetCategory;
+          data_type: DataType;
+          status: DatasetStatus;
           samples_needed: number;
           samples_collected: number;
           reward_amount: number;
@@ -75,9 +84,9 @@ export interface Database {
           created_by: string;
           title: string;
           description: string;
-          category: string;
-          data_type: string;
-          status?: string;
+          category: DatasetCategory;
+          data_type: DataType;
+          status?: DatasetStatus;
           samples_needed: number;
           samples_collected?: number;
           reward_amount: number;
@@ -94,9 +103,9 @@ export interface Database {
           created_by?: string;
           title?: string;
           description?: string;
-          category?: string;
-          data_type?: string;
-          status?: string;
+          category?: DatasetCategory;
+          data_type?: DataType;
+          status?: DatasetStatus;
           samples_needed?: number;
           samples_collected?: number;
           reward_amount?: number;
@@ -193,6 +202,10 @@ export interface Database {
       user_role: UserRole;
       submission_status: SubmissionStatus;
       waitlist_status: WaitlistStatus;
+      dataset_category: DatasetCategory;
+      dataset_status: DatasetStatus;
+      data_type: DataType;
+      approval_status: ApprovalStatus;
     };
   };
 }
