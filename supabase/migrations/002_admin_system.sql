@@ -1,28 +1,63 @@
 -- Add admin role to user_role enum
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'admin' AND enumtypid = 'user_role'::regtype) THEN
+    -- Only attempt to add 'admin' if the enum type exists
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') AND 
+       NOT EXISTS (
+         SELECT 1 
+         FROM pg_enum e 
+         JOIN pg_type t ON e.enumtypid = t.oid 
+         WHERE t.typname = 'user_role' AND e.enumlabel = 'admin'
+       ) THEN
         ALTER TYPE user_role ADD VALUE 'admin';
     END IF;
 END $$;
 
--- Now commit before using the new enum value
-COMMIT;
-
 -- Add approval status enum
-CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
+DO $$ 
+BEGIN
+    -- Only attempt to create if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'approval_status') THEN
+        CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
+    END IF;
+END $$;
 
 
 -- Add approval fields to dataset_requests
-ALTER TABLE dataset_requests 
-  ADD COLUMN approval_status approval_status DEFAULT 'pending',
-  ADD COLUMN admin_notes TEXT,
-  ADD COLUMN approved_by UUID REFERENCES profiles(id),
-  ADD COLUMN approved_at TIMESTAMPTZ;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'dataset_requests' AND column_name = 'approval_status'
+  ) THEN
+    ALTER TABLE dataset_requests ADD COLUMN approval_status approval_status DEFAULT 'pending';
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'dataset_requests' AND column_name = 'admin_notes'
+  ) THEN
+    ALTER TABLE dataset_requests ADD COLUMN admin_notes TEXT;
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'dataset_requests' AND column_name = 'approved_by'
+  ) THEN
+    ALTER TABLE dataset_requests ADD COLUMN approved_by UUID REFERENCES profiles(id);
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'dataset_requests' AND column_name = 'approved_at'
+  ) THEN
+    ALTER TABLE dataset_requests ADD COLUMN approved_at TIMESTAMPTZ;
+  END IF;
+END $$;
 
 -- Create admin activity log table
-CREATE TABLE admin_activity_log (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE IF NOT EXISTS admin_activity_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     action_type TEXT NOT NULL, -- 'approve_request', 'reject_request', 'approve_submission', 'reject_submission'
     target_type TEXT NOT NULL, -- 'dataset_request', 'submission'
@@ -32,12 +67,13 @@ CREATE TABLE admin_activity_log (
 );
 
 -- Index for activity log
-CREATE INDEX idx_admin_activity_log_admin_id ON admin_activity_log(admin_id);
-CREATE INDEX idx_admin_activity_log_created_at ON admin_activity_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_log_admin_id ON admin_activity_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_activity_log_created_at ON admin_activity_log(created_at DESC);
 
 -- Update RLS policies for admin access
 
 -- Admins can view all dataset requests regardless of status
+DROP POLICY IF EXISTS "Admins can view all dataset requests" ON dataset_requests;
 CREATE POLICY "Admins can view all dataset requests"
     ON dataset_requests FOR SELECT
     TO authenticated
@@ -50,6 +86,7 @@ CREATE POLICY "Admins can view all dataset requests"
     );
 
 -- Admins can update any dataset request
+DROP POLICY IF EXISTS "Admins can update dataset requests" ON dataset_requests;
 CREATE POLICY "Admins can update dataset requests"
     ON dataset_requests FOR UPDATE
     TO authenticated
@@ -62,6 +99,7 @@ CREATE POLICY "Admins can update dataset requests"
     );
 
 -- Admins can view all submissions
+DROP POLICY IF EXISTS "Admins can view all submissions" ON submissions;
 CREATE POLICY "Admins can view all submissions"
     ON submissions FOR SELECT
     TO authenticated
@@ -74,6 +112,7 @@ CREATE POLICY "Admins can view all submissions"
     );
 
 -- Admins can update any submission
+DROP POLICY IF EXISTS "Admins can update submissions" ON submissions;
 CREATE POLICY "Admins can update submissions"
     ON submissions FOR UPDATE
     TO authenticated
@@ -88,6 +127,7 @@ CREATE POLICY "Admins can update submissions"
 -- RLS for admin activity log
 ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view activity log" ON admin_activity_log;
 CREATE POLICY "Admins can view activity log"
     ON admin_activity_log FOR SELECT
     TO authenticated
@@ -99,6 +139,7 @@ CREATE POLICY "Admins can view activity log"
         )
     );
 
+DROP POLICY IF EXISTS "Admins can insert activity log" ON admin_activity_log;
 CREATE POLICY "Admins can insert activity log"
     ON admin_activity_log FOR INSERT
     TO authenticated
@@ -131,6 +172,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Update dataset visibility to only show approved ones to non-admins
 DROP POLICY IF EXISTS "Dataset requests are viewable by everyone" ON dataset_requests;
+DROP POLICY IF EXISTS "Approved dataset requests are viewable by everyone" ON dataset_requests;
 
 CREATE POLICY "Approved dataset requests are viewable by everyone"
     ON dataset_requests FOR SELECT
@@ -246,4 +288,3 @@ BEGIN
     ORDER BY s.created_at ASC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-

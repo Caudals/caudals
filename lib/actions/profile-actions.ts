@@ -36,7 +36,7 @@ export async function getProfile(userId?: string) {
 export async function updateProfile(updates: {
   full_name?: string;
   bio?: string;
-  role?: "contributor" | "requester" | "both";
+  role?: "contributor" | "requester" | "admin";
   avatar_url?: string;
 }) {
   const supabase = await createClient();

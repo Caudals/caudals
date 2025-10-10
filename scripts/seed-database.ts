@@ -36,7 +36,7 @@ const sampleUsers = [
   {
     email: "emma.wilson@example.com",
     full_name: "Emma Wilson",
-    role: "both" as const,
+    role: "contributor" as const,
   },
   {
     email: "david.martinez@example.com",
