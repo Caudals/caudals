@@ -395,7 +395,7 @@ export async function getRecentAdminActivity() {
 // Update user role
 export async function updateUserRole(
   userId: string,
-  role: "contributor" | "requester" | "both" | "admin"
+  role: "contributor" | "requester" | "admin"
 ) {
   const supabase = await createClient();
 

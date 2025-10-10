@@ -131,8 +131,8 @@ export async function getDatasetById(id: string) {
 export async function createDatasetRequest(formData: {
   title: string;
   description: string;
-  category: string;
-  dataType: string;
+  category: DatasetCategory;
+  dataType: DataType;
   samplesNeeded: number;
   qualityCriteria: string[];
   requirements: string[];
@@ -149,6 +149,20 @@ export async function createDatasetRequest(formData: {
 
   if (!user) {
     return { error: "Not authenticated" };
+  }
+
+  // Validate category against allowed set
+  const allowedCategories: DatasetCategory[] = [
+    "computer-vision",
+    "natural-language",
+    "speech-audio",
+    "healthcare",
+    "robotics",
+    "other",
+  ];
+
+  if (!allowedCategories.includes(formData.category)) {
+    return { error: "Invalid category. Please select a valid dataset category." };
   }
 
   const { data, error } = await supabase

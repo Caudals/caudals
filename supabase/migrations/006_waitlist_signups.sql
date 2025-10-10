@@ -8,7 +8,7 @@ END
 $$;
 
 CREATE TABLE IF NOT EXISTS public.waitlist_signups (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name TEXT,
     email TEXT NOT NULL,
     company TEXT,
@@ -21,13 +21,20 @@ CREATE TABLE IF NOT EXISTS public.waitlist_signups (
 );
 
 -- Ensure email uniqueness to avoid duplicates
-ALTER TABLE public.waitlist_signups
-    ADD CONSTRAINT waitlist_signups_email_key UNIQUE (email);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'waitlist_signups_email_key'
+  ) THEN
+    ALTER TABLE public.waitlist_signups ADD CONSTRAINT waitlist_signups_email_key UNIQUE (email);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_waitlist_signups_email
     ON public.waitlist_signups (email);
 
 -- Automatically maintain updated_at column
+DROP TRIGGER IF EXISTS update_waitlist_signups_updated_at ON public.waitlist_signups;
 CREATE TRIGGER update_waitlist_signups_updated_at
     BEFORE UPDATE ON public.waitlist_signups
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -35,6 +42,7 @@ CREATE TRIGGER update_waitlist_signups_updated_at
 -- Harden access with RLS (service key bypasses policies by default)
 ALTER TABLE public.waitlist_signups ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role full access" ON public.waitlist_signups;
 CREATE POLICY "Service role full access" ON public.waitlist_signups
     FOR ALL
     USING (auth.role() = 'service_role')

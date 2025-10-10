@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { DatasetCategory, DataType } from "@/types/dataset";
 
 const steps = [
   {
@@ -49,11 +50,24 @@ const steps = [
   },
 ];
 
+type NewRequestFormState = {
+  title: string;
+  description: string;
+  category: DatasetCategory | "";
+  dataType: DataType | "";
+  sampleCount: string;
+  qualityCriteria: string;
+  requirements: string;
+  rewardAmount: string;
+  currency: string;
+  timeline: string;
+};
+
 export function NewRequestForm() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<NewRequestFormState>({
     title: "",
     description: "",
     category: "",
@@ -119,8 +133,8 @@ export function NewRequestForm() {
       const result = await createDatasetRequest({
         title: formData.title,
         description: formData.description,
-        category: formData.category,
-        dataType: formData.dataType,
+        category: formData.category as DatasetCategory,
+        dataType: formData.dataType as DataType,
         samplesNeeded: Number(formData.sampleCount),
         qualityCriteria,
         requirements,
@@ -260,11 +274,11 @@ export function NewRequestForm() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="computer-vision">
-                      Computer Vision
-                    </SelectItem>
-                    <SelectItem value="nlp">Natural Language</SelectItem>
-                    <SelectItem value="speech">Speech & Audio</SelectItem>
+                    <SelectItem value="computer-vision">Computer Vision</SelectItem>
+                    <SelectItem value="natural-language">Natural Language</SelectItem>
+                    <SelectItem value="speech-audio">Speech & Audio</SelectItem>
+                    <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="robotics">Robotics</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
