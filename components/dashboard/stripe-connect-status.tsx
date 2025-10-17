@@ -1,20 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Loader2, 
-  ExternalLink,
+import {
+  Banknote,
+  CheckCircle2,
+  Loader2,
+  RefreshCcw,
   Shield,
-  Landmark,
-  RefreshCw
+  Wallet2,
+  AlertTriangle,
 } from "lucide-react";
-import { getStripeConnectStatus, createStripeConnectAccount } from "@/lib/actions/payment-actions";
 import { toast } from "sonner";
+import {
+  getStripeConnectBalance,
+  getStripeConnectStatus,
+} from "@/lib/actions/payment-actions";
+import { StripeOnboardingDialog } from "./stripe-onboarding-dialog";
 
 interface ConnectStatus {
   connected: boolean;
@@ -23,47 +33,78 @@ interface ConnectStatus {
   payouts_enabled: boolean;
   details_submitted: boolean;
   requirements: string[];
-  disabled_reason?: string | null;
+  bank_last4?: string | null;
+  status?: "pending" | "active" | "restricted" | "rejected";
+}
+
+interface StripeBalance {
+  available: number;
+  pending: number;
+  currency: string;
 }
 
 export function StripeConnectStatus() {
   const [status, setStatus] = useState<ConnectStatus | null>(null);
+  const [balance, setBalance] = useState<StripeBalance | null>(null);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const loadStatus = async () => {
+  const loadData = async () => {
     setLoading(true);
-    const result = await getStripeConnectStatus();
-    
-    if (result.error) {
-      toast.error(result.error);
-    } else if (result.data) {
-      setStatus(result.data);
+
+    try {
+      const [statusResult, balanceResult] = await Promise.all([
+        getStripeConnectStatus(),
+        getStripeConnectBalance(),
+      ]);
+
+      if (statusResult.error) {
+        toast.error(statusResult.error);
+      } else if (statusResult.data) {
+        setStatus(statusResult.data as ConnectStatus);
+      }
+
+      if (balanceResult.error) {
+        console.warn("Unable to fetch Stripe balance", balanceResult.error);
+        setBalance(null);
+      } else if (balanceResult.data) {
+        setBalance(balanceResult.data as StripeBalance);
+      }
+    } catch (error) {
+      console.error("Failed to load Stripe data", error);
+      toast.error("Unable to load Stripe payout information.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    loadStatus();
+    loadData();
   }, []);
 
-  const handleSetupAccount = async () => {
-    setCreating(true);
-    const result = await createStripeConnectAccount();
-    
-    if (result.error) {
-      toast.error(result.error);
-      setCreating(false);
-    } else if (result.data?.onboarding_url) {
-      // Redirect to Stripe onboarding
-      window.location.href = result.data.onboarding_url;
-    } else {
-      // Account already exists, refresh status
-      toast.success("Account found! Refreshing status...");
-      await loadStatus();
-      setCreating(false);
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
   };
+
+  const handleOnboardingCompleted = async () => {
+    await loadData();
+  };
+
+  const isActive = useMemo(() => {
+    if (!status) return false;
+    return (
+      status.connected &&
+      status.details_submitted &&
+      status.payouts_enabled &&
+      status.charges_enabled
+    );
+  }, [status]);
+
+  const hasOutstandingRequirements =
+    status?.requirements && status.requirements.length > 0;
 
   if (loading) {
     return (
@@ -77,10 +118,8 @@ export function StripeConnectStatus() {
             Connect your bank account to receive payouts
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -88,208 +127,221 @@ export function StripeConnectStatus() {
 
   if (!status?.connected) {
     return (
-      <Card className="border-blue-500/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Payout Account Setup Required
-          </CardTitle>
-          <CardDescription>
-            Set up your bank account to receive automatic payouts when your submissions are approved
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Why set up payouts?</h4>
-            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Receive 90% of each submission reward directly to your bank</li>
-              <li>Automatic transfers when your work is approved</li>
-              <li>Secure payment processing via Stripe</li>
-              <li>Takes ~5 minutes to complete</li>
-            </ul>
-          </div>
-
-          <Button 
-            onClick={handleSetupAccount}
-            disabled={creating}
-            className="w-full"
-            size="lg"
-          >
-            {creating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              <>
-                <Landmark className="mr-2 h-4 w-4" />
-                Set Up Payout Account
-              </>
-            )}
-          </Button>
-
-          <p className="text-xs text-muted-foreground text-center">
-            You&apos;ll be redirected to Stripe to securely connect your bank account
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="border-blue-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-500" />
+              Set Up Your Payout Account
+            </CardTitle>
+            <CardDescription>
+              Create a Stripe Connect account without leaving the dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+              <p className="font-medium">Why this matters</p>
+              <ul className="mt-2 space-y-1 list-disc list-inside">
+                <li>Receive payouts automatically when submissions are approved</li>
+                <li>Secure onboarding powered by Stripe</li>
+                <li>Only a few fields required — finish in under 5 minutes</li>
+              </ul>
+            </div>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Banknote className="mr-2 h-4 w-4" />
+              Create payout account
+            </Button>
+          </CardContent>
+        </Card>
+        <StripeOnboardingDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onCompleted={handleOnboardingCompleted}
+        />
+      </>
     );
   }
 
-  const isFullyActive = status.charges_enabled && status.payouts_enabled && status.details_submitted;
-  const needsAction = !isFullyActive && status.requirements.length > 0;
-
   return (
-    <Card className={isFullyActive ? "border-emerald-500/20" : "border-orange-500/20"}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Payout Account
-          </CardTitle>
-          <Badge variant={isFullyActive ? "default" : "secondary"} className={isFullyActive ? "bg-emerald-600" : "bg-orange-600"}>
-            {isFullyActive ? (
-              <>
-                <CheckCircle className="mr-1 h-3 w-3" />
-                Active
-              </>
-            ) : (
-              <>
-                <AlertCircle className="mr-1 h-3 w-3" />
-                {needsAction ? "Action Required" : "Pending"}
-              </>
-            )}
-          </Badge>
-        </div>
-        <CardDescription>
-          Your Stripe Connect account for receiving payouts
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Status Grid */}
-        <div className="grid gap-3">
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <span className="text-sm font-medium">Payouts Enabled</span>
-            {status.payouts_enabled ? (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                <CheckCircle className="mr-1 h-3 w-3" />
-                Yes
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                <AlertCircle className="mr-1 h-3 w-3" />
-                No
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <span className="text-sm font-medium">Details Submitted</span>
-            {status.details_submitted ? (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                <CheckCircle className="mr-1 h-3 w-3" />
-                Yes
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                <AlertCircle className="mr-1 h-3 w-3" />
-                No
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Requirements */}
-        {needsAction && (
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <h4 className="font-medium text-orange-900 mb-2 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Action Required
-            </h4>
-            <p className="text-sm text-orange-800 mb-3">
-              Complete your account setup to enable payouts:
-            </p>
-            <ul className="text-sm text-orange-800 space-y-1 list-disc list-inside mb-4">
-              {status.requirements.slice(0, 3).map((req) => (
-                <li key={req}>{req.replace(/_/g, " ")}</li>
-              ))}
-              {status.requirements.length > 3 && (
-                <li>And {status.requirements.length - 3} more...</li>
-              )}
-            </ul>
-            <Button 
-              onClick={handleSetupAccount}
-              disabled={creating}
-              variant="outline"
-              className="w-full border-orange-300 hover:bg-orange-100"
+    <>
+      <Card className={isActive ? "border-emerald-500/30" : "border-orange-500/30"}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Payout Account
+            </CardTitle>
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={
+                isActive ? "bg-emerald-600 text-white" : "bg-orange-100 text-orange-800"
+              }
             >
-              {creating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading...
-                </>
+              {isActive ? (
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Active
+                </span>
+              ) : hasOutstandingRequirements ? (
+                "Action required"
               ) : (
-                <>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Complete Setup on Stripe
-                </>
+                "Pending verification"
               )}
-            </Button>
+            </Badge>
           </div>
-        )}
-
-        {/* Disabled Reason */}
-        {status.disabled_reason && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <h4 className="font-medium text-red-900 mb-2">Account Issue</h4>
-            <p className="text-sm text-red-800">
-              {status.disabled_reason}
-            </p>
+          <CardDescription>
+            Manage your Stripe Connect payout status and outstanding actions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-2">
+            <StatusRow
+              label="Details submitted"
+              value={status.details_submitted ? "Complete" : "Missing"}
+              positive={status.details_submitted}
+            />
+            <StatusRow
+              label="Payouts enabled"
+              value={status.payouts_enabled ? "Ready" : "Disabled"}
+              positive={status.payouts_enabled}
+            />
+            <StatusRow
+              label="Charges enabled"
+              value={status.charges_enabled ? "Enabled" : "Disabled"}
+              positive={status.charges_enabled}
+            />
+            <StatusRow
+              label="Bank account"
+              value={
+                status.bank_last4
+                  ? `•••• ${status.bank_last4}`
+                  : "Not connected"
+              }
+              positive={Boolean(status.bank_last4)}
+            />
           </div>
-        )}
 
-        {/* Success Message */}
-        {isFullyActive && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-            <h4 className="font-medium text-emerald-900 mb-2 flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              Ready for Payouts!
-            </h4>
-            <p className="text-sm text-emerald-800">
-              Your account is fully set up. You&apos;ll receive automatic payouts when your submissions are approved.
-            </p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-2">
-          <Button 
-            onClick={loadStatus}
-            variant="outline"
-            size="sm"
-            className="flex-1"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Status
-          </Button>
-          {status.account_id && (
-            <Button 
-              onClick={() => window.open(`https://dashboard.stripe.com/${status.account_id}`, "_blank")}
-              variant="outline"
-              size="sm"
-              className="flex-1"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View on Stripe
-            </Button>
+          {hasOutstandingRequirements && (
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+              <div className="flex items-center gap-2 font-medium">
+                <AlertTriangle className="h-4 w-4" />
+                Action required to activate payouts
+              </div>
+              <ul className="mt-2 space-y-1 list-disc list-inside">
+                {status.requirements.slice(0, 4).map((item) => (
+                  <li key={item}>{item.replace(/_/g, " ")}</li>
+                ))}
+                {status.requirements.length > 4 && (
+                  <li>+ {status.requirements.length - 4} more items</li>
+                )}
+              </ul>
+              <Button
+                variant="outline"
+                className="mt-3 w-full border-orange-300 hover:bg-orange-100"
+                onClick={() => setDialogOpen(true)}
+              >
+                Update payout details
+              </Button>
+            </div>
           )}
-        </div>
 
-        <p className="text-xs text-muted-foreground text-center">
-          Account ID: {status.account_id?.slice(0, 20)}...
-        </p>
-      </CardContent>
-    </Card>
+          <div className="rounded-lg border bg-muted/50 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium flex items-center gap-1">
+                  <Wallet2 className="h-4 w-4 text-muted-foreground" />
+                  Stripe balance
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Available balance updates as Stripe settles payouts.
+                </p>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCcw className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <BalanceBlock
+                title="Available"
+                amount={balance?.available ?? 0}
+                currency={balance?.currency ?? "USD"}
+              />
+              <BalanceBlock
+                title="Pending"
+                amount={balance?.pending ?? 0}
+                currency={balance?.currency ?? "USD"}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <StripeOnboardingDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onCompleted={handleOnboardingCompleted}
+      />
+    </>
   );
 }
 
+function StatusRow({
+  label,
+  value,
+  positive,
+}: {
+  label: string;
+  value: string;
+  positive: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md border p-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span
+        className={`text-sm font-medium ${
+          positive ? "text-emerald-600" : "text-orange-600"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function BalanceBlock({
+  title,
+  amount,
+  currency,
+}: {
+  title: string;
+  amount: number;
+  currency: string;
+}) {
+  return (
+    <div className="rounded-md border bg-background p-3">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+        {title}
+      </p>
+      <p className="text-xl font-semibold">
+        {new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency,
+        }).format(amount)}
+      </p>
+    </div>
+  );
+}

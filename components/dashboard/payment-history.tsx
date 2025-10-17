@@ -4,33 +4,44 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CreditCard, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  CreditCard,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   Loader2,
   CheckCircle,
   Clock,
   AlertCircle,
-  Download
+  Download,
+  RefreshCcw,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getUserTransactions } from "@/lib/actions/payment-actions";
 
 interface Transaction {
   id: string;
-  type: string;
+  direction: "credit" | "debit";
+  type:
+    | "wallet_deposit"
+    | "wallet_withdrawal"
+    | "dataset_funding"
+    | "submission_payout"
+    | "platform_fee"
+    | "stripe_adjustment"
+    | "refund"
+    | string;
   amount: number;
+  fee_amount?: number | null;
+  net_amount?: number;
   currency: string;
-  status: string;
-  description: string;
+  status: "pending" | "completed" | "failed" | "cancelled";
   created_at: string;
-  metadata?: {
+  metadata?: (Record<string, unknown> & {
     dataset_id?: string;
-    stripe_payment_intent?: string;
-    stripe_transfer?: string;
-  };
+    submission_id?: string;
+  }) | null;
 }
 
 interface PaymentHistoryProps {
@@ -57,7 +68,8 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
         return;
       }
 
-      setTransactions(result.data || []);
+      const transactionData = (result.data || []) as Transaction[];
+      setTransactions(transactionData);
     } catch {
       toast.error("Failed to load transaction history");
     } finally {
@@ -71,22 +83,26 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
       // Create CSV content
       const headers = [
         "Date",
+        "Direction",
         "Type",
         "Amount",
         "Currency",
         "Status",
-        "Description",
-        "Transaction ID"
+        "Dataset / Submission",
+        "Transaction ID",
       ];
 
-      const rows = transactions.map(t => [
+      const rows = transactions.map((t) => [
         new Date(t.created_at).toLocaleDateString(),
+        t.direction,
         t.type,
         t.amount.toString(),
         t.currency,
         t.status,
-        t.description,
-        t.id
+        (t.metadata?.dataset_id as string | undefined) ??
+          (t.metadata?.submission_id as string | undefined) ??
+          "",
+        t.id,
       ]);
 
       const csvContent = [
@@ -130,18 +146,29 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
     });
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (
+    type: Transaction["type"],
+    direction: Transaction["direction"]
+  ) => {
     switch (type) {
-      case "deposit":
-      case "payout":
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case "withdrawal":
-      case "payment":
+      case "wallet_deposit":
+        return <DollarSign className="h-4 w-4 text-green-600" />;
+      case "wallet_withdrawal":
         return <TrendingDown className="h-4 w-4 text-red-600" />;
-      case "commission":
-        return <DollarSign className="h-4 w-4 text-orange-600" />;
+      case "dataset_funding":
+        return direction === "debit" ? (
+          <TrendingDown className="h-4 w-4 text-red-600" />
+        ) : (
+          <TrendingUp className="h-4 w-4 text-green-600" />
+        );
+      case "submission_payout":
+        return <TrendingUp className="h-4 w-4 text-green-600" />;
+      case "refund":
+        return <RefreshCcw className="h-4 w-4 text-blue-600" />;
+      case "stripe_adjustment":
+        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
       default:
-        return <CreditCard className="h-4 w-4 text-gray-600" />;
+        return <Wallet className="h-4 w-4 text-gray-600" />;
     }
   };
 
@@ -171,19 +198,8 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
     }
   };
 
-  const getTransactionColor = (type: string) => {
-    switch (type) {
-      case "deposit":
-      case "payout":
-        return "text-green-600";
-      case "withdrawal":
-      case "payment":
-        return "text-red-600";
-      case "commission":
-        return "text-orange-600";
-      default:
-        return "text-gray-600";
-    }
+  const getTransactionColor = (direction: Transaction["direction"]) => {
+    return direction === "credit" ? "text-green-600" : "text-red-600";
   };
 
   if (loading) {
@@ -230,13 +246,17 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  {getTransactionIcon(transaction.type)}
+                  {getTransactionIcon(transaction.type, transaction.direction)}
                   <div>
                     <p className="text-sm font-medium capitalize">
                       {transaction.type.replace("_", " ")}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {transaction.description}
+                      {transaction.metadata?.dataset_id
+                        ? `Dataset ${transaction.metadata.dataset_id}`
+                        : transaction.metadata?.submission_id
+                        ? `Submission ${transaction.metadata.submission_id}`
+                        : "Stripe transaction"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(transaction.created_at)}
@@ -245,11 +265,9 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
                 </div>
                 
                 <div className="text-right">
-                  <p className={`text-sm font-medium ${getTransactionColor(transaction.type)}`}>
-                    {transaction.type === "withdrawal" || transaction.type === "payment" || transaction.type === "commission" 
-                      ? "-" 
-                      : "+"
-                    }{formatAmount(transaction.amount, transaction.currency)}
+                  <p className={`text-sm font-medium ${getTransactionColor(transaction.direction)}`}>
+                    {transaction.direction === "debit" ? "-" : "+"}
+                    {formatAmount(transaction.amount, transaction.currency)}
                   </p>
                   <Badge 
                     className={`text-xs ${getStatusColor(transaction.status)}`}

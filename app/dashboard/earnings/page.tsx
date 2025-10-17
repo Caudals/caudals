@@ -30,17 +30,26 @@ export default async function EarningsPage() {
   // Get transactions (payouts and commission)
   const transactionsResult = await getUserTransactions(50);
   const allTransactions = transactionsResult.data || [];
-  
+
+  const getPlatformFeeCents = (metadata: unknown): number => {
+    if (metadata && typeof metadata === "object" && "platform_fee" in metadata) {
+      const fee = (metadata as { platform_fee?: number }).platform_fee;
+      return typeof fee === "number" ? fee : 0;
+    }
+    return 0;
+  };
+
   // Filter payouts and calculate stats
-  const payouts = allTransactions.filter(t => t.type === "payout");
-  const commissions = allTransactions.filter(t => t.type === "commission");
-  
+  const payouts = allTransactions.filter((t) => t.type === "submission_payout");
+
   const totalEarnings = payouts.reduce((sum, t) => sum + t.amount, 0);
-  const totalCommission = commissions.reduce((sum, t) => sum + t.amount, 0);
+  const totalCommission = payouts.reduce(
+    (sum, t) => sum + getPlatformFeeCents(t.metadata) / 100,
+    0
+  );
   const grossEarnings = totalEarnings + totalCommission;
-  
-  const pendingPayouts = payouts.filter(t => t.status === "pending");
-  const completedPayouts = payouts.filter(t => t.status === "completed");
+
+  const completedPayouts = payouts.filter((t) => t.status === "completed");
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -238,4 +247,3 @@ export default async function EarningsPage() {
     </SidebarProvider>
   );
 }
-
