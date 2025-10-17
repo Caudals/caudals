@@ -100,9 +100,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Determine navigation based on current path and user role
   const isAdminView = pathname.startsWith("/admin");
-  const isContributorView =
-    pathname.startsWith("/dashboard/contributor") ||
-    pathname.startsWith("/dashboard/contributions");
+  const contributorRoutes = [
+    "/dashboard/contributor",
+    "/dashboard/contributions",
+    "/dashboard/earnings",
+  ];
+  const isContributorView = contributorRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
 
   let navItems = requesterNav;
   let viewLabel = "Requester";

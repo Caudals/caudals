@@ -19,16 +19,22 @@ import { getUserTransactions } from "@/lib/actions/payment-actions";
 
 interface Transaction {
   id: string;
-  type: string;
+  direction: "credit" | "debit";
+  type:
+    | "wallet_deposit"
+    | "wallet_withdrawal"
+    | "dataset_funding"
+    | "submission_payout"
+    | "platform_fee"
+    | "stripe_adjustment"
+    | "refund"
+    | string;
   amount: number;
   currency: string;
   status: string;
-  description: string;
+  description?: string;
   created_at: string;
-  metadata?: {
-    dataset_id?: string;
-    stripe_payment_intent?: string;
-  };
+  metadata?: Record<string, unknown> | null;
 }
 
 interface BillingStats {
@@ -62,19 +68,28 @@ export function BillingDashboard() {
         return;
       }
 
-      const transactionData = result.data || [];
+      const transactionData = (result.data || []) as Transaction[];
       setTransactions(transactionData);
 
       // Calculate stats
       const totalSpent = transactionData
-        .filter(t => t.type === "payment" && t.status === "completed")
+        .filter(
+          (t) =>
+            t.type === "dataset_funding" &&
+            t.status === "completed" &&
+            t.direction === "debit"
+        )
         .reduce((sum, t) => sum + t.amount, 0);
 
       const pendingPayments = transactionData
-        .filter(t => t.type === "payment" && t.status === "pending").length;
+        .filter(
+          (t) => t.type === "dataset_funding" && t.status === "pending"
+        ).length;
 
       const completedPayments = transactionData
-        .filter(t => t.type === "payment" && t.status === "completed").length;
+        .filter(
+          (t) => t.type === "dataset_funding" && t.status === "completed"
+        ).length;
 
       setStats({
         totalSpent,
@@ -106,10 +121,16 @@ export function BillingDashboard() {
     });
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (type: string, direction: "credit" | "debit") => {
     switch (type) {
-      case "payment":
-        return <CreditCard className="h-4 w-4 text-blue-600" />;
+      case "dataset_funding":
+        return direction === "debit" ? (
+          <CreditCard className="h-4 w-4 text-blue-600" />
+        ) : (
+          <TrendingUp className="h-4 w-4 text-green-600" />
+        );
+      case "wallet_deposit":
+        return <TrendingUp className="h-4 w-4 text-green-600" />;
       case "refund":
         return <TrendingUp className="h-4 w-4 text-green-600" />;
       default:
@@ -231,7 +252,7 @@ export function BillingDashboard() {
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    {getTransactionIcon(transaction.type)}
+                  {getTransactionIcon(transaction.type, transaction.direction)}
                     <div>
                       <p className="text-sm font-medium capitalize">
                         {transaction.type.replace("_", " ")}

@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Plus, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getUserTransactions, getUserWallet } from "@/lib/actions/payment-actions";
-import { ensureUserWallet } from "@/lib/actions/wallet-actions";
 import { PaymentForm } from "./payment-form";
 
 interface BillingOverviewProps {
@@ -23,6 +22,7 @@ interface BillingOverviewProps {
 export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const [totalSpent, setTotalSpent] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [pendingBalance, setPendingBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
 
@@ -33,10 +33,6 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const loadBillingData = async () => {
     setLoading(true);
     try {
-      // Ensure wallet exists first
-      await ensureUserWallet();
-
-      // Load transactions
       const transactionsResult = await getUserTransactions(100);
       
       if (transactionsResult.error) {
@@ -46,8 +42,13 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
 
       const transactions = transactionsResult.data || [];
       const spent = transactions
-        .filter(t => t.type === "payment" && t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter(
+          (t) =>
+            t.type === "dataset_funding" &&
+            t.direction === "debit" &&
+            t.status === "completed"
+        )
+        .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
       setTotalSpent(spent);
 
@@ -57,8 +58,10 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
       if (walletResult.error) {
         console.error("Error loading wallet:", walletResult.error);
         setWalletBalance(0);
+        setPendingBalance(0);
       } else {
-        setWalletBalance(walletResult.data?.balance || 0);
+        setWalletBalance(walletResult.data?.available_balance || 0);
+        setPendingBalance(walletResult.data?.pending_balance || 0);
       }
     } catch {
       toast.error("Failed to load billing data");
@@ -73,6 +76,9 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
       currency: "USD",
     }).format(amount);
   };
+
+  const totalBalanceDisplay = formatAmount(walletBalance);
+  const pendingBalanceDisplay = pendingBalance > 0 ? formatAmount(pendingBalance) : null;
 
   if (loading) {
     return (
@@ -95,12 +101,17 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
         <CardHeader>
           <CardTitle>Wallet Balance</CardTitle>
           <CardDescription>
-            Available funds in your account
+            Available funds ready to allocate
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="text-4xl font-bold text-green-600">{formatAmount(walletBalance)}</div>
+            <div className="text-4xl font-bold text-green-600">{totalBalanceDisplay}</div>
+            {pendingBalanceDisplay && (
+              <p className="text-xs text-muted-foreground">
+                Pending clearance: {pendingBalanceDisplay}
+              </p>
+            )}
             <div className="flex gap-2">
               <Button size="sm" onClick={() => setShowPaymentForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -197,4 +208,3 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
     </div>
   );
 }
-
