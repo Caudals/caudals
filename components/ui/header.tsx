@@ -10,16 +10,25 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth/provider";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   links?: Array<{ label: string; href: string }>;
+  translucent?: boolean;
 }
 
-export function Header({ links = [] }: HeaderProps) {
+export function Header({ links = [], translucent = false }: HeaderProps) {
   const { user, loading } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full border-b transition-colors",
+        translucent
+          ? "border-white/40 bg-white/30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/20"
+          : "border-border bg-background/80 backdrop-blur-lg",
+      )}
+    >
       <div className="container mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-4">
         <Link href="/" className="flex items-center gap-2">
           <Telescope className="h-5 w-5" />
