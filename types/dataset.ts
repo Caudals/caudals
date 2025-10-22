@@ -35,6 +35,7 @@ export interface Dataset {
   qualityCriteria: string[];
   requirements: string[];
   featured?: boolean;
+  imageUrl: string;
 }
 
 export interface DatasetFilters {
@@ -52,4 +53,3 @@ export type SortOption =
   | "lowest-reward"
   | "most-popular"
   | "closing-soon";
-
