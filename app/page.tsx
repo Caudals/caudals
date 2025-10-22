@@ -11,14 +11,8 @@ import { CTASection } from "@/components/landing/cta";
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      {/* Enhanced multi-layer gradient background - Landing page only */}
-      <div className="pointer-events-none fixed inset-0 -z-10 top-75">
-        <div className="absolute left-0 top-1/3 h-[600px] w-[1200px] rounded-full bg-gradient-to-tr from-blue-500/30 via-cyan-500/15 to-transparent blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-[600px] w-[1200px] rounded-full bg-gradient-to-tl from-pink-500/30 via-purple-500/15 to-transparent blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-[400px] w-[1000px] -translate-x-1/2 rounded-full bg-gradient-to-t from-emerald-500/20 to-transparent blur-3xl" />
-      </div>
-
       <Header
+        translucent
         links={[
           { href: "/browse", label: "Browse" },
           // { href: "#features", label: "Features" },
