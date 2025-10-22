@@ -5,13 +5,10 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LandingGodRaysBackground } from "@/components/landing/god-rays-background";
 
 export function HeroSection() {
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-6 py-20 sm:px-8 lg:px-12">
-      <LandingGodRaysBackground variant="hero" />
-
+    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20 sm:px-8 lg:px-12">
       <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
