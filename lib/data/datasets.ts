@@ -33,6 +33,8 @@ export const mockDatasets: Dataset[] = [
       "Diverse urban and suburban environments",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "2",
@@ -65,6 +67,8 @@ export const mockDatasets: Dataset[] = [
       "Experience with customer service preferred",
       "Pass initial training module",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "3",
@@ -97,6 +101,8 @@ export const mockDatasets: Dataset[] = [
       "Quality microphone or smartphone",
       "Read from provided symptom scripts",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "4",
@@ -131,6 +137,8 @@ export const mockDatasets: Dataset[] = [
       "Webcam or smartphone with front camera",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1518895949257-7621c3c786d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "5",
@@ -163,6 +171,8 @@ export const mockDatasets: Dataset[] = [
       "Understanding of e-commerce terminology",
       "Pass translation quality test",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "6",
@@ -197,6 +207,8 @@ export const mockDatasets: Dataset[] = [
       "NDA signed",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "7",
@@ -229,6 +241,8 @@ export const mockDatasets: Dataset[] = [
       "Clear genre knowledge",
       "No copyrighted material without permission",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "8",
@@ -262,6 +276,8 @@ export const mockDatasets: Dataset[] = [
       "Install our data collection app",
       "Minimum 30-minute sessions",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "9",
@@ -295,6 +311,8 @@ export const mockDatasets: Dataset[] = [
       "Attention to detail",
       "Pass transcription test",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1526374932251-137c8a87a526?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "10",
@@ -328,6 +346,8 @@ export const mockDatasets: Dataset[] = [
       "3-5 seconds per gesture",
       "Multiple angles per gesture",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "11",
@@ -361,6 +381,8 @@ export const mockDatasets: Dataset[] = [
       "Pass classification training",
       "NDA required",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1528747045269-390fe33c19d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     id: "12",
@@ -394,6 +416,8 @@ export const mockDatasets: Dataset[] = [
       "Smartphone with health tracking app",
       "Commitment to 90-day study",
     ],
+    imageUrl:
+      "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=900&q=80",
   },
 ];
 

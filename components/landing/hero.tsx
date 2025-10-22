@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LiquidMetal } from "@paper-design/shaders-react";
 
 export function HeroSection() {
   return (
@@ -18,7 +19,7 @@ export function HeroSection() {
         >
           <Badge
             variant="outline"
-            className="border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary"
+            className="border-primary/20 bg-primary/0 px-4 py-1.5 text-sm font-medium text-primary"
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             Trusted by leading AI companies

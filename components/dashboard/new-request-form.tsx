@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createDatasetRequest } from "@/lib/actions/dataset-actions";
 import { toast } from "sonner";
@@ -26,6 +27,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { DatasetCategory, DataType } from "@/types/dataset";
+import {
+  uploadFileClient,
+  deleteFileClient,
+} from "@/lib/storage/client-upload";
+import { FileUpload } from "@/components/ui/file-upload";
+
+const DATASET_IMAGE_BUCKET = "dataset-images";
+const DATASET_IMAGE_FOLDER = "covers";
 
 const steps = [
   {
@@ -61,12 +70,19 @@ type NewRequestFormState = {
   rewardAmount: string;
   currency: string;
   timeline: string;
+  imageUrl: string;
+  imagePath: string;
 };
 
 export function NewRequestForm() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(
+    null
+  );
+  const [fileUploadKey, setFileUploadKey] = useState(0);
   const [formData, setFormData] = useState<NewRequestFormState>({
     title: "",
     description: "",
@@ -78,6 +94,8 @@ export function NewRequestForm() {
     rewardAmount: "",
     currency: "USD",
     timeline: "",
+    imageUrl: "",
+    imagePath: "",
   });
 
   const updateFormData = (field: string, value: string) => {
@@ -85,6 +103,22 @@ export function NewRequestForm() {
   };
 
   const nextStep = () => {
+    if (currentStep === 1) {
+      const hasBasicInfo =
+        formData.title.trim().length > 0 &&
+        formData.description.trim().length > 0 &&
+        formData.category !== "" &&
+        formData.dataType !== "" &&
+        formData.imageUrl !== "";
+
+      if (!hasBasicInfo) {
+        toast.error(
+          "Please complete the basic information and upload a cover image before continuing."
+        );
+        return;
+      }
+    }
+
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
     }
@@ -96,10 +130,101 @@ export function NewRequestForm() {
     }
   };
 
+  const handleCoverImageChange = async (files: File[]) => {
+    if (files.length === 0) {
+      if (formData.imagePath) {
+        const { error: deleteError } = await deleteFileClient(
+          DATASET_IMAGE_BUCKET,
+          formData.imagePath
+        );
+        if (deleteError) {
+          console.error("Error removing previous cover image", deleteError);
+        }
+      }
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: "",
+        imagePath: "",
+      }));
+      setImageUploadError(null);
+      setFileUploadKey((key) => key + 1);
+      return;
+    }
+
+    const file = files[0];
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload a valid image file.");
+      setFileUploadKey((key) => key + 1);
+      return;
+    }
+
+    const maxFileSizeBytes = 8 * 1024 * 1024;
+    if (file.size > maxFileSizeBytes) {
+      toast.error("Image is too large. Please upload a file under 8MB.");
+      setFileUploadKey((key) => key + 1);
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setImageUploadError(null);
+
+    try {
+      if (formData.imagePath) {
+        const { error: deleteError } = await deleteFileClient(
+          DATASET_IMAGE_BUCKET,
+          formData.imagePath
+        );
+        if (deleteError) {
+          console.error("Error removing previous cover image", deleteError);
+        }
+        setFormData((prev) => ({
+          ...prev,
+          imageUrl: "",
+          imagePath: "",
+        }));
+      }
+
+      const { url, path, error } = await uploadFileClient(
+        file,
+        DATASET_IMAGE_BUCKET,
+        DATASET_IMAGE_FOLDER
+      );
+
+      if (error || !url || !path) {
+        const message = error || "Unable to upload image. Please try again.";
+        setImageUploadError(message);
+        toast.error(message);
+        setFileUploadKey((key) => key + 1);
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: url,
+        imagePath: path,
+      }));
+      setImageUploadError(null);
+      toast.success("Cover image uploaded");
+    } catch (error) {
+      console.error("Error uploading cover image", error);
+      const message = "An unexpected error occurred while uploading.";
+      setImageUploadError(message);
+      toast.error(message);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
     try {
+      if (!formData.imageUrl) {
+        toast.error("Please upload a cover image before publishing.");
+        return;
+      }
+
       // Calculate deadline based on timeline
       const deadline = new Date();
       switch (formData.timeline) {
@@ -141,6 +266,7 @@ export function NewRequestForm() {
         rewardAmount: Number(formData.rewardAmount),
         currency: formData.currency,
         deadline: deadline.toISOString().split("T")[0],
+        imageUrl: formData.imageUrl,
       });
 
       if (result.error) {
@@ -228,6 +354,66 @@ export function NewRequestForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base">Cover Image*</Label>
+                {formData.imageUrl && (
+                  <span className="text-xs text-muted-foreground">
+                    Recommended 4:3 or square (min 800 x 600)
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This image appears in the public browse feed and dataset details
+                page. Choose something clear and representative of your request.
+              </p>
+              <FileUpload
+                key={fileUploadKey}
+                accept="image/*"
+                multiple={false}
+                maxSize={8}
+                onFilesSelected={(files) => {
+                  void handleCoverImageChange(files);
+                }}
+              />
+              {imageUploadError && (
+                <p className="text-xs text-destructive">{imageUploadError}</p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-[220px_auto] sm:items-start">
+                <div className="relative h-40 w-full overflow-hidden rounded-xl border bg-muted/40">
+                  {formData.imageUrl ? (
+                    <Image
+                      src={formData.imageUrl}
+                      alt={`Cover image preview for ${formData.title || "dataset request"}`}
+                      fill
+                      sizes="(max-width: 640px) 100vw, 220px"
+                      className="object-cover"
+                      priority
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                      {isUploadingImage
+                        ? "Uploading image..."
+                        : "No image selected yet"}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 text-xs text-muted-foreground">
+                  <p>
+                    • JPG, PNG, or WEBP up to 8MB
+                    <br />• Landscape and square images work best
+                    <br />• You can replace or remove the image anytime before
+                    publishing
+                  </p>
+                  {isUploadingImage && (
+                    <p className="font-medium text-foreground">
+                      Uploading... please wait
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title" className="text-base">
                 Request Title*
@@ -517,6 +703,26 @@ export function NewRequestForm() {
               <div>
                 <h4 className="mb-3 font-semibold">Basic Information</h4>
                 <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                  <div className="flex flex-col gap-3">
+                    <span className="text-muted-foreground text-sm">
+                      Cover Image
+                    </span>
+                    <div className="relative h-36 w-full overflow-hidden rounded-lg border bg-background">
+                      {formData.imageUrl ? (
+                        <Image
+                          src={formData.imageUrl}
+                          alt={`Cover image preview for ${formData.title || "dataset"}`}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 320px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                          No image selected
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Title:</span>
                     <span className="font-medium">
@@ -605,7 +811,7 @@ export function NewRequestForm() {
           variant="outline"
           size="lg"
           onClick={prevStep}
-          disabled={currentStep === 1}
+          disabled={currentStep === 1 || isUploadingImage}
           className="min-w-[120px]"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -613,16 +819,23 @@ export function NewRequestForm() {
         </Button>
 
         {currentStep < steps.length ? (
-          <Button size="lg" onClick={nextStep} className="min-w-[120px]">
-            Next
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button
+            size="lg"
+            onClick={nextStep}
+            className="min-w-[120px]"
+            disabled={isUploadingImage}
+          >
+            {isUploadingImage ? "Uploading..." : "Next"}
+            {!isUploadingImage && (
+              <ArrowRight className="ml-2 h-4 w-4" />
+            )}
           </Button>
         ) : (
           <Button
             size="lg"
             className="min-w-[180px]"
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploadingImage}
           >
             <Check className="mr-2 h-4 w-4" />
             {isSubmitting ? "Publishing..." : "Publish Request"}

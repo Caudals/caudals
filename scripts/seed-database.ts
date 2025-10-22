@@ -67,6 +67,8 @@ const datasetRequests = [
       "Diverse urban and suburban environments",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Customer Service Chat Sentiment Analysis",
@@ -89,6 +91,8 @@ const datasetRequests = [
       "Pass initial training module",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1525182008055-f88b95ff7980?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Medical Symptom Voice Recordings",
@@ -111,6 +115,8 @@ const datasetRequests = [
       "Read from provided symptom scripts",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Facial Expression Recognition Dataset",
@@ -134,6 +140,8 @@ const datasetRequests = [
       "Webcam or smartphone with front camera",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1518895949257-7621c3c786d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Product Review Translation (English to Spanish)",
@@ -156,6 +164,8 @@ const datasetRequests = [
       "Pass translation quality test",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "X-Ray Image Annotation for Fracture Detection",
@@ -179,6 +189,8 @@ const datasetRequests = [
       "NDA signed",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Music Genre Classification Audio Samples",
@@ -224,6 +236,8 @@ const datasetRequests = [
       "Minimum 30-minute sessions",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Podcast Transcription and Speaker Diarization",
@@ -247,6 +261,8 @@ const datasetRequests = [
       "Pass transcription test",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Hand Gesture Recognition Video Dataset",
@@ -270,6 +286,8 @@ const datasetRequests = [
       "Multiple angles per gesture",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Legal Document Classification",
@@ -293,6 +311,8 @@ const datasetRequests = [
       "NDA required",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1528747045269-390fe33c19d4?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Retail Product Image Segmentation",
@@ -316,6 +336,8 @@ const datasetRequests = [
       "Pass quality check quiz",
     ],
     featured: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Conversational AI Dialog Rating",
@@ -338,6 +360,8 @@ const datasetRequests = [
       "Complete training session",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1526374932251-137c8a87a526?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Wildlife Camera Trap Image Classification",
@@ -360,6 +384,8 @@ const datasetRequests = [
       "Access to reference guides provided",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "Parking Space Occupancy Detection",
@@ -382,6 +408,8 @@ const datasetRequests = [
       "Quick labeling turnaround",
     ],
     featured: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1518316175104-4e0b0f87dec1?auto=format&fit=crop&w=900&q=80",
   },
 ];
 
@@ -451,6 +479,7 @@ async function seedDatabase() {
           quality_criteria: request.quality_criteria,
           requirements: request.requirements,
           featured: request.featured,
+          image_url: request.imageUrl,
         })
         .select()
         .single();

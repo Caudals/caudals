@@ -11,6 +11,7 @@ A modern, full-stack platform for creating, managing, and contributing to AI dat
 - **Request Management**: Pause, resume, or delete dataset requests
 - **Submission Review**: Approve or reject contributor submissions
 - **Progress Tracking**: Monitor collection progress with visual indicators
+- **Visual Showcase**: Upload a rich cover image for every request to elevate visibility in the marketplace feed
 
 ### For Contributors
 
@@ -100,6 +101,8 @@ npx tsx scripts/seed-database.ts
 ```
 
 This creates 5 test users and 15+ sample dataset requests.
+
+> Cover images are stored in the Supabase `dataset-images` bucket, created automatically by migration `015_create_dataset_images_bucket.sql`. Run migrations before posting new requests so uploads succeed.
 
 6. **Run the development server**
 

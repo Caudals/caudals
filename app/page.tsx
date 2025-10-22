@@ -7,40 +7,45 @@ import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { UseCasesSection } from "@/components/landing/use-cases";
 import { StatsSection } from "@/components/landing/stats";
 import { CTASection } from "@/components/landing/cta";
+import { LandingGodRaysBackground } from "@/components/landing/god-rays-background";
 
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      <Header
-        translucent
-        links={[
-          { href: "/browse", label: "Browse" },
-          // { href: "#features", label: "Features" },
-          // { href: "#how-it-works", label: "How it works" },
-          // { href: "#use-cases", label: "Use cases" },
-        ]}
-      />
+      <div className="relative">
+        <LandingGodRaysBackground />
 
-      <main className="flex flex-col">
-        <HeroSection />
-        <WaitlistSection />
+        <Header
+          translucent
+          links={[
+            { href: "/browse", label: "Browse" },
+            // { href: "#features", label: "Features" },
+            // { href: "#how-it-works", label: "How it works" },
+            // { href: "#use-cases", label: "Use cases" },
+          ]}
+        />
 
-        <div id="features">
-          <FeaturesSection />
-        </div>
+        <main className="relative z-10 flex flex-col">
+          <HeroSection />
+          <WaitlistSection />
 
-        <div id="how-it-works">
-          <HowItWorksSection />
-        </div>
+          <div id="features">
+            <FeaturesSection />
+          </div>
 
-        <StatsSection />
+          <div id="how-it-works">
+            <HowItWorksSection />
+          </div>
 
-        <div id="use-cases">
-          <UseCasesSection />
-        </div>
+          <StatsSection />
 
-        <CTASection />
-      </main>
+          <div id="use-cases">
+            <UseCasesSection />
+          </div>
+
+          <CTASection />
+        </main>
+      </div>
 
       <footer className="border-t border-border/60 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">

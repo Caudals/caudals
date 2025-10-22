@@ -64,6 +64,7 @@ export async function getDatasets() {
       qualityCriteria: item.quality_criteria || [],
       requirements: item.requirements || [],
       featured: item.featured,
+      imageUrl: item.image_url || "/images/dataset-placeholder.svg",
     };
   });
 
@@ -123,6 +124,7 @@ export async function getDatasetById(id: string) {
     qualityCriteria: data.quality_criteria || [],
     requirements: data.requirements || [],
     featured: data.featured,
+    imageUrl: data.image_url || "/images/dataset-placeholder.svg",
   };
 
   return dataset;
@@ -139,6 +141,7 @@ export async function createDatasetRequest(formData: {
   rewardAmount: number;
   currency: string;
   deadline: string;
+  imageUrl: string;
 }) {
   const supabase = await createClient();
 
@@ -165,6 +168,10 @@ export async function createDatasetRequest(formData: {
     return { error: "Invalid category. Please select a valid dataset category." };
   }
 
+  if (!formData.imageUrl) {
+    return { error: "A cover image is required for every dataset request." };
+  }
+
   const { data, error } = await supabase
     .from("dataset_requests")
     .insert({
@@ -179,6 +186,7 @@ export async function createDatasetRequest(formData: {
       reward_amount: formData.rewardAmount,
       currency: formData.currency,
       deadline: formData.deadline,
+      image_url: formData.imageUrl,
       approval_status: "pending", // All new requests need admin approval
     })
     .select()
@@ -204,6 +212,7 @@ export async function updateDatasetRequest(
     status?: string;
     deadline?: string;
     reward_amount?: number;
+    image_url?: string;
   }
 ) {
   const supabase = await createClient();
