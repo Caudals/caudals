@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LiquidMetal } from "@paper-design/shaders-react";
+import { cn } from "@/lib/utils";
+import { useWebGLSupport } from "@/hooks/use-webgl-support";
 
 export function HeroSection() {
+  const supportsWebGL = useWebGLSupport();
+
   return (
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20 sm:px-8 lg:px-12">
       <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center text-center">
@@ -52,9 +56,48 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col gap-4 sm:flex-row"
         >
-          <Button size="lg" className="h-12 px-8 text-base" asChild>
-            <Link href="/dashboard/requests/new">Post a request</Link>
-          </Button>
+          <Link
+            href="/dashboard/requests/new"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "group relative h-12 overflow-hidden px-10 text-base font-semibold text-slate-900 shadow-[0_12px_40px_rgba(14,30,80,0.18)] ring-1 ring-white/30 transition-transform duration-200 hover:-translate-y-0.5 hover:ring-white/50"
+            )}
+          >
+            <span className="relative z-20 flex items-center justify-center gap-2">
+              Post a request
+            </span>
+            {supportsWebGL ? (
+              <LiquidMetal
+                width={1280}
+                height={720}
+                image="https://shaders.paper.design/images/logos/diamond.svg"
+                colorBack="#aaaaac"
+                colorTint="#ffffff"
+                shape="diamond"
+                repetition={2}
+                softness={0.1}
+                shiftRed={0.3}
+                shiftBlue={0.3}
+                distortion={0.07}
+                contour={0.4}
+                angle={70}
+                speed={1}
+                scale={0.6}
+                fit="contain"
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                style={{ width: "100%", height: "100%" }}
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.85),rgba(229,229,229,0.4))]"
+              />
+            )}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-white/20 mix-blend-screen"
+            />
+          </Link>
           <Button
             size="lg"
             className="h-12 px-8  hover:text-primary/70 hover:bg-transparent"
