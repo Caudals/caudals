@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: resendFrom,
       to: emailLower,
-      subject: "You're on the Collective waitlist!",
+      subject: "You're on the Caudals waitlist!",
       react: WaitlistConfirmationEmail({
         fullName,
         company,

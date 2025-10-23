@@ -12,8 +12,8 @@ export function CTASection() {
               Ready to build your next dataset?
             </h2>
             <p className="mb-10 max-w-2xl text-lg text-muted-foreground">
-              Join leading AI companies using Collective to accelerate their
-              data collection. Get started in minutes with no upfront costs.
+              Join leading AI companies using Caudals to accelerate their data
+              collection. Get started in minutes with no upfront costs.
             </p>
             <div className="flex flex-col gap-4 sm:flex-row">
               <Button size="lg" className="h-12 px-8 text-base" asChild>

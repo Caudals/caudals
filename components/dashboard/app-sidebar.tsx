@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  Telescope,
   FileText,
   LayoutDashboard,
   Plus,
@@ -32,6 +31,7 @@ import {
 import { NavUser } from "./nav-user";
 import { RoleSwitcher } from "./role-switcher";
 import Link from "next/link";
+import Image from "next/image";
 
 const requesterNav = [
   { title: "Overview", icon: LayoutDashboard, href: "/dashboard" },
@@ -73,11 +73,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" disabled>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-                  <Telescope className="size-5" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-background">
+                  <Image
+                    src="/caudals_logo_black.svg"
+                    alt="Caudals logo"
+                    width={24}
+                    height={24}
+                    className="h-5 w-5"
+                  />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Collective</span>
+                  <span className="truncate font-semibold">Caudals</span>
                   <span className="truncate text-xs text-muted-foreground">
                     Loading...
                   </span>
@@ -149,11 +155,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={homeHref}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
-                  <Telescope className="size-5" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-background">
+                  <Image
+                    src="/caudals_logo_black.svg"
+                    alt="Caudals logo"
+                    width={24}
+                    height={24}
+                    className="h-5 w-5"
+                  />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Collective</span>
+                  <span className="truncate font-semibold">Caudals</span>
                   <span className="truncate text-xs text-muted-foreground">
                     {viewLabel} Dashboard
                   </span>

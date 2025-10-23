@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Telescope } from "lucide-react";
+import Image from "next/image";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -31,9 +32,16 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
     >
       <div className="container mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-4">
         <Link href="/" className="flex items-center gap-2">
-          <Telescope className="h-5 w-5" />
+          <Image
+            src="/caudals_logo_black.svg"
+            alt="Caudals logo"
+            width={24}
+            height={24}
+            className="h-6 w-6"
+            priority
+          />
           <span className="text-xl font-semibold tracking-tight">
-            Collective
+            Caudals
           </span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
@@ -75,7 +83,7 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
           </SheetTrigger>
           <SheetContent side="right" className="bg-background">
             <SheetHeader>
-              <span className="text-lg font-semibold">Collective</span>
+              <span className="text-lg font-semibold">Caudals</span>
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-3">
               {links.map(({ href, label }) => (

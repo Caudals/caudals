@@ -43,7 +43,7 @@ export function WaitlistSection() {
             Early access
           </Badge>
           <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            Join the Collective waitlist
+            Join the Caudals waitlist
           </h2>
           <p className="text-lg text-muted-foreground">
             We onboard teams in cohorts to ensure dedicated support during your
@@ -229,7 +229,7 @@ function WaitlistFormCard() {
                   <FormItem>
                     <FormLabel>Company</FormLabel>
                     <FormControl>
-                      <Input placeholder="Collective AI" {...field} />
+                      <Input placeholder="Caudals AI" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

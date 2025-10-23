@@ -52,7 +52,7 @@ export default function Home() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <h3 className="mb-4 text-lg font-semibold text-slate-900">
-                Collective
+                Caudals
               </h3>
               <p className="text-sm text-muted-foreground">
                 Building the future of AI dataset creation through global
@@ -138,7 +138,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Collective. All rights reserved.
+              &copy; {new Date().getFullYear()} Caudals. All rights reserved.
             </p>
             <div className="flex gap-6">
               <Link
