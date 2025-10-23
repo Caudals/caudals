@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Telescope } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SignInPage() {
@@ -105,8 +105,15 @@ export default function SignInPage() {
             href="/"
             className="inline-flex items-center gap-2 text-2xl font-semibold"
           >
-            <Telescope className="h-6 w-6" />
-            <span>Collective</span>
+            <Image
+              src="/caudals_logo_black.svg"
+              alt="Caudals logo"
+              width={28}
+              height={28}
+              className="h-7 w-7"
+              priority
+            />
+            <span>Caudals</span>
           </Link>
         </div>
 

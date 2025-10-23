@@ -32,10 +32,10 @@ export const WaitlistConfirmationEmail = ({
           <tr>
             <td>
               <h1 style={{ fontSize: 24, color: "#0f172a", marginBottom: 16 }}>
-                Welcome to the Collective waitlist, {name}!
+                Welcome to the Caudals waitlist, {name}!
               </h1>
               <p style={{ fontSize: 16, color: "#334155", lineHeight: 1.6, marginBottom: 16 }}>
-                Thanks for your interest in building production-ready datasets with Collective. We are reviewing waitlist
+                Thanks for your interest in building production-ready datasets with Caudals. We are reviewing waitlist
                 requests and will reach out shortly with next steps.
               </p>
               {company || useCase ? (
@@ -65,14 +65,14 @@ export const WaitlistConfirmationEmail = ({
                 reply to this email with any questions.
               </p>
               <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>
-                — The Collective Team
+                — The Caudals Team
               </p>
             </td>
           </tr>
         </tbody>
       </table>
       <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginTop: 16 }}>
-        Collective • Crowdsourcing production datasets for AI teams
+        Caudals • Crowdsourcing production datasets for AI teams
       </p>
     </div>
   );

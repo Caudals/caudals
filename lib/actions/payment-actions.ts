@@ -658,7 +658,7 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
         },
         business_profile: {
           product_description:
-            "Receives payouts for contributing datasets via Collective Dataset Platform",
+            "Receives payouts for contributing datasets via Caudals Dataset Platform",
           mcc: "5734", // Computer software stores
           url: DEFAULT_APP_URL,
         },

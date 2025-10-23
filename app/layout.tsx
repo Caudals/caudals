@@ -17,11 +17,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Collective | AI Dataset Crowdsourcing Platform",
-    template: "%s | Collective",
+    default: "Caudals | AI Dataset Crowdsourcing Platform",
+    template: "%s | Caudals",
   },
   description:
-    "Build production-grade AI datasets at scale. Collective connects organizations with a global network of contributors to create rich, diverse datasets for machine learning.",
+    "Build production-grade AI datasets at scale. Caudals connects organizations with a global network of contributors to create rich, diverse datasets for machine learning.",
+  icons: {
+    icon: "/caudals_logo_white.svg",
+    shortcut: "/caudals_logo_white.svg",
+    apple: "/caudals_logo_white.svg",
+  },
 };
 
 export default function RootLayout({

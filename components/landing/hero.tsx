@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LiquidMetal } from "@paper-design/shaders-react";
 
 export function HeroSection() {
   return (
@@ -41,7 +40,7 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Collective connects your organization with skilled contributors
+          Caudals connects your organization with skilled contributors
           worldwide to create rich, diverse datasets for machine learning—faster
           and more cost-effectively than ever before.
         </motion.p>

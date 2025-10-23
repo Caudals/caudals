@@ -35,7 +35,7 @@ export function StatsSection() {
               Trusted by leading teams
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Join hundreds of companies using Collective to build
+              Join hundreds of companies using Caudals to build
               production-grade datasets
             </p>
           </div>
