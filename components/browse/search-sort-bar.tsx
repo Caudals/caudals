@@ -47,15 +47,15 @@ export function SearchSortBar({
   const filterBadgeCount = baseFilterCount + (hasSearch ? 1 : 0);
 
   return (
-    <div className="rounded-3xl border border-border/60 bg-card/70 p-4 shadow-sm sm:p-6">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="relative w-full md:max-w-xl">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by title, organization, or keywords"
+            placeholder="Search datasets..."
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="h-12 rounded-full border-border/60 bg-background/80 pl-12 text-sm shadow-inner"
+            className="h-10 pl-10 text-sm"
           />
         </div>
 
@@ -70,15 +70,15 @@ export function SearchSortBar({
             value={sortBy}
             onValueChange={(value) => onSortChange(value as SortOption)}
           >
-            <SelectTrigger className="h-12 w-[190px] rounded-full border-border/60 bg-background/80 text-sm">
-              <SelectValue placeholder="Sort datasets" />
+            <SelectTrigger className="h-10 w-[170px] text-sm">
+              <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent align="end" className="min-w-[200px]">
-              <SelectItem value="newest">Newest first</SelectItem>
-              <SelectItem value="oldest">Oldest first</SelectItem>
+            <SelectContent align="end">
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
               <SelectItem value="highest-reward">Highest reward</SelectItem>
               <SelectItem value="lowest-reward">Lowest reward</SelectItem>
-              <SelectItem value="most-popular">Most contributors</SelectItem>
+              <SelectItem value="most-popular">Most popular</SelectItem>
               <SelectItem value="closing-soon">Closing soon</SelectItem>
             </SelectContent>
           </Select>
@@ -88,30 +88,27 @@ export function SearchSortBar({
       <div className="mt-4 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <span>
-            Showing <span className="font-semibold text-foreground">{resultCount}</span> of{" "}
-            <span className="font-semibold text-foreground">{totalCount}</span> dataset requests
+            <span className="font-semibold text-foreground">{resultCount}</span>{" "}
+            of{" "}
+            <span className="font-semibold text-foreground">{totalCount}</span>{" "}
+            requests
           </span>
           {hasActiveFilters && (
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
-              {filterBadgeCount} active filter
-              {filterBadgeCount === 1 ? "" : "s"}
-            </span>
+            <Badge variant="secondary" className="text-xs">
+              {filterBadgeCount} filter{filterBadgeCount === 1 ? "" : "s"}
+            </Badge>
           )}
         </div>
 
-        {hasActiveFilters ? (
+        {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
-            className="self-start rounded-full px-3 py-1 text-xs sm:self-auto"
+            className="h-auto p-0 text-xs"
             onClick={onClearFilters}
           >
-            Clear filters
+            Clear all
           </Button>
-        ) : (
-          <span className="text-xs italic text-muted-foreground">
-            Tip: combine filters to refine your feed.
-          </span>
         )}
       </div>
     </div>

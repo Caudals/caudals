@@ -18,32 +18,25 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, Eye } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Pencil } from "lucide-react";
 import { ApprovalDialog } from "./approval-dialog";
 import { categoryLabels } from "@/lib/data/datasets";
-
-interface DatasetRequest {
-  id: string;
-  title: string;
-  category: string;
-  samples_needed: number;
-  reward_amount: number;
-  currency: string;
-  created_at: string;
-  profiles?: {
-    full_name: string;
-  };
-}
+import { AdminDatasetRequest } from "@/types/admin";
+import { DatasetEditDialog } from "./dataset-edit-dialog";
 
 interface PendingRequestsTableProps {
-  requests: DatasetRequest[];
+  requests: AdminDatasetRequest[];
 }
 
 export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
-  const [selectedRequest, setSelectedRequest] = useState<DatasetRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<AdminDatasetRequest | null>(null);
   const [dialogType, setDialogType] = useState<"approve" | "reject" | null>(
     null
   );
+  const [editingRequest, setEditingRequest] =
+    useState<AdminDatasetRequest | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   if (requests.length === 0) {
     return (
@@ -131,6 +124,16 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
+                          setEditingRequest(request);
+                          setIsEditOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
                           setSelectedRequest(request);
                           setDialogType("reject");
                         }}
@@ -159,6 +162,17 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
           itemType="request"
         />
       )}
+
+      <DatasetEditDialog
+        open={isEditOpen}
+        dataset={editingRequest}
+        onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) {
+            setEditingRequest(null);
+          }
+        }}
+      />
     </>
   );
 }

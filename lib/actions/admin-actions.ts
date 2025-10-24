@@ -2,6 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  DatasetCategory,
+  DataType,
+  DatasetStatus,
+} from "@/types/dataset";
+import { ApprovalStatus } from "@/types/database";
 
 // Check if user is admin
 export async function isAdmin() {
@@ -50,6 +56,167 @@ export async function getPendingDatasetRequests() {
   }
 
   return { data };
+}
+
+export async function getAdminDatasetRequests() {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { data, error } = await supabase
+    .from("dataset_requests")
+    .select(
+      `
+      *,
+      profiles:created_by (
+        id,
+        full_name,
+        avatar_url
+      )
+    `
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching dataset requests for admin:", error);
+    return { error: error.message };
+  }
+
+  return { data };
+}
+
+interface AdminDatasetUpdates {
+  title?: string;
+  description?: string;
+  category?: DatasetCategory;
+  data_type?: DataType;
+  status?: DatasetStatus;
+  samples_needed?: number;
+  samples_collected?: number;
+  reward_amount?: number;
+  currency?: string;
+  deadline?: string;
+  quality_criteria?: string[];
+  requirements?: string[];
+  image_url?: string | null;
+  featured?: boolean;
+}
+
+export async function adminUpdateDatasetRequest(
+  id: string,
+  updates: AdminDatasetUpdates
+) {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const payload = Object.fromEntries(
+    Object.entries(updates).filter(
+      ([, value]) => value !== undefined
+    )
+  );
+
+  if (Object.keys(payload).length === 0) {
+    return { error: "No updates provided" };
+  }
+
+  const { data, error } = await supabase
+    .from("dataset_requests")
+    .update(payload)
+    .eq("id", id)
+    .select(
+      `
+      *,
+      profiles:created_by (
+        id,
+        full_name,
+        avatar_url
+      )
+    `
+    )
+    .single();
+
+  if (error) {
+    console.error("Error updating dataset request as admin:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath(`/browse/${id}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  revalidatePath("/admin/requests");
+
+  return { data };
+}
+
+export async function adminUpdateDatasetApproval(
+  id: string,
+  approvalStatus: ApprovalStatus
+) {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { data, error } = await supabase
+    .from("dataset_requests")
+    .update({ approval_status: approvalStatus })
+    .eq("id", id)
+    .select(
+      `
+      *,
+      profiles:created_by (
+        id,
+        full_name,
+        avatar_url
+      )
+    `
+    )
+    .single();
+
+  if (error) {
+    console.error("Error updating dataset approval status:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath(`/browse/${id}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  revalidatePath("/admin/requests");
+
+  return { data };
+}
+
+export async function adminDeleteDatasetRequest(id: string) {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("dataset_requests")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting dataset request via admin:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  revalidatePath("/admin/requests");
+
+  return { success: true };
 }
 
 // Get pending submissions
