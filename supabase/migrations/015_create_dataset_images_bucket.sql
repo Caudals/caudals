@@ -15,79 +15,87 @@ END $$;
 -- Public read access for dataset images
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM storage.policies
-    WHERE name = 'Dataset images are publicly readable'
-      AND bucket_id = 'dataset-images'
-      AND action = 'read'
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND policyname = 'Dataset images are publicly readable'
   ) THEN
-    PERFORM storage.create_policy(
-      'dataset-images',
-      'Dataset images are publicly readable',
-      'true',
-      'read',
-      ARRAY['anon', 'authenticated']
-    );
+    DROP POLICY "Dataset images are publicly readable" ON storage.objects;
   END IF;
+
+  CREATE POLICY "Dataset images are publicly readable"
+    ON storage.objects
+    FOR SELECT
+    USING (bucket_id = 'dataset-images');
 END $$;
 
 -- Authenticated users can upload (insert) dataset images
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM storage.policies
-    WHERE name = 'Authenticated users can upload dataset images'
-      AND bucket_id = 'dataset-images'
-      AND action = 'insert'
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND policyname = 'Authenticated users can upload dataset images'
   ) THEN
-    PERFORM storage.create_policy(
-      'dataset-images',
-      'Authenticated users can upload dataset images',
-      'auth.role() = ''authenticated''',
-      'insert',
-      ARRAY['authenticated']
-    );
+    DROP POLICY "Authenticated users can upload dataset images" ON storage.objects;
   END IF;
+
+  CREATE POLICY "Authenticated users can upload dataset images"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'dataset-images'
+      AND auth.uid() = owner
+    );
 END $$;
 
 -- Only owners can update their dataset images
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM storage.policies
-    WHERE name = 'Owners can update dataset images'
-      AND bucket_id = 'dataset-images'
-      AND action = 'update'
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND policyname = 'Owners can update dataset images'
   ) THEN
-    PERFORM storage.create_policy(
-      'dataset-images',
-      'Owners can update dataset images',
-      'auth.uid() = owner',
-      'update',
-      ARRAY['authenticated']
-    );
+    DROP POLICY "Owners can update dataset images" ON storage.objects;
   END IF;
+
+  CREATE POLICY "Owners can update dataset images"
+    ON storage.objects
+    FOR UPDATE
+    TO authenticated
+    USING (
+      bucket_id = 'dataset-images'
+      AND auth.uid() = owner
+    )
+    WITH CHECK (
+      bucket_id = 'dataset-images'
+      AND auth.uid() = owner
+    );
 END $$;
 
 -- Only owners can delete their dataset images
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM storage.policies
-    WHERE name = 'Owners can delete dataset images'
-      AND bucket_id = 'dataset-images'
-      AND action = 'delete'
+    FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND policyname = 'Owners can delete dataset images'
   ) THEN
-    PERFORM storage.create_policy(
-      'dataset-images',
-      'Owners can delete dataset images',
-      'auth.uid() = owner',
-      'delete',
-      ARRAY['authenticated']
-    );
+    DROP POLICY "Owners can delete dataset images" ON storage.objects;
   END IF;
+
+  CREATE POLICY "Owners can delete dataset images"
+    ON storage.objects
+    FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'dataset-images'
+      AND auth.uid() = owner
+    );
 END $$;

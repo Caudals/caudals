@@ -59,10 +59,7 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
     const counts = new Map<DatasetCategory, number>();
 
     initialDatasets.forEach((dataset) => {
-      counts.set(
-        dataset.category,
-        (counts.get(dataset.category) || 0) + 1
-      );
+      counts.set(dataset.category, (counts.get(dataset.category) || 0) + 1);
     });
 
     return Array.from(counts.entries())
@@ -82,8 +79,9 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
     const closingSoon = initialDatasets.filter(
       (dataset) => dataset.status === "closing-soon"
     ).length;
-    const featured = initialDatasets.filter((dataset) => dataset.featured)
-      .length;
+    const featured = initialDatasets.filter(
+      (dataset) => dataset.featured
+    ).length;
     const contributors = initialDatasets.reduce(
       (total, dataset) => total + dataset.activeContributors,
       0
@@ -196,23 +194,19 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 pb-16 pt-10">
-      <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-primary/5 via-background to-background p-8 md:p-12">
-        <div className="pointer-events-none absolute -top-12 right-[-120px] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-[-160px] h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="relative flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-2xl border border-border bg-card p-8 md:p-12">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-6">
-            <Badge className="w-fit border border-primary/30 bg-primary/10 text-primary">
-              Curated for contributors
+            <Badge variant="secondary" className="w-fit">
+              Dataset Marketplace
             </Badge>
             <div className="space-y-3">
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-                Discover dataset requests ready for your expertise
+              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                Discover Dataset Requests
               </h1>
               <p className="text-base text-muted-foreground sm:text-lg">
-                Browse a modern feed of opportunities from leading AI teams.
-                Filter by industry, data modality, and reward to find the
-                perfect project to contribute to.
+                Browse opportunities from leading AI teams. Filter by category,
+                data type, and reward to find the perfect project.
               </p>
             </div>
 
@@ -225,18 +219,13 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
                     <Button
                       key={value}
                       size="sm"
-                      variant={isActive ? "default" : "secondary"}
-                      className={cn(
-                        "rounded-full border border-border/50 bg-background/80 text-xs font-medium shadow-sm transition",
-                        isActive
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "hover:bg-background/80"
-                      )}
+                      variant={isActive ? "default" : "outline"}
+                      className="text-xs"
                       onClick={() => toggleCategory(value)}
                     >
                       {label}
-                      <span className="ml-1 text-muted-foreground/70">
-                        {count}
+                      <span className="ml-1.5 text-muted-foreground">
+                        ({count})
                       </span>
                     </Button>
                   );
@@ -246,26 +235,21 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="rounded-full text-xs"
+                    className="text-xs"
                     onClick={clearCategoryFilters}
                   >
-                    Clear categories
+                    Clear
                   </Button>
                 )}
               </div>
             )}
           </div>
 
-          <div className="grid w-full max-w-lg grid-cols-2 gap-4 rounded-3xl border border-border/40 bg-background/60 p-4 shadow-inner sm:grid-cols-4 lg:max-w-xl lg:grid-cols-2">
+          <div className="grid w-full max-w-lg grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-4 sm:grid-cols-4 lg:max-w-xl lg:grid-cols-2">
             {heroMetrics.map((metric) => (
-              <div
-                key={metric.label}
-                className="rounded-2xl bg-muted/40 p-4 text-left shadow-sm"
-              >
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {metric.label}
-                </p>
-                <p className="mt-2 text-xl font-semibold text-foreground">
+              <div key={metric.label} className="space-y-1 text-left">
+                <p className="text-xs text-muted-foreground">{metric.label}</p>
+                <p className="text-xl font-bold text-foreground">
                   {metric.value}
                 </p>
               </div>
@@ -296,23 +280,19 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
             <section className="mt-12 space-y-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    Featured spotlights
+                  <h2 className="text-2xl font-bold text-foreground">
+                    Featured Requests
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Momentum-rich requests gaining exceptional traction right
-                    now.
+                    High-priority opportunities from top organizations
                   </p>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="w-fit rounded-full px-3 py-1 text-xs"
-                >
+                <Badge variant="secondary" className="w-fit text-xs">
                   {featuredDatasets.length} featured
                 </Badge>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {featuredDatasets.map((dataset) => (
                   <DatasetCardImproved key={dataset.id} dataset={dataset} />
                 ))}
@@ -323,17 +303,17 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
           <section className="mt-12 space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-2xl font-semibold text-foreground">
-                  All dataset requests
+                <h2 className="text-2xl font-bold text-foreground">
+                  All Requests
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {sortedDatasets.length.toLocaleString()} curated opportunities
-                  ready for contributors.
+                  {sortedDatasets.length.toLocaleString()} opportunities
+                  available
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {datasetsForGrid.map((dataset) => (
                 <DatasetCardImproved key={dataset.id} dataset={dataset} />
               ))}
@@ -341,21 +321,20 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
           </section>
         </>
       ) : (
-        <section className="mt-16 flex flex-col items-center justify-center gap-6 rounded-3xl border border-dashed border-border/60 bg-muted/20 p-12 text-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-background shadow-inner">
+        <section className="mt-16 flex flex-col items-center justify-center gap-6 rounded-2xl border border-dashed bg-muted/20 p-12 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
             <Database className="h-10 w-10 text-muted-foreground" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-foreground">
-              No dataset requests match your filters yet
+            <h2 className="text-xl font-bold text-foreground">
+              No matches found
             </h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground">
-              Try broadening your filters or explore a different category to
-              discover new opportunities for contribution.
+              Try adjusting your filters to see more results
             </p>
           </div>
-          <Button variant="outline" onClick={clearFilters} className="rounded-full">
-            Clear all filters
+          <Button variant="outline" onClick={clearFilters}>
+            Clear filters
           </Button>
         </section>
       )}

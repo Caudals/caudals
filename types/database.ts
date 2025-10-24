@@ -72,6 +72,7 @@ export interface Database {
           quality_criteria: string[];
           requirements: string[];
           featured: boolean;
+          image_url: string | null;
           approval_status: ApprovalStatus;
           admin_notes: string | null;
           approved_by: string | null;
@@ -101,6 +102,7 @@ export interface Database {
           quality_criteria: string[];
           requirements: string[];
           featured?: boolean;
+          image_url?: string | null;
           approval_status?: ApprovalStatus;
           admin_notes?: string | null;
           approved_by?: string | null;
@@ -130,6 +132,7 @@ export interface Database {
           quality_criteria?: string[];
           requirements?: string[];
           featured?: boolean;
+          image_url?: string | null;
           approval_status?: ApprovalStatus;
           admin_notes?: string | null;
           approved_by?: string | null;

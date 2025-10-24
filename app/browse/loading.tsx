@@ -45,24 +45,34 @@ export default function BrowseLoading() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, index) => (
+      <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 12 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-3xl border border-border/60 bg-card/70 p-5 shadow-sm"
+            className="flex flex-col overflow-hidden rounded-xl border border-border bg-card"
           >
-            <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
-            <div className="mt-5 space-y-3">
-              <Skeleton className="h-4 w-32 rounded-full" />
-              <Skeleton className="h-5 w-3/4 rounded-full" />
-              <Skeleton className="h-4 w-full rounded-full" />
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <Skeleton className="h-16 rounded-2xl" />
-                <Skeleton className="h-16 rounded-2xl" />
-                <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-48 w-full" />
+            <div className="flex flex-1 flex-col gap-4 p-4">
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-24 rounded-full" />
               </div>
-              <Skeleton className="h-2.5 w-full rounded-full" />
-              <Skeleton className="h-9 w-full rounded-2xl" />
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+              <Skeleton className="h-1.5 w-full" />
+            </div>
+            <div className="flex gap-2 border-t bg-muted/30 p-4">
+              <Skeleton className="h-9 flex-1" />
+              <Skeleton className="h-9 flex-1" />
             </div>
           </div>
         ))}

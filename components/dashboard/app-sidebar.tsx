@@ -56,6 +56,7 @@ const contributorNav = [
 
 const adminNav = [
   { title: "Admin Dashboard", icon: Shield, href: "/admin" },
+  { title: "Datasets", icon: Database, href: "/admin/datasets" },
   { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
   { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
   { title: "Users", icon: Users, href: "/admin/users" },
