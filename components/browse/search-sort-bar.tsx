@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SortOption, DatasetFilters } from "@/types/dataset";
 import { FiltersPopover } from "./filters-popover";
 
