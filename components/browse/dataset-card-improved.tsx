@@ -90,7 +90,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
               {dataset.title}
             </h3>
           </Link>
-          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[3.25rem]">
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {dataset.description}
           </p>
         </div>
