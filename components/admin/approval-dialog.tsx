@@ -47,7 +47,7 @@ interface ApprovalDialogProps {
     };
     notes?: string;
     dataset_requests?: { title: string };
-    profiles?: { full_name: string };
+    profiles?: { full_name: string | null };
   };
   type: "approve" | "reject" | "view";
   itemType: "request" | "submission";
