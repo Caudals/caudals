@@ -87,7 +87,7 @@ export async function getAdminDatasetRequests() {
   return { data };
 }
 
-interface AdminDatasetUpdates {
+export interface AdminDatasetUpdates {
   title?: string;
   description?: string;
   category?: DatasetCategory;
@@ -215,6 +215,160 @@ export async function adminDeleteDatasetRequest(id: string) {
   revalidatePath("/admin");
   revalidatePath("/admin/datasets");
   revalidatePath("/admin/requests");
+
+  return { success: true };
+}
+
+export async function adminBulkUpdateDatasetApproval(
+  ids: string[],
+  approvalStatus: ApprovalStatus
+) {
+  if (ids.length === 0) {
+    return { error: "No dataset IDs provided" };
+  }
+
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("dataset_requests")
+    .update({
+      approval_status: approvalStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error bulk updating approval status:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  revalidatePath("/admin/requests");
+  ids.forEach((id) => {
+    revalidatePath(`/browse/${id}`);
+  });
+
+  return { success: true };
+}
+
+export async function adminBulkUpdateDatasetStatus(
+  ids: string[],
+  status: DatasetStatus
+) {
+  if (ids.length === 0) {
+    return { error: "No dataset IDs provided" };
+  }
+
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("dataset_requests")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error bulk updating dataset status:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  ids.forEach((id) => {
+    revalidatePath(`/browse/${id}`);
+  });
+
+  return { success: true };
+}
+
+export async function adminBulkUpdateDatasetRequests(
+  ids: string[],
+  updates: AdminDatasetUpdates
+) {
+  if (ids.length === 0) {
+    return { error: "No dataset IDs provided" };
+  }
+
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const payload = Object.fromEntries(
+    Object.entries(updates).filter(
+      ([, value]) => value !== undefined
+    )
+  );
+
+  if (Object.keys(payload).length === 0) {
+    return { error: "No updates provided" };
+  }
+
+  const { error } = await supabase
+    .from("dataset_requests")
+    .update({
+      ...payload,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error bulk updating dataset requests:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  ids.forEach((id) => {
+    revalidatePath(`/browse/${id}`);
+  });
+
+  return { success: true };
+}
+
+export async function adminBulkDeleteDatasetRequests(ids: string[]) {
+  if (ids.length === 0) {
+    return { error: "No dataset IDs provided" };
+  }
+
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { error } = await supabase
+    .from("dataset_requests")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error bulk deleting dataset requests:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/browse");
+  revalidatePath("/admin");
+  revalidatePath("/admin/datasets");
+  revalidatePath("/admin/requests");
+  ids.forEach((id) => {
+    revalidatePath(`/browse/${id}`);
+  });
 
   return { success: true };
 }

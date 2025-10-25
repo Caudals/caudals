@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  ShieldCheck,
+  Edit3,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -23,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DatasetEditDialog } from "./dataset-edit-dialog";
+import { BulkDatasetEditDialog } from "./bulk-dataset-edit-dialog";
 import { AdminDatasetRequest } from "@/types/admin";
 import {
   categoryLabels,
@@ -45,11 +52,16 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   adminDeleteDatasetRequest,
+  adminBulkDeleteDatasetRequests,
+  adminBulkUpdateDatasetApproval,
+  adminBulkUpdateDatasetStatus,
   adminUpdateDatasetApproval,
 } from "@/lib/actions/admin-actions";
 import { ApprovalStatus } from "@/types/database";
+import { DatasetStatus } from "@/types/dataset";
 
 interface AdminDatasetsTableProps {
   datasets: AdminDatasetRequest[];
@@ -62,8 +74,14 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
   const [statusDatasetId, setStatusDatasetId] = useState<string | null>(null);
   const [deleteDatasetId, setDeleteDatasetId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [isStatusPending, startStatusTransition] = useTransition();
   const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isBulkStatusPending, startBulkStatusTransition] = useTransition();
+  const [isBulkApprovalPending, startBulkApprovalTransition] = useTransition();
+  const [isBulkDeletePending, startBulkDeleteTransition] = useTransition();
   const router = useRouter();
 
   const totals = useMemo(() => {
@@ -124,6 +142,91 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
     });
   };
 
+  const selectionCount = selectedIds.length;
+  const isAllSelected =
+    selectionCount > 0 && selectionCount === datasets.length;
+  const anyBulkPending =
+    isBulkStatusPending || isBulkApprovalPending || isBulkDeletePending;
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(datasets.map((dataset) => dataset.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const toggleSelection = (datasetId: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      if (checked) {
+        return prev.includes(datasetId) ? prev : [...prev, datasetId];
+      }
+      return prev.filter((id) => id !== datasetId);
+    });
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleBulkStatusChange = (nextStatus: DatasetStatus) => {
+    if (selectionCount === 0) return;
+    startBulkStatusTransition(async () => {
+      const result = await adminBulkUpdateDatasetStatus(
+        selectedIds,
+        nextStatus
+      );
+      if ("error" in result) {
+        toast.error(result.error || "Failed to update dataset status.");
+      } else {
+        toast.success(
+          `Updated status to ${statusLabels[nextStatus]} for ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
+        );
+        clearSelection();
+      }
+      router.refresh();
+    });
+  };
+
+  const handleBulkApprovalChange = (nextStatus: ApprovalStatus) => {
+    if (selectionCount === 0) return;
+    startBulkApprovalTransition(async () => {
+      const result = await adminBulkUpdateDatasetApproval(
+        selectedIds,
+        nextStatus
+      );
+      if ("error" in result) {
+        toast.error(result.error || "Failed to update approval status.");
+      } else {
+        toast.success(
+          `Marked ${selectionCount} dataset${selectionCount === 1 ? "" : "s"} as ${nextStatus}.`
+        );
+        clearSelection();
+      }
+      router.refresh();
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectionCount === 0) return;
+    startBulkDeleteTransition(async () => {
+      const result = await adminBulkDeleteDatasetRequests(selectedIds);
+      if ("error" in result) {
+        toast.error(result.error || "Failed to delete datasets.");
+      } else {
+        toast.success(
+          `Deleted ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
+        );
+        clearSelection();
+      }
+      setIsBulkDeleteDialogOpen(false);
+      router.refresh();
+    });
+  };
+
+  const handleBulkEditComplete = () => {
+    router.refresh();
+    clearSelection();
+  };
+
   return (
     <>
       <Card>
@@ -138,9 +241,125 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {selectionCount > 0 && (
+            <div className="flex flex-col gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <p className="font-medium">
+                  {selectionCount} dataset{selectionCount === 1 ? "" : "s"} selected
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Apply bulk actions across the selected dataset requests.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={anyBulkPending || selectionCount === 0}
+                    >
+                      {isBulkStatusPending ? (
+                        "Updating..."
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Change status
+                        </>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {(Object.keys(statusLabels) as DatasetStatus[]).map(
+                      (status) => (
+                        <DropdownMenuItem
+                          key={status}
+                          onSelect={() => handleBulkStatusChange(status)}
+                        >
+                          {statusLabels[status]}
+                        </DropdownMenuItem>
+                      )
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={anyBulkPending || selectionCount === 0}
+                    >
+                      {isBulkApprovalPending ? (
+                        "Updating..."
+                      ) : (
+                        <>
+                          <ShieldCheck className="mr-2 h-4 w-4" />
+                          Update approval
+                        </>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {(["approved", "pending", "rejected"] as ApprovalStatus[]).map(
+                      (status) => (
+                        <DropdownMenuItem
+                          key={status}
+                          onSelect={() => handleBulkApprovalChange(status)}
+                        >
+                          <span className="capitalize">{status}</span>
+                        </DropdownMenuItem>
+                      )
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBulkDialogOpen(true)}
+                  disabled={anyBulkPending || selectionCount === 0}
+                >
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Bulk edit
+                </Button>
+
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsBulkDeleteDialogOpen(true)}
+                  disabled={anyBulkPending || selectionCount === 0}
+                >
+                  {isBulkDeletePending ? (
+                    "Deleting..."
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Remove
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    aria-label="Select all datasets"
+                    checked={
+                      isAllSelected
+                        ? true
+                        : selectionCount > 0
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={(value) => toggleSelectAll(Boolean(value))}
+                    disabled={datasets.length === 0}
+                  />
+                </TableHead>
                 <TableHead>Dataset</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Category</TableHead>
@@ -153,7 +372,22 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
             </TableHeader>
             <TableBody>
               {datasets.map((dataset) => (
-                <TableRow key={dataset.id}>
+                <TableRow
+                  key={dataset.id}
+                  data-state={
+                    selectedIds.includes(dataset.id) ? "selected" : undefined
+                  }
+                >
+                  <TableCell>
+                    <Checkbox
+                      aria-label={`Select ${dataset.title}`}
+                      checked={selectedIds.includes(dataset.id)}
+                      onCheckedChange={(value) =>
+                        toggleSelection(dataset.id, Boolean(value))
+                      }
+                      disabled={anyBulkPending}
+                    />
+                  </TableCell>
                   <TableCell className="max-w-md">
                     <div className="space-y-1">
                       <p className="font-medium text-foreground line-clamp-2">
@@ -323,6 +557,49 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
               {isDeletePending && pendingDeleteId === deleteDatasetId
                 ? "Deleting..."
                 : "Delete request"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <BulkDatasetEditDialog
+        open={isBulkDialogOpen}
+        selectedCount={selectionCount}
+        selectedIds={selectedIds}
+        onOpenChange={(open) => setIsBulkDialogOpen(open)}
+        onComplete={handleBulkEditComplete}
+      />
+
+      <AlertDialog
+        open={isBulkDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsBulkDeleteDialogOpen(false);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove selected datasets?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectionCount} dataset
+              {selectionCount === 1 ? "" : "s"} and any related submissions.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isBulkDeletePending}
+              onClick={() => setIsBulkDeleteDialogOpen(false)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleBulkDelete}
+              disabled={isBulkDeletePending}
+            >
+              {isBulkDeletePending ? "Deleting..." : "Delete datasets"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
