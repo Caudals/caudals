@@ -177,7 +177,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
         {/* Only show role switcher for admins */}
         {userRole === "admin" && (
-          <div className="mt-3">
+          <div className="mt-2">
             <RoleSwitcher
               userRole={userRole}
               currentView={viewLabel.toLowerCase()}
@@ -186,7 +186,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
         {/* Show badge for non-admin users */}
         {userRole !== "admin" && (
-          <div className="mt-3 px-2">
+          <div className="mt-2">
             <div className="text-xs font-medium text-muted-foreground">
               {viewLabel} Account
             </div>

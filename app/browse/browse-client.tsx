@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Database } from "lucide-react";
 import { categoryLabels } from "@/lib/data/datasets";
-import { cn } from "@/lib/utils";
 
 interface BrowseClientProps {
   initialDatasets: Dataset[];

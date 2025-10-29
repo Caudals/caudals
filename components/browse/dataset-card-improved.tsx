@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Dataset } from "@/types/dataset";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,10 +20,10 @@ interface DatasetCardProps {
 }
 
 const statusStyles: Record<Dataset["status"], string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  "closing-soon": "bg-amber-50 text-amber-700 border-amber-200",
-  completed: "bg-blue-50 text-blue-700 border-blue-200",
-  paused: "bg-gray-50 text-gray-600 border-gray-200",
+  active: "bg-emerald-50 text-emerald-700",
+  "closing-soon": "bg-amber-50 text-amber-700",
+  completed: "bg-blue-50 text-blue-700",
+  paused: "bg-gray-50 text-gray-600",
 };
 
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
@@ -48,16 +47,21 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
     }
   };
 
+  const rewardDisplay = `$${dataset.rewardAmount.toLocaleString(undefined, {
+    minimumFractionDigits: dataset.rewardAmount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: dataset.rewardAmount % 1 === 0 ? 0 : 2,
+  })}`;
+
+  const contributorDisplay = dataset.activeContributors.toLocaleString();
+
   return (
-    <Card
-      className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-200",
-        "hover:shadow-lg hover:border-foreground/20"
-      )}
-    >
-      {/* Image Section - Fixed Height */}
-      <Link href={`/browse/${dataset.id}`} className="block">
-        <div className="relative h-48 w-full overflow-hidden bg-muted">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-all duration-300 hover:shadow-lg">
+      {/* Image Section */}
+      <Link
+        href={`/browse/${dataset.id}`}
+        className="relative block overflow-hidden"
+      >
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
           <Image
             src={dataset.imageUrl}
             alt={dataset.title}
@@ -66,38 +70,41 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
-      </Link>
-
-      {/* Content Section - Flexible */}
-      <CardContent className="flex flex-1 flex-col gap-4 p-4">
-        {/* Status and Category Badges */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Badges overlay on image */}
+        <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap items-center gap-2">
           <Badge
-            variant="outline"
-            className={cn("text-xs", statusStyles[dataset.status])}
+            className={cn(
+              "text-xs font-medium shadow-sm",
+              statusStyles[dataset.status]
+            )}
           >
             {statusLabels[dataset.status]}
           </Badge>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs font-medium shadow-sm">
             {categoryLabels[dataset.category]}
           </Badge>
         </div>
+      </Link>
 
-        {/* Title and Description */}
-        <div className="space-y-2">
+      {/* Content Section */}
+      <div className="flex flex-1 flex-col p-4">
+        {/* Title */}
+        <div className="mb-3">
           <Link href={`/browse/${dataset.id}`}>
-            <h3 className="font-semibold text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+            <h3 className="text-base font-semibold leading-snug text-foreground transition-colors group-hover:text-primary line-clamp-2">
               {dataset.title}
             </h3>
           </Link>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {dataset.description}
-          </p>
         </div>
 
+        {/* Description */}
+        <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
+          {dataset.description}
+        </p>
+
         {/* Organization */}
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
+        <div className="mb-4 flex items-center gap-2">
+          <Avatar className="h-7 w-7">
             {dataset.organization.avatar ? (
               <AvatarImage src={dataset.organization.avatar} />
             ) : null}
@@ -115,73 +122,67 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 text-xs">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <DollarSign className="h-3.5 w-3.5" />
-              <span>Reward</span>
-            </div>
-            <p className="text-sm font-semibold text-foreground">
-              ${dataset.rewardAmount}
-            </p>
+        {/* Metrics */}
+        <div className="mb-4 flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">
+              {rewardDisplay}
+            </span>
           </div>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              <span>Contributors</span>
-            </div>
-            <p className="text-sm font-semibold text-foreground">
-              {dataset.activeContributors}
-            </p>
+          <div className="flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">{contributorDisplay}</span>
           </div>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Deadline</span>
-            </div>
-            <p
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span
               className={cn(
-                "text-sm font-semibold",
-                isExpired ? "text-red-600" : "text-foreground"
+                "text-xs font-medium",
+                isExpired ? "text-destructive" : "text-muted-foreground"
               )}
             >
               {deadlineLabel}
-            </p>
+            </span>
           </div>
         </div>
-      </CardContent>
 
-      {/* Footer - Fixed Height */}
-      <CardFooter className="flex gap-2 border-t bg-muted/30 p-4">
-        <Button variant="outline" className="flex-1" size="sm" asChild>
-          <Link href={`/browse/${dataset.id}`}>View</Link>
-        </Button>
-
-        {isCompleted ? (
-          <Button className="flex-1" size="sm" disabled>
-            Completed
-          </Button>
-        ) : isPaused || isExpired ? (
-          <Button className="flex-1" size="sm" disabled>
-            {isPaused ? "Paused" : "Closed"}
-          </Button>
-        ) : user ? (
-          <ContributeDialog
-            datasetId={dataset.id}
-            datasetTitle={dataset.title}
-            dataType={dataset.dataType}
+        {/* Action Buttons */}
+        <div className="mt-auto flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            size="sm"
+            asChild
           >
-            <Button className="flex-1" size="sm">
+            <Link href={`/browse/${dataset.id}`}>View Details</Link>
+          </Button>
+
+          {isCompleted ? (
+            <Button className="flex-1" size="sm" disabled>
+              Completed
+            </Button>
+          ) : isPaused || isExpired ? (
+            <Button className="flex-1" size="sm" disabled>
+              {isPaused ? "Paused" : "Closed"}
+            </Button>
+          ) : user ? (
+            <ContributeDialog
+              datasetId={dataset.id}
+              datasetTitle={dataset.title}
+              dataType={dataset.dataType}
+            >
+              <Button className="flex-1" size="sm">
+                Contribute
+              </Button>
+            </ContributeDialog>
+          ) : (
+            <Button className="flex-1" size="sm" onClick={handleContributeClick}>
               Contribute
             </Button>
-          </ContributeDialog>
-        ) : (
-          <Button className="flex-1" size="sm" onClick={handleContributeClick}>
-            Contribute
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
