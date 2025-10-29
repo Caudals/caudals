@@ -1,19 +1,21 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getAdminDashboardStats } from "@/lib/actions/admin-actions";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   FileText,
   Users,
-  CheckCircle,
   Database,
   AlertCircle,
   Send,
   BarChart3,
   TrendingUp,
-  DollarSign,
   Wallet,
   Activity,
 } from "lucide-react";
@@ -28,22 +30,21 @@ export default async function AdminDashboard() {
 
   if ("error" in statsResult) {
     return (
-      <SidebarProvider defaultOpen={true}>
-        <AppSidebar collapsible="icon" />
-        <SidebarInset>
-          <DashboardHeader
-            title="Admin Dashboard"
-            description="Platform administration and monitoring"
-          />
-          <div className="flex flex-1 items-center justify-center p-6">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-              <p className="text-lg font-semibold">Error loading dashboard</p>
-              <p className="text-sm text-muted-foreground">Please try again later</p>
-            </div>
+      <>
+        <DashboardHeader
+          title="Admin Dashboard"
+          description="Platform administration and monitoring"
+        />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="text-center">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+            <p className="text-lg font-semibold">Error loading dashboard</p>
+            <p className="text-sm text-muted-foreground">
+              Please try again later
+            </p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+        </div>
+      </>
     );
   }
 
@@ -93,177 +94,174 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar collapsible="icon" />
-      <SidebarInset>
-        <DashboardHeader
-          title="Admin Dashboard"
-          description="Platform administration and monitoring"
-        />
-        <div className="flex flex-1 flex-col gap-6 p-6">
-          {/* Main Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((stat) => (
-              <Card
-                key={stat.title}
-                className="hover:shadow-md transition-all duration-200 border-muted"
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <div className={`rounded-lg p-2 ${stat.bgColor}`}>
-                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold mb-1">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {stat.description}
+    <>
+      <DashboardHeader
+        title="Admin Dashboard"
+        description="Platform administration and monitoring"
+      />
+      <div className="flex flex-1 flex-col gap-6 p-6">
+        {/* Main Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {statCards.map((stat) => (
+            <Card
+              key={stat.title}
+              className="border-muted transition-all duration-200 hover:shadow-md"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className={`rounded-lg p-2 ${stat.bgColor}`}>
+                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-1 text-2xl font-bold">{stat.value}</div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {stat.description}
+                </p>
+                <div className="flex items-center text-xs">
+                  <TrendingUp
+                    className={`mr-1 h-3 w-3 ${
+                      stat.trendUp ? "text-emerald-600" : "text-orange-600"
+                    }`}
+                  />
+                  <span
+                    className={
+                      stat.trendUp ? "text-emerald-600" : "text-orange-600"
+                    }
+                  >
+                    {stat.trend}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Pending Reviews Section */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-orange-600" />
+                Pending Dataset Requests
+              </CardTitle>
+              <CardDescription>
+                {stats.pendingRequests} request
+                {stats.pendingRequests !== 1 ? "s" : ""} awaiting approval
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {stats.pendingRequests}
                   </p>
-                  <div className="flex items-center text-xs">
-                    <TrendingUp
-                      className={`h-3 w-3 mr-1 ${
-                        stat.trendUp ? "text-emerald-600" : "text-orange-600"
-                      }`}
-                    />
-                    <span className={stat.trendUp ? "text-emerald-600" : "text-orange-600"}>
-                      {stat.trend}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Pending Reviews Section */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-orange-600" />
-                  Pending Dataset Requests
-                </CardTitle>
-                <CardDescription>
-                  {stats.pendingRequests} request{stats.pendingRequests !== 1 ? "s" : ""} awaiting approval
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-bold text-orange-600">
-                      {stats.pendingRequests}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Review required
-                    </p>
-                  </div>
-                  <Button asChild>
-                    <Link href="/admin/requests">
-                      Review Now
-                    </Link>
-                  </Button>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Review required
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Send className="h-5 w-5 text-blue-600" />
-                  Pending Submissions
-                </CardTitle>
-                <CardDescription>
-                  {stats.pendingSubmissions} contribution{stats.pendingSubmissions !== 1 ? "s" : ""} to review
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-bold text-blue-600">
-                      {stats.pendingSubmissions}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Quality check needed
-                    </p>
-                  </div>
-                  <Button asChild variant="outline">
-                    <Link href="/admin/submissions">
-                      Review Now
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Platform Financial Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5" />
-                Platform Financial Overview
-              </CardTitle>
-              <CardDescription>
-                Transaction and wallet metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PaymentAnalytics />
+                <Button asChild>
+                  <Link href="/admin/requests">Review Now</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Analytics Section */}
-          <Card>
+          <Card className="transition-shadow hover:shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Platform Analytics
+                <Send className="h-5 w-5 text-blue-600" />
+                Pending Submissions
               </CardTitle>
               <CardDescription>
-                User activity and dataset performance
+                {stats.pendingSubmissions} contribution
+                {stats.pendingSubmissions !== 1 ? "s" : ""} to review
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AdminAnalytics />
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-3">
-              <Button asChild size="sm">
-                <Link href="/admin/requests">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Review Requests
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/admin/submissions">
-                  <Database className="mr-2 h-4 w-4" />
-                  Review Submissions
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/admin/users">
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Users
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/browse">
-                  <Activity className="mr-2 h-4 w-4" />
-                  View Platform
-                </Link>
-              </Button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {stats.pendingSubmissions}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Quality check needed
+                  </p>
+                </div>
+                <Button asChild variant="outline">
+                  <Link href="/admin/submissions">Review Now</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+
+        {/* Platform Financial Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Platform Financial Overview
+            </CardTitle>
+            <CardDescription>Transaction and wallet metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PaymentAnalytics />
+          </CardContent>
+        </Card>
+
+        {/* Analytics Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Platform Analytics
+            </CardTitle>
+            <CardDescription>
+              User activity and dataset performance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminAnalytics />
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common administrative tasks</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button asChild size="sm">
+              <Link href="/admin/requests">
+                <FileText className="mr-2 h-4 w-4" />
+                Review Requests
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/submissions">
+                <Database className="mr-2 h-4 w-4" />
+                Review Submissions
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/users">
+                <Users className="mr-2 h-4 w-4" />
+                Manage Users
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/browse">
+                <Activity className="mr-2 h-4 w-4" />
+                View Platform
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }
