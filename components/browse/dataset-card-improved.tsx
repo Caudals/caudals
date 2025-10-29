@@ -149,12 +149,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
 
         {/* Action Buttons */}
         <div className="mt-auto flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            size="sm"
-            asChild
-          >
+          <Button variant="outline" className="flex-1" size="sm" asChild>
             <Link href={`/browse/${dataset.id}`}>View Details</Link>
           </Button>
 
@@ -177,7 +172,11 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
               </Button>
             </ContributeDialog>
           ) : (
-            <Button className="flex-1" size="sm" onClick={handleContributeClick}>
+            <Button
+              className="flex-1"
+              size="sm"
+              onClick={handleContributeClick}
+            >
               Contribute
             </Button>
           )}

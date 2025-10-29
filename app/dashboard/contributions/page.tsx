@@ -1,6 +1,4 @@
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import {
   getUserContributionsDetailed,
   getUserEarnings,
@@ -15,23 +13,17 @@ export default async function ContributionsPage() {
     "error" in contributionsResult ? [] : contributionsResult.data || [];
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <AppSidebar collapsible="icon" />
-      <SidebarInset>
-        <DashboardHeader
-          title="My Contributions"
-          breadcrumbs={[
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Contributions" },
-          ]}
-        />
-        <div className="flex flex-1 flex-col gap-6 p-6">
-          <ContributionsView
-            contributions={contributions}
-            earnings={earnings}
-          />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <>
+      <DashboardHeader
+        title="My Contributions"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Contributions" },
+        ]}
+      />
+      <div className="flex flex-1 flex-col gap-6 p-6">
+        <ContributionsView contributions={contributions} earnings={earnings} />
+      </div>
+    </>
   );
 }
