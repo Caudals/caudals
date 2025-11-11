@@ -68,7 +68,7 @@ export function LandingGodRaysBackground({
               "radial-gradient(ellipse 120% 80% at 100% 0%, rgba(243, 243, 243, 0.95) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)",
           }}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-white via-white/80 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-white via-white/90 to-transparent" />
       </div>
     );
   }
@@ -120,7 +120,7 @@ export function LandingGodRaysBackground({
               }}
             />
           </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-white via-white/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-white via-white/90 to-transparent" />
         </>
       )}
     </div>

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripeServer } from "@/lib/stripe/server";
+import {
+  ensureStripeCustomerForUser,
+  ensureWalletRecord,
+  syncWalletFromConnectAccount,
+  syncWalletFromCustomer,
+} from "@/lib/actions/payment-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 
@@ -135,6 +141,28 @@ async function handlePaymentIntentSucceeded(
       console.error("Error inserting wallet deposit transaction", insertError);
     }
 
+    if (typeof paymentIntent.customer === "string") {
+      try {
+        const stripe = getStripeServer();
+        const { customerId, wallet } = await ensureStripeCustomerForUser(
+          stripe,
+          admin,
+          userId,
+          paymentIntent.receipt_email ?? undefined,
+          undefined
+        );
+
+        await syncWalletFromCustomer(
+          stripe,
+          admin,
+          wallet,
+          customerId
+        );
+      } catch (syncError) {
+        console.error("Failed to sync wallet after deposit", syncError);
+      }
+    }
+
     return;
   }
 
@@ -166,6 +194,28 @@ async function handlePaymentIntentSucceeded(
 
     if (txError) {
       console.error("Failed to record dataset funding transaction", txError);
+    }
+
+    if (typeof paymentIntent.customer === "string") {
+      try {
+        const stripe = getStripeServer();
+        const { customerId, wallet } = await ensureStripeCustomerForUser(
+          stripe,
+          admin,
+          userId,
+          paymentIntent.receipt_email ?? undefined,
+          undefined
+        );
+
+        await syncWalletFromCustomer(
+          stripe,
+          admin,
+          wallet,
+          customerId
+        );
+      } catch (syncError) {
+        console.error("Failed to sync wallet after dataset funding", syncError);
+      }
     }
 
     const datasetUpdate: DatasetUpdate = {
@@ -300,7 +350,7 @@ async function handleTransferCreated(
 
   const { data: stripeAccount, error: accountLookupError } = await adminClient
     .from("stripe_accounts")
-    .select("user_id")
+    .select("user_id, default_currency, stripe_account_id")
     .eq("stripe_account_id", transfer.destination)
     .single();
 
@@ -344,6 +394,26 @@ async function handleTransferCreated(
 
   if (insertError) {
     console.error("Failed to insert transfer transaction", insertError);
+  }
+
+  if (
+    stripeAccount?.user_id &&
+    typeof transfer.destination === "string" &&
+    transfer.destination
+  ) {
+    try {
+      const stripe = getStripeServer();
+      const wallet = await ensureWalletRecord(admin, stripeAccount.user_id);
+      await syncWalletFromConnectAccount(
+        stripe,
+        admin,
+        wallet,
+        transfer.destination,
+        stripeAccount.default_currency ?? transfer.currency
+      );
+    } catch (syncError) {
+      console.error("Failed to sync wallet after transfer", syncError);
+    }
   }
 }
 

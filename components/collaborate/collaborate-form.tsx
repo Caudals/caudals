@@ -83,24 +83,24 @@ export function CollaborateForm() {
               }
             });
           }
-          toast.error("Por favor revisa los campos destacados.");
+          toast.error("Please review the highlighted fields.");
           return;
         }
 
         const message =
           payload && typeof payload === "object" && "error" in payload
             ? String((payload as { error?: unknown }).error ?? "")
-            : "No pudimos enviar tu mensaje.";
+            : "We couldn't send your message.";
 
         throw new Error(message || "Request failed");
       }
 
       setIsComplete(true);
-      toast.success("Gracias por escribirnos. Respondemos en menos de 48h.");
+      toast.success("Thanks for reaching out. We'll respond within 48 hours.");
       form.reset(defaultValues);
     } catch (error) {
       console.error("Failed to submit collaboration form", error);
-      toast.error("No pudimos enviar tu mensaje. Inténtalo de nuevo.");
+      toast.error("We couldn't send your message. Please try again.");
     }
   }
 
@@ -110,21 +110,21 @@ export function CollaborateForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-primary" />
-            ¡Mensaje enviado!
+            Message sent!
           </CardTitle>
           <CardDescription>
-            Nuestro equipo de partnerships te responderá en las próximas 48 horas.
+            Our partnerships team will respond within 48 hours.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Si quieres compartir más detalles mientras tanto, escríbenos directamente a
+            If you'd like to share more details in the meantime, reach us directly at
             <Button variant="link" className="px-1 text-base" asChild>
               <a href="mailto:contact@caudals.com">contact@caudals.com</a>
             </Button>
           </p>
           <Button variant="outline" onClick={() => setIsComplete(false)}>
-            Enviar otro mensaje
+            Send another message
           </Button>
         </CardContent>
       </Card>
@@ -134,9 +134,9 @@ export function CollaborateForm() {
   return (
     <Card className="border border-border/70 bg-white/90 shadow-xl backdrop-blur">
       <CardHeader>
-        <CardTitle className="text-2xl">Comparte tu iniciativa</CardTitle>
+        <CardTitle className="text-2xl">Share your initiative</CardTitle>
         <CardDescription>
-          Cuéntanos qué estás construyendo para diseñar un plan de colaboración a medida.
+          Tell us what you're building so we can design a tailored collaboration plan.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -148,9 +148,9 @@ export function CollaborateForm() {
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre completo</FormLabel>
+                    <FormLabel>Full name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Andrea Gómez" {...field} />
+                      <Input placeholder="Jane Smith" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -161,9 +161,9 @@ export function CollaborateForm() {
                 name="workEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email de trabajo</FormLabel>
+                    <FormLabel>Work email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="andrea@empresa.com" {...field} />
+                      <Input type="email" placeholder="jane@company.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -176,9 +176,9 @@ export function CollaborateForm() {
               name="organization"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Empresa o entidad</FormLabel>
+                  <FormLabel>Company or organization</FormLabel>
                   <FormControl>
-                    <Input placeholder="Caudals Labs" {...field} />
+                    <Input placeholder="Acme Corp" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,9 +190,9 @@ export function CollaborateForm() {
               name="organizationWebsite"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Website (opcional)</FormLabel>
+                  <FormLabel>Website (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://caudals.com" {...field} />
+                    <Input placeholder="https://example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -205,11 +205,11 @@ export function CollaborateForm() {
                 name="focusArea"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de colaboración</FormLabel>
+                    <FormLabel>Type of collaboration</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el foco" />
+                          <SelectValue placeholder="Select focus area" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -230,21 +230,21 @@ export function CollaborateForm() {
                 name="teamSize"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tamaño del equipo (opcional)</FormLabel>
+                    <FormLabel>Team size (optional)</FormLabel>
                     <Select
-                      value={field.value ?? ""}
-                      onValueChange={(value) => field.onChange(value === "" ? undefined : value)}
+                      value={field.value ?? "none"}
+                      onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un rango" />
+                          <SelectValue placeholder="Select range" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Prefiero no decirlo</SelectItem>
+                        <SelectItem value="none">Prefer not to say</SelectItem>
                         {collaborationTeamSizes.map((size) => (
                           <SelectItem key={size} value={size}>
-                            {size} personas
+                            {size} people
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -260,11 +260,11 @@ export function CollaborateForm() {
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contexto y próximos pasos</FormLabel>
+                  <FormLabel>Context and next steps</FormLabel>
                   <FormControl>
                     <Textarea
                       rows={5}
-                      placeholder="Cuéntanos sobre tu iniciativa, objetivos y cómo te gustaría colaborar con Caudals."
+                      placeholder="Tell us about your initiative, goals, and how you'd like to collaborate with Caudals."
                       className="resize-none"
                       {...field}
                     />
@@ -278,11 +278,11 @@ export function CollaborateForm() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enviando...
+                  Sending...
                 </>
               ) : (
                 <>
-                  Enviar mensaje
+                  Send message
                   <SendHorizonal className="ml-2 h-4 w-4" />
                 </>
               )}

@@ -236,20 +236,22 @@ export function StripeOnboardingDialog({
 
   return (
     <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Set Up Your Payout Account</DialogTitle>
-          <DialogDescription>
-            Share the minimum details Stripe needs to verify you and enable
-            payouts globally.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl overflow-hidden p-0">
+        <div className="max-h-[80vh] overflow-y-auto">
+          <div className="px-6 py-6 space-y-6">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle>Set Up Your Payout Account</DialogTitle>
+              <DialogDescription>
+                Share the minimum details Stripe needs to verify you and enable
+                payouts globally.
+              </DialogDescription>
+            </DialogHeader>
 
-        <Form {...form}>
-          <form
-            className="space-y-6 py-4"
-            onSubmit={form.handleSubmit(handleSubmit)}
-          >
+            <Form {...form}>
+              <form
+                className="space-y-8"
+                onSubmit={form.handleSubmit(handleSubmit)}
+              >
             <section className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 Personal Details
@@ -595,7 +597,7 @@ export function StripeOnboardingDialog({
               control={form.control}
               name="tosAccepted"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem className="flex flex-col space-y-3 rounded-md border p-4 md:flex-row md:items-start md:space-x-3 md:space-y-0">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -615,16 +617,23 @@ export function StripeOnboardingDialog({
               )}
             />
 
-            <div className="flex items-center justify-end gap-3">
-              <Button type="button" variant="ghost" onClick={onClose}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onClose}
+                className="sm:w-auto"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending} className="sm:w-auto">
                 {isPending ? "Submitting..." : "Create Account"}
               </Button>
             </div>
           </form>
         </Form>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
