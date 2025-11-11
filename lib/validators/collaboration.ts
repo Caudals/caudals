@@ -19,7 +19,6 @@ export const collaborationTeamSizes = [
 const websiteSchema = z
   .string()
   .trim()
-  .optional()
   .transform((value) => (value ? value : undefined))
   .refine(
     (value) => {
@@ -58,9 +57,9 @@ export const collaborationFormSchema = z.object({
     .trim()
     .min(2, { message: "Organization name is required" })
     .max(160, { message: "Organization name is too long" }),
-  organizationWebsite: websiteSchema,
+  organizationWebsite: websiteSchema.optional(),
   focusArea: z.enum(collaborationFocusAreas, {
-    errorMap: () => ({ message: "Select the collaboration focus" }),
+    message: "Select the collaboration focus",
   }),
   teamSize: z.enum(collaborationTeamSizes).optional(),
   message: z

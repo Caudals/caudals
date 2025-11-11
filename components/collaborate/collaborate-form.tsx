@@ -118,7 +118,7 @@ export function CollaborateForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            If you'd like to share more details in the meantime, reach us directly at
+            If you&apos;d like to share more details in the meantime, reach us directly at
             <Button variant="link" className="px-1 text-base" asChild>
               <a href="mailto:contact@caudals.com">contact@caudals.com</a>
             </Button>
@@ -136,7 +136,7 @@ export function CollaborateForm() {
       <CardHeader>
         <CardTitle className="text-2xl">Share your initiative</CardTitle>
         <CardDescription>
-          Tell us what you're building so we can design a tailored collaboration plan.
+          Tell us what you&apos;re building so we can design a tailored collaboration plan.
         </CardDescription>
       </CardHeader>
       <CardContent>

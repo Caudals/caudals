@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: resendFrom,
       to: notificationEmail,
-      reply_to: data.workEmail,
+      replyTo: data.workEmail,
       subject: `New collaboration inquiry: ${data.organization}`,
       react: CollaborationInquiryEmail({
         ...data,
