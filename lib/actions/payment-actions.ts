@@ -17,9 +17,11 @@ const centsFromAmount = (amount: number) =>
   Math.round(Number(amount ?? 0) * 100);
 const amountFromCents = (cents: number) => Number(cents ?? 0) / 100;
 
-type StripeAccountInsert = Database["public"]["Tables"]["stripe_accounts"]["Insert"];
+type StripeAccountInsert =
+  Database["public"]["Tables"]["stripe_accounts"]["Insert"];
 type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
 type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
+type WalletRow = Database["public"]["Tables"]["wallets"]["Row"];
 
 type ServerCountryConfig = {
   requiresSSN?: boolean;
@@ -52,8 +54,8 @@ const onboardingSchema = z
       .transform((val) => val.toLowerCase()),
     dobDay: z.coerce.number().int().min(1).max(31),
     dobMonth: z.coerce.number().int().min(1).max(12),
-    dobYear: z
-      .coerce.number()
+    dobYear: z.coerce
+      .number()
       .int()
       .min(1900)
       .max(new Date().getFullYear() - 13),
@@ -136,8 +138,14 @@ interface RecordTransactionInput {
   feeAmountInCents?: number;
 }
 
-const DEFAULT_APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const CONNECT_ACCOUNT_URL = "https://caudals.vercel.app" as const;
+
+const CONNECT_ACCOUNT_PROFILE: Stripe.AccountCreateParams.BusinessProfile = {
+  product_description:
+    "Receives payouts for Caudals contributor work (non-commercial)",
+  mcc: "5734",
+  url: CONNECT_ACCOUNT_URL,
+};
 
 function assertStripeConfigured() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -176,6 +184,342 @@ const normalizeOptionalString = (value?: string | null) => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const toStripeError = (error: unknown): Stripe.errors.StripeError | null => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "type" in error &&
+    "message" in error
+  ) {
+    return error as Stripe.errors.StripeError;
+  }
+  return null;
+};
+
+const isAccessRevokedError = (error: unknown, accountId?: string): boolean => {
+  const stripeError = toStripeError(error);
+  if (!stripeError) return false;
+
+  const message = stripeError.message?.toLowerCase() ?? "";
+
+  if (error instanceof Stripe.errors.StripePermissionError) {
+    return true;
+  }
+
+  if (stripeError.code === "permission_denied") {
+    return true;
+  }
+
+  if (stripeError.code === "resource_missing") {
+    return true;
+  }
+
+  if (message.includes("does not have access to account")) {
+    if (accountId) {
+      return message.includes(accountId.toLowerCase());
+    }
+    return true;
+  }
+
+  if (message.includes("application access may have been revoked")) {
+    return true;
+  }
+
+  return false;
+};
+
+const isMissingCustomCapabilityError = (error: unknown): boolean => {
+  const stripeError = toStripeError(error);
+  if (!stripeError) return false;
+
+  const message = stripeError.message?.toLowerCase() ?? "";
+
+  if (error instanceof Stripe.errors.StripePermissionError) {
+    return true;
+  }
+
+  if (stripeError.code === "permission_denied") {
+    return true;
+  }
+
+  return (
+    message.includes("custom accounts are not enabled") ||
+    message.includes("does not have the required permissions") ||
+    message.includes("cannot create accounts of this type")
+  );
+};
+
+const customCapabilityHelpMessage =
+  "Stripe rejected the onboarding request because your platform isn’t enabled for Custom Connect. In the Stripe dashboard, go to Connect → Settings and request access to Custom accounts (card_payments and transfers capabilities). Once Stripe approves, retry the onboarding.";
+
+type WalletRowWithCustomer = WalletRow & {
+  stripe_customer_id?: string | null;
+};
+
+export const ensureWalletRecord = async (
+  adminClient: Record<string, unknown>,
+  userId: string,
+  currency = "usd"
+): Promise<WalletRowWithCustomer> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: walletRow, error: walletError } = await (adminClient as any)
+    .from("wallets")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (walletError && walletError.code !== "PGRST116") {
+    console.error("Failed to load wallet record", walletError);
+    throw new Error("Failed to load wallet record");
+  }
+
+  if (walletRow) {
+    return walletRow as WalletRowWithCustomer;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: inserted, error: upsertError } = await (adminClient as any)
+    .from("wallets")
+    .upsert(
+      {
+        user_id: userId,
+        currency: currency.toLowerCase(),
+      },
+      { onConflict: "user_id" }
+    )
+    .select("*")
+    .single();
+
+  if (upsertError || !inserted) {
+    console.error("Failed to ensure wallet record", upsertError);
+    throw new Error("Failed to ensure wallet record");
+  }
+
+  return inserted as WalletRowWithCustomer;
+};
+
+export const ensureStripeCustomerForUser = async (
+  stripe: Stripe,
+  adminClient: Record<string, unknown>,
+  userId: string,
+  email?: string | null,
+  name?: string | null
+): Promise<{ customerId: string; wallet: WalletRowWithCustomer }> => {
+  let wallet = await ensureWalletRecord(adminClient, userId);
+
+  if (wallet.stripe_customer_id) {
+    return { customerId: wallet.stripe_customer_id, wallet };
+  }
+
+  const customer = await stripe.customers.create({
+    email: email ?? undefined,
+    name: name ?? undefined,
+    metadata: {
+      platform_user_id: userId,
+    },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: updatedWallet, error: updateError } = await (adminClient as any)
+    .from("wallets")
+    .update({
+      stripe_customer_id: customer.id,
+      last_synced_at: new Date().toISOString(),
+    })
+    .eq("id", wallet.id)
+    .select("*")
+    .single();
+
+  if (updateError || !updatedWallet) {
+    console.error("Failed to persist Stripe customer id", updateError);
+    throw new Error("Failed to persist Stripe customer id");
+  }
+
+  wallet = updatedWallet as WalletRowWithCustomer;
+
+  return { customerId: customer.id, wallet };
+};
+
+const pickBalanceEntry = (
+  entries: Stripe.Balance.Available[] | undefined,
+  preferredCurrency: string
+): Stripe.Balance.Available | undefined => {
+  if (!entries?.length) return undefined;
+  const normalized = preferredCurrency.toLowerCase();
+  return (
+    entries.find((entry) => entry.currency.toLowerCase() === normalized) ??
+    entries[0]
+  );
+};
+
+const resolveCashBalance = (
+  cash: Stripe.CashBalance | null | undefined,
+  preferredCurrency: string
+) => {
+  const availableMap = cash?.available ?? {};
+  const normalized = preferredCurrency.toLowerCase();
+
+  if (Object.prototype.hasOwnProperty.call(availableMap, normalized)) {
+    const amount = availableMap[normalized];
+    if (typeof amount === "number") {
+      return { amount, currency: normalized };
+    }
+  }
+
+  const [firstCurrency] = Object.keys(availableMap);
+  if (firstCurrency) {
+    const amount = availableMap[firstCurrency];
+    if (typeof amount === "number") {
+      return { amount, currency: firstCurrency };
+    }
+  }
+
+  return { amount: 0, currency: normalized };
+};
+
+const serializeWalletRecord = (wallet: WalletRow) => ({
+  id: wallet.id,
+  user_id: wallet.user_id,
+  balance: amountFromCents(wallet.available_balance),
+  available_balance: amountFromCents(wallet.available_balance),
+  pending_balance: amountFromCents(wallet.pending_balance),
+  currency: (wallet.currency ?? "usd").toUpperCase(),
+  updated_at: wallet.updated_at,
+  last_synced_at: wallet.last_synced_at,
+});
+
+export const syncWalletFromConnectAccount = async (
+  stripe: Stripe,
+  adminClient: Record<string, unknown>,
+  wallet: WalletRowWithCustomer,
+  stripeAccountId: string,
+  preferredCurrency?: string | null
+): Promise<WalletRowWithCustomer> => {
+  const currencyPreference = (
+    preferredCurrency ??
+    wallet.currency ??
+    "usd"
+  ).toLowerCase();
+
+  try {
+    const balance = await stripe.balance.retrieve({
+      stripeAccount: stripeAccountId,
+    });
+
+    const availableEntry = pickBalanceEntry(
+      balance.available,
+      currencyPreference
+    );
+    const pendingEntry = pickBalanceEntry(balance.pending, currencyPreference);
+    const currencyCode = (
+      availableEntry?.currency ??
+      pendingEntry?.currency ??
+      currencyPreference
+    ).toLowerCase();
+    const availableCents = availableEntry?.amount ?? 0;
+    const pendingCents = pendingEntry?.amount ?? 0;
+    const syncedAt = new Date().toISOString();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: updatedWallet, error: updateError } = await (
+      adminClient as any
+    )
+      .from("wallets")
+      .update({
+        available_balance: availableCents,
+        pending_balance: pendingCents,
+        currency: currencyCode,
+        last_synced_at: syncedAt,
+      })
+      .eq("id", wallet.id)
+      .select("*")
+      .single();
+
+    if (!updateError && updatedWallet) {
+      return updatedWallet as WalletRow;
+    }
+
+    if (updateError) {
+      console.error("Failed to update wallet from Stripe balance", updateError);
+    }
+
+    return {
+      ...wallet,
+      available_balance: availableCents,
+      pending_balance: pendingCents,
+      currency: currencyCode,
+      last_synced_at: syncedAt,
+    };
+  } catch (error) {
+    console.error("Failed to retrieve Stripe balance", error);
+    return wallet;
+  }
+};
+
+export const syncWalletFromCustomer = async (
+  stripe: Stripe,
+  adminClient: Record<string, unknown>,
+  wallet: WalletRowWithCustomer,
+  customerId: string
+): Promise<WalletRowWithCustomer> => {
+  try {
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ["cash_balance"],
+    });
+
+    if (!customer || (customer as Stripe.DeletedCustomer).deleted) {
+      return wallet;
+    }
+
+    const liveCustomer = customer as Stripe.Customer;
+    const preferredCurrency = wallet.currency ?? "usd";
+    const { amount: availableCents, currency: currencyCode } =
+      resolveCashBalance(
+        liveCustomer.cash_balance as Stripe.CashBalance | null | undefined,
+        preferredCurrency
+      );
+    const pendingCents = 0;
+    const syncedAt = new Date().toISOString();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: updatedWallet, error: updateError } = await (
+      adminClient as any
+    )
+      .from("wallets")
+      .update({
+        available_balance: availableCents,
+        pending_balance: pendingCents,
+        currency: currencyCode,
+        last_synced_at: syncedAt,
+      })
+      .eq("id", wallet.id)
+      .select("*")
+      .single();
+
+    if (!updateError && updatedWallet) {
+      return updatedWallet as WalletRow;
+    }
+
+    if (updateError) {
+      console.error(
+        "Failed to update wallet from Stripe customer",
+        updateError
+      );
+    }
+
+    return {
+      ...wallet,
+      available_balance: availableCents,
+      pending_balance: pendingCents,
+      currency: currencyCode,
+      last_synced_at: syncedAt,
+    };
+  } catch (error) {
+    console.error("Failed to retrieve Stripe customer balance", error);
+    return wallet;
+  }
+};
+
 async function recordTransaction({
   userId,
   direction,
@@ -207,8 +551,7 @@ async function recordTransaction({
     metadata: (metadata as Json) ?? null,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (admin as any)
+  const { data, error } = await adminClient
     .from("transactions")
     .insert(payload)
     .select()
@@ -242,7 +585,10 @@ async function upsertStripeAccountRecord(
   const payload: StripeAccountInsert = {
     user_id: userId,
     stripe_account_id: account.id,
-    account_type: (account.type ?? "custom") as "custom" | "express" | "standard",
+    account_type: (account.type ?? "custom") as
+      | "custom"
+      | "express"
+      | "standard",
     country: account.country ?? "US",
     default_currency: account.default_currency ?? "usd",
     status: account.details_submitted
@@ -253,7 +599,8 @@ async function upsertStripeAccountRecord(
     charges_enabled: account.charges_enabled ?? false,
     payouts_enabled: account.payouts_enabled ?? false,
     details_submitted: account.details_submitted ?? false,
-    requirements_currently_due: (account.requirements?.currently_due ?? []) as Json,
+    requirements_currently_due: (account.requirements?.currently_due ??
+      []) as Json,
     requirements_past_due: (account.requirements?.past_due ?? []) as Json,
     requirements_disabled_reason: account.requirements?.disabled_reason ?? null,
     bank_status: bankStatus,
@@ -293,37 +640,64 @@ export async function getUserWallet() {
   const admin = createAdminClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
-  const { data: wallet, error } = await adminClient
-    .from("wallets")
-    .select("*")
-    .eq("user_id", user.id)
+  const stripe = getStripeServer();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name, mail")
+    .eq("id", user.id)
     .single();
 
-  if (error || !wallet) {
-    return {
-      data: {
-        id: "wallet-not-initialised",
-        user_id: user.id,
-        balance: 0,
-        available_balance: 0,
-        pending_balance: 0,
-        currency: "USD",
-        updated_at: new Date().toISOString(),
-      },
-    };
+  let walletRecord: WalletRow;
+
+  try {
+    walletRecord = await ensureWalletRecord(adminClient, user.id);
+  } catch (errorEnsure) {
+    console.error("Failed to prepare wallet record", errorEnsure);
+    return { error: "Failed to load wallet" };
+  }
+
+  const { data: accountRecord } = await adminClient
+    .from("stripe_accounts")
+    .select("stripe_account_id, default_currency")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isContributor = Boolean(accountRecord?.stripe_account_id);
+
+  if (isContributor && accountRecord?.stripe_account_id) {
+    walletRecord = await syncWalletFromConnectAccount(
+      stripe,
+      adminClient,
+      walletRecord,
+      accountRecord.stripe_account_id,
+      accountRecord.default_currency
+    );
+
+    return { data: serializeWalletRecord(walletRecord) };
+  }
+
+  try {
+    const { customerId, wallet } = await ensureStripeCustomerForUser(
+      stripe,
+      adminClient,
+      user.id,
+      profile?.mail ?? user.email,
+      profile?.full_name
+    );
+
+    walletRecord = await syncWalletFromCustomer(
+      stripe,
+      adminClient,
+      wallet,
+      customerId
+    );
+  } catch (errorCustomer) {
+    console.error("Failed to sync requester wallet from Stripe", errorCustomer);
   }
 
   return {
-    data: {
-      id: wallet.id,
-      user_id: wallet.user_id,
-      balance: amountFromCents(wallet.available_balance),
-      available_balance: amountFromCents(wallet.available_balance),
-      pending_balance: amountFromCents(wallet.pending_balance),
-      currency: wallet.currency.toUpperCase(),
-      updated_at: wallet.updated_at,
-      last_synced_at: wallet.last_synced_at,
-    },
+    data: serializeWalletRecord(walletRecord),
   };
 }
 
@@ -388,18 +762,53 @@ export async function createPaymentIntent(
     return { error: "Amount must be greater than zero" };
   }
 
+  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
   const stripe = getStripeServer();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, mail")
+    .eq("id", user.id)
+    .single();
+
+  let customerId: string | null = null;
+
+  try {
+    const ensuredCustomer = await ensureStripeCustomerForUser(
+      stripe,
+      adminClient,
+      user.id,
+      profile?.mail ?? user.email,
+      profile?.full_name
+    );
+    customerId = ensuredCustomer.customerId;
+  } catch (customerError) {
+    console.error(
+      "Failed to ensure Stripe customer before payment intent",
+      customerError
+    );
+  }
 
   try {
     if (datasetId === "wallet-funding") {
+      const metadata: Record<string, string> = {
+        user_id: user.id,
+        type: "wallet_deposit",
+      };
+
+      if (customerId) {
+        metadata.stripe_customer_id = customerId;
+      }
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountInCents,
         currency: normalizedCurrency,
+        customer: customerId ?? undefined,
         automatic_payment_methods: { enabled: true },
-        metadata: {
-          user_id: user.id,
-          type: "wallet_deposit",
-        },
+        metadata,
+        receipt_email: profile?.mail ?? user.email ?? undefined,
         description: `Wallet funding for ${user.email ?? user.id}`,
       });
 
@@ -421,17 +830,25 @@ export async function createPaymentIntent(
       return { error: "Dataset not found or access denied" };
     }
 
+    const metadata: Record<string, string> = {
+      user_id: user.id,
+      dataset_id: datasetId,
+      type: "dataset_funding",
+    };
+
+    if (customerId) {
+      metadata.stripe_customer_id = customerId;
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: normalizedCurrency,
+      customer: customerId ?? undefined,
       automatic_payment_methods: { enabled: true },
-      metadata: {
-        user_id: user.id,
-        dataset_id: datasetId,
-        type: "dataset_funding",
-      },
+      metadata,
       description: `Funding dataset ${dataset.title}`,
       transfer_group: `dataset_${datasetId}`,
+      receipt_email: profile?.mail ?? user.email ?? undefined,
     });
 
     await supabase
@@ -452,7 +869,9 @@ export async function createPaymentIntent(
   } catch (error) {
     console.error("Failed to create PaymentIntent", error);
     const message =
-      error instanceof Error ? error.message : "Failed to create payment intent";
+      error instanceof Error
+        ? error.message
+        : "Failed to create payment intent";
     return { error: message };
   }
 }
@@ -462,6 +881,9 @@ export async function confirmPayment(paymentIntentId: string) {
 
   const supabase = await createClient();
   const stripe = getStripeServer();
+  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
 
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -488,6 +910,25 @@ export async function confirmPayment(paymentIntentId: string) {
         metadata: metadata as Record<string, unknown>,
       });
 
+      if (typeof paymentIntent.customer === "string") {
+        try {
+          const { customerId, wallet } = await ensureStripeCustomerForUser(
+            stripe,
+            adminClient,
+            userId,
+            paymentIntent.receipt_email ?? undefined,
+            undefined
+          );
+
+          await syncWalletFromCustomer(stripe, adminClient, wallet, customerId);
+        } catch (syncError) {
+          console.error(
+            "Failed to sync wallet after payment confirmation",
+            syncError
+          );
+        }
+      }
+
       return { data: { success: true } };
     }
 
@@ -509,9 +950,29 @@ export async function confirmPayment(paymentIntentId: string) {
         .from("dataset_requests")
         .update({
           payment_status: "paid",
-          paid_amount: (paymentIntent.amount_received ?? paymentIntent.amount) / 100,
+          paid_amount:
+            (paymentIntent.amount_received ?? paymentIntent.amount) / 100,
         })
         .eq("id", datasetId);
+
+      if (typeof paymentIntent.customer === "string") {
+        try {
+          const { customerId, wallet } = await ensureStripeCustomerForUser(
+            stripe,
+            adminClient,
+            userId,
+            paymentIntent.receipt_email ?? undefined,
+            undefined
+          );
+
+          await syncWalletFromCustomer(stripe, adminClient, wallet, customerId);
+        } catch (syncError) {
+          console.error(
+            "Failed to sync wallet after dataset payment",
+            syncError
+          );
+        }
+      }
 
       return { data: { success: true } };
     }
@@ -594,7 +1055,9 @@ export async function payWithWallet(datasetId: string, amount: number) {
   };
 }
 
-export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) {
+export async function submitStripeOnboarding(
+  rawInput: StripeOnboardingPayload
+) {
   assertStripeConfigured();
 
   const supabase = await createClient();
@@ -628,7 +1091,7 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
   const ipForTos =
     payload.ipAddress && payload.ipAddress !== "127.0.0.1"
       ? payload.ipAddress
-      : fallbackIp ?? "127.0.0.1";
+      : (fallbackIp ?? "127.0.0.1");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -643,46 +1106,69 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
     .single();
 
   try {
-    if (!existingAccount) {
-      const createdAccount = await stripe.accounts.create({
-        type: "custom",
-        country: normalizedCountry,
-        email: payload.email ?? profile?.mail ?? user.email ?? undefined,
-        business_type: "individual",
-        capabilities: {
-          transfers: { requested: true },
-        },
-        tos_acceptance: {
-          date: Math.floor(Date.now() / 1000),
-          ip: ipForTos,
-        },
-        business_profile: {
-          product_description:
-            "Receives payouts for contributing datasets via Caudals Dataset Platform",
-          mcc: "5734", // Computer software stores
-          url: DEFAULT_APP_URL,
-        },
-      });
+    let accountRecord = existingAccount ?? null;
+    let managedAccount: Stripe.Account | null = null;
 
-      await upsertStripeAccountRecord(user.id, createdAccount);
+    if (accountRecord?.stripe_account_id) {
+      try {
+        managedAccount = await stripe.accounts.retrieve(
+          accountRecord.stripe_account_id,
+          { expand: ["external_accounts"] }
+        );
+      } catch (error) {
+        if (isAccessRevokedError(error, accountRecord.stripe_account_id)) {
+          console.warn(
+            "Lost access to existing Stripe account; removing local mapping",
+            accountRecord.stripe_account_id
+          );
+          await adminClient
+            .from("stripe_accounts")
+            .delete()
+            .eq("stripe_account_id", accountRecord.stripe_account_id);
+          accountRecord = null;
+        } else if (isMissingCustomCapabilityError(error)) {
+          return { error: customCapabilityHelpMessage };
+        } else {
+          throw error;
+        }
+      }
     }
 
-    let accountId = existingAccount?.stripe_account_id ?? null;
+    if (!managedAccount) {
+      try {
+        const createdAccount = await stripe.accounts.create({
+          type: "custom",
+          country: normalizedCountry,
+          email: payload.email ?? profile?.mail ?? user.email ?? undefined,
+          business_type: "individual",
+          capabilities: {
+            transfers: { requested: true },
+            card_payments: { requested: true },
+          },
+          tos_acceptance: {
+            date: Math.floor(Date.now() / 1000),
+            ip: ipForTos,
+          },
+          business_profile: CONNECT_ACCOUNT_PROFILE,
+        });
 
-    if (!accountId) {
-      const lookup = await adminClient
-        .from("stripe_accounts")
-        .select("stripe_account_id")
-        .eq("user_id", user.id)
-        .single();
-
-      accountId = lookup.data?.stripe_account_id ?? null;
+        await upsertStripeAccountRecord(user.id, createdAccount);
+        managedAccount = await stripe.accounts.retrieve(createdAccount.id, {
+          expand: ["external_accounts"],
+        });
+      } catch (error) {
+        if (isMissingCustomCapabilityError(error)) {
+          return { error: customCapabilityHelpMessage };
+        }
+        throw error;
+      }
     }
 
-    if (!accountId) {
+    if (!managedAccount) {
       throw new Error("Failed to create Stripe Connect account");
     }
 
+    const accountId = managedAccount.id;
     const accountHolderName = `${payload.firstName} ${payload.lastName}`.trim();
 
     const individualAddress: {
@@ -725,9 +1211,10 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
       individual.ssn_last_4 = maybeSSN;
     }
 
-    await stripe.accounts.update(accountId, {
+    const updatePayload: Stripe.AccountUpdateParams = {
       individual,
-      default_currency: normalizedCurrency,
+      business_profile: CONNECT_ACCOUNT_PROFILE,
+      business_type: "individual",
       settings: {
         payouts: {
           schedule: {
@@ -735,7 +1222,33 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
           },
         },
       },
-    });
+    };
+
+    if (
+      !managedAccount.default_currency ||
+      managedAccount.default_currency.toLowerCase() !== normalizedCurrency
+    ) {
+      updatePayload.default_currency = normalizedCurrency;
+    }
+
+    try {
+      await stripe.accounts.update(accountId, updatePayload);
+    } catch (error) {
+      if (isMissingCustomCapabilityError(error)) {
+        return { error: customCapabilityHelpMessage };
+      }
+      if (isAccessRevokedError(error, accountId)) {
+        await adminClient
+          .from("stripe_accounts")
+          .delete()
+          .eq("stripe_account_id", accountId);
+        return {
+          error:
+            "Stripe rejected the update because this API key no longer has access to the connected account. Disconnect it from Settings → Payments and try onboarding again.",
+        };
+      }
+      throw error;
+    }
 
     const accountSnapshot = await stripe.accounts.retrieve(accountId, {
       expand: ["external_accounts"],
@@ -751,43 +1264,81 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
           existingExternalAccount.id
         );
       } catch (externalAccountError) {
-        console.warn(
-          "Failed to delete existing external account before replacement",
-          externalAccountError
-        );
+        if (!isAccessRevokedError(externalAccountError, accountId)) {
+          console.warn(
+            "Failed to delete existing external account before replacement",
+            externalAccountError
+          );
+        }
       }
     }
 
-    await stripe.accounts.createExternalAccount(accountId, {
-      external_account: (() => {
-        const bankAccount: Stripe.AccountCreateExternalAccountParams.BankAccount =
-          {
-            object: "bank_account",
-            country: normalizedCountry,
-            currency: normalizedCurrency,
-            account_number: payload.bankAccountNumber,
-            account_holder_name: accountHolderName,
-            account_holder_type: "individual",
-          };
+    try {
+      await stripe.accounts.createExternalAccount(accountId, {
+        external_account: (() => {
+          const bankAccount: Stripe.AccountCreateExternalAccountParams.BankAccount =
+            {
+              object: "bank_account",
+              country: normalizedCountry,
+              currency: normalizedCurrency,
+              account_number: payload.bankAccountNumber,
+              account_holder_name: accountHolderName,
+              account_holder_type: "individual",
+            };
 
-        const routingNumber = normalizeOptionalString(payload.bankRoutingNumber);
-        if (routingNumber) {
-          bankAccount.routing_number = routingNumber;
-        }
+          const routingNumber = normalizeOptionalString(
+            payload.bankRoutingNumber
+          );
+          if (routingNumber) {
+            bankAccount.routing_number = routingNumber;
+          }
 
-        const swiftCode = normalizeOptionalString(payload.bankSwiftCode);
-        if (swiftCode) {
-          (bankAccount as { swift_code?: string }).swift_code = swiftCode;
-        }
+          const swiftCode = normalizeOptionalString(payload.bankSwiftCode);
+          if (swiftCode) {
+            (bankAccount as { swift_code?: string }).swift_code = swiftCode;
+          }
 
-        return bankAccount;
-      })(),
-    });
+          return bankAccount;
+        })(),
+      });
+    } catch (error) {
+      if (isMissingCustomCapabilityError(error)) {
+        return { error: customCapabilityHelpMessage };
+      }
+      if (isAccessRevokedError(error, accountId)) {
+        await adminClient
+          .from("stripe_accounts")
+          .delete()
+          .eq("stripe_account_id", accountId);
+        return {
+          error:
+            "Stripe could not attach the payout bank account because access to the connected account was revoked. Please reconnect your payout account.",
+        };
+      }
+      throw error;
+    }
 
     const refreshedAccount = await stripe.accounts.retrieve(accountId, {
       expand: ["external_accounts"],
     });
     const record = await upsertStripeAccountRecord(user.id, refreshedAccount);
+
+    try {
+      const contributorWallet = await ensureWalletRecord(
+        adminClient,
+        user.id,
+        record.default_currency ?? normalizedCurrency
+      );
+      await syncWalletFromConnectAccount(
+        stripe,
+        adminClient,
+        contributorWallet,
+        accountId,
+        record.default_currency ?? normalizedCurrency
+      );
+    } catch (syncError) {
+      console.warn("Unable to sync wallet after onboarding", syncError);
+    }
 
     return {
       data: {
@@ -800,9 +1351,73 @@ export async function submitStripeOnboarding(rawInput: StripeOnboardingPayload) 
   } catch (error) {
     console.error("Error during Stripe onboarding", error);
     const message =
-      error instanceof Error ? error.message : "Failed to submit Stripe onboarding";
+      error instanceof Error
+        ? error.message
+        : "Failed to submit Stripe onboarding";
     return { error: message };
   }
+}
+
+export async function deleteStripeConnectAccount() {
+  assertStripeConfigured();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const stripe = getStripeServer();
+  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
+
+  const { data: accountRecord } = await adminClient
+    .from("stripe_accounts")
+    .select("id, stripe_account_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!accountRecord?.stripe_account_id) {
+    return { error: "Stripe account not found" };
+  }
+
+  try {
+    await stripe.accounts.del(accountRecord.stripe_account_id);
+  } catch (error) {
+    if (!isAccessRevokedError(error, accountRecord.stripe_account_id)) {
+      console.error("Failed to delete Stripe connect account", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete Stripe account";
+      return { error: message };
+    }
+  }
+
+  await adminClient.from("stripe_accounts").delete().eq("id", accountRecord.id);
+
+  try {
+    const walletRecord = await ensureWalletRecord(adminClient, user.id);
+    await adminClient
+      .from("wallets")
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq("id", walletRecord.id);
+  } catch (syncError) {
+    console.warn(
+      "Unable to sync wallet after Stripe account deletion",
+      syncError
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/contributor");
+  revalidatePath("/dashboard/earnings");
+
+  return { data: { deleted: true } };
 }
 
 export async function getStripeConnectAccount() {
@@ -867,7 +1482,9 @@ export async function getStripeConnectStatus() {
 
   try {
     const stripe = getStripeServer();
-    const account = await stripe.accounts.retrieve(accountRecord.stripe_account_id);
+    const account = await stripe.accounts.retrieve(
+      accountRecord.stripe_account_id
+    );
     const updatedRecord = await upsertStripeAccountRecord(user.id, account);
 
     return {
@@ -924,11 +1541,13 @@ export async function getStripeConnectBalance() {
 
     return {
       data: {
-        available: available
-          ? amountFromCents(available.amount)
-          : 0,
+        available: available ? amountFromCents(available.amount) : 0,
         pending: pending ? amountFromCents(pending.amount) : 0,
-        currency: (available?.currency ?? pending?.currency ?? "usd").toUpperCase(),
+        currency: (
+          available?.currency ??
+          pending?.currency ??
+          "usd"
+        ).toUpperCase(),
       },
     };
   } catch (error) {
@@ -984,6 +1603,20 @@ export async function payoutToContributor(
       description: `Payout for submission ${submissionId}`,
       transfer_group: `dataset_${datasetId}`,
     });
+
+    const contributorWallet = await ensureWalletRecord(
+      adminClient,
+      contributorId,
+      accountRecord.default_currency ?? "usd"
+    );
+
+    await syncWalletFromConnectAccount(
+      stripe,
+      adminClient,
+      contributorWallet,
+      accountRecord.stripe_account_id,
+      accountRecord.default_currency
+    );
 
     await recordTransaction({
       userId: contributorId,

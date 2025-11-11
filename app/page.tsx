@@ -44,6 +44,7 @@ export default function Home() {
           translucent
           links={[
             { href: "/browse", label: "Browse" },
+            { href: "/collaborate", label: "Collaborate" },
             // { href: "#features", label: "Features" },
             // { href: "#how-it-works", label: "How it works" },
             // { href: "#use-cases", label: "Use cases" },
@@ -83,6 +84,12 @@ export default function Home() {
                 Building the future of AI dataset creation through global
                 collaboration.
               </p>
+              <Link
+                href="mailto:contact@caudals.com"
+                className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-primary"
+              >
+                contact@caudals.com
+              </Link>
             </div>
             <div>
               <h4 className="mb-4 text-sm font-semibold text-slate-900">
