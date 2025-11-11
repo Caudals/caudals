@@ -22,6 +22,7 @@ type StripeAccountInsert =
 type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
 type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
 type WalletRow = Database["public"]["Tables"]["wallets"]["Row"];
+type AdminClient = ReturnType<typeof createAdminClient>;
 
 type ServerCountryConfig = {
   requiresSSN?: boolean;
@@ -257,7 +258,7 @@ type WalletRowWithCustomer = WalletRow & {
 };
 
 export const ensureWalletRecord = async (
-  adminClient: Record<string, unknown>,
+  adminClient: AdminClient,
   userId: string,
   currency = "usd"
 ): Promise<WalletRowWithCustomer> => {
@@ -300,7 +301,7 @@ export const ensureWalletRecord = async (
 
 export const ensureStripeCustomerForUser = async (
   stripe: Stripe,
-  adminClient: Record<string, unknown>,
+  adminClient: AdminClient,
   userId: string,
   email?: string | null,
   name?: string | null
@@ -390,7 +391,7 @@ const serializeWalletRecord = (wallet: WalletRow) => ({
 
 export const syncWalletFromConnectAccount = async (
   stripe: Stripe,
-  adminClient: Record<string, unknown>,
+  adminClient: AdminClient,
   wallet: WalletRowWithCustomer,
   stripeAccountId: string,
   preferredCurrency?: string | null
@@ -421,9 +422,8 @@ export const syncWalletFromConnectAccount = async (
     const syncedAt = new Date().toISOString();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: updatedWallet, error: updateError } = await (
-      adminClient as any
-    )
+    const adminDb = adminClient as any;
+    const { data: updatedWallet, error: updateError } = await adminDb
       .from("wallets")
       .update({
         available_balance: availableCents,
@@ -458,7 +458,7 @@ export const syncWalletFromConnectAccount = async (
 
 export const syncWalletFromCustomer = async (
   stripe: Stripe,
-  adminClient: Record<string, unknown>,
+  adminClient: AdminClient,
   wallet: WalletRowWithCustomer,
   customerId: string
 ): Promise<WalletRowWithCustomer> => {
@@ -482,9 +482,8 @@ export const syncWalletFromCustomer = async (
     const syncedAt = new Date().toISOString();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: updatedWallet, error: updateError } = await (
-      adminClient as any
-    )
+    const adminDb = adminClient as any;
+    const { data: updatedWallet, error: updateError } = await adminDb
       .from("wallets")
       .update({
         available_balance: availableCents,
