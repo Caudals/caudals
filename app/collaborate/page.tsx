@@ -9,7 +9,7 @@ import { MarketingFooter } from "@/components/marketing/footer";
 export const metadata: Metadata = {
   title: "Collaborate with Caudals",
   description:
-    "Partner with Caudals to unlock new datasets, co-create programs, or collaborate on civic-minded AI initiatives.",
+    "Partner with Caudals to create new datasets, co-create programs, or collaborate on innovative AI initiatives.",
 };
 
 const highlights = [
