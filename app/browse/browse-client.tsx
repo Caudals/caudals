@@ -4,16 +4,10 @@ import { useMemo, useState } from "react";
 
 import { DatasetCardImproved } from "@/components/browse/dataset-card-improved";
 import { SearchSortBar } from "@/components/browse/search-sort-bar";
-import {
-  Dataset,
-  DatasetCategory,
-  DatasetFilters,
-  SortOption,
-} from "@/types/dataset";
+import { Dataset, DatasetFilters, SortOption } from "@/types/dataset";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Database } from "lucide-react";
-import { categoryLabels } from "@/lib/data/datasets";
 
 interface BrowseClientProps {
   initialDatasets: Dataset[];
@@ -39,63 +33,6 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
       status: [],
     });
   };
-
-  const toggleCategory = (category: DatasetCategory) => {
-    setFilters((prev) => {
-      const categories = prev.categories.includes(category)
-        ? prev.categories.filter((c) => c !== category)
-        : [...prev.categories, category];
-
-      return { ...prev, categories };
-    });
-  };
-
-  const clearCategoryFilters = () => {
-    setFilters((prev) => ({ ...prev, categories: [] }));
-  };
-
-  const popularCategories = useMemo(() => {
-    const counts = new Map<DatasetCategory, number>();
-
-    initialDatasets.forEach((dataset) => {
-      counts.set(dataset.category, (counts.get(dataset.category) || 0) + 1);
-    });
-
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([value, count]) => ({
-        value,
-        label: categoryLabels[value],
-        count,
-      }));
-  }, [initialDatasets]);
-
-  const heroMetrics = useMemo(() => {
-    const active = initialDatasets.filter(
-      (dataset) => dataset.status === "active"
-    ).length;
-    const closingSoon = initialDatasets.filter(
-      (dataset) => dataset.status === "closing-soon"
-    ).length;
-    const featured = initialDatasets.filter(
-      (dataset) => dataset.featured
-    ).length;
-    const contributors = initialDatasets.reduce(
-      (total, dataset) => total + dataset.activeContributors,
-      0
-    );
-
-    return [
-      { label: "Active requests", value: active.toLocaleString() },
-      { label: "Closing soon", value: closingSoon.toLocaleString() },
-      { label: "Featured spotlights", value: featured.toLocaleString() },
-      {
-        label: "Contributors engaged",
-        value: contributors.toLocaleString(),
-      },
-    ];
-  }, [initialDatasets]);
 
   // Filter datasets
   const filteredDatasets = useMemo(() => {
@@ -192,72 +129,23 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
   const hasResults = sortedDatasets.length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-16 pt-10">
-      <section className="rounded-2xl border border-border bg-card p-8 md:p-12">
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-6">
-            <Badge variant="secondary" className="w-fit">
-              Dataset Marketplace
-            </Badge>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-                Discover Dataset Requests
-              </h1>
-              <p className="text-base text-muted-foreground sm:text-lg">
-                Browse opportunities from leading AI teams. Filter by category,
-                data type, and reward to find the perfect project.
-              </p>
-            </div>
-
-            {popularCategories.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                {popularCategories.map(({ value, label, count }) => {
-                  const isActive = filters.categories.includes(value);
-
-                  return (
-                    <Button
-                      key={value}
-                      size="sm"
-                      variant={isActive ? "default" : "outline"}
-                      className="text-xs"
-                      onClick={() => toggleCategory(value)}
-                    >
-                      {label}
-                      <span className="ml-1.5 text-muted-foreground">
-                        ({count})
-                      </span>
-                    </Button>
-                  );
-                })}
-
-                {filters.categories.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs"
-                    onClick={clearCategoryFilters}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="grid w-full max-w-lg grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-4 sm:grid-cols-4 lg:max-w-xl lg:grid-cols-2">
-            {heroMetrics.map((metric) => (
-              <div key={metric.label} className="space-y-1 text-left">
-                <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className="text-xl font-bold text-foreground">
-                  {metric.value}
-                </p>
-              </div>
-            ))}
-          </div>
+    <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-col gap-2 text-center sm:mb-8 sm:text-left">
+        <Badge variant="secondary" className="mx-auto w-fit sm:mx-0">
+          Live Requests
+        </Badge>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Browse the dataset feed
+          </h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
+            Search, sort, and filter opportunities from organizations launching
+            new programs.
+          </p>
         </div>
-      </section>
+      </div>
 
-      <div className="mt-10">
+      <div className="mb-10">
         <SearchSortBar
           search={filters.search}
           onSearchChange={(value) =>

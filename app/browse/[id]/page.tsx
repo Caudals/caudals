@@ -1,4 +1,5 @@
 import { Header } from "@/components/ui/header";
+import { MarketingFooter } from "@/components/marketing/footer";
 import { getDatasetById } from "@/lib/actions/dataset-actions";
 import { getSubmissionsByDatasetRequest } from "@/lib/actions/submission-actions";
 import { notFound } from "next/navigation";
@@ -19,9 +20,10 @@ export default async function DatasetDetailPage({
   const submissions = await getSubmissionsByDatasetRequest(id);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header links={[{ href: "/browse", label: "Browse" }]} />
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
       <DatasetDetailClient dataset={dataset} submissions={submissions} />
+      <MarketingFooter />
     </div>
   );
 }

@@ -39,11 +39,15 @@ export function HowItWorksSection() {
     <section className="relative py-24">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            How it works
+          <span className="rounded-full bg-muted px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+            Operating model
+          </span>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            From idea to dataset in four steps
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            From concept to dataset in four simple steps
+          <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
+            We blend human review, automation, and transparent payouts so every program
+            ships quickly without sacrificing accountability.
           </p>
         </div>
 
@@ -55,26 +59,22 @@ export function HowItWorksSection() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
               viewport={{ once: true, margin: "-50px" }}
-              className="relative flex gap-6"
+              className="relative flex gap-6 rounded-3xl border border-border/60 bg-white/80 p-6 shadow-sm backdrop-blur"
             >
               <div className="flex flex-col items-center">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-xl font-bold text-slate-900 shadow-lg shadow-primary/25 transition-transform hover:scale-110">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-bold text-primary shadow-inner shadow-primary/30">
                   {step.number}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="mt-4 h-full w-px bg-gradient-to-b from-primary/50 to-transparent lg:block hidden" />
+                  <div className="mt-4 hidden h-full w-px bg-gradient-to-b from-primary/60 to-transparent lg:block" />
                 )}
               </div>
-              <div className="flex-1 pb-8">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform hover:scale-110">
+              <div className="flex-1 space-y-3">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                   <step.icon className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="mb-2 text-xl font-semibold text-slate-900">
-                  {step.title}
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {step.description}
-                </p>
+                <h3 className="text-xl font-semibold text-slate-900">{step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.description}</p>
               </div>
             </motion.div>
           ))}

@@ -48,15 +48,15 @@ export function SearchSortBar({
   const filterBadgeCount = baseFilterCount + (hasSearch ? 1 : 0);
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full md:max-w-xl">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <div className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur-sm sm:p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search datasets..."
+            placeholder="Search organizations or requests"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="h-10 pl-10 text-sm"
+            className="h-11 rounded-xl border-border/80 pl-11 text-sm"
           />
         </div>
 
@@ -71,7 +71,7 @@ export function SearchSortBar({
             value={sortBy}
             onValueChange={(value) => onSortChange(value as SortOption)}
           >
-            <SelectTrigger className="h-10 w-[170px] text-sm">
+            <SelectTrigger className="h-11 w-[170px] rounded-xl border-border/80 text-sm">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent align="end">
@@ -86,7 +86,7 @@ export function SearchSortBar({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <span>
             <span className="font-semibold text-foreground">{resultCount}</span>{" "}
@@ -95,7 +95,7 @@ export function SearchSortBar({
             requests
           </span>
           {hasActiveFilters && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
               {filterBadgeCount} filter{filterBadgeCount === 1 ? "" : "s"}
             </Badge>
           )}
