@@ -5,6 +5,22 @@ import { Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dataset,
   DatasetCategory,
   DataType,
@@ -31,6 +47,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
   const [status, setStatus] = useState<DatasetStatus | "all">("all");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("recent");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const categoryOptions = useMemo(() => {
     const categories = Array.from(
@@ -111,133 +128,162 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
   };
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_12px_30px_rgba(8,15,40,0.45)]">
-        <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-black/20 px-4 py-3">
+    <section className="space-y-5">
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-[0_6px_20px_rgba(4,6,20,0.55)]">
+        <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-black/15 px-4 py-3">
           <Search className="h-4 w-4 text-white/50" />
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search briefs or organizations"
-            className="border-0 bg-transparent text-sm text-white placeholder:text-white/40 focus-visible:ring-0"
+            className="border-0 bg-transparent text-sm text-white placeholder:text-white/50 focus-visible:ring-0"
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {categoryOptions.map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() =>
-                setCategory(value as DatasetCategory | "all")
-              }
-              className={cn(
-                "rounded-full border px-4 py-1.5 text-sm transition",
-                category === value
-                  ? "border-white bg-white text-slate-900"
-                  : "border-white/20 bg-white/5 text-white/70"
-              )}
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="secondary"
+                className="flex-1 rounded-2xl border border-white/15 bg-white/10 text-white hover:bg-white/20"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Refine
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="h-[80vh] rounded-t-[30px] border-white/10 bg-slate-950 text-white"
             >
-              {value === "all" ? "All topics" : categoryLabels[value]}
-            </button>
-          ))}
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 space-y-5 overflow-y-auto pb-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-white/40">
+                    Category
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {categoryOptions.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          setCategory(value as DatasetCategory | "all")
+                        }
+                        className={cn(
+                          "rounded-full border px-4 py-1.5 text-sm transition",
+                          category === value
+                            ? "border-white bg-white text-slate-900"
+                            : "border-white/20 bg-white/5 text-white/70"
+                        )}
+                      >
+                        {value === "all" ? "All topics" : categoryLabels[value]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-white/40">
+                    Data type
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {dataTypeOptions.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setDataType(value as DataType | "all")}
+                        className={cn(
+                          "rounded-2xl border px-3 py-1.5 text-sm transition",
+                          dataType === value
+                            ? "border-emerald-300/80 bg-emerald-400/20 text-white"
+                            : "border-white/15 bg-white/5 text-white/70"
+                        )}
+                      >
+                        {value === "all" ? "Any" : dataTypeLabels[value]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-white/40">
+                    Status
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {statusOptions.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          setStatus(value as DatasetStatus | "all")
+                        }
+                        className={cn(
+                          "rounded-2xl border px-3 py-1.5 text-sm transition",
+                          status === value
+                            ? "border-sky-300/80 bg-sky-400/20 text-white"
+                            : "border-white/15 bg-white/5 text-white/70"
+                        )}
+                      >
+                        {value === "all" ? "Any" : statusLabels[value]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-white/40">
+                      Spotlight
+                    </p>
+                    <p className="text-sm text-white">Featured only</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "rounded-xl border-white/30 bg-transparent text-white",
+                      featuredOnly && "border-amber-300/70 bg-amber-400/20 text-white"
+                    )}
+                    onClick={() => setFeaturedOnly((prev) => !prev)}
+                  >
+                    {featuredOnly ? "Disable" : "Enable"}
+                  </Button>
+                </div>
+              </div>
+              <SheetFooter className="mt-4 flex-col gap-3">
+                <Button
+                  variant="ghost"
+                  className="w-full rounded-2xl border border-white/15 bg-transparent text-white"
+                  onClick={resetFilters}
+                >
+                  Reset filters
+                </Button>
+                <SheetClose asChild>
+                  <Button className="w-full rounded-2xl bg-white text-slate-900">
+                    Show results
+                  </Button>
+                </SheetClose>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="flex-1 rounded-2xl border border-white/15 bg-black/20 text-white">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent className="border border-white/10 bg-slate-900 text-white">
+              <SelectItem value="recent">Newest</SelectItem>
+              <SelectItem value="reward">Top reward</SelectItem>
+              <SelectItem value="popular">Most active</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="mt-4 space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-            Data type
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {dataTypeOptions.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setDataType(value as DataType | "all")}
-                className={cn(
-                  "rounded-2xl border px-3 py-1.5 text-sm transition",
-                  dataType === value
-                    ? "border-emerald-300/80 bg-emerald-400/20 text-white"
-                    : "border-white/15 bg-white/5 text-white/70"
-                )}
-              >
-                {value === "all" ? "Any" : dataTypeLabels[value]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-            Status
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {statusOptions.map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() =>
-                  setStatus(value as DatasetStatus | "all")
-                }
-                className={cn(
-                  "rounded-2xl border px-3 py-1.5 text-sm transition",
-                  status === value
-                    ? "border-sky-300/80 bg-sky-400/20 text-white"
-                    : "border-white/15 bg-white/5 text-white/70"
-                )}
-              >
-                {value === "all" ? "Any" : statusLabels[value]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "rounded-2xl border border-white/15 bg-white/5 text-white",
-              featuredOnly && "border-amber-300/70 bg-amber-400/30 text-white"
-            )}
-            onClick={() => setFeaturedOnly((prev) => !prev)}
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            Featured only
-          </Button>
-
-          <div className="flex flex-1 justify-end gap-2">
-            {(["recent", "reward", "popular"] as SortOption[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setSortBy(option)}
-                className={cn(
-                  "flex-1 rounded-2xl border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition",
-                  sortBy === option
-                    ? "border-white bg-white text-slate-900"
-                    : "border-white/15 bg-transparent text-white/60"
-                )}
-              >
-                {option === "recent"
-                  ? "Newest"
-                  : option === "reward"
-                    ? "Top reward"
-                    : "Most active"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between text-xs text-white/60">
-          <span>{filteredDatasets.length} briefs</span>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-white/80 underline-offset-4 hover:underline"
-          >
-            Reset filters
-          </button>
-        </div>
+        <p className="mt-3 text-xs uppercase tracking-[0.4em] text-white/40">
+          {filteredDatasets.length} briefs
+        </p>
       </div>
 
       {filteredDatasets.length > 0 ? (
