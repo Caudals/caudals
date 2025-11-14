@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/pwa",
     scope: "/pwa",
     display: "standalone",
-    background_color: "#0A0E1E",
-    theme_color: "#0A0E1E",
+    background_color: "#FFFFFF",
+    theme_color: "#050914",
     orientation: "portrait",
     lang: "en",
     categories: ["productivity", "business"],
@@ -41,9 +41,14 @@ export default function manifest(): MetadataRoute.Manifest {
         description: "Jump straight into the dataset marketplace",
       },
       {
-        name: "My Uploads",
-        url: "/pwa/submissions",
+        name: "Upload Center",
+        url: "/pwa/upload",
         description: "Review your pending and approved submissions",
+      },
+      {
+        name: "Settings",
+        url: "/pwa/settings",
+        description: "Manage account, sync, and install tips",
       },
     ],
   };

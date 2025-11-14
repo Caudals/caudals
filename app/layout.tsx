@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth/provider";
+import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -23,9 +24,12 @@ export const metadata: Metadata = {
   description:
     "Build production-grade AI datasets at scale. Caudals connects organizations with a global network of contributors to create rich, diverse datasets for machine learning.",
   icons: {
-    icon: "/caudals_logo_white.svg",
-    shortcut: "/caudals_logo_white.svg",
-    apple: "/caudals_logo_white.svg",
+    icon: [
+      { url: "/caudals_logo_black.svg", type: "image/svg+xml" },
+      { url: "/pwa-icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/caudals_logo_black.svg",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -41,6 +45,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           {children}
+          <PwaInstallBanner />
           <Toaster richColors position="top-right" closeButton={false} />
           <Analytics />
         </AuthProvider>
