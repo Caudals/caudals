@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
   if (existingRecord) {
     const updatePayload: WaitlistSignupUpdate = {
-      full_name: fullName,
+      full_name: fullName ?? null,
       company: company ?? null,
       use_case: useCase ?? null,
       metadata: metadataJson,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   }
 
   const insertPayload: WaitlistSignupInsert = {
-    full_name: fullName,
+    full_name: fullName ?? null,
     email: emailLower,
     company: company ?? null,
     use_case: useCase ?? null,
