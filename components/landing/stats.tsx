@@ -31,7 +31,7 @@ export function StatsSection() {
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="rounded-[2.5rem] border border-border/40 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-10 text-white shadow-2xl">
           <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-primary/70">
+            <p className="text-xs font-semibold uppercase text-primary/70">
               Impact
             </p>
             <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">

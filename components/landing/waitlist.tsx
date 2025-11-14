@@ -108,31 +108,23 @@ export function WaitlistSection() {
   }
 
   return (
-    <section className="relative px-6 pb-20 sm:px-8 lg:px-12">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[320px] w-full max-w-3xl -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-      </div>
-      <div className="mx-auto max-w-4xl">
+    <section className="px-6 pb-20 sm:px-8 lg:px-12">
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center sm:text-left">
+        <div>
+          <Badge variant="outline" className="border-transparent bg-primary/10 text-primary">
+            Early access
+          </Badge>
+          <p className="mt-3 text-2xl font-semibold text-slate-900">
+            Join the Caudals waitlist
+          </p>
+          <p className="text-sm text-muted-foreground">
+            We announce new cohort openings here first.
+          </p>
+        </div>
+
         <Form {...form}>
-          <form
-            className="flex flex-col gap-4 rounded-[999px] border border-border/70 bg-white/80 px-6 py-6 shadow-xl backdrop-blur sm:flex-row sm:items-center sm:gap-6"
-            onSubmit={form.handleSubmit(onSubmit)}
-          >
-            <div className="flex flex-col text-center sm:text-left">
-              <Badge
-                variant="outline"
-                className="mx-auto w-fit border-transparent bg-primary/10 text-primary sm:mx-0"
-              >
-                Early access
-              </Badge>
-              <p className="mt-2 text-base font-semibold text-slate-900">
-                Join the Caudals waitlist
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Be the first to know when new programs open.
-              </p>
-            </div>
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-white/80 p-2 shadow-sm sm:flex-row sm:items-center sm:rounded-full sm:p-1.5">
               <FormField
                 control={form.control}
                 name="email"
@@ -142,17 +134,17 @@ export function WaitlistSection() {
                       <Input
                         type="email"
                         placeholder="you@company.com"
-                        className="h-12 w-full rounded-full border-border/60 bg-transparent px-5 text-sm"
+                        className="h-11 w-full rounded-full border-0 bg-transparent px-4 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage className="text-xs" />
+                    <FormMessage className="px-4 text-left text-xs" />
                   </FormItem>
                 )}
               />
               <Button
                 type="submit"
-                className="h-12 w-full rounded-full px-6 sm:w-auto"
+                className="h-11 w-full rounded-full px-6 sm:w-auto"
                 disabled={isSubmitting}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -161,8 +153,9 @@ export function WaitlistSection() {
             </div>
           </form>
         </Form>
+
         {result && (
-          <p className="mt-3 text-center text-sm text-primary sm:text-left">
+          <p className="text-sm text-primary">
             {result.alreadyRegistered
               ? "You're already on the list—we'll keep the updates coming."
               : "Thanks for joining! We'll reach out soon with next steps."}

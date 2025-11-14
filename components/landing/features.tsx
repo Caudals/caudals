@@ -58,7 +58,7 @@ export function FeaturesSection() {
       </div>
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center">
-          <span className="rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-primary">
+          <span className="rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase text-primary">
             Platform pillars
           </span>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
@@ -94,14 +94,6 @@ export function FeaturesSection() {
               </Card>
             </motion.div>
           ))}
-        </div>
-
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-3xl border border-dashed border-primary/30 bg-primary/5 px-6 py-5 text-center sm:flex-row sm:text-left">
-          <p className="text-sm text-muted-foreground">
-            Need something unique? Our partnerships team helps you design custom workflows,
-            contributor training, or legal reviews.
-          </p>
-          <span className="text-sm font-semibold text-primary">We can co-design with you.</span>
         </div>
       </div>
     </section>

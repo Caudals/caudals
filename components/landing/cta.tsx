@@ -9,7 +9,7 @@ export function CTASection() {
         <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-16 text-white shadow-2xl sm:px-16 lg:px-24">
           <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 rounded-full bg-primary/20 blur-[140px]" />
           <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-            <span className="rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-primary/80">
+            <span className="rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase text-primary/80">
               Let&apos;s collaborate
             </span>
             <h2 className="text-3xl font-semibold sm:text-4xl lg:text-[2.9rem]">
