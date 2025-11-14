@@ -65,8 +65,8 @@ export function UseCasesSection() {
             Built for every AI use case
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            From computer vision to NLP—we support all data modalities and
-            annotation types
+            From computer vision to conversational AI—we provide the collection flows,
+            contributor training, and review workflows tailored to your modality.
           </p>
         </div>
 
@@ -79,11 +79,11 @@ export function UseCasesSection() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true, margin: "-50px" }}
             >
-              <Card className="hover-lift group relative h-full overflow-hidden border-border/50 bg-white/80 backdrop-blur-sm transition-all hover:border-primary/20">
-                <CardContent className="p-6">
+              <Card className="group relative h-full overflow-hidden rounded-3xl border border-border/50 bg-white/85 p-6 shadow-sm backdrop-blur transition-transform hover:-translate-y-1">
+                <CardContent className="p-0">
                   <div className="mb-4 flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-transform group-hover:scale-110">
-                      <useCase.icon className="h-6 w-6 text-primary" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform group-hover:scale-110">
+                      <useCase.icon className="h-6 w-6" />
                     </div>
                     {useCase.tag && (
                       <Badge
@@ -94,7 +94,7 @@ export function UseCasesSection() {
                       </Badge>
                     )}
                   </div>
-                  <div className="mb-1 text-xs font-medium uppercase tracking-wider text-primary">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-primary/80">
                     {useCase.category}
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-slate-900">

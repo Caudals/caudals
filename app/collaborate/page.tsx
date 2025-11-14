@@ -7,9 +7,9 @@ import { CollaborateForm } from "@/components/collaborate/collaborate-form";
 import { MarketingFooter } from "@/components/marketing/footer";
 
 export const metadata: Metadata = {
-  title: "Collaborate with Caudals",
+  title: "Partnerships with Caudals",
   description:
-    "Partner with Caudals to create new datasets, co-create programs, or collaborate on innovative AI initiatives.",
+    "Partner with Caudals to co-create responsible AI datasets, launch global programs, and unlock new collaboration models.",
 };
 
 const highlights = [
@@ -39,10 +39,10 @@ const highlights = [
   },
 ];
 
-export default function CollaboratePage() {
+export default function PartnershipsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-white via-white to-slate-50">
-      <Header links={[{ href: "/browse", label: "Browse" }]} translucent />
+      <Header translucent />
       <main className="flex-1">
         <section className="mx-auto flex w-full max-w-4xl flex-col items-center gap-12 px-6 pb-20 pt-16 sm:px-8 sm:pt-20 lg:px-12">
           {/* Header Section */}

@@ -1,14 +1,16 @@
 import { Header } from "@/components/ui/header";
 import { getDatasets } from "@/lib/actions/dataset-actions";
 import { BrowseClient } from "./browse-client";
+import { MarketingFooter } from "@/components/marketing/footer";
 
 export default async function BrowsePage() {
   const datasets = await getDatasets();
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header links={[{ href: "/browse", label: "Browse" }]} />
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
       <BrowseClient initialDatasets={datasets} />
+      <MarketingFooter />
     </div>
   );
 }

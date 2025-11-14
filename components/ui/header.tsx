@@ -20,8 +20,73 @@ interface HeaderProps {
   translucent?: boolean;
 }
 
-export function Header({ links = [], translucent = false }: HeaderProps) {
+const DEFAULT_LINKS = [
+  { href: "/browse", label: "Browse" },
+  { href: "/collaborate", label: "Partnerships" },
+];
+
+export function Header({ links, translucent = false }: HeaderProps) {
   const { user, loading } = useAuth();
+  const navLinks =
+    links && links.length > 0 ? links : DEFAULT_LINKS;
+
+  const renderDesktopActions = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-24 animate-pulse rounded-full bg-muted/60" />
+          <div className="h-9 w-24 animate-pulse rounded-full bg-muted/60" />
+        </div>
+      );
+    }
+
+    return user ? (
+      <Button size="sm" asChild>
+        <Link href="/dashboard">Dashboard</Link>
+      </Button>
+    ) : (
+      <>
+        <Button size="sm" asChild variant="outline">
+          <Link href="/auth/sign-in">Sign in</Link>
+        </Button>
+        <Button size="sm" asChild>
+          <Link href="/auth/sign-up">Sign up</Link>
+        </Button>
+      </>
+    );
+  };
+
+  const renderMobileActions = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col gap-3">
+          <div className="h-10 w-full animate-pulse rounded-full bg-muted/60" />
+          <div className="h-10 w-full animate-pulse rounded-full bg-muted/60" />
+        </div>
+      );
+    }
+
+    return user ? (
+      <SheetClose asChild>
+        <Button size="sm" asChild className="w-full">
+          <Link href="/dashboard">Dashboard</Link>
+        </Button>
+      </SheetClose>
+    ) : (
+      <>
+        <SheetClose asChild>
+          <Button size="sm" variant="outline" asChild>
+            <Link href="/auth/sign-in">Sign in</Link>
+          </Button>
+        </SheetClose>
+        <SheetClose asChild>
+          <Button size="sm" asChild>
+            <Link href="/auth/sign-up">Sign up</Link>
+          </Button>
+        </SheetClose>
+      </>
+    );
+  };
 
   return (
     <header
@@ -47,7 +112,7 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
           </span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
-          {links.map(({ href, label }) => (
+          {navLinks.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
@@ -57,24 +122,7 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
             </Link>
           ))}
 
-          {!loading && (
-            <>
-              {user ? (
-                <Button size="sm" asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </Button>
-              ) : (
-                <>
-                  <Button size="sm" asChild variant="outline">
-                    <Link href="/auth/sign-in">Sign in</Link>
-                  </Button>
-                  <Button size="sm" asChild>
-                    <Link href="/auth/sign-up">Sign up</Link>
-                  </Button>
-                </>
-              )}
-            </>
-          )}
+          {renderDesktopActions()}
         </nav>
         <Sheet>
           <SheetTrigger asChild>
@@ -104,7 +152,7 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
 
               <ScrollArea className="flex-1 px-6">
                 <div className="flex flex-col gap-4 py-6">
-                  {links.map(({ href, label }) => (
+                  {navLinks.map(({ href, label }) => (
                     <SheetClose asChild key={href}>
                       <Link
                         href={href}
@@ -117,30 +165,9 @@ export function Header({ links = [], translucent = false }: HeaderProps) {
                 </div>
               </ScrollArea>
 
-              {!loading && (
-                <div className="flex flex-col gap-3 border-t border-border/60 px-6 py-6">
-                  {user ? (
-                    <SheetClose asChild>
-                      <Button size="sm" asChild className="w-full">
-                        <Link href="/dashboard">Dashboard</Link>
-                      </Button>
-                    </SheetClose>
-                  ) : (
-                    <>
-                      <SheetClose asChild>
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href="/auth/sign-in">Sign in</Link>
-                        </Button>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Button size="sm" asChild>
-                          <Link href="/auth/sign-up">Sign up</Link>
-                        </Button>
-                      </SheetClose>
-                    </>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-col gap-3 border-t border-border/60 px-6 py-6">
+                {renderMobileActions()}
+              </div>
             </div>
           </SheetContent>
         </Sheet>

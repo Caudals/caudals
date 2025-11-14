@@ -53,14 +53,20 @@ const features = [
 export function FeaturesSection() {
   return (
     <section className="relative py-24">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-0 h-[520px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[160px]" />
+      </div>
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <span className="rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-primary">
+            Platform pillars
+          </span>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
             Everything you need to build better datasets
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Purpose-built for ML teams who need high-quality, diverse training
-            data at scale
+          <p className="mx-auto mt-3 max-w-3xl text-lg text-muted-foreground">
+            Modular workflows combine global talent, human-centered review, and policy
+            controls so you can scale responsible data programs with confidence.
           </p>
         </div>
 
@@ -73,10 +79,10 @@ export function FeaturesSection() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true, margin: "-50px" }}
             >
-              <Card className="hover-lift group relative h-full overflow-hidden border-border/50 bg-white/80 backdrop-blur-sm transition-all hover:border-primary/20">
-                <CardContent className="p-6">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 transition-transform group-hover:scale-110">
-                    <feature.icon className="h-6 w-6 text-primary" />
+              <Card className="group relative h-full overflow-hidden rounded-3xl border-border/40 bg-white/85 p-6 shadow-sm backdrop-blur transition-all hover:-translate-y-1 hover:border-primary/40">
+                <CardContent className="p-0">
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform group-hover:scale-110">
+                    <feature.icon className="h-6 w-6" />
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-slate-900">
                     {feature.title}
@@ -88,6 +94,14 @@ export function FeaturesSection() {
               </Card>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-3xl border border-dashed border-primary/30 bg-primary/5 px-6 py-5 text-center sm:flex-row sm:text-left">
+          <p className="text-sm text-muted-foreground">
+            Need something unique? Our partnerships team helps you design custom workflows,
+            contributor training, or legal reviews.
+          </p>
+          <span className="text-sm font-semibold text-primary">We can co-design with you.</span>
         </div>
       </div>
     </section>
