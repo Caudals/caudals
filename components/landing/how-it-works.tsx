@@ -39,7 +39,7 @@ export function HowItWorksSection() {
     <section className="relative py-24">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center">
-          <span className="rounded-full bg-muted px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+          <span className="rounded-full bg-muted px-4 py-1 text-xs font-semibold uppercase text-muted-foreground">
             Operating model
           </span>
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">

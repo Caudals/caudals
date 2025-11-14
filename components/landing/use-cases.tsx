@@ -94,7 +94,7 @@ export function UseCasesSection() {
                       </Badge>
                     )}
                   </div>
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-primary/80">
+                  <div className="mb-1 text-xs font-semibold uppercase text-primary/80">
                     {useCase.category}
                   </div>
                   <h3 className="mb-2 text-lg font-semibold text-slate-900">
