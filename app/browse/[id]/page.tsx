@@ -21,7 +21,7 @@ export default async function DatasetDetailPage({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header />
+      <Header translucent />
       <DatasetDetailClient dataset={dataset} submissions={submissions} />
       <MarketingFooter />
     </div>

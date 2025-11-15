@@ -10,9 +10,13 @@ import {
   ListChecks,
   Wallet,
   Settings,
+  MoreHorizontal,
 } from "lucide-react";
+import { Inter } from "next/font/google";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+const interHeading = Inter({ subsets: ["latin"], weight: ["600", "700"] });
 
 const heroHighlights = [
   "No onboarding fees",
@@ -32,10 +36,10 @@ export function HeroSection() {
         >
           <Badge
             variant="outline"
-            className="inline-flex items-center gap-2 border-border/60 bg-white/70 px-4 py-1.5 text-xs font-medium uppercase text-foreground"
+            className="inline-flex items-center gap-2 border-border/60 bg-white/70 px-4 py-1.5 text-xs font-medium  text-foreground"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Launch confident data programs
+            Supported by leading AI companies
           </Badge>
         </motion.div>
 
@@ -43,9 +47,9 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className="text-balance text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl"
+          className={`${interHeading.className} text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl`}
         >
-          Run contributor-powered datasets with enterprise control
+          Create enterprise-grade custom datasets with a global network
         </motion.h1>
 
         <motion.p
@@ -75,7 +79,7 @@ export function HeroSection() {
             asChild
           >
             <Link href="/browse">
-              Browse live briefs
+              Browse datasets
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -110,30 +114,37 @@ export function HeroSection() {
 
 function HeroPreview() {
   const statCards = [
-    { label: "Total earnings", value: "$12,640", note: "From 84 approved submissions", accent: "text-emerald-600" },
-    { label: "Pending", value: "5", note: "$420 if approved", accent: "text-sky-600" },
-    { label: "Approval rate", value: "92%", note: "77/84 approved", accent: "text-amber-600" },
-    { label: "Rejected", value: "2", note: "Review feedback to improve", accent: "text-rose-600" },
+    { label: "Total earnings", value: "$12,640", note: "From 84 approved submissions" },
+    { label: "Pending", value: "5", note: "$420 if approved" },
+    { label: "Approval rate", value: "92%", note: "77/84 approved" },
+    { label: "Rejected", value: "2", note: "Review notes to improve" },
   ];
 
   const contributions = [
     {
-      dataset: "Aerial mapping cues for drones",
-      files: "18 files",
-      status: "approved",
-      reward: "$680",
+      dataset: "Industrial robot downtime logs",
+      files: "1 file",
+      status: "Approved",
+      reward: "$0.69",
       submitted: "10/06/2025",
     },
     {
-      dataset: "Safety prompts for multilingual agents",
-      files: "12 files",
-      status: "pending",
-      reward: "$420",
-      submitted: "10/04/2025",
+      dataset: "Street images for autonomous driving",
+      files: "1 file",
+      status: "Pending",
+      reward: "$2.50",
+      submitted: "10/06/2025",
+    },
+    {
+      dataset: "Healthcare patient anonimized records",
+      files: "1 file",
+      status: "Approved",
+      reward: "$0.69",
+      submitted: "10/06/2025",
     },
   ];
 
-  const sidebarLinks = [
+  const navLinks = [
     { label: "Dashboard", icon: LayoutDashboard },
     { label: "Browse datasets", icon: Database },
     { label: "My contributions", icon: ListChecks, active: true },
@@ -141,99 +152,127 @@ function HeroPreview() {
     { label: "Settings", icon: Settings },
   ];
 
-  const statusStyles: Record<string, string> = {
-    approved: "bg-emerald-50 text-emerald-700",
-    pending: "bg-amber-50 text-amber-700",
-    rejected: "bg-rose-50 text-rose-700",
-  };
-
   return (
-    <div className="relative mx-auto max-w-5xl rounded-[2.4rem] border border-border/70 bg-card/95 p-6 shadow-[0_45px_140px_-80px_rgba(11,12,17,0.6)] backdrop-blur">
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <aside className="flex w-full max-w-xs flex-col rounded-[1.6rem] border border-border/60 bg-white p-6">
-          <div className="mb-6">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">Caudals</p>
-            <p className="text-lg font-semibold text-foreground">Contributor dashboard</p>
-            <div className="mt-3 rounded-xl border border-border/70 bg-muted px-3 py-2 text-sm text-foreground">
-              Contributor view
-            </div>
-          </div>
-          <div className="space-y-2">
-            {sidebarLinks.map((link) => (
-              <button
-                key={link.label}
-                type="button"
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
-                  link.active
-                    ? "border border-foreground bg-white text-foreground"
-                    : "border border-transparent text-muted-foreground hover:border-border/70 hover:text-foreground"
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <link.icon className="h-4 w-4" />
-                  {link.label}
-                </span>
-                {link.active ? <span className="h-1.5 w-1.5 rounded-full bg-foreground" /> : null}
-              </button>
-            ))}
-          </div>
-          <div className="mt-auto rounded-2xl border border-border/80 bg-muted/40 p-4 text-sm">
-            <p className="font-semibold text-foreground">Maya Cooper</p>
-            <p className="text-xs text-muted-foreground">maya@caudals.community</p>
-            <div className="mt-3 rounded-xl border border-border/70 bg-white px-3 py-2 text-xs">
-              Contributor ID · CC-4820
-            </div>
-          </div>
-        </aside>
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/70 bg-white/95 p-3 shadow-[0_25px_70px_-40px_rgba(15,23,42,0.55)] sm:p-4 lg:flex-row">
+      
+      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-5 text-left text-sm text-muted-foreground lg:flex">
+        <div>
+          <p className="text-lg font-semibold text-foreground">Dashboard</p>
+        </div>
+        <nav className="space-y-1">
+          {navLinks.map((link) => (
+            <button
+              key={link.label}
+              type="button"
+              className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-xs transition-colors ${
+                link.active
+                  ? "bg-muted text-foreground "
+                  : "border border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <link.icon className="h-3.5 w-3.5" />
+                {link.label}
+              </span>
+              {link.active ? <span className="h-1 w-1 rounded-full bg-foreground" /> : null}
+            </button>
+          ))}
+        </nav>
 
-        <section className="flex-1 rounded-[1.6rem] border border-border/70 bg-white p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      </aside>
+
+      <section className="flex-1 space-y-3 text-left sm:space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-foreground sm:text-lg">My contributions</h3>
+          </div>
+          <button className="self-start rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground sm:self-auto sm:px-4 sm:py-1.5">
+            All status
+          </button>
+        </div>
+
+        <div className="grid gap-2 grid-cols-2 sm:gap-3 lg:grid-cols-4">
+          {statCards.map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-xl border border-border/60 bg-white px-3 py-3 text-left shadow-[0_8px_20px_-14px_rgba(15,23,42,0.35)] sm:rounded-2xl sm:px-4 sm:py-4"
+            >
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs">{stat.label}</p>
+              <p className="text-xl font-semibold text-foreground sm:text-2xl">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground sm:text-xs">{stat.note}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_10px_30px_-20px_rgba(15,23,42,0.4)] sm:rounded-2xl">
+          <div className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3">
             <div>
-              <p className="text-xs uppercase text-muted-foreground">Dashboard / Contributions</p>
-              <h3 className="text-2xl font-semibold text-foreground">My contributions</h3>
+              <p className="text-xs text-muted-foreground sm:text-sm">Your submission history across all datasets</p>
             </div>
-            <Button variant="outline" className="h-9 rounded-full border-border/70 px-4 text-sm">
+            <button className="self-start rounded-full border border-border/60 px-2.5 py-0.5 text-[10px] text-muted-foreground sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
               All status
-            </Button>
+            </button>
           </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((card) => (
-              <div key={card.label} className="rounded-2xl border border-border/80 bg-muted/40 p-4">
-                <p className="text-sm text-muted-foreground">{card.label}</p>
-                <p className={`mt-2 text-2xl font-semibold ${card.accent}`}>{card.value}</p>
-                <p className="text-xs text-muted-foreground">{card.note}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-border/70">
-            <div className="grid grid-cols-[2fr_repeat(4,1fr)] gap-2 border-b border-border/70 px-6 py-4 text-xs font-semibold uppercase text-muted-foreground">
+          
+          {/* Desktop Table View */}
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/40 px-5 py-2 text-[11px] font-semibold uppercase text-muted-foreground">
               <span>Dataset</span>
               <span>Files</span>
               <span>Status</span>
               <span>Reward</span>
               <span className="text-right">Submitted</span>
+              <span className="text-right">Actions</span>
             </div>
             {contributions.map((entry) => (
               <div
                 key={entry.dataset}
-                className="grid grid-cols-[2fr_repeat(4,1fr)] items-center gap-2 border-b border-border/40 px-6 py-4 text-sm text-foreground last:border-b-0"
+                className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/30 px-5 py-3 text-sm text-foreground last:border-b-0"
               >
                 <span className="font-medium text-foreground/90">{entry.dataset}</span>
                 <span className="text-muted-foreground">{entry.files}</span>
                 <span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusStyles[entry.status]}`}>
-                    {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                  <span
+                    className={`rounded-full border border-border/50 px-3 py-0.5 text-xs font-medium ${
+                      entry.status === "Approved" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {entry.status}
                   </span>
                 </span>
                 <span className="text-muted-foreground">{entry.reward}</span>
                 <span className="text-right text-muted-foreground">{entry.submitted}</span>
+                <span className="flex justify-end text-muted-foreground">
+                  <MoreHorizontal className="h-4 w-4" />
+                </span>
               </div>
             ))}
           </div>
-        </section>
-      </div>
+
+          {/* Mobile Card View */}
+          <div className="divide-y divide-border/30 lg:hidden">
+            {contributions.map((entry) => (
+              <div key={entry.dataset} className="space-y-2 px-3 py-3 sm:px-4 sm:py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="text-xs font-medium text-foreground/90 sm:text-sm">{entry.dataset}</h4>
+                  <span
+                    className={`shrink-0 rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium sm:px-2.5 sm:text-xs ${
+                      entry.status === "Approved" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {entry.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground sm:text-xs">
+                  <span>{entry.files}</span>
+                  <span className="font-medium text-foreground">{entry.reward}</span>
+                  <span>{entry.submitted}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

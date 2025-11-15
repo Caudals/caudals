@@ -61,7 +61,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
                 </Badge>
               )}
             </div>
-            <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+            <CardTitle className="text-lg line-clamp-2 text-foreground/90 transition-colors group-hover:text-foreground">
               {dataset.title}
             </CardTitle>
           </div>

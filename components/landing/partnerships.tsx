@@ -26,6 +26,12 @@ const highlights = [
   },
 ];
 
+const partnershipMetrics = [
+  { label: "Blueprint to launch", value: "10 days" },
+  { label: "Sponsored brief CTR", value: "↑ 2.8x" },
+  { label: "University pods", value: "36 campuses" },
+];
+
 export function PartnershipsSection() {
   return (
     <section id="partnerships" className="py-20">
@@ -53,8 +59,21 @@ export function PartnershipsSection() {
                   We compress months of planning into a single aligned track.
                 </p>
               </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {partnershipMetrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="rounded-2xl border border-border/70 bg-white p-4 text-left"
+                  >
+                    <p className="text-xs uppercase text-muted-foreground">{metric.label}</p>
+                    <p className="text-lg font-semibold text-foreground">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="rounded-2xl border border-accent/40 bg-accent/10 px-5 py-4 text-left text-sm text-foreground">
+                <div className="rounded-2xl border border-border/70 bg-muted/70 px-5 py-4 text-left text-sm text-foreground">
                   <span className="block font-semibold">
                     37% faster <span className="font-normal text-muted-foreground">time-to-launch</span>
                   </span>
@@ -93,6 +112,13 @@ export function PartnershipsSection() {
                 </div>
               </motion.div>
             ))}
+            <div className="rounded-2xl border border-dashed border-border/80 bg-card p-5 text-sm text-muted-foreground">
+              <p>
+                Partnerships turn your briefs into sponsored placements, curriculum-aligned cohorts, and
+                co-branded activations. Loop in universities, research labs, or internal communities and
+                we&apos;ll run the playbook end-to-end.
+              </p>
+            </div>
           </div>
         </div>
       </div>
