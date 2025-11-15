@@ -1,227 +1,36 @@
 # Caudals - AI Dataset Crowdsourcing Platform
 
-A modern, full-stack platform for creating, managing, and contributing to AI dataset collection projects. Built with Next.js 15, Supabase, and TypeScript.
+A modern, full-stack platform for creating, managing, and contributing to AI dataset collection projects. Built with Next.js, Supabase, and TypeScript.
 
-## Features
 
-### For Dataset Requesters
 
-- **Create Dataset Requests**: Multi-step form to define your data collection needs
-- **Dashboard Analytics**: Track submissions, contributors, and spending in real-time
-- **Request Management**: Pause, resume, or delete dataset requests
-- **Submission Review**: Approve or reject contributor submissions
-- **Progress Tracking**: Monitor collection progress with visual indicators
-- **Visual Showcase**: Upload a rich cover image for every request to elevate visibility in the marketplace feed
+Right now, my landing page looks too basic and AI-generated. I want you to completely redesign and improve it so that it looks like a final, polished and functional product.
 
-### For Contributors
+- First you will have to make an extensive plan for this big implementation so that it comes out perfect. Analyze my project (which is the platform for my startup) and our product so that you get an idea of the services we offer, how our system works, our business modelm etc.
+- For the landing page contents, you should explain crearly what we do, how our platform works, who are our clients (both on the organizations side and on the contributors side). Add a draft of the landing page copywriting in the plan before implementing to make sure the text is perfect and explain crearly our startup.
+- The design should look modern, clean, aesthetic and minimalist, yet unique, original and with personality. This way, you should create our new brand guidelines (font, colors, background, elements, and everything for the UI and design guidelines). 
+- Use the latest trends or elemtents in UI/UX design and landing pages so that our platform looks new and fresh.
+- Change the background for a very very light grey color.
+- You should use black as the main color for buttons, ctas, etc. to keep it professional and coherent, but use a subtle accent color in a few elements if you needed. This new accent color should match with the new light background color to keep a good attractive color palette. Do not overuse the accent color.
 
-- **Browse Datasets**: Filter and search through active dataset requests
-- **Easy Submission**: Upload files directly through an intuitive interface
-- **Reward System**: See potential earnings for each contribution
-- **Role Flexibility**: Switch between contributor and requester roles
+I want the following sections for the landing page:
+- Leave the hero section very similar to the current one, but i will add a picture of the dashboard centered in the middle below the cta buttons (the complete hero section should be centered in the middle). Put only one badge on top. Leave space below so that the user can see both the hero text, CTAs and the dashboard image when they enter in our site.
+- Leave the god rays component in the background. Note that in mobile devices you wont render them, so responsivity in that case is not a problem. Make sure the rays go until the bottom of the page just above the footer (right now there's an error and they stop in the middle of tha page). When finished, add a gradient /vanished horizontal effect so that the transition between rays and light background is not that abrupt. Change the colors of the rays to match with the new brand guidelines (they should be very subtle to avoid interrupting with the page content). I want the god rays to be similar to northern lights but visible with a light background.
+- Social proof section for the brands, technologies and software/hardware platforms we can work with (nvidia, pytorch, pandas, etc). I will add the svg files later. Make sure it is well spaced and the logos are distributed.
+- CTA section for partnerships (redirect them to the "Partnerships" tab of the page).
+- Platform features. Design an interactive component which explains clearly and in a beautiful way our features.
+- Section to explain how our platform works, both from the side of  business clients and contributors users. use an interactive component to switch between the explanation of each role.
+- Pricing with custom plans destinated to businesses (for example, assistance when designing datasets, custom tutorials for their users, customized support, and in higher plans desining AI arquitectures for them, developing their ai models and featuring their request with ads on the top page  of the browse section so that they get more views).
+- FAQ section.
+- Remove the wailist section. Remove the current components with a very dark almost black background.
+- Do not use badges with a very big tracking (the letters should not be too separated between them)
+- Do not add placeholders for images or something similar.
+- Do not add any more gradients in the background or the landing page components. With the god rays component it is enough.
+- Add any more section/resource/content you find interesting or useful.
 
-### Platform Features
+- The components and different sections should look polished, have a good unique consistent design and be coherent with the new global design of the page.
+- Make sure the design is responsive and works well in tablets and mobile devices.
+- Make sure the different sections are consistent and use similar designs tags elements etc.
+- Take as much time as you need. The result shoud be a beautiful, polished and professional product ready for production so that our users are satifified.
 
-- **Authentication**: Secure auth with Supabase (email/password + OAuth)
-- **File Storage**: Supabase Storage for images, videos, audio, and documents
-- **Real-time Updates**: Automatic status updates and progress tracking
-- **Responsive Design**: Beautiful UI that works on all devices
-- **Type Safety**: Full TypeScript implementation
-- **Database Security**: Row Level Security (RLS) policies
-
-## Tech Stack
-
-- **Framework**: Next.js 15 (App Router, React Server Components)
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Storage**: Supabase Storage
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Type Safety**: TypeScript
-- **Forms**: React Hook Form + Zod
-- **Notifications**: Sonner (Toast)
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or pnpm
-- A Supabase account
-
-### Installation
-
-1. **Clone the repository**
-
-```bash
-git clone <repository-url>
-cd datasets
-```
-
-2. **Install dependencies**
-
-```bash
-npm install
-```
-
-3. **Set up environment variables**
-
-```bash
-cp .env.local.example .env.local
-```
-
-Then fill in your Supabase credentials in `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-RESEND_API_KEY=your_resend_api_key
-RESEND_FROM_EMAIL="Caudals <team@yourdomain.com>"
-# Required for syncing waitlist signups to Resend contacts
-RESEND_GENERAL_AUDIENCE_ID=your_resend_audience_id
-# Optional: receive internal notifications when someone joins the waitlist
-WAITLIST_NOTIFICATION_EMAIL=team@yourdomain.com
-```
-
-4. **Set up the database**
-
-Go to your Supabase project's SQL Editor and run:
-
-- `supabase/migrations/001_initial_schema.sql`
-- `scripts/setup-storage.sql`
-
-See [SETUP.md](./SETUP.md) for detailed instructions.
-
-5. **Seed the database (optional)**
-
-```bash
-npm install -g tsx
-npx tsx scripts/seed-database.ts
-```
-
-This creates 5 test users and 15+ sample dataset requests.
-
-> Cover images are stored in the Supabase `dataset-images` bucket, created automatically by migration `015_create_dataset_images_bucket.sql`. Run migrations before posting new requests so uploads succeed.
-
-6. **Run the development server**
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
-
-## Project Structure
-
-```
-datasets/
-├── app/                      # Next.js App Router
-│   ├── auth/                # Authentication pages
-│   ├── browse/              # Dataset browsing
-│   ├── dashboard/           # Dashboard pages
-│   └── page.tsx             # Landing page
-├── components/              # React components
-│   ├── browse/              # Browse-specific components
-│   ├── dashboard/           # Dashboard components
-│   ├── landing/             # Landing page components
-│   └── ui/                  # Reusable UI components
-├── lib/                     # Utilities and actions
-│   ├── actions/             # Server actions
-│   ├── auth/                # Auth provider
-│   ├── data/                # Data utilities
-│   ├── storage/             # File upload utilities
-│   └── supabase/            # Supabase clients
-├── scripts/                 # Setup and seed scripts
-├── supabase/                # Database migrations
-│   └── migrations/
-├── types/                   # TypeScript type definitions
-└── public/                  # Static assets
-```
-
-## Key Features Implementation
-
-### Database Schema
-
-- **profiles**: Extended user profiles with roles
-- **dataset_requests**: Main dataset listings
-- **submissions**: User contributions linked to requests
-- **Automatic triggers**: Update samples_collected, auto-status changes
-- **RLS policies**: Secure data access per user
-
-### Server Actions
-
-All data mutations use Next.js Server Actions for type-safety:
-
-- `dataset-actions.ts`: CRUD for dataset requests
-- `submission-actions.ts`: Handle file submissions
-- `dashboard-actions.ts`: Fetch analytics and stats
-- `profile-actions.ts`: Manage user profiles
-
-### File Uploads
-
-- Drag-and-drop file upload component
-- Automatic file validation (size, type)
-- Supabase Storage integration
-- Support for images, videos, audio, and documents
-
-## Environment Variables
-
-Required variables in `.env.local`:
-
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=        # Your Supabase project URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=   # Public anon key
-SUPABASE_SERVICE_ROLE_KEY=       # Service role key (for seeding)
-```
-
-## Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npx tsx scripts/seed-database.ts` - Seed the database
-
-## Database Migrations
-
-Located in `supabase/migrations/`:
-
-- `001_initial_schema.sql`: Complete database setup with tables, RLS, triggers
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## Security
-
-- Row Level Security (RLS) enabled on all tables
-- Users can only modify their own data
-- File uploads scoped to user folders
-- Service role key used only for admin operations
-
-## License
-
-MIT License - feel free to use this project for your own purposes.
-
-## Support
-
-For detailed setup instructions, see [SETUP.md](./SETUP.md)
-
-For issues or questions:
-
-- Supabase docs: https://supabase.com/docs
-- Next.js docs: https://nextjs.org/docs
-
-## Acknowledgments
-
-- Built with [Next.js](https://nextjs.org/)
-- Database and auth by [Supabase](https://supabase.com/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
+- First make an extensive plan of all you are going to do and how. Then use it to make the complete implmentation

@@ -63,13 +63,10 @@ export function PricingSection() {
   const [billingMode, setBillingMode] = useState<BillingMode>("project");
 
   return (
-    <section id="pricing" className="relative py-24">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_rgba(52,97,255,0.08),transparent_70%)]" />
+    <section id="pricing" className="py-20">
       <div className="mx-auto flex max-w-6xl flex-col gap-12 px-6 sm:px-8 lg:px-12">
         <div className="text-center">
-          <Badge className="border-black/10 bg-[#7f8cff]/15 text-[#7f8cff]">
-            Pricing made for dataset velocity
-          </Badge>
+          <Badge className="border border-border/60 bg-card text-foreground">Pricing for dataset velocity</Badge>
           <h2 className="mt-6 text-3xl font-semibold text-foreground sm:text-4xl">
             Custom plans for ML teams, research labs, and enterprise partners
           </h2>
@@ -79,7 +76,7 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="mx-auto flex items-center gap-3 rounded-full border border-black/15 bg-white/70 p-1 text-sm text-muted-foreground shadow-sm backdrop-blur">
+        <div className="mx-auto flex items-center gap-3 rounded-full border border-border/80 bg-card p-1 text-sm text-muted-foreground">
           <BillingToggle
             label="Per project"
             active={billingMode === "project"}
@@ -100,19 +97,19 @@ export function PricingSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true, margin: "-60px" }}
-              className="flex h-full flex-col gap-6 rounded-[1.8rem] border border-black/10 bg-white/80 p-8 shadow-[0_32px_80px_-38px_rgba(15,15,15,0.28)] backdrop-blur-xl"
+              className="flex h-full flex-col gap-6 rounded-[1.8rem] border border-border/80 bg-white p-8"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-semibold text-foreground">{plan.name}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
                 </div>
-                <Badge variant="outline" className="border-black/10 bg-white/70 text-muted-foreground">
+                <Badge variant="outline" className="border-border/70 bg-card text-muted-foreground">
                   {plan.highlight}
                 </Badge>
               </div>
-              <div className="space-y-2 rounded-2xl border border-white/60 bg-white/70 p-4 text-left shadow-xs backdrop-blur">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="space-y-2 rounded-2xl border border-border/80 bg-card p-4 text-left">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
                   {billingMode === "project" ? "Per project" : "Retainer"}
                 </p>
                 <p className="text-lg font-semibold text-foreground">
@@ -122,7 +119,7 @@ export function PricingSection() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 {plan.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-3">
-                    <span className="mt-1 flex h-5 w-5 items-center justify-center rounded-full border border-black/15 bg-secondary/15 text-secondary">
+                    <span className="mt-1 flex h-5 w-5 items-center justify-center rounded-full border border-border/70 bg-muted text-foreground">
                       <Check className="h-3 w-3" />
                     </span>
                     <span>{perk}</span>
@@ -135,8 +132,8 @@ export function PricingSection() {
                   <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
                 {plan.name === "Enterprise" ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-black/15 bg-white/60 px-4 py-3 text-xs text-muted-foreground backdrop-blur">
-                    <Sparkles className="h-4 w-4 text-[#7f8cff]" />
+                  <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-4 py-3 text-xs text-muted-foreground">
+                    <Sparkles className="h-4 w-4 text-accent" />
                     Includes architecture co-design, featured marketplace placement, and ads.
                   </div>
                 ) : null}
@@ -145,7 +142,7 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="rounded-[1.6rem] border border-dashed border-black/15 bg-white/40 px-6 py-5 text-center text-sm text-muted-foreground backdrop-blur">
+        <div className="rounded-[1.6rem] border border-dashed border-border/80 bg-card px-6 py-5 text-center text-sm text-muted-foreground">
           Add-ons: dataset bootcamps for your contributors, private Slack channels, or promotional
           placement for requests in the browse feed. Mention them during your intro call.
         </div>

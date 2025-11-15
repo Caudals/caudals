@@ -3,11 +3,15 @@
 import { useRef, useEffect, useState } from "react";
 import { Header } from "@/components/ui/header";
 import { HeroSection } from "@/components/landing/hero";
-import { WaitlistSection } from "@/components/landing/waitlist";
+import { SocialProofSection } from "@/components/landing/social-proof";
+import { PlatformLayersSection } from "@/components/landing/platform-overview";
 import { FeaturesSection } from "@/components/landing/features";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
-import { UseCasesSection } from "@/components/landing/use-cases";
 import { StatsSection } from "@/components/landing/stats";
+import { PartnershipsSection } from "@/components/landing/partnerships";
+import { ResourceStrip } from "@/components/landing/resource-strip";
+import { PricingSection } from "@/components/landing/pricing";
+import { FAQSection } from "@/components/landing/faq";
 import { CTASection } from "@/components/landing/cta";
 import { LandingGodRaysBackground } from "@/components/landing/god-rays-background";
 import { MarketingFooter } from "@/components/marketing/footer";
@@ -44,7 +48,8 @@ export default function Home() {
 
         <main className="relative z-10 flex flex-col">
           <HeroSection />
-          <WaitlistSection />
+          <SocialProofSection />
+          <PlatformLayersSection />
 
           <div id="features">
             <FeaturesSection />
@@ -55,11 +60,10 @@ export default function Home() {
           </div>
 
           <StatsSection />
-
-          <div id="use-cases">
-            <UseCasesSection />
-          </div>
-
+          <PartnershipsSection />
+          <ResourceStrip />
+          <PricingSection />
+          <FAQSection />
           <CTASection />
         </main>
       </div>
