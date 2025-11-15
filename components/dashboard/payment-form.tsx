@@ -28,6 +28,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface PaymentFormProps {
   datasetId: string;
