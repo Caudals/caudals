@@ -14,6 +14,7 @@ import { CheckCircle2, Clock, DollarSign, Users } from "lucide-react";
 
 import { ContributeDialog } from "./contribute-dialog";
 import { useAuth } from "@/lib/auth/provider";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface DatasetCardProps {
   dataset: Dataset;
@@ -29,6 +30,7 @@ const statusStyles: Record<Dataset["status"], string> = {
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   const { user } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
 
   const daysUntilDeadline = Math.ceil(
     (new Date(dataset.deadline).getTime() - new Date().getTime()) /
@@ -39,7 +41,9 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   const isPaused = dataset.status === "paused";
   const isExpired = daysUntilDeadline <= 0;
 
-  const deadlineLabel = isExpired ? "Expired" : `${daysUntilDeadline}d left`;
+  const deadlineLabel = isExpired
+    ? t("Expired")
+    : t("{{days}}d left", { days: daysUntilDeadline });
 
   const handleContributeClick = () => {
     if (!user) {
