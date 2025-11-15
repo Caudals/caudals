@@ -214,3 +214,10 @@
     color: var(--popover-foreground);
   }
 }
+
+/* Hide the default close button on Sonner toasts */
+@layer base {
+  [data-sonner-toast] [data-close-button] {
+    display: none !important;
+  }
+}
