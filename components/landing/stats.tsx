@@ -1,8 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function StatsSection() {
+  const t = useTranslations();
   const stats = [
     {
       value: "12M+",
@@ -31,12 +33,16 @@ export function StatsSection() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
         <div className="rounded-[1.5rem] border border-border/80 bg-card p-6 sm:rounded-[2.4rem] sm:p-8 lg:p-10">
           <div className="mb-8 text-center sm:mb-10">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">Proof in numbers</p>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">
+              {t("Proof in numbers")}
+            </p>
             <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
-              Scaling frontier AI responsibly
+              {t("Scaling frontier AI responsibly")}
             </h2>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              Every metric combines human expertise and automation so you can trust the workflow end to end.
+              {t(
+                "Every metric combines human expertise and automation so you can trust the workflow end to end.",
+              )}
             </p>
           </div>
 
@@ -52,9 +58,11 @@ export function StatsSection() {
               >
                 <div className="text-3xl font-semibold text-foreground sm:text-4xl">{stat.value}</div>
                 <p className="mt-2 text-xs font-semibold uppercase text-muted-foreground sm:text-sm">
-                  {stat.label}
+                  {t(stat.label)}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">{stat.description}</p>
+                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+                  {t(stat.description)}
+                </p>
               </motion.div>
             ))}
           </div>

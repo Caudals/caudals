@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Loader2, SendHorizonal, Sparkles } from "lucide-react";
 
 import {
@@ -31,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 const focusAreaLabels: Record<(typeof collaborationFocusAreas)[number], string> = {
   "data-collection": "Data collection partnership",
@@ -52,6 +52,7 @@ const defaultValues: Partial<CollaborationFormValues> = {
 
 export function CollaborateForm() {
   const [isComplete, setIsComplete] = useState(false);
+  const toast = useLocaleToast();
   const form = useForm<CollaborationFormValues>({
     resolver: zodResolver(collaborationFormSchema),
     defaultValues,

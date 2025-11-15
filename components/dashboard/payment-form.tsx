@@ -15,7 +15,6 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   createPaymentIntent,
   payWithWallet,
@@ -28,6 +27,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { useStripe as useStripeHook } from "@/lib/hooks/use-stripe";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -53,6 +53,8 @@ function PaymentFormBase({
   clientSecret,
 }: PaymentFormInnerProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "upfront" | "per_contribution"
@@ -209,7 +211,9 @@ function PaymentFormBase({
                   className="rounded"
                 />
                 <span className="text-sm">
-                  Wallet Balance ({formatAmount(walletBalance)})
+                  {t("Wallet Balance ({{amount}})", {
+                    amount: formatAmount(walletBalance),
+                  })}
                 </span>
               </label>
             </div>
@@ -286,8 +290,10 @@ function PaymentFormBase({
                 <DollarSign className="mr-2 h-4 w-4" />
               )}
               {isProcessing
-                ? "Processing..."
-                : `Pay ${formatAmount(totalAmount)} with Wallet`}
+                ? t("Processing...")
+                : t("Pay {{amount}} with Wallet", {
+                    amount: formatAmount(totalAmount),
+                  })}
             </Button>
           ) : clientSecret ? (
             <StripePaymentButton
@@ -341,6 +347,8 @@ function StripePaymentButton({
   onPaymentSuccess?: () => void;
 }) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const stripe = useStripe();
   const elements = useElements();
 
@@ -409,8 +417,10 @@ function StripePaymentButton({
           <DollarSign className="mr-2 h-4 w-4" />
         )}
         {isProcessing
-          ? "Processing..."
-          : `Pay ${formatAmount(amount)} with Card`}
+          ? t("Processing...")
+          : t("Pay {{amount}} with Card", {
+              amount: formatAmount(amount),
+            })}
       </Button>
     </form>
   );
@@ -445,6 +455,8 @@ export function PaymentForm(props: PaymentFormProps) {
   const { stripe, loading, error } = useStripeHook();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>("");
+  const toast = useLocaleToast();
+  const t = useTranslations();
 
   // Create payment intent when amount changes
   React.useEffect(() => {
@@ -471,7 +483,11 @@ export function PaymentForm(props: PaymentFormProps) {
           
           if (result.error) {
             console.error("❌ Error creating payment intent:", result.error);
-            toast.error(`Payment setup failed: ${result.error}`);
+            toast.error(
+              t("Payment setup failed: {{error}}", {
+                error: result.error,
+              }),
+            );
             setClientSecret(null);
           } else if (result.data?.client_secret) {
             console.log("✅ Payment intent created successfully");

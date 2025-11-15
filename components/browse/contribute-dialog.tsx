@@ -17,8 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { createSubmission } from "@/lib/actions/submission-actions";
 import { uploadMultipleFilesClient } from "@/lib/storage/client-upload";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface ContributeDialogProps {
   datasetId: string;
@@ -34,6 +35,8 @@ export function ContributeDialog({
   children,
 }: ContributeDialogProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState("");
@@ -71,7 +74,9 @@ export function ContributeDialog({
       );
 
       if (errors.length > 0) {
-        toast.error(`Failed to upload ${errors.length} file(s)`);
+        toast.error(
+          t("Failed to upload {{count}} file(s)", { count: errors.length }),
+        );
         setIsSubmitting(false);
         return;
       }

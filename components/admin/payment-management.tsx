@@ -14,19 +14,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  CreditCard, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  CreditCard,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   Loader2,
   CheckCircle,
   Clock,
   AlertCircle,
   Search,
-  Filter
+  Filter,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface Transaction {
   id: string;
@@ -64,6 +64,7 @@ export function PaymentManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadPaymentData();

@@ -9,6 +9,7 @@ import {
   Activity,
   BarChart3,
 } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 const capabilities = [
   {
@@ -50,16 +51,22 @@ const capabilities = [
 ];
 
 export function FeaturesSection() {
+  const t = useTranslations();
+
   return (
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-12 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Why ML teams choose Caudals</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            {t("Why ML teams choose Caudals")}
+          </p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
-            Operational excellence, delivered as a platform
+            {t("Operational excellence, delivered as a platform")}
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
-            Layer human expertise with automation to keep your dataset programs measurable, compliant, and fast.
+            {t(
+              "Layer human expertise with automation to keep your dataset programs measurable, compliant, and fast.",
+            )}
           </p>
         </div>
 
@@ -76,8 +83,10 @@ export function FeaturesSection() {
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
                 <capability.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">{capability.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{capability.description}</p>
+              <h3 className="text-lg font-semibold text-foreground">
+                {t(capability.title)}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">{t(capability.description)}</p>
             </motion.div>
           ))}
         </div>

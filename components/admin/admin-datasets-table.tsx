@@ -9,7 +9,6 @@ import {
   Edit3,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import {
   Card,
@@ -62,6 +61,8 @@ import {
 } from "@/lib/actions/admin-actions";
 import { ApprovalStatus } from "@/types/database";
 import { DatasetStatus } from "@/types/dataset";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface AdminDatasetsTableProps {
   datasets: AdminDatasetRequest[];
@@ -78,6 +79,8 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [isStatusPending, startStatusTransition] = useTransition();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isBulkStatusPending, startBulkStatusTransition] = useTransition();
   const [isBulkApprovalPending, startBulkApprovalTransition] = useTransition();
@@ -114,7 +117,9 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
       if ("error" in result) {
         toast.error(result.error || "Failed to update approval status");
       } else {
-        toast.success(`Dataset marked as ${nextStatus}.`);
+        toast.success(
+          t("Dataset marked as {{status}}.", { status: nextStatus }),
+        );
       }
       router.refresh();
       setStatusDatasetId(null);

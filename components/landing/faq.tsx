@@ -7,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 const faqs = [
   {
@@ -42,17 +43,20 @@ const faqs = [
 ];
 
 export function FAQSection() {
+  const t = useTranslations();
+
   return (
     <section className="py-20">
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
         <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">FAQ</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("FAQ")}</p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
-            Answers before you schedule a walkthrough
+            {t("Answers before you schedule a walkthrough")}
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
-            Need more specifics? Book a call and we&apos;ll tailor the implementation plan to your
-            governance, volume, and modality requirements.
+            {t(
+              "Need more specifics? Book a call and we'll tailor the implementation plan to your governance, volume, and modality requirements.",
+            )}
           </p>
         </div>
 
@@ -70,10 +74,10 @@ export function FAQSection() {
                 viewport={{ once: true, margin: "-60px" }}
               >
                 <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-foreground">
-                  {faq.question}
+                  {t(faq.question)}
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6 text-sm leading-relaxed text-muted-foreground">
-                  {faq.answer}
+                  {t(faq.answer)}
                 </AccordionContent>
               </motion.div>
             </AccordionItem>

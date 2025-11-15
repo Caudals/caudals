@@ -34,3 +34,8 @@ I want the following sections for the landing page:
 - Take as much time as you need. The result shoud be a beautiful, polished and professional product ready for production so that our users are satifified.
 
 - First make an extensive plan of all you are going to do and how. Then use it to make the complete implmentation
+
+Para testear idiomas correr en la consola del navegador:
+```
+document.cookie = "NEXT_LOCALE=es; path=/"; location.reload();
+```

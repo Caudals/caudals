@@ -36,8 +36,9 @@ import {
   Eye,
 } from "lucide-react";
 import { deleteOwnSubmission } from "@/lib/actions/contributor-actions";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface ContributionsViewProps {
   contributions: Array<{
@@ -70,6 +71,8 @@ export function ContributionsView({
   earnings,
 }: ContributionsViewProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filteredContributions = contributions.filter(
@@ -77,7 +80,7 @@ export function ContributionsView({
   );
 
   const handleDelete = async (submissionId: string) => {
-    if (!confirm("Delete this submission? This cannot be undone.")) {
+    if (!confirm(t("Delete this submission? This cannot be undone."))) {
       return;
     }
 
@@ -301,7 +304,9 @@ export function ContributionsView({
                                   <DropdownMenuItem
                                     onClick={() => {
                                       alert(
-                                        `Rejection reason: ${contribution.notes}`
+                                        t("Rejection reason: {{reason}}", {
+                                          reason: contribution.notes as string,
+                                        }),
                                       );
                                     }}
                                   >

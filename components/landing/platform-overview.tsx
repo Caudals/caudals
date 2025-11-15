@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Network, PanelsTopLeft, ShieldCheck, Sparkles } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type LayerId = "blueprint" | "contributors" | "quality" | "delivery";
 
@@ -69,6 +70,7 @@ const layers: Record<LayerId, {
 };
 
 export function PlatformLayersSection() {
+  const t = useTranslations();
   const [activeLayer, setActiveLayer] = useState<LayerId>("blueprint");
   const layerEntries = Object.entries(layers) as [LayerId, (typeof layers)[LayerId]][];
 
@@ -76,13 +78,16 @@ export function PlatformLayersSection() {
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Caudals operating layers</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            {t("Caudals operating layers")}
+          </p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
-            Interactive tooling for every stage of dataset ops
+            {t("Interactive tooling for every stage of dataset ops")}
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
-            Switch between the layers to see how briefs move from planning to contributor pods,
-            quality loops, and delivery rails.
+            {t(
+              "Switch between the layers to see how briefs move from planning to contributor pods, quality loops, and delivery rails.",
+            )}
           </p>
         </div>
 
@@ -101,9 +106,9 @@ export function PlatformLayersSection() {
               >
                 <div className="flex items-center gap-3">
                   <layer.icon className="h-5 w-5" />
-                  <span className="text-base font-semibold">{layer.label}</span>
+                  <span className="text-base font-semibold">{t(layer.label)}</span>
                 </div>
-                <span className="text-xs uppercase">{layer.metric}</span>
+                <span className="text-xs uppercase">{t(layer.metric)}</span>
               </button>
             ))}
           </div>
@@ -119,15 +124,19 @@ export function PlatformLayersSection() {
                 className="space-y-5"
               >
                 <p className="text-sm font-semibold uppercase text-muted-foreground">
-                  {layers[activeLayer].label}
+                  {t(layers[activeLayer].label)}
                 </p>
-                <h3 className="text-2xl font-semibold text-foreground">{layers[activeLayer].title}</h3>
-                <p className="text-base text-muted-foreground">{layers[activeLayer].description}</p>
+                <h3 className="text-2xl font-semibold text-foreground">
+                  {t(layers[activeLayer].title)}
+                </h3>
+                <p className="text-base text-muted-foreground">
+                  {t(layers[activeLayer].description)}
+                </p>
                 <ul className="grid gap-3 text-sm text-muted-foreground">
                   {layers[activeLayer].bullets.map((bullet) => (
                     <li key={bullet} className="flex items-start gap-2">
                       <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-                      {bullet}
+                      {t(bullet)}
                     </li>
                   ))}
                 </ul>

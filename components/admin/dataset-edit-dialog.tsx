@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import {
   Dialog,
@@ -43,6 +42,7 @@ import {
   deleteFileClient,
   uploadFileClient,
 } from "@/lib/storage/client-upload";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface DatasetEditDialogProps {
   open: boolean;
@@ -93,6 +93,7 @@ export function DatasetEditDialog({
   onOpenChange,
 }: DatasetEditDialogProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
   const [formState, setFormState] = useState<FormState>(defaultState);
   const [isSaving, startTransition] = useTransition();
   const [isUploadingImage, setIsUploadingImage] = useState(false);

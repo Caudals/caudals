@@ -4,18 +4,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CreditCard, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  CreditCard,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   Loader2,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
 } from "lucide-react";
-import { toast } from "sonner";
 import { getUserTransactions } from "@/lib/actions/payment-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface Transaction {
   id: string;
@@ -53,6 +53,7 @@ export function BillingDashboard() {
     completedPayments: 0,
   });
   const [loading, setLoading] = useState(true);
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadBillingData();

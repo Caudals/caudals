@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createDatasetRequest } from "@/lib/actions/dataset-actions";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +31,7 @@ import {
   deleteFileClient,
 } from "@/lib/storage/client-upload";
 import { FileUpload } from "@/components/ui/file-upload";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 const DATASET_IMAGE_BUCKET = "dataset-images";
 const DATASET_IMAGE_FOLDER = "covers";
@@ -78,6 +78,7 @@ export function NewRequestForm() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useLocaleToast();
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string | null>(
     null
