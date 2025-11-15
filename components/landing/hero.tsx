@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  LayoutDashboard,
+  Database,
+  ListChecks,
+  Wallet,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -101,77 +109,130 @@ export function HeroSection() {
 }
 
 function HeroPreview() {
-  const metrics = [
-    { label: "Certified contributors", value: "52,487", change: "+412 this week" },
-    { label: "Approved submissions", value: "12.4M", change: "95% quality score" },
-    { label: "Avg. payout", value: "$36", change: "per accepted task" },
+  const statCards = [
+    { label: "Total earnings", value: "$12,640", note: "From 84 approved submissions", accent: "text-emerald-600" },
+    { label: "Pending", value: "5", note: "$420 if approved", accent: "text-sky-600" },
+    { label: "Approval rate", value: "92%", note: "77/84 approved", accent: "text-amber-600" },
+    { label: "Rejected", value: "2", note: "Review feedback to improve", accent: "text-rose-600" },
   ];
 
-  const briefs = [
+  const contributions = [
     {
-      title: "Multilingual safety prompts",
-      modality: "NLP · 6 regions",
-      status: "In review",
-      progress: 72,
+      dataset: "Aerial mapping cues for drones",
+      files: "18 files",
+      status: "approved",
+      reward: "$680",
+      submitted: "10/06/2025",
     },
     {
-      title: "Smart camera gestures",
-      modality: "Vision · wearables",
-      status: "Collecting",
-      progress: 44,
-    },
-    {
-      title: "Synthetic sensor fusion",
-      modality: "Robotics",
-      status: "QA ready",
-      progress: 88,
+      dataset: "Safety prompts for multilingual agents",
+      files: "12 files",
+      status: "pending",
+      reward: "$420",
+      submitted: "10/04/2025",
     },
   ];
+
+  const sidebarLinks = [
+    { label: "Dashboard", icon: LayoutDashboard },
+    { label: "Browse datasets", icon: Database },
+    { label: "My contributions", icon: ListChecks, active: true },
+    { label: "Earnings & payouts", icon: Wallet },
+    { label: "Settings", icon: Settings },
+  ];
+
+  const statusStyles: Record<string, string> = {
+    approved: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-700",
+    rejected: "bg-rose-50 text-rose-700",
+  };
 
   return (
-    <div className="relative mx-auto max-w-4xl rounded-[2.4rem] border border-border/70 bg-card/95 p-6 shadow-[0_45px_140px_-80px_rgba(11,12,17,0.6)] backdrop-blur">
-      <div className="grid gap-4 sm:grid-cols-3">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-2xl border border-border/80 bg-white p-4 text-left">
-            <p className="text-xs uppercase text-muted-foreground">{metric.label}</p>
-            <p className="mt-3 text-2xl font-semibold text-foreground">{metric.value}</p>
-            <p className="text-xs text-muted-foreground">{metric.change}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 rounded-2xl border border-border/80 bg-white p-5 text-left">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Live dataset briefs</p>
-            <p className="text-xs text-muted-foreground">Auto-syncs with contributor pods + QA</p>
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">Auto payouts · Stripe</span>
-        </div>
-        <div className="mt-4 space-y-3">
-          {briefs.map((brief) => (
-            <div
-              key={brief.title}
-              className="flex flex-col gap-2 rounded-xl border border-border/60 bg-secondary/70 p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <p className="text-sm font-semibold text-foreground">{brief.title}</p>
-                <p className="text-xs text-muted-foreground">{brief.modality}</p>
-              </div>
-              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-2 text-foreground/80">
-                  <span className="h-2 w-2 rounded-full bg-accent" />
-                  {brief.status}
-                </span>
-                <div className="h-1.5 w-full rounded-full bg-border">
-                  <div
-                    className="h-1.5 rounded-full bg-foreground"
-                    style={{ width: `${brief.progress}%` }}
-                  />
-                </div>
-              </div>
+    <div className="relative mx-auto max-w-5xl rounded-[2.4rem] border border-border/70 bg-card/95 p-6 shadow-[0_45px_140px_-80px_rgba(11,12,17,0.6)] backdrop-blur">
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <aside className="flex w-full max-w-xs flex-col rounded-[1.6rem] border border-border/60 bg-white p-6">
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Caudals</p>
+            <p className="text-lg font-semibold text-foreground">Contributor dashboard</p>
+            <div className="mt-3 rounded-xl border border-border/70 bg-muted px-3 py-2 text-sm text-foreground">
+              Contributor view
             </div>
-          ))}
-        </div>
+          </div>
+          <div className="space-y-2">
+            {sidebarLinks.map((link) => (
+              <button
+                key={link.label}
+                type="button"
+                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors ${
+                  link.active
+                    ? "border border-foreground bg-white text-foreground"
+                    : "border border-transparent text-muted-foreground hover:border-border/70 hover:text-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                </span>
+                {link.active ? <span className="h-1.5 w-1.5 rounded-full bg-foreground" /> : null}
+              </button>
+            ))}
+          </div>
+          <div className="mt-auto rounded-2xl border border-border/80 bg-muted/40 p-4 text-sm">
+            <p className="font-semibold text-foreground">Maya Cooper</p>
+            <p className="text-xs text-muted-foreground">maya@caudals.community</p>
+            <div className="mt-3 rounded-xl border border-border/70 bg-white px-3 py-2 text-xs">
+              Contributor ID · CC-4820
+            </div>
+          </div>
+        </aside>
+
+        <section className="flex-1 rounded-[1.6rem] border border-border/70 bg-white p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase text-muted-foreground">Dashboard / Contributions</p>
+              <h3 className="text-2xl font-semibold text-foreground">My contributions</h3>
+            </div>
+            <Button variant="outline" className="h-9 rounded-full border-border/70 px-4 text-sm">
+              All status
+            </Button>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {statCards.map((card) => (
+              <div key={card.label} className="rounded-2xl border border-border/80 bg-muted/40 p-4">
+                <p className="text-sm text-muted-foreground">{card.label}</p>
+                <p className={`mt-2 text-2xl font-semibold ${card.accent}`}>{card.value}</p>
+                <p className="text-xs text-muted-foreground">{card.note}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-border/70">
+            <div className="grid grid-cols-[2fr_repeat(4,1fr)] gap-2 border-b border-border/70 px-6 py-4 text-xs font-semibold uppercase text-muted-foreground">
+              <span>Dataset</span>
+              <span>Files</span>
+              <span>Status</span>
+              <span>Reward</span>
+              <span className="text-right">Submitted</span>
+            </div>
+            {contributions.map((entry) => (
+              <div
+                key={entry.dataset}
+                className="grid grid-cols-[2fr_repeat(4,1fr)] items-center gap-2 border-b border-border/40 px-6 py-4 text-sm text-foreground last:border-b-0"
+              >
+                <span className="font-medium text-foreground/90">{entry.dataset}</span>
+                <span className="text-muted-foreground">{entry.files}</span>
+                <span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusStyles[entry.status]}`}>
+                    {entry.status.charAt(0).toUpperCase() + entry.status.slice(1)}
+                  </span>
+                </span>
+                <span className="text-muted-foreground">{entry.reward}</span>
+                <span className="text-right text-muted-foreground">{entry.submitted}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
