@@ -1,32 +1,37 @@
 "use client";
 
 import { motion } from "framer-motion";
-
-const ecosystems = [
-  { name: "NVIDIA", caption: "Omniverse + GPU workflows" },
-  { name: "PyTorch", caption: "Model-ready tensors" },
-  { name: "Hugging Face", caption: "Dataset distribution" },
-  { name: "TensorFlow", caption: "TFRecords + eval" },
-  { name: "Pandas", caption: "Tabular governance" },
-  { name: "Snowflake", caption: "Lakehouse exports" },
-  { name: "AWS", caption: "Private cloud deployments" },
-  { name: "Azure", caption: "Regional storage" },
-  { name: "Lambda Labs", caption: "GPU infrastructure" },
-  { name: "Stripe", caption: "Global payouts" },
-];
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function SocialProofSection() {
+  const t = useTranslations();
+  const ecosystems = [
+    { name: "NVIDIA", caption: t("Omniverse + GPU workflows") },
+    { name: "PyTorch", caption: t("Model-ready tensors") },
+    { name: "Hugging Face", caption: t("Dataset distribution") },
+    { name: "TensorFlow", caption: t("TFRecords + eval") },
+    { name: "Pandas", caption: t("Tabular governance") },
+    { name: "Snowflake", caption: t("Lakehouse exports") },
+    { name: "AWS", caption: t("Private cloud deployments") },
+    { name: "Azure", caption: t("Regional storage") },
+    { name: "Lambda Labs", caption: t("GPU infrastructure") },
+    { name: "Stripe", caption: t("Global payouts") },
+  ];
+
   return (
     <section className="py-16">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Ecosystem fit</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            {t("Ecosystem fit")}
+          </p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
-            Plug Caudals into the stacks you already run
+            {t("Plug Caudals into the stacks you already run")}
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
-            Approved batches sync into NVIDIA, PyTorch, Hugging Face, Pandas, Snowflake, every major
-            cloud, and the payout rails your finance team trusts.
+            {t(
+              "Approved batches sync into NVIDIA, PyTorch, Hugging Face, Pandas, Snowflake, every major cloud, and the payout rails your finance team trusts.",
+            )}
           </p>
         </div>
 

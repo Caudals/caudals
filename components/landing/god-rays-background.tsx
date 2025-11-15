@@ -106,18 +106,18 @@ export function LandingGodRaysBackground({
           >
             <GodRays
               colorBack="#f7f7f3"
-              colors={["#eef4ff", "#a7bdf5", "#7ac8b5", "#f7f7f3"]}
-              colorBloom="#fefefe"
+              colors={["#c3defebf", "#a7bdf5", "#7ac8b5", "#f7f7f3"]}
+              colorBloom="#f7f7f3"
               offsetX={0}
               offsetY={0}
-              intensity={0.8}
-              spotty={0.4}
-              midSize={12}
-              midIntensity={0.12}
-              density={0.06}
+              intensity={0.6}
+              spotty={0.8}
+              midSize={0}
+              midIntensity={0}
+              density={0.04}
               bloom={0.15}
-              speed={0.8}
-              scale={1.4}
+              speed={0.6}
+              scale={1.5}
               frame={2332042.8159981333}
               style={{
                 width: "100%",

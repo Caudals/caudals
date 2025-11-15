@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -25,6 +25,7 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const toast = useLocaleToast();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

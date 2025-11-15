@@ -31,9 +31,10 @@ import {
   updateDatasetRequest,
   deleteDatasetRequest,
 } from "@/lib/actions/dataset-actions";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { categoryLabels } from "@/lib/data/datasets";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface DatasetRequest {
   id: string;
@@ -52,6 +53,8 @@ interface RequestsTableProps {
 
 export function RequestsTable({ requests }: RequestsTableProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const handleStatusChange = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "paused" : "active";
     const result = await updateDatasetRequest(id, { status: newStatus });
@@ -69,7 +72,7 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   const handleDelete = async (id: string) => {
     if (
       !confirm(
-        "Are you sure you want to delete this request? This action cannot be undone."
+        t("Are you sure you want to delete this request? This action cannot be undone.")
       )
     ) {
       return;

@@ -4,18 +4,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Download, 
-  FileArchive, 
-  Users, 
-  FileText, 
+import {
+  Download,
+  FileArchive,
+  Users,
+  FileText,
   Calendar,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 import { getDatasetExportStats, createDatasetZip } from "@/lib/actions/export-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface DatasetExportProps {
   datasetId: string;
@@ -45,6 +45,7 @@ export function DatasetExport({
     };
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const toast = useLocaleToast();
 
   const isCompleted = status === "completed";
   const hasApprovedSubmissions = samplesCollected > 0;

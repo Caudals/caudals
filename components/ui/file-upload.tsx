@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "./button";
 import { Upload, X, File } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface FileUploadProps {
   accept?: string;
@@ -23,6 +24,7 @@ export function FileUpload({
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations();
 
   const handleFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;
@@ -30,7 +32,12 @@ export function FileUpload({
     const fileArray = Array.from(newFiles);
     const validFiles = fileArray.filter((file) => {
       if (file.size > maxSize * 1024 * 1024) {
-        alert(`File ${file.name} is too large. Maximum size is ${maxSize}MB`);
+        alert(
+          t("File {{name}} is too large. Maximum size is {{size}}MB", {
+            name: file.name,
+            size: maxSize,
+          }),
+        );
         return false;
       }
       return true;
@@ -95,8 +102,10 @@ export function FileUpload({
           <div className="text-center space-y-2">
             <p className="text-sm font-medium">Drag and drop files here</p>
             <p className="text-xs text-muted-foreground">
-              {accept !== "*" ? `Accepted formats: ${accept}` : "Any file type"}{" "}
-              • Max {maxSize}MB
+              {accept !== "*"
+                ? t("Accepted formats: {{formats}}", { formats: accept })
+                : t("Any file type")}{" "}
+              {t("• Max {{size}}MB", { size: maxSize })}
             </p>
           </div>
           <Button

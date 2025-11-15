@@ -4,18 +4,18 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Users, 
-  DollarSign, 
-  Database, 
-  TrendingUp, 
+import {
+  Users,
+  DollarSign,
+  Database,
+  TrendingUp,
   TrendingDown,
   Activity,
   BarChart3,
@@ -32,9 +32,9 @@ import {
   Upload,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface AnalyticsData {
   overview: {
@@ -103,6 +103,7 @@ export function AdvancedAnalytics() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("overview");
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadAnalyticsData();

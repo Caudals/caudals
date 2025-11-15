@@ -17,8 +17,8 @@ import {
   RefreshCcw,
   Wallet,
 } from "lucide-react";
-import { toast } from "sonner";
 import { getUserTransactions } from "@/lib/actions/payment-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface Transaction {
   id: string;
@@ -53,6 +53,7 @@ export function PaymentHistory({ limit = 50, showExport = true }: PaymentHistory
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadTransactions();

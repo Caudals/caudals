@@ -11,9 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreditCard, Plus, Loader2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 import { getUserTransactions, getUserWallet } from "@/lib/actions/payment-actions";
 import { PaymentForm } from "./payment-form";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface BillingOverviewProps {
   onAddFunds?: () => void;
@@ -25,6 +25,7 @@ export function BillingOverview({ onAddFunds }: BillingOverviewProps) {
   const [pendingBalance, setPendingBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadBillingData();

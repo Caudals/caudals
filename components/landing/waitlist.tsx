@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import {
@@ -20,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface WaitlistResponse {
   success: boolean;
@@ -30,6 +30,7 @@ interface WaitlistResponse {
 
 export function WaitlistSection() {
   const [result, setResult] = useState<WaitlistResponse | null>(null);
+  const toast = useLocaleToast();
   const form = useForm<WaitlistFormValues>({
     resolver: zodResolver(waitlistFormSchema),
     defaultValues: {

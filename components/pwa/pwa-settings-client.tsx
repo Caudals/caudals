@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,11 +16,13 @@ import {
 import { useAuth } from "@/lib/auth/provider";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Home } from "lucide-react";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export function PwaSettingsClient() {
   const { user, loading } = useAuth();
   const supabase = createClient();
   const router = useRouter();
+  const toast = useLocaleToast();
 
   const [offlineSync, setOfflineSync] = useState(true);
   const [cellularUploads, setCellularUploads] = useState(false);

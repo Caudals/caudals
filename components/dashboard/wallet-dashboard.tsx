@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { getUserWallet } from "@/lib/actions/payment-actions";
 import { PaymentHistory } from "./payment-history";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface WalletData {
   id: string;
@@ -17,6 +17,7 @@ interface WalletData {
 export function WalletDashboard() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadWalletData();

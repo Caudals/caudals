@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, Users, CheckCircle, CreditCard, Sparkles, Shield } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type Role = "organizations" | "contributors";
 
@@ -71,18 +72,23 @@ const flows: Record<Role, {
 };
 
 export function HowItWorksSection() {
+  const t = useTranslations();
   const [role, setRole] = useState<Role>("organizations");
 
   return (
     <section className="py-12 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
         <div className="mb-6 text-center sm:mb-8">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">How it works</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            {t("How it works")}
+          </p>
           <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
-            One platform, two seamless experiences
+            {t("One platform, two seamless experiences")}
           </h2>
           <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-            Toggle between organizations and contributors to see how each role moves through the Caudals loop.
+            {t(
+              "Toggle between organizations and contributors to see how each role moves through the Caudals loop.",
+            )}
           </p>
         </div>
 
@@ -101,7 +107,7 @@ export function HowItWorksSection() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -113,7 +119,9 @@ export function HowItWorksSection() {
           transition={{ duration: 0.3 }}
           className="rounded-[1.5rem] border border-border/80 bg-white/90 p-4 sm:rounded-[2rem] sm:p-6 lg:p-8"
         >
-          <h3 className="text-xl font-semibold text-foreground sm:text-2xl">{flows[role].title}</h3>
+          <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+            {t(flows[role].title)}
+          </h3>
           <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-2">
             {flows[role].steps.map((step, index) => (
               <div key={step.label} className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 sm:gap-4 sm:rounded-2xl sm:p-5">
@@ -121,9 +129,13 @@ export function HowItWorksSection() {
                   <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-sm">Step {index + 1}</p>
-                  <h4 className="text-base font-semibold text-foreground sm:text-lg">{step.label}</h4>
-                  <p className="text-xs text-muted-foreground sm:text-sm">{step.description}</p>
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-sm">
+                    {t("Step {{index}}", { index: index + 1 })}
+                  </p>
+                  <h4 className="text-base font-semibold text-foreground sm:text-lg">
+                    {t(step.label)}
+                  </h4>
+                  <p className="text-xs text-muted-foreground sm:text-sm">{t(step.description)}</p>
                 </div>
               </div>
             ))}

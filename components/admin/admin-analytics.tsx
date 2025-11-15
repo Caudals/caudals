@@ -10,22 +10,22 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { 
-  BarChart3, 
-  Users, 
-  DollarSign, 
+import {
+  BarChart3,
+  Users,
+  DollarSign,
   Database,
   TrendingUp,
   Activity,
   Shield,
   Download,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
-import { toast } from "sonner";
 import { AdvancedAnalytics } from "./advanced-analytics";
 import { UserAnalytics } from "./user-analytics";
 import { PaymentAnalytics } from "./payment-analytics";
 import { DatasetAnalytics } from "./dataset-analytics";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface AdminAnalyticsProps {
   onRefresh?: () => void;
@@ -34,6 +34,7 @@ interface AdminAnalyticsProps {
 export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const toast = useLocaleToast();
 
   const handleRefresh = async () => {
     setRefreshing(true);

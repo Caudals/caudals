@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/lib/auth/provider";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface HeaderProps {
   links?: Array<{ label: string; href: string }>;
@@ -27,6 +28,7 @@ const DEFAULT_LINKS = [
 
 export function Header({ links, translucent = false }: HeaderProps) {
   const { user, loading } = useAuth();
+  const t = useTranslations();
   const navLinks =
     links && links.length > 0 ? links : DEFAULT_LINKS;
 
@@ -42,18 +44,18 @@ export function Header({ links, translucent = false }: HeaderProps) {
 
     return user ? (
       <Button size="sm" asChild>
-        <Link href="/dashboard">Dashboard</Link>
-      </Button>
-    ) : (
-      <>
-        <Button size="sm" asChild variant="outline">
-          <Link href="/auth/sign-in">Sign in</Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link href="/auth/sign-up">Sign up</Link>
-        </Button>
-      </>
-    );
+            <Link href="/dashboard">{t("Dashboard")}</Link>
+          </Button>
+        ) : (
+          <>
+            <Button size="sm" asChild variant="outline">
+              <Link href="/auth/sign-in">{t("Sign in")}</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href="/auth/sign-up">{t("Sign up")}</Link>
+            </Button>
+          </>
+        );
   };
 
   const renderMobileActions = () => {
@@ -69,19 +71,19 @@ export function Header({ links, translucent = false }: HeaderProps) {
     return user ? (
       <SheetClose asChild>
         <Button size="sm" asChild className="w-full">
-          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard">{t("Dashboard")}</Link>
         </Button>
       </SheetClose>
     ) : (
       <>
         <SheetClose asChild>
           <Button size="sm" variant="outline" asChild>
-            <Link href="/auth/sign-in">Sign in</Link>
+            <Link href="/auth/sign-in">{t("Sign in")}</Link>
           </Button>
         </SheetClose>
         <SheetClose asChild>
           <Button size="sm" asChild>
-            <Link href="/auth/sign-up">Sign up</Link>
+            <Link href="/auth/sign-up">{t("Sign up")}</Link>
           </Button>
         </SheetClose>
       </>
@@ -101,14 +103,14 @@ export function Header({ links, translucent = false }: HeaderProps) {
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/caudals_logo_black.svg"
-            alt="Caudals logo"
+            alt={t("Caudals logo")}
             width={24}
             height={24}
             className="h-6 w-6"
             priority
           />
           <span className="text-xl font-semibold tracking-tight">
-            Caudals
+            {t("Caudals")}
           </span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
@@ -118,7 +120,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
               href={href}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              {label}
+              {t(label)}
             </Link>
           ))}
 
@@ -128,7 +130,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
+              <span className="sr-only">{t("Toggle menu")}</span>
             </Button>
           </SheetTrigger>
           <SheetContent
@@ -140,13 +142,13 @@ export function Header({ links, translucent = false }: HeaderProps) {
                 <Link href="/" className="flex items-center gap-2">
                   <Image
                     src="/caudals_logo_black.svg"
-                    alt="Caudals logo"
+                    alt={t("Caudals logo")}
                     width={24}
                     height={24}
                     className="h-6 w-6"
                     priority
                   />
-                  <span className="text-lg font-semibold">Caudals</span>
+                  <span className="text-lg font-semibold">{t("Caudals")}</span>
                 </Link>
               </SheetHeader>
 
@@ -158,7 +160,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
                         href={href}
                         className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
                       >
-                        {label}
+                        {t(label)}
                       </Link>
                     </SheetClose>
                   ))}

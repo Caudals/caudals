@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
-import { toast } from "sonner";
 import { createPaymentIntent } from "@/lib/actions/payment-actions";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -23,6 +22,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface PaymentFormProps {
   datasetId: string;
@@ -47,6 +47,7 @@ function PaymentFormInner({
   onAmountChange,
   clientSecret,
 }: PaymentFormInnerProps) {
+  const toast = useLocaleToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<
     "upfront" | "per_contribution"

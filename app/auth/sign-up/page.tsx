@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { User, Briefcase } from "lucide-react";
-import { toast } from "sonner";
 import { UserRole } from "@/types/database";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -29,6 +29,7 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const toast = useLocaleToast();
 
   const roleOptions = [
     {

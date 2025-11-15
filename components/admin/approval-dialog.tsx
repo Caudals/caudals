@@ -20,11 +20,11 @@ import {
   approveSubmission,
   rejectSubmission,
 } from "@/lib/actions/admin-actions";
-import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { categoryLabels, dataTypeLabels } from "@/lib/data/datasets";
 import { Separator } from "@/components/ui/separator";
 import { FileViewer } from "./file-viewer";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface ApprovalDialogProps {
   open: boolean;
@@ -63,6 +63,7 @@ export function ApprovalDialog({
   const router = useRouter();
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useLocaleToast();
 
   const handleApprove = async () => {
     setIsSubmitting(true);

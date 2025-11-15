@@ -1,17 +1,21 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function MarketingFooter() {
+  const t = useTranslations();
+
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
-              Caudals
+              {t("Caudals")}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Building the future of AI dataset creation through global
-              collaboration.
+              {t("Building the future of AI dataset creation through global collaboration.")}
             </p>
             <Link
               href="mailto:contact@caudals.com"
@@ -22,76 +26,76 @@ export function MarketingFooter() {
           </div>
           <div>
             <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              Product
+              {t("Product")}
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/browse" className="hover:text-foreground">
-                  Browse requests
+                  {t("Browse requests")}
                 </Link>
               </li>
               <li>
                 <Link href="/dashboard" className="hover:text-foreground">
-                  Dashboard
+                  {t("Dashboard")}
                 </Link>
               </li>
               <li>
                 <Link href="/pricing" className="hover:text-foreground">
-                  Pricing
+                  {t("Pricing")}
                 </Link>
               </li>
               <li>
                 <Link href="/docs" className="hover:text-foreground">
-                  Documentation
+                  {t("Documentation")}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
             <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              Company
+              {t("Company")}
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/about" className="hover:text-foreground">
-                  About
+                  {t("About")}
                 </Link>
               </li>
               <li>
                 <Link href="/blog" className="hover:text-foreground">
-                  Blog
+                  {t("Blog")}
                 </Link>
               </li>
               <li>
                 <Link href="/careers" className="hover:text-foreground">
-                  Careers
+                  {t("Careers")}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="hover:text-foreground">
-                  Contact
+                  {t("Contact")}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
             <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              Legal
+              {t("Legal")}
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/legal/privacy" className="hover:text-foreground">
-                  Privacy Policy
+                  {t("Privacy Policy")}
                 </Link>
               </li>
               <li>
                 <Link href="/legal/terms" className="hover:text-foreground">
-                  Terms of Service
+                  {t("Terms of Service")}
                 </Link>
               </li>
               <li>
                 <Link href="/legal/cookies" className="hover:text-foreground">
-                  Cookie Policy
+                  {t("Cookie Policy")}
                 </Link>
               </li>
             </ul>
@@ -99,7 +103,9 @@ export function MarketingFooter() {
         </div>
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Caudals. All rights reserved.
+            {t("© {{year}} Caudals. All rights reserved.", {
+              year: new Date().getFullYear(),
+            })}
           </p>
           <div className="flex gap-6">
             <Link
@@ -108,7 +114,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">Twitter</span>
+              <span className="sr-only">{t("Twitter")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"
@@ -123,7 +129,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">GitHub</span>
+              <span className="sr-only">{t("GitHub")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"
@@ -142,7 +148,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">LinkedIn</span>
+              <span className="sr-only">{t("LinkedIn")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"

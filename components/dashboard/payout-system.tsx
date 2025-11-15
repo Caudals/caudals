@@ -15,11 +15,11 @@ import {
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   getUserWallet,
   getStripeConnectAccount,
 } from "@/lib/actions/payment-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface PayoutSystemProps {
   onPayoutSuccess?: () => void;
@@ -41,6 +41,7 @@ export function PayoutSystem({ onPayoutSuccess }: PayoutSystemProps) {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [payoutLoading, setPayoutLoading] = useState(false);
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadPayoutData();

@@ -18,13 +18,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/provider";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import Link from "next/link";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export function NavUser() {
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
+  const toast = useLocaleToast();
 
   if (!user) {
     return null;

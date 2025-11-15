@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { toast } from "sonner";
 
 import {
   Dialog,
@@ -30,6 +29,7 @@ import {
   adminBulkUpdateDatasetRequests,
 } from "@/lib/actions/admin-actions";
 import { DatasetStatus } from "@/types/dataset";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 type ToggleField<T> = {
   enabled: boolean;
@@ -71,6 +71,7 @@ export function BulkDatasetEditDialog({
 }: BulkDatasetEditDialogProps) {
   const [formState, setFormState] = useState<FormState>(createDefaultState);
   const [isPending, startTransition] = useTransition();
+  const toast = useLocaleToast();
 
   useEffect(() => {
     if (!open) {

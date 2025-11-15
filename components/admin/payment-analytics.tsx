@@ -4,17 +4,17 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  DollarSign, 
-  CreditCard, 
-  TrendingUp, 
+import {
+  DollarSign,
+  CreditCard,
+  TrendingUp,
   TrendingDown,
   CheckCircle,
   XCircle,
@@ -24,9 +24,9 @@ import {
   Loader2,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface PaymentAnalytics {
   overview: {
@@ -87,6 +87,7 @@ export function PaymentAnalytics() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("overview");
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadPaymentAnalytics();

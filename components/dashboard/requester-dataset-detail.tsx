@@ -48,13 +48,14 @@ import {
 import { DatasetExport } from "./dataset-export";
 import { FilePreviewDialog } from "./file-preview-dialog";
 import { DatasetPayment } from "./dataset-payment";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   categoryLabels,
   dataTypeLabels,
   statusLabels,
 } from "@/lib/data/datasets";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface RequesterDatasetDetailProps {
   dataset: Dataset;
@@ -77,6 +78,8 @@ export function RequesterDatasetDetail({
   submissions,
 }: RequesterDatasetDetailProps) {
   const router = useRouter();
+  const toast = useLocaleToast();
+  const t = useTranslations();
   const [selectedSubmissions, setSelectedSubmissions] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [previewFiles, setPreviewFiles] = useState<string[]>([]);
@@ -125,7 +128,11 @@ export function RequesterDatasetDetail({
     if ("error" in result) {
       toast.error(result.error);
     } else {
-      toast.success(`${selectedSubmissions.length} submissions approved!`);
+      toast.success(
+        t("{{count}} submissions approved!", {
+          count: selectedSubmissions.length,
+        }),
+      );
       setSelectedSubmissions([]);
       router.refresh();
     }

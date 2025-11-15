@@ -13,19 +13,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  Users, 
-  UserPlus, 
-  UserCheck, 
+import {
+  Users,
+  UserPlus,
+  UserCheck,
   TrendingUp,
   Search,
   Download,
   Loader2,
   MapPin,
   Shield,
-  FileText
+  FileText,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface UserAnalytics {
   totalUsers: number;
@@ -71,6 +71,7 @@ export function UserAnalytics() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const toast = useLocaleToast();
 
   useEffect(() => {
     loadUserAnalytics();

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { submitStripeOnboarding } from "@/lib/actions/payment-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 type CountryConfig = {
   label: string;
@@ -171,6 +171,7 @@ export function StripeOnboardingDialog({
   defaultEmail,
 }: StripeOnboardingDialogProps) {
   const [isPending, startTransition] = useTransition();
+  const toast = useLocaleToast();
   const form = useForm({
     resolver: zodResolver(onboardingSchema),
     defaultValues,

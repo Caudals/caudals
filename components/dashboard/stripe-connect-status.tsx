@@ -19,12 +19,12 @@ import {
   Wallet2,
   AlertTriangle,
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   getStripeConnectBalance,
   getStripeConnectStatus,
 } from "@/lib/actions/payment-actions";
 import { StripeOnboardingDialog } from "./stripe-onboarding-dialog";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 interface ConnectStatus {
   connected: boolean;
@@ -49,6 +49,7 @@ export function StripeConnectStatus() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const toast = useLocaleToast();
 
   const loadData = async () => {
     setLoading(true);

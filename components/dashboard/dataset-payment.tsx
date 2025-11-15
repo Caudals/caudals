@@ -5,17 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  CreditCard, 
-  DollarSign, 
-  Loader2, 
+import {
+  CreditCard,
+  DollarSign,
+  Loader2,
   CheckCircle,
   AlertCircle,
   Info,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
-import { toast } from "sonner";
 import { PaymentForm } from "./payment-form";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface DatasetPaymentProps {
   datasetId: string;
@@ -37,6 +38,8 @@ export function DatasetPayment({
   onPaymentSuccess
 }: DatasetPaymentProps) {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const toast = useLocaleToast();
+  const t = useTranslations();
 
   const totalRequired = samplesNeeded * rewardPerSample;
   const remainingAmount = totalRequired - currentBudget;
@@ -136,10 +139,15 @@ export function DatasetPayment({
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-yellow-600" />
               <span className="text-sm text-yellow-800">
-                {isPartiallyFunded 
-                  ? `Additional ${formatAmount(remainingAmount)} needed to fully fund this dataset`
-                  : `This dataset needs ${formatAmount(totalRequired)} to start collecting contributions`
-                }
+                {isPartiallyFunded
+                  ? t(
+                      "Additional {{amount}} needed to fully fund this dataset",
+                      { amount: formatAmount(remainingAmount) },
+                    )
+                  : t(
+                      "This dataset needs {{amount}} to start collecting contributions",
+                      { amount: formatAmount(totalRequired) },
+                    )}
               </span>
             </div>
             

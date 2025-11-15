@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Flame, Globe2, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 const highlights = [
   {
@@ -33,6 +34,8 @@ const partnershipMetrics = [
 ];
 
 export function PartnershipsSection() {
+  const t = useTranslations();
+
   return (
     <section id="partnerships" className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
@@ -47,16 +50,17 @@ export function PartnershipsSection() {
             <div className="flex flex-col gap-6">
               <div className="space-y-3 text-left">
                 <p className="text-xs font-semibold uppercase text-accent">
-                  Partnerships
+                  {t("Partnerships")}
                 </p>
                 <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
-                  Partner with Caudals to co-design research programs, educational cohorts, or
-                  strategic distribution alliances
+                  {t(
+                    "Partner with Caudals to co-design research programs, educational cohorts, or strategic distribution alliances",
+                  )}
                 </h2>
                 <p className="text-base leading-relaxed text-muted-foreground">
-                  Unlock a dedicated Caudals Labs pod to architect bespoke datasets, energize your
-                  contributor community, or co-brand initiatives with universities and enterprises.
-                  We compress months of planning into a single aligned track.
+                  {t(
+                    "Unlock a dedicated Caudals Labs pod to architect bespoke datasets, energize your contributor community, or co-brand initiatives with universities and enterprises. We compress months of planning into a single aligned track.",
+                  )}
                 </p>
               </div>
 
@@ -66,8 +70,8 @@ export function PartnershipsSection() {
                     key={metric.label}
                     className="rounded-2xl border border-border/70 bg-white p-4 text-left"
                   >
-                    <p className="text-xs uppercase text-muted-foreground">{metric.label}</p>
-                    <p className="text-lg font-semibold text-foreground">{metric.value}</p>
+                    <p className="text-xs uppercase text-muted-foreground">{t(metric.label)}</p>
+                    <p className="text-lg font-semibold text-foreground">{t(metric.value)}</p>
                   </div>
                 ))}
               </div>
@@ -75,15 +79,20 @@ export function PartnershipsSection() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="rounded-2xl border border-border/70 bg-muted/70 px-5 py-4 text-left text-sm text-foreground">
                   <span className="block font-semibold">
-                    37% faster <span className="font-normal text-muted-foreground">time-to-launch</span>
+                    {t("37% faster")}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      {t("time-to-launch")}
+                    </span>
                   </span>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Partnerships customers reduce time-to-first-approved batch vs. DIY teams.
+                    {t(
+                      "Partnerships customers reduce time-to-first-approved batch compared to DIY teams.",
+                    )}
                   </p>
                 </div>
                 <Button size="lg" asChild className="h-12 px-6">
                   <Link href="/#partnerships">
-                    Explore partnerships
+                    {t("Explore partnerships")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -105,18 +114,18 @@ export function PartnershipsSection() {
                   <highlight.icon className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-foreground">{highlight.title}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{t(highlight.title)}</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    {highlight.description}
+                    {t(highlight.description)}
                   </p>
                 </div>
               </motion.div>
             ))}
             <div className="rounded-2xl border border-dashed border-border/80 bg-card p-5 text-sm text-muted-foreground">
               <p>
-                Partnerships turn your briefs into sponsored placements, curriculum-aligned cohorts, and
-                co-branded activations. Loop in universities, research labs, or internal communities and
-                we&apos;ll run the playbook end-to-end.
+                {t(
+                  "Partnerships turn your briefs into sponsored placements, curriculum-aligned cohorts, and co-branded activations. Loop in universities, research labs, or internal communities and we'll run the playbook end-to-end.",
+                )}
               </p>
             </div>
           </div>
