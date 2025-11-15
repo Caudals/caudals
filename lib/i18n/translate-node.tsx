@@ -46,20 +46,24 @@ function translateElement(
 ): ReactElement {
   const props: Record<string, unknown> = {};
   let changed = false;
+  const elementProps = element.props as {
+    children?: ReactNode;
+    [key: string]: unknown;
+  };
 
-  if (element.props?.children !== undefined) {
+  if (elementProps?.children !== undefined) {
     const translatedChildren = translateReactNode(
-      element.props.children,
+      elementProps.children,
       translator,
     );
-    if (translatedChildren !== element.props.children) {
+    if (translatedChildren !== elementProps.children) {
       props.children = translatedChildren;
       changed = true;
     }
   }
 
   for (const attr of TEXT_ATTRIBUTES) {
-    const value = element.props?.[attr];
+    const value = elementProps?.[attr];
     if (typeof value === "string") {
       const translated = translateText(value, translator);
       if (translated !== value) {
