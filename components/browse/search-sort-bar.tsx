@@ -48,7 +48,7 @@ export function SearchSortBar({
   const filterBadgeCount = baseFilterCount + (hasSearch ? 1 : 0);
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur-sm sm:p-5">
+    <div className="rounded-2xl border border-border/70 bg-background p-4 shadow-sm sm:p-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

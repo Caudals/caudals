@@ -27,20 +27,20 @@ export function StatsSection() {
   ];
 
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="rounded-[2.4rem] border border-border/80 bg-card p-10">
-          <div className="mb-10 text-center">
+    <section className="py-12 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
+        <div className="rounded-[1.5rem] border border-border/80 bg-card p-6 sm:rounded-[2.4rem] sm:p-8 lg:p-10">
+          <div className="mb-8 text-center sm:mb-10">
             <p className="text-xs font-semibold uppercase text-muted-foreground">Proof in numbers</p>
-            <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+            <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
               Scaling frontier AI responsibly
             </h2>
-            <p className="mt-3 text-base text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Every metric combines human expertise and automation so you can trust the workflow end to end.
             </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -48,13 +48,13 @@ export function StatsSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
                 viewport={{ once: true, margin: "-60px" }}
-                className="rounded-3xl border border-border/70 bg-white p-6 text-left"
+                className="rounded-2xl border border-border/70 bg-white p-5 text-left sm:rounded-3xl sm:p-6"
               >
-                <div className="text-4xl font-semibold text-foreground">{stat.value}</div>
-                <p className="mt-2 text-sm font-semibold uppercase text-muted-foreground">
+                <div className="text-3xl font-semibold text-foreground sm:text-4xl">{stat.value}</div>
+                <p className="mt-2 text-xs font-semibold uppercase text-muted-foreground sm:text-sm">
                   {stat.label}
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">{stat.description}</p>
+                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">{stat.description}</p>
               </motion.div>
             ))}
           </div>

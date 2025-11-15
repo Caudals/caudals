@@ -44,7 +44,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen">
       <div className="relative">
-        <LandingGodRaysBackground contentHeight={heroHeight} />
+        <LandingGodRaysBackground contentHeight={heroHeight + 1000} />
 
         <Header translucent />
 

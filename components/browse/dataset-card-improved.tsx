@@ -55,7 +55,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   const contributorDisplay = dataset.activeContributors.toLocaleString();
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-background transition-all duration-300 hover:shadow-lg">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background transition-all duration-300 hover:shadow-lg">
       {/* Image Section */}
       <Link
         href={`/browse/${dataset.id}`}

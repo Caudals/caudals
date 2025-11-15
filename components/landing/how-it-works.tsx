@@ -74,19 +74,19 @@ export function HowItWorksSection() {
   const [role, setRole] = useState<Role>("organizations");
 
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-8 text-center">
+    <section className="py-12 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
+        <div className="mb-6 text-center sm:mb-8">
           <p className="text-xs font-semibold uppercase text-muted-foreground">How it works</p>
-          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+          <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
             One platform, two seamless experiences
           </h2>
-          <p className="mt-3 text-base text-muted-foreground">
+          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
             Toggle between organizations and contributors to see how each role moves through the Caudals loop.
           </p>
         </div>
 
-        <div className="mx-auto mb-10 flex max-w-md items-center gap-2 rounded-full border border-border/80 bg-card p-1">
+        <div className="mx-auto mb-6 flex max-w-md items-center gap-1 rounded-full border border-border/80 bg-card p-1 sm:mb-10 sm:gap-2">
           {([
             { id: "organizations", label: "Organizations" },
             { id: "contributors", label: "Contributors" },
@@ -95,7 +95,7 @@ export function HowItWorksSection() {
               key={option.id}
               type="button"
               onClick={() => setRole(option.id)}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 role === option.id
                   ? "bg-foreground text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -111,19 +111,19 @@ export function HowItWorksSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="rounded-[2rem] border border-border/80 bg-white/90 p-6"
+          className="rounded-[1.5rem] border border-border/80 bg-white/90 p-4 sm:rounded-[2rem] sm:p-6 lg:p-8"
         >
-          <h3 className="text-2xl font-semibold text-foreground">{flows[role].title}</h3>
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
+          <h3 className="text-xl font-semibold text-foreground sm:text-2xl">{flows[role].title}</h3>
+          <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-2">
             {flows[role].steps.map((step, index) => (
-              <div key={step.label} className="flex gap-4 rounded-2xl border border-border/70 bg-card p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-foreground">
-                  <step.icon className="h-5 w-5" />
+              <div key={step.label} className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 sm:gap-4 sm:rounded-2xl sm:p-5">
+                <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-border/70 bg-muted text-foreground sm:h-12 sm:w-12 sm:min-w-[3rem] sm:rounded-[0.8rem]">
+                  <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold uppercase text-muted-foreground">Step {index + 1}</p>
-                  <h4 className="text-lg font-semibold text-foreground">{step.label}</h4>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-sm">Step {index + 1}</p>
+                  <h4 className="text-base font-semibold text-foreground sm:text-lg">{step.label}</h4>
+                  <p className="text-xs text-muted-foreground sm:text-sm">{step.description}</p>
                 </div>
               </div>
             ))}

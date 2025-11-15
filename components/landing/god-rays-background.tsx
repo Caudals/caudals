@@ -68,11 +68,12 @@ export function LandingGodRaysBackground({
               "radial-gradient(ellipse 140% 80% at 60% -10%, rgba(167, 189, 245, 0.45) 0%, rgba(122, 200, 181, 0.2) 45%, rgba(247, 247, 243, 0.1) 70%, rgba(247, 247, 243, 0))",
           }}
         />
+        {/* Bottom gradient for smooth transition */}
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-52"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-72"
           style={{
             background:
-              "linear-gradient(180deg, rgba(247,247,243,0.05) 0%, rgba(247,247,243,0.4) 55%, rgba(247,247,243,0) 100%)",
+              "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.4) 30%, rgba(247,247,243,0.85) 70%, rgba(247,247,243,1) 100%)",
           }}
         />
       </div>
@@ -86,7 +87,9 @@ export function LandingGodRaysBackground({
         "pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden",
         className
       )}
-      style={{ height: dimensions.height || contentHeight || fallbackHeight || "100%" }}
+      style={{
+        height: dimensions.height || contentHeight || fallbackHeight || "100%",
+      }}
     >
       {dimensions.canvasSize > 0 && (
         <>
@@ -102,17 +105,17 @@ export function LandingGodRaysBackground({
             }}
           >
             <GodRays
-              colorBack="#00000000"
+              colorBack="#f7f7f3"
               colors={["#eef4ff", "#a7bdf5", "#7ac8b5", "#f7f7f3"]}
               colorBloom="#fefefe"
               offsetX={0}
               offsetY={0}
-              intensity={0.55}
-              spotty={0.32}
+              intensity={0.8}
+              spotty={0.4}
               midSize={12}
-              midIntensity={0.08}
-              density={0.16}
-              bloom={0.12}
+              midIntensity={0.12}
+              density={0.06}
+              bloom={0.15}
               speed={0.8}
               scale={1.4}
               frame={2332042.8159981333}
@@ -125,18 +128,20 @@ export function LandingGodRaysBackground({
               }}
             />
           </div>
+          {/* Top gradient for smooth blend with header */}
           <div
             className="pointer-events-none absolute inset-x-0 top-0 h-24"
             style={{
               background:
-                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, rgba(247,247,243,0.9) 100%)",
+                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, #f7f7f3 100%)",
             }}
           />
+          {/* Bottom gradient for smooth transition to next section */}
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1000"
             style={{
               background:
-                "linear-gradient(180deg, rgba(247,247,243,0.05) 0%, rgba(247,247,243,0.45) 55%, rgba(247,247,243,0) 100%)",
+                "linear-gradient(180deg, #f7f7f300 0%, rgba(247,247,243,0.3) 25%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,0.95) 70%, rgba(247,247,243,1) 100%)",
             }}
           />
         </>

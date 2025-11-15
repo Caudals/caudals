@@ -43,13 +43,13 @@ export function ResourceStrip() {
               <li key={resource.label}>
                 <Link
                   href={resource.href}
-                  className="group flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-white px-4 py-3 text-sm text-foreground transition hover:border-accent/40 hover:text-accent"
+                  className="group flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-white px-4 py-3 text-sm text-foreground transition hover:border-foreground/15 hover:text-foreground"
                 >
                   <span className="flex items-center gap-3">
                     <resource.icon className="h-4 w-4 text-accent" />
                     {resource.label}
                   </span>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-accent" />
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
                 </Link>
               </li>
             ))}

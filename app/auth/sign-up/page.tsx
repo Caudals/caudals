@@ -145,7 +145,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link
@@ -220,7 +220,7 @@ export default function SignUpPage() {
                     return (
                       <div
                         key={option.value}
-                        className={`relative flex cursor-pointer rounded-lg border p-4 transition-colors hover:bg-accent ${
+                        className={`relative flex cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted ${
                           selectedRole === option.value
                             ? "border-primary bg-accent"
                             : "border-border"
