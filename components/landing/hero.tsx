@@ -6,13 +6,16 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+const heroHighlights = [
+  "No onboarding fees",
+  "Pay only for approvals",
+  "Human QA included",
+];
+
 export function HeroSection() {
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20 sm:px-8 lg:px-12">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[420px] w-full max-w-4xl -translate-x-1/2 rounded-full blur-3xl" />
-      </div>
-      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center text-center">
+    <section className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center px-6 py-16 sm:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -21,92 +24,155 @@ export function HeroSection() {
         >
           <Badge
             variant="outline"
-            className="border-primary/20 bg-primary/0 px-4 py-1.5 text-sm font-medium text-primary"
+            className="inline-flex items-center gap-2 border-border/60 bg-white/70 px-4 py-1.5 text-xs font-medium uppercase text-foreground"
           >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-            Trusted by leading AI companies
+            <Sparkles className="h-3.5 w-3.5" />
+            Launch confident data programs
           </Badge>
         </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 max-w-4xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-5xl font-bold leading-tight tracking-tight text-transparent sm:text-6xl lg:text-7xl"
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="text-balance text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-6xl"
         >
-          Build production-grade datasets with a global network
+          Run contributor-powered datasets with enterprise control
         </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Caudals connects your organization with skilled contributors worldwide to create rich,
-          diverse datasets for machine learning—faster and more cost-effectively than ever before.
+          Caudals links your ML team with certified contributors, reviewer pods, and automated
+          payouts so every dataset sprint ships faster without compromising compliance or
+          governance.
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col gap-4 sm:flex-row"
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="mt-10 flex flex-col gap-4 sm:flex-row"
         >
-          <Button size="lg" className="h-12 px-8 text-base" asChild>
-            <Link href="/dashboard/requests/new">Post a request</Link>
+          <Button size="lg" className="h-12 min-w-[200px] px-8 text-base" asChild>
+            <Link href="/dashboard/requests/new">Start a project</Link>
           </Button>
           <Button
             size="lg"
-            className="h-12 px-8 hover:bg-transparent hover:text-primary/70"
+            variant="outline"
+            className="h-12 min-w-[200px] border-border/80 text-base"
             asChild
-            variant="ghost"
           >
             <Link href="/browse">
-              Explore datasets
+              Browse live briefs
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-12 flex flex-col gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-8"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground"
         >
-          <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>No setup fees</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>Pay per submission</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span>Quality guaranteed</span>
-          </div>
+          {heroHighlights.map((highlight) => (
+            <div key={highlight} className="flex items-center gap-2 text-foreground/70">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+              {highlight}
+            </div>
+          ))}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.45 }}
+          className="mt-14 w-full"
+        >
+          <HeroPreview />
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function HeroPreview() {
+  const metrics = [
+    { label: "Certified contributors", value: "52,487", change: "+412 this week" },
+    { label: "Approved submissions", value: "12.4M", change: "95% quality score" },
+    { label: "Avg. payout", value: "$36", change: "per accepted task" },
+  ];
+
+  const briefs = [
+    {
+      title: "Multilingual safety prompts",
+      modality: "NLP · 6 regions",
+      status: "In review",
+      progress: 72,
+    },
+    {
+      title: "Smart camera gestures",
+      modality: "Vision · wearables",
+      status: "Collecting",
+      progress: 44,
+    },
+    {
+      title: "Synthetic sensor fusion",
+      modality: "Robotics",
+      status: "QA ready",
+      progress: 88,
+    },
+  ];
+
+  return (
+    <div className="relative mx-auto max-w-4xl rounded-[2.4rem] border border-border/70 bg-card/95 p-6 shadow-[0_45px_140px_-80px_rgba(11,12,17,0.6)] backdrop-blur">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="rounded-2xl border border-border/80 bg-white p-4 text-left">
+            <p className="text-xs uppercase text-muted-foreground">{metric.label}</p>
+            <p className="mt-3 text-2xl font-semibold text-foreground">{metric.value}</p>
+            <p className="text-xs text-muted-foreground">{metric.change}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-6 rounded-2xl border border-border/80 bg-white p-5 text-left">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Live dataset briefs</p>
+            <p className="text-xs text-muted-foreground">Auto-syncs with contributor pods + QA</p>
+          </div>
+          <span className="text-xs font-medium text-muted-foreground">Auto payouts · Stripe</span>
+        </div>
+        <div className="mt-4 space-y-3">
+          {briefs.map((brief) => (
+            <div
+              key={brief.title}
+              className="flex flex-col gap-2 rounded-xl border border-border/60 bg-secondary/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">{brief.title}</p>
+                <p className="text-xs text-muted-foreground">{brief.modality}</p>
+              </div>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-2 text-foreground/80">
+                  <span className="h-2 w-2 rounded-full bg-accent" />
+                  {brief.status}
+                </span>
+                <div className="h-1.5 w-full rounded-full bg-border">
+                  <div
+                    className="h-1.5 rounded-full bg-foreground"
+                    style={{ width: `${brief.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

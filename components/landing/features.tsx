@@ -1,97 +1,83 @@
 "use client";
 
+import { motion } from "framer-motion";
 import {
   Database,
   Users,
-  Shield,
+  ShieldCheck,
   Zap,
-  Globe,
-  CheckCircle2,
+  Activity,
+  BarChart3,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
 
-const features = [
+const capabilities = [
   {
     icon: Database,
-    title: "Any data modality",
+    title: "Any modality, any device",
     description:
-      "From images and text to audio, video, and sensor data—collect any type of data your model needs.",
+      "Image, text, audio, video, robotics, or sensor data. Desktop, mobile, wearables, and custom rigs all supported.",
   },
   {
     icon: Users,
-    title: "Global contributor network",
+    title: "Verified contributor workforce",
     description:
-      "Access a diverse pool of verified contributors from around the world for authentic, representative datasets.",
+      "Layered vetting, ID verification, and device checks keep submissions authentic and diverse across 120+ countries.",
   },
   {
-    icon: Shield,
-    title: "Built-in quality control",
+    icon: ShieldCheck,
+    title: "Compliance & governance",
     description:
-      "Automated validation, manual review workflows, and consensus mechanisms ensure data quality.",
+      "Consent templates, audit trails, SOC2-ready exports, and regional storage controls keep legal teams comfortable.",
   },
   {
     icon: Zap,
-    title: "Ship faster",
+    title: "Launch in days",
     description:
-      "Launch collection campaigns in minutes and start receiving submissions within hours, not weeks.",
+      "Blueprint wizard, training flows, and pre-built reviewer pods unlock first approvals in under 48 hours.",
   },
   {
-    icon: Globe,
-    title: "Compliance ready",
+    icon: Activity,
+    title: "Live telemetry",
     description:
-      "GDPR, CCPA, and custom consent flows built in. Store data securely with automatic audit trails.",
+      "Track spend, throughput, and quality in one dashboard with alerts to Slack or email when thresholds slip.",
   },
   {
-    icon: CheckCircle2,
-    title: "Flexible pricing",
+    icon: BarChart3,
+    title: "Flexible economics",
     description:
-      "Pay only for approved submissions. No upfront costs, subscriptions, or hidden fees.",
+      "Pay per approved submission or embed an operations pod on retainer. No hidden fees or tooling tax.",
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section className="relative py-24">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[520px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-[160px]" />
-      </div>
+    <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-16 text-center">
-          <span className="rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase text-primary">
-            Platform pillars
-          </span>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Everything you need to build better datasets
+        <div className="mb-12 text-center">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Why ML teams choose Caudals</p>
+          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+            Operational excellence, delivered as a platform
           </h2>
-          <p className="mx-auto mt-3 max-w-3xl text-lg text-muted-foreground">
-            Modular workflows combine global talent, human-centered review, and policy
-            controls so you can scale responsible data programs with confidence.
+          <p className="mt-3 text-base text-muted-foreground">
+            Layer human expertise with automation to keep your dataset programs measurable, compliant, and fast.
           </p>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => (
+          {capabilities.map((capability, index) => (
             <motion.div
-              key={feature.title}
+              key={capability.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              viewport={{ once: true, margin: "-60px" }}
+              className="rounded-3xl border border-border/80 bg-card p-6 text-left"
             >
-              <Card className="group relative h-full overflow-hidden rounded-3xl border-border/40 bg-white/85 p-6 shadow-sm backdrop-blur transition-all hover:-translate-y-1 hover:border-primary/40">
-                <CardContent className="p-0">
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform group-hover:scale-110">
-                    <feature.icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
+                <capability.icon className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">{capability.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{capability.description}</p>
             </motion.div>
           ))}
         </div>

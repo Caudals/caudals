@@ -1,84 +1,134 @@
 "use client";
 
-import { FileText, Upload, CheckCircle, CreditCard } from "lucide-react";
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { ClipboardList, Users, CheckCircle, CreditCard, Sparkles, Shield } from "lucide-react";
 
-const steps = [
-  {
-    icon: FileText,
-    title: "Define your request",
-    description:
-      "Specify exactly what data you need, including format, quality criteria, and acceptance guidelines.",
-    number: "01",
+type Role = "organizations" | "contributors";
+
+const flows: Record<Role, {
+  title: string;
+  steps: { label: string; description: string; icon: typeof ClipboardList }[];
+}> = {
+  organizations: {
+    title: "How ML teams work on Caudals",
+    steps: [
+      {
+        label: "Post a blueprint",
+        description:
+          "Define modalities, acceptance criteria, payouts, and compliance guardrails with the blueprint wizard.",
+        icon: ClipboardList,
+      },
+      {
+        label: "Match or invite contributors",
+        description:
+          "Auto-match certified pods or bring your own community. Training and device checks run instantly.",
+        icon: Users,
+      },
+      {
+        label: "Review with QA pods",
+        description:
+          "Reviewer cohorts apply rubrics, request resubmits, and keep a full audit trail before approvals.",
+        icon: CheckCircle,
+      },
+      {
+        label: "Export + payout",
+        description:
+          "Approved batches sync to your stack while Stripe Connect issues payments and ledger exports.",
+        icon: CreditCard,
+      },
+    ],
   },
-  {
-    icon: Upload,
-    title: "Contributors submit",
-    description:
-      "Our global network of contributors reviews your request and submits data that meets your specifications.",
-    number: "02",
+  contributors: {
+    title: "How contributors experience Caudals",
+    steps: [
+      {
+        label: "Complete enablement",
+        description:
+          "Access training flows, device verification, and sample tasks before unlocking live briefs.",
+        icon: Sparkles,
+      },
+      {
+        label: "Claim briefs",
+        description:
+          "Browse sponsored or public opportunities, filter by payout, modality, or device requirements.",
+        icon: ClipboardList,
+      },
+      {
+        label: "Submit + iterate",
+        description:
+          "Follow playbooks, resubmit if QA requests edits, and track acceptance status in real time.",
+        icon: Shield,
+      },
+      {
+        label: "Instant payouts",
+        description:
+          "Stripe Connect settles funds once submissions clear QA with full earnings history and receipts.",
+        icon: CreditCard,
+      },
+    ],
   },
-  {
-    icon: CheckCircle,
-    title: "Review and approve",
-    description:
-      "Use our built-in review tools to accept or reject submissions. Only pay for what you approve.",
-    number: "03",
-  },
-  {
-    icon: CreditCard,
-    title: "Automatic payouts",
-    description:
-      "Approved submissions trigger automatic payments to contributors via Stripe Connect.",
-    number: "04",
-  },
-];
+};
 
 export function HowItWorksSection() {
+  const [role, setRole] = useState<Role>("organizations");
+
   return (
-    <section className="relative py-24">
+    <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-16 text-center">
-          <span className="rounded-full bg-muted px-4 py-1 text-xs font-semibold uppercase text-muted-foreground">
-            Operating model
-          </span>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            From idea to dataset in four steps
+        <div className="mb-8 text-center">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">How it works</p>
+          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+            One platform, two seamless experiences
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
-            We blend human review, automation, and transparent payouts so every program
-            ships quickly without sacrificing accountability.
+          <p className="mt-3 text-base text-muted-foreground">
+            Toggle between organizations and contributors to see how each role moves through the Caudals loop.
           </p>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.15 }}
-              viewport={{ once: true, margin: "-50px" }}
-              className="relative flex gap-6 rounded-3xl border border-border/60 bg-white/80 p-6 shadow-sm backdrop-blur"
+        <div className="mx-auto mb-10 flex max-w-md items-center gap-2 rounded-full border border-border/80 bg-card p-1">
+          {([
+            { id: "organizations", label: "Organizations" },
+            { id: "contributors", label: "Contributors" },
+          ] as { id: Role; label: string }[]).map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setRole(option.id)}
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                role === option.id
+                  ? "bg-foreground text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <div className="flex flex-col items-center">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-bold text-primary shadow-inner shadow-primary/30">
-                  {step.number}
-                </div>
-                {index < steps.length - 1 && (
-                  <div className="mt-4 hidden h-full w-px bg-gradient-to-b from-primary/60 to-transparent lg:block" />
-                )}
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <step.icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900">{step.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
-              </div>
-            </motion.div>
+              {option.label}
+            </button>
           ))}
         </div>
+
+        <motion.div
+          key={role}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-[2rem] border border-border/80 bg-white/90 p-6"
+        >
+          <h3 className="text-2xl font-semibold text-foreground">{flows[role].title}</h3>
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            {flows[role].steps.map((step, index) => (
+              <div key={step.label} className="flex gap-4 rounded-2xl border border-border/70 bg-card p-5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-foreground">
+                  <step.icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase text-muted-foreground">Step {index + 1}</p>
+                  <h4 className="text-lg font-semibold text-foreground">{step.label}</h4>
+                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

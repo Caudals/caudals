@@ -43,14 +43,11 @@ const faqs = [
 
 export function FAQSection() {
   return (
-    <section className="relative py-24">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,_rgba(244,245,247,0.8),transparent_70%)]" />
+    <section className="py-20">
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-12 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            FAQ
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold text-foreground sm:text-4xl">
+        <div className="mb-10 text-center">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">FAQ</p>
+          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
             Answers before you schedule a walkthrough
           </h2>
           <p className="mt-3 text-base text-muted-foreground">
@@ -64,12 +61,12 @@ export function FAQSection() {
             <AccordionItem
               key={faq.question}
               value={`faq-${index}`}
-              className="overflow-hidden rounded-[1.5rem] border border-black/10 bg-white/80 backdrop-blur"
+              className="overflow-hidden rounded-[1.5rem] border border-border/80 bg-card"
             >
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: index * 0.05 }}
+                transition={{ duration: 0.35, delay: index * 0.05 }}
                 viewport={{ once: true, margin: "-60px" }}
               >
                 <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-foreground">

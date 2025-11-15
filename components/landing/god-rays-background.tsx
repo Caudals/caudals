@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { GodRays } from "@paper-design/shaders-react";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +13,13 @@ export function LandingGodRaysBackground({
   className,
   contentHeight,
 }: LandingGodRaysBackgroundProps) {
+  const fallbackHeight = typeof window !== "undefined" ? window.innerHeight : 0;
   const [dimensions, setDimensions] = useState({
     width: 0,
     height: 0,
     canvasSize: 0,
   });
   const [isMobile, setIsMobile] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -29,15 +29,15 @@ export function LandingGodRaysBackground({
 
       if (!mobile) {
         const viewportWidth = window.innerWidth;
-        const viewportHeight = contentHeight || window.innerHeight;
+        const targetHeight = (contentHeight || window.innerHeight) + 600;
 
-        // Calculate diagonal distance and multiply by 1.5 to ensure full coverage
-        const diagonal = Math.sqrt(viewportWidth ** 2 + viewportHeight ** 2);
-        const canvasSize = diagonal * 1.5;
+        // Calculate diagonal distance and multiply to ensure full coverage
+        const diagonal = Math.sqrt(viewportWidth ** 2 + targetHeight ** 2);
+        const canvasSize = diagonal * 1.2;
 
         setDimensions({
           width: viewportWidth,
-          height: viewportHeight,
+          height: targetHeight,
           canvasSize,
         });
       }
@@ -59,16 +59,22 @@ export function LandingGodRaysBackground({
           "pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden",
           className
         )}
-        style={{ height: contentHeight || "100%" }}
+        style={{ height: (contentHeight || fallbackHeight) + 400 }}
       >
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 120% 80% at 100% 0%, rgba(243, 243, 243, 0.95) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)",
+              "radial-gradient(ellipse 140% 80% at 60% -10%, rgba(167, 189, 245, 0.45) 0%, rgba(122, 200, 181, 0.2) 45%, rgba(247, 247, 243, 0.1) 70%, rgba(247, 247, 243, 0))",
           }}
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-white via-white/90 to-transparent" />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-52"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.65) 55%, rgba(247,247,243,1) 100%)",
+          }}
+        />
       </div>
     );
   }
@@ -76,12 +82,11 @@ export function LandingGodRaysBackground({
   // Desktop: Full shader with anchor-based positioning
   return (
     <div
-      ref={containerRef}
       className={cn(
         "pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden",
         className
       )}
-      style={{ height: contentHeight || "100%" }}
+      style={{ height: dimensions.height || contentHeight || fallbackHeight || "100%" }}
     >
       {dimensions.canvasSize > 0 && (
         <>
@@ -98,19 +103,19 @@ export function LandingGodRaysBackground({
           >
             <GodRays
               colorBack="#00000000"
-              colors={["#FFFFFF6E", "#F3F3F3F0", "#8A8A8A", "#989898"]}
-              colorBloom="#FFFFFF"
+              colors={["#eef4ff", "#a7bdf5", "#7ac8b5", "#f7f7f3"]}
+              colorBloom="#fefefe"
               offsetX={0}
               offsetY={0}
-              intensity={1}
-              spotty={0.45}
-              midSize={10}
-              midIntensity={0}
-              density={0.12}
-              bloom={0.15}
-              speed={1}
-              scale={1.6}
-              frame={3332042.8159981333}
+              intensity={0.55}
+              spotty={0.32}
+              midSize={12}
+              midIntensity={0.08}
+              density={0.16}
+              bloom={0.12}
+              speed={0.8}
+              scale={1.4}
+              frame={2332042.8159981333}
               style={{
                 width: "100%",
                 height: "100%",
@@ -120,7 +125,20 @@ export function LandingGodRaysBackground({
               }}
             />
           </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-96 bg-gradient-to-t from-white via-white/90 to-transparent" />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-24"
+            style={{
+              background:
+                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, rgba(247,247,243,0.9) 100%)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,1) 100%)",
+            }}
+          />
         </>
       )}
     </div>

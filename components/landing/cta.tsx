@@ -4,47 +4,41 @@ import { Button } from "@/components/ui/button";
 
 export function CTASection() {
   return (
-    <section className="relative py-24">
+    <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-8 py-16 text-white shadow-2xl sm:px-16 lg:px-24">
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 rounded-full bg-primary/20 blur-[140px]" />
-          <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-            <span className="rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase text-primary/80">
-              Let&apos;s collaborate
-            </span>
-            <h2 className="text-3xl font-semibold sm:text-4xl lg:text-[2.9rem]">
-              Ready to launch your next dataset or partnerships program?
-            </h2>
-            <p className="max-w-2xl text-base text-slate-200">
-              Partner with Caudals to design contributor workflows, run responsible
-              collection campaigns, and pay teams automatically. Start with a discovery call
-              or jump directly into the dashboard.
-            </p>
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <Button size="lg" className="h-12 min-w-[200px]" asChild>
-                <Link href="/dashboard/requests/new">
-                  Start collecting data
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 min-w-[200px] border-white/30 bg-transparent text-white hover:bg-white/10"
-                asChild
-              >
-                <Link href="/browse">See live opportunities</Link>
-              </Button>
+        <div className="flex flex-col gap-6 rounded-[2.4rem] border border-border/80 bg-card px-8 py-12 text-center">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Next steps</p>
+          <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
+            Ready to co-build your dataset or partnerships program?
+          </h2>
+          <p className="mx-auto max-w-3xl text-base text-muted-foreground">
+            Jump straight into the dashboard to post a blueprint or head to the Partnerships tab to
+            co-design a custom engagement with Caudals Labs.
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+            <Button size="lg" className="h-12 min-w-[220px]" asChild>
+              <Link href="/dashboard/requests/new">
+                Start collecting data
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 min-w-[220px] border-border/80"
+              asChild
+            >
+              <Link href="/#partnerships">Go to Partnerships</Link>
+            </Button>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground sm:flex-row sm:gap-6">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-accent" />
+              Payment, QA, and compliance rails included
             </div>
-            <div className="mt-4 flex flex-col gap-4 text-sm text-slate-200 sm:flex-row sm:items-center sm:gap-8">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary/70" />
-                <span>Payment and compliance rails built in</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                <span>Dedicated human support in every time zone</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              Dedicated human support in every time zone
             </div>
           </div>
         </div>

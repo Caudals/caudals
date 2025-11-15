@@ -5,41 +5,38 @@ import { motion } from "framer-motion";
 export function StatsSection() {
   const stats = [
     {
-      value: "10M+",
-      label: "Data points collected",
-      description: "Across every data modality we support.",
+      value: "12M+",
+      label: "Approved data points",
+      description: "Image, text, sensor, and multimodal submissions cleared through QA.",
     },
     {
-      value: "50K+",
-      label: "Active contributors",
-      description: "Spanning 120+ countries and 40+ languages.",
+      value: "52K",
+      label: "Certified contributors",
+      description: "120+ countries, 40+ languages, every major device category.",
     },
     {
       value: "95%",
-      label: "Quality score",
-      description: "Average acceptance rate on approved submissions.",
+      label: "Acceptance score",
+      description: "Average consensus score across reviewer pods.",
     },
     {
-      value: "48hrs",
-      label: "Average turnaround",
-      description: "Time from program launch to first approved batch.",
+      value: "<48h",
+      label: "Time to first batch",
+      description: "From blueprint approval to first accepted submission.",
     },
   ];
 
   return (
-    <section className="relative py-24">
+    <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="rounded-[2.5rem] border border-border/40 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-10 text-white shadow-2xl">
-          <div className="mb-12 text-center">
-            <p className="text-xs font-semibold uppercase text-primary/70">
-              Impact
-            </p>
-            <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
-              Trusted by teams building frontier AI
+        <div className="rounded-[2.4rem] border border-border/80 bg-card p-10">
+          <div className="mb-10 text-center">
+            <p className="text-xs font-semibold uppercase text-muted-foreground">Proof in numbers</p>
+            <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+              Scaling frontier AI responsibly
             </h2>
-            <p className="mx-auto mt-3 max-w-3xl text-base text-slate-200">
-              Every metric reflects how we operationalize responsible data creation while
-              pairing teams with contributors who deeply understand their context.
+            <p className="mt-3 text-base text-muted-foreground">
+              Every metric combines human expertise and automation so you can trust the workflow end to end.
             </p>
           </div>
 
@@ -47,17 +44,17 @@ export function StatsSection() {
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                className="rounded-3xl border border-white/10 bg-white/5 p-5 text-left shadow-sm"
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                viewport={{ once: true, margin: "-60px" }}
+                className="rounded-3xl border border-border/70 bg-white p-6 text-left"
               >
-                <div className="text-3xl font-bold text-white">{stat.value}</div>
-                <p className="mt-1 text-sm font-semibold text-primary/60">
+                <div className="text-4xl font-semibold text-foreground">{stat.value}</div>
+                <p className="mt-2 text-sm font-semibold uppercase text-muted-foreground">
                   {stat.label}
                 </p>
-                <p className="mt-2 text-sm text-slate-200">{stat.description}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{stat.description}</p>
               </motion.div>
             ))}
           </div>
