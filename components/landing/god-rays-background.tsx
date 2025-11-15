@@ -29,7 +29,7 @@ export function LandingGodRaysBackground({
 
       if (!mobile) {
         const viewportWidth = window.innerWidth;
-        const targetHeight = (contentHeight || window.innerHeight) + 600;
+        const targetHeight = contentHeight || window.innerHeight;
 
         // Calculate diagonal distance and multiply to ensure full coverage
         const diagonal = Math.sqrt(viewportWidth ** 2 + targetHeight ** 2);
@@ -59,7 +59,7 @@ export function LandingGodRaysBackground({
           "pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden",
           className
         )}
-        style={{ height: (contentHeight || fallbackHeight) + 400 }}
+        style={{ height: contentHeight || fallbackHeight }}
       >
         <div
           className="absolute inset-0"
@@ -72,7 +72,7 @@ export function LandingGodRaysBackground({
           className="pointer-events-none absolute inset-x-0 bottom-0 h-52"
           style={{
             background:
-              "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.65) 55%, rgba(247,247,243,1) 100%)",
+              "linear-gradient(180deg, rgba(247,247,243,0.05) 0%, rgba(247,247,243,0.4) 55%, rgba(247,247,243,0) 100%)",
           }}
         />
       </div>
@@ -136,7 +136,7 @@ export function LandingGodRaysBackground({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-64"
             style={{
               background:
-                "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,1) 100%)",
+                "linear-gradient(180deg, rgba(247,247,243,0.05) 0%, rgba(247,247,243,0.45) 55%, rgba(247,247,243,0) 100%)",
             }}
           />
         </>

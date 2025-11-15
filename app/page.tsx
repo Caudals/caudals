@@ -17,46 +17,50 @@ import { LandingGodRaysBackground } from "@/components/landing/god-rays-backgrou
 import { MarketingFooter } from "@/components/marketing/footer";
 
 export default function Home() {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [contentHeight, setContentHeight] = useState<number>(0);
+  const heroStackRef = useRef<HTMLDivElement>(null);
+  const [heroHeight, setHeroHeight] = useState(0);
 
   useEffect(() => {
-    const updateContentHeight = () => {
-      if (contentRef.current) {
-        setContentHeight(contentRef.current.offsetHeight);
+    const updateHeroHeight = () => {
+      if (heroStackRef.current) {
+        setHeroHeight(heroStackRef.current.offsetHeight);
       }
     };
 
-    updateContentHeight();
-    window.addEventListener("resize", updateContentHeight);
+    updateHeroHeight();
+    window.addEventListener("resize", updateHeroHeight);
 
-    // Also update after initial render to ensure correct measurements
-    const timeout = setTimeout(updateContentHeight, 100);
+    const observer = new ResizeObserver(updateHeroHeight);
+    if (heroStackRef.current) {
+      observer.observe(heroStackRef.current);
+    }
 
     return () => {
-      window.removeEventListener("resize", updateContentHeight);
-      clearTimeout(timeout);
+      window.removeEventListener("resize", updateHeroHeight);
+      observer.disconnect();
     };
   }, []);
 
   return (
     <div className="relative min-h-screen">
-      <div className="relative" ref={contentRef}>
-        <LandingGodRaysBackground contentHeight={contentHeight} />
+      <div className="relative">
+        <LandingGodRaysBackground contentHeight={heroHeight} />
 
         <Header translucent />
 
         <main className="relative z-10 flex flex-col">
-          <HeroSection />
-          <SocialProofSection />
-          <PlatformLayersSection />
+          <div ref={heroStackRef}>
+            <HeroSection />
+            <SocialProofSection />
+            <PlatformLayersSection />
 
-          <div id="features">
-            <FeaturesSection />
-          </div>
+            <div id="features">
+              <FeaturesSection />
+            </div>
 
-          <div id="how-it-works">
-            <HowItWorksSection />
+            <div id="how-it-works">
+              <HowItWorksSection />
+            </div>
           </div>
 
           <StatsSection />

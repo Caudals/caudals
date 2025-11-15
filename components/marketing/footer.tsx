@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border/60 bg-white/80 backdrop-blur">
+    <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -15,7 +15,7 @@ export function MarketingFooter() {
             </p>
             <Link
               href="mailto:contact@caudals.com"
-              className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-primary"
+              className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-foreground"
             >
               contact@caudals.com
             </Link>
@@ -26,22 +26,22 @@ export function MarketingFooter() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/browse" className="hover:text-primary">
+                <Link href="/browse" className="hover:text-foreground">
                   Browse requests
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard" className="hover:text-primary">
+                <Link href="/dashboard" className="hover:text-foreground">
                   Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="hover:text-primary">
+                <Link href="/pricing" className="hover:text-foreground">
                   Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/docs" className="hover:text-primary">
+                <Link href="/docs" className="hover:text-foreground">
                   Documentation
                 </Link>
               </li>
@@ -53,22 +53,22 @@ export function MarketingFooter() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/about" className="hover:text-primary">
+                <Link href="/about" className="hover:text-foreground">
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="hover:text-primary">
+                <Link href="/blog" className="hover:text-foreground">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link href="/careers" className="hover:text-primary">
+                <Link href="/careers" className="hover:text-foreground">
                   Careers
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-primary">
+                <Link href="/contact" className="hover:text-foreground">
                   Contact
                 </Link>
               </li>
@@ -80,17 +80,17 @@ export function MarketingFooter() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/legal/privacy" className="hover:text-primary">
+                <Link href="/legal/privacy" className="hover:text-foreground">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/legal/terms" className="hover:text-primary">
+                <Link href="/legal/terms" className="hover:text-foreground">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/legal/cookies" className="hover:text-primary">
+                <Link href="/legal/cookies" className="hover:text-foreground">
                   Cookie Policy
                 </Link>
               </li>
@@ -104,7 +104,7 @@ export function MarketingFooter() {
           <div className="flex gap-6">
             <Link
               href="https://twitter.com"
-              className="text-muted-foreground transition-colors hover:text-primary"
+              className="text-muted-foreground transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -119,7 +119,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://github.com"
-              className="text-muted-foreground transition-colors hover:text-primary"
+              className="text-muted-foreground transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -138,7 +138,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://linkedin.com"
-              className="text-muted-foreground transition-colors hover:text-primary"
+              className="text-muted-foreground transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
