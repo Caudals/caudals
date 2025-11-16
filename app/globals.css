@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 
 :root {
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   --radius: 0.95rem;
   --background: #f7f7f3;
   --foreground: #0b0c11;

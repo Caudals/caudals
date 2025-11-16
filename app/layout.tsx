@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
@@ -8,16 +7,6 @@ import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { getServerTranslationBundle } from "@/lib/i18n/server";
 import { TranslationProvider } from "@/lib/i18n/translation-context";
 import { translateReactNode } from "@/lib/i18n/translate-node";
-
-const geistSans = Geist({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: {
@@ -57,9 +46,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
-      >
+      <body className="font-sans antialiased">
         <TranslationProvider
           locale={locale}
           dictionary={dictionary}

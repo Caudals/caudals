@@ -12,12 +12,9 @@ import {
   Settings,
   MoreHorizontal,
 } from "lucide-react";
-import { Inter } from "next/font/google";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "@/lib/i18n/use-translations";
-
-const interHeading = Inter({ subsets: ["latin"], weight: ["600", "700"] });
 
 export function HeroSection() {
   const t = useTranslations();
@@ -49,7 +46,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className={`${interHeading.className} text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl`}
+          className="text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl"
         >
           {t("Create enterprise-grade custom datasets with a global network")}
         </motion.h1>
