@@ -70,16 +70,20 @@ export function detectPreferredLocale({
   header?: string | null;
   countryCode?: string | null;
 }): Locale {
-  const headerLocale = detectLocaleFromHeader(header);
-
-  if (headerLocale !== defaultLocale) {
-    return headerLocale;
-  }
-
+  // Priority 1: Country-based detection (most reliable for Spanish users in Spain)
   const countryLocale = detectLocaleFromCountry(countryCode);
   if (countryLocale) {
+    console.log(`[i18n] Detected locale from country (${countryCode}): ${countryLocale}`);
     return countryLocale;
   }
 
-  return headerLocale;
+  // Priority 2: Accept-Language header
+  const headerLocale = detectLocaleFromHeader(header);
+  if (headerLocale !== defaultLocale) {
+    console.log(`[i18n] Detected locale from header: ${headerLocale}`);
+    return headerLocale;
+  }
+
+  console.log(`[i18n] Using default locale: ${defaultLocale}`);
+  return defaultLocale;
 }
