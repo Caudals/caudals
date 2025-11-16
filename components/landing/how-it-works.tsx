@@ -125,7 +125,7 @@ export function HowItWorksSection() {
           <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-2">
             {flows[role].steps.map((step, index) => (
               <div key={step.label} className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 sm:gap-4 sm:rounded-2xl sm:p-5">
-                <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-border/70 bg-muted text-foreground sm:h-12 sm:w-12 sm:min-w-[3rem] sm:rounded-[0.8rem]">
+                <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-border/70 bg-accent/15 text-accent sm:h-12 sm:w-12 sm:min-w-[3rem] sm:rounded-[0.8rem]">
                   <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div className="min-w-0">

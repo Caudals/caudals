@@ -58,7 +58,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-xl"
+          className="mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl"
         >
           {t(
             "Caudals links your ML team with certified contributors, reviewer pods, and automated payouts so every dataset sprint ships faster without compromising compliance or governance.",
@@ -76,7 +76,7 @@ export function HeroSection() {
           </Button>
           <Button
             size="lg"
-            variant="outline"
+            variant="ghost"
             className="h-12 min-w-[200px] border-border/80 text-base bg-transparent"
             asChild
           >
@@ -146,6 +146,13 @@ function HeroPreview() {
       reward: "$0.69",
       submitted: "10/06/2025",
     },
+    {
+      dataset: t("Real estate images for property valuation"),
+      files: t("1 file"),
+      status: t("Approved"),
+      reward: "$0.69",
+      submitted: "10/06/2025",
+    },
   ];
 
   const navLinks = [
@@ -159,11 +166,11 @@ function HeroPreview() {
   return (
     <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/70 bg-white/95 p-3 shadow-[0_25px_70px_-40px_rgba(15,23,42,0.55)] sm:p-4 lg:flex-row">
       
-      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-5 text-left text-sm text-muted-foreground lg:flex">
+      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-muted-foreground lg:flex border-r border-border/60 mr-5">
         <div>
           <p className="text-lg font-semibold text-foreground">{t("Dashboard")}</p>
         </div>
-        <nav className="space-y-1">
+        <nav className="space-y-1 ">
           {navLinks.map((link) => (
             <button
               key={link.label}
@@ -178,7 +185,6 @@ function HeroPreview() {
                 <link.icon className="h-3.5 w-3.5" />
                 {link.label}
               </span>
-              {link.active ? <span className="h-1 w-1 rounded-full bg-foreground" /> : null}
             </button>
           ))}
         </nav>

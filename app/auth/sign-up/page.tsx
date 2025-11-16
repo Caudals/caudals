@@ -223,7 +223,7 @@ export default function SignUpPage() {
                         key={option.value}
                         className={`relative flex cursor-pointer rounded-lg border p-4 transition-colors hover:bg-muted ${
                           selectedRole === option.value
-                            ? "border-primary bg-accent"
+                            ? "border-border bg-muted/60"
                             : "border-border"
                         }`}
                         onClick={() => setSelectedRole(option.value)}

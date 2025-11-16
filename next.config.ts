@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: imageDomains,
     remotePatterns,
+    unoptimized: true, // Required for self-hosting (Dokploy) - images are served directly without optimization
   },
 };
 

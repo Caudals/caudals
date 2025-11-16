@@ -89,7 +89,7 @@ export function PricingSection() {
               <ul className="space-y-2.5 text-xs text-muted-foreground sm:space-y-3 sm:text-sm">
                 {plan.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-2.5 sm:gap-3">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted text-foreground sm:mt-1 sm:h-5 sm:w-5">
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/15 text-accent sm:mt-1 sm:h-5 sm:w-5 ">
                       <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     </span>
                     <span className="min-w-0">{t(perk)}</span>
@@ -98,7 +98,7 @@ export function PricingSection() {
               </ul>
               <div className="mt-auto space-y-3 sm:space-y-4">
                 <div>
-                  <p className="pb-3 text-2xl font-semibold text-foreground sm:pb-4 sm:text-3xl">
+                  <p className="pb-3 text-2xl font-semibold text-foreground sm:pb-4 sm:text-3xl ">
                     {t(plan.price)}
                   </p>
                 </div>
