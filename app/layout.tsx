@@ -7,6 +7,7 @@ import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { getServerTranslationBundle } from "@/lib/i18n/server";
 import { TranslationProvider } from "@/lib/i18n/translation-context";
 import { translateReactNode } from "@/lib/i18n/translate-node";
+import { ClientLocaleDetector } from "@/lib/i18n/client-locale-detector";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -63,6 +64,7 @@ export default async function RootLayout({
           dictionary={dictionary}
           placeholders={placeholders}
         >
+          <ClientLocaleDetector serverLocale={locale} />
           {localizedContent}
         </TranslationProvider>
       </body>

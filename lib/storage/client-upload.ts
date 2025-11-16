@@ -39,12 +39,18 @@ export async function uploadFileClient(
     return { url: null, path: null, error: error.message };
   }
 
-  // Get public URL
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(bucket).getPublicUrl(data.path);
+  // Get public URL - ensure it's properly formatted
+  const { data: { publicUrl } } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(data.path);
 
-  return { url: publicUrl, path: data.path, error: null };
+  // Ensure the URL is absolute and properly formatted
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const fullUrl = publicUrl.startsWith('http') 
+    ? publicUrl 
+    : `${baseUrl}/storage/v1/object/public/${bucket}/${data.path}`;
+
+  return { url: fullUrl, path: data.path, error: null };
 }
 
 export async function uploadMultipleFilesClient(
