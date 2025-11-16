@@ -139,7 +139,7 @@ interface RecordTransactionInput {
   feeAmountInCents?: number;
 }
 
-const CONNECT_ACCOUNT_URL = "https://caudals.vercel.app" as const;
+const CONNECT_ACCOUNT_URL = "https://caudals.com" as const;
 
 const CONNECT_ACCOUNT_PROFILE: Stripe.AccountCreateParams.BusinessProfile = {
   product_description:

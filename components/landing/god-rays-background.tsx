@@ -105,9 +105,9 @@ export function LandingGodRaysBackground({
             }}
           >
             <GodRays
-              colorBack="#f7f7f3"
-              colors={["#c3defebf", "#a7bdf5", "#7ac8b5", "#f7f7f3"]}
-              colorBloom="#f7f7f3"
+              colorBack="#f5f5f500"
+              colors={["#c3defebf", "#a7bdf5", "#7ac8b5", "#f5f5f5"]}
+              colorBloom="#f5f5f5"
               offsetX={0}
               offsetY={0}
               intensity={0.6}
@@ -133,7 +133,7 @@ export function LandingGodRaysBackground({
             className="pointer-events-none absolute inset-x-0 top-0 h-24"
             style={{
               background:
-                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, #f7f7f3 100%)",
+                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, #f5f5f5 100%)",
             }}
           />
           {/* Bottom gradient for smooth transition to next section */}
@@ -141,7 +141,7 @@ export function LandingGodRaysBackground({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-1000"
             style={{
               background:
-                "linear-gradient(180deg, #f7f7f300 0%, rgba(247,247,243,0.3) 25%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,0.95) 70%, rgba(247,247,243,1) 100%)",
+                "linear-gradient(180deg, #f5f5f500 0%, rgba(247,247,243,0.3) 25%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,0.95) 70%, #f5f5f5 100%)",
             }}
           />
         </>
