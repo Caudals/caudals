@@ -18,6 +18,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+      RESEND_GENERAL_AUDIENCE_ID: ${{ secrets.RESEND_GENERAL_AUDIENCE_ID }}
+      COLLABORATION_NOTIFICATION_EMAIL: ${{ secrets.COLLABORATION_NOTIFICATION_EMAIL }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,9 +51,20 @@ jobs:
           pull: true
           push: true
           platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+            STRIPE_SECRET_KEY=${{ env.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ env.STRIPE_WEBHOOK_SECRET }}
+            RESEND_API_KEY=${{ env.RESEND_API_KEY }}
+            RESEND_FROM_EMAIL=${{ env.RESEND_FROM_EMAIL }}
+            RESEND_GENERAL_AUDIENCE_ID=${{ env.RESEND_GENERAL_AUDIENCE_ID }}
+            COLLABORATION_NOTIFICATION_EMAIL=${{ env.COLLABORATION_NOTIFICATION_EMAIL }}
+            NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
