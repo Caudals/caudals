@@ -70,7 +70,7 @@ export default async function RootLayout({
         </TranslationProvider>
         {process.env.NODE_ENV === "production" && (
           <Script
-            src="https://analytics.example.com/script.js"
+            src="https://analytics.caudals.com/script.js"
             data-website-id="eefb45d8-154c-4671-890f-77a04f5c5e47"
             strategy="afterInteractive"
           />
