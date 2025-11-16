@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -67,6 +68,13 @@ export default async function RootLayout({
           <ClientLocaleDetector serverLocale={locale} />
           {localizedContent}
         </TranslationProvider>
+        {process.env.NODE_ENV === "production" && (
+          <Script
+            src="https://analytics.example.com/script.js"
+            data-website-id="eefb45d8-154c-4671-890f-77a04f5c5e47"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

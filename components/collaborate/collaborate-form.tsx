@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 const focusAreaLabels: Record<(typeof collaborationFocusAreas)[number], string> = {
   "data-collection": "Data collection partnership",
@@ -53,6 +54,7 @@ const defaultValues: Partial<CollaborationFormValues> = {
 export function CollaborateForm() {
   const [isComplete, setIsComplete] = useState(false);
   const toast = useLocaleToast();
+  const t = useTranslations();
   const form = useForm<CollaborationFormValues>({
     resolver: zodResolver(collaborationFormSchema),
     defaultValues,
@@ -111,21 +113,21 @@ export function CollaborateForm() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-primary" />
-            Message sent!
+            {t("Message sent!")}
           </CardTitle>
           <CardDescription>
-            Our partnerships team will respond within 48 hours.
+            {t("Our partnerships team will respond within 48 hours.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            If you&apos;d like to share more details in the meantime, reach us directly at
+            {t("If you'd like to share more details in the meantime, reach us directly at")}
             <Button variant="link" className="px-1 text-base" asChild>
               <a href="mailto:contact@caudals.com">contact@caudals.com</a>
             </Button>
           </p>
           <Button variant="outline" onClick={() => setIsComplete(false)}>
-            Send another message
+            {t("Send another message")}
           </Button>
         </CardContent>
       </Card>
@@ -135,9 +137,11 @@ export function CollaborateForm() {
   return (
     <Card className="border border-border/70 bg-white/90 shadow-xl backdrop-blur">
       <CardHeader>
-        <CardTitle className="text-2xl">Share your initiative</CardTitle>
+        <CardTitle className="text-2xl">{t("Share your initiative")}</CardTitle>
         <CardDescription>
-          Tell us what you&apos;re building so we can design a tailored collaboration plan.
+          {t(
+            "Tell us what you're building so we can design a tailored collaboration plan.",
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -149,9 +153,9 @@ export function CollaborateForm() {
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full name</FormLabel>
+                    <FormLabel>{t("Full name")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jane Smith" {...field} />
+                      <Input placeholder={t("Jane Smith")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,9 +166,13 @@ export function CollaborateForm() {
                 name="workEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Work email</FormLabel>
+                    <FormLabel>{t("Work email")}</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="jane@company.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="jane@company.com"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -177,10 +185,10 @@ export function CollaborateForm() {
               name="organization"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Company or organization</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Acme Corp" {...field} />
-                  </FormControl>
+                    <FormLabel>{t("Company or organization")}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t("Acme Corp")} {...field} />
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -191,10 +199,10 @@ export function CollaborateForm() {
               name="organizationWebsite"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Website (optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com" {...field} />
-                  </FormControl>
+                    <FormLabel>{t("Website (optional)")}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -206,17 +214,17 @@ export function CollaborateForm() {
                 name="focusArea"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type of collaboration</FormLabel>
+                    <FormLabel>{t("Type of collaboration")}</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select focus area" />
+                          <SelectValue placeholder={t("Select focus area")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {collaborationFocusAreas.map((area) => (
                           <SelectItem key={area} value={area}>
-                            {focusAreaLabels[area]}
+                            {t(focusAreaLabels[area])}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -231,21 +239,21 @@ export function CollaborateForm() {
                 name="teamSize"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Team size (optional)</FormLabel>
+                    <FormLabel>{t("Team size (optional)")}</FormLabel>
                     <Select
                       value={field.value ?? "none"}
                       onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select range" />
+                          <SelectValue placeholder={t("Select range")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">Prefer not to say</SelectItem>
+                        <SelectItem value="none">{t("Prefer not to say")}</SelectItem>
                         {collaborationTeamSizes.map((size) => (
                           <SelectItem key={size} value={size}>
-                            {size} people
+                            {t("{{range}} people", { range: size })}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -261,14 +269,16 @@ export function CollaborateForm() {
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Context and next steps</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={5}
-                      placeholder="Tell us about your initiative, goals, and how you'd like to collaborate with Caudals."
-                      className="resize-none"
-                      {...field}
-                    />
+                    <FormLabel>{t("Context and next steps")}</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        placeholder={t(
+                          "Tell us about your initiative, goals, and how you'd like to collaborate with Caudals.",
+                        )}
+                        className="resize-none"
+                        {...field}
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -279,11 +289,11 @@ export function CollaborateForm() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+                  {t("Sending...")}
                 </>
               ) : (
                 <>
-                  Send message
+                  {t("Send message")}
                   <SendHorizonal className="ml-2 h-4 w-4" />
                 </>
               )}

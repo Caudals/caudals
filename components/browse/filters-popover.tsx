@@ -24,6 +24,7 @@ import {
 import { SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface FiltersPopoverProps {
   filters: DatasetFilters;
@@ -36,6 +37,7 @@ export function FiltersPopover({
   onFiltersChange,
   onClearFilters,
 }: FiltersPopoverProps) {
+  const t = useTranslations();
   const categories: DatasetCategory[] = [
     "computer-vision",
     "natural-language",
@@ -92,7 +94,7 @@ export function FiltersPopover({
       <PopoverTrigger asChild>
         <Button variant="outline" className="gap-2">
           <SlidersHorizontal className="h-4 w-4" />
-          Filters
+          {t("Filters")}
           {hasActiveFilters && (
             <Badge
               variant="secondary"
@@ -106,7 +108,7 @@ export function FiltersPopover({
       <PopoverContent className="w-80" align="start">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-sm">Filters</h4>
+            <h4 className="font-semibold text-sm">{t("Filters")}</h4>
             {hasActiveFilters && (
               <Button
                 variant="ghost"
@@ -115,7 +117,7 @@ export function FiltersPopover({
                 className="h-auto px-2 py-1 text-xs"
               >
                 <X className="mr-1 h-3 w-3" />
-                Clear
+                {t("Clear")}
               </Button>
             )}
           </div>
@@ -125,7 +127,7 @@ export function FiltersPopover({
               {/* Category Filters */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Category
+                  {t("Category")}
                 </Label>
                 <div className="space-y-2">
                   {categories.map((category) => (
@@ -139,7 +141,7 @@ export function FiltersPopover({
                         htmlFor={`pop-category-${category}`}
                         className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {categoryLabels[category]}
+                        {t(categoryLabels[category])}
                       </label>
                     </div>
                   ))}
@@ -151,7 +153,7 @@ export function FiltersPopover({
               {/* Data Type Filters */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Data Type
+                  {t("Data type")}
                 </Label>
                 <div className="space-y-2">
                   {dataTypes.map((dataType) => (
@@ -165,7 +167,7 @@ export function FiltersPopover({
                         htmlFor={`pop-datatype-${dataType}`}
                         className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {dataTypeLabels[dataType]}
+                        {t(dataTypeLabels[dataType])}
                       </label>
                     </div>
                   ))}
@@ -177,7 +179,7 @@ export function FiltersPopover({
               {/* Reward Range Slider */}
               <div className="space-y-3">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Reward Range (USD)
+                  {t("Reward range (USD)")}
                 </Label>
                 <div className="space-y-4 pt-2">
                   <Slider
@@ -200,7 +202,7 @@ export function FiltersPopover({
               {/* Status Filters */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground uppercase">
-                  Status
+                  {t("Status")}
                 </Label>
                 <div className="space-y-2">
                   {statuses.map((status) => (
@@ -214,7 +216,7 @@ export function FiltersPopover({
                         htmlFor={`pop-status-${status}`}
                         className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {statusLabels[status]}
+                        {t(statusLabels[status])}
                       </label>
                     </div>
                   ))}

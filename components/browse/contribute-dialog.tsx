@@ -60,9 +60,9 @@ export function ContributeDialog({
 
   const handleSubmit = async () => {
     if (files.length === 0) {
-      toast.error("Please select at least one file");
-      return;
-    }
+          toast.error("Please select at least one file");
+          return;
+        }
 
     setIsSubmitting(true);
 
@@ -105,7 +105,7 @@ export function ContributeDialog({
         router.refresh();
       }
     } catch (error) {
-      toast.error("An unexpected error occurred");
+          toast.error("An unexpected error occurred");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -117,16 +117,19 @@ export function ContributeDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Contribute to {datasetTitle}</DialogTitle>
+          <DialogTitle>
+            {t("Contribute to {{title}}", { title: datasetTitle })}
+          </DialogTitle>
           <DialogDescription>
-            Upload your data contribution. Your submission will be reviewed
-            before approval.
+            {t(
+              "Upload your data contribution. Your submission will be reviewed before approval.",
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Upload Files</Label>
+            <Label>{t("Upload files")}</Label>
             <FileUpload
               accept={getAcceptedFormats()}
               multiple={true}
@@ -136,7 +139,7 @@ export function ContributeDialog({
             {isSubmitting && uploadProgress > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Uploading...</span>
+                  <span>{t("Uploading...")}</span>
                   <span>{Math.round(uploadProgress)}%</span>
                 </div>
                 <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
@@ -150,10 +153,10 @@ export function ContributeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">{t("Notes (optional)")}</Label>
             <Textarea
               id="notes"
-              placeholder="Add any additional information about your submission..."
+              placeholder={t("Add any additional information about your submission...")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
@@ -163,11 +166,11 @@ export function ContributeDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Submitting..." : "Submit Contribution"}
+            {isSubmitting ? t("Submitting...") : t("Submit contribution")}
           </Button>
         </DialogFooter>
       </DialogContent>

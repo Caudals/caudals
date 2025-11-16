@@ -18,6 +18,7 @@ import {
 } from "@/lib/data/datasets";
 import { X, SlidersHorizontal } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface FiltersSidebarProps {
   filters: DatasetFilters;
@@ -32,6 +33,7 @@ export function FiltersSidebar({
   onClearFilters,
   isOpen = true,
 }: FiltersSidebarProps) {
+  const t = useTranslations();
   const categories: DatasetCategory[] = [
     "computer-vision",
     "natural-language",
@@ -89,7 +91,7 @@ export function FiltersSidebar({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Filters</h2>
+          <h2 className="text-lg font-semibold">{t("Filters")}</h2>
         </div>
         {hasActiveFilters && (
           <Button
@@ -99,7 +101,7 @@ export function FiltersSidebar({
             className="h-8 text-xs"
           >
             <X className="mr-1 h-3 w-3" />
-            Clear All
+            {t("Clear all")}
           </Button>
         )}
       </div>
@@ -110,7 +112,7 @@ export function FiltersSidebar({
         <div className="space-y-6 pr-4">
           {/* Category Filters */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Category</Label>
+            <Label className="text-sm font-semibold">{t("Category")}</Label>
             <div className="space-y-2">
               {categories.map((category) => (
                 <div key={category} className="flex items-center space-x-2">
@@ -123,7 +125,7 @@ export function FiltersSidebar({
                     htmlFor={`category-${category}`}
                     className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    {categoryLabels[category]}
+                    {t(categoryLabels[category])}
                   </label>
                 </div>
               ))}
@@ -134,7 +136,7 @@ export function FiltersSidebar({
 
           {/* Data Type Filters */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Data Type</Label>
+            <Label className="text-sm font-semibold">{t("Data type")}</Label>
             <div className="space-y-2">
               {dataTypes.map((dataType) => (
                 <div key={dataType} className="flex items-center space-x-2">
@@ -147,7 +149,7 @@ export function FiltersSidebar({
                     htmlFor={`datatype-${dataType}`}
                     className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    {dataTypeLabels[dataType]}
+                    {t(dataTypeLabels[dataType])}
                   </label>
                 </div>
               ))}
@@ -158,7 +160,7 @@ export function FiltersSidebar({
 
           {/* Reward Range Slider */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Reward Range (USD)</Label>
+            <Label className="text-sm font-semibold">{t("Reward range (USD)")}</Label>
             <div className="space-y-4 pt-2">
               <Slider
                 min={0}
@@ -179,7 +181,7 @@ export function FiltersSidebar({
 
           {/* Status Filters */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Status</Label>
+            <Label className="text-sm font-semibold">{t("Status")}</Label>
             <div className="space-y-2">
               {statuses.map((status) => (
                 <div key={status} className="flex items-center space-x-2">
@@ -192,7 +194,7 @@ export function FiltersSidebar({
                     htmlFor={`status-${status}`}
                     className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    {statusLabels[status]}
+                    {t(statusLabels[status])}
                   </label>
                 </div>
               ))}
