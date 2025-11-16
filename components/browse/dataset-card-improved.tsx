@@ -82,10 +82,10 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
               statusStyles[dataset.status]
             )}
           >
-            {statusLabels[dataset.status]}
+            {t(statusLabels[dataset.status])}
           </Badge>
           <Badge variant="secondary" className="text-xs font-medium shadow-sm">
-            {categoryLabels[dataset.category]}
+            {t(categoryLabels[dataset.category])}
           </Badge>
         </div>
       </Link>
@@ -154,16 +154,16 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
         {/* Action Buttons */}
         <div className="mt-auto flex gap-2">
           <Button variant="outline" className="flex-1" size="sm" asChild>
-            <Link href={`/browse/${dataset.id}`}>View Details</Link>
+            <Link href={`/browse/${dataset.id}`}>{t("View Details")}</Link>
           </Button>
 
           {isCompleted ? (
             <Button className="flex-1" size="sm" disabled>
-              Completed
+              {t("Completed")}
             </Button>
           ) : isPaused || isExpired ? (
             <Button className="flex-1" size="sm" disabled>
-              {isPaused ? "Paused" : "Closed"}
+              {isPaused ? t("Paused") : t("Closed")}
             </Button>
           ) : user ? (
             <ContributeDialog
@@ -172,7 +172,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
               dataType={dataset.dataType}
             >
               <Button className="flex-1" size="sm">
-                Contribute
+                {t("Contribute")}
               </Button>
             </ContributeDialog>
           ) : (
@@ -181,7 +181,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
               size="sm"
               onClick={handleContributeClick}
             >
-              Contribute
+              {t("Contribute")}
             </Button>
           )}
         </div>

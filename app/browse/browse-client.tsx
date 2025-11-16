@@ -8,12 +8,14 @@ import { Dataset, DatasetFilters, SortOption } from "@/types/dataset";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Database } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface BrowseClientProps {
   initialDatasets: Dataset[];
 }
 
 export function BrowseClient({ initialDatasets }: BrowseClientProps) {
+  const t = useTranslations();
   const [filters, setFilters] = useState<DatasetFilters>({
     search: "",
     categories: [],
@@ -154,14 +156,16 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">
-                    Featured Requests
+                    {t("Featured requests")}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    High-priority opportunities from top organizations
+                    {t("High-priority opportunities from top organizations")}
                   </p>
                 </div>
                 <Badge variant="secondary" className="w-fit text-xs">
-                  {featuredDatasets.length} featured
+                  {t("{{count}} featured", {
+                    count: featuredDatasets.length.toLocaleString(),
+                  })}
                 </Badge>
               </div>
 
@@ -177,11 +181,12 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  All Requests
+                  {t("All requests")}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {sortedDatasets.length.toLocaleString()} opportunities
-                  available
+                  {t("{{count}} opportunities available", {
+                    count: sortedDatasets.length.toLocaleString(),
+                  })}
                 </p>
               </div>
             </div>
@@ -200,14 +205,14 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-foreground">
-              No matches found
+              {t("No matches found")}
             </h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground">
-              Try adjusting your filters to see more results
+              {t("Try adjusting your filters to see more results")}
             </p>
           </div>
           <Button variant="outline" onClick={clearFilters}>
-            Clear filters
+            {t("Clear filters")}
           </Button>
         </section>
       )}

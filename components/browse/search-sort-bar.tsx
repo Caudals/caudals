@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SortOption, DatasetFilters } from "@/types/dataset";
 import { FiltersPopover } from "./filters-popover";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface SearchSortBarProps {
   search: string;
@@ -37,6 +38,7 @@ export function SearchSortBar({
   onFiltersChange,
   onClearFilters,
 }: SearchSortBarProps) {
+  const t = useTranslations();
   const baseFilterCount =
     filters.categories.length +
     filters.dataTypes.length +
@@ -53,7 +55,7 @@ export function SearchSortBar({
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search organizations or requests"
+            placeholder={t("Search organizations or requests")}
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             className="h-11 rounded-xl border-border/80 pl-11 text-sm"
@@ -72,15 +74,15 @@ export function SearchSortBar({
             onValueChange={(value) => onSortChange(value as SortOption)}
           >
             <SelectTrigger className="h-11 w-[170px] rounded-xl border-border/80 text-sm">
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t("Sort by")} />
             </SelectTrigger>
             <SelectContent align="end">
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="highest-reward">Highest reward</SelectItem>
-              <SelectItem value="lowest-reward">Lowest reward</SelectItem>
-              <SelectItem value="most-popular">Most popular</SelectItem>
-              <SelectItem value="closing-soon">Closing soon</SelectItem>
+              <SelectItem value="newest">{t("Newest")}</SelectItem>
+              <SelectItem value="oldest">{t("Oldest")}</SelectItem>
+              <SelectItem value="highest-reward">{t("Highest reward")}</SelectItem>
+              <SelectItem value="lowest-reward">{t("Lowest reward")}</SelectItem>
+              <SelectItem value="most-popular">{t("Most popular")}</SelectItem>
+              <SelectItem value="closing-soon">{t("Closing soon")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -89,14 +91,17 @@ export function SearchSortBar({
       <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <span>
-            <span className="font-semibold text-foreground">{resultCount}</span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground">{totalCount}</span>{" "}
-            requests
+            {t("{{result}} of {{total}} requests", {
+              result: resultCount.toLocaleString(),
+              total: totalCount.toLocaleString(),
+            })}
           </span>
           {hasActiveFilters && (
             <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
-              {filterBadgeCount} filter{filterBadgeCount === 1 ? "" : "s"}
+              {t(
+                filterBadgeCount === 1 ? "{{count}} filter" : "{{count}} filters",
+                { count: filterBadgeCount },
+              )}
             </Badge>
           )}
         </div>
@@ -108,7 +113,7 @@ export function SearchSortBar({
             className="h-auto p-0 text-xs"
             onClick={onClearFilters}
           >
-            Clear all
+            {t("Clear all")}
           </Button>
         )}
       </div>
