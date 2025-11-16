@@ -133,7 +133,7 @@ export function LandingGodRaysBackground({
             className="pointer-events-none absolute inset-x-0 top-0 h-24"
             style={{
               background:
-                "linear-gradient(0deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.55) 70%, #f5f5f5 100%)",
+                "linear-gradient(0deg, #f5f5f500 0%, #f5f5f5 70%, #f5f5f5 100%)",
             }}
           />
           {/* Bottom gradient for smooth transition to next section */}
@@ -141,7 +141,7 @@ export function LandingGodRaysBackground({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-1000"
             style={{
               background:
-                "linear-gradient(180deg, #f5f5f500 0%, rgba(247,247,243,0.3) 25%, rgba(247,247,243,0.75) 60%, rgba(247,247,243,0.95) 70%, #f5f5f5 100%)",
+                "linear-gradient(180deg,#f5f5f500 0%, #f5f5f5 25%, #f5f5f5 60%, #f5f5f5 70%, #f5f5f5 100%)",
             }}
           />
         </>
