@@ -13,13 +13,31 @@ function ensureLocale(value?: string | null): Locale | null {
   return locales.includes(value as Locale) ? (value as Locale) : null;
 }
 
-function getCountryCodeFromHeaders(headersStore: Headers): string | null {
-  return (
+async function getCountryCodeFromHeaders(headersStore: Headers): Promise<string | null> {
+  // Try platform-specific headers first
+  const headerCountry = 
     headersStore.get("x-vercel-ip-country") ??
     headersStore.get("cf-ipcountry") ??
     headersStore.get("x-country-code") ??
-    headersStore.get("x-forwarded-country")
-  );
+    headersStore.get("cloudfront-viewer-country") ??
+    headersStore.get("x-forwarded-country");
+
+  if (headerCountry) {
+    return headerCountry;
+  }
+
+  // Fallback to IP-based geolocation for self-hosted environments
+  const { getClientIP, getCountryFromIP } = await import("./geolocation");
+  const clientIP = getClientIP(headersStore);
+  
+  if (clientIP) {
+    const country = await getCountryFromIP(clientIP);
+    if (country) {
+      return country;
+    }
+  }
+
+  return null;
 }
 
 export async function getRequestLocale(): Promise<Locale> {
@@ -32,9 +50,10 @@ export async function getRequestLocale(): Promise<Locale> {
   }
 
   const headerStore = await headers();
+  const countryCode = await getCountryCodeFromHeaders(headerStore);
   const headerLocale = detectPreferredLocale({
     header: headerStore.get("accept-language"),
-    countryCode: getCountryCodeFromHeaders(headerStore),
+    countryCode,
   });
 
   return headerLocale;

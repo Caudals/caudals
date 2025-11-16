@@ -7,6 +7,7 @@ import {
   locales,
 } from "@/lib/i18n/config";
 import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
+import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
 
@@ -17,16 +18,38 @@ function normalizeLocale(value?: string | null): Locale | null {
   return supportedLocales.has(base as Locale) ? (base as Locale) : null;
 }
 
-function getRequestCountryCode(request: NextRequest): string | null {
-  // Check multiple sources for country code (Vercel, Cloudflare, AWS, etc.)
-  return (
+/**
+ * Get country code from request headers or IP geolocation
+ * Supports both platform-specific headers (Vercel, Cloudflare, AWS) and IP-based detection
+ */
+async function getRequestCountryCode(request: NextRequest): Promise<string | null> {
+  // First, try platform-specific headers (fast, no API call needed)
+  const headerCountry = 
     request.headers.get("x-vercel-ip-country") ??
     request.headers.get("cf-ipcountry") ??
     request.headers.get("x-country-code") ??
     request.headers.get("cloudfront-viewer-country") ??
     request.headers.get("x-forwarded-country") ??
-    null
-  );
+    null;
+
+  if (headerCountry) {
+    console.log(`[i18n] Country from header: ${headerCountry}`);
+    return headerCountry;
+  }
+
+  // Fallback to IP-based geolocation (for self-hosted environments like Dokploy)
+  const clientIP = getClientIP(request.headers);
+  if (clientIP) {
+    console.log(`[i18n] Client IP: ${clientIP}`);
+    const country = await getCountryFromIP(clientIP);
+    if (country) {
+      console.log(`[i18n] Country from IP: ${country}`);
+      return country;
+    }
+  }
+
+  console.log("[i18n] No country detected");
+  return null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -34,8 +57,10 @@ export async function middleware(request: NextRequest) {
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   
   // Get country code and language header
-  const countryCode = getRequestCountryCode(request);
+  const countryCode = await getRequestCountryCode(request);
   const acceptLanguage = request.headers.get("accept-language");
+  
+  console.log(`[i18n] Cookie locale: ${cookieLocale}, Country: ${countryCode}, Accept-Language: ${acceptLanguage}`);
   
   // Detect locale from all available sources
   const detectedLocale = detectPreferredLocale({
@@ -43,20 +68,42 @@ export async function middleware(request: NextRequest) {
     countryCode: countryCode,
   });
 
-  // Set cookie if:
-  // 1. No cookie exists, OR
-  // 2. Cookie exists but detected locale is different AND we have strong evidence (country code or explicit language)
-  const shouldUpdateCookie = !cookieLocale || 
-    (cookieLocale !== detectedLocale && (countryCode || acceptLanguage));
+  console.log(`[i18n] Detected locale: ${detectedLocale}`);
+
+  // Logic for setting/updating cookie:
+  // 1. If no cookie exists: set detected locale
+  // 2. If cookie exists but we detect Spain (ES): always override to Spanish (strongest signal)
+  // 3. If cookie exists and matches detected: do nothing
+  // 4. Otherwise: keep existing cookie (user preference)
+  
+  let shouldUpdateCookie = false;
+  let localeToSet = cookieLocale ?? detectedLocale;
+
+  if (!cookieLocale) {
+    // First visit: set detected locale
+    shouldUpdateCookie = true;
+    localeToSet = detectedLocale;
+    console.log(`[i18n] No cookie found, setting: ${localeToSet}`);
+  } else if (countryCode === "ES" && cookieLocale !== "es") {
+    // User is in Spain but cookie is not Spanish: override (strongest signal)
+    shouldUpdateCookie = true;
+    localeToSet = "es";
+    console.log(`[i18n] User in Spain, forcing Spanish`);
+  } else if (cookieLocale !== detectedLocale && countryCode) {
+    // Country changed and we have strong evidence
+    shouldUpdateCookie = true;
+    localeToSet = detectedLocale;
+    console.log(`[i18n] Country-based override: ${localeToSet}`);
+  }
 
   if (shouldUpdateCookie) {
-    const localeToSet = cookieLocale ?? detectedLocale;
     response.cookies.set(LOCALE_COOKIE, localeToSet, {
       path: "/",
       maxAge: LOCALE_COOKIE_MAX_AGE,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
+    console.log(`[i18n] Cookie set to: ${localeToSet}`);
   }
 
   return response;
