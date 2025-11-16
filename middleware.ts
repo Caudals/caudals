@@ -6,7 +6,7 @@ import {
   type Locale,
   locales,
 } from "@/lib/i18n/config";
-import { detectLocaleFromHeader } from "@/lib/i18n/detect-locale";
+import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
 
 const supportedLocales = new Set<Locale>(locales);
 
@@ -17,11 +17,26 @@ function normalizeLocale(value?: string | null): Locale | null {
   return supportedLocales.has(base as Locale) ? (base as Locale) : null;
 }
 
+function getRequestCountryCode(request: NextRequest): string | null {
+  return (
+    request.geo?.country ??
+    request.headers.get("x-vercel-ip-country") ??
+    request.headers.get("cf-ipcountry") ??
+    request.headers.get("x-country-code") ??
+    request.headers.get("x-forwarded-country") ??
+    null
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const response = await updateSession(request);
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   const detectedLocale =
-    cookieLocale ?? detectLocaleFromHeader(request.headers.get("accept-language"));
+    cookieLocale ??
+    detectPreferredLocale({
+      header: request.headers.get("accept-language"),
+      countryCode: getRequestCountryCode(request),
+    });
 
   if (!cookieLocale || cookieLocale !== detectedLocale) {
     response.cookies.set(LOCALE_COOKIE, detectedLocale, {
