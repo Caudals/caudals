@@ -100,12 +100,14 @@ export function PlatformLayersSection() {
                 onClick={() => setActiveLayer(id)}
                 className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition-colors ${
                   activeLayer === id
-                    ? "border-foreground bg-white text-foreground"
-                    : "border-border/80 bg-card text-muted-foreground hover:text-foreground"
+                    ? "border-border bg-muted/60 text-foreground"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <layer.icon className="h-5 w-5" />
+                <div className="flex items-center gap-3 ">
+                  <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-md bg-muted/15 text-accent">
+                  <layer.icon className="h-5 w-5 " />
+                  </div>
                   <span className="text-base font-semibold">{t(layer.label)}</span>
                 </div>
                 <span className="text-xs uppercase">{t(layer.metric)}</span>
@@ -113,7 +115,7 @@ export function PlatformLayersSection() {
             ))}
           </div>
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-border/80 bg-white p-8">
+          <div className="relative overflow-hidden rounded-[2rem] border border-border/80 bg-card p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeLayer}
@@ -135,7 +137,7 @@ export function PlatformLayersSection() {
                 <ul className="grid gap-3 text-sm text-muted-foreground">
                   {layers[activeLayer].bullets.map((bullet) => (
                     <li key={bullet} className="flex items-start gap-2">
-                      <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
+                      <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-muted" />
                       {t(bullet)}
                     </li>
                   ))}
@@ -148,6 +150,7 @@ export function PlatformLayersSection() {
     </section>
   );
 }
+
 
 
 

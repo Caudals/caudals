@@ -24,6 +24,7 @@ const nextConfig = {
   images: {
     domains: imageDomains,
     remotePatterns,
+    unoptimized: true, // Required for self-hosting (Dokploy) - images are served directly without optimization
   },
   // Configuración para optimizar la carga de Stripe
   // Nota: Webpack config removido para compatibilidad con Turbopack

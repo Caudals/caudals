@@ -80,7 +80,7 @@ export function FeaturesSection() {
               viewport={{ once: true, margin: "-60px" }}
               className="rounded-3xl border border-border/80 bg-card p-6 text-left"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
                 <capability.icon className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-semibold text-foreground">

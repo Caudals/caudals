@@ -130,20 +130,6 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-2 text-center sm:mb-8 sm:text-left">
-        <Badge variant="secondary" className="mx-auto w-fit sm:mx-0">
-          Live Requests
-        </Badge>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Browse the dataset feed
-          </h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Search, sort, and filter opportunities from organizations launching
-            new programs.
-          </p>
-        </div>
-      </div>
 
       <div className="mb-10">
         <SearchSortBar

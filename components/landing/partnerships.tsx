@@ -77,21 +77,8 @@ export function PartnershipsSection() {
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="rounded-2xl border border-border/70 bg-muted/70 px-5 py-4 text-left text-sm text-foreground">
-                  <span className="block font-semibold">
-                    {t("37% faster")}{" "}
-                    <span className="font-normal text-muted-foreground">
-                      {t("time-to-launch")}
-                    </span>
-                  </span>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t(
-                      "Partnerships customers reduce time-to-first-approved batch compared to DIY teams.",
-                    )}
-                  </p>
-                </div>
                 <Button size="lg" asChild className="h-12 px-6">
-                  <Link href="/#partnerships">
+                  <Link href="/collaborate">
                     {t("Explore partnerships")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
@@ -134,6 +121,7 @@ export function PartnershipsSection() {
     </section>
   );
 }
+
 
 
 
