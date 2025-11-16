@@ -15,10 +15,11 @@ ENV NODE_ENV=development
 
 COPY package.json package-lock.json ./
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN npm ci
 
 FROM deps AS build
+
+ENV NODE_ENV=production
 
 COPY . .
 
@@ -30,8 +31,7 @@ FROM base AS runtime
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/package-lock.json ./package-lock.json
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+RUN npm ci --omit=dev
 
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next ./.next
@@ -39,4 +39,3 @@ COPY --from=build /app/.next ./.next
 EXPOSE 3000
 
 CMD ["npm", "run", "start"]
-
