@@ -5,14 +5,20 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
   : null;
 
 const imageDomains = ["images.unsplash.com"];
+const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+  { protocol: "https", hostname: "images.unsplash.com" },
+  { protocol: "https", hostname: "*.supabase.co" },
+];
 
-if (supabaseHostname) {
+if (supabaseHostname && !imageDomains.includes(supabaseHostname)) {
   imageDomains.push(supabaseHostname);
+  remotePatterns.push({ protocol: "https", hostname: supabaseHostname });
 }
 
 const nextConfig: NextConfig = {
   images: {
     domains: imageDomains,
+    remotePatterns,
   },
 };
 
