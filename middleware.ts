@@ -19,7 +19,6 @@ function normalizeLocale(value?: string | null): Locale | null {
 
 function getRequestCountryCode(request: NextRequest): string | null {
   return (
-    request.geo?.country ??
     request.headers.get("x-vercel-ip-country") ??
     request.headers.get("cf-ipcountry") ??
     request.headers.get("x-country-code") ??
