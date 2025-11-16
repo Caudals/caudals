@@ -18,10 +18,12 @@ function normalizeLocale(value?: string | null): Locale | null {
 }
 
 function getRequestCountryCode(request: NextRequest): string | null {
+  // Check multiple sources for country code (Vercel, Cloudflare, AWS, etc.)
   return (
     request.headers.get("x-vercel-ip-country") ??
     request.headers.get("cf-ipcountry") ??
     request.headers.get("x-country-code") ??
+    request.headers.get("cloudfront-viewer-country") ??
     request.headers.get("x-forwarded-country") ??
     null
   );
@@ -30,17 +32,30 @@ function getRequestCountryCode(request: NextRequest): string | null {
 export async function middleware(request: NextRequest) {
   const response = await updateSession(request);
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
-  const detectedLocale =
-    cookieLocale ??
-    detectPreferredLocale({
-      header: request.headers.get("accept-language"),
-      countryCode: getRequestCountryCode(request),
-    });
+  
+  // Get country code and language header
+  const countryCode = getRequestCountryCode(request);
+  const acceptLanguage = request.headers.get("accept-language");
+  
+  // Detect locale from all available sources
+  const detectedLocale = detectPreferredLocale({
+    header: acceptLanguage,
+    countryCode: countryCode,
+  });
 
-  if (!cookieLocale || cookieLocale !== detectedLocale) {
-    response.cookies.set(LOCALE_COOKIE, detectedLocale, {
+  // Set cookie if:
+  // 1. No cookie exists, OR
+  // 2. Cookie exists but detected locale is different AND we have strong evidence (country code or explicit language)
+  const shouldUpdateCookie = !cookieLocale || 
+    (cookieLocale !== detectedLocale && (countryCode || acceptLanguage));
+
+  if (shouldUpdateCookie) {
+    const localeToSet = cookieLocale ?? detectedLocale;
+    response.cookies.set(LOCALE_COOKIE, localeToSet, {
       path: "/",
       maxAge: LOCALE_COOKIE_MAX_AGE,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
   }
 
