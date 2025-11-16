@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { getServerTranslationBundle } from "@/lib/i18n/server";
@@ -49,7 +48,6 @@ export default async function RootLayout({
       {children}
       <PwaInstallBanner />
       <Toaster richColors position="top-right" closeButton={false} />
-      <Analytics />
     </AuthProvider>
   );
 

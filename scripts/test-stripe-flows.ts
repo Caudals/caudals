@@ -67,7 +67,7 @@ async function main() {
   let createdConnectedAccount = false;
 
   const businessProfileUrl =
-    process.env.STRIPE_TEST_BUSINESS_URL ?? "https://caudals.vercel.app";
+    process.env.STRIPE_TEST_BUSINESS_URL ?? "https://caudals.com";
 
   try {
     const account = await stripe.accounts.retrieve();
