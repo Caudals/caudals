@@ -82,7 +82,7 @@ export default async function RootLayout({
         {process.env.NODE_ENV === "production" && (
           <Script
             src="https://analytics.caudals.com/script.js"
-            data-website-id="eefb45d8-154c-4671-890f-77a04f5c5e47"
+            data-website-id="180a4b17-a999-474c-bf4b-bd3e96e5057f"
             strategy="afterInteractive"
           />
         )}
