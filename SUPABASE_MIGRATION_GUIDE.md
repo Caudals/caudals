@@ -46,6 +46,7 @@ After Basic Auth, you still need to provide the API key in the `apikey` header f
 ### 3.5. **Data Migration** (Nov 17, 2025)
 
 **COMPLETE DATA MIGRATION:**
+
 - ✅ Migrated 16 users from auth.users (with passwords preserved)
 - ✅ Migrated 16 profiles (all user profiles)
 - ✅ Migrated **37 dataset requests** with all metadata (previously only had 15)
