@@ -33,6 +33,7 @@ import {
 
 import { ContributeDialog } from "@/components/browse/contribute-dialog";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface Submission {
   id: string;
@@ -63,10 +64,17 @@ const submissionEffortLabels: Record<Dataset["dataType"], string> = {
   mixed: "~20 minutes per submission",
 };
 
+const submissionStatusLabels: Record<string, string> = {
+  approved: "Approved",
+  rejected: "Rejected",
+  pending: "Pending",
+};
+
 export function DatasetDetailClient({
   dataset,
   submissions,
 }: DatasetDetailClientProps) {
+  const t = useTranslations();
   const progressRaw =
     dataset.samplesNeeded > 0
       ? (dataset.samplesCollected / dataset.samplesNeeded) * 100
@@ -83,28 +91,32 @@ export function DatasetDetailClient({
   const isPaused = dataset.status === "paused";
 
   const deadlineLabel = isExpired
-    ? "Deadline passed"
-    : `${daysUntilDeadline} day${daysUntilDeadline === 1 ? "" : "s"} remaining`;
+    ? t("Deadline passed")
+    : daysUntilDeadline === 1
+      ? t("1 day remaining")
+      : t("{{count}} days remaining", { count: daysUntilDeadline });
 
-  const postedLabel = new Date(dataset.datePosted).toLocaleDateString("en-US", {
+  const dateDisplayOptions = {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  } as const;
+
+  const postedLabel = new Date(dataset.datePosted).toLocaleDateString(
+    "es-ES",
+    dateDisplayOptions,
+  );
 
   const deadlineDateLabel = new Date(dataset.deadline).toLocaleDateString(
-    "en-US",
-    {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    }
+    "es-ES",
+    dateDisplayOptions,
   );
 
   const rewardLabel = `${dataset.currency} ${dataset.rewardAmount.toFixed(2)}`;
 
-  const submissionEffort =
-    submissionEffortLabels[dataset.dataType] ?? "~10 minutes per submission";
+  const submissionEffort = submissionEffortLabels[dataset.dataType]
+    ? t(submissionEffortLabels[dataset.dataType])
+    : t("~10 minutes per submission");
 
   const recentSubmissions = submissions.slice(0, 5);
 
@@ -114,7 +126,7 @@ export function DatasetDetailClient({
         href="/browse"
         className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to browse
+        <ArrowLeft className="mr-2 h-4 w-4" /> {t("Back to browse")}
       </Link>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_400px] lg:items-start">
@@ -140,13 +152,19 @@ export function DatasetDetailClient({
                   variant="outline"
                   className={cn("text-xs", statusStyles[dataset.status])}
                 >
-                  {statusLabels[dataset.status]}
+                  {statusLabels[dataset.status]
+                    ? t(statusLabels[dataset.status])
+                    : dataset.status}
                 </Badge>
                 <Badge variant="secondary" className="text-xs">
-                  {categoryLabels[dataset.category]}
+                  {categoryLabels[dataset.category]
+                    ? t(categoryLabels[dataset.category])
+                    : dataset.category}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  {dataTypeLabels[dataset.dataType]}
+                  {dataTypeLabels[dataset.dataType]
+                    ? t(dataTypeLabels[dataset.dataType])
+                    : dataset.dataType}
                 </Badge>
               </div>
 
@@ -173,7 +191,7 @@ export function DatasetDetailClient({
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Posted {postedLabel}
+                      {t("Posted")} {postedLabel}
                     </p>
                   </div>
                 </div>
@@ -189,10 +207,10 @@ export function DatasetDetailClient({
           <Card className="rounded-xl border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <ShieldCheck className="h-5 w-5" /> Quality Criteria
+                <ShieldCheck className="h-5 w-5" /> {t("Quality Criteria")}
               </CardTitle>
               <CardDescription>
-                Requirements for submission approval
+                {t("Requirements for submission approval")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -211,10 +229,10 @@ export function DatasetDetailClient({
           <Card className="rounded-xl border border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5" /> Requirements
+                <FileText className="h-5 w-5" /> {t("Requirements")}
               </CardTitle>
               <CardDescription>
-                What you need before contributing
+                {t("What you need before contributing")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -243,10 +261,10 @@ export function DatasetDetailClient({
             <Card className="rounded-xl border border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Target className="h-5 w-5" /> Recent Activity
+                  <Target className="h-5 w-5" /> {t("Recent Activity")}
                 </CardTitle>
                 <CardDescription>
-                  Latest contributions to this request
+                  {t("Latest contributions to this request")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -263,14 +281,14 @@ export function DatasetDetailClient({
                             .toUpperCase() || "??"}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {submission.profiles?.full_name || "Anonymous"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(submission.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {submission.profiles?.full_name || t("Anonymous")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(submission.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                     </div>
                     <Badge
                       variant={
@@ -282,7 +300,9 @@ export function DatasetDetailClient({
                       }
                       className="text-xs"
                     >
-                      {submission.status}
+                      {submissionStatusLabels[submission.status]
+                        ? t(submissionStatusLabels[submission.status])
+                        : submission.status}
                     </Badge>
                   </div>
                 ))}
@@ -296,25 +316,27 @@ export function DatasetDetailClient({
           {/* CTA Card */}
           <Card className="rounded-xl border border-border">
             <CardHeader>
-              <CardTitle className="text-lg">Contribute</CardTitle>
+              <CardTitle className="text-lg">{t("Contribute")}</CardTitle>
               <CardDescription>
-                Earn rewards for approved submissions
+                {t("Earn rewards for approved submissions")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <ShieldCheck className="h-4 w-4" />
-                  <span>Quality validation required</span>
+                  <span>{t("Quality validation required")}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Data type
+                      {t("Data type")}
                     </p>
                     <p className="font-medium text-foreground">
-                      {dataTypeLabels[dataset.dataType]}
+                      {dataTypeLabels[dataset.dataType]
+                        ? t(dataTypeLabels[dataset.dataType])
+                        : dataset.dataType}
                     </p>
                   </div>
                 </div>
@@ -322,7 +344,7 @@ export function DatasetDetailClient({
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Deadline
+                      {t("Deadline")}
                     </p>
                     <p className="font-medium text-foreground">
                       {deadlineDateLabel}
@@ -341,7 +363,7 @@ export function DatasetDetailClient({
                   <Timer className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Estimated effort
+                      {t("Estimated effort")}
                     </p>
                     <p className="font-medium text-foreground">
                       {submissionEffort}
@@ -352,11 +374,11 @@ export function DatasetDetailClient({
 
               {isCompleted ? (
                 <Button className="w-full" disabled>
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Completed
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> {t("Completed")}
                 </Button>
               ) : isPaused || isExpired ? (
                 <Button className="w-full" disabled>
-                  {isPaused ? "Paused" : "Closed"}
+                  {isPaused ? t("Paused") : t("Closed")}
                 </Button>
               ) : (
                 <ContributeDialog
@@ -364,7 +386,7 @@ export function DatasetDetailClient({
                   datasetTitle={dataset.title}
                   dataType={dataset.dataType}
                 >
-                  <Button className="w-full">Start Contributing</Button>
+                  <Button className="w-full">{t("Start Contributing")}</Button>
                 </ContributeDialog>
               )}
             </CardContent>
@@ -373,12 +395,12 @@ export function DatasetDetailClient({
           {/* Stats Card */}
           <Card className="rounded-xl border border-border">
             <CardHeader>
-              <CardTitle className="text-lg">Statistics</CardTitle>
+              <CardTitle className="text-lg">{t("Statistics")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Progress</span>
+                  <span className="text-muted-foreground">{t("Progress")}</span>
                   <span className="font-medium text-foreground">
                     {dataset.samplesCollected.toLocaleString()} /{" "}
                     {dataset.samplesNeeded.toLocaleString()}
@@ -386,36 +408,47 @@ export function DatasetDetailClient({
                 </div>
                 <Progress value={progressValue} className="h-2" />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{progressValue}% complete</span>
+                  <span>
+                    {progressValue}
+                    {t("% complete")}
+                  </span>
                   <span>
                     {isExpired
-                      ? "Closed"
+                      ? t("Closed")
                       : daysUntilDeadline <= 7
-                        ? "Closing soon"
-                        : "Open"}
+                        ? t("Closing soon")
+                        : t("Open")}
                   </span>
                 </div>
               </div>
               <Separator />
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Samples needed</span>
+                  <span className="text-muted-foreground">
+                    {t("Samples needed")}
+                  </span>
                   <span className="font-semibold">
                     {dataset.samplesNeeded.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Collected</span>
+                  <span className="text-muted-foreground">
+                    {t("Collected")}
+                  </span>
                   <span className="font-semibold">
                     {dataset.samplesCollected.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Reward/item</span>
+                  <span className="text-muted-foreground">
+                    {t("Reward/item")}
+                  </span>
                   <span className="font-semibold">{rewardLabel}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Time remaining</span>
+                  <span className="text-muted-foreground">
+                    {t("Time remaining")}
+                  </span>
                   <span
                     className={cn(
                       "font-semibold",

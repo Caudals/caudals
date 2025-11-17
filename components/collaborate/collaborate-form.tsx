@@ -86,24 +86,24 @@ export function CollaborateForm() {
               }
             });
           }
-          toast.error("Please review the highlighted fields.");
+          toast.error(t("Please review the highlighted fields."));
           return;
         }
 
         const message =
           payload && typeof payload === "object" && "error" in payload
             ? String((payload as { error?: unknown }).error ?? "")
-            : "We couldn't send your message.";
+            : t("We couldn't send your message.");
 
         throw new Error(message || "Request failed");
       }
 
       setIsComplete(true);
-      toast.success("Thanks for reaching out. We'll respond within 48 hours.");
+      toast.success(t("Thanks for reaching out. We'll respond within 48 hours."));
       form.reset(defaultValues);
     } catch (error) {
       console.error("Failed to submit collaboration form", error);
-      toast.error("We couldn't send your message. Please try again.");
+      toast.error(t("We couldn't send your message. Please try again."));
     }
   }
 
@@ -170,7 +170,7 @@ export function CollaborateForm() {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="jane@company.com"
+                        placeholder={t("jane@company.com")}
                         {...field}
                       />
                     </FormControl>
