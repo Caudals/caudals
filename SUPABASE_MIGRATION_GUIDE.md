@@ -11,7 +11,7 @@ Your Supabase has been successfully migrated to your VPS at `161.35.200.8`.
 - **Username**: `admin`
 - **Password**: `d8SRvFmJUJqE4Nfl2kAc1A==`
 
-After Basic Auth, you still need to provide the API key in the `apikey` header for REST endpoints.
+After Basic A th, you still need to provide the API key in the `apikey` header for REST endpoints.
 
 ## 📋 What Was Done
 
