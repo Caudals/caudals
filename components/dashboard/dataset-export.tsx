@@ -87,19 +87,9 @@ export function DatasetExport({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Dataset exported successfully!", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.success("Dataset exported successfully!");
     } catch {
-      toast.error("Failed to export dataset", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error("Failed to export dataset");
     } finally {
       setIsExporting(false);
     }

@@ -47,21 +47,11 @@ export function NavUser() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      toast.success("Signed out successfully", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.success("Signed out successfully");
       router.push("/");
       router.refresh();
     } catch {
-      toast.error("Failed to sign out", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error("Failed to sign out");
     }
   };
 

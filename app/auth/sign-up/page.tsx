@@ -19,6 +19,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { User, Briefcase } from "lucide-react";
 import { UserRole } from "@/types/database";
+import { useTranslations } from "@/lib/i18n/use-translations";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export default function SignUpPage() {
@@ -30,6 +31,7 @@ export default function SignUpPage() {
   const router = useRouter();
   const supabase = createClient();
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   const roleOptions = [
     {
@@ -50,22 +52,12 @@ export default function SignUpPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("Passwords do not match"));
       return;
     }
 
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("Password must be at least 6 characters"));
       return;
     }
 
@@ -84,31 +76,13 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        toast.error(error.message, {
-          action: {
-            label: "×",
-            onClick: () => toast.dismiss(),
-          },
-        });
+        toast.error(error.message);
       } else {
-        toast.success(
-          "Account created! Please check your email to verify your account.",
-          {
-            action: {
-              label: "×",
-              onClick: () => toast.dismiss(),
-            },
-          }
-        );
+        toast.success(t("Account created! Please check your email to verify your account."));
         router.push("/auth/sign-in");
       }
     } catch {
-      toast.error("An unexpected error occurred", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -125,22 +99,12 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        toast.error(error.message, {
-          action: {
-            label: "×",
-            onClick: () => toast.dismiss(),
-          },
-        });
+        toast.error(error.message);
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
     } catch {
-      toast.error("An unexpected error occurred", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("An unexpected error occurred"));
       setLoading(false);
     }
   };
@@ -167,19 +131,19 @@ export default function SignUpPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Create an account</CardTitle>
+            <CardTitle>{t("Create an account")}</CardTitle>
             <CardDescription>
-              Get started with your free account today
+              {t("Get started with your free account today")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleEmailSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("Email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("you@example.com")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -187,7 +151,7 @@ export default function SignUpPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("Password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -200,7 +164,7 @@ export default function SignUpPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">{t("Confirm Password")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -214,7 +178,7 @@ export default function SignUpPage() {
               </div>
               
               <div className="space-y-3">
-                <Label>Choose your role</Label>
+                <Label>{t("Choose your role")}</Label>
                 <div className="grid gap-3">
                   {roleOptions.map((option) => {
                     const Icon = option.icon;
@@ -245,11 +209,11 @@ export default function SignUpPage() {
                                 htmlFor={option.value}
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                               >
-                                {option.label}
+                                {t(option.label)}
                               </Label>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {option.description}
+                              {t(option.description)}
                             </p>
                           </div>
                         </div>
@@ -260,7 +224,7 @@ export default function SignUpPage() {
               </div>
               
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Sign up"}
+                {loading ? t("Creating account...") : t("Sign up")}
               </Button>
             </form>
 
@@ -270,7 +234,7 @@ export default function SignUpPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
+                  {t("Or continue with")}
                 </span>
               </div>
             </div>
@@ -323,12 +287,12 @@ export default function SignUpPage() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("Already have an account?")}{" "}
               <Link
                 href="/auth/sign-in"
                 className="font-medium text-primary hover:underline"
               >
-                Sign in
+                {t("Sign in")}
               </Link>
             </p>
           </CardFooter>

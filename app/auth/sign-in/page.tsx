@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTranslations } from "@/lib/i18n/use-translations";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export default function SignInPage() {
@@ -26,6 +27,7 @@ export default function SignInPage() {
   const router = useRouter();
   const supabase = createClient();
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,30 +40,15 @@ export default function SignInPage() {
       });
 
       if (error) {
-        toast.error(error.message, {
-          action: {
-            label: "×",
-            onClick: () => toast.dismiss(),
-          },
-        });
+        toast.error(error.message);
       } else {
-        toast.success("Signed in successfully!", {
-          action: {
-            label: "×",
-            onClick: () => toast.dismiss(),
-          },
-        });
+        toast.success(t("Signed in successfully!"));
         // Let the callback handle role-based redirection
         router.push("/auth/callback");
         router.refresh();
       }
     } catch {
-      toast.error("An unexpected error occurred", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -78,22 +65,12 @@ export default function SignInPage() {
       });
 
       if (error) {
-        toast.error(error.message, {
-          action: {
-            label: "×",
-            onClick: () => toast.dismiss(),
-          },
-        });
+        toast.error(error.message);
         setLoading(false);
       }
       // Note: Don't set loading to false on success, as we're redirecting
     } catch {
-      toast.error("An unexpected error occurred", {
-        action: {
-          label: "×",
-          onClick: () => toast.dismiss(),
-        },
-      });
+      toast.error(t("An unexpected error occurred"));
       setLoading(false);
     }
   };
@@ -120,19 +97,19 @@ export default function SignInPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
+            <CardTitle>{t("Welcome back")}</CardTitle>
             <CardDescription>
-              Sign in to your account to continue
+              {t("Sign in to your account to continue")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleEmailSignIn} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("Email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("you@example.com")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -140,7 +117,7 @@ export default function SignInPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("Password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -152,7 +129,7 @@ export default function SignInPage() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? t("Signing in...") : t("Sign in")}
               </Button>
             </form>
 
@@ -162,7 +139,7 @@ export default function SignInPage() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  Or continue with
+                  {t("Or continue with")}
                 </span>
               </div>
             </div>
@@ -215,12 +192,12 @@ export default function SignInPage() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              {t("Don't have an account?")}{" "}
               <Link
                 href="/auth/sign-up"
                 className="font-medium text-primary hover:underline"
               >
-                Sign up
+                {t("Sign up")}
               </Link>
             </p>
           </CardFooter>
