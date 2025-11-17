@@ -1,45 +1,49 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Users, CheckCircle, DollarSign } from "lucide-react";
 import { getUserDashboardStats } from "@/lib/actions/dashboard-actions";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export async function StatsCards() {
-  const dashboardStats = await getUserDashboardStats();
+  const [dashboardStats, t] = await Promise.all([
+    getUserDashboardStats(),
+    getServerTranslator(),
+  ]);
 
   const stats = [
     {
-      title: "Active Requests",
+      title: t("Active Requests"),
       value: dashboardStats.activeRequests.toString(),
-      description: "Currently active datasets",
+      description: t("Currently active datasets"),
       icon: FileText,
       trend: "up",
       color: "text-blue-600",
       bgColor: "bg-blue-500/10",
     },
     {
-      title: "Total Contributors",
+      title: t("Total Contributors"),
       value: dashboardStats.totalContributors.toLocaleString(),
-      description: "Unique contributors",
+      description: t("Unique contributors"),
       icon: Users,
       trend: "up",
       color: "text-emerald-600",
       bgColor: "bg-emerald-500/10",
     },
     {
-      title: "Approved Submissions",
+      title: t("Approved Submissions"),
       value: dashboardStats.approvedSubmissions.toLocaleString(),
-      description: "Total approved",
+      description: t("Total approved"),
       icon: CheckCircle,
       trend: "up",
       color: "text-violet-600",
       bgColor: "bg-violet-500/10",
     },
     {
-      title: "Total Spent",
+      title: t("Total Spent"),
       value: `$${dashboardStats.totalSpent.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
-      description: "Total rewards paid",
+      description: t("Total rewards paid"),
       icon: DollarSign,
       trend: "up",
       color: "text-amber-600",

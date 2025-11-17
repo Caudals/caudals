@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface ContributorStats {
   totalEarnings: number;
@@ -31,6 +32,7 @@ export function ContributorStatsCards() {
     averageEarning: 0,
   });
   const [loading, setLoading] = useState(true);
+  const t = useTranslations();
 
   useEffect(() => {
     async function fetchStats() {
@@ -96,49 +98,49 @@ export function ContributorStatsCards() {
 
   const cards = [
     {
-      title: "Total Earnings",
+      title: t("Total Earnings"),
       value: `$${(stats.totalEarnings * 0.9).toFixed(2)}`,
-      description: "Net earnings (after 10% platform fee)",
+      description: t("Net earnings (after 10% platform fee)"),
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Total Submissions",
+      title: t("Total Submissions"),
       value: stats.totalSubmissions.toString(),
-      description: "All your contributions",
+      description: t("All your contributions"),
       icon: Upload,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
-      title: "Approved",
+      title: t("Approved"),
       value: stats.approvedSubmissions.toString(),
-      description: "Successfully approved submissions",
+      description: t("Successfully approved submissions"),
       icon: CheckCircle,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
     },
     {
-      title: "Pending",
+      title: t("Pending"),
       value: stats.pendingSubmissions.toString(),
-      description: "Awaiting review",
+      description: t("Awaiting review"),
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
     },
     {
-      title: "Active Projects",
+      title: t("Active Projects"),
       value: stats.activeProjects.toString(),
-      description: "Projects you're contributing to",
+      description: t("Projects you're contributing to"),
       icon: Users,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
-      title: "Avg. Earning",
+      title: t("Avg. Earning"),
       value: `$${stats.averageEarning.toFixed(2)}`,
-      description: "Per approved submission",
+      description: t("Per approved submission"),
       icon: TrendingUp,
       color: "text-orange-600",
       bgColor: "bg-orange-50",

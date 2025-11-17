@@ -1429,5 +1429,20 @@
   "~20 minutes per submission": "~20 minutos por envío",
   "Don't have an account?": "¿No tienes una cuenta?",
   "Signing in...": "Iniciando sesión...",
-  "Creating account...": "Creando cuenta..."
+  "Creating account...": "Creando cuenta...",
+  "No data": "Sin datos",
+  "{{role}} Account": "Cuenta de {{role}}",
+  "{{count}} requests awaiting approval": "{{count}} solicitudes en espera de aprobación",
+  "{{count}} contributions to review": "{{count}} contribuciones para revisar",
+  "Manage your dataset requests and track collection progress": "Administra tus solicitudes de dataset y haz seguimiento del progreso de recopilación",
+  "Platform administration and monitoring": "Administración y monitoreo de la plataforma",
+  "Loading advanced analytics...": "Cargando análisis avanzado...",
+  "Unable to load analytics data. Please try again later.": "No se pudieron cargar los datos analíticos. Inténtalo de nuevo más tarde.",
+  "Failed to load payment analytics": "No se pudo cargar el análisis de pagos",
+  "Payment analytics exported successfully!": "¡Los análisis de pagos se exportaron con éxito!",
+  "Failed to export payment analytics": "No se pudo exportar el análisis de pagos",
+  "+12% from last week": "+12% respecto a la semana pasada",
+  "+23% this month": "+23% este mes",
+  "+8% this month": "+8% este mes",
+  "+156 this week": "+156 esta semana"
 }

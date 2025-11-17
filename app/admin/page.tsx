@@ -23,24 +23,30 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AdminAnalytics } from "@/components/admin/admin-analytics";
 import { PaymentAnalytics } from "@/components/admin/payment-analytics";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function AdminDashboard() {
   await requireAdmin();
-  const statsResult = await getAdminDashboardStats();
+  const [statsResult, t] = await Promise.all([
+    getAdminDashboardStats(),
+    getServerTranslator(),
+  ]);
 
   if ("error" in statsResult) {
     return (
       <>
         <DashboardHeader
-          title="Admin Dashboard"
-          description="Platform administration and monitoring"
+          title={t("Admin Dashboard")}
+          description={t("Platform administration and monitoring")}
         />
         <div className="flex flex-1 items-center justify-center p-6">
           <div className="text-center">
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
-            <p className="text-lg font-semibold">Error loading dashboard</p>
+            <p className="text-lg font-semibold">
+              {t("Error loading dashboard")}
+            </p>
             <p className="text-sm text-muted-foreground">
-              Please try again later
+              {t("Please try again later")}
             </p>
           </div>
         </div>
@@ -52,43 +58,43 @@ export default async function AdminDashboard() {
 
   const statCards = [
     {
-      title: "Pending Reviews",
+      title: t("Pending Reviews"),
       value: (stats.pendingRequests + stats.pendingSubmissions).toString(),
-      description: "Items requiring attention",
+      description: t("Items requiring attention"),
       icon: AlertCircle,
       color: "text-orange-600",
       bgColor: "bg-orange-500/10",
-      trend: "+12% from last week",
+      trend: t("+12% from last week"),
       trendUp: false,
     },
     {
-      title: "Active Users",
+      title: t("Active Users"),
       value: stats.totalUsers.toString(),
-      description: "Registered platform users",
+      description: t("Registered platform users"),
       icon: Users,
       color: "text-violet-600",
       bgColor: "bg-violet-500/10",
-      trend: "+23% this month",
+      trend: t("+23% this month"),
       trendUp: true,
     },
     {
-      title: "Active Datasets",
+      title: t("Active Datasets"),
       value: stats.approvedDatasets.toString(),
-      description: "Approved and collecting",
+      description: t("Approved and collecting"),
       icon: Database,
       color: "text-emerald-600",
       bgColor: "bg-emerald-500/10",
-      trend: "+8% this month",
+      trend: t("+8% this month"),
       trendUp: true,
     },
     {
-      title: "Total Contributions",
+      title: t("Total Contributions"),
       value: stats.totalSubmissions.toString(),
-      description: "All-time submissions",
+      description: t("All-time submissions"),
       icon: Send,
       color: "text-blue-600",
       bgColor: "bg-blue-500/10",
-      trend: "+156 this week",
+      trend: t("+156 this week"),
       trendUp: true,
     },
   ];
@@ -96,8 +102,8 @@ export default async function AdminDashboard() {
   return (
     <>
       <DashboardHeader
-        title="Admin Dashboard"
-        description="Platform administration and monitoring"
+        title={t("Admin Dashboard")}
+        description={t("Platform administration and monitoring")}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Main Stats Grid */}
@@ -145,11 +151,12 @@ export default async function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-orange-600" />
-                Pending Dataset Requests
+                {t("Pending Dataset Requests")}
               </CardTitle>
               <CardDescription>
-                {stats.pendingRequests} request
-                {stats.pendingRequests !== 1 ? "s" : ""} awaiting approval
+                {t("{{count}} requests awaiting approval", {
+                  count: stats.pendingRequests,
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -159,11 +166,11 @@ export default async function AdminDashboard() {
                     {stats.pendingRequests}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Review required
+                    {t("Review required")}
                   </p>
                 </div>
                 <Button asChild>
-                  <Link href="/admin/requests">Review Now</Link>
+                  <Link href="/admin/requests">{t("Review Now")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -173,11 +180,12 @@ export default async function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Send className="h-5 w-5 text-blue-600" />
-                Pending Submissions
+                {t("Pending Submissions")}
               </CardTitle>
               <CardDescription>
-                {stats.pendingSubmissions} contribution
-                {stats.pendingSubmissions !== 1 ? "s" : ""} to review
+                {t("{{count}} contributions to review", {
+                  count: stats.pendingSubmissions,
+                })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -187,11 +195,11 @@ export default async function AdminDashboard() {
                     {stats.pendingSubmissions}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Quality check needed
+                    {t("Quality check needed")}
                   </p>
                 </div>
                 <Button asChild variant="outline">
-                  <Link href="/admin/submissions">Review Now</Link>
+                  <Link href="/admin/submissions">{t("Review Now")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -203,9 +211,11 @@ export default async function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
-              Platform Financial Overview
+              {t("Platform Financial Overview")}
             </CardTitle>
-            <CardDescription>Transaction and wallet metrics</CardDescription>
+            <CardDescription>
+              {t("Transaction and wallet metrics")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <PaymentAnalytics />
@@ -217,10 +227,10 @@ export default async function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Platform Analytics
+              {t("Platform Analytics")}
             </CardTitle>
             <CardDescription>
-              User activity and dataset performance
+              {t("User activity and dataset performance")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -231,32 +241,34 @@ export default async function AdminDashboard() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
+            <CardTitle>{t("Quick Actions")}</CardTitle>
+            <CardDescription>
+              {t("Common administrative tasks")}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             <Button asChild size="sm">
               <Link href="/admin/requests">
                 <FileText className="mr-2 h-4 w-4" />
-                Review Requests
+                {t("Review Requests")}
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
               <Link href="/admin/submissions">
                 <Database className="mr-2 h-4 w-4" />
-                Review Submissions
+                {t("Review Submissions")}
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
               <Link href="/admin/users">
                 <Users className="mr-2 h-4 w-4" />
-                Manage Users
+                {t("Manage Users")}
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
               <Link href="/browse">
                 <Activity className="mr-2 h-4 w-4" />
-                View Platform
+                {t("View Platform")}
               </Link>
             </Button>
           </CardContent>

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function RequesterDashboardPage() {
   // Check user role and redirect if contributor
@@ -29,12 +30,13 @@ export default async function RequesterDashboardPage() {
   }
   // Wallet functionality removed - using default balance (managed by Stripe)
   const walletBalance = 0;
+  const t = await getServerTranslator();
 
   return (
     <>
       <DashboardHeader
-        title="Requester Dashboard"
-        description="Manage your dataset requests and track collection progress"
+        title={t("Requester Dashboard")}
+        description={t("Manage your dataset requests and track collection progress")}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Main Stats */}
@@ -46,10 +48,10 @@ export default async function RequesterDashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
-                Wallet & Billing
+                {t("Wallet & Billing")}
               </CardTitle>
               <CardDescription>
-                Manage your wallet, view transactions, and add funds
+                {t("Manage your wallet, view transactions, and add funds")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -62,11 +64,11 @@ export default async function RequesterDashboardPage() {
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Current Balance
+                    {t("Current Balance")}
                   </p>
                 </div>
                 <Button asChild>
-                  <Link href="/dashboard/billing">Manage Wallet</Link>
+                  <Link href="/dashboard/billing">{t("Manage Wallet")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -76,17 +78,17 @@ export default async function RequesterDashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Create New Request
+                {t("Create New Request")}
               </CardTitle>
               <CardDescription>
-                Start collecting data for a new dataset
+                {t("Start collecting data for a new dataset")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button asChild className="w-full">
                 <Link href="/dashboard/requests/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  New Dataset Request
+                  {t("New Dataset Request")}
                 </Link>
               </Button>
             </CardContent>

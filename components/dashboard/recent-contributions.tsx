@@ -15,6 +15,7 @@ import {
   DollarSign
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface Contribution {
   id: string;
@@ -34,6 +35,7 @@ interface Contribution {
 export function RecentContributions() {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations();
 
   useEffect(() => {
     async function fetchContributions() {
@@ -85,11 +87,17 @@ export function RecentContributions() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-800">{t("Approved")}</Badge>
+        );
       case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800">{t("Rejected")}</Badge>
+        );
       default:
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">{t("Pending")}</Badge>
+        );
     }
   };
 
@@ -99,7 +107,7 @@ export function RecentContributions() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Recent Contributions
+            {t("Recent Contributions")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -116,7 +124,7 @@ export function RecentContributions() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Recent Contributions
+          {t("Recent Contributions")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -152,19 +160,19 @@ export function RecentContributions() {
             <Button variant="outline" className="w-full" asChild>
               <Link href="/browse">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Browse More Projects
+                {t("Browse More Projects")}
               </Link>
             </Button>
           </>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No contributions yet</p>
-            <p className="text-xs">Start contributing to datasets!</p>
+            <div className="text-center py-6 text-muted-foreground">
+              <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">{t("No contributions yet")}</p>
+            <p className="text-xs">{t("Start contributing to datasets!")}</p>
             <Button variant="outline" className="mt-3" asChild>
               <Link href="/browse">
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Browse Projects
+                {t("Browse Projects")}
               </Link>
             </Button>
           </div>

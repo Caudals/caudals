@@ -27,6 +27,8 @@ import {
   Activity,
 } from "lucide-react";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { translateReactNode } from "@/lib/i18n/translate-node";
 
 interface PaymentAnalytics {
   overview: {
@@ -88,6 +90,7 @@ export function PaymentAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("overview");
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   useEffect(() => {
     loadPaymentAnalytics();
@@ -208,7 +211,7 @@ export function PaymentAnalytics() {
 
       setAnalyticsData(mockData);
     } catch {
-      toast.error("Failed to load payment analytics");
+      toast.error(t("Failed to load payment analytics"));
     } finally {
       setLoading(false);
     }
@@ -309,9 +312,9 @@ export function PaymentAnalytics() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Payment analytics exported successfully!");
+      toast.success(t("Payment analytics exported successfully!"));
     } catch {
-      toast.error("Failed to export payment analytics");
+      toast.error(t("Failed to export payment analytics"));
     }
   };
 
@@ -345,7 +348,7 @@ export function PaymentAnalytics() {
     );
   }
 
-  return (
+  const content = (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -587,4 +590,6 @@ export function PaymentAnalytics() {
       </Card>
     </div>
   );
+
+  return translateReactNode(content, t);
 }

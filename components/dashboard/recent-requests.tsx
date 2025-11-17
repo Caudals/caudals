@@ -10,9 +10,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { getUserDatasetRequests } from "@/lib/actions/dataset-actions";
+import { getServerTranslator } from "@/lib/i18n/server";
+import { statusLabels } from "@/lib/data/datasets";
 
 export async function RecentRequests() {
-  const allRequests = await getUserDatasetRequests();
+  const [allRequests, t] = await Promise.all([
+    getUserDatasetRequests(),
+    getServerTranslator(),
+  ]);
   const requests = allRequests.slice(0, 4);
 
   const getStatusColor = (status: string) => {
@@ -22,22 +27,22 @@ export async function RecentRequests() {
       case "paused":
         return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
       default:
-        return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+          return "bg-gray-500/10 text-gray-700 border-gray-500/20";
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Requests</CardTitle>
+        <CardTitle>{t("Recent Requests")}</CardTitle>
         <CardDescription>
-          Your active dataset collection requests
+          {t("Your active dataset collection requests")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {requests.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No dataset requests yet. Create your first one!
+            {t("No dataset requests yet. Create your first one!")}
           </p>
         ) : (
           <>
@@ -55,11 +60,13 @@ export async function RecentRequests() {
                       variant="outline"
                       className={getStatusColor(request.status)}
                     >
-                      {request.status}
+                      {statusLabels[request.status]
+                        ? t(statusLabels[request.status])
+                        : request.status}
                     </Badge>
                     <p className="text-xs text-muted-foreground">
                       {request.samples_collected}/{request.samples_needed}{" "}
-                      submissions
+                      {t("submissions")}
                     </p>
                   </div>
                 </div>
@@ -77,7 +84,7 @@ export async function RecentRequests() {
         )}
         <Button variant="outline" className="w-full" asChild>
           <Link href="/dashboard/requests">
-            View All Requests
+            {t("View All Requests")}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
