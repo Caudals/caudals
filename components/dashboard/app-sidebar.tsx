@@ -121,7 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   let navItems = requesterNav;
   let viewLabel = "Requester";
-  let homeHref = "/dashboard";
+  let homeHref = "/";
 
   // Admin users can switch between views
   if (userRole === "admin") {
@@ -160,7 +160,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={homeHref}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-background">
+                <div className="flex aspect-square size-8 items-center justify-center">
                   <Image
                     src="/caudals_logo_black.svg"
                     alt="Caudals logo"
