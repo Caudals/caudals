@@ -26,6 +26,8 @@ import { UserAnalytics } from "./user-analytics";
 import { PaymentAnalytics } from "./payment-analytics";
 import { DatasetAnalytics } from "./dataset-analytics";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { translateReactNode } from "@/lib/i18n/translate-node";
 
 interface AdminAnalyticsProps {
   onRefresh?: () => void;
@@ -35,6 +37,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [refreshing, setRefreshing] = useState(false);
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -59,7 +62,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
     }
   };
 
-  return (
+  const content = (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -273,4 +276,6 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
       </Card>
     </div>
   );
+
+  return translateReactNode(content, t);
 }

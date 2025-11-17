@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
 import { usePathname } from "next/navigation";
-
+import { useTranslations } from "@/lib/i18n/use-translations";
 import {
   Sidebar,
   SidebarContent,
@@ -65,6 +65,7 @@ const adminNav = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { userRole, loading } = useAuth();
   const pathname = usePathname();
+  const t = useTranslations();
 
   // Show loading state while fetching user role
   if (loading || !userRole) {
@@ -86,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Caudals</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Loading...
+                    {t("Loading...")}
                   </span>
                 </div>
               </SidebarMenuButton>
@@ -95,7 +96,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
         <SidebarContent>
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading sidebar...</p>
+            <p className="text-sm text-muted-foreground">
+              {t("Loading sidebar...")}
+            </p>
           </div>
         </SidebarContent>
         <SidebarFooter>
@@ -148,6 +151,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     viewLabel = "Requester";
     homeHref = "/dashboard";
   }
+  const localizedViewLabel = t(viewLabel);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -168,7 +172,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Caudals</span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {viewLabel} Dashboard
+                    {localizedViewLabel} {t("Dashboard")}
                   </span>
                 </div>
               </Link>
@@ -188,14 +192,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {userRole !== "admin" && (
           <div className="mt-2">
             <div className="text-xs font-medium text-muted-foreground">
-              {viewLabel} Account
+              {t("{{role}} Account", { role: localizedViewLabel })}
             </div>
           </div>
         )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("Navigation")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -203,7 +207,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton asChild isActive={pathname === item.href}>
                     <Link href={item.href}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{t(item.title)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -225,7 +229,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   >
                     <Link href="/dashboard/requests/new">
                       <Plus className="size-4" />
-                      <span>New Request</span>
+                      <span>{t("New Request")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

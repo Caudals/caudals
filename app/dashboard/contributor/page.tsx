@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getServerTranslator } from "@/lib/i18n/server";
 
 export default async function ContributorDashboardPage() {
   // Check user role and redirect if requester
@@ -58,11 +59,13 @@ export default async function ContributorDashboardPage() {
     }
   }
 
+  const t = await getServerTranslator();
+
   return (
     <>
       <DashboardHeader
-        title="Contributor Dashboard"
-        description="Track your contributions and earnings"
+        title={t("Contributor Dashboard")}
+        description={t("Track your contributions and earnings")}
       />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Main Stats */}
@@ -75,16 +78,18 @@ export default async function ContributorDashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-emerald-600" />
-                Earnings Overview
+                {t("Earnings Overview")}
               </CardTitle>
               <CardDescription>
-                Track your earnings and payouts
+                {t("Track your earnings and payouts")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Earned</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("Total Earned")}
+                  </span>
                   <span className="text-lg font-semibold">
                     ${submissionStats.totalEarnings.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
@@ -93,12 +98,20 @@ export default async function ContributorDashboardPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Approved</span>
-                  <span className="text-sm font-medium">{submissionStats.approved} submissions</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("Approved")}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {submissionStats.approved} {t("submissions")}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pending</span>
-                  <span className="text-sm font-medium">{submissionStats.pending} submissions</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("Pending")}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {submissionStats.pending} {t("submissions")}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -109,23 +122,23 @@ export default async function ContributorDashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Find Opportunities
+                {t("Find Opportunities")}
               </CardTitle>
               <CardDescription>
-                Browse available datasets and contribute
+                {t("Browse available datasets and contribute")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button asChild className="w-full">
                 <Link href="/browse">
                   <Database className="mr-2 h-4 w-4" />
-                  Browse Datasets
+                  {t("Browse Datasets")}
                 </Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/dashboard/contributions">
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  My Contributions
+                  {t("My Contributions")}
                 </Link>
               </Button>
             </CardContent>
@@ -135,9 +148,9 @@ export default async function ContributorDashboardPage() {
         {/* Submission Pipeline */}
         <Card>
           <CardHeader>
-            <CardTitle>Submission Pipeline</CardTitle>
+            <CardTitle>{t("Submission Pipeline")}</CardTitle>
             <CardDescription>
-              Track your contributions across stages
+              {t("Track your contributions across stages")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -147,9 +160,11 @@ export default async function ContributorDashboardPage() {
                   <Send className="h-5 w-5 text-blue-600" />
                   <Badge variant="secondary">{submissionStats.total}</Badge>
                 </div>
-                <p className="text-sm font-medium">Total Submitted</p>
+                <p className="text-sm font-medium">
+                  {t("Total Submitted")}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  All contributions
+                  {t("All contributions")}
                 </p>
               </div>
 
@@ -158,9 +173,9 @@ export default async function ContributorDashboardPage() {
                   <Clock className="h-5 w-5 text-yellow-600" />
                   <Badge variant="outline" className="bg-yellow-500/10">{submissionStats.pending}</Badge>
                 </div>
-                <p className="text-sm font-medium">Under Review</p>
+                <p className="text-sm font-medium">{t("Under Review")}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Awaiting approval
+                  {t("Awaiting approval")}
                 </p>
               </div>
 
@@ -169,9 +184,9 @@ export default async function ContributorDashboardPage() {
                   <CheckCircle className="h-5 w-5 text-emerald-600" />
                   <Badge className="bg-emerald-600">{submissionStats.approved}</Badge>
                 </div>
-                <p className="text-sm font-medium">Approved</p>
+                <p className="text-sm font-medium">{t("Approved")}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Earning rewards
+                  {t("Earning rewards")}
                 </p>
               </div>
             </div>

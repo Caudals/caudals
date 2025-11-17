@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, User, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface RoleSwitcherProps {
   userRole: string;
@@ -20,6 +21,7 @@ interface RoleSwitcherProps {
 export function RoleSwitcher({ userRole, currentView }: RoleSwitcherProps) {
   const router = useRouter();
   const [selectedView, setSelectedView] = useState<string>(currentView);
+  const t = useTranslations();
 
   useEffect(() => {
     // Update local state when parent changes view
@@ -53,19 +55,19 @@ export function RoleSwitcher({ userRole, currentView }: RoleSwitcherProps) {
           <SelectItem value="admin">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              <span>Admin View</span>
+              <span>{t("Admin View")}</span>
             </div>
           </SelectItem>
           <SelectItem value="requester">
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
-              <span>Requester View</span>
+              <span>{t("Requester View")}</span>
             </div>
           </SelectItem>
           <SelectItem value="contributor">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span>Contributor View</span>
+              <span>{t("Contributor View")}</span>
             </div>
           </SelectItem>
         </SelectContent>

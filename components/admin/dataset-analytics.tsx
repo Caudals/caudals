@@ -31,6 +31,8 @@ import {
   Target,
 } from "lucide-react";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { translateReactNode } from "@/lib/i18n/translate-node";
 
 interface DatasetAnalytics {
   overview: {
@@ -95,6 +97,7 @@ export function DatasetAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   useEffect(() => {
     loadDatasetAnalytics();
@@ -374,7 +377,7 @@ export function DatasetAnalytics() {
     );
   }
 
-  return (
+  const content = (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -635,4 +638,6 @@ export function DatasetAnalytics() {
       </div>
     </div>
   );
+
+  return translateReactNode(content, t);
 }

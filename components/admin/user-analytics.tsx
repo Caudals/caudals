@@ -26,6 +26,8 @@ import {
   FileText,
 } from "lucide-react";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { translateReactNode } from "@/lib/i18n/translate-node";
 
 interface UserAnalytics {
   totalUsers: number;
@@ -72,6 +74,7 @@ export function UserAnalytics() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   useEffect(() => {
     loadUserAnalytics();
@@ -264,14 +267,14 @@ export function UserAnalytics() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("User analytics exported successfully!");
+      toast.success(t("User analytics exported successfully!"));
     } catch {
-      toast.error("Failed to export user analytics");
+      toast.error(t("Failed to export user analytics"));
     }
   };
 
   if (loading) {
-    return (
+    const content = (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6">
@@ -283,10 +286,12 @@ export function UserAnalytics() {
         </Card>
       </div>
     );
+
+    return translateReactNode(content, t);
   }
 
   if (!analyticsData) {
-    return (
+    const content = (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6">
@@ -298,9 +303,11 @@ export function UserAnalytics() {
         </Card>
       </div>
     );
+
+    return translateReactNode(content, t);
   }
 
-  return (
+  const content = (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -390,8 +397,8 @@ export function UserAnalytics() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-green-600" />
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-green-600" />
                   <span>Requesters</span>
                 </div>
                 <div className="text-right">
@@ -540,4 +547,6 @@ export function UserAnalytics() {
       </Card>
     </div>
   );
+
+  return translateReactNode(content, t);
 }

@@ -35,6 +35,8 @@ import {
   Clock,
 } from "lucide-react";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
+import { translateReactNode } from "@/lib/i18n/translate-node";
 
 interface AnalyticsData {
   overview: {
@@ -104,6 +106,7 @@ export function AdvancedAnalytics() {
   const [timeRange, setTimeRange] = useState("30d");
   const [selectedMetric, setSelectedMetric] = useState("overview");
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   useEffect(() => {
     loadAnalyticsData();
@@ -172,7 +175,7 @@ export function AdvancedAnalytics() {
 
       setAnalyticsData(mockData);
     } catch {
-      toast.error("Failed to load analytics data");
+      toast.error(t("Failed to load analytics data"));
     } finally {
       setLoading(false);
     }
@@ -236,14 +239,14 @@ export function AdvancedAnalytics() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Analytics data exported successfully!");
+      toast.success(t("Analytics data exported successfully!"));
     } catch {
-      toast.error("Failed to export analytics data");
+      toast.error(t("Failed to export analytics data"));
     }
   };
 
   if (loading) {
-    return (
+    const content = (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6">
@@ -255,10 +258,12 @@ export function AdvancedAnalytics() {
         </Card>
       </div>
     );
+
+    return translateReactNode(content, t);
   }
 
   if (!analyticsData) {
-    return (
+    const content = (
       <div className="space-y-6">
         <Card>
           <CardContent className="p-6">
@@ -270,9 +275,11 @@ export function AdvancedAnalytics() {
         </Card>
       </div>
     );
+
+    return translateReactNode(content, t);
   }
 
-  return (
+  const content = (
     <div className="space-y-6">
       {/* Header Controls */}
       <div className="flex items-center justify-between">
@@ -599,4 +606,6 @@ export function AdvancedAnalytics() {
       </Card>
     </div>
   );
+
+  return translateReactNode(content, t);
 }

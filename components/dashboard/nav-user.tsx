@@ -20,12 +20,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function NavUser() {
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   if (!user) {
     return null;
@@ -47,11 +49,11 @@ export function NavUser() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      toast.success("Signed out successfully");
+      toast.success(t("Signed out successfully"));
       router.push("/");
       router.refresh();
     } catch {
-      toast.error("Failed to sign out");
+      toast.error(t("Failed to sign out"));
     }
   };
 
@@ -111,19 +113,19 @@ export function NavUser() {
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">
                 <User className="mr-2 h-4 w-4" />
-                Profile
+                {t("Profile")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/dashboard/settings">
                 <Settings className="mr-2 h-4 w-4" />
-                Settings
+                {t("Settings")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              {t("Log out")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
