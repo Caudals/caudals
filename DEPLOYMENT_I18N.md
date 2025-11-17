@@ -33,6 +33,7 @@ git push origin main
 ### 3. Rebuild en Dokploy
 
 En tu panel de Dokploy:
+
 1. Ve a tu aplicación
 2. Haz clic en "Rebuild"
 3. Espera a que complete el deployment
@@ -42,12 +43,14 @@ En tu panel de Dokploy:
 Después del rebuild, verifica:
 
 1. **Desde España (o con VPN española)**:
+
    - Abre tu sitio en Chrome → debería estar en español ✓
    - Abre tu sitio en Safari → debería estar en español ✓
    - Abre en móvil (Safari iOS) → debería estar en español ✓
    - Abre en móvil (Chrome Android) → debería estar en español ✓
 
 2. **Desde otro país**:
+
    - Debería estar en inglés por defecto
    - Si el navegador está en español → español
    - Si el navegador está en inglés → inglés
@@ -65,6 +68,7 @@ Después del rebuild, verifica:
 ## Variables de Entorno
 
 No se requieren nuevas variables de entorno. El sistema usa servicios gratuitos de geolocalización:
+
 - `ipapi.co` (30k requests/mes gratis)
 - `ip-api.com` (45 requests/min gratis)
 
@@ -78,11 +82,13 @@ No se requieren nuevas variables de entorno. El sistema usa servicios gratuitos 
 ## Rate Limits
 
 Con 10,000 usuarios únicos/mes:
+
 - Requests de geolocalización: ~10,000
 - Límite gratuito: 30,000/mes
 - **Margen de seguridad**: 66% libre
 
 Si llegas al límite, considera:
+
 1. Aumentar el cache time en `lib/i18n/geolocation.ts`
 2. Usar un servicio premium
 3. Implementar tu propia base de datos de geolocalización
@@ -92,19 +98,23 @@ Si llegas al límite, considera:
 ### Problema: Sigue apareciendo en inglés desde España
 
 **Solución 1**: Limpiar cookies y localStorage
+
 ```javascript
 // En la consola del navegador
-document.cookie = "NEXT_LOCALE=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+document.cookie =
+  "NEXT_LOCALE=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 localStorage.clear();
 location.reload();
 ```
 
 **Solución 2**: Verificar que Dokploy está pasando la IP correctamente
+
 - Revisa los logs del servidor de Dokploy
 - Busca `[i18n] Client IP`
 - Si muestra `127.0.0.1` o `localhost`, hay un problema con el proxy
 
 **Solución 3**: Verificar firewall/proxy
+
 - Asegúrate de que Dokploy puede hacer requests HTTPS salientes
 - Los servicios de geolocalización necesitan acceso a internet
 
@@ -113,6 +123,7 @@ location.reload();
 **Causa**: Firewall bloqueando requests salientes
 
 **Solución**: En Dokploy, permite conexiones HTTPS salientes a:
+
 - `ipapi.co`
 - `ip-api.com`
 
@@ -128,6 +139,7 @@ next: { revalidate: 86400 }, // 24 horas en lugar de 1 hora
 ## Logging en Producción
 
 Los logs de `[i18n]` están activos por defecto. Esto es útil para:
+
 - Monitorear de dónde vienen tus usuarios
 - Detectar problemas de detección
 - Debug en producción
@@ -146,6 +158,7 @@ grep -r "console.log.*\[i18n" lib/i18n/
 ### Opción 2: Usar una variable de entorno
 
 Agregar en Dokploy:
+
 ```bash
 I18N_DEBUG=false
 ```
@@ -162,22 +175,25 @@ Durante el desarrollo, puedes usar el componente de debug:
 // En app/layout.tsx o cualquier página
 import { LocaleDebug } from "@/components/debug/locale-debug";
 
-<LocaleDebug currentLocale={locale} />
+<LocaleDebug currentLocale={locale} />;
 ```
 
 Esto muestra un botón flotante solo en desarrollo con toda la info de i18n.
 
 ## Next Steps (Opcional)
 
-1. **Agregar selector manual de idioma**: 
+1. **Agregar selector manual de idioma**:
+
    - UI para que usuarios cambien idioma manualmente
    - Función `setLocale()` ya disponible en `client-locale-detector.tsx`
 
 2. **Persistir preferencia en DB**:
+
    - Para usuarios autenticados
    - Sincronizar entre dispositivos
 
 3. **Más idiomas**:
+
    - Agregar francés, alemán, etc.
    - Actualizar `lib/i18n/config.ts`
 
@@ -212,4 +228,3 @@ Si tienes problemas después del deployment:
 ---
 
 **Nota**: Este deployment incluye también el fix para las imágenes de Supabase (`unoptimized: true` en `next.config.js`). Ambos problemas deberían estar resueltos después del rebuild.
-
