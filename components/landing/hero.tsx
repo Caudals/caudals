@@ -51,7 +51,7 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.05 }}
           className={`${interHeading.className} text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl`}
         >
-          {t("Create enterprise-grade custom datasets with a global network")}
+          {t("Build production-grade datasets to train tailored AI models")}
         </motion.h1>
 
         <motion.p
