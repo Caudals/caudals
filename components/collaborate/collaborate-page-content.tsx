@@ -31,7 +31,7 @@ export function CollaboratePageContent() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header translucent />
-      <main className="flex-1 bg-gradient-to-b from-background via-background to-primary/5">
+      <main className="flex-1 ">
         <section className="container mx-auto w-full max-w-7xl px-4 pt-6 pb-16 sm:px-6 sm:pt-8 sm:pb-20 lg:px-12 lg:pt-10 lg:pb-24">
           {/* Title - Always on top */}
           <div className="mb-8 space-y-4 lg:mb-12">
