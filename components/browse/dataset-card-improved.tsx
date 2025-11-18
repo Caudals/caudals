@@ -79,40 +79,44 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
 
       {/* Content Section */}
       <div className="flex flex-1 flex-col p-4">
-        {/* Title */}
-        <div className="mb-3">
-          <h3 className="text-base font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground line-clamp-2">
-            {dataset.title}
-          </h3>
-        </div>
+        <div className="flex flex-1 flex-col gap-4">
+          {/* Title */}
+          <div className="min-h-[3rem]">
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground">
+              {dataset.title}
+            </h3>
+          </div>
 
-        {/* Description */}
-        <p className="mb-4 text-sm text-muted-foreground line-clamp-2">
-          {dataset.description}
-        </p>
+          {/* Description */}
+          <div className="min-h-[4.5rem]">
+            <p className="line-clamp-3 text-sm text-muted-foreground">
+              {dataset.description}
+            </p>
+          </div>
 
-        {/* Organization */}
-        <div className="mb-4 flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            {dataset.organization.avatar ? (
-              <AvatarImage src={dataset.organization.avatar} />
-            ) : null}
-            <AvatarFallback className="text-xs">
-              {dataset.organization.name.substring(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex items-center gap-1 text-sm">
-            <span className="font-medium text-foreground">
-              {dataset.organization.name}
-            </span>
-            {dataset.organization.verified && (
-              <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
-            )}
+          {/* Organization */}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-7 w-7">
+              {dataset.organization.avatar ? (
+                <AvatarImage src={dataset.organization.avatar} />
+              ) : null}
+              <AvatarFallback className="text-xs">
+                {dataset.organization.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex items-center gap-1 text-sm">
+              <span className="font-medium text-foreground">
+                {dataset.organization.name}
+              </span>
+              {dataset.organization.verified && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+              )}
+            </div>
           </div>
         </div>
 
         {/* Metrics */}
-        <div className="mb-4 flex items-center gap-4 text-sm">
+        <div className="mt-5 flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1.5">
             <DollarSign className="h-4 w-4 text-muted-foreground" />
             <span className="font-semibold text-foreground">
@@ -135,7 +139,6 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
             </span>
           </div>
         </div>
-
       </div>
     </Link>
   );

@@ -109,7 +109,7 @@ export function CollaborateForm() {
 
   if (isComplete) {
     return (
-      <Card className="border border-border/70 bg-white/90 shadow-xl backdrop-blur">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -135,14 +135,14 @@ export function CollaborateForm() {
   }
 
   return (
-    <Card className="border border-border/70 bg-white/90 shadow-xl backdrop-blur">
+    <Card className="border-0 bg-transparent shadow-none ">
       <CardHeader>
         <CardTitle className="text-2xl">{t("Share your initiative")}</CardTitle>
-        <CardDescription>
+        {/* <CardDescription>
           {t(
             "Tell us what you're building so we can design a tailored collaboration plan.",
           )}
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -208,7 +208,7 @@ export function CollaborateForm() {
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 md:items-start">
               <FormField
                 control={form.control}
                 name="focusArea"
