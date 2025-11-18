@@ -2,18 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { Dataset } from "@/types/dataset";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { categoryLabels, statusLabels } from "@/lib/data/datasets";
 import { CheckCircle2, Clock, DollarSign, Users } from "lucide-react";
 
-import { ContributeDialog } from "./contribute-dialog";
-import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface DatasetCardProps {
@@ -28,8 +24,6 @@ const statusStyles: Record<Dataset["status"], string> = {
 };
 
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
-  const { user } = useAuth();
-  const router = useRouter();
   const t = useTranslations();
 
   const daysUntilDeadline = Math.ceil(
@@ -37,19 +31,11 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
       (1000 * 60 * 60 * 24)
   );
 
-  const isCompleted = dataset.status === "completed";
-  const isPaused = dataset.status === "paused";
   const isExpired = daysUntilDeadline <= 0;
 
   const deadlineLabel = isExpired
     ? t("Expired")
     : t("{{days}}d left", { days: daysUntilDeadline });
-
-  const handleContributeClick = () => {
-    if (!user) {
-      router.push("/auth/sign-up");
-    }
-  };
 
   const rewardDisplay = `$${dataset.rewardAmount.toLocaleString(undefined, {
     minimumFractionDigits: dataset.rewardAmount % 1 === 0 ? 0 : 2,
@@ -59,12 +45,13 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   const contributorDisplay = dataset.activeContributors.toLocaleString();
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background transition-all duration-300 hover:shadow-lg">
+    <Link
+      href={`/browse/${dataset.id}`}
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background transition-all duration-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      aria-label={dataset.title}
+    >
       {/* Image Section */}
-      <Link
-        href={`/browse/${dataset.id}`}
-        className="relative block overflow-hidden"
-      >
+      <div className="relative block overflow-hidden">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
           <Image
             src={dataset.imageUrl}
@@ -88,17 +75,15 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
             {t(categoryLabels[dataset.category])}
           </Badge>
         </div>
-      </Link>
+      </div>
 
       {/* Content Section */}
       <div className="flex flex-1 flex-col p-4">
         {/* Title */}
         <div className="mb-3">
-          <Link href={`/browse/${dataset.id}`}>
-            <h3 className="text-base font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground line-clamp-2">
-              {dataset.title}
-            </h3>
-          </Link>
+          <h3 className="text-base font-semibold leading-snug text-foreground/90 transition-colors group-hover:text-foreground line-clamp-2">
+            {dataset.title}
+          </h3>
         </div>
 
         {/* Description */}
@@ -151,41 +136,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-auto flex gap-2">
-          <Button variant="outline" className="flex-1" size="sm" asChild>
-            <Link href={`/browse/${dataset.id}`}>{t("View Details")}</Link>
-          </Button>
-
-          {isCompleted ? (
-            <Button className="flex-1" size="sm" disabled>
-              {t("Completed")}
-            </Button>
-          ) : isPaused || isExpired ? (
-            <Button className="flex-1" size="sm" disabled>
-              {isPaused ? t("Paused") : t("Closed")}
-            </Button>
-          ) : user ? (
-            <ContributeDialog
-              datasetId={dataset.id}
-              datasetTitle={dataset.title}
-              dataType={dataset.dataType}
-            >
-              <Button className="flex-1" size="sm">
-                {t("Contribute")}
-              </Button>
-            </ContributeDialog>
-          ) : (
-            <Button
-              className="flex-1"
-              size="sm"
-              onClick={handleContributeClick}
-            >
-              {t("Contribute")}
-            </Button>
-          )}
-        </div>
       </div>
-    </article>
+    </Link>
   );
 }
