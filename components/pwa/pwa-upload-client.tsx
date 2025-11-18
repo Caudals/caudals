@@ -166,7 +166,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
           Log in to link uploads to your contributor account and unlock rewards.
         </p>
         <Button asChild className="mt-4 rounded-2xl bg-white text-slate-900">
-          <Link href="/auth/login">Open sign-in</Link>
+          <Link href="/auth/sign-in">Open sign-in</Link>
         </Button>
       </div>
     );

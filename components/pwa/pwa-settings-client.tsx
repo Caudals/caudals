@@ -58,7 +58,7 @@ export function PwaSettingsClient() {
           Manage notifications, offline sync, and account actions once you log in.
         </p>
         <Button asChild className="mt-4 rounded-2xl bg-white text-slate-900">
-          <Link href="/auth/login">Open sign-in</Link>
+          <Link href="/auth/sign-in">Open sign-in</Link>
         </Button>
       </div>
     );
