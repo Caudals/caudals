@@ -131,7 +131,7 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
   const hasResults = sortedDatasets.length > 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+    <main className="container mx-auto w-full max-w-7xl px-4 pb-16 pt-10">
 
       <div className="mb-10">
         <SearchSortBar
