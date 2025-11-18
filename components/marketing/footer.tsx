@@ -15,7 +15,7 @@ export function MarketingFooter() {
               {t("Caudals")}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {t("Building the future of AI dataset creation through global collaboration.")}
+              {t("Build production-grade datasets to train tailored AI models")}
             </p>
             <Link
               href="mailto:contact@caudals.com"
