@@ -29,6 +29,12 @@ jobs:
       RESEND_GENERAL_AUDIENCE_ID: ${{ secrets.RESEND_GENERAL_AUDIENCE_ID }}
       COLLABORATION_NOTIFICATION_EMAIL: ${{ secrets.COLLABORATION_NOTIFICATION_EMAIL }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+      DO_SPACES_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY_ID }}
+      DO_SPACES_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_ACCESS_KEY }}
+      DO_SPACES_ENDPOINT: ${{ secrets.DO_SPACES_ENDPOINT }}
+      DO_SPACES_REGION: ${{ secrets.DO_SPACES_REGION }}
+      DO_SPACES_BUCKET: ${{ secrets.DO_SPACES_BUCKET }}
+      NEXT_PUBLIC_DO_SPACES_CDN_URL: ${{ secrets.NEXT_PUBLIC_DO_SPACES_CDN_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -63,6 +69,12 @@ jobs:
             RESEND_GENERAL_AUDIENCE_ID=${{ env.RESEND_GENERAL_AUDIENCE_ID }}
             COLLABORATION_NOTIFICATION_EMAIL=${{ env.COLLABORATION_NOTIFICATION_EMAIL }}
             NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
+            DO_SPACES_ACCESS_KEY_ID=${{ env.DO_SPACES_ACCESS_KEY_ID }}
+            DO_SPACES_SECRET_ACCESS_KEY=${{ env.DO_SPACES_SECRET_ACCESS_KEY }}
+            DO_SPACES_ENDPOINT=${{ env.DO_SPACES_ENDPOINT }}
+            DO_SPACES_REGION=${{ env.DO_SPACES_REGION }}
+            DO_SPACES_BUCKET=${{ env.DO_SPACES_BUCKET }}
+            NEXT_PUBLIC_DO_SPACES_CDN_URL=${{ env.NEXT_PUBLIC_DO_SPACES_CDN_URL }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
