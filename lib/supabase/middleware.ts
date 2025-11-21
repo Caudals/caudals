@@ -1,7 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
+type UpdateSessionOptions = {
+  pathnameOverride?: string;
+};
+
+export async function updateSession(
+  request: NextRequest,
+  options?: UpdateSessionOptions
+) {
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -37,6 +44,8 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = options?.pathnameOverride ?? request.nextUrl.pathname;
+
   // Get user profile if user exists
   let userProfile = null;
   if (user) {
@@ -50,13 +59,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected routes - require authentication
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+  if (pathname.startsWith("/dashboard") && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
     return NextResponse.redirect(url);
   }
 
-  if (request.nextUrl.pathname.startsWith("/admin") && !user) {
+  if (pathname.startsWith("/admin") && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
     return NextResponse.redirect(url);
@@ -64,7 +73,6 @@ export async function updateSession(request: NextRequest) {
 
   // Role-based route protection
   if (user && userProfile) {
-    const pathname = request.nextUrl.pathname;
     const userRole = userProfile.role;
 
     // Contributors cannot access requester routes
@@ -104,8 +112,8 @@ export async function updateSession(request: NextRequest) {
 
   // Auth routes - redirect if already logged in
   if (
-    (request.nextUrl.pathname.startsWith("/auth/sign-in") ||
-      request.nextUrl.pathname.startsWith("/auth/sign-up")) &&
+    (pathname.startsWith("/auth/sign-in") ||
+      pathname.startsWith("/auth/sign-up")) &&
     user
   ) {
     const url = request.nextUrl.clone();
