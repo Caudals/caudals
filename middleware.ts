@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import {
   LOCALE_COOKIE,
@@ -10,12 +10,101 @@ import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
 import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
+const APP_ONLY_PATH_PREFIXES = ["/dashboard", "/admin", "/auth", "/pwa"];
+const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000"];
+const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
+
+type HostConfig = {
+  hostname: string;
+  port?: string;
+};
+
+function cleanHostname(value?: string | null): string {
+  if (!value) return "";
+  const host = value.trim();
+  if (!host) return "";
+  const [hostname] = host.split(":");
+  return hostname?.toLowerCase() ?? "";
+}
+
+function parseHostConfigs(
+  value: string | undefined,
+  fallback: string[]
+): HostConfig[] {
+  const entries = value ? value.split(",") : fallback;
+  return entries
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [host, port] = entry.split(":");
+      const hostname = cleanHostname(host);
+      return {
+        hostname,
+        port: port?.trim(),
+      };
+    })
+    .filter((config) => config.hostname);
+}
+
+function parseHostnameList(
+  value: string | undefined,
+  fallback: string[]
+): string[] {
+  const entries = value ? value.split(",") : fallback;
+  return entries.map((entry) => cleanHostname(entry)).filter(Boolean);
+}
+
+const appHostConfigs = parseHostConfigs(
+  process.env.NEXT_PUBLIC_APP_HOSTNAMES,
+  DEFAULT_APP_HOSTNAMES
+);
+const marketingHostnames = parseHostnameList(
+  process.env.NEXT_PUBLIC_MARKETING_HOSTNAMES,
+  DEFAULT_MARKETING_HOSTNAMES
+);
+const primaryAppHost = appHostConfigs[0];
 
 function normalizeLocale(value?: string | null): Locale | null {
   if (!value) return null;
   if (supportedLocales.has(value as Locale)) return value as Locale;
   const base = value.split("-")[0];
   return supportedLocales.has(base as Locale) ? (base as Locale) : null;
+}
+
+function extractHostname(request: NextRequest): string {
+  return cleanHostname(request.headers.get("host"));
+}
+
+function matchesAppOnlyPath(pathname: string): boolean {
+  return APP_ONLY_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+function isRedirectResponse(response: NextResponse) {
+  return response.status >= 300 && response.status < 400;
+}
+
+function rewriteWithState(
+  request: NextRequest,
+  sourceResponse: NextResponse,
+  targetPath: string
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = targetPath;
+  const rewritten = NextResponse.rewrite(url);
+
+  // Copy headers except set-cookie (handled via cookies API)
+  sourceResponse.headers.forEach((value, key) => {
+    if (key.toLowerCase() === "set-cookie") return;
+    rewritten.headers.set(key, value);
+  });
+
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    rewritten.cookies.set(cookie);
+  });
+
+  return rewritten;
 }
 
 /**
@@ -53,7 +142,26 @@ async function getRequestCountryCode(request: NextRequest): Promise<string | nul
 }
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
+  const hostname = extractHostname(request);
+  const pathname = request.nextUrl.pathname;
+  const isAppHost = appHostConfigs.some(
+    (config) => config.hostname === hostname
+  );
+  const isMarketingHost = marketingHostnames.includes(hostname);
+
+  if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.hostname = primaryAppHost.hostname;
+    redirectUrl.port = primaryAppHost.port ?? "";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  const treatAppRootAsDashboard = isAppHost && pathname === "/";
+
+  const response = await updateSession(
+    request,
+    treatAppRootAsDashboard ? { pathnameOverride: "/dashboard" } : undefined
+  );
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   
   // Get country code and language header
@@ -104,6 +212,10 @@ export async function middleware(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
     });
     console.log(`[i18n] Cookie set to: ${localeToSet}`);
+  }
+
+  if (treatAppRootAsDashboard && !isRedirectResponse(response)) {
+    return rewriteWithState(request, response, "/dashboard");
   }
 
   return response;
