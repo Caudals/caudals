@@ -127,6 +127,14 @@ export default function SignInPage() {
                   required
                   disabled={loading}
                 />
+                <div className="text-right text-sm">
+                  <Link
+                    href="/auth/reset-password"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {t("Forgot your password?")}
+                  </Link>
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? t("Signing in...") : t("Sign in")}
