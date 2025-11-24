@@ -64,8 +64,16 @@ export default function ResetPasswordPage() {
       const establishSession = async () => {
         try {
           if (code) {
+            // Try PKCE exchange first
             const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (error) throw error;
+            if (error) {
+              // Fallback for self-hosted instances that send recovery codes without PKCE verifier
+              const { error: otpError } = await supabase.auth.verifyOtp({
+                type: "recovery",
+                token: code,
+              });
+              if (otpError) throw error;
+            }
           } else if (accessToken && refreshToken) {
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
