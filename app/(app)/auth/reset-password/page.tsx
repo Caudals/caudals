@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Loader2, MailCheck, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { createImplicitClient } from "@/lib/supabase/client-implicit";
 import {
   Card,
   CardContent,
@@ -24,7 +25,9 @@ import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 type Mode = "request" | "reset";
 
 export default function ResetPasswordPage() {
-  const supabase = useMemo(() => createClient(), []);
+  // Use PKCE client for code exchange, implicit for hash tokens
+  const supabasePKCE = useMemo(() => createClient(), []);
+  const supabaseImplicit = useMemo(() => createImplicitClient(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
@@ -38,6 +41,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [hasProcessedToken, setHasProcessedToken] = useState(false);
 
   const redirectUrl = useMemo(() => {
     if (typeof window === "undefined") return "/auth/reset-password";
@@ -45,6 +49,9 @@ export default function ResetPasswordPage() {
   }, []);
 
   useEffect(() => {
+    // Prevent processing the same token multiple times
+    if (hasProcessedToken) return;
+
     const code = searchParams.get("code");
 
     // Hash based tokens (older Supabase recovery links): #access_token=...&refresh_token=...&type=recovery
@@ -60,14 +67,17 @@ export default function ResetPasswordPage() {
     if (code || (accessToken && refreshToken && type === "recovery")) {
       setMode("reset");
       setVerifying(true);
+      setHasProcessedToken(true);
 
       const establishSession = async () => {
         try {
           if (code) {
-            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            // PKCE flow: use PKCE client to exchange code
+            const { error } = await supabasePKCE.auth.exchangeCodeForSession(code);
             if (error) throw error;
           } else if (accessToken && refreshToken) {
-            const { error } = await supabase.auth.setSession({
+            // Implicit flow: use implicit client to set session from hash tokens
+            const { error } = await supabaseImplicit.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
@@ -86,6 +96,7 @@ export default function ResetPasswordPage() {
           console.error("Failed to establish recovery session", error);
           toast.error(t("Invalid or expired recovery link. Please request a new one."));
           setMode("request");
+          setHasProcessedToken(false); // Allow retry
         } finally {
           setVerifying(false);
         }
@@ -96,14 +107,16 @@ export default function ResetPasswordPage() {
       setSessionReady(false);
       setMode("request");
     }
-  }, [searchParams, supabase, router, t, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleRequestEmail = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Use implicit client to request reset (will receive tokens in hash)
+      const { error } = await supabaseImplicit.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
 
@@ -140,7 +153,8 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      // Use implicit client to update password (session was established with it)
+      const { error } = await supabaseImplicit.auth.updateUser({ password });
       if (error) throw error;
 
       toast.success(t("Your password has been updated. You can sign in now."));
