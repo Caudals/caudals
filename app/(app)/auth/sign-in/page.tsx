@@ -34,17 +34,35 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         toast.error(error.message);
-      } else {
+      } else if (data.user) {
         toast.success(t("Signed in successfully!"));
-        // Let the callback handle role-based redirection
-        router.push("/auth/callback");
+
+        // Get user profile to determine role-based redirection
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        const userRole = profile?.role;
+        let redirectPath = "/dashboard"; // Default for requesters
+
+        if (userRole === 'contributor') {
+          redirectPath = "/dashboard/contributor";
+        } else if (userRole === 'admin') {
+          redirectPath = "/admin";
+        } else if (!userRole) {
+          redirectPath = "/dashboard?select-role=true";
+        }
+
+        router.push(redirectPath);
         router.refresh();
       }
     } catch {
