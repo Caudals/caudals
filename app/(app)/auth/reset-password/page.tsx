@@ -53,8 +53,11 @@ export default function ResetPasswordPage() {
     if (hasProcessedToken) return;
 
     const code = searchParams.get("code");
-    const token = searchParams.get("token"); // PKCE token from email
+    const token = searchParams.get("token");
     const type = searchParams.get("type");
+    const error = searchParams.get("error");
+    const errorCode = searchParams.get("error_code");
+    const errorDescription = searchParams.get("error_description");
 
     // Hash based tokens (older Supabase recovery links): #access_token=...&refresh_token=...&type=recovery
     const hashParams =
@@ -64,6 +67,20 @@ export default function ResetPasswordPage() {
     const accessToken = hashParams?.get("access_token");
     const refreshToken = hashParams?.get("refresh_token");
     const hashType = hashParams?.get("type");
+    const hashError = hashParams?.get("error");
+
+    // Handle errors from the recovery link
+    if ((error || hashError) && (errorCode === "otp_expired" || hashError)) {
+      if (!hasProcessedToken) {
+        toast.error(t("This recovery link has expired. Please request a new one."));
+        setHasProcessedToken(true);
+        // Clean the URL to show the request form again
+        if (typeof window !== "undefined") {
+          router.replace("/auth/reset-password");
+        }
+      }
+      return;
+    }
 
     // If we have any recovery token, switch to reset mode
     if (code || token || (accessToken && refreshToken && hashType === "recovery")) {
