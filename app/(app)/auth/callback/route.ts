@@ -53,22 +53,47 @@ export async function GET(request: Request) {
       }
       
       const finalPath = next || redirectPath;
-      
+
+      // Build the correct redirect URL for production
       const forwardedHost = request.headers.get("x-forwarded-host");
+      const forwardedProto = request.headers.get("x-forwarded-proto");
       const isLocalEnv = process.env.NODE_ENV === "development";
-      
+
+      let redirectUrl: string;
+
       if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${finalPath}`);
+        // Development: use origin from request
+        redirectUrl = `${origin}${finalPath}`;
       } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${finalPath}`);
+        // Production: use forwarded headers from Traefik/proxy
+        const protocol = forwardedProto || "https";
+        redirectUrl = `${protocol}://${forwardedHost}${finalPath}`;
       } else {
-        return NextResponse.redirect(`${origin}${finalPath}`);
+        // Fallback: use app hostname from env or default
+        const appHostname = process.env.NEXT_PUBLIC_APP_HOSTNAMES?.split(',')[0] || 'app.caudals.com';
+        redirectUrl = `https://${appHostname}${finalPath}`;
       }
+
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(
-    `${origin}/auth/sign-in?error=auth-callback-error`
-  );
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const isLocalEnv = process.env.NODE_ENV === "development";
+
+  let errorRedirectUrl: string;
+
+  if (isLocalEnv) {
+    errorRedirectUrl = `${origin}/auth/sign-in?error=auth-callback-error`;
+  } else if (forwardedHost) {
+    const protocol = forwardedProto || "https";
+    errorRedirectUrl = `${protocol}://${forwardedHost}/auth/sign-in?error=auth-callback-error`;
+  } else {
+    const appHostname = process.env.NEXT_PUBLIC_APP_HOSTNAMES?.split(',')[0] || 'app.caudals.com';
+    errorRedirectUrl = `https://${appHostname}/auth/sign-in?error=auth-callback-error`;
+  }
+
+  return NextResponse.redirect(errorRedirectUrl);
 }
