@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Loader2, MailCheck, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { createImplicitClient } from "@/lib/supabase/client-implicit";
 import {
   Card,
   CardContent,
@@ -25,9 +24,8 @@ import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 type Mode = "request" | "reset";
 
 export default function ResetPasswordPage() {
-  // Use PKCE client for code exchange, implicit for hash tokens
-  const supabasePKCE = useMemo(() => createClient(), []);
-  const supabaseImplicit = useMemo(() => createImplicitClient(), []);
+  // Use only the PKCE client - GoTrue will handle session automatically
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
@@ -52,25 +50,11 @@ export default function ResetPasswordPage() {
     // Prevent processing the same token multiple times
     if (hasProcessedToken) return;
 
-    const code = searchParams.get("code");
-    const token = searchParams.get("token");
-    const type = searchParams.get("type");
     const error = searchParams.get("error");
     const errorCode = searchParams.get("error_code");
-    const errorDescription = searchParams.get("error_description");
-
-    // Hash based tokens (older Supabase recovery links): #access_token=...&refresh_token=...&type=recovery
-    const hashParams =
-      typeof window !== "undefined" && window.location.hash
-        ? new URLSearchParams(window.location.hash.substring(1))
-        : null;
-    const accessToken = hashParams?.get("access_token");
-    const refreshToken = hashParams?.get("refresh_token");
-    const hashType = hashParams?.get("type");
-    const hashError = hashParams?.get("error");
 
     // Handle errors from the recovery link
-    if ((error || hashError) && (errorCode === "otp_expired" || hashError)) {
+    if (error && errorCode === "otp_expired") {
       if (!hasProcessedToken) {
         toast.error(t("This recovery link has expired. Please request a new one."));
         setHasProcessedToken(true);
@@ -82,58 +66,36 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // If we have any recovery token, switch to reset mode
-    if (code || token || (accessToken && refreshToken && hashType === "recovery")) {
-      setMode("reset");
-      setVerifying(true);
-      setHasProcessedToken(true);
+    // Check if user session already exists (GoTrue handles recovery tokens automatically)
+    const checkSession = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
 
-      const establishSession = async () => {
-        try {
-          if (code) {
-            // PKCE flow with code: use PKCE client to exchange code
-            const { error } = await supabasePKCE.auth.exchangeCodeForSession(code);
-            if (error) throw error;
-          } else if (token && type === "recovery") {
-            // PKCE token from email: verify token directly
-            // GoTrue will handle the token verification and set the session
-            const { error } = await supabasePKCE.auth.verifyOtp({
-              token_hash: token,
-              type: "recovery",
-            });
-            if (error) throw error;
-          } else if (accessToken && refreshToken) {
-            // Implicit flow: use implicit client to set session from hash tokens
-            const { error } = await supabaseImplicit.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            if (error) throw error;
-          }
-
-          // Clean the hash from the URL so refreshes stay clean
-          if (typeof window !== "undefined") {
-            const url = new URL(window.location.href);
-            url.hash = "";
-            router.replace(url.pathname + url.search);
-          }
-
+        if (user) {
+          // Session exists, user came from recovery link
+          setMode("reset");
           setSessionReady(true);
-        } catch (error) {
-          console.error("Failed to establish recovery session", error);
-          toast.error(t("Invalid or expired recovery link. Please request a new one."));
-          setMode("request");
-          setHasProcessedToken(false); // Allow retry
-        } finally {
-          setVerifying(false);
-        }
-      };
+          setHasProcessedToken(true);
 
-      void establishSession();
-    } else {
-      setSessionReady(false);
-      setMode("request");
-    }
+          // Clean the URL
+          if (typeof window !== "undefined") {
+            router.replace("/auth/reset-password");
+          }
+        } else {
+          // No session, show request form
+          setMode("request");
+          setSessionReady(false);
+        }
+      } catch (error) {
+        console.error("Failed to check session", error);
+        setMode("request");
+        setSessionReady(false);
+      } finally {
+        setVerifying(false);
+      }
+    };
+
+    void checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -142,8 +104,8 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      // Use implicit client to request reset (will receive tokens in hash)
-      const { error } = await supabaseImplicit.auth.resetPasswordForEmail(email, {
+      // Use PKCE client - GoTrue will handle the token verification
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
 
@@ -180,8 +142,8 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     try {
-      // Use implicit client to update password (session was established with it)
-      const { error } = await supabaseImplicit.auth.updateUser({ password });
+      // Use PKCE client to update password
+      const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
       toast.success(t("Your password has been updated. You can sign in now."));
