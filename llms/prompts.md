@@ -16,3 +16,4 @@ I want you to plan, redesign and rebuild the app part of my startup web platform
 Additional features
 - Use shadcn ui tables with multi select, bult actions, sort, filtering, search, etc when needed
 - Let requesters preview files and download datasets. Handle big datasets downloads (even TBs)
+.
