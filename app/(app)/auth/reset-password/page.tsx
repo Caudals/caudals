@@ -53,6 +53,8 @@ export default function ResetPasswordPage() {
     if (hasProcessedToken) return;
 
     const code = searchParams.get("code");
+    const token = searchParams.get("token"); // PKCE token from email
+    const type = searchParams.get("type");
 
     // Hash based tokens (older Supabase recovery links): #access_token=...&refresh_token=...&type=recovery
     const hashParams =
@@ -61,10 +63,10 @@ export default function ResetPasswordPage() {
         : null;
     const accessToken = hashParams?.get("access_token");
     const refreshToken = hashParams?.get("refresh_token");
-    const type = hashParams?.get("type");
+    const hashType = hashParams?.get("type");
 
     // If we have any recovery token, switch to reset mode
-    if (code || (accessToken && refreshToken && type === "recovery")) {
+    if (code || token || (accessToken && refreshToken && hashType === "recovery")) {
       setMode("reset");
       setVerifying(true);
       setHasProcessedToken(true);
@@ -72,8 +74,16 @@ export default function ResetPasswordPage() {
       const establishSession = async () => {
         try {
           if (code) {
-            // PKCE flow: use PKCE client to exchange code
+            // PKCE flow with code: use PKCE client to exchange code
             const { error } = await supabasePKCE.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+          } else if (token && type === "recovery") {
+            // PKCE token from email: verify token directly
+            // GoTrue will handle the token verification and set the session
+            const { error } = await supabasePKCE.auth.verifyOtp({
+              token_hash: token,
+              type: "recovery",
+            });
             if (error) throw error;
           } else if (accessToken && refreshToken) {
             // Implicit flow: use implicit client to set session from hash tokens
