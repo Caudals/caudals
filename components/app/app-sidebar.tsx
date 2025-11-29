@@ -347,7 +347,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={homeHref}>
+              <Link href="/">
                 <div className="flex aspect-square size-8 items-center justify-center">
                   <Image
                     src="/caudals_logo_black.svg"
