@@ -55,6 +55,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 const requesterNav = [
   {
@@ -169,6 +172,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { user, userRole, loading } = useAuth();
   const pathname = usePathname();
   const t = useTranslations();
+  const router = useRouter();
+  const supabase = createClient();
+  const toast = useLocaleToast();
 
   const workspaceTitle =
     user?.user_metadata?.workspace ||
@@ -290,6 +296,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <a href={isAdminView ? "/admin/settings" : "/dashboard/settings"}>
                     {t("Profile & settings")}
                   </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    toast.success(t("Signed out"));
+                    router.push("/auth/sign-in");
+                    router.refresh();
+                  }}
+                >
+                  {t("Log out")}
                 </DropdownMenuItem>
                 {userRole === "admin" && (
                   <>
