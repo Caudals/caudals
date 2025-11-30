@@ -102,11 +102,12 @@ Important:
 - Ensure role-based access control is enforced both in UI and in data access.
 
 ## Output format for this message
-Answer with an "ok" if you understand the task and the requirements.
+Answer only with an "ok" if you understand the task and the requirements.
 
 In the next messages we will:
-1) produce the full plan and build new layout for the app shell
+1) Produce the full plan and build new layout for the app shell
 2) implement each role (admin/requester/contributor) iteratively
 
-
-We will start building just the new layout. Your plan should focus on how to design and implent the new app shell, do not plan the admin/contributor/requester views yet. 
+Okay, we will start with step 1) planning and implementation of the new layout/app shell
+- I've pasted a few images from different views of a dashboard of https://dashboard.mintlify.com/. I want you to copy this exact same style, elements, components, collapsible into icons, etc as similar as possible. The layout should look exactly the same as in the images but with the requirements of my platform. It is very important that you visualize the images and design my dashboard to be a clone of the one in the images.
+- For the accent color, use the one in globals.css instead of the mintlify one. The rest do it exactly the same as in the pictures. Start building the new layout please.
