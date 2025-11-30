@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  Activity,
   BarChart3,
   Bookmark,
   CheckCircle,
@@ -16,7 +15,6 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Megaphone,
-  Receipt,
   Settings,
   Shield,
   Sparkles,
@@ -26,6 +24,7 @@ import {
   Wallet,
   BookOpen,
   UserPlus,
+  Receipt,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -46,6 +45,7 @@ import {
   SidebarMenuSkeleton,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NavUser } from "@/components/dashboard/nav-user";
 import { RoleSwitcher } from "@/components/dashboard/role-switcher";
 
@@ -138,32 +138,16 @@ const adminNav = [
     items: [{ title: "Admin Console", icon: Shield, href: "/admin" }],
   },
   {
-    group: "Moderation",
+    group: "Admin",
     items: [
-      { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
-      { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
-    ],
-  },
-  {
-    group: "Management",
-    items: [
-      { title: "All Datasets", icon: Database, href: "/admin/datasets" },
-      { title: "All Users", icon: Users, href: "/admin/users" },
-      { title: "Featured Ads", icon: Megaphone, href: "/admin/featured" },
-    ],
-  },
-  {
-    group: "Financial",
-    items: [{ title: "Payment Overview", icon: CreditCard, href: "/admin/payments" }],
-  },
-  {
-    group: "Analytics",
-    items: [{ title: "Analytics", icon: BarChart3, href: "/admin/analytics" }],
-  },
-  {
-    group: "System",
-    items: [
-      { title: "Settings", icon: Settings, href: "/admin/settings" }
+      { title: "Requests / Datasets", icon: Database, href: "/admin/datasets" },
+      { title: "Requests", icon: FileText, href: "/admin/requests" },
+      { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
+      { title: "Users", icon: Users, href: "/admin/users" },
+      { title: "Payments & Payouts", icon: CreditCard, href: "/admin/payments" },
+      { title: "Featured / Ads", icon: Megaphone, href: "/admin/featured" },
+      { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+      { title: "Settings", icon: Settings, href: "/admin/settings" },
     ],
   },
 ];
@@ -259,20 +243,26 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               size="lg"
               className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1"
             >
-              <Link href="/dashboard/settings">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <Image
-                    src="/caudals_logo_black.svg"
-                    alt="Caudals logo"
-                    width={16}
-                    height={16}
-                    className="h-4 w-4"
+              <Link href={isAdminView ? "/admin/settings" : "/dashboard/settings"}>
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage
+                    src={
+                      user?.user_metadata?.avatar_url ||
+                      user?.user_metadata?.picture ||
+                      undefined
+                    }
+                    alt={workspaceTitle}
                   />
-                </div>
+                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                    {workspaceTitle.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{workspaceTitle}</span>
+                  <span className="truncate font-semibold">
+                    {user?.user_metadata?.full_name || workspaceTitle}
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {t("Workspace settings")}
+                    {t("Profile & settings")}
                   </span>
                 </div>
                 <ChevronDown className="size-4 text-muted-foreground" />
