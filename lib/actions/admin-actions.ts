@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import {
   DatasetCategory,
@@ -518,7 +519,8 @@ export async function approveSubmission(submissionId: string, notes?: string) {
       dataset_request_id,
       dataset_requests:dataset_request_id (
         reward_amount,
-        payment_status
+        payment_status,
+        paid_amount
       )
     `
     )
@@ -560,30 +562,58 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     ? submission.dataset_requests[0]
     : submission.dataset_requests;
 
-  if (
-    datasetRequest?.reward_amount &&
-    datasetRequest.payment_status === "paid"
-  ) {
-    const { payoutToContributor } = await import(
-      "@/lib/actions/payment-actions"
-    );
+  if (datasetRequest?.reward_amount) {
+    const adminClient = createAdminClient();
 
-    const payoutResult = await payoutToContributor(
-      submissionId,
-      submission.contributor_id,
-      datasetRequest.reward_amount,
-      submission.dataset_request_id
-    );
+    // Calculate remaining funded budget for this dataset
+    const rewardCents = Math.round(Number(datasetRequest.reward_amount) * 100);
+    const fundedCents = Math.round(Number(datasetRequest.paid_amount ?? 0) * 100);
 
-    if (payoutResult.error) {
-      console.error("Payout to wallet failed:", payoutResult.error);
-      // Don't fail the approval, but log the error
-      // The payout can be retried manually if needed
+    const { data: payoutSumRow } = await (adminClient as any)
+      .from("transactions")
+      .select("sum(amount) as total_payout")
+      .eq("dataset_request_id", submission.dataset_request_id)
+      .eq("type", "submission_payout")
+      .eq("status", "completed")
+      .single();
+
+    const totalPayoutCents = Math.round(
+      Number((payoutSumRow as { total_payout?: number } | null)?.total_payout ?? 0)
+    );
+    const remainingCents = fundedCents - totalPayoutCents;
+
+    if (remainingCents >= rewardCents && fundedCents > 0) {
+      const { payoutToContributor } = await import(
+        "@/lib/actions/payment-actions"
+      );
+
+      const payoutResult = await payoutToContributor(
+        submissionId,
+        submission.contributor_id,
+        datasetRequest.reward_amount,
+        submission.dataset_request_id
+      );
+
+      if (payoutResult.error) {
+        console.error("Payout to wallet failed:", payoutResult.error);
+        // Don't fail the approval, but log the error
+        // The payout can be retried manually if needed
+      } else {
+        console.log("✅ Payout to wallet successful:", payoutResult.data);
+      }
     } else {
-      console.log("✅ Payout to wallet successful:", payoutResult.data);
+      console.log(
+        "⚠️ Skipping payout - insufficient funded budget",
+        {
+          fundedCents,
+          totalPayoutCents,
+          rewardCents,
+          remainingCents,
+        }
+      );
     }
   } else {
-    console.log("⚠️ Skipping payout - dataset not paid or no reward amount");
+    console.log("⚠️ Skipping payout - no reward amount");
   }
 
   revalidatePath("/admin");
