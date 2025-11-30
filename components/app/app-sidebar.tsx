@@ -13,10 +13,8 @@ import {
   DollarSign,
   FileText,
   FileUp,
-  Flag,
   LayoutDashboard,
   LifeBuoy,
-  Mail,
   Megaphone,
   Receipt,
   Settings,
@@ -25,7 +23,6 @@ import {
   Star,
   TrendingUp,
   Users,
-  Users2,
   Wallet,
   BookOpen,
   UserPlus,
@@ -145,7 +142,6 @@ const adminNav = [
     items: [
       { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
       { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
-      { title: "Flagged Content", icon: Flag, href: "/admin/flagged" },
     ],
   },
   {
@@ -158,26 +154,16 @@ const adminNav = [
   },
   {
     group: "Financial",
-    items: [
-      { title: "Payment Overview", icon: CreditCard, href: "/admin/payments" },
-      { title: "Payouts & Commissions", icon: Wallet, href: "/admin/payouts" },
-      { title: "Generate Invoices", icon: Receipt, href: "/admin/invoices" },
-    ],
+    items: [{ title: "Payment Overview", icon: CreditCard, href: "/admin/payments" }],
   },
   {
     group: "Analytics",
-    items: [
-      { title: "User Analytics", icon: Users2, href: "/admin/analytics/users" },
-      { title: "Dataset Analytics", icon: BarChart3, href: "/admin/analytics/datasets" },
-      { title: "Revenue Analytics", icon: TrendingUp, href: "/admin/analytics/revenue" },
-      { title: "Platform Health", icon: Activity, href: "/admin/analytics/health" },
-    ],
+    items: [{ title: "Analytics", icon: BarChart3, href: "/admin/analytics" }],
   },
   {
     group: "System",
     items: [
-      { title: "Settings", icon: Settings, href: "/admin/settings" },
-      { title: "Email Templates", icon: Mail, href: "/admin/emails" },
+      { title: "Settings", icon: Settings, href: "/admin/settings" }
     ],
   },
 ];
@@ -268,20 +254,29 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="pb-4 pt-6 px-4">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton size="lg" className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Image
-                  src="/caudals_logo_black.svg"
-                  alt="Caudals logo"
-                  width={16}
-                  height={16}
-                  className="h-4 w-4"
-                />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{workspaceTitle}</span>
-              </div>
-              <ChevronDown className="size-4 text-muted-foreground" />
+            <SidebarMenuButton
+              asChild
+              size="lg"
+              className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1"
+            >
+              <Link href="/dashboard/settings">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <Image
+                    src="/caudals_logo_black.svg"
+                    alt="Caudals logo"
+                    width={16}
+                    height={16}
+                    className="h-4 w-4"
+                  />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{workspaceTitle}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {t("Workspace settings")}
+                  </span>
+                </div>
+                <ChevronDown className="size-4 text-muted-foreground" />
+              </Link>
             </SidebarMenuButton>
             <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
           </SidebarMenuItem>

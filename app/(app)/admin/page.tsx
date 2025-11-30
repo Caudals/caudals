@@ -1,223 +1,388 @@
-import { requireAdmin } from "@/lib/middleware/admin-check";
-import { getAdminDashboardStats } from "@/lib/actions/admin-actions";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  FileText,
-  Users,
-  Database,
-  AlertCircle,
-  Send,
-  BarChart3,
-  TrendingUp,
-  Wallet,
-  Activity,
-} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { requireAdmin } from "@/lib/middleware/admin-check";
+import {
+  getAdminOverview,
+  getAdminAnalyticsSummary,
+} from "@/lib/actions/admin-actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AdminAnalytics } from "@/components/admin/admin-analytics";
-import { PaymentAnalytics } from "@/components/admin/payment-analytics";
-import { getServerTranslator } from "@/lib/i18n/server";
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  FileText,
+  Globe2,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { formatDistanceToNow } from "date-fns";
 
 export default async function AdminDashboard() {
   await requireAdmin();
-  const [statsResult, t] = await Promise.all([
-    getAdminDashboardStats(),
-    getServerTranslator(),
+
+  const [overviewRes, analyticsRes] = await Promise.all([
+    getAdminOverview(),
+    getAdminAnalyticsSummary(),
   ]);
 
-  if ("error" in statsResult) {
+  type OverviewData = {
+    stats: {
+      pendingRequests: number;
+      pendingSubmissions: number;
+      totalSubmissions: number;
+      totalUsers: number;
+      approvedDatasets: number;
+    };
+    activity: {
+      id: string;
+      action_type: string | null;
+      target_type: string | null;
+      target_id: string | null;
+      notes: string | null;
+      created_at: string | null;
+    }[];
+    highlight: {
+      id: string;
+      title: string | null;
+      image_url: string | null;
+      approval_status: string | null;
+      status: string | null;
+      featured: boolean | null;
+      updated_at: string | null;
+      created_at: string | null;
+      profiles?: { full_name: string | null } | null;
+    } | null;
+    lastUpdated: string | null;
+  };
+
+  if ("error" in overviewRes) {
     return (
-      <>
-        <DashboardHeader
-          title={t("Admin Dashboard")}
-          description={t("Platform administration and monitoring")}
-        />
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div className="text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
-            <p className="text-lg font-semibold">
-              {t("Error loading dashboard")}
-            </p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">Admin Dashboard</h1>
             <p className="text-sm text-muted-foreground">
-              {t("Please try again later")}
+              Platform administration and monitoring
             </p>
           </div>
         </div>
-      </>
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex items-center gap-3 py-6">
+            <AlertCircle className="h-6 w-6 text-destructive" />
+            <div>
+              <p className="font-semibold text-destructive">
+                Error loading dashboard
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {overviewRes.error || "Please try again later."}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  const stats = statsResult.data;
+  const overview = overviewRes.data as OverviewData;
+  const analytics = "data" in analyticsRes ? analyticsRes.data : null;
+  const highlight = overview.highlight;
+  const lastUpdated = overview.lastUpdated
+    ? formatDistanceToNow(new Date(overview.lastUpdated), { addSuffix: true })
+    : "—";
 
-  const statCards = [
+  const thingsToDo = [
     {
-      title: t("Pending Reviews"),
-      value: (stats.pendingRequests + stats.pendingSubmissions).toString(),
-      description: t("Items requiring attention"),
-      icon: AlertCircle,
-      color: "text-orange-600",
-      bgColor: "bg-orange-500/10",
-      trend: t("+12% from last week"),
-      trendUp: false,
+      label: "Pending requests",
+      href: "/admin/requests",
+      count: overview.stats.pendingRequests,
     },
     {
-      title: t("Active Users"),
-      value: stats.totalUsers.toString(),
-      description: t("Registered platform users"),
-      icon: Users,
-      color: "text-violet-600",
-      bgColor: "bg-violet-500/10",
-      trend: t("+23% this month"),
-      trendUp: true,
+      label: "Pending submissions",
+      href: "/admin/submissions",
+      count: overview.stats.pendingSubmissions,
     },
-    {
-      title: t("Active Datasets"),
-      value: stats.approvedDatasets.toString(),
-      description: t("Approved and collecting"),
-      icon: Database,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-500/10",
-      trend: t("+8% this month"),
-      trendUp: true,
-    },
-    {
-      title: t("Total Contributions"),
-      value: stats.totalSubmissions.toString(),
-      description: t("All-time submissions"),
-      icon: Send,
-      color: "text-blue-600",
-      bgColor: "bg-blue-500/10",
-      trend: t("+156 this week"),
-      trendUp: true,
-    },
-  ];
+  ].filter((item) => item.count > 0);
 
   return (
-    <>
-      <DashboardHeader
-        title={t("Good afternoon, {{name}}", { name: "Admin" })}
-        description={t("Welcome back to your admin dashboard")}
-      />
-      <div className="flex flex-1 flex-col gap-8 p-6">
-        {/* Top Section: Preview Card & Info */}
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <Card className="overflow-hidden border-muted bg-muted/20 shadow-sm">
-              <div className="aspect-video w-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 h-12 w-12 rounded-lg bg-background shadow-sm flex items-center justify-center">
-                    <Activity className="h-6 w-6 text-muted-foreground" />
+    <div className="space-y-8">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold">
+            Good {new Date().getHours() < 12 ? "morning" : "afternoon"}, Admin
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Welcome back to your admin dashboard
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {thingsToDo.length > 0 ? (
+            <Link
+              href={thingsToDo[0].href}
+              className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm hover:border-border/70"
+            >
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-semibold text-[var(--accent-foreground)]">
+                  {thingsToDo[0].count}
+                </span>
+                {thingsToDo[0].label}
+              </div>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Button
+              variant="outline"
+              className="rounded-xl border px-3 py-2 text-sm"
+            >
+              <ShieldCheck className="mr-2 h-4 w-4 text-emerald-600" />
+              All clear
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        <Card className="lg:col-span-8 border-border/70 shadow-sm">
+          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.6fr_1fr]">
+            <div className="relative rounded-2xl border border-border/70 bg-muted/60 p-4">
+              <div className="aspect-video rounded-xl border border-dashed border-border/70 bg-white/70 flex items-center justify-center">
+                {highlight?.image_url ? (
+                  <Image
+                    src={highlight.image_url}
+                    alt={highlight.title || "Dataset preview"}
+                    width={640}
+                    height={360}
+                    className="h-full w-full rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-sm text-muted-foreground">
+                    Preview unavailable
                   </div>
-                  <p className="text-sm font-medium text-muted-foreground">Preview unavailable</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center gap-2">
-              <div className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-                Live
+                )}
               </div>
             </div>
 
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Last updated <span className="font-medium text-foreground">3 minutes ago</span></p>
-            </div>
-
-            <div className="space-y-4 pt-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Domain</p>
-                <p className="font-medium">app.caudals.com</p>
-                <Button variant="link" className="h-auto p-0 text-green-600 hover:text-green-700">
-                  + Add custom domain
-                </Button>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-emerald-100 text-emerald-700">
+                  Live
+                </Badge>
+                {highlight?.featured && (
+                  <Badge variant="outline">Featured</Badge>
+                )}
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>
+                  Last updated{" "}
+                  <span className="font-medium text-foreground">
+                    {lastUpdated}
+                  </span>
+                </p>
+                {highlight?.title && (
+                  <p className="text-foreground">
+                    Highlight:{" "}
+                    <span className="font-semibold">{highlight.title}</span>
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>admin / main</span>
+              <Separator />
+
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Globe2 className="h-4 w-4" />
+                  <span>app.caudals.com</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {highlight?.profiles?.full_name && (
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Requester: {highlight.profiles.full_name}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  <span>branch <span className="font-medium text-foreground">main</span></span>
+                  <span>
+                    Status: {highlight?.status || "—"} /{" "}
+                    {highlight?.approval_status || "—"}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button variant="outline" size="icon">
-                <FileText className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon">
-                <Activity className="h-4 w-4" />
-              </Button>
-              <Button className="bg-black text-white hover:bg-black/90">
-                Visit site
-              </Button>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="icon" className="rounded-xl">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" className="rounded-xl">
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Link href="/" className="w-full">
+                  <Button className="w-full rounded-xl bg-black text-white hover:bg-black/90">
+                    Visit site
+                  </Button>
+                </Link>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <StatPill
+              label="Pending reviews"
+              value={overview.stats.pendingRequests + overview.stats.pendingSubmissions}
+            />
+            <StatPill
+              label="Approved datasets"
+              value={overview.stats.approvedDatasets}
+            />
+            <StatPill label="Total users" value={overview.stats.totalUsers} />
+            <StatPill label="Submissions" value={overview.stats.totalSubmissions} />
           </div>
         </div>
+      </div>
 
-        {/* Activity Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Activity</h2>
-              <p className="text-sm text-muted-foreground">Recent changes made to your platform</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="bg-muted/50">
-                Live
-              </Button>
-              <Button variant="ghost" size="sm">
-                Previews
-              </Button>
-            </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Activity</h2>
+            <p className="text-sm text-muted-foreground">
+              Recent admin actions across the platform
+            </p>
           </div>
+          <Link href="/admin/requests">
+            <Button variant="outline" className="rounded-xl">
+              View all
+            </Button>
+          </Link>
+        </div>
 
-          <div className="rounded-lg border bg-card">
-            <div className="grid grid-cols-12 gap-4 border-b bg-muted/40 px-6 py-3 text-xs font-medium text-muted-foreground">
+        <Card className="border-border/70 shadow-sm">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-12 gap-4 border-b border-border/70 bg-muted/40 px-6 py-3 text-xs font-medium text-muted-foreground">
               <div className="col-span-6">Activity</div>
-              <div className="col-span-3">Status</div>
-              <div className="col-span-3">Changes</div>
+              <div className="col-span-3">Type</div>
+              <div className="col-span-3">When</div>
             </div>
-
-            <div className="divide-y">
-              {[1, 2, 3].map((_, i) => (
-                <div key={i} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/50 transition-colors">
-                  <div className="col-span-6 flex items-center gap-3">
-                    <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
-                      <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Manual Update</p>
-                      <p className="text-xs text-muted-foreground">Aug 22, 5:00 PM</p>
-                    </div>
+            <div className="divide-y divide-border/70">
+              {overview.activity.length === 0 && (
+                <div className="px-6 py-6 text-sm text-muted-foreground">
+                  No activity yet.
+                </div>
+              )}
+              {overview.activity.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors"
+                >
+                  <div className="col-span-6">
+                    <p className="text-sm font-medium capitalize">
+                      {item.action_type?.replace("_", " ")}
+                    </p>
+                    {item.notes && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {item.notes}
+                      </p>
+                    )}
                   </div>
                   <div className="col-span-3">
-                    <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
-                      <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-400" />
-                      Successful
-                    </div>
+                    <Badge variant="outline" className="capitalize">
+                      {item.target_type || "item"}
+                    </Badge>
                   </div>
-                  <div className="col-span-3">
-                    {/* Empty for now as per design */}
+                  <div className="col-span-3 text-sm text-muted-foreground">
+                    {item.created_at
+                      ? formatDistanceToNow(new Date(item.created_at), {
+                          addSuffix: true,
+                        })
+                      : "—"}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </>
+
+      {analytics && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="border-border/70 shadow-sm">
+            <CardContent className="space-y-3 p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Users</h3>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-2 text-sm">
+                {Object.entries(analytics.usersByRole).map(([role, count]) => (
+                  <div key={role} className="flex items-center justify-between">
+                    <span className="capitalize text-muted-foreground">{role}</span>
+                    <span className="font-semibold">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 shadow-sm">
+            <CardContent className="space-y-3 p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Datasets</h3>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-2 text-sm">
+                {Object.entries(analytics.datasetsByStatus).map(
+                  ([status, count]) => (
+                    <div
+                      key={status}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="capitalize text-muted-foreground">
+                        {status.replace("_", " ")}
+                      </span>
+                      <span className="font-semibold">{count}</span>
+                    </div>
+                  )
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/70 shadow-sm">
+            <CardContent className="space-y-3 p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Submissions</h3>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="space-y-2 text-sm">
+                {Object.entries(analytics.submissionsByStatus).map(
+                  ([status, count]) => (
+                    <div
+                      key={status}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="capitalize text-muted-foreground">
+                        {status}
+                      </span>
+                      <span className="font-semibold">{count}</span>
+                    </div>
+                  )
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatPill({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold">{value}</p>
+    </div>
   );
 }

@@ -3,13 +3,7 @@ import { ContributorsTable } from "@/components/dashboard/contributors-table";
 export default async function ContributorsPage() {
   return (
     <>
-      <DashboardHeader
-        title="Contributors"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Contributors" },
-        ]}
-      />
+      <DashboardHeader title="Contributors" />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">

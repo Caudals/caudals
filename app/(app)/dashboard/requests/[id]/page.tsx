@@ -22,14 +22,7 @@ export default async function RequesterDatasetDetailPage({
 
   return (
     <>
-      <DashboardHeader
-        title={dataset.title}
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Requests", href: "/dashboard/requests" },
-          { label: dataset.title },
-        ]}
-      />
+      <DashboardHeader title={dataset.title} />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <RequesterDatasetDetail dataset={dataset} submissions={submissions} />
       </div>

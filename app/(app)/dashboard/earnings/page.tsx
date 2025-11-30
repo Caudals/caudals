@@ -59,13 +59,7 @@ export default async function EarningsPage() {
 
   return (
     <>
-      <DashboardHeader
-        title="Earnings & Payouts"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard/contributor" },
-          { label: "Earnings" },
-        ]}
-      />
+      <DashboardHeader title="Earnings & Payouts" />
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Earnings Summary */}
         <div className="grid gap-4 md:grid-cols-3">
