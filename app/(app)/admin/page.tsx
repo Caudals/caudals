@@ -102,177 +102,121 @@ export default async function AdminDashboard() {
   return (
     <>
       <DashboardHeader
-        title={t("Admin Dashboard")}
-        description={t("Platform administration and monitoring")}
+        title={t("Good afternoon, {{name}}", { name: "Admin" })}
+        description={t("Welcome back to your admin dashboard")}
       />
-      <div className="flex flex-1 flex-col gap-6 p-6">
-        {/* Main Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((stat) => (
-            <Card
-              key={stat.title}
-              className="border-muted transition-all duration-200 hover:shadow-md"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <div className={`rounded-lg p-2 ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+      <div className="flex flex-1 flex-col gap-8 p-6">
+        {/* Top Section: Preview Card & Info */}
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <Card className="overflow-hidden border-muted bg-muted/20 shadow-sm">
+              <div className="aspect-video w-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-4 h-12 w-12 rounded-lg bg-background shadow-sm flex items-center justify-center">
+                    <Activity className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">Preview unavailable</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-1 text-2xl font-bold">{stat.value}</div>
-                <p className="mb-2 text-xs text-muted-foreground">
-                  {stat.description}
-                </p>
-                <div className="flex items-center text-xs">
-                  <TrendingUp
-                    className={`mr-1 h-3 w-3 ${
-                      stat.trendUp ? "text-emerald-600" : "text-orange-600"
-                    }`}
-                  />
-                  <span
-                    className={
-                      stat.trendUp ? "text-emerald-600" : "text-orange-600"
-                    }
-                  >
-                    {stat.trend}
-                  </span>
-                </div>
-              </CardContent>
+              </div>
             </Card>
-          ))}
-        </div>
+          </div>
 
-        {/* Pending Reviews Section */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="transition-shadow hover:shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-orange-600" />
-                {t("Pending Dataset Requests")}
-              </CardTitle>
-              <CardDescription>
-                {t("{{count}} requests awaiting approval", {
-                  count: stats.pendingRequests,
-                })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-orange-600">
-                    {stats.pendingRequests}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("Review required")}
-                  </p>
-                </div>
-                <Button asChild>
-                  <Link href="/admin/requests">{t("Review Now")}</Link>
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
+                Live
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Last updated <span className="font-medium text-foreground">3 minutes ago</span></p>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Domain</p>
+                <p className="font-medium">app.caudals.com</p>
+                <Button variant="link" className="h-auto p-0 text-green-600 hover:text-green-700">
+                  + Add custom domain
                 </Button>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card className="transition-shadow hover:shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Send className="h-5 w-5 text-blue-600" />
-                {t("Pending Submissions")}
-              </CardTitle>
-              <CardDescription>
-                {t("{{count}} contributions to review", {
-                  count: stats.pendingSubmissions,
-                })}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-blue-600">
-                    {stats.pendingSubmissions}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("Quality check needed")}
-                  </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>admin / main</span>
                 </div>
-                <Button asChild variant="outline">
-                  <Link href="/admin/submissions">{t("Review Now")}</Link>
-                </Button>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Activity className="h-4 w-4" />
+                  <span>branch <span className="font-medium text-foreground">main</span></span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button variant="outline" size="icon">
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon">
+                <Activity className="h-4 w-4" />
+              </Button>
+              <Button className="bg-black text-white hover:bg-black/90">
+                Visit site
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Platform Financial Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              {t("Platform Financial Overview")}
-            </CardTitle>
-            <CardDescription>
-              {t("Transaction and wallet metrics")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PaymentAnalytics />
-          </CardContent>
-        </Card>
+        {/* Activity Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Activity</h2>
+              <p className="text-sm text-muted-foreground">Recent changes made to your platform</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="bg-muted/50">
+                Live
+              </Button>
+              <Button variant="ghost" size="sm">
+                Previews
+              </Button>
+            </div>
+          </div>
 
-        {/* Analytics Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              {t("Platform Analytics")}
-            </CardTitle>
-            <CardDescription>
-              {t("User activity and dataset performance")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AdminAnalytics />
-          </CardContent>
-        </Card>
+          <div className="rounded-lg border bg-card">
+            <div className="grid grid-cols-12 gap-4 border-b bg-muted/40 px-6 py-3 text-xs font-medium text-muted-foreground">
+              <div className="col-span-6">Activity</div>
+              <div className="col-span-3">Status</div>
+              <div className="col-span-3">Changes</div>
+            </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("Quick Actions")}</CardTitle>
-            <CardDescription>
-              {t("Common administrative tasks")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button asChild size="sm">
-              <Link href="/admin/requests">
-                <FileText className="mr-2 h-4 w-4" />
-                {t("Review Requests")}
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/admin/submissions">
-                <Database className="mr-2 h-4 w-4" />
-                {t("Review Submissions")}
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/admin/users">
-                <Users className="mr-2 h-4 w-4" />
-                {t("Manage Users")}
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/browse">
-                <Activity className="mr-2 h-4 w-4" />
-                {t("View Platform")}
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="divide-y">
+              {[1, 2, 3].map((_, i) => (
+                <div key={i} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/50 transition-colors">
+                  <div className="col-span-6 flex items-center gap-3">
+                    <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
+                      <Activity className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Manual Update</p>
+                      <p className="text-xs text-muted-foreground">Aug 22, 5:00 PM</p>
+                    </div>
+                  </div>
+                  <div className="col-span-3">
+                    <div className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-300">
+                      <div className="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-400" />
+                      Successful
+                    </div>
+                  </div>
+                  <div className="col-span-3">
+                    {/* Empty for now as per design */}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

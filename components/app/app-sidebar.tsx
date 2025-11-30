@@ -2,35 +2,38 @@
 
 import * as React from "react";
 import {
-  FileText,
-  LayoutDashboard,
-  Plus,
-  Settings,
-  Users,
-  CreditCard,
+  Activity,
   BarChart3,
-  FileUp,
-  Shield,
-  Database,
+  Bookmark,
   CheckCircle,
+  ChevronDown,
   Clock,
+  CreditCard,
+  Database,
+  DollarSign,
+  FileText,
+  FileUp,
+  Flag,
+  LayoutDashboard,
+  LifeBuoy,
+  Mail,
+  Megaphone,
+  Receipt,
+  Settings,
+  Shield,
+  Sparkles,
   Star,
   TrendingUp,
-  DollarSign,
-  Wallet,
-  Receipt,
-  Bookmark,
-  Sparkles,
-  Flag,
-  Megaphone,
-  Mail,
-  BookOpen,
-  HelpCircle,
-  Activity,
+  Users,
   Users2,
+  Wallet,
+  BookOpen,
+  UserPlus,
 } from "lucide-react";
-import { useAuth } from "@/lib/auth/provider";
+import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import {
   Sidebar,
@@ -43,30 +46,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/dashboard/nav-user";
 import { RoleSwitcher } from "@/components/dashboard/role-switcher";
-import Link from "next/link";
-import Image from "next/image";
-import { Separator } from "@/components/ui/separator";
 
-// Enhanced navigation structure with groups
 const requesterNav = [
   {
     group: "Overview",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    ],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" }],
   },
   {
     group: "My Requests",
     items: [
-      {
-        title: "All Requests",
-        icon: FileText,
-        href: "/dashboard/requests",
-        badge: undefined,
-      },
+      { title: "All Requests", icon: FileText, href: "/dashboard/requests" },
       {
         title: "Active Requests",
         icon: CheckCircle,
@@ -83,11 +77,7 @@ const requesterNav = [
     group: "Contributors",
     items: [
       { title: "All Contributors", icon: Users, href: "/dashboard/contributors" },
-      {
-        title: "Top Performers",
-        icon: Star,
-        href: "/dashboard/contributors?sort=top",
-      },
+      { title: "Top Performers", icon: Star, href: "/dashboard/contributors?sort=top" },
     ],
   },
   {
@@ -110,11 +100,7 @@ const contributorNav = [
   {
     group: "Overview",
     items: [
-      {
-        title: "Dashboard",
-        icon: LayoutDashboard,
-        href: "/dashboard/contributor",
-      },
+      { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
     ],
   },
   {
@@ -128,43 +114,23 @@ const contributorNav = [
   {
     group: "My Activity",
     items: [
-      {
-        title: "My Contributions",
-        icon: FileUp,
-        href: "/dashboard/contributions",
-      },
-      {
-        title: "In Progress",
-        icon: Clock,
-        href: "/dashboard/contributions?status=pending",
-      },
+      { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
+      { title: "In Progress", icon: Clock, href: "/dashboard/contributions?status=pending" },
     ],
   },
   {
     group: "Earnings",
     items: [
-      {
-        title: "Earnings Overview",
-        icon: DollarSign,
-        href: "/dashboard/earnings",
-      },
+      { title: "Earnings Overview", icon: DollarSign, href: "/dashboard/earnings" },
       { title: "Payouts", icon: Wallet, href: "/dashboard/earnings?tab=payouts" },
-      {
-        title: "Transaction History",
-        icon: Receipt,
-        href: "/dashboard/earnings?tab=transactions",
-      },
+      { title: "Transaction History", icon: Receipt, href: "/dashboard/earnings?tab=transactions" },
     ],
   },
   {
     group: "Account",
     items: [
       { title: "Settings", icon: Settings, href: "/dashboard/settings" },
-      {
-        title: "Payout Methods",
-        icon: CreditCard,
-        href: "/dashboard/settings?tab=payout",
-      },
+      { title: "Payout Methods", icon: CreditCard, href: "/dashboard/settings?tab=payout" },
     ],
   },
 ];
@@ -177,24 +143,9 @@ const adminNav = [
   {
     group: "Moderation",
     items: [
-      {
-        title: "Pending Requests",
-        icon: FileText,
-        href: "/admin/requests",
-        badge: undefined,
-      },
-      {
-        title: "Pending Submissions",
-        icon: FileUp,
-        href: "/admin/submissions",
-        badge: undefined,
-      },
-      {
-        title: "Flagged Content",
-        icon: Flag,
-        href: "/admin/flagged",
-        badge: undefined,
-      },
+      { title: "Pending Requests", icon: FileText, href: "/admin/requests" },
+      { title: "Pending Submissions", icon: FileUp, href: "/admin/submissions" },
+      { title: "Flagged Content", icon: Flag, href: "/admin/flagged" },
     ],
   },
   {
@@ -231,59 +182,49 @@ const adminNav = [
   },
 ];
 
-// Secondary navigation (bottom)
-const secondaryNav = [
+const utilityLinks = [
   { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
-  { title: "Help & Support", icon: HelpCircle, href: "/support" },
+  { title: "Invite Members", icon: UserPlus, href: "/dashboard/settings?tab=members" },
+  { title: "Support", icon: LifeBuoy, href: "/support" },
 ];
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { userRole, loading } = useAuth();
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const { user, userRole, loading } = useAuth();
   const pathname = usePathname();
   const t = useTranslations();
 
-  // Show loading state while fetching user role
+  const workspaceTitle =
+    user?.user_metadata?.workspace ||
+    user?.user_metadata?.full_name ||
+    user?.email ||
+    "Caudals";
+
   if (loading || !userRole) {
     return (
-      <Sidebar variant="inset" {...props}>
-        <SidebarHeader>
+      <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
+        <SidebarHeader className="pb-4 pt-6 px-6">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" disabled>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-background">
-                  <Image
-                    src="/caudals_logo_black.svg"
-                    alt="Caudals logo"
-                    width={24}
-                    height={24}
-                    className="h-6 w-6"
-                  />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Caudals</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {t("Loading...")}
-                  </span>
-                </div>
-              </SidebarMenuButton>
+              <SidebarMenuSkeleton showIcon />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
-        <SidebarContent>
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">
-              {t("Loading sidebar...")}
-            </p>
-          </div>
+        <SidebarContent className="px-4">
+          <SidebarMenu>
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <SidebarMenuItem key={idx}>
+                <SidebarMenuSkeleton showIcon />
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>
+        <SidebarFooter className="pb-6 px-6">
           <NavUser />
         </SidebarFooter>
       </Sidebar>
     );
   }
 
-  // Determine navigation based on current path and user role
   const isAdminView = pathname.startsWith("/admin");
   const contributorRoutes = [
     "/dashboard/contributor",
@@ -291,122 +232,77 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     "/dashboard/earnings",
   ];
   const isContributorView = contributorRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname.startsWith(route),
   );
 
   let navGroups = requesterNav;
   let viewLabel = "Requester";
   let homeHref = "/dashboard";
-  let quickActionHref = "/dashboard/requests/new";
-  let quickActionLabel = "New Request";
 
-  // Admin users can switch between views
   if (userRole === "admin") {
     if (isAdminView) {
       navGroups = adminNav;
       viewLabel = "Admin";
       homeHref = "/admin";
-      quickActionHref = "/admin/requests";
-      quickActionLabel = "Pending Reviews";
     } else if (isContributorView) {
       navGroups = contributorNav;
       viewLabel = "Contributor";
       homeHref = "/dashboard/contributor";
-      quickActionHref = "/browse";
-      quickActionLabel = "Browse Datasets";
     } else {
       navGroups = requesterNav;
       viewLabel = "Requester";
       homeHref = "/dashboard";
-      quickActionHref = "/dashboard/requests/new";
-      quickActionLabel = "New Request";
     }
-  }
-  // Contributors only see contributor nav
-  else if (userRole === "contributor") {
+  } else if (userRole === "contributor") {
     navGroups = contributorNav;
     viewLabel = "Contributor";
     homeHref = "/dashboard/contributor";
-    quickActionHref = "/browse";
-    quickActionLabel = "Browse Datasets";
-  }
-  // Requesters only see requester nav
-  else if (userRole === "requester") {
+  } else if (userRole === "requester") {
     navGroups = requesterNav;
     viewLabel = "Requester";
     homeHref = "/dashboard";
-    quickActionHref = "/dashboard/requests/new";
-    quickActionLabel = "New Request";
   }
 
-  const localizedViewLabel = t(viewLabel);
-
   return (
-    <Sidebar variant="inset" {...props}>
-      <SidebarHeader>
+    <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
+      <SidebarHeader className="pb-4 pt-6 px-4">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center">
-                  <Image
-                    src="/caudals_logo_black.svg"
-                    alt="Caudals logo"
-                    width={32}
-                    height={32}
-                    className="h-6 w-6"
-                  />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Caudals</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {localizedViewLabel}
-                  </span>
-                </div>
-              </Link>
+          <SidebarMenuItem className="flex items-center gap-2">
+            <SidebarMenuButton size="lg" className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Image
+                  src="/caudals_logo_black.svg"
+                  alt="Caudals logo"
+                  width={16}
+                  height={16}
+                  className="h-4 w-4"
+                />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{workspaceTitle}</span>
+              </div>
+              <ChevronDown className="size-4 text-muted-foreground" />
             </SidebarMenuButton>
+            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
           </SidebarMenuItem>
         </SidebarMenu>
 
-        {/* Role switcher for admins */}
         {userRole === "admin" && (
-          <div className="mt-2 px-2">
+          <div className="px-1 mt-2">
             <RoleSwitcher
               userRole={userRole}
               currentView={viewLabel.toLowerCase()}
             />
           </div>
         )}
-
-        {/* Account badge for non-admins */}
-        {userRole !== "admin" && (
-          <div className="mt-2 px-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              {t("{{role}} Account", { role: localizedViewLabel })}
-            </p>
-          </div>
-        )}
-
-        {/* Quick Action Button */}
-        <div className="mt-3 px-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="bg-primary text-primary-foreground hover:bg-primary/90">
-                <Link href={quickActionHref}>
-                  <Plus className="size-4" />
-                  <span>{t(quickActionLabel)}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        {/* Primary Navigation Groups */}
-        {navGroups.map((group, groupIndex) => (
-          <SidebarGroup key={groupIndex}>
-            <SidebarGroupLabel>{t(group.group)}</SidebarGroupLabel>
+      <SidebarContent className="px-2">
+        {navGroups.map((group) => (
+          <SidebarGroup key={group.group}>
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70">
+              {t(group.group)}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
@@ -416,15 +312,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActive}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={t(item.title)}
+                        className="h-8 text-sm font-medium text-muted-foreground hover:text-foreground data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:bg-[var(--accent)]/10"
+                      >
                         <Link href={item.href}>
-                          <item.icon />
+                          <item.icon className="size-4" />
                           <span>{t(item.title)}</span>
-                          {item.badge && (
-                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                              {item.badge}
-                            </span>
-                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -434,40 +330,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-
-        {/* Secondary Navigation */}
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {secondaryNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    size="sm"
-                    className="text-muted-foreground"
-                  >
-                    <Link
-                      href={item.href}
-                      target={item.external ? "_blank" : undefined}
-                      rel={item.external ? "noopener noreferrer" : undefined}
-                    >
-                      <item.icon />
-                      <span>{t(item.title)}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        {/* Wallet/Earnings Widget - TODO: Implement */}
-        {/* <WalletWidget /> */}
-
-        <Separator className="my-2" />
-        <NavUser />
+      <SidebarFooter className="pb-4 px-4">
+        <SidebarMenu>
+          {utilityLinks.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                size="sm"
+                className="h-8 text-muted-foreground hover:text-foreground"
+                tooltip={t(item.title)}
+              >
+                <Link
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                >
+                  <item.icon className="size-4" />
+                  <span>{t(item.title)}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
