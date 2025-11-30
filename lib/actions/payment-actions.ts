@@ -472,12 +472,22 @@ export const syncWalletFromCustomer = async (
     }
 
     const liveCustomer = customer as Stripe.Customer;
+    const cashBalance = liveCustomer.cash_balance as
+      | Stripe.CashBalance
+      | null
+      | undefined;
+    const hasCashEntries = Object.values(cashBalance?.available ?? {}).some(
+      (value) => typeof value === "number" && value !== 0
+    );
+
+    // Avoid wiping the local wallet when no cash balance exists in Stripe
+    if (!hasCashEntries) {
+      return wallet;
+    }
+
     const preferredCurrency = wallet.currency ?? "usd";
     const { amount: availableCents, currency: currencyCode } =
-      resolveCashBalance(
-        liveCustomer.cash_balance as Stripe.CashBalance | null | undefined,
-        preferredCurrency
-      );
+      resolveCashBalance(cashBalance, preferredCurrency);
     const pendingCents = 0;
     const syncedAt = new Date().toISOString();
 
@@ -676,25 +686,6 @@ export async function getUserWallet() {
     return { data: serializeWalletRecord(walletRecord) };
   }
 
-  try {
-    const { customerId, wallet } = await ensureStripeCustomerForUser(
-      stripe,
-      adminClient,
-      user.id,
-      profile?.mail ?? user.email,
-      profile?.full_name
-    );
-
-    walletRecord = await syncWalletFromCustomer(
-      stripe,
-      adminClient,
-      wallet,
-      customerId
-    );
-  } catch (errorCustomer) {
-    console.error("Failed to sync requester wallet from Stripe", errorCustomer);
-  }
-
   return {
     data: serializeWalletRecord(walletRecord),
   };
@@ -853,8 +844,6 @@ export async function createPaymentIntent(
     await supabase
       .from("dataset_requests")
       .update({
-        total_budget: amount,
-        payment_status: "partial",
         stripe_payment_intent_id: paymentIntent.id,
       })
       .eq("id", datasetId);
@@ -886,6 +875,16 @@ export async function confirmPayment(paymentIntentId: string) {
 
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    const { data: existingTx } = await adminClient
+      .from("transactions")
+      .select("id")
+      .eq("reference_id", paymentIntent.id)
+      .maybeSingle();
+
+    if (existingTx) {
+      return { data: { success: true } };
+    }
 
     if (paymentIntent.status !== "succeeded") {
       return { error: "Payment not successful" };
@@ -945,12 +944,31 @@ export async function confirmPayment(paymentIntentId: string) {
         metadata: metadata as Record<string, unknown>,
       });
 
+      const { data: datasetRecord } = await supabase
+        .from("dataset_requests")
+        .select("paid_amount, total_budget")
+        .eq("id", datasetId)
+        .single();
+
+      const previousPaid = Number(datasetRecord?.paid_amount ?? 0);
+      const totalBudget = Number(datasetRecord?.total_budget ?? 0) || null;
+      const increment = amountFromCents(
+        paymentIntent.amount_received ?? paymentIntent.amount
+      );
+      const newPaidAmount = previousPaid + increment;
+      const nextStatus =
+        totalBudget && Number.isFinite(totalBudget)
+          ? newPaidAmount >= totalBudget
+            ? "paid"
+            : "partial"
+          : "partial";
+
       await supabase
         .from("dataset_requests")
         .update({
-          payment_status: "paid",
-          paid_amount:
-            (paymentIntent.amount_received ?? paymentIntent.amount) / 100,
+          payment_status: nextStatus,
+          paid_amount: newPaidAmount,
+          stripe_payment_intent_id: paymentIntent.id,
         })
         .eq("id", datasetId);
 
@@ -1015,7 +1033,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
 
   const { data: dataset, error: datasetError } = await supabase
     .from("dataset_requests")
-    .select("id, title, commission_percentage")
+    .select("id, title, commission_percentage, paid_amount, total_budget")
     .eq("id", datasetId)
     .single();
 
@@ -1036,11 +1054,21 @@ export async function payWithWallet(datasetId: string, amount: number) {
     },
   });
 
+  const previousPaid = Number(dataset.paid_amount ?? 0);
+  const totalBudget = Number(dataset.total_budget ?? 0) || null;
+  const newPaidAmount = previousPaid + amount;
+  const nextStatus =
+    totalBudget && Number.isFinite(totalBudget)
+      ? newPaidAmount >= totalBudget
+        ? "paid"
+        : "partial"
+      : "partial";
+
   await supabase
     .from("dataset_requests")
     .update({
-      payment_status: "paid",
-      paid_amount: amount,
+      payment_status: nextStatus,
+      paid_amount: newPaidAmount,
     })
     .eq("id", datasetId);
 
@@ -1569,6 +1597,12 @@ export async function payoutToContributor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
+  const { data: datasetRecord, error: datasetError } = await adminClient
+    .from("dataset_requests")
+    .select("currency")
+    .eq("id", datasetId)
+    .maybeSingle();
+
   const { data: accountRecord, error: accountError } = await adminClient
     .from("stripe_accounts")
     .select("*")
@@ -1590,10 +1624,22 @@ export async function payoutToContributor(
     return { error: "Calculated payout is not valid" };
   }
 
+  const accountCurrency = (
+    accountRecord.default_currency ?? "usd"
+  ).toLowerCase();
+  const datasetCurrency = datasetRecord?.currency?.toLowerCase();
+  if (datasetCurrency && datasetCurrency !== accountCurrency) {
+    return {
+      error: `Payout currency mismatch. Dataset is ${datasetCurrency.toUpperCase()} but payout account is ${accountCurrency.toUpperCase()}. Update the payout account to match before paying out.`,
+    };
+  }
+
+  const transferCurrency = (datasetCurrency ?? accountCurrency) || "usd";
+
   try {
     const transfer = await stripe.transfers.create({
       amount: netAmount,
-      currency: accountRecord.default_currency ?? "usd",
+      currency: transferCurrency,
       destination: accountRecord.stripe_account_id,
       metadata: {
         submission_id: submissionId,
@@ -1606,7 +1652,7 @@ export async function payoutToContributor(
     const contributorWallet = await ensureWalletRecord(
       adminClient,
       contributorId,
-      accountRecord.default_currency ?? "usd"
+      transferCurrency
     );
 
     await syncWalletFromConnectAccount(
@@ -1650,8 +1696,21 @@ export async function payoutToContributor(
 export async function refreshWalletFromStripe(paymentIntentId: string) {
   assertStripeConfigured();
 
+  const admin = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
   const stripe = getStripeServer();
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+  const { data: existingTx } = await adminClient
+    .from("transactions")
+    .select("id")
+    .eq("reference_id", paymentIntent.id)
+    .maybeSingle();
+
+  if (existingTx) {
+    return { data: { success: true } };
+  }
 
   if (paymentIntent.status !== "succeeded") {
     return { error: "Payment not successful" };

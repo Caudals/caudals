@@ -108,6 +108,19 @@ async function handlePaymentIntentSucceeded(
   const datasetId = metadata.dataset_id;
   const paymentType = metadata.type;
 
+  const { data: existingTx } = await adminClient
+    .from("transactions")
+    .select("id")
+    .eq("reference_id", paymentIntent.id)
+    .maybeSingle();
+
+  if (existingTx) {
+    console.log(
+      `Transaction already recorded for payment intent ${paymentIntent.id}, skipping`
+    );
+    return;
+  }
+
   if (!userId || !paymentType) {
     console.warn(
       "PaymentIntent succeeded without user or type metadata",
@@ -218,9 +231,35 @@ async function handlePaymentIntentSucceeded(
       }
     }
 
+    const { data: existingDataset, error: datasetLookupError } =
+      await adminClient
+        .from("dataset_requests")
+        .select("paid_amount, total_budget")
+        .eq("id", datasetId)
+        .single();
+
+    if (datasetLookupError) {
+      console.error(
+        "Failed to load dataset for payment update",
+        datasetId,
+        datasetLookupError
+      );
+    }
+
+    const previousPaid = Number(existingDataset?.paid_amount ?? 0);
+    const totalBudget = Number(existingDataset?.total_budget ?? 0) || null;
+    const increment = centsToDollars(amountReceived);
+    const newPaidAmount = previousPaid + increment;
+    const nextStatus =
+      totalBudget && Number.isFinite(totalBudget)
+        ? newPaidAmount >= totalBudget
+          ? "paid"
+          : "partial"
+        : "partial";
+
     const datasetUpdate: DatasetUpdate = {
-      payment_status: "paid",
-      paid_amount: centsToDollars(amountReceived),
+      payment_status: nextStatus,
+      paid_amount: newPaidAmount,
       stripe_payment_intent_id: paymentIntent.id,
     };
 
@@ -300,14 +339,30 @@ async function handleAccountUpdated(
   event: Stripe.Event,
   admin: ReturnType<typeof createAdminClient>
 ) {
-  const account = event.data.object as Stripe.Account;
+  const stripe = getStripeServer();
+  let account = event.data.object as Stripe.Account;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
-  const bankLast4 =
-    account.external_accounts?.data?.[0]?.object === "bank_account"
-      ? account.external_accounts.data[0].last4
-      : null;
+  if (!account.external_accounts?.data?.length) {
+    try {
+      account = await stripe.accounts.retrieve(account.id, {
+        expand: ["external_accounts"],
+      });
+    } catch (error) {
+      console.warn(
+        "Unable to expand external accounts for account update webhook",
+        error
+      );
+    }
+  }
+
+  const bankAccount = account.external_accounts?.data?.find(
+    (external) => external.object === "bank_account"
+  ) as Stripe.BankAccount | undefined;
+
+  const bankLast4 = bankAccount?.last4 ?? null;
+  const bankStatus = bankAccount?.status ?? null;
 
   const updatePayload: StripeAccountUpdate = {
     status: account.details_submitted
@@ -322,6 +377,7 @@ async function handleAccountUpdated(
     requirements_past_due: (account.requirements?.past_due ?? []) as Json,
     requirements_disabled_reason: account.requirements?.disabled_reason ?? null,
     bank_last4: bankLast4,
+    bank_status: bankStatus,
     last_synced_at: new Date().toISOString(),
   };
 
