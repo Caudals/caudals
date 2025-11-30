@@ -619,7 +619,8 @@ async function upsertStripeAccountRecord(
 
   const { error: upsertError } = await adminClient
     .from("stripe_accounts")
-    .upsert(payload, { onConflict: "stripe_account_id" });
+    // Conflict on user_id so we replace any previous account mapping for this user
+    .upsert(payload, { onConflict: "user_id" });
 
   if (upsertError) {
     console.error("Failed to upsert stripe account record", upsertError);
