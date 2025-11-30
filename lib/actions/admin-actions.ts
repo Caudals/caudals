@@ -569,7 +569,7 @@ export async function approveSubmission(submissionId: string, notes?: string) {
     const rewardCents = Math.round(Number(datasetRequest.reward_amount) * 100);
     const fundedCents = Math.round(Number(datasetRequest.paid_amount ?? 0) * 100);
 
-    const { data: payoutSumRow } = await (adminClient as any)
+    const { data: payoutSumRow } = await adminClient
       .from("transactions")
       .select("sum(amount) as total_payout")
       .eq("dataset_request_id", submission.dataset_request_id)
@@ -578,7 +578,7 @@ export async function approveSubmission(submissionId: string, notes?: string) {
       .single();
 
     const totalPayoutCents = Math.round(
-      Number((payoutSumRow as { total_payout?: number } | null)?.total_payout ?? 0)
+      Number((payoutSumRow as { total_payout: number | null } | null)?.total_payout ?? 0)
     );
     const remainingCents = fundedCents - totalPayoutCents;
 
