@@ -107,8 +107,17 @@ Answer only with an "ok" if you understand the task and the requirements.
 
 In the next messages we will:
 1) Produce the full plan and build new layout for the app shell
-2) implement each role (admin/requester/contributor) iteratively
+2) Implement admin view
+3) Implement requester view
+4) Implement contributor view
 
 Okay, we will start with step 1) planning and implementation of the new layout/app shell
 - I've pasted a few images from different views of a dashboard of https://dashboard.mintlify.com/. I want you to copy this exact same style, elements, components, collapsible into icons, etc as similar as possible. The layout should look exactly the same as in the images but with the requirements of my platform. It is very important that you visualize the images and design my dashboard to be a clone of the one in the images.
 - For the accent color, use the one in globals.css instead of the mintlify one. The rest do it exactly the same as in the pictures. Start building the new layout please.
+
+Now we will do step 2) Implement admin view. First,I want you to create a new file 'admin_plan.md' inside the /llms folder. Write the plan for the admin view there. It should be a detailed plan which will describe:
+- Required pages/sections/menus for the admin view in the dasbhoard
+- Required workflows, features and UX structure 
+
+
+When you finish the plan and I review it, we will start the implementation of this view.
