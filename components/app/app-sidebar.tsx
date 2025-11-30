@@ -27,7 +27,6 @@ import {
   Receipt,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
@@ -48,6 +47,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NavUser } from "@/components/dashboard/nav-user";
 import { RoleSwitcher } from "@/components/dashboard/role-switcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const requesterNav = [
   {
@@ -238,48 +245,68 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="pb-4 pt-6 px-4">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              asChild
-              size="lg"
-              className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1"
-            >
-              <Link href={isAdminView ? "/admin/settings" : "/dashboard/settings"}>
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={
-                      user?.user_metadata?.avatar_url ||
-                      user?.user_metadata?.picture ||
-                      undefined
-                    }
-                    alt={workspaceTitle}
-                  />
-                  <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                    {workspaceTitle.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user?.user_metadata?.full_name || workspaceTitle}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage
+                        src={
+                          user?.user_metadata?.avatar_url ||
+                          user?.user_metadata?.picture ||
+                          undefined
+                        }
+                        alt={workspaceTitle}
+                      />
+                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+                        {workspaceTitle.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">
+                        {user?.user_metadata?.full_name || workspaceTitle}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {t("Profile & settings")}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="bottom"
+                align="start"
+                className="w-64 rounded-xl"
+              >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  {user?.email}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href={isAdminView ? "/admin/settings" : "/dashboard/settings"}>
                     {t("Profile & settings")}
-                  </span>
-                </div>
-                <ChevronDown className="size-4 text-muted-foreground" />
-              </Link>
-            </SidebarMenuButton>
+                  </a>
+                </DropdownMenuItem>
+                {userRole === "admin" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1">
+                      <RoleSwitcher
+                        userRole={userRole}
+                        currentView={viewLabel.toLowerCase()}
+                      />
+                    </div>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
           </SidebarMenuItem>
         </SidebarMenu>
-
-        {userRole === "admin" && (
-          <div className="px-1 mt-2">
-            <RoleSwitcher
-              userRole={userRole}
-              currentView={viewLabel.toLowerCase()}
-            />
-          </div>
-        )}
       </SidebarHeader>
 
       <SidebarContent className="px-2">
