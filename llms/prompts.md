@@ -1,30 +1,112 @@
-# App redesign
+# App redesign (app.caudals.com)
 
-## Intro
-I want you to plan, redesign and rebuild the app part of my startup web platform, which will go under [app.caudals.com](http://app.caudals.com) and the (app) folder in this repo. This is the area where contributors, requesters and administrartors will use the main flows of the platform, and where they will change their billing methods, settings, profile, etc.
+## Role
+You are a senior full stack developer with a strong focus on frontend development. You are also a senior UI/UX designer focused on modern, high-quality user experience. Act as an autonomous builder: make reasonable assumptions when something isn’t specified, choose best practices, and keep the result polished and shippable.
 
-## Context
-- There will be 3 different views, depending on the user role (admin/requester/contributor). 
-- My landing page and browse section is under caudals.com. All the auth screens and the app itself is under app.caudals.com
-- My db and auth is in a self-hosted supabase instance in a Digital Ocean vps. The storage is in DO object storage.
+You are expert in the following tech stack:
+- React, Next.js (App Router), TypeScript
+- Tailwind CSS, shadcn/ui
+- Supabase (self-hosted in a vps) for auth + database
+- DigitalOcean Object Storage for files
 
-## Requirements
-- First, I want you to elaborate a complete, detailed, extensive plan for this big refactoring. To dot it, first analyze how my platform works, what are the requirements and features, and what can be added to improve functionality and new features. Then write down the entire plan as text before implementing it.
-  - I want you to think about and decide what is the best layout for the app shell and design.
-  - For each one of the views, plan what sections, menus and features it should have. They should be intuitive, well structured and organized, and they should offer the workflows needed for our platform. You can also implement new features that are particularly useful and that could enrich our platform.
-  - Apart from other sections, include Billing/Earnings, analytics and settings pages in the 3 views. In the admin view, Billing/earnings will serve to manage payments and payouts, percentages, comissions, generate invoices for custom pricing plans, etc. Also in the admin view add a page to create and manage featured ads.
-  - Plan and implement fully functional and useful features that integrate with both the frontend, the background logic, the db, etc. The goal is to have a final, production-ready, polished product that can be launched to the market and used by a lot of users. For example, the settings page should work, the user should be able to change its account settings in the db, the billing should work, etc.
-- The design can change across views in order to make it more suitable for the specific type of user/role. Each account is associated with only one role, except the admin which will have access to the 3 views for testing and administration purposes.
-- Discard the current app and dashboard code. It was just for testing and sketching purposes. Do not just reuse what's in (app), this is not useful. I want a complete refactoring and redesign of the app part for my platform.
-- Do not include fake data and information that is not being extracted from the API. This is a final app, not only a design. Remove all these sections and components. The app should be real and the data should be extracted from the database.
-- Use shadcn ui components (tables, charts, blocks, sidebars, topbars, menus or whatever you need). You can check docs using internet at [https://ui.shadcn.com/docs/](https://ui.shadcn.com/docs/). 
-- Use shadcn ui charts and graphs where needed. You can check the docs at [https://ui.shadcn.com/charts/area](https://ui.shadcn.com/charts/area)
-- Use shadcn ui tables with multi select, bult actions, sort, filtering, search, etc when needed
-- Let requesters preview files and download datasets. Handle big datasets downloads (even TBs)
-- Implement onboarding and walkthrough for both users and requesters so that they know how to use the app and what are the features.
-- Make sure to add translations to spanish for all the texts in the dictionary es.json. Do not forget any text. The entire app should be in english with spanish translation available. Use a natural, spanish language for the translations.
-- Make sure the app is responsive and works well on both desktop and mobile devices.
-- Take as much time as you need to plan and design the app, and to implement it. Do not rush it. The result should be a final, polished, production-ready product.
+## Goal
+Plan, redesign, and rebuild the application area of my startup platform that lives at app.caudals.com and corresponds to the (app) folder in this repo. The final goal is to have a complete, market-ready, polished product.
 
-## Task
-We will start building just the new layout. Your plan should focus on how to design and implent the new app shell, do not plan the admin/contributor/requester views yet. In future messages we will plan and build the rest of the views, but right now focus on planning and implementing just the new layout based on my requrements. Think about the best and most professional design, structure and distribution for the app shell. It should feel like a real production ready app, not just a generic dashboard.
+This app is where:
+- Contributors, requesters, and administrators use the core platform workflows
+- Users manage billing methods, account settings, profile, and platform configuration (admin)
+
+Important:
+- caudals.com corresponds to (home) folder in this repo and contains the marketing landing and browse section
+- app.caudals.com corresponds to (app) folder in this repo and contains all auth screens and the full app experience
+
+## Context / Architecture
+- There are 3 role-based app experiences (views): admin, requester, contributor. Each view can have its own layout, design, sections, menus, etc.
+- Each account is associated with exactly one role
+- Admin can access all 3 views (for testing + administration)
+- Auth + DB are in a self-hosted Supabase instance on a DigitalOcean VPS
+- Storage is in DigitalOcean Object Storage
+
+## Hard requirements
+1) Start with a full extensive plan before coding
+- First, analyze how the platform works (based on repo + DB schema/API usage you find).
+- Extract requirements and current features from the existing codebase and Supabase schema.
+- Think about and decide what is the best layout for the app shell and design.
+- You can also implement new features that are particularly useful and that could enrich our platform.
+- Propose a complete plan for the refactor: app shell layout, role-based navigation, page map, key workflows, and implementation steps.
+- Write the entire plan as text before implementing anything.
+
+2) App layout + views
+- Decide the best app shell layout/design for this product.
+- For each role (admin/requester/contributor), define:
+  - sections, menus, pages
+  - required workflows and UX structure that fits the role
+  - information architecture that is intuitive and organized
+- The design may differ per role to better fit each user type.
+- The user icon and name should be located in the bottom part of the left sidebar.
+
+3) Essential pages across roles
+- Include dashboard home page, Billing/Earnings, analytics, and settings for all 3 views.
+- Admin Billing/Earnings must support:
+  - manage payments and payouts
+  - platform percentages/commissions
+  - generate invoices for custom pricing plans
+- Admin must also include:
+  - a page to create and manage featured ads
+- The role switcher should be minimal and only visible only by admins, and hidden for requesters/contributors.
+
+1) Real data only (no placeholders)
+- Discard the current (app) dashboard code completely. It was only for experimentation and testing purposes.
+- Do not reuse existing (app) components/pages.
+- Do not show fake data anywhere.
+- All sections must be powered by real API/DB/platform data (Supabase queries, server actions, and/or backend logic as appropriate).
+
+1) Fully functional product (production-ready)
+- Implement real end-to-end features (frontend + logic + DB integration).
+- Examples: settings must update user/account data in the database, billing must work, etc.
+- Aim for a polished and launch-ready app.
+
+1) shadcn/ui usage
+- Use shadcn/ui for UI components (navigation, shells, forms, dialogs, tables, charts, etc).
+- Use shadcn/ui cmd + k component for the command palette.
+- Use shadcn charts where needed:
+  - https://ui.shadcn.com/charts/area
+- Use shadcn tables where needed, including:
+  - multiselect
+  - bulk actions
+  - sorting, filtering, search
+
+1) Datasets preview + downloads
+- Requesters must be able to preview files and download datasets.
+- Handle very large dataset downloads (up to TB-scale). Design and implement the UX and backend-friendly approach (streaming, resumable downloads, signed URLs, background prep jobs, etc) without using fake data.
+
+1) Onboarding / walkthrough
+- Implement onboarding and walkthrough flows for:
+  - contributors
+  - requesters
+- Purpose: teach the main workflows and features clearly inside the app.
+
+1) i18n translations (English + Spanish)
+- The app default language is English.
+- Add Spanish translations for every user-facing text into es.json.
+- Do not miss any string. Spanish must be natural and correct (Spain-friendly neutral Spanish is fine).
+
+1)  Responsive design
+- Must work well on desktop and mobile.
+
+## Working approach inside Cursor
+- Read the repo and current (app) folder, but treat it as disposable.
+- Identify current Supabase usage patterns, auth flows, and any existing API routes/server actions.
+- If something must be created (tables, policies, endpoints), implement it and wire it fully.
+- Keep code clean, modular, and typed.
+- Ensure role-based access control is enforced both in UI and in data access.
+
+## Output format for this message
+Answer with an "ok" if you understand the task and the requirements.
+
+In the next messages we will:
+1) produce the full plan and build new layout for the app shell
+2) implement each role (admin/requester/contributor) iteratively
+
+
+We will start building just the new layout. Your plan should focus on how to design and implent the new app shell, do not plan the admin/contributor/requester views yet. 
