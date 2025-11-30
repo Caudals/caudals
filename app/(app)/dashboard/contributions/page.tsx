@@ -14,13 +14,7 @@ export default async function ContributionsPage() {
 
   return (
     <>
-      <DashboardHeader
-        title="My Contributions"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Contributions" },
-        ]}
-      />
+      <DashboardHeader title="My Contributions" />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <ContributionsView contributions={contributions} earnings={earnings} />
       </div>

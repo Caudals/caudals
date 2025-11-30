@@ -29,13 +29,7 @@ export default async function AnalyticsPage() {
 
   return (
     <>
-      <DashboardHeader
-        title="Analytics"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Analytics" },
-        ]}
-      />
+      <DashboardHeader title="Analytics" />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">

@@ -4,13 +4,7 @@ import { PaymentHistory } from "@/components/dashboard/payment-history";
 export default async function BillingPage() {
   return (
     <>
-      <DashboardHeader
-        title="Billing"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Billing" },
-        ]}
-      />
+      <DashboardHeader title="Billing" />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">

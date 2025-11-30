@@ -10,6 +10,8 @@ import {
 } from "@/types/dataset";
 import { ApprovalStatus } from "@/types/database";
 
+type PlatformSettings = Record<string, unknown>;
+
 // Check if user is admin
 export async function isAdmin() {
   const supabase = await createClient();
@@ -714,6 +716,62 @@ export async function getAdminDashboardStats() {
   };
 }
 
+// Platform settings (admin-only)
+export async function getPlatformSettings() {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { data, error } = await supabase
+    .from("platform_settings")
+    .select("key, value");
+
+  if (error) {
+    console.error("Error fetching platform settings:", error);
+    return { error: error.message };
+  }
+
+  const settings: PlatformSettings = {};
+  data?.forEach((row) => {
+    settings[row.key] = row.value;
+  });
+
+  return { data: settings };
+}
+
+export async function upsertPlatformSetting(
+  key: string,
+  value: unknown
+) {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("platform_settings")
+    .upsert({
+      key,
+      value,
+      updated_by: user?.id ?? null,
+    });
+
+  if (error) {
+    console.error("Error upserting platform setting:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/settings");
+  return { success: true };
+}
+
 // Get recent admin activity
 export async function getRecentAdminActivity() {
   const supabase = await createClient();
@@ -741,6 +799,234 @@ export async function getRecentAdminActivity() {
   }
 
   return { data };
+}
+
+// Admin overview (hero + activity)
+export async function getAdminOverview() {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const [statsRes, activityRes, highlightRes] = await Promise.all([
+    getAdminDashboardStats(),
+    supabase
+      .from("admin_activity_log")
+      .select(
+        `
+        id,
+        action_type,
+        target_type,
+        target_id,
+        notes,
+        created_at,
+        profiles:admin_id (
+          full_name
+        )
+      `
+      )
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("dataset_requests")
+      .select(
+        `
+        id,
+        title,
+        image_url,
+        approval_status,
+        status,
+        featured,
+        updated_at,
+        created_at,
+        profiles:created_by (
+          full_name
+        )
+      `
+      )
+      .order("featured", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if ("error" in statsRes) {
+    return statsRes;
+  }
+
+  type Highlight = {
+    id: string;
+    title: string | null;
+    image_url: string | null;
+    approval_status: string | null;
+    status: string | null;
+    featured: boolean | null;
+    updated_at: string | null;
+    created_at: string | null;
+    profiles?:
+      | {
+          full_name: string | null;
+        }
+      | null;
+  };
+
+  const highlight = (highlightRes.data as Highlight | null) || null;
+
+  return {
+    data: {
+      stats: statsRes.data,
+      activity: activityRes.data || [],
+      highlight,
+      lastUpdated:
+        activityRes.data?.[0]?.created_at ??
+        highlight?.updated_at ??
+        highlight?.created_at ??
+        null,
+    },
+  };
+}
+
+// Payments overview
+export async function getAdminPaymentsOverview() {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const { data: transactions, error } = await supabase
+    .from("transactions")
+    .select(
+      `
+      id,
+      user_id,
+      type,
+      direction,
+      amount,
+      fee_amount,
+      net_amount,
+      currency,
+      status,
+      reference_id,
+      dataset_request_id,
+      submission_id,
+      created_at
+    `
+    )
+    .order("created_at", { ascending: false })
+    .limit(400);
+
+  if (error) {
+    console.error("Error fetching transactions:", error);
+    return { error: error.message };
+  }
+
+  const completed = transactions?.filter((t) => t.status === "completed") ?? [];
+  const totalVolume = completed.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const platformCommission = completed.reduce(
+    (sum, t) => sum + Number(t.fee_amount || 0),
+    0
+  );
+  const payouts = completed.filter((t) => t.type === "submission_payout");
+  const payoutVolume = payouts.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+  const pendingPayouts =
+    transactions?.filter(
+      (t) => t.type === "submission_payout" && t.status === "pending"
+    ) ?? [];
+
+  return {
+    data: {
+      totals: {
+        totalVolume,
+        platformCommission,
+        payoutVolume,
+        totalTransactions: transactions?.length ?? 0,
+        completedCount: completed.length,
+        pendingPayouts: pendingPayouts.length,
+      },
+      transactions: transactions ?? [],
+    },
+  };
+}
+
+// Admin analytics snapshot
+export async function getAdminAnalyticsSummary() {
+  const supabase = await createClient();
+
+  if (!(await isAdmin())) {
+    return { error: "Admin access required" };
+  }
+
+  const [usersRes, datasetsRes, submissionsRes] = await Promise.all([
+    supabase.from("profiles").select("role, created_at"),
+    supabase
+      .from("dataset_requests")
+      .select("status, approval_status, created_at"),
+    supabase.from("submissions").select("status, created_at"),
+  ]);
+
+  if (usersRes.error || datasetsRes.error || submissionsRes.error) {
+    const err =
+      usersRes.error?.message ||
+      datasetsRes.error?.message ||
+      submissionsRes.error?.message;
+    return { error: err || "Failed to load analytics" };
+  }
+
+  const users = usersRes.data ?? [];
+  const datasets = datasetsRes.data ?? [];
+  const submissions = submissionsRes.data ?? [];
+
+  const usersByRole = users.reduce<Record<string, number>>((acc, u) => {
+    acc[u.role as string] = (acc[u.role as string] || 0) + 1;
+    return acc;
+  }, {});
+
+  const datasetsByStatus = datasets.reduce<Record<string, number>>((acc, d) => {
+    acc[d.status as string] = (acc[d.status as string] || 0) + 1;
+    acc[d.approval_status as string] =
+      (acc[d.approval_status as string] || 0) + 1;
+    return acc;
+  }, {});
+
+  const submissionsByStatus = submissions.reduce<Record<string, number>>(
+    (acc, s) => {
+      acc[s.status as string] = (acc[s.status as string] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const dailySeries = Array.from({ length: 31 }).map((_, idx) => {
+    const date = new Date(thirtyDaysAgo);
+    date.setDate(date.getDate() + idx);
+    const key = date.toISOString().split("T")[0];
+    return {
+      date: key,
+      requests: datasets.filter(
+        (d) => d.created_at && d.created_at.startsWith(key)
+      ).length,
+      submissions: submissions.filter(
+        (s) => s.created_at && s.created_at.startsWith(key)
+      ).length,
+      users: users.filter(
+        (u) => u.created_at && u.created_at.startsWith(key)
+      ).length,
+    };
+  });
+
+  return {
+    data: {
+      usersByRole,
+      datasetsByStatus,
+      submissionsByStatus,
+      dailySeries,
+    },
+  };
 }
 
 // Update user role
