@@ -1169,8 +1169,8 @@ export async function submitStripeOnboarding(
           email: payload.email ?? profile?.mail ?? user.email ?? undefined,
           business_type: "individual",
           capabilities: {
+            // Only request transfers for payout-only use case.
             transfers: { requested: true },
-            card_payments: { requested: true },
           },
           tos_acceptance: {
             date: Math.floor(Date.now() / 1000),
