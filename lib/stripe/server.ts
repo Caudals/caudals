@@ -11,7 +11,8 @@ if (SECRET_KEY && !SECRET_KEY.startsWith('sk_')) {
 // Only create Stripe instance if we have the secret key
 export const stripe = SECRET_KEY
   ? new Stripe(SECRET_KEY, {
-      apiVersion: '2025-09-30.clover',
+      // Use a real, pinned API version to avoid runtime failures
+      apiVersion: '2024-06-20',
       typescript: true,
     })
   : null;
