@@ -29,14 +29,15 @@ Important:
 
 ## Hard requirements
 1) Start with a full extensive plan before coding
-- First, analyze how the platform works (based on repo + DB schema/API usage you find).
+- First, analyze how the platform works.
 - Extract requirements and current features from the existing codebase and Supabase schema.
 - Think about and decide what is the best layout for the app shell and design.
-- You can also implement new features that are particularly useful and that could enrich our platform.
+- You should also implement new features that are particularly useful and that could improve/enrich our platform.
 - Propose a complete plan for the refactor: app shell layout, role-based navigation, page map, key workflows, and implementation steps.
 - Write the entire plan as text before implementing anything.
+- The plan should describe, for each role, the pages and sections that are required (and that will appear in the sidebar), and the flows and features that each one of them should have.
 
-2) App layout + views
+1) App layout + views
 - Decide the best app shell layout/design for this product.
 - For each role (admin/requester/contributor), define:
   - sections, menus, pages
@@ -45,7 +46,7 @@ Important:
 - The design may differ per role to better fit each user type.
 - The user icon and name should be located in the bottom part of the left sidebar.
 
-3) Essential pages across roles
+1) Essential pages across roles
 - Include dashboard home page, Billing/Earnings, analytics, and settings for all 3 views.
 - Admin Billing/Earnings must support:
   - manage payments and payouts
