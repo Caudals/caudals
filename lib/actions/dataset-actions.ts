@@ -8,7 +8,17 @@ import {
   DataType,
   DatasetStatus,
 } from "@/types/dataset";
-import { deriveDatasetStatus } from "@/lib/actions/payment-actions";
+import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
+import type { DatasetRequestRow } from "@/types/admin";
+
+type DatasetRequestWithSubs = DatasetRequestRow & {
+  submissions?: { contributor_id: string; status?: string }[];
+  profiles?: {
+    id: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
 
 export async function getDatasets() {
   const supabase = await createClient();
@@ -35,7 +45,7 @@ export async function getDatasets() {
   }
 
   // Transform database data to match Dataset type
-  const datasets: Dataset[] = data.map((item) => {
+  const datasets: Dataset[] = data.map((item: DatasetRequestWithSubs) => {
     const uniqueContributors = new Set(
       item.submissions?.map(
         (s: { contributor_id: string }) => s.contributor_id
@@ -43,8 +53,8 @@ export async function getDatasets() {
     );
 
     const derivedStatus = deriveDatasetStatus(
-      item.approval_status as any,
-      item.payment_status as any
+      item.approval_status,
+      item.payment_status
     ) as DatasetStatus;
 
     return {
@@ -57,7 +67,7 @@ export async function getDatasets() {
       organization: {
         id: item.profiles?.id || "",
         name: item.profiles?.full_name || "Unknown",
-        avatar: item.profiles?.avatar_url,
+        avatar: item.profiles?.avatar_url ?? undefined,
         verified: false, // Can be enhanced later
       },
       samplesNeeded: item.samples_needed,
@@ -101,15 +111,17 @@ export async function getDatasetById(id: string) {
     return null;
   }
 
+  const datasetRow = data as DatasetRequestWithSubs;
+
   const uniqueContributors = new Set(
-    data.submissions?.map(
+    datasetRow.submissions?.map(
       (s: { contributor_id: string }) => s.contributor_id
     ) || []
   );
 
   const derivedStatus = deriveDatasetStatus(
-    data.approval_status as any,
-    data.payment_status as any
+    datasetRow.approval_status,
+    datasetRow.payment_status
   ) as DatasetStatus;
 
   const dataset: Dataset = {
@@ -315,12 +327,9 @@ export async function getUserDatasetRequests() {
   }
 
   return (
-    data?.map((item) => ({
+    data?.map((item: DatasetRequestRow) => ({
       ...item,
-      status: deriveDatasetStatus(
-        item.approval_status as any,
-        item.payment_status as any
-      ),
+      status: deriveDatasetStatus(item.approval_status, item.payment_status),
     })) || []
   );
 }

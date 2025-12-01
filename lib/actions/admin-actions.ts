@@ -3,16 +3,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import {
-  getDatasetBudgetSummary,
-  deriveDatasetStatus,
-} from "@/lib/actions/payment-actions";
+import { getDatasetBudgetSummary } from "@/lib/actions/payment-actions";
+import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 import {
   DatasetCategory,
   DataType,
   DatasetStatus,
 } from "@/types/dataset";
 import { ApprovalStatus } from "@/types/database";
+import type { DatasetRequestRow } from "@/types/admin";
 
 type PlatformSettings = Record<string, unknown>;
 
@@ -63,12 +62,9 @@ export async function getPendingDatasetRequests() {
   }
 
   const normalized =
-    data?.map((item) => ({
+    data?.map((item: DatasetRequestRow) => ({
       ...item,
-      status: deriveDatasetStatus(
-        item.approval_status as any,
-        item.payment_status as any
-      ),
+      status: deriveDatasetStatus(item.approval_status, item.payment_status),
     })) ?? [];
 
   return { data: normalized };
@@ -101,12 +97,9 @@ export async function getAdminDatasetRequests() {
   }
 
   const normalized =
-    data?.map((item) => ({
+    data?.map((item: DatasetRequestRow) => ({
       ...item,
-      status: deriveDatasetStatus(
-        item.approval_status as any,
-        item.payment_status as any
-      ),
+      status: deriveDatasetStatus(item.approval_status, item.payment_status),
     })) ?? [];
 
   return { data: normalized };

@@ -7,8 +7,8 @@ import {
   syncWalletFromConnectAccount,
   syncWalletFromCustomer,
   getDatasetBudgetSummary,
-  deriveDatasetStatus,
 } from "@/lib/actions/payment-actions";
+import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
 
