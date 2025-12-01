@@ -3,7 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { getDatasetBudgetSummary } from "@/lib/actions/payment-actions";
+import {
+  getDatasetBudgetSummary,
+  deriveDatasetStatus,
+} from "@/lib/actions/payment-actions";
 import {
   DatasetCategory,
   DataType,
@@ -59,7 +62,16 @@ export async function getPendingDatasetRequests() {
     return { error: error.message };
   }
 
-  return { data };
+  const normalized =
+    data?.map((item) => ({
+      ...item,
+      status: deriveDatasetStatus(
+        item.approval_status as any,
+        item.payment_status as any
+      ),
+    })) ?? [];
+
+  return { data: normalized };
 }
 
 export async function getAdminDatasetRequests() {
@@ -88,7 +100,16 @@ export async function getAdminDatasetRequests() {
     return { error: error.message };
   }
 
-  return { data };
+  const normalized =
+    data?.map((item) => ({
+      ...item,
+      status: deriveDatasetStatus(
+        item.approval_status as any,
+        item.payment_status as any
+      ),
+    })) ?? [];
+
+  return { data: normalized };
 }
 
 export interface AdminDatasetUpdates {

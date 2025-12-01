@@ -55,20 +55,6 @@ export function RequestsTable({ requests }: RequestsTableProps) {
   const router = useRouter();
   const toast = useLocaleToast();
   const t = useTranslations();
-  const handleStatusChange = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "active" ? "paused" : "active";
-    const result = await updateDatasetRequest(id, { status: newStatus });
-
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success(
-        `Request ${newStatus === "active" ? "resumed" : "paused"} successfully`
-      );
-      router.refresh();
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (
       !confirm(
@@ -198,25 +184,10 @@ export function RequestsTable({ requests }: RequestsTableProps) {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {request.status === "active" ? (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(request.id, request.status)
-                            }
-                          >
-                            <Pause className="mr-2 h-4 w-4" />
-                            Pause Request
-                          </DropdownMenuItem>
-                        ) : request.status === "paused" ? (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleStatusChange(request.id, request.status)
-                            }
-                          >
-                            <Play className="mr-2 h-4 w-4" />
-                            Resume Request
-                          </DropdownMenuItem>
-                        ) : null}
+                        <DropdownMenuItem disabled className="opacity-60">
+                          <Pause className="mr-2 h-4 w-4" />
+                          Status is controlled by approval/funding
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"

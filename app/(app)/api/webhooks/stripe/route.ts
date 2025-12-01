@@ -7,6 +7,7 @@ import {
   syncWalletFromConnectAccount,
   syncWalletFromCustomer,
   getDatasetBudgetSummary,
+  deriveDatasetStatus,
 } from "@/lib/actions/payment-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
@@ -199,6 +200,7 @@ async function handlePaymentIntentSucceeded(
       totalBudgetCents,
       fundedCents,
       remainingForFundingCents,
+      approvalStatus,
     } = budgetSummary.data;
 
     if (totalBudgetCents <= 0) {
@@ -288,6 +290,7 @@ async function handlePaymentIntentSucceeded(
       payment_status: nextStatus,
       paid_amount: newPaidAmount,
       stripe_payment_intent_id: paymentIntent.id,
+      status: deriveDatasetStatus(approvalStatus, nextStatus),
     };
 
     const { error: datasetUpdateError } = await adminClient

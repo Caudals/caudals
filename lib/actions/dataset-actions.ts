@@ -8,6 +8,7 @@ import {
   DataType,
   DatasetStatus,
 } from "@/types/dataset";
+import { deriveDatasetStatus } from "@/lib/actions/payment-actions";
 
 export async function getDatasets() {
   const supabase = await createClient();
@@ -41,13 +42,18 @@ export async function getDatasets() {
       ) || []
     );
 
+    const derivedStatus = deriveDatasetStatus(
+      item.approval_status as any,
+      item.payment_status as any
+    ) as DatasetStatus;
+
     return {
       id: item.id,
       title: item.title,
       description: item.description,
       category: item.category as DatasetCategory,
       dataType: item.data_type as DataType,
-      status: item.status as DatasetStatus,
+      status: derivedStatus,
       organization: {
         id: item.profiles?.id || "",
         name: item.profiles?.full_name || "Unknown",
@@ -101,13 +107,18 @@ export async function getDatasetById(id: string) {
     ) || []
   );
 
+  const derivedStatus = deriveDatasetStatus(
+    data.approval_status as any,
+    data.payment_status as any
+  ) as DatasetStatus;
+
   const dataset: Dataset = {
     id: data.id,
     title: data.title,
     description: data.description,
     category: data.category as DatasetCategory,
     dataType: data.data_type as DataType,
-    status: data.status as DatasetStatus,
+    status: derivedStatus,
     organization: {
       id: data.profiles?.id || "",
       name: data.profiles?.full_name || "Unknown",
@@ -190,6 +201,7 @@ export async function createDatasetRequest(formData: {
       deadline: formData.deadline,
       image_url: formData.imageUrl,
       approval_status: "pending", // All new requests need admin approval
+      status: "paused", // Keep inactive until approved & funded
       total_budget: totalBudget || null,
     })
     .select()
@@ -302,5 +314,13 @@ export async function getUserDatasetRequests() {
     return [];
   }
 
-  return data || [];
+  return (
+    data?.map((item) => ({
+      ...item,
+      status: deriveDatasetStatus(
+        item.approval_status as any,
+        item.payment_status as any
+      ),
+    })) || []
+  );
 }
