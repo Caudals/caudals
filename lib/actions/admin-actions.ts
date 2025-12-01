@@ -213,8 +213,8 @@ export async function adminUpdateDatasetApproval(
 }
 
 export async function adminDeleteDatasetRequest(id: string) {
-  const supabase = await createClient();
-
+  const supabase = createAdminClient();
+  // Admin check still required to avoid accidental calls
   if (!(await isAdmin())) {
     return { error: "Admin access required" };
   }
@@ -364,7 +364,7 @@ export async function adminBulkDeleteDatasetRequests(ids: string[]) {
     return { error: "No dataset IDs provided" };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (!(await isAdmin())) {
     return { error: "Admin access required" };
