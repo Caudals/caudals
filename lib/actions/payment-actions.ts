@@ -277,7 +277,7 @@ export async function getDatasetBudgetSummary(
 
   const { data: dataset, error: datasetError } = await adminClient
     .from("dataset_requests")
-    .select("id, total_budget, reward_amount")
+    .select("id, total_budget, reward_amount, samples_needed")
     .eq("id", datasetId)
     .maybeSingle();
 
@@ -286,7 +286,10 @@ export async function getDatasetBudgetSummary(
     return { error: "Dataset not found or budget unavailable" };
   }
 
-  const totalBudgetCents = Math.round(Number(dataset.total_budget ?? 0) * 100);
+  const derivedBudgetCents = Math.round(
+    Number(dataset.samples_needed ?? 0) * Number(dataset.reward_amount ?? 0) * 100
+  );
+  const totalBudgetCents = Math.round(Number(dataset.total_budget ?? 0) * 100) || derivedBudgetCents;
   const rewardCents = Math.round(Number(dataset.reward_amount ?? 0) * 100);
 
   const { data: fundingRow, error: fundingError } = await adminClient

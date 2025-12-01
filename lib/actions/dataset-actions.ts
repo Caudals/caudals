@@ -172,6 +172,8 @@ export async function createDatasetRequest(formData: {
     return { error: "A cover image is required for every dataset request." };
   }
 
+  const totalBudget = Number(formData.samplesNeeded ?? 0) * Number(formData.rewardAmount ?? 0);
+
   const { data, error } = await supabase
     .from("dataset_requests")
     .insert({
@@ -188,6 +190,7 @@ export async function createDatasetRequest(formData: {
       deadline: formData.deadline,
       image_url: formData.imageUrl,
       approval_status: "pending", // All new requests need admin approval
+      total_budget: totalBudget || null,
     })
     .select()
     .single();
@@ -212,14 +215,30 @@ export async function updateDatasetRequest(
     status?: string;
     deadline?: string;
     reward_amount?: number;
+    samples_needed?: number;
     image_url?: string;
   }
 ) {
   const supabase = await createClient();
 
+  const payload: Record<string, unknown> = { ...updates };
+
+  if (updates.reward_amount !== undefined || updates.samples_needed !== undefined) {
+    // Recompute total_budget if reward or samples change
+    const { data: existing } = await supabase
+      .from("dataset_requests")
+      .select("reward_amount, samples_needed")
+      .eq("id", id)
+      .single();
+
+    const reward = updates.reward_amount ?? existing?.reward_amount ?? 0;
+    const samples = updates.samples_needed ?? existing?.samples_needed ?? 0;
+    payload.total_budget = Number(samples ?? 0) * Number(reward ?? 0);
+  }
+
   const { data, error } = await supabase
     .from("dataset_requests")
-    .update(updates)
+    .update(payload)
     .eq("id", id)
     .select()
     .single();
