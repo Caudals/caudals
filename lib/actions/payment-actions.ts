@@ -295,9 +295,9 @@ export async function getDatasetBudgetSummary(
     .eq("dataset_request_id", datasetId)
     .eq("type", "dataset_funding")
     .eq("status", "completed")
-    .single();
+    .maybeSingle();
 
-  if (fundingError) {
+  if (fundingError && fundingError.code !== "PGRST116") {
     console.error("Failed to aggregate dataset funding", fundingError);
     return { error: "Failed to aggregate dataset funding" };
   }
@@ -308,9 +308,9 @@ export async function getDatasetBudgetSummary(
     .eq("dataset_request_id", datasetId)
     .eq("type", "submission_payout")
     .eq("status", "completed")
-    .single();
+    .maybeSingle();
 
-  if (payoutError) {
+  if (payoutError && payoutError.code !== "PGRST116") {
     console.error("Failed to aggregate dataset payouts", payoutError);
     return { error: "Failed to aggregate dataset payouts" };
   }
