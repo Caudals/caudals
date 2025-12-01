@@ -298,8 +298,7 @@ export async function getDatasetBudgetSummary(
     .maybeSingle();
 
   if (fundingError && fundingError.code !== "PGRST116") {
-    console.error("Failed to aggregate dataset funding", fundingError);
-    return { error: "Failed to aggregate dataset funding" };
+    console.warn("Failed to aggregate dataset funding, defaulting to 0", fundingError);
   }
 
   const { data: payoutRow, error: payoutError } = await adminClient
@@ -311,8 +310,7 @@ export async function getDatasetBudgetSummary(
     .maybeSingle();
 
   if (payoutError && payoutError.code !== "PGRST116") {
-    console.error("Failed to aggregate dataset payouts", payoutError);
-    return { error: "Failed to aggregate dataset payouts" };
+    console.warn("Failed to aggregate dataset payouts, defaulting to 0", payoutError);
   }
 
   const fundedCents = Math.round(
