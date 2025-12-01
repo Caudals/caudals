@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeServer } from "@/lib/stripe/server";
 import type { Database, Json } from "@/types/database";
-import type { DatasetStatus } from "@/types/dataset";
+import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 
 const PLATFORM_FEE_PERCENTAGE = Number(
   process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE ?? "10"
@@ -352,15 +352,6 @@ function paymentStatusFromFunding(
   if (fundedCents >= totalBudgetCents) return "paid";
   if (fundedCents > 0) return "partial";
   return "unpaid";
-}
-
-export function deriveDatasetStatus(
-  approvalStatus: DatasetRow["approval_status"] | null,
-  paymentStatus: DatasetRow["payment_status"] | null
-): DatasetStatus {
-  if (approvalStatus !== "approved") return "paused";
-  if (paymentStatus === "paid" || paymentStatus === "partial") return "active";
-  return "paused";
 }
 
 export const ensureWalletRecord = async (
