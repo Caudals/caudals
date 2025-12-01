@@ -71,11 +71,17 @@ interface RequesterDatasetDetailProps {
       avatar_url?: string;
     };
   }>;
+  budgetSummary?: {
+    totalBudgetCents: number;
+    fundedCents: number;
+    paymentStatus: Dataset["paymentStatus"] | null;
+  } | null;
 }
 
 export function RequesterDatasetDetail({
   dataset,
   submissions,
+  budgetSummary,
 }: RequesterDatasetDetailProps) {
   const router = useRouter();
   const toast = useLocaleToast();
@@ -86,6 +92,18 @@ export function RequesterDatasetDetail({
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const progress = (dataset.samplesCollected / dataset.samplesNeeded) * 100;
+  const fundedAmount =
+    budgetSummary?.fundedCents !== undefined
+      ? budgetSummary.fundedCents / 100
+      : dataset.paidAmount ?? 0;
+  const totalRequired =
+    budgetSummary?.totalBudgetCents !== undefined
+      ? budgetSummary.totalBudgetCents / 100
+      : dataset.totalBudget ?? dataset.samplesNeeded * dataset.rewardAmount;
+  const paymentStatus =
+    budgetSummary?.paymentStatus ??
+    (dataset.paymentStatus as Dataset["paymentStatus"]) ??
+    "unpaid";
 
   const filteredSubmissions = submissions.filter(
     (sub) => statusFilter === "all" || sub.status === statusFilter
@@ -309,10 +327,10 @@ export function RequesterDatasetDetail({
       <DatasetPayment
         datasetId={dataset.id}
         datasetTitle={dataset.title}
-        currentBudget={dataset.paidAmount ?? 0}
+        currentBudget={fundedAmount}
         samplesNeeded={dataset.samplesNeeded}
         rewardPerSample={dataset.rewardAmount}
-        paymentStatus={dataset.paymentStatus ?? "unpaid"}
+        paymentStatus={paymentStatus ?? "unpaid"}
         onPaymentSuccess={() => {
           toast.success("Payment successful! Dataset funding updated.");
           router.refresh();
