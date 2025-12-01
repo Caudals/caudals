@@ -1802,13 +1802,7 @@ export async function payoutToContributor(
     accountRecord.default_currency ?? "usd"
   ).toLowerCase();
   const datasetCurrency = datasetRecord?.currency?.toLowerCase();
-  if (datasetCurrency && datasetCurrency !== accountCurrency) {
-    return {
-      error: `Payout currency mismatch. Dataset is ${datasetCurrency.toUpperCase()} but payout account is ${accountCurrency.toUpperCase()}. Update the payout account to match before paying out.`,
-    };
-  }
-
-  const transferCurrency = (datasetCurrency ?? accountCurrency) || "usd";
+  const transferCurrency = (accountCurrency || datasetCurrency || "usd").toLowerCase();
 
   try {
     const transfer = await stripe.transfers.create({
@@ -1818,6 +1812,7 @@ export async function payoutToContributor(
       metadata: {
         submission_id: submissionId,
         dataset_id: datasetId,
+        dataset_currency: datasetCurrency ?? "usd",
       },
       description: `Payout for submission ${submissionId}`,
       transfer_group: `dataset_${datasetId}`,
