@@ -6,6 +6,7 @@ import {
   ensureWalletRecord,
   syncWalletFromConnectAccount,
   syncWalletFromCustomer,
+  getDatasetBudgetSummary,
 } from "@/lib/actions/payment-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
@@ -188,11 +189,35 @@ async function handlePaymentIntentSucceeded(
       return;
     }
 
+    const budgetSummary = await getDatasetBudgetSummary(datasetId, admin);
+    if (budgetSummary.error || !budgetSummary.data) {
+      console.error("Failed to load dataset budget", budgetSummary.error);
+      return;
+    }
+
+    const {
+      totalBudgetCents,
+      fundedCents,
+      remainingForFundingCents,
+    } = budgetSummary.data;
+
+    if (totalBudgetCents <= 0) {
+      console.error("Dataset has no total budget set; rejecting funding");
+      return;
+    }
+
+    if (remainingForFundingCents <= 0) {
+      console.log("Dataset already fully funded; skipping extra payment");
+      return;
+    }
+
+    const amountToApply = Math.min(amountReceived, remainingForFundingCents);
+
     const payload: TransactionInsert = {
       user_id: userId,
       direction: "debit",
       type: "dataset_funding",
-      amount: amountReceived,
+      amount: amountToApply,
       currency,
       status: "completed",
       reference_id: paymentIntent.id,
@@ -246,13 +271,15 @@ async function handlePaymentIntentSucceeded(
       );
     }
 
-    const previousPaid = Number(existingDataset?.paid_amount ?? 0);
+    const newFundedCents = fundedCents + amountToApply;
     const totalBudget = Number(existingDataset?.total_budget ?? 0) || null;
-    const increment = centsToDollars(amountReceived);
-    const newPaidAmount = previousPaid + increment;
+    const newPaidAmount =
+      totalBudget && Number.isFinite(totalBudget)
+        ? Math.min(totalBudget, centsToDollars(newFundedCents))
+        : centsToDollars(newFundedCents);
     const nextStatus =
       totalBudget && Number.isFinite(totalBudget)
-        ? newPaidAmount >= totalBudget
+        ? newFundedCents >= totalBudgetCents
           ? "paid"
           : "partial"
         : "partial";

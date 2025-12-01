@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { getDatasetBudgetSummary } from "@/lib/actions/payment-actions";
 import {
   DatasetCategory,
   DataType,
@@ -567,24 +568,17 @@ export async function approveSubmission(submissionId: string, notes?: string) {
   if (datasetRequest?.reward_amount) {
     const adminClient = createAdminClient();
 
-    // Calculate remaining funded budget for this dataset
-    const rewardCents = Math.round(Number(datasetRequest.reward_amount) * 100);
-    const fundedCents = Math.round(Number(datasetRequest.paid_amount ?? 0) * 100);
-
-    const { data: payoutSumRow } = await adminClient
-      .from("transactions")
-      .select("sum(amount) as total_payout")
-      .eq("dataset_request_id", submission.dataset_request_id)
-      .eq("type", "submission_payout")
-      .eq("status", "completed")
-      .single();
-
-    const totalPayoutCents = Math.round(
-      Number((payoutSumRow as { total_payout: number | null } | null)?.total_payout ?? 0)
+    const budgetSummary = await getDatasetBudgetSummary(
+      submission.dataset_request_id,
+      adminClient
     );
-    const remainingCents = fundedCents - totalPayoutCents;
 
-    if (remainingCents >= rewardCents && fundedCents > 0) {
+    if (
+      budgetSummary.data &&
+      budgetSummary.data.rewardCents > 0 &&
+      budgetSummary.data.remainingForPayoutCents >=
+        Math.round(Number(datasetRequest.reward_amount) * 100)
+    ) {
       const { payoutToContributor } = await import(
         "@/lib/actions/payment-actions"
       );
@@ -607,10 +601,8 @@ export async function approveSubmission(submissionId: string, notes?: string) {
       console.log(
         "⚠️ Skipping payout - insufficient funded budget",
         {
-          fundedCents,
-          totalPayoutCents,
-          rewardCents,
-          remainingCents,
+          budget: budgetSummary.data,
+          rewardCents: Math.round(Number(datasetRequest.reward_amount) * 100),
         }
       );
     }

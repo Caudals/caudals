@@ -23,6 +23,7 @@ type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
 type TransactionRow = Database["public"]["Tables"]["transactions"]["Row"];
 type WalletRow = Database["public"]["Tables"]["wallets"]["Row"];
 type AdminClient = ReturnType<typeof createAdminClient>;
+type DatasetRow = Database["public"]["Tables"]["dataset_requests"]["Row"];
 
 type ServerCountryConfig = {
   requiresSSN?: boolean;
@@ -256,6 +257,94 @@ const customCapabilityHelpMessage =
 type WalletRowWithCustomer = WalletRow & {
   stripe_customer_id?: string | null;
 };
+
+type DatasetBudgetSummary = {
+  totalBudgetCents: number;
+  rewardCents: number;
+  fundedCents: number;
+  paidOutCents: number;
+  remainingForFundingCents: number;
+  remainingForPayoutCents: number;
+};
+
+export async function getDatasetBudgetSummary(
+  datasetId: string,
+  adminClientOverride?: AdminClient
+): Promise<{ data?: DatasetBudgetSummary; error?: string }> {
+  const admin = adminClientOverride ?? createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
+
+  const { data: dataset, error: datasetError } = await adminClient
+    .from("dataset_requests")
+    .select("id, total_budget, reward_amount")
+    .eq("id", datasetId)
+    .maybeSingle();
+
+  if (datasetError || !dataset) {
+    console.error("Failed to load dataset budget", datasetError);
+    return { error: "Dataset not found or budget unavailable" };
+  }
+
+  const totalBudgetCents = Math.round(Number(dataset.total_budget ?? 0) * 100);
+  const rewardCents = Math.round(Number(dataset.reward_amount ?? 0) * 100);
+
+  const { data: fundingRow, error: fundingError } = await adminClient
+    .from("transactions")
+    .select("sum(net_amount) as funded_cents")
+    .eq("dataset_request_id", datasetId)
+    .eq("type", "dataset_funding")
+    .eq("status", "completed")
+    .single();
+
+  if (fundingError) {
+    console.error("Failed to aggregate dataset funding", fundingError);
+    return { error: "Failed to aggregate dataset funding" };
+  }
+
+  const { data: payoutRow, error: payoutError } = await adminClient
+    .from("transactions")
+    .select("sum(net_amount) as payout_cents")
+    .eq("dataset_request_id", datasetId)
+    .eq("type", "submission_payout")
+    .eq("status", "completed")
+    .single();
+
+  if (payoutError) {
+    console.error("Failed to aggregate dataset payouts", payoutError);
+    return { error: "Failed to aggregate dataset payouts" };
+  }
+
+  const fundedCents = Math.round(
+    Number((fundingRow as { funded_cents: number | null } | null)?.funded_cents ?? 0)
+  );
+  const paidOutCents = Math.round(
+    Number((payoutRow as { payout_cents: number | null } | null)?.payout_cents ?? 0)
+  );
+  const remainingForFundingCents = Math.max(0, totalBudgetCents - fundedCents);
+  const remainingForPayoutCents = Math.max(0, fundedCents - paidOutCents);
+
+  return {
+    data: {
+      totalBudgetCents,
+      rewardCents,
+      fundedCents,
+      paidOutCents,
+      remainingForFundingCents,
+      remainingForPayoutCents,
+    },
+  };
+}
+
+function paymentStatusFromFunding(
+  totalBudgetCents: number,
+  fundedCents: number
+): DatasetRow["payment_status"] {
+  if (totalBudgetCents <= 0) return "partial";
+  if (fundedCents >= totalBudgetCents) return "paid";
+  if (fundedCents > 0) return "partial";
+  return "unpaid";
+}
 
 export const ensureWalletRecord = async (
   adminClient: AdminClient,
@@ -813,7 +902,7 @@ export async function createPaymentIntent(
 
     const { data: dataset, error: datasetError } = await supabase
       .from("dataset_requests")
-      .select("id, title, created_by, total_budget, commission_percentage")
+      .select("id, title, created_by")
       .eq("id", datasetId)
       .single();
 
@@ -821,10 +910,37 @@ export async function createPaymentIntent(
       return { error: "Dataset not found or access denied" };
     }
 
+    const budgetSummary = await getDatasetBudgetSummary(datasetId, adminClient);
+    if (budgetSummary.error || !budgetSummary.data) {
+      return { error: budgetSummary.error ?? "Failed to load dataset budget" };
+    }
+
+    const {
+      totalBudgetCents,
+      remainingForFundingCents,
+      fundedCents,
+    } = budgetSummary.data;
+
+    if (totalBudgetCents <= 0) {
+      return { error: "Dataset has no total budget set. Add a budget before funding." };
+    }
+
+    if (remainingForFundingCents <= 0) {
+      return { error: "Dataset is already fully funded." };
+    }
+
+    if (amountInCents > remainingForFundingCents) {
+      const maxFundable = amountFromCents(remainingForFundingCents);
+      return {
+        error: `You can fund up to ${maxFundable.toFixed(2)} to reach the dataset budget.`,
+      };
+    }
+
     const metadata: Record<string, string> = {
       user_id: user.id,
       dataset_id: datasetId,
       type: "dataset_funding",
+      current_funded: fundedCents.toString(),
     };
 
     if (customerId) {
@@ -933,33 +1049,50 @@ export async function confirmPayment(paymentIntentId: string) {
 
     if (metadata.type === "dataset_funding" && metadata.dataset_id) {
       const datasetId = metadata.dataset_id;
+      const budgetSummary = await getDatasetBudgetSummary(datasetId, adminClient);
+
+      if (budgetSummary.error || !budgetSummary.data) {
+        return { error: budgetSummary.error ?? "Failed to load dataset budget" };
+      }
+
+      const {
+        totalBudgetCents,
+        fundedCents,
+        remainingForFundingCents,
+      } = budgetSummary.data;
+
+      if (totalBudgetCents <= 0) {
+        return { error: "Dataset has no total budget set. Add a budget before funding." };
+      }
+
+      if (remainingForFundingCents <= 0) {
+        return { data: { success: true } }; // Already fully funded; ignore extra payment.
+      }
+
+      const amountToApply = Math.min(
+        paymentIntent.amount_received ?? paymentIntent.amount,
+        remainingForFundingCents
+      );
 
       await recordTransaction({
         userId,
         direction: "debit",
         type: "dataset_funding",
-        amountInCents: paymentIntent.amount_received ?? paymentIntent.amount,
+        amountInCents: amountToApply,
         currency: paymentIntent.currency,
         referenceId: paymentIntent.id,
         datasetRequestId: datasetId,
         metadata: metadata as Record<string, unknown>,
       });
 
-      const { data: datasetRecord } = await supabase
-        .from("dataset_requests")
-        .select("paid_amount, total_budget")
-        .eq("id", datasetId)
-        .single();
-
-      const previousPaid = Number(datasetRecord?.paid_amount ?? 0);
-      const totalBudget = Number(datasetRecord?.total_budget ?? 0) || null;
-      const increment = amountFromCents(
-        paymentIntent.amount_received ?? paymentIntent.amount
-      );
-      const newPaidAmount = previousPaid + increment;
+      const newFundedCents = fundedCents + amountToApply;
+      const newPaidAmount =
+        totalBudgetCents > 0
+          ? amountFromCents(Math.min(totalBudgetCents, newFundedCents))
+          : amountFromCents(newFundedCents);
       const nextStatus =
-        totalBudget && Number.isFinite(totalBudget)
-          ? newPaidAmount >= totalBudget
+        totalBudgetCents > 0
+          ? newFundedCents >= totalBudgetCents
             ? "paid"
             : "partial"
           : "partial";
@@ -1034,12 +1167,39 @@ export async function payWithWallet(datasetId: string, amount: number) {
 
   const { data: dataset, error: datasetError } = await supabase
     .from("dataset_requests")
-    .select("id, title, commission_percentage, paid_amount, total_budget")
+    .select("id, title, paid_amount")
     .eq("id", datasetId)
     .single();
 
   if (datasetError || !dataset) {
     return { error: "Dataset not found" };
+  }
+
+  const budgetSummary = await getDatasetBudgetSummary(datasetId, adminClient);
+  if (budgetSummary.error || !budgetSummary.data) {
+    return { error: budgetSummary.error ?? "Failed to load dataset budget" };
+  }
+
+  const {
+    totalBudgetCents,
+    remainingForFundingCents,
+    fundedCents,
+  } = budgetSummary.data;
+
+  if (totalBudgetCents <= 0) {
+    return { error: "Dataset has no total budget set. Add a budget before funding." };
+  }
+
+  if (remainingForFundingCents <= 0) {
+    return { error: "Dataset is already fully funded." };
+  }
+
+  if (amountInCents > remainingForFundingCents) {
+    return {
+      error: `You can fund up to ${amountFromCents(remainingForFundingCents).toFixed(
+        2
+      )} to reach the dataset budget.`,
+    };
   }
 
   await recordTransaction({
@@ -1055,12 +1215,13 @@ export async function payWithWallet(datasetId: string, amount: number) {
     },
   });
 
+  const newFundedCents = fundedCents + amountInCents;
   const previousPaid = Number(dataset.paid_amount ?? 0);
-  const totalBudget = Number(dataset.total_budget ?? 0) || null;
-  const newPaidAmount = previousPaid + amount;
+  const totalBudget = Number(totalBudgetCents) / 100;
+  const newPaidAmount = Math.min(totalBudget, previousPaid + amount);
   const nextStatus =
-    totalBudget && Number.isFinite(totalBudget)
-      ? newPaidAmount >= totalBudget
+    totalBudgetCents > 0
+      ? newFundedCents >= totalBudgetCents
         ? "paid"
         : "partial"
       : "partial";
