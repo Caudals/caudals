@@ -309,10 +309,10 @@ export function RequesterDatasetDetail({
       <DatasetPayment
         datasetId={dataset.id}
         datasetTitle={dataset.title}
-        currentBudget={0} // Will be loaded from database
+        currentBudget={dataset.paidAmount ?? 0}
         samplesNeeded={dataset.samplesNeeded}
         rewardPerSample={dataset.rewardAmount}
-        paymentStatus="unpaid" // Will be loaded from database
+        paymentStatus={dataset.paymentStatus ?? "unpaid"}
         onPaymentSuccess={() => {
           toast.success("Payment successful! Dataset funding updated.");
           router.refresh();

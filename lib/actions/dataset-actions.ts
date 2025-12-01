@@ -79,6 +79,9 @@ export async function getDatasets() {
       datePosted: item.created_at,
       qualityCriteria: item.quality_criteria || [],
       requirements: item.requirements || [],
+      paidAmount: Number(item.paid_amount ?? 0),
+      totalBudget: Number(item.total_budget ?? 0),
+      paymentStatus: item.payment_status as Dataset["paymentStatus"],
       featured: item.featured,
       imageUrl: item.image_url || "/images/dataset-placeholder.svg",
     };
@@ -146,6 +149,9 @@ export async function getDatasetById(id: string) {
     datePosted: data.created_at,
     qualityCriteria: data.quality_criteria || [],
     requirements: data.requirements || [],
+    paidAmount: Number(data.paid_amount ?? 0),
+    totalBudget: Number(data.total_budget ?? 0),
+    paymentStatus: data.payment_status as Dataset["paymentStatus"],
     featured: data.featured,
     imageUrl: data.image_url || "/images/dataset-placeholder.svg",
   };
@@ -330,6 +336,9 @@ export async function getUserDatasetRequests() {
     data?.map((item: DatasetRequestRow) => ({
       ...item,
       status: deriveDatasetStatus(item.approval_status, item.payment_status),
+      paidAmount: Number(item.paid_amount ?? 0),
+      totalBudget: Number(item.total_budget ?? 0),
+      paymentStatus: item.payment_status as Dataset["paymentStatus"],
     })) || []
   );
 }

@@ -34,6 +34,9 @@ export interface Dataset {
   datePosted: string;
   qualityCriteria: string[];
   requirements: string[];
+  paidAmount?: number;
+  totalBudget?: number;
+  paymentStatus?: "unpaid" | "partial" | "paid" | "refunded";
   featured?: boolean;
   imageUrl: string;
 }
