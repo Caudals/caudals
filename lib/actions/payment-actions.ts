@@ -291,7 +291,7 @@ export async function getDatasetBudgetSummary(
 
   const { data: fundingRow, error: fundingError } = await adminClient
     .from("transactions")
-    .select("sum(net_amount) as funded_cents")
+    .select("funded_cents:sum(net_amount)")
     .eq("dataset_request_id", datasetId)
     .eq("type", "dataset_funding")
     .eq("status", "completed")
@@ -304,7 +304,7 @@ export async function getDatasetBudgetSummary(
 
   const { data: payoutRow, error: payoutError } = await adminClient
     .from("transactions")
-    .select("sum(net_amount) as payout_cents")
+    .select("payout_cents:sum(net_amount)")
     .eq("dataset_request_id", datasetId)
     .eq("type", "submission_payout")
     .eq("status", "completed")
