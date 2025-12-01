@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeServer } from "@/lib/stripe/server";
 import type { Database, Json } from "@/types/database";
+import type { DatasetStatus } from "@/types/dataset";
 
 const PLATFORM_FEE_PERCENTAGE = Number(
   process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE ?? "10"
@@ -265,6 +266,8 @@ type DatasetBudgetSummary = {
   paidOutCents: number;
   remainingForFundingCents: number;
   remainingForPayoutCents: number;
+  approvalStatus: DatasetRow["approval_status"] | null;
+  paymentStatus: DatasetRow["payment_status"] | null;
 };
 
 export async function getDatasetBudgetSummary(
@@ -277,7 +280,9 @@ export async function getDatasetBudgetSummary(
 
   const { data: dataset, error: datasetError } = await adminClient
     .from("dataset_requests")
-    .select("id, total_budget, reward_amount, samples_needed")
+    .select(
+      "id, total_budget, reward_amount, samples_needed, approval_status, payment_status, status"
+    )
     .eq("id", datasetId)
     .maybeSingle();
 
@@ -333,6 +338,8 @@ export async function getDatasetBudgetSummary(
       paidOutCents,
       remainingForFundingCents,
       remainingForPayoutCents,
+      approvalStatus: (dataset.approval_status ?? null) as DatasetRow["approval_status"] | null,
+      paymentStatus: (dataset.payment_status ?? null) as DatasetRow["payment_status"] | null,
     },
   };
 }
@@ -345,6 +352,15 @@ function paymentStatusFromFunding(
   if (fundedCents >= totalBudgetCents) return "paid";
   if (fundedCents > 0) return "partial";
   return "unpaid";
+}
+
+export function deriveDatasetStatus(
+  approvalStatus: DatasetRow["approval_status"] | null,
+  paymentStatus: DatasetRow["payment_status"] | null
+): DatasetStatus {
+  if (approvalStatus !== "approved") return "paused";
+  if (paymentStatus === "paid" || paymentStatus === "partial") return "active";
+  return "paused";
 }
 
 export const ensureWalletRecord = async (
@@ -901,11 +917,11 @@ export async function createPaymentIntent(
       };
     }
 
-    const { data: dataset, error: datasetError } = await supabase
-      .from("dataset_requests")
-      .select("id, title, created_by")
-      .eq("id", datasetId)
-      .single();
+  const { data: dataset, error: datasetError } = await supabase
+    .from("dataset_requests")
+    .select("id, title, created_by, approval_status, payment_status, status")
+    .eq("id", datasetId)
+    .single();
 
     if (datasetError || !dataset || dataset.created_by !== user.id) {
       return { error: "Dataset not found or access denied" };
@@ -1060,6 +1076,7 @@ export async function confirmPayment(paymentIntentId: string) {
         totalBudgetCents,
         fundedCents,
         remainingForFundingCents,
+        approvalStatus,
       } = budgetSummary.data;
 
       if (totalBudgetCents <= 0) {
@@ -1104,6 +1121,7 @@ export async function confirmPayment(paymentIntentId: string) {
           payment_status: nextStatus,
           paid_amount: newPaidAmount,
           stripe_payment_intent_id: paymentIntent.id,
+          status: deriveDatasetStatus(approvalStatus, nextStatus),
         })
         .eq("id", datasetId);
 
@@ -1168,7 +1186,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
 
   const { data: dataset, error: datasetError } = await supabase
     .from("dataset_requests")
-    .select("id, title, paid_amount")
+    .select("id, title, paid_amount, approval_status, payment_status, status")
     .eq("id", datasetId)
     .single();
 
@@ -1185,6 +1203,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
     totalBudgetCents,
     remainingForFundingCents,
     fundedCents,
+    approvalStatus,
   } = budgetSummary.data;
 
   if (totalBudgetCents <= 0) {
@@ -1232,6 +1251,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
     .update({
       payment_status: nextStatus,
       paid_amount: newPaidAmount,
+      status: deriveDatasetStatus(approvalStatus, nextStatus),
     })
     .eq("id", datasetId);
 
