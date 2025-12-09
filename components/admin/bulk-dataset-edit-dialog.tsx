@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import {
   Dialog,
@@ -73,16 +73,17 @@ export function BulkDatasetEditDialog({
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
 
-  useEffect(() => {
-    if (!open) {
-      setFormState(createDefaultState());
-    }
-  }, [open]);
-
   const selectedStatusOptions = useMemo(
     () => Object.keys(statusLabels) as DatasetStatus[],
     []
   );
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setFormState(createDefaultState());
+    }
+    onOpenChange(nextOpen);
+  };
 
   const toggleField = <K extends keyof FormState>(
     key: K,
@@ -189,7 +190,7 @@ export function BulkDatasetEditDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Bulk edit datasets</DialogTitle>

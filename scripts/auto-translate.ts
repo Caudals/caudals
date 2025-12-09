@@ -16,8 +16,15 @@ async function translateText(text: string) {
   if (!response.ok) {
     throw new Error(`Translation request failed: ${response.status} ${response.statusText}`);
   }
-  const data = (await response.json()) as any;
-  return data?.[0]?.[0]?.[0] ?? text;
+  const data: unknown = await response.json();
+  const translated =
+    Array.isArray(data) &&
+    Array.isArray(data[0]) &&
+    Array.isArray(data[0][0]) &&
+    typeof data[0][0][0] === "string"
+      ? data[0][0][0]
+      : text;
+  return translated;
 }
 
 async function main() {

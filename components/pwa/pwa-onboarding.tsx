@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,14 +31,13 @@ const STEPS = [
 const STORAGE_KEY = "caudals-pwa-onboarding-dismissed";
 
 export function PwaOnboardingCard() {
-  const [dismissed, setDismissed] = useState(true);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return Boolean(window.localStorage.getItem(STORAGE_KEY));
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  useEffect(() => {
-    const hidden =
-      typeof window !== "undefined" && window.localStorage.getItem(STORAGE_KEY);
-    setDismissed(Boolean(hidden));
-  }, []);
 
   const handleDismiss = () => {
     window.localStorage.setItem(STORAGE_KEY, "true");

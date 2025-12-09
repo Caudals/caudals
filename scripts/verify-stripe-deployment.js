@@ -4,10 +4,7 @@
  * Script para verificar la configuración de Stripe en producción
  * Uso: node scripts/verify-stripe-deployment.js [URL_DEL_SITIO]
  */
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const https = require('https');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const http = require('http');
 
 const colors = {

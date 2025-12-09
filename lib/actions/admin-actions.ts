@@ -1083,3 +1083,24 @@ export async function getAllUsers() {
 
   return { data };
 }
+
+// Temporary placeholders for new admin pages.
+export async function getAdminActivityLog(_filters: {
+  actionType?: string | null;
+  targetType?: string | null;
+  limit?: number;
+}): Promise<{ data: any[] } | { error: string }> {
+  return { data: [] };
+}
+
+export async function getWaitlistEntries(): Promise<{ data: any[] } | { error: string }> {
+  return { data: [] };
+}
+
+export async function updateWaitlistStatus(
+  _id: string,
+  _status: "pending" | "contacted" | "qualified" | "converted",
+  _notes?: string
+): Promise<{ ok: true } | { error: string }> {
+  return { ok: true };
+}
