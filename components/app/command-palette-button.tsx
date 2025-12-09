@@ -3,15 +3,11 @@
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function CommandPaletteButton() {
   const t = useTranslations();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted] = useState(() => typeof window !== "undefined");
 
   const handleClick = () => {
     // TODO: Open command palette

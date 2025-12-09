@@ -37,8 +37,25 @@ export function PwaInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
     null
   );
-  const [visible, setVisible] = useState(false);
-  const [showIosInstruction, setShowIosInstruction] = useState(false);
+  const [bannerState, setBannerState] = useState(() => {
+    if (!isMobileDevice() || isStandalone()) {
+      return { visible: false, showIosInstruction: false };
+    }
+
+    const dismissed =
+      typeof window !== "undefined" && window.localStorage.getItem(DISMISS_KEY);
+
+    if (dismissed) {
+      return { visible: false, showIosInstruction: false };
+    }
+
+    if (isIosDevice()) {
+      return { visible: true, showIosInstruction: true };
+    }
+
+    return { visible: false, showIosInstruction: false };
+  });
+  const { visible, showIosInstruction } = bannerState;
 
   useEffect(() => {
     if (!isMobileDevice() || isStandalone()) {
@@ -52,15 +69,10 @@ export function PwaInstallBanner() {
       return;
     }
 
-    if (isIosDevice()) {
-      setShowIosInstruction(true);
-      setVisible(true);
-    }
-
     const handler = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
-      setVisible(true);
+      setBannerState((prev) => ({ ...prev, visible: true }));
     };
 
     window.addEventListener("beforeinstallprompt", handler as EventListener);
@@ -76,8 +88,8 @@ export function PwaInstallBanner() {
 
   const dismissBanner = () => {
     window.localStorage.setItem(DISMISS_KEY, "true");
-    setVisible(false);
-    setShowIosInstruction(false);
+    setBannerState({ visible: false, showIosInstruction: false });
+    setDeferredPrompt(null);
   };
 
   const triggerInstall = async () => {
@@ -89,7 +101,7 @@ export function PwaInstallBanner() {
     const result = await deferredPrompt.userChoice;
 
     if (result.outcome === "accepted") {
-      setVisible(false);
+      setBannerState((prev) => ({ ...prev, visible: false }));
     }
   };
 

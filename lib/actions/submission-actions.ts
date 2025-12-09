@@ -173,7 +173,7 @@ export async function getUserSubmissions() {
 
 export async function updateSubmissionStatus(
   submissionId: string,
-  status: "pending" | "approved" | "rejected",
+  status: "pending" | "approved" | "rejected" | "needs_changes",
   notes?: string
 ) {
   const supabase = await createClient();
