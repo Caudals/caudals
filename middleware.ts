@@ -149,6 +149,76 @@ export async function middleware(request: NextRequest) {
   );
   const isMarketingHost = marketingHostnames.includes(hostname);
 
+  // Check if landing mode is enabled
+  const landingMode = process.env.LANDING_MODE === "true";
+  
+  // If landing mode is enabled, redirect all app routes to simple landing
+  // except API routes and static assets
+  if (landingMode) {
+    const isApiRoute = pathname.startsWith("/api");
+    const isStaticAsset = pathname.startsWith("/_next") || 
+                         pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/);
+    
+    // Allow API routes and static assets
+    if (isApiRoute || isStaticAsset) {
+      // Continue with normal flow for API routes
+      if (isApiRoute) {
+        return await updateSession(request);
+      }
+      // Static assets pass through
+      return NextResponse.next();
+    }
+    
+    // Redirect all other routes to simple landing page
+    if (pathname !== "/landing-simple" && pathname !== "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/landing-simple";
+      return NextResponse.redirect(url);
+    }
+    
+    // If already on landing-simple or root, handle locale and rewrite to landing-simple
+    if (pathname === "/" || pathname === "/landing-simple") {
+      const response = await updateSession(request);
+      
+      // Handle locale detection for landing page
+      const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
+      const countryCode = await getRequestCountryCode(request);
+      const acceptLanguage = request.headers.get("accept-language");
+      const detectedLocale = detectPreferredLocale({
+        header: acceptLanguage,
+        countryCode: countryCode,
+      });
+      
+      let shouldUpdateCookie = false;
+      let localeToSet = cookieLocale ?? detectedLocale;
+      
+      if (!cookieLocale) {
+        shouldUpdateCookie = true;
+        localeToSet = detectedLocale;
+      } else if (countryCode === "ES" && cookieLocale !== "es") {
+        shouldUpdateCookie = true;
+        localeToSet = "es";
+      } else if (cookieLocale !== detectedLocale && countryCode) {
+        shouldUpdateCookie = true;
+        localeToSet = detectedLocale;
+      }
+      
+      if (shouldUpdateCookie) {
+        response.cookies.set(LOCALE_COOKIE, localeToSet, {
+          path: "/",
+          maxAge: LOCALE_COOKIE_MAX_AGE,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      }
+      
+      if (pathname === "/") {
+        return rewriteWithState(request, response, "/landing-simple");
+      }
+      return response;
+    }
+  }
+
   if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.hostname = primaryAppHost.hostname;

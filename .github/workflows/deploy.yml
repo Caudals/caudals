@@ -75,6 +75,7 @@ jobs:
             DO_SPACES_REGION=${{ env.DO_SPACES_REGION }}
             DO_SPACES_BUCKET=${{ env.DO_SPACES_BUCKET }}
             NEXT_PUBLIC_DO_SPACES_CDN_URL=${{ env.NEXT_PUBLIC_DO_SPACES_CDN_URL }}
+            LANDING_MODE=${{ secrets.LANDING_MODE || 'false' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
