@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 interface HeaderProps {
   links?: Array<{ label: string; href: string }>;
   translucent?: boolean;
+  hideActions?: boolean;
 }
 
 const DEFAULT_LINKS = [
@@ -26,13 +28,23 @@ const DEFAULT_LINKS = [
   { href: "/collaborate", label: "Partnerships" },
 ];
 
-export function Header({ links, translucent = false }: HeaderProps) {
+export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
   const { user, loading } = useAuth();
   const t = useTranslations();
+  const pathname = usePathname();
+  
+  // Detect if we're in landing mode (on landing-simple page)
+  const isLandingMode = pathname === "/landing-simple" || pathname === "/" || hideActions;
+  
   const navLinks =
-    links && links.length > 0 ? links : DEFAULT_LINKS;
+    links && links.length > 0 ? links : isLandingMode ? [] : DEFAULT_LINKS;
 
   const renderDesktopActions = () => {
+    // Don't show actions in landing mode
+    if (isLandingMode) {
+      return null;
+    }
+
     if (loading) {
       return (
         <div className="flex items-center gap-3">
@@ -59,6 +71,11 @@ export function Header({ links, translucent = false }: HeaderProps) {
   };
 
   const renderMobileActions = () => {
+    // Don't show actions in landing mode
+    if (isLandingMode) {
+      return null;
+    }
+
     if (loading) {
       return (
         <div className="flex flex-col gap-3">
@@ -126,6 +143,11 @@ export function Header({ links, translucent = false }: HeaderProps) {
 
           {renderDesktopActions()}
         </nav>
+        {isLandingMode && (
+          <div className="hidden md:block">
+            {/* Empty div to maintain layout when actions are hidden */}
+          </div>
+        )}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -167,9 +189,11 @@ export function Header({ links, translucent = false }: HeaderProps) {
                 </div>
               </ScrollArea>
 
-              <div className="flex flex-col gap-3 border-t border-border/60 px-6 py-6">
-                {renderMobileActions()}
-              </div>
+              {!isLandingMode && (
+                <div className="flex flex-col gap-3 border-t border-border/60 px-6 py-6">
+                  {renderMobileActions()}
+                </div>
+              )}
             </div>
           </SheetContent>
         </Sheet>

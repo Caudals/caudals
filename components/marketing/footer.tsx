@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function MarketingFooter() {
   const t = useTranslations();
+  const pathname = usePathname();
+  
+  // Detect if we're in landing mode
+  const isLandingMode = pathname === "/landing-simple" || pathname === "/";
 
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-1 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
           <div>
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
@@ -24,60 +29,64 @@ export function MarketingFooter() {
               contact@caudals.com
             </Link>
           </div>
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              {t("Product")}
-            </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/browse" className="hover:text-foreground">
-                  {t("Browse requests")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard" className="hover:text-foreground">
-                  {t("Dashboard")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/pricing" className="hover:text-foreground">
-                  {t("Pricing")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/docs" className="hover:text-foreground">
-                  {t("Documentation")}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              {t("Company")}
-            </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/about" className="hover:text-foreground">
-                  {t("About")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="hover:text-foreground">
-                  {t("Blog")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="hover:text-foreground">
-                  {t("Careers")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-foreground">
-                  {t("Contact")}
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {!isLandingMode && (
+            <>
+              <div>
+                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                  {t("Product")}
+                </h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>
+                    <Link href="/browse" className="hover:text-foreground">
+                      {t("Browse requests")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/dashboard" className="hover:text-foreground">
+                      {t("Dashboard")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pricing" className="hover:text-foreground">
+                      {t("Pricing")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/docs" className="hover:text-foreground">
+                      {t("Documentation")}
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                  {t("Company")}
+                </h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>
+                    <Link href="/about" className="hover:text-foreground">
+                      {t("About")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/blog" className="hover:text-foreground">
+                      {t("Blog")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/careers" className="hover:text-foreground">
+                      {t("Careers")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="hover:text-foreground">
+                      {t("Contact")}
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-slate-900">
               {t("Legal")}
