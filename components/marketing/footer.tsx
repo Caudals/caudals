@@ -1,15 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function MarketingFooter() {
   const t = useTranslations();
-  const pathname = usePathname();
   
-  // Detect if we're in landing mode
-  const isLandingMode = pathname === "/landing-simple" || pathname === "/";
+  // Only use simplified footer when deploy is in landing mode (set at build time)
+  const isLandingMode = process.env.NEXT_PUBLIC_LANDING_MODE === "true";
 
   return (
     <footer className="border-t border-border/60 bg-background">

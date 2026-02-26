@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,10 +30,10 @@ const DEFAULT_LINKS = [
 export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
   const { user, loading } = useAuth();
   const t = useTranslations();
-  const pathname = usePathname();
   
-  // Detect if we're in landing mode (on landing-simple page)
-  const isLandingMode = pathname === "/landing-simple" || pathname === "/" || hideActions;
+  // Only hide nav/actions when deploy is in landing mode (NEXT_PUBLIC_* set at build time)
+  const isLandingMode =
+    process.env.NEXT_PUBLIC_LANDING_MODE === "true" || hideActions;
   
   const navLinks =
     links && links.length > 0 ? links : isLandingMode ? [] : DEFAULT_LINKS;
@@ -143,11 +142,6 @@ export function Header({ links, translucent = false, hideActions = false }: Head
 
           {renderDesktopActions()}
         </nav>
-        {isLandingMode && (
-          <div className="hidden md:block">
-            {/* Empty div to maintain layout when actions are hidden */}
-          </div>
-        )}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
