@@ -15,21 +15,45 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { FileText, Search, Settings, Shield, Users } from "lucide-react";
+import { AlertCircle, FileText, Search, Settings, Shield, Users } from "lucide-react";
 
 type DatasetResult = {
   id: string;
   title: string;
   approval_status: string | null;
   status: string | null;
+  updated_at?: string | null;
 };
+
+type SupportTicketResult = {
+  id: string;
+  subject: string | null;
+  status: string | null;
+  priority: string | null;
+  updated_at: string | null;
+};
+
+type SubmissionResult = {
+  id: string;
+  status: string | null;
+  updated_at: string | null;
+  dataset_requests: { title: string | null } | Array<{ title: string | null }> | null;
+};
+
+function extractDatasetTitle(record: SubmissionResult["dataset_requests"]) {
+  if (!record) return "Untitled dataset";
+  if (Array.isArray(record)) return record[0]?.title ?? "Untitled dataset";
+  return record.title ?? "Untitled dataset";
+}
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [datasets, setDatasets] = useState<DatasetResult[]>([]);
-  const [loadingDatasets, setLoadingDatasets] = useState(false);
-  const { userRole } = useAuth();
+  const [tickets, setTickets] = useState<SupportTicketResult[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionResult[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const { userRole, user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations();
@@ -38,61 +62,197 @@ export function CommandPalette() {
     const down = (event: KeyboardEvent) => {
       if ((event.key === "k" && (event.metaKey || event.ctrlKey))) {
         event.preventDefault();
-        setOpen((open) => !open);
+        setOpen((state) => !state);
       }
     };
+    const openPalette = () => setOpen(true);
+    const togglePalette = () => setOpen((state) => !state);
+
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    window.addEventListener("caudals:open-command-palette", openPalette);
+    window.addEventListener("caudals:toggle-command-palette", togglePalette);
+
+    return () => {
+      document.removeEventListener("keydown", down);
+      window.removeEventListener("caudals:open-command-palette", openPalette);
+      window.removeEventListener("caudals:toggle-command-palette", togglePalette);
+    };
   }, []);
 
   useEffect(() => {
     let active = true;
-    const loadDatasets = async () => {
-      if (userRole !== "admin" || query.trim().length < 3) {
-        setDatasets([]);
+    const term = query.trim();
+
+    const clear = () => {
+      if (!active) return;
+      setDatasets([]);
+      setTickets([]);
+      setSubmissions([]);
+      setLoadingSearch(false);
+    };
+
+    const loadSearchResults = async () => {
+      if (!userRole || !user || term.length < 2) {
+        clear();
         return;
       }
-      setLoadingDatasets(true);
-      const { data, error } = await supabase
-        .from("dataset_requests")
-        .select("id,title,approval_status,status")
-        .ilike("title", `%${query.trim()}%`)
-        .limit(12);
+
+      setLoadingSearch(true);
+      const ilikeTerm = `%${term}%`;
+
+      if (userRole === "requester") {
+        const [datasetsRes, ticketsRes] = await Promise.all([
+          supabase
+            .from("dataset_requests")
+            .select("id,title,approval_status,status,updated_at")
+            .eq("created_by", user.id)
+            .ilike("title", ilikeTerm)
+            .order("updated_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("support_tickets")
+            .select("id,subject,status,priority,updated_at")
+            .eq("requester_id", user.id)
+            .ilike("subject", ilikeTerm)
+            .order("updated_at", { ascending: false })
+            .limit(8),
+        ]);
+
+        if (!active) return;
+        if (datasetsRes.error) {
+          console.error("Command palette requester dataset search error", datasetsRes.error);
+          setDatasets([]);
+        } else {
+          setDatasets(datasetsRes.data ?? []);
+        }
+
+        if (ticketsRes.error) {
+          console.error("Command palette requester ticket search error", ticketsRes.error);
+          setTickets([]);
+        } else {
+          setTickets(ticketsRes.data ?? []);
+        }
+
+        setSubmissions([]);
+        setLoadingSearch(false);
+        return;
+      }
+
+      if (userRole === "contributor") {
+        const [datasetsRes, submissionsRes] = await Promise.all([
+          supabase
+            .from("dataset_requests")
+            .select("id,title,approval_status,status,updated_at")
+            .eq("approval_status", "approved")
+            .ilike("title", ilikeTerm)
+            .order("updated_at", { ascending: false })
+            .limit(10),
+          supabase
+            .from("submissions")
+            .select("id,status,updated_at,dataset_requests(title)")
+            .eq("contributor_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(20),
+        ]);
+
+        if (!active) return;
+        if (datasetsRes.error) {
+          console.error("Command palette contributor dataset search error", datasetsRes.error);
+          setDatasets([]);
+        } else {
+          setDatasets(datasetsRes.data ?? []);
+        }
+
+        if (submissionsRes.error) {
+          console.error("Command palette contributor submissions search error", submissionsRes.error);
+          setSubmissions([]);
+        } else {
+          const filtered = (submissionsRes.data ?? []).filter((row) =>
+            extractDatasetTitle(row.dataset_requests)
+              .toLowerCase()
+              .includes(term.toLowerCase())
+          );
+          setSubmissions(filtered.slice(0, 8));
+        }
+
+        setTickets([]);
+        setLoadingSearch(false);
+        return;
+      }
+
+      const [datasetsRes, ticketsRes] = await Promise.all([
+        supabase
+          .from("dataset_requests")
+          .select("id,title,approval_status,status,updated_at")
+          .ilike("title", ilikeTerm)
+          .order("updated_at", { ascending: false })
+          .limit(12),
+        supabase
+          .from("support_tickets")
+          .select("id,subject,status,priority,updated_at")
+          .ilike("subject", ilikeTerm)
+          .order("updated_at", { ascending: false })
+          .limit(10),
+      ]);
+
       if (!active) return;
-      if (error) {
-        console.error("Command palette search error", error);
+      if (datasetsRes.error) {
+        console.error("Command palette admin dataset search error", datasetsRes.error);
         setDatasets([]);
       } else {
-        setDatasets(data || []);
+        setDatasets(datasetsRes.data ?? []);
       }
-      setLoadingDatasets(false);
+
+      if (ticketsRes.error) {
+        console.error("Command palette admin ticket search error", ticketsRes.error);
+        setTickets([]);
+      } else {
+        setTickets(ticketsRes.data ?? []);
+      }
+      setSubmissions([]);
+      setLoadingSearch(false);
     };
-    const handle = setTimeout(loadDatasets, 200);
+
+    const timer = setTimeout(() => {
+      void loadSearchResults();
+    }, 180);
+
     return () => {
       active = false;
-      clearTimeout(handle);
+      clearTimeout(timer);
     };
-  }, [query, supabase, userRole]);
+  }, [query, supabase, userRole, user]);
 
   const navigationItems = useMemo(() => {
-    const base = [
-      { label: t("Dashboard"), href: "/dashboard", icon: FileText },
-      { label: t("Browse"), href: "/browse", icon: Search },
-      { label: t("Settings"), href: "/dashboard/settings", icon: Settings },
-    ];
-
     if (userRole === "admin") {
       return [
-        ...base,
         { label: t("Admin Overview"), href: "/admin", icon: Shield },
         { label: t("Requests"), href: "/admin/requests", icon: FileText },
         { label: t("Submissions"), href: "/admin/submissions", icon: FileText },
         { label: t("Payments"), href: "/admin/payments", icon: FileText },
+        { label: t("Support queue"), href: "/admin/support", icon: AlertCircle },
         { label: t("Users"), href: "/admin/users", icon: Users },
-        { label: t("Activity log"), href: "/admin/activity", icon: Shield },
+        { label: t("Settings"), href: "/admin/settings", icon: Settings },
       ];
     }
-    return base;
+
+    if (userRole === "contributor") {
+      return [
+        { label: t("Dashboard"), href: "/contributor", icon: FileText },
+        { label: t("Browse"), href: "/browse", icon: Search },
+        { label: t("My contributions"), href: "/contributor/contributions", icon: FileText },
+        { label: t("Earnings"), href: "/contributor/earnings", icon: FileText },
+        { label: t("Settings"), href: "/contributor/settings", icon: Settings },
+      ];
+    }
+
+    return [
+      { label: t("Dashboard"), href: "/requester", icon: FileText },
+      { label: t("Datasets"), href: "/requester/datasets", icon: FileText },
+      { label: t("Files"), href: "/requester/files", icon: FileText },
+      { label: t("Support"), href: "/requester/support", icon: AlertCircle },
+      { label: t("Settings"), href: "/requester/settings", icon: Settings },
+    ];
   }, [t, userRole]);
 
   const adminActions = useMemo(() => {
@@ -100,7 +260,7 @@ export function CommandPalette() {
     return [
       { label: t("Approve next pending request"), href: "/admin/requests" },
       { label: t("Open payout queue"), href: "/admin/payments" },
-      { label: t("Create featured ad"), href: "/admin/featured" },
+      { label: t("Open activity log"), href: "/admin/activity" },
       { label: t("Open analytics"), href: "/admin/analytics" },
     ];
   }, [t, userRole]);
@@ -108,87 +268,141 @@ export function CommandPalette() {
   const handleSelect = (value: string) => {
     router.push(value);
     setOpen(false);
+    setQuery("");
   };
 
   return (
-    <>
-      <button
-        type="button"
-        aria-label={t("Open command palette")}
-        onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-40 hidden rounded-full border border-border/70 bg-background/90 px-3 py-2 text-xs font-medium text-muted-foreground shadow-md backdrop-blur hover:text-foreground md:inline-flex"
-      >
-        {t("Search or jump")} <CommandShortcut>⌘K</CommandShortcut>
-      </button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput
-          placeholder={t("Search datasets, users, actions...")}
-          value={query}
-          onValueChange={setQuery}
-        />
-        <CommandList>
-          <CommandEmpty>
-            {loadingDatasets
-              ? t("Searching...")
-              : t("No results. Try another search.")}
-          </CommandEmpty>
+    <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandInput
+        placeholder={t("Search datasets, tickets, actions...")}
+        value={query}
+        onValueChange={setQuery}
+      />
+      <CommandList>
+        <CommandEmpty>
+          {loadingSearch
+            ? t("Searching...")
+            : t("No results. Try another search.")}
+        </CommandEmpty>
 
-          <CommandGroup heading={t("Navigation")}>
-            {navigationItems.map((item) => (
-              <CommandItem
-                key={item.href}
-                value={item.href}
-                onSelect={handleSelect}
-              >
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-                <CommandShortcut>{item.href}</CommandShortcut>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+        <CommandGroup heading={t("Navigation")}>
+          {navigationItems.map((item) => (
+            <CommandItem
+              key={item.href}
+              value={item.href}
+              onSelect={handleSelect}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
+              <CommandShortcut>{item.href}</CommandShortcut>
+            </CommandItem>
+          ))}
+        </CommandGroup>
 
-          {adminActions.length > 0 && (
-            <>
-              <CommandSeparator />
-              <CommandGroup heading={t("Admin actions")}>
-                {adminActions.map((action) => (
+        {adminActions.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading={t("Admin actions")}>
+              {adminActions.map((action) => (
+                <CommandItem
+                  key={action.href}
+                  value={action.href}
+                  onSelect={handleSelect}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>{action.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {datasets.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading={t("Datasets")}>
+              {datasets.map((dataset) => {
+                const href =
+                  userRole === "admin"
+                    ? `/admin/datasets?search=${encodeURIComponent(dataset.title)}`
+                    : userRole === "contributor"
+                      ? `/browse/${dataset.id}`
+                      : `/requester/datasets/${dataset.id}`;
+
+                return (
                   <CommandItem
-                    key={action.href}
-                    value={action.href}
-                    onSelect={handleSelect}
-                  >
-                    <Shield className="h-4 w-4" />
-                    <span>{action.label}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </>
-          )}
-
-          {datasets.length > 0 && (
-            <>
-              <CommandSeparator />
-              <CommandGroup heading={t("Datasets")}>
-                {datasets.map((ds) => (
-                  <CommandItem
-                    key={ds.id}
-                    value={`/browse/${ds.id}`}
+                    key={dataset.id}
+                    value={href}
                     onSelect={handleSelect}
                   >
                     <FileText className="h-4 w-4" />
                     <div className="flex flex-col">
-                      <span className="line-clamp-1">{ds.title}</span>
+                      <span className="line-clamp-1">{dataset.title}</span>
                       <span className="text-[11px] text-muted-foreground">
-                        {ds.status} / {ds.approval_status}
+                        {dataset.status} / {dataset.approval_status}
                       </span>
                     </div>
                   </CommandItem>
-                ))}
-              </CommandGroup>
-            </>
-          )}
-        </CommandList>
-      </CommandDialog>
-    </>
+                );
+              })}
+            </CommandGroup>
+          </>
+        )}
+
+        {tickets.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading={t("Support tickets")}>
+              {tickets.map((ticket) => (
+                <CommandItem
+                  key={ticket.id}
+                  value={
+                    userRole === "admin"
+                      ? "/admin/support"
+                      : `/requester/support/${ticket.id}`
+                  }
+                  onSelect={handleSelect}
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="line-clamp-1">
+                      {ticket.subject || t("Support ticket")}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {ticket.status} / {ticket.priority}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+
+        {submissions.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading={t("My submissions")}>
+              {submissions.map((submission) => (
+                <CommandItem
+                  key={submission.id}
+                  value="/contributor/contributions"
+                  onSelect={handleSelect}
+                >
+                  <FileText className="h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="line-clamp-1">
+                      {extractDatasetTitle(submission.dataset_requests)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {submission.status}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+      </CommandList>
+    </CommandDialog>
   );
 }

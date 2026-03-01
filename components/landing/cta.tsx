@@ -5,6 +5,8 @@ import { ArrowRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
+const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
+
 export function CTASection() {
   const t = useTranslations();
 
@@ -25,7 +27,7 @@ export function CTASection() {
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" className="h-12 min-w-[220px]" asChild>
-              <Link href="/dashboard/requests/new">
+              <Link href={REQUESTER_ONBOARDING_CTA}>
                 {t("Start collecting data")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

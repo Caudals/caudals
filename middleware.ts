@@ -10,7 +10,14 @@ import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
 import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
-const APP_ONLY_PATH_PREFIXES = ["/dashboard", "/admin", "/auth", "/pwa"];
+const APP_ONLY_PATH_PREFIXES = [
+  "/dashboard",
+  "/requester",
+  "/contributor",
+  "/admin",
+  "/auth",
+  "/pwa",
+];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
 

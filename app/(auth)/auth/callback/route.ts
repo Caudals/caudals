@@ -41,15 +41,16 @@ export async function GET(request: Request) {
       }
       
       const userRole = profile?.role;
-      let redirectPath = "/dashboard"; // Default for requesters
-      
-      if (userRole === 'contributor') {
-        redirectPath = "/dashboard/contributor";
-      } else if (userRole === 'admin') {
+      let redirectPath = "/requester";
+
+      if (!userRole) {
+        redirectPath = "/requester";
+      } else if (userRole === "admin") {
         redirectPath = "/admin";
-      } else if (!userRole) {
-        // If no role is set, redirect to a role selection page or dashboard with a prompt
-        redirectPath = "/dashboard?select-role=true";
+      } else if (userRole === "contributor") {
+        redirectPath = "/contributor";
+      } else {
+        redirectPath = "/requester";
       }
       
       const finalPath = next || redirectPath;

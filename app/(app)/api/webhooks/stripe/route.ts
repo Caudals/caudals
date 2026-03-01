@@ -11,11 +11,13 @@ import {
 import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database, Json } from "@/types/database";
+import { logError, logInfo, logWarn } from "@/lib/security/structured-logger";
 
 type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
 type TransactionUpdate = Database["public"]["Tables"]["transactions"]["Update"];
 type StripeAccountUpdate = Database["public"]["Tables"]["stripe_accounts"]["Update"];
 type DatasetUpdate = Database["public"]["Tables"]["dataset_requests"]["Update"];
+type WebhookProcessingState = "processing" | "processed" | "failed";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -45,13 +47,138 @@ function centsToDollars(cents: number) {
   return Number(cents ?? 0) / 100;
 }
 
+function isUniqueViolation(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const code = "code" in error ? String(error.code ?? "") : "";
+  if (code === "23505") return true;
+
+  const message = "message" in error ? String(error.message ?? "") : "";
+  return message.toLowerCase().includes("duplicate key");
+}
+
+export async function reserveStripeWebhookEvent(
+  event: Stripe.Event,
+  admin: ReturnType<typeof createAdminClient>
+): Promise<{ shouldProcess: boolean; deduplicated: boolean; retrying: boolean }> {
+  const adminClient = admin as any;
+
+  const payload = {
+    stripe_event_id: event.id,
+    event_type: event.type,
+    processing_state: "processing" as WebhookProcessingState,
+    payload: event as unknown as Json,
+    received_at: new Date().toISOString(),
+    processed_at: null,
+    last_error: null,
+  };
+
+  const { error: insertError } = await adminClient
+    .from("stripe_webhook_events")
+    .insert(payload);
+
+  if (!insertError) {
+    return { shouldProcess: true, deduplicated: false, retrying: false };
+  }
+
+  if (!isUniqueViolation(insertError)) {
+    throw new Error(
+      `Failed to reserve Stripe webhook event ${event.id}: ${insertError.message ?? "unknown error"}`
+    );
+  }
+
+  const { data: existing, error: existingError } = await adminClient
+    .from("stripe_webhook_events")
+    .select("processing_state")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(
+      `Failed to check Stripe webhook event ${event.id}: ${existingError.message ?? "unknown error"}`
+    );
+  }
+
+  const state = (existing?.processing_state ?? "processed") as WebhookProcessingState;
+
+  if (state !== "failed") {
+    return { shouldProcess: false, deduplicated: true, retrying: false };
+  }
+
+  const { error: retryError } = await adminClient
+    .from("stripe_webhook_events")
+    .update({
+      processing_state: "processing",
+      received_at: new Date().toISOString(),
+      processed_at: null,
+      last_error: null,
+      event_type: event.type,
+      payload: event as unknown as Json,
+    })
+    .eq("stripe_event_id", event.id)
+    .eq("processing_state", "failed");
+
+  if (retryError) {
+    throw new Error(
+      `Failed to retry Stripe webhook event ${event.id}: ${retryError.message ?? "unknown error"}`
+    );
+  }
+
+  return { shouldProcess: true, deduplicated: false, retrying: true };
+}
+
+export async function markStripeWebhookEventProcessed(
+  eventId: string,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const adminClient = admin as any;
+
+  const { error } = await adminClient
+    .from("stripe_webhook_events")
+    .update({
+      processing_state: "processed",
+      processed_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq("stripe_event_id", eventId);
+
+  if (error) {
+    throw new Error(
+      `Failed to mark Stripe webhook event ${eventId} as processed: ${error.message ?? "unknown error"}`
+    );
+  }
+}
+
+export async function markStripeWebhookEventFailed(
+  eventId: string,
+  message: string,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const adminClient = admin as any;
+
+  const { error } = await adminClient
+    .from("stripe_webhook_events")
+    .update({
+      processing_state: "failed",
+      last_error: message,
+    })
+    .eq("stripe_event_id", eventId);
+
+  if (error) {
+    logError("Failed to mark Stripe webhook event as failed", {
+      eventId,
+      error,
+    });
+  }
+}
+
 export async function POST(request: NextRequest) {
   let secret: string;
 
   try {
     secret = ensureStripeConfigured();
   } catch (error) {
-    console.error(error);
+    logError("stripe.webhook.config_missing", { error });
     return NextResponse.json(
       { error: "Stripe not configured" },
       { status: 500 }
@@ -74,36 +201,44 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Invalid webhook signature";
-    console.error("Webhook signature verification failed:", message);
+    logError("Webhook signature verification failed:", message);
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("stripe_webhooks");
 
   try {
+    const reservation = await reserveStripeWebhookEvent(event, admin);
+
+    if (!reservation.shouldProcess) {
+      return NextResponse.json({ received: true, deduplicated: true });
+    }
+
     const handler = stripeEventHandlers[event.type];
 
     if (handler) {
       await handler(event, admin);
     } else {
-      console.log(`Unhandled Stripe event type: ${event.type}`);
+      logInfo(`Unhandled Stripe event type: ${event.type}`);
     }
+
+    await markStripeWebhookEventProcessed(event.id, admin);
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Error processing Stripe webhook:", error);
+    logError("Error processing Stripe webhook:", error);
     const message =
       error instanceof Error ? error.message : "Webhook processing failed";
+    await markStripeWebhookEventFailed(event.id, message, admin);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-async function handlePaymentIntentSucceeded(
+export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
   admin: ReturnType<typeof createAdminClient>
 ) {
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const metadata = paymentIntent.metadata ?? {};
   const userId = metadata.user_id;
@@ -117,14 +252,14 @@ async function handlePaymentIntentSucceeded(
     .maybeSingle();
 
   if (existingTx) {
-    console.log(
+    logInfo(
       `Transaction already recorded for payment intent ${paymentIntent.id}, skipping`
     );
     return;
   }
 
   if (!userId || !paymentType) {
-    console.warn(
+    logWarn(
       "PaymentIntent succeeded without user or type metadata",
       paymentIntent.id
     );
@@ -153,7 +288,7 @@ async function handlePaymentIntentSucceeded(
       .insert(payload);
 
     if (insertError) {
-      console.error("Error inserting wallet deposit transaction", insertError);
+      logError("Error inserting wallet deposit transaction", insertError);
     }
 
     if (typeof paymentIntent.customer === "string") {
@@ -174,7 +309,7 @@ async function handlePaymentIntentSucceeded(
           customerId
         );
       } catch (syncError) {
-        console.error("Failed to sync wallet after deposit", syncError);
+        logError("Failed to sync wallet after deposit", syncError);
       }
     }
 
@@ -183,7 +318,7 @@ async function handlePaymentIntentSucceeded(
 
   if (paymentType === "dataset_funding") {
     if (!datasetId) {
-      console.error(
+      logError(
         "Dataset funding payment missing dataset_id metadata",
         paymentIntent.id
       );
@@ -192,7 +327,7 @@ async function handlePaymentIntentSucceeded(
 
     const budgetSummary = await getDatasetBudgetSummary(datasetId, admin);
     if (budgetSummary.error || !budgetSummary.data) {
-      console.error("Failed to load dataset budget", budgetSummary.error);
+      logError("Failed to load dataset budget", budgetSummary.error);
       return;
     }
 
@@ -204,12 +339,12 @@ async function handlePaymentIntentSucceeded(
     } = budgetSummary.data;
 
     if (totalBudgetCents <= 0) {
-      console.error("Dataset has no total budget set; rejecting funding");
+      logError("Dataset has no total budget set; rejecting funding");
       return;
     }
 
     if (remainingForFundingCents <= 0) {
-      console.log("Dataset already fully funded; skipping extra payment");
+      logInfo("Dataset already fully funded; skipping extra payment");
       return;
     }
 
@@ -233,7 +368,7 @@ async function handlePaymentIntentSucceeded(
       .insert(payload);
 
     if (txError) {
-      console.error("Failed to record dataset funding transaction", txError);
+      logError("Failed to record dataset funding transaction", txError);
     }
 
     if (typeof paymentIntent.customer === "string") {
@@ -254,7 +389,7 @@ async function handlePaymentIntentSucceeded(
           customerId
         );
       } catch (syncError) {
-        console.error("Failed to sync wallet after dataset funding", syncError);
+        logError("Failed to sync wallet after dataset funding", syncError);
       }
     }
 
@@ -266,10 +401,12 @@ async function handlePaymentIntentSucceeded(
         .single();
 
     if (datasetLookupError) {
-      console.error(
+      logError(
         "Failed to load dataset for payment update",
-        datasetId,
-        datasetLookupError
+        {
+          datasetId,
+          error: datasetLookupError,
+        }
       );
     }
 
@@ -299,7 +436,7 @@ async function handlePaymentIntentSucceeded(
       .eq("id", datasetId);
 
     if (datasetUpdateError) {
-      console.error("Failed to update dataset request after funding", {
+      logError("Failed to update dataset request after funding", {
         datasetId,
         datasetUpdateError,
       });
@@ -312,7 +449,6 @@ async function handlePaymentIntentFailed(
   admin: ReturnType<typeof createAdminClient>
 ) {
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const metadata = paymentIntent.metadata ?? {};
   const userId = metadata.user_id;
@@ -346,7 +482,7 @@ async function handlePaymentIntentFailed(
     .insert(failedPayload);
 
   if (txError) {
-    console.error("Failed to record failed payment transaction", txError);
+    logError("Failed to record failed payment transaction", txError);
   }
 
   if (paymentType === "dataset_funding" && datasetId) {
@@ -360,7 +496,7 @@ async function handlePaymentIntentFailed(
       .eq("id", datasetId);
 
     if (error) {
-      console.error("Failed to update dataset after failed payment", error);
+      logError("Failed to update dataset after failed payment", error);
     }
   }
 }
@@ -371,7 +507,6 @@ async function handleAccountUpdated(
 ) {
   const stripe = getStripeServer();
   let account = event.data.object as Stripe.Account;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
   if (!account.external_accounts?.data?.length) {
@@ -380,7 +515,7 @@ async function handleAccountUpdated(
         expand: ["external_accounts"],
       });
     } catch (error) {
-      console.warn(
+      logWarn(
         "Unable to expand external accounts for account update webhook",
         error
       );
@@ -417,20 +552,19 @@ async function handleAccountUpdated(
     .eq("stripe_account_id", account.id);
 
   if (error) {
-    console.error("Failed to update Stripe account record", error);
+    logError("Failed to update Stripe account record", error);
   }
 }
 
-async function handleTransferCreated(
+export async function handleTransferCreated(
   event: Stripe.Event,
   admin: ReturnType<typeof createAdminClient>
 ) {
   const transfer = event.data.object as Stripe.Transfer;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
   if (!transfer.destination) {
-    console.error("Transfer missing destination account", transfer.id);
+    logError("Transfer missing destination account", transfer.id);
     return;
   }
 
@@ -441,7 +575,7 @@ async function handleTransferCreated(
     .single();
 
   if (accountLookupError || !stripeAccount) {
-    console.error("No user found for transfer destination", transfer.destination);
+    logError("No user found for transfer destination", transfer.destination);
     return;
   }
 
@@ -452,7 +586,7 @@ async function handleTransferCreated(
     .maybeSingle();
 
   if (existingTransaction) {
-    console.log(
+    logInfo(
       `Transaction already recorded for transfer ${transfer.id}, skipping`
     );
     return;
@@ -479,7 +613,7 @@ async function handleTransferCreated(
     .insert(payoutPayload);
 
   if (insertError) {
-    console.error("Failed to insert transfer transaction", insertError);
+    logError("Failed to insert transfer transaction", insertError);
   }
 
   if (
@@ -498,7 +632,7 @@ async function handleTransferCreated(
         stripeAccount.default_currency ?? transfer.currency
       );
     } catch (syncError) {
-      console.error("Failed to sync wallet after transfer", syncError);
+      logError("Failed to sync wallet after transfer", syncError);
     }
   }
 }
@@ -508,7 +642,6 @@ async function handleTransferFailed(
   admin: ReturnType<typeof createAdminClient>
 ) {
   const transfer = event.data.object as Stripe.Transfer;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
   if (!transfer.destination) {
@@ -519,7 +652,6 @@ async function handleTransferFailed(
     status: "failed",
     metadata: {
       ...transfer.metadata,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       transfer_status: (transfer as any).status ?? "failed",
     } as Json,
   };
@@ -530,6 +662,6 @@ async function handleTransferFailed(
     .eq("reference_id", transfer.id);
 
   if (updateError) {
-    console.error("Failed to flag transfer as failed", updateError);
+    logError("Failed to flag transfer as failed", updateError);
   }
 }

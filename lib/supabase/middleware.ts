@@ -50,62 +50,63 @@ export async function updateSession(
   let userProfile = null;
   if (user) {
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
-    
+
     userProfile = profile;
   }
 
+  const protectedPrefixes = ["/dashboard", "/requester", "/contributor", "/admin"];
+
   // Protected routes - require authentication
-  if (pathname.startsWith("/dashboard") && !user) {
+  if (!user && protectedPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/admin") && !user) {
+  // Legacy dashboard subroutes are deprecated: /dashboard remains the only entrypoint
+  if (pathname.startsWith("/dashboard/")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/sign-in";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
   // Role-based route protection
   if (user && userProfile) {
-    const userRole = userProfile.role;
+    const userRole = userProfile.role as "requester" | "contributor" | "admin";
+    const roleHome =
+      userRole === "admin"
+        ? "/admin"
+        : userRole === "contributor"
+          ? "/contributor"
+          : "/requester";
 
-    // Contributors cannot access requester routes
-    if (userRole === "contributor") {
-      const requesterRoutes = [
-        "/dashboard/requests",
-        "/dashboard/contributors",
-        "/dashboard/analytics"
-      ];
-      
-      const isRequesterRoute = requesterRoutes.some(route => pathname.startsWith(route));
-      
-      // Redirect /dashboard to /dashboard/contributor for contributors
-      if (pathname === "/dashboard" || isRequesterRoute) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard/contributor";
-        return NextResponse.redirect(url);
-      }
+    // Dashboard is only a smart entrypoint
+    if (pathname === "/dashboard") {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHome;
+      return NextResponse.redirect(url);
     }
 
-    // Requesters cannot access contributor-specific routes
-    if (userRole === "requester") {
-      if (pathname.startsWith("/dashboard/contributor") || pathname.startsWith("/dashboard/contributions")) {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard";
-        return NextResponse.redirect(url);
-      }
+    // Role fences for canonical workspaces
+    if (pathname.startsWith("/requester") && userRole === "contributor") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/contributor";
+      return NextResponse.redirect(url);
     }
 
-    // Only admins can access admin routes
+    if (pathname.startsWith("/contributor") && userRole === "requester") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/requester";
+      return NextResponse.redirect(url);
+    }
+
     if (pathname.startsWith("/admin") && userRole !== "admin") {
       const url = request.nextUrl.clone();
-      url.pathname = userRole === "contributor" ? "/dashboard/contributor" : "/dashboard";
+      url.pathname = roleHome;
       return NextResponse.redirect(url);
     }
   }
@@ -116,19 +117,17 @@ export async function updateSession(
       pathname.startsWith("/auth/sign-up")) &&
     user
   ) {
+    const role = userProfile?.role as "requester" | "contributor" | "admin" | undefined;
+    const roleHome =
+      role === "admin" ? "/admin" : role === "contributor" ? "/contributor" : "/requester";
     const url = request.nextUrl.clone();
-    // Redirect based on role
-    if (userProfile?.role === "contributor") {
-      url.pathname = "/dashboard/contributor";
-    } else {
-      url.pathname = "/dashboard";
-    }
+    url.pathname = roleHome;
     return NextResponse.redirect(url);
   }
 
   // Add user data to response headers for role-based routing
   if (user && userProfile) {
-    supabaseResponse.headers.set('x-user', JSON.stringify({
+    supabaseResponse.headers.set("x-user", JSON.stringify({
       id: user.id,
       email: user.email,
       role: userProfile.role

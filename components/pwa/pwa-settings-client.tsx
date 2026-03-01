@@ -19,7 +19,7 @@ import { Loader2, Home } from "lucide-react";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 export function PwaSettingsClient() {
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const supabase = createClient();
   const router = useRouter();
   const toast = useLocaleToast();
@@ -74,6 +74,13 @@ export function PwaSettingsClient() {
     .slice(0, 2)
     .toUpperCase();
 
+  const desktopHref =
+    userRole === "admin"
+      ? "/admin"
+      : userRole === "contributor"
+        ? "/contributor"
+        : "/requester";
+
   return (
     <>
       <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
@@ -98,7 +105,7 @@ export function PwaSettingsClient() {
             asChild
             className="flex-1 rounded-2xl border border-white/20 bg-white/10 text-white hover:bg-white/20"
           >
-            <Link href="/dashboard">Open desktop dashboard</Link>
+            <Link href={desktopHref}>Open desktop dashboard</Link>
           </Button>
           <Button
             variant="ghost"

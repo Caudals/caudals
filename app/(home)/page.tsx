@@ -15,6 +15,7 @@ import { FAQSection } from "@/components/landing/faq";
 import { CTASection } from "@/components/landing/cta";
 import { LandingGodRaysBackground } from "@/components/landing/god-rays-background";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { FunnelVisitTracker } from "@/components/analytics/funnel-visit-tracker";
 
 export default function Home() {
   const heroStackRef = useRef<HTMLDivElement>(null);
@@ -43,6 +44,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen">
+      <FunnelVisitTracker />
       <div className="relative">
         <LandingGodRaysBackground contentHeight={heroHeight + 1000} />
 

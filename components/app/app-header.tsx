@@ -3,6 +3,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "./notification-bell";
 import { UserMenu } from "./user-menu";
+import { CommandPaletteButton } from "./command-palette-button";
 
 export function AppHeader() {
   return (
@@ -12,6 +13,7 @@ export function AppHeader() {
         <span className="text-sm font-semibold">Caudals</span>
       </div>
       <div className="flex items-center gap-1">
+        <CommandPaletteButton compact className="h-9 w-9 p-0" />
         <NotificationBell />
         <UserMenu />
       </div>

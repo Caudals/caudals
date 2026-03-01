@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -17,21 +17,60 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User, Briefcase } from "lucide-react";
+import { User, Briefcase, CheckCircle2, Shield, Sparkles } from "lucide-react";
 import { UserRole } from "@/types/database";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { trackFunnelEvent } from "@/lib/analytics/funnel-events";
+
+function getSafeNextPath(value: string | null) {
+  if (!value) return null;
+  if (!value.startsWith("/")) return null;
+  if (value.startsWith("//")) return null;
+  return value;
+}
+
+function toRoleParam(value: string | null): UserRole | null {
+  if (value === "requester" || value === "contributor") {
+    return value;
+  }
+
+  return null;
+}
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<UserRole>("contributor");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const toast = useLocaleToast();
   const t = useTranslations();
+
+  const roleFromQuery = toRoleParam(searchParams.get("role"));
+  const nextPath = getSafeNextPath(searchParams.get("next"));
+  const [selectedRole, setSelectedRole] = useState<UserRole>(
+    roleFromQuery ?? "contributor"
+  );
+
+  useEffect(() => {
+    if (roleFromQuery) {
+      setSelectedRole(roleFromQuery);
+    }
+  }, [roleFromQuery]);
+
+  const buildAuthCallbackUrl = (role: UserRole) => {
+    const query = new URLSearchParams();
+    query.set("role", role);
+
+    if (nextPath) {
+      query.set("next", nextPath);
+    }
+
+    return `${window.location.origin}/auth/callback?${query.toString()}`;
+  };
 
   const roleOptions = [
     {
@@ -68,7 +107,7 @@ export default function SignUpPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: buildAuthCallbackUrl(selectedRole),
           data: {
             role: selectedRole,
           },
@@ -78,6 +117,11 @@ export default function SignUpPage() {
       if (error) {
         toast.error(error.message);
       } else {
+        await trackFunnelEvent("funnel_signup", {
+          method: "email",
+          role: selectedRole,
+          has_next: Boolean(nextPath),
+        });
         toast.success(t("Account created! Please check your email to verify your account."));
         router.push("/auth/sign-in");
       }
@@ -91,10 +135,17 @@ export default function SignUpPage() {
   const handleOAuthSignUp = async (provider: "google" | "github") => {
     setLoading(true);
     try {
+      await trackFunnelEvent("funnel_signup", {
+        method: provider,
+        role: selectedRole,
+        oauth_started: true,
+        has_next: Boolean(nextPath),
+      });
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?role=${selectedRole}`,
+          redirectTo: buildAuthCallbackUrl(selectedRole),
         },
       });
 
@@ -110,8 +161,40 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,var(--ds-canvas)_0%,#ffffff_100%)] px-4 py-10 sm:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="hidden lg:block">
+          <div className="rounded-3xl border border-border/70 bg-card p-10 shadow-[var(--ds-shadow-overlay)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--ds-accent)]" />
+              {t("Start building production-grade datasets")}
+            </div>
+            <h1 className="mt-5 text-4xl font-semibold leading-tight">
+              {t("Create your Caudals workspace in minutes")}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-muted-foreground">
+              {t(
+                "Pick your role now and unlock a guided workflow for dataset requests, contribution pipelines, and payout-ready operations.",
+              )}
+            </p>
+            <div className="mt-8 space-y-3">
+              <div className="flex items-center gap-3 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-[var(--ds-accent)]" />
+                {t("Role-specific onboarding for requesters and contributors")}
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-[var(--ds-accent)]" />
+                {t("Built-in support for reviews, exports, and activity trails")}
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <Shield className="h-4 w-4 text-[var(--ds-accent)]" />
+                {t("Secure account infrastructure with auditable actions")}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="w-full max-w-md justify-self-center lg:justify-self-end">
         <div className="mb-8 text-center">
           <Link
             href="/"
@@ -129,7 +212,7 @@ export default function SignUpPage() {
           </Link>
         </div>
 
-        <Card>
+        <Card className="rounded-3xl border-border/80 shadow-[var(--ds-shadow-overlay)]">
           <CardHeader>
             <CardTitle>{t("Create an account")}</CardTitle>
             <CardDescription>
@@ -298,6 +381,7 @@ export default function SignUpPage() {
           </CardFooter>
         </Card>
       </div>
+    </div>
     </div>
   );
 }

@@ -20,6 +20,23 @@ export default async function AdminAnalyticsPage() {
   }
 
   const data = res.data;
+  const funnel = data.funnel ?? {
+    windowDays: 30,
+    steps: [],
+    conversionRates: {
+      visitToSignupPct: 0,
+      signupToDatasetPct: 0,
+      datasetToFundPct: 0,
+      visitToFundPct: 0,
+    },
+  };
+  const dashboardTelemetry = data.dashboardTelemetry ?? {
+    windowDays: 30,
+    visitsByRole: {},
+    actionsByRole: {},
+    avgTimeToActionMsByRole: {},
+    actionToViewRatePctByRole: {},
+  };
 
   return (
     <div className="space-y-4">
@@ -35,6 +52,86 @@ export default async function AdminAnalyticsPage() {
         <AnalyticsCard title="Datasets" entries={data.datasetsByStatus} />
         <AnalyticsCard title="Submissions" entries={data.submissionsByStatus} />
       </div>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <CardTitle>Funnel Conversion ({funnel.windowDays}d)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {funnel.steps.map(
+              (step: { key: string; label: string; count: number }) => (
+                <div
+                  key={step.key}
+                  className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+                >
+                  <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                    {step.label}
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold">{step.count}</p>
+                </div>
+              )
+            )}
+          </div>
+          <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <ConversionStat
+              label="Visit -> Sign up"
+              value={funnel.conversionRates.visitToSignupPct}
+            />
+            <ConversionStat
+              label="Sign up -> Dataset"
+              value={funnel.conversionRates.signupToDatasetPct}
+            />
+            <ConversionStat
+              label="Dataset -> Fund"
+              value={funnel.conversionRates.datasetToFundPct}
+            />
+            <ConversionStat
+              label="Visit -> Fund"
+              value={funnel.conversionRates.visitToFundPct}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <CardTitle>Dashboard Usability Telemetry ({dashboardTelemetry.windowDays}d)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Object.keys({
+              ...dashboardTelemetry.visitsByRole,
+              ...dashboardTelemetry.actionsByRole,
+            }).map((role) => (
+              <div
+                key={role}
+                className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm"
+              >
+                <p className="capitalize text-muted-foreground">{role}</p>
+                <p className="mt-1 font-semibold">
+                  Views: {dashboardTelemetry.visitsByRole[role] ?? 0}
+                </p>
+                <p className="text-muted-foreground">
+                  Actions: {dashboardTelemetry.actionsByRole[role] ?? 0}
+                </p>
+                <p className="text-muted-foreground">
+                  Avg TTA: {dashboardTelemetry.avgTimeToActionMsByRole[role] ?? 0}ms
+                </p>
+                <p className="text-muted-foreground">
+                  Action/View:{" "}
+                  {(dashboardTelemetry.actionToViewRatePctByRole[role] ?? 0).toFixed(1)}%
+                </p>
+              </div>
+            ))}
+          </div>
+          {Object.keys(dashboardTelemetry.visitsByRole).length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No dashboard telemetry captured yet.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
@@ -90,5 +187,14 @@ function AnalyticsCard({
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+function ConversionStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-4 py-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold">{value.toFixed(1)}%</span>
+    </div>
   );
 }

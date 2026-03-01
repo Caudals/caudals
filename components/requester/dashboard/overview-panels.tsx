@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -202,9 +203,11 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
           <CardTitle>{t("Next actions")}</CardTitle>
           <CardDescription>{t("Keep everything moving smoothly")}</CardDescription>
         </div>
-        <Button variant="ghost" size="sm">
-          {t("View all")}
-          <ArrowRight className="ml-2 h-4 w-4" />
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/requester/datasets">
+            {t("View all")}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
         </Button>
       </CardHeader>
       <CardContent>
@@ -240,7 +243,7 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
                     </div>
                 </div>
                 <Button variant="ghost" size="sm" asChild>
-                  <a href={`/requester/datasets/${action.id}`}>{t("Open")}</a>
+                  <Link href={`/requester/datasets/${action.id}`}>{t("Open")}</Link>
                 </Button>
               </div>
             ))}
@@ -366,6 +369,19 @@ export async function NotificationsFeed({
     }
   };
 
+  const getHref = (notification: DashboardNotification) => {
+    switch (notification.type) {
+      case "review_backlog":
+        return "/requester/datasets?filter=pending_review";
+      case "low_budget":
+        return "/requester/datasets?filter=needs_funding";
+      case "export_ready":
+        return "/requester/files";
+      default:
+        return "/requester";
+    }
+  };
+
   return (
     <Card className="border-border/70 shadow-none">
       <CardHeader>
@@ -380,21 +396,61 @@ export async function NotificationsFeed({
         ) : (
           <div className="space-y-3">
             {notifications.map((notification) => (
-              <div
+              <Link
                 key={notification.id}
-                className="rounded-xl border border-border/70 p-3"
+                href={getHref(notification)}
+                className="block rounded-xl border border-border/70 p-3 transition-colors hover:bg-muted/40"
               >
-                <div className="flex items-center gap-2">
-                  <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", chipBySeverity[notification.severity])}>
-                    {severityLabel[notification.severity]}
-                  </span>
-                  <p className="text-sm font-medium">{getTitle(notification)}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", chipBySeverity[notification.severity])}>
+                      {severityLabel[notification.severity]}
+                    </span>
+                    <p className="text-sm font-medium">{getTitle(notification)}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <p className="text-xs text-muted-foreground">{getMessage(notification)}</p>
-              </div>
+              </Link>
             ))}
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export async function QuickOpsPanel({
+  pendingActions,
+}: {
+  pendingActions: number;
+}) {
+  const t = await getServerTranslator();
+  return (
+    <Card className="border-border/70 shadow-none">
+      <CardHeader>
+        <CardTitle>{t("Operations")}</CardTitle>
+        <CardDescription>{t("Fast access to the most used requester workflows")}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        <Link href="/requester/datasets/new" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+          <p className="text-sm font-medium">{t("Create dataset")}</p>
+          <p className="text-xs text-muted-foreground">{t("Launch a new data brief")}</p>
+        </Link>
+        <Link href="/requester/datasets?filter=pending_review" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+          <p className="text-sm font-medium">{t("Review queue")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("Pending submissions: {{count}}", { count: pendingActions })}
+          </p>
+        </Link>
+        <Link href="/requester/files" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+          <p className="text-sm font-medium">{t("Exports & files")}</p>
+          <p className="text-xs text-muted-foreground">{t("Download and monitor export jobs")}</p>
+        </Link>
+        <Link href="/requester/support" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+          <p className="text-sm font-medium">{t("Support center")}</p>
+          <p className="text-xs text-muted-foreground">{t("Open or reply to support tickets")}</p>
+        </Link>
       </CardContent>
     </Card>
   );

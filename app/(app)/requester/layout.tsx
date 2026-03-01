@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
-import { requireRequester } from "@/lib/auth/route-guard";
+import { requireRole } from "@/lib/auth/route-guard";
 
 export default async function RequesterLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  await requireRequester();
+  await requireRole(["requester", "admin"]);
   return <>{children}</>;
 }

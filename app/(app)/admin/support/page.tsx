@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
+  getAdminSupportTickets,
   getWaitlistEntries,
+  updateAdminSupportTicket,
   updateWaitlistStatus,
 } from "@/lib/actions/admin-actions";
 import { createClient } from "@/lib/supabase/server";
@@ -28,23 +30,55 @@ type FollowupItem = {
   type: "dataset" | "submission";
 };
 
-export default async function AdminSupportPage() {
-  await requireAdmin();
+type SearchParams = Promise<{
+  wStatus?: "pending" | "contacted" | "qualified" | "converted";
+  wSearch?: string;
+  wPage?: string;
+  tStatus?: "open" | "in_progress" | "resolved" | "closed";
+  tPriority?: "low" | "normal" | "high" | "urgent";
+  tAssigned?: string;
+  tSearch?: string;
+  tPage?: string;
+}>;
 
-  const [waitlistRes, followups] = await Promise.all([
-    getWaitlistEntries(),
+export default async function AdminSupportPage(props: { searchParams: SearchParams }) {
+  await requireAdmin();
+  const searchParams = await props.searchParams;
+
+  const waitlistFilters = {
+    status: searchParams.wStatus || null,
+    search: searchParams.wSearch || null,
+    page: Number(searchParams.wPage || "1"),
+    pageSize: 25,
+  };
+  const ticketFilters = {
+    status: searchParams.tStatus || null,
+    priority: searchParams.tPriority || null,
+    assignedTo: searchParams.tAssigned || null,
+    search: searchParams.tSearch || null,
+    page: Number(searchParams.tPage || "1"),
+    pageSize: 15,
+  };
+
+  const [waitlistRes, ticketRes, followups] = await Promise.all([
+    getWaitlistEntries(waitlistFilters),
+    getAdminSupportTickets(ticketFilters),
     getFollowUps(),
   ]);
 
-  if ("error" in waitlistRes) {
+  if ("error" in waitlistRes || "error" in ticketRes) {
     return (
       <Card className="border-destructive/40 bg-destructive/5">
         <CardContent className="flex items-center gap-3 py-6">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
-            <p className="font-semibold text-destructive">Unable to load waitlist</p>
+            <p className="font-semibold text-destructive">Unable to load support operations</p>
             <p className="text-sm text-muted-foreground">
-              {waitlistRes.error || "Please try again later."}
+              {"error" in waitlistRes
+                ? waitlistRes.error
+                : "error" in ticketRes
+                  ? ticketRes.error
+                  : "Please try again later."}
             </p>
           </div>
         </CardContent>
@@ -53,8 +87,9 @@ export default async function AdminSupportPage() {
   }
 
   const waitlist = waitlistRes.data ?? [];
+  const tickets = ticketRes.data ?? [];
 
-  const changeStatus = async (formData: FormData) => {
+  const changeWaitlistStatus = async (formData: FormData) => {
     "use server";
     const id = formData.get("id") as string;
     const status = formData.get("status") as
@@ -66,22 +101,297 @@ export default async function AdminSupportPage() {
     await updateWaitlistStatus(id, status, notes);
   };
 
+  const updateTicket = async (formData: FormData) => {
+    "use server";
+    await updateAdminSupportTicket({
+      ticketId: formData.get("ticketId"),
+      status: formData.get("status"),
+      priority: formData.get("priority"),
+      assignedTo: (formData.get("assignedTo") as string) || null,
+      reply: formData.get("reply"),
+    });
+  };
+
+  const buildQuery = (
+    updates: Record<string, string | undefined>,
+    keep: Record<string, string | undefined>,
+  ) => {
+    const next = new URLSearchParams();
+    Object.entries({ ...keep, ...updates }).forEach(([key, value]) => {
+      if (!value) return;
+      next.set(key, value);
+    });
+    const qs = next.toString();
+    return qs ? `/admin/support?${qs}` : "/admin/support";
+  };
+
+  const sharedKeep = {
+    wStatus: searchParams.wStatus,
+    wSearch: searchParams.wSearch,
+    wPage: searchParams.wPage || "1",
+    tStatus: searchParams.tStatus,
+    tPriority: searchParams.tPriority,
+    tAssigned: searchParams.tAssigned,
+    tSearch: searchParams.tSearch,
+    tPage: searchParams.tPage || "1",
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Support & Waitlist</h1>
           <p className="text-sm text-muted-foreground">
-            Track inbound interest and follow-ups for rejected items.
+            Manage lead pipeline and triage requester support queues.
           </p>
         </div>
       </div>
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
-          <CardTitle>Waitlist</CardTitle>
+          <CardTitle>
+            Support tickets ({ticketRes.total.toLocaleString()})
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="space-y-4">
+          <form className="grid gap-2 md:grid-cols-4 lg:grid-cols-6" method="GET">
+            <input type="hidden" name="wStatus" value={searchParams.wStatus || ""} />
+            <input type="hidden" name="wSearch" value={searchParams.wSearch || ""} />
+            <input type="hidden" name="wPage" value={searchParams.wPage || "1"} />
+            <select
+              name="tStatus"
+              defaultValue={searchParams.tStatus || ""}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">All status</option>
+              <option value="open">open</option>
+              <option value="in_progress">in_progress</option>
+              <option value="resolved">resolved</option>
+              <option value="closed">closed</option>
+            </select>
+            <select
+              name="tPriority"
+              defaultValue={searchParams.tPriority || ""}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">All priority</option>
+              <option value="low">low</option>
+              <option value="normal">normal</option>
+              <option value="high">high</option>
+              <option value="urgent">urgent</option>
+            </select>
+            <select
+              name="tAssigned"
+              defaultValue={searchParams.tAssigned || ""}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">All assignees</option>
+              {ticketRes.assignees.map((assignee) => (
+                <option key={assignee.id} value={assignee.id}>
+                  {assignee.full_name || assignee.mail || assignee.id}
+                </option>
+              ))}
+            </select>
+            <Input
+              name="tSearch"
+              placeholder="Search subject/description"
+              defaultValue={searchParams.tSearch || ""}
+              className="h-9"
+            />
+            <Button type="submit" size="sm" className="h-9">
+              Apply
+            </Button>
+            <Button variant="outline" size="sm" asChild className="h-9">
+              <Link href="/admin/support">Reset</Link>
+            </Button>
+          </form>
+
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead>Ticket</TableHead>
+                <TableHead>Requester</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Assignee</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Triage</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tickets.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                    No support tickets found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {tickets.map((ticket) => (
+                <TableRow key={ticket.id} className="align-top">
+                  <TableCell className="max-w-xs">
+                    <div className="font-medium line-clamp-1">{ticket.subject}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2">
+                      {ticket.last_message_preview || ticket.description || "No details"}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {ticket.message_count} message{ticket.message_count === 1 ? "" : "s"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div>{ticket.requester?.full_name || "Unknown"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {ticket.requester?.mail || ticket.user_id || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {ticket.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {ticket.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {ticket.assignee?.full_name || "Unassigned"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
+                  </TableCell>
+                  <TableCell>
+                    <form
+                      action={updateTicket}
+                      className="flex min-w-[360px] flex-col gap-2 md:flex-row md:items-center md:justify-end"
+                    >
+                      <input type="hidden" name="ticketId" value={ticket.id} />
+                      <select
+                        name="status"
+                        defaultValue={ticket.status}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="open">open</option>
+                        <option value="in_progress">in_progress</option>
+                        <option value="resolved">resolved</option>
+                        <option value="closed">closed</option>
+                      </select>
+                      <select
+                        name="priority"
+                        defaultValue={ticket.priority}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="low">low</option>
+                        <option value="normal">normal</option>
+                        <option value="high">high</option>
+                        <option value="urgent">urgent</option>
+                      </select>
+                      <select
+                        name="assignedTo"
+                        defaultValue={ticket.assigned_to || ""}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">unassigned</option>
+                        {ticketRes.assignees.map((assignee) => (
+                          <option key={assignee.id} value={assignee.id}>
+                            {assignee.full_name || assignee.mail || assignee.id}
+                          </option>
+                        ))}
+                      </select>
+                      <Input name="reply" placeholder="Optional reply" className="h-9 md:w-52" />
+                      <Button size="sm" type="submit" className="h-9">
+                        Save
+                      </Button>
+                    </form>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page {ticketRes.page} of {ticketRes.totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={ticketRes.page <= 1}
+                asChild={ticketRes.page > 1}
+              >
+                {ticketRes.page > 1 ? (
+                  <Link
+                    href={buildQuery(
+                      { tPage: String(ticketRes.page - 1) },
+                      sharedKeep
+                    )}
+                  >
+                    Previous
+                  </Link>
+                ) : (
+                  <span>Previous</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={ticketRes.page >= ticketRes.totalPages}
+                asChild={ticketRes.page < ticketRes.totalPages}
+              >
+                {ticketRes.page < ticketRes.totalPages ? (
+                  <Link
+                    href={buildQuery(
+                      { tPage: String(ticketRes.page + 1) },
+                      sharedKeep
+                    )}
+                  >
+                    Next
+                  </Link>
+                ) : (
+                  <span>Next</span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader>
+          <CardTitle>Waitlist ({waitlistRes.total.toLocaleString()})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 p-0">
+          <form className="grid gap-2 border-b px-6 py-4 md:grid-cols-4 lg:grid-cols-6" method="GET">
+            <input type="hidden" name="tStatus" value={searchParams.tStatus || ""} />
+            <input type="hidden" name="tPriority" value={searchParams.tPriority || ""} />
+            <input type="hidden" name="tAssigned" value={searchParams.tAssigned || ""} />
+            <input type="hidden" name="tSearch" value={searchParams.tSearch || ""} />
+            <input type="hidden" name="tPage" value={searchParams.tPage || "1"} />
+            <select
+              name="wStatus"
+              defaultValue={searchParams.wStatus || ""}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              <option value="">All waitlist status</option>
+              <option value="pending">pending</option>
+              <option value="contacted">contacted</option>
+              <option value="qualified">qualified</option>
+              <option value="converted">converted</option>
+            </select>
+            <Input
+              name="wSearch"
+              placeholder="Search email/company/use case"
+              defaultValue={searchParams.wSearch || ""}
+              className="h-9 md:col-span-2"
+            />
+            <Button type="submit" size="sm" className="h-9">
+              Apply
+            </Button>
+            <Button variant="outline" size="sm" asChild className="h-9">
+              <Link href="/admin/support">Reset</Link>
+            </Button>
+          </form>
+
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
@@ -124,22 +434,25 @@ export default async function AdminSupportPage() {
                       : "—"}
                   </TableCell>
                   <TableCell>
-                    <form action={changeStatus} className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+                    <form
+                      action={changeWaitlistStatus}
+                      className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end"
+                    >
                       <input type="hidden" name="id" value={entry.id} />
                       <select
                         name="status"
                         defaultValue={entry.status}
                         className="h-9 rounded-md border border-input bg-background px-2 text-sm"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="qualified">Qualified</option>
-                        <option value="converted">Converted</option>
+                        <option value="pending">pending</option>
+                        <option value="contacted">contacted</option>
+                        <option value="qualified">qualified</option>
+                        <option value="converted">converted</option>
                       </select>
                       <Input
                         name="notes"
                         placeholder="Notes"
-                        className="h-9"
+                        className="h-9 md:w-56"
                         defaultValue={(entry.metadata as { notes?: string } | null)?.notes || ""}
                       />
                       <Button size="sm" type="submit" className="rounded-lg">
@@ -151,6 +464,52 @@ export default async function AdminSupportPage() {
               ))}
             </TableBody>
           </Table>
+
+          <div className="flex items-center justify-between px-6 pb-4">
+            <p className="text-sm text-muted-foreground">
+              Page {waitlistRes.page} of {waitlistRes.totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={waitlistRes.page <= 1}
+                asChild={waitlistRes.page > 1}
+              >
+                {waitlistRes.page > 1 ? (
+                  <Link
+                    href={buildQuery(
+                      { wPage: String(waitlistRes.page - 1) },
+                      sharedKeep
+                    )}
+                  >
+                    Previous
+                  </Link>
+                ) : (
+                  <span>Previous</span>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={waitlistRes.page >= waitlistRes.totalPages}
+                asChild={waitlistRes.page < waitlistRes.totalPages}
+              >
+                {waitlistRes.page < waitlistRes.totalPages ? (
+                  <Link
+                    href={buildQuery(
+                      { wPage: String(waitlistRes.page + 1) },
+                      sharedKeep
+                    )}
+                  >
+                    Next
+                  </Link>
+                ) : (
+                  <span>Next</span>
+                )}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

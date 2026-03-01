@@ -70,7 +70,8 @@ export function ContributeDialog({
       // Upload files to storage
       const { urls, errors } = await uploadMultipleFilesClient(
         files,
-        "dataset-files"
+        "dataset-files",
+        datasetId
       );
 
       if (errors.length > 0) {

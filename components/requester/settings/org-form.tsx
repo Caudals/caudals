@@ -23,18 +23,23 @@ export function OrgForm({ org }: { org: OrgSettings | null }) {
     tax_id: org?.tax_id ?? "",
     default_currency: org?.default_currency ?? "USD",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
   const router = useRouter();
   const t = useTranslations();
 
   const handleSave = () => {
+    setError(null);
     startTransition(async () => {
       const result = await saveOrgSettings(form);
       if ("error" in result) {
         toast.error(result.error);
+        setError(result.error ?? "Unable to update organization");
       } else {
         toast.success(t("Organization updated"));
+        setSavedAt(new Date().toLocaleTimeString());
         router.refresh();
       }
     });
@@ -61,8 +66,14 @@ export function OrgForm({ org }: { org: OrgSettings | null }) {
         </div>
       </div>
       <Button onClick={handleSave} disabled={isPending}>
-        {t("Save organization")}
+        {isPending ? t("Saving...") : t("Save organization")}
       </Button>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {savedAt ? (
+        <p className="text-xs text-muted-foreground">
+          {t("Last saved at {{time}}", { time: savedAt })}
+        </p>
+      ) : null}
     </div>
   );
 }

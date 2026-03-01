@@ -40,7 +40,7 @@ export function MarketingFooter() {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/dashboard" className="hover:text-foreground">
+                    <Link href="/requester" className="hover:text-foreground">
                       {t("Dashboard")}
                     </Link>
                   </li>
@@ -52,6 +52,11 @@ export function MarketingFooter() {
                   <li>
                     <Link href="/docs" className="hover:text-foreground">
                       {t("Documentation")}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/trust" className="hover:text-foreground">
+                      {t("Trust center")}
                     </Link>
                   </li>
                 </ul>

@@ -18,16 +18,19 @@ export type ApiKey = {
 export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
   const [label, setLabel] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
   const router = useRouter();
   const t = useTranslations();
 
   const createKey = () => {
+    setError(null);
     startTransition(async () => {
       const result = await generateRequesterApiKey(label || t("Integration"));
       if ("error" in result) {
         toast.error(result.error);
+        setError(result.error ?? "Unable to create API key");
       } else {
         setGeneratedKey(result.data.apiKey);
         toast.success(t("API key created"));
@@ -38,15 +41,27 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
   };
 
   const revoke = (id: string) => {
+    setError(null);
     startTransition(async () => {
       const result = await revokeRequesterApiKey(id);
       if ("error" in result) {
         toast.error(result.error);
+        setError(result.error ?? "Unable to revoke API key");
       } else {
         toast.success(t("API key revoked"));
         router.refresh();
       }
     });
+  };
+
+  const copyGeneratedKey = async () => {
+    if (!generatedKey) return;
+    try {
+      await navigator.clipboard.writeText(generatedKey);
+      toast.success(t("Key copied"));
+    } catch (_error) {
+      toast.error(t("Unable to copy key"));
+    }
   };
 
   return (
@@ -61,6 +76,11 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
         <div className="rounded-xl border border-border/70 p-4 text-sm">
           <p className="font-medium">{t("Copy your key:")}</p>
           <p className="mt-2 font-mono text-xs">{generatedKey}</p>
+          <div className="mt-3">
+            <Button variant="outline" size="sm" onClick={copyGeneratedKey}>
+              {t("Copy")}
+            </Button>
+          </div>
         </div>
       )}
       <div className="space-y-3">
@@ -82,6 +102,7 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
           ))
         )}
       </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
 }

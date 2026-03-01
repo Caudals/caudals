@@ -67,7 +67,7 @@ export async function bulkApproveSubmissions(
     return { error: error.message };
   }
 
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
   return { data };
 }
 
@@ -196,7 +196,7 @@ export async function updateSubmissionStatus(
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
 
   return { data };
 }

@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripeServer } from "@/lib/stripe/server";
 import type { Database, Json } from "@/types/database";
 import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
+import { recordFunnelEvent } from "@/lib/analytics/funnel-events-server";
 
 const PLATFORM_FEE_PERCENTAGE = Number(
   process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE ?? "10"
@@ -259,6 +260,38 @@ type WalletRowWithCustomer = WalletRow & {
   stripe_customer_id?: string | null;
 };
 
+async function recordFundingFunnelEvent(input: {
+  userId: string;
+  datasetId: string;
+  amountCents: number;
+  currency?: string | null;
+  source: "stripe" | "wallet";
+  referenceId?: string | null;
+}) {
+  try {
+    await recordFunnelEvent({
+      eventName: "funnel_fund",
+      userId: input.userId,
+      userRole: "requester",
+      source: "server",
+      payload: {
+        dataset_id: input.datasetId,
+        amount_cents: input.amountCents,
+        currency: input.currency?.toUpperCase() ?? null,
+        funding_source: input.source,
+        reference_id: input.referenceId ?? null,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to record funnel funding event", {
+      userId: input.userId,
+      datasetId: input.datasetId,
+      source: input.source,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+}
+
 type DatasetBudgetSummary = {
   totalBudgetCents: number;
   rewardCents: number;
@@ -274,7 +307,7 @@ export async function getDatasetBudgetSummary(
   datasetId: string,
   adminClientOverride?: AdminClient
 ): Promise<{ data?: DatasetBudgetSummary; error?: string }> {
-  const admin = adminClientOverride ?? createAdminClient();
+  const admin = adminClientOverride ?? createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -639,7 +672,7 @@ async function recordTransaction({
   metadata = {},
   feeAmountInCents = 0,
 }: RecordTransactionInput) {
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const payload: TransactionInsert = {
@@ -675,7 +708,7 @@ async function upsertStripeAccountRecord(
   userId: string,
   account: Stripe.Account
 ) {
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -744,7 +777,7 @@ export async function getUserWallet() {
     return { error: "Not authenticated" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const stripe = getStripeServer();
@@ -799,7 +832,7 @@ export async function getUserTransactions(limit = 50) {
     return { error: "Not authenticated" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const { data: transactions, error } = await adminClient
@@ -850,7 +883,7 @@ export async function createPaymentIntent(
     return { error: "Amount must be greater than zero" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const stripe = getStripeServer();
@@ -994,7 +1027,7 @@ export async function confirmPayment(paymentIntentId: string) {
 
   const supabase = await createClient();
   const stripe = getStripeServer();
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -1116,6 +1149,15 @@ export async function confirmPayment(paymentIntentId: string) {
         })
         .eq("id", datasetId);
 
+      await recordFundingFunnelEvent({
+        userId,
+        datasetId,
+        amountCents: amountToApply,
+        currency: paymentIntent.currency,
+        source: "stripe",
+        referenceId: paymentIntent.id,
+      });
+
       if (typeof paymentIntent.customer === "string") {
         try {
           const { customerId, wallet } = await ensureStripeCustomerForUser(
@@ -1161,7 +1203,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
     return { error: "Amount must be greater than zero" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -1213,13 +1255,15 @@ export async function payWithWallet(datasetId: string, amount: number) {
     };
   }
 
+  const walletReferenceId = `wallet-${Date.now()}`;
+
   await recordTransaction({
     userId: user.id,
     direction: "debit",
     type: "dataset_funding",
     amountInCents,
     currency: wallet.currency,
-    referenceId: `wallet-${Date.now()}`,
+    referenceId: walletReferenceId,
     datasetRequestId: datasetId,
     metadata: {
       source: "wallet",
@@ -1246,8 +1290,17 @@ export async function payWithWallet(datasetId: string, amount: number) {
     })
     .eq("id", datasetId);
 
+  await recordFundingFunnelEvent({
+    userId: user.id,
+    datasetId,
+    amountCents: amountInCents,
+    currency: wallet.currency,
+    source: "wallet",
+    referenceId: walletReferenceId,
+  });
+
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
 
   return {
     data: {
@@ -1282,7 +1335,7 @@ export async function submitStripeOnboarding(
   const normalizedCountry = payload.country.toUpperCase();
   const normalizedCurrency = payload.currency.toLowerCase();
   const stripe = getStripeServer();
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -1572,7 +1625,7 @@ export async function deleteStripeConnectAccount() {
   }
 
   const stripe = getStripeServer();
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -1615,8 +1668,8 @@ export async function deleteStripeConnectAccount() {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/contributor");
-  revalidatePath("/dashboard/earnings");
+  revalidatePath("/contributor");
+  revalidatePath("/contributor/earnings");
 
   return { data: { deleted: true } };
 }
@@ -1631,7 +1684,7 @@ export async function getStripeConnectAccount() {
     return { error: "Not authenticated" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const { data, error } = await adminClient
@@ -1659,7 +1712,7 @@ export async function getStripeConnectStatus() {
     return { error: "Not authenticated" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const { data: accountRecord } = await adminClient
@@ -1718,7 +1771,7 @@ export async function getStripeConnectBalance() {
     return { error: "Not authenticated" };
   }
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const { data: accountRecord } = await adminClient
@@ -1767,7 +1820,7 @@ export async function payoutToContributor(
 
   const amountInCents = centsFromAmount(amount);
   const stripe = getStripeServer();
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
 
@@ -1865,7 +1918,7 @@ export async function payoutToContributor(
 export async function refreshWalletFromStripe(paymentIntentId: string) {
   assertStripeConfigured();
 
-  const admin = createAdminClient();
+  const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminClient = admin as any;
   const stripe = getStripeServer();
