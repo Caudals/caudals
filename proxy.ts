@@ -148,7 +148,7 @@ async function getRequestCountryCode(request: NextRequest): Promise<string | nul
   return null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const hostname = extractHostname(request);
   const pathname = request.nextUrl.pathname;
   const isAppHost = appHostConfigs.some(
