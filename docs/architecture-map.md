@@ -84,7 +84,7 @@ Funnel events:
 
 | Concern | Ownership |
 | --- | --- |
-| Role-based access and redirects | `middleware.ts`, `lib/auth/route-guard.ts`, `lib/middleware/admin-check.ts` |
+| Role-based access and redirects | `proxy.ts`, `lib/auth/route-guard.ts`, `lib/middleware/admin-check.ts` |
 | Design system and shell primitives | `app/globals.css`, `components/ui/*`, `components/app/*` |
 | Security controls | `lib/security/rate-limit.ts`, upload guardrails, webhook replay protection, `next.config.js` headers/CSP |
 | Test harness | `vitest.config.ts`, `playwright.config.ts`, `e2e/*`, `lib/actions/*.test.ts` |
@@ -96,4 +96,3 @@ Funnel events:
   - `docs/release-checklist.md`
   - `docs/staging-parity-checklist.md`
   - `docs/db-runbook.md`
-
