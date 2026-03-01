@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const interHeading = Inter({ subsets: ["latin"], weight: ["600", "700"] });
+const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function HeroSection() {
   const t = useTranslations();
@@ -72,7 +73,7 @@ export function HeroSection() {
           className="mt-10 flex flex-col gap-4 sm:flex-row"
         >
           <Button size="lg" className="h-12 min-w-[200px] px-8 text-base" asChild>
-            <Link href="/dashboard/requests/new">{t("Start a project")}</Link>
+            <Link href={REQUESTER_ONBOARDING_CTA}>{t("Start a project")}</Link>
           </Button>
           <Button
             size="lg"

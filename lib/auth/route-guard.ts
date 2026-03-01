@@ -30,13 +30,13 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
     if (!allowedRoles.includes(userRole)) {
       console.log('User role not allowed, redirecting...');
       if (userRole === 'contributor') {
-        redirect('/dashboard/contributor');
+        redirect('/contributor');
       } else if (userRole === 'requester') {
-        redirect('/dashboard');
+        redirect('/requester');
       } else if (userRole === 'admin') {
         redirect('/admin');
       } else {
-        redirect(redirectPath || '/dashboard');
+        redirect(redirectPath || '/requester');
       }
     }
 

@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
   getAdminOverview,
   getAdminAnalyticsSummary,
+  getAdminPaymentsOverview,
+  getAdminSupportTickets,
 } from "@/lib/actions/admin-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,20 +16,26 @@ import {
   ArrowRight,
   FileText,
   Globe2,
+  LifeBuoy,
+  Radar,
   RefreshCw,
   ShieldCheck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
+import { DashboardTelemetry } from "@/components/analytics/dashboard-telemetry";
 
 export default async function AdminDashboard() {
   await requireAdmin();
 
-  const [overviewRes, analyticsRes] = await Promise.all([
+  const [overviewRes, analyticsRes, paymentsRes, supportRes] = await Promise.all([
     getAdminOverview(),
     getAdminAnalyticsSummary(),
+    getAdminPaymentsOverview(),
+    getAdminSupportTickets({ pageSize: 50 }),
   ]);
 
   type OverviewData = {
@@ -89,10 +98,66 @@ export default async function AdminDashboard() {
 
   const overview = overviewRes.data as OverviewData;
   const analytics = "data" in analyticsRes ? analyticsRes.data : null;
+  const payments = "data" in paymentsRes ? paymentsRes.data : null;
+  const support = "data" in supportRes ? supportRes : null;
   const highlight = overview.highlight;
   const lastUpdated = overview.lastUpdated
     ? formatDistanceToNow(new Date(overview.lastUpdated), { addSuffix: true })
     : "—";
+
+  const reviewQueueCount =
+    overview.stats.pendingRequests + overview.stats.pendingSubmissions;
+  const pendingPayoutCount = payments?.totals.pendingPayouts ?? 0;
+  const failedPayoutCount =
+    payments?.transactions.filter(
+      (tx) => tx.type === "submission_payout" && tx.status === "failed"
+    ).length ?? 0;
+  const openSupportCount =
+    support?.data.filter(
+      (ticket) => ticket.status === "open" || ticket.status === "in_progress"
+    ).length ?? 0;
+
+  const latestSupportTimestamp =
+    support?.data.reduce((max, ticket) => {
+      const updated = new Date(ticket.updated_at).getTime();
+      return Number.isFinite(updated) ? Math.max(max, updated) : max;
+    }, 0) ?? 0;
+
+  const staleSupportCount =
+    support?.data.filter((ticket) => {
+      if (ticket.status === "resolved" || ticket.status === "closed") {
+        return false;
+      }
+      const updated = new Date(ticket.updated_at).getTime();
+      return latestSupportTimestamp - updated > 48 * 60 * 60 * 1000;
+    }).length ?? 0;
+
+  const visitToFundRate = analytics?.funnel?.conversionRates?.visitToFundPct ?? 0;
+
+  const anomalyRows = [
+    {
+      label: "Failed payouts",
+      value: failedPayoutCount,
+      details: "Payout transactions marked as failed and needing reconciliation.",
+      href: "/admin/payments",
+      critical: failedPayoutCount > 0,
+    },
+    {
+      label: "Stale support tickets (>48h)",
+      value: staleSupportCount,
+      details: "Open or in-progress tickets with stale updates.",
+      href: "/admin/support?status=open",
+      critical: staleSupportCount > 0,
+    },
+    {
+      label: "Visit -> fund conversion",
+      value: visitToFundRate,
+      details: "30-day top-of-funnel to funding conversion rate.",
+      href: "/admin/analytics",
+      critical: visitToFundRate < 2 && (analytics?.funnel?.counts?.visit ?? 0) > 20,
+      suffix: "%",
+    },
+  ];
 
   const thingsToDo = [
     {
@@ -109,6 +174,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <DashboardTelemetry role="admin" />
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">
@@ -122,6 +188,7 @@ export default async function AdminDashboard() {
           {thingsToDo.length > 0 ? (
             <Link
               href={thingsToDo[0].href}
+              data-dashboard-action="admin_open_priority_queue"
               className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm hover:border-border/70"
             >
               <div className="flex items-center gap-2">
@@ -374,6 +441,102 @@ export default async function AdminDashboard() {
           </Card>
         </div>
       )}
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="border-border/70 shadow-sm">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Operational SLA Queues</h3>
+              <Radar className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <QueueRow
+              label="Review backlog"
+              value={reviewQueueCount}
+              href="/admin/requests"
+              actionId="admin_queue_review_backlog"
+              helper="Pending request and submission approvals."
+            />
+            <QueueRow
+              label="Pending payouts"
+              value={pendingPayoutCount}
+              href="/admin/payments"
+              actionId="admin_queue_pending_payouts"
+              helper="Transfers created but not yet settled."
+            />
+            <QueueRow
+              label="Open support"
+              value={openSupportCount}
+              href="/admin/support?status=open"
+              actionId="admin_queue_open_support"
+              helper="Tickets awaiting support ownership."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 shadow-sm">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Anomaly Detection</h3>
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            </div>
+            {anomalyRows.map((row) => (
+              <Link
+                key={row.label}
+                href={row.href}
+                className="block rounded-xl border border-border/70 p-3 hover:bg-muted/30"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm">{row.label}</p>
+                  <p
+                    className={
+                      row.critical
+                        ? "font-semibold text-destructive"
+                        : "font-semibold"
+                    }
+                  >
+                    {row.value}
+                    {row.suffix ?? ""}
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{row.details}</p>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 shadow-sm">
+          <CardContent className="space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Escalation Shortcuts</h3>
+              <LifeBuoy className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <ShortcutRow
+              icon={<Wallet className="h-4 w-4" />}
+              label="Resolve payout failures"
+              href="/admin/payments"
+              actionId="admin_shortcut_resolve_payout_failures"
+            />
+            <ShortcutRow
+              icon={<LifeBuoy className="h-4 w-4" />}
+              label="Triage urgent tickets"
+              href="/admin/support?priority=high"
+              actionId="admin_shortcut_triage_tickets"
+            />
+            <ShortcutRow
+              icon={<FileText className="h-4 w-4" />}
+              label="Clear review queue"
+              href="/admin/requests"
+              actionId="admin_shortcut_clear_review_queue"
+            />
+            <ShortcutRow
+              icon={<Activity className="h-4 w-4" />}
+              label="Audit recent actions"
+              href="/admin/activity"
+              actionId="admin_shortcut_audit_activity"
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -384,5 +547,59 @@ function StatPill({ label, value }: { label: string; value: number }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg font-semibold">{value}</p>
     </div>
+  );
+}
+
+function QueueRow({
+  label,
+  value,
+  href,
+  actionId,
+  helper,
+}: {
+  label: string;
+  value: number;
+  href: string;
+  actionId: string;
+  helper: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-dashboard-action={actionId}
+      className="block rounded-xl border border-border/70 p-3 hover:bg-muted/30"
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-sm">{label}</p>
+        <p className="font-semibold">{value}</p>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+    </Link>
+  );
+}
+
+function ShortcutRow({
+  icon,
+  label,
+  href,
+  actionId,
+}: {
+  icon: ReactNode;
+  label: string;
+  href: string;
+  actionId: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-dashboard-action={actionId}
+      className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
+    >
+      <span className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        {label}
+      </span>
+      <ArrowRight className="h-4 w-4" />
+    </Link>
   );
 }

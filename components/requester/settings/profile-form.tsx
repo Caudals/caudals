@@ -24,18 +24,28 @@ export function ProfileForm({ profile }: { profile: ProfileData | null }) {
     timezone: profile?.timezone ?? "",
     locale: profile?.locale ?? "en",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
   const router = useRouter();
   const t = useTranslations();
 
   const handleSave = () => {
+    setError(null);
+    if (form.locale.trim().length === 0) {
+      setError(t("Locale is required") ?? "Locale is required");
+      return;
+    }
+
     startTransition(async () => {
       const result = await updateProfile(form);
       if ("error" in result) {
         toast.error(result.error);
+        setError(result.error ?? "Unable to update profile");
       } else {
         toast.success(t("Profile updated"));
+        setSavedAt(new Date().toLocaleTimeString());
         router.refresh();
       }
     });
@@ -62,8 +72,14 @@ export function ProfileForm({ profile }: { profile: ProfileData | null }) {
         </div>
       </div>
       <Button onClick={handleSave} disabled={isPending}>
-        {t("Save profile")}
+        {isPending ? t("Saving...") : t("Save profile")}
       </Button>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {savedAt ? (
+        <p className="text-xs text-muted-foreground">
+          {t("Last saved at {{time}}", { time: savedAt })}
+        </p>
+      ) : null}
     </div>
   );
 }

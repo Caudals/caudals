@@ -10,7 +10,7 @@ export async function GET() {
 
   try {
     const supabase = await createClient();
-    const adminSupabase = createAdminClient();
+    const adminSupabase = createAdminClient("debug_tools");
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();

@@ -78,6 +78,10 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+  const [bulkApprovalConfirm, setBulkApprovalConfirm] =
+    useState<ApprovalStatus | null>(null);
+  const [bulkStatusConfirm, setBulkStatusConfirm] =
+    useState<DatasetStatus | null>(null);
   const [isStatusPending, startStatusTransition] = useTransition();
   const toast = useLocaleToast();
   const t = useTranslations();
@@ -172,7 +176,7 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
 
   const clearSelection = () => setSelectedIds([]);
 
-  const handleBulkStatusChange = (nextStatus: DatasetStatus) => {
+  const runBulkStatusChange = (nextStatus: DatasetStatus) => {
     if (selectionCount === 0) return;
     startBulkStatusTransition(async () => {
       const result = await adminBulkUpdateDatasetStatus(
@@ -182,8 +186,12 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
       if ("error" in result) {
         toast.error(result.error || "Failed to update dataset status.");
       } else {
+        const updated =
+          "updated" in result && typeof result.updated === "number"
+            ? result.updated
+            : selectionCount;
         toast.success(
-          `Updated status to ${statusLabels[nextStatus]} for ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
+          `Updated status to ${statusLabels[nextStatus]} for ${updated} of ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
         );
         clearSelection();
       }
@@ -191,7 +199,7 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
     });
   };
 
-  const handleBulkApprovalChange = (nextStatus: ApprovalStatus) => {
+  const runBulkApprovalChange = (nextStatus: ApprovalStatus) => {
     if (selectionCount === 0) return;
     startBulkApprovalTransition(async () => {
       const result = await adminBulkUpdateDatasetApproval(
@@ -201,8 +209,12 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
       if ("error" in result) {
         toast.error(result.error || "Failed to update approval status.");
       } else {
+        const updated =
+          "updated" in result && typeof result.updated === "number"
+            ? result.updated
+            : selectionCount;
         toast.success(
-          `Marked ${selectionCount} dataset${selectionCount === 1 ? "" : "s"} as ${nextStatus}.`
+          `Marked ${updated} of ${selectionCount} dataset${selectionCount === 1 ? "" : "s"} as ${nextStatus}.`
         );
         clearSelection();
       }
@@ -217,8 +229,12 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
       if ("error" in result) {
         toast.error(result.error || "Failed to delete datasets.");
       } else {
+        const deleted =
+          "deleted" in result && typeof result.deleted === "number"
+            ? result.deleted
+            : selectionCount;
         toast.success(
-          `Deleted ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
+          `Deleted ${deleted} of ${selectionCount} dataset${selectionCount === 1 ? "" : "s"}.`
         );
         clearSelection();
       }
@@ -279,7 +295,7 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                       (status) => (
                         <DropdownMenuItem
                           key={status}
-                          onSelect={() => handleBulkStatusChange(status)}
+                          onSelect={() => setBulkStatusConfirm(status)}
                         >
                           {statusLabels[status]}
                         </DropdownMenuItem>
@@ -310,7 +326,7 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                       (status) => (
                         <DropdownMenuItem
                           key={status}
-                          onSelect={() => handleBulkApprovalChange(status)}
+                          onSelect={() => setBulkApprovalConfirm(status)}
                         >
                           <span className="capitalize">{status}</span>
                         </DropdownMenuItem>
@@ -574,6 +590,78 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
         onOpenChange={(open) => setIsBulkDialogOpen(open)}
         onComplete={handleBulkEditComplete}
       />
+
+      <AlertDialog
+        open={bulkStatusConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkStatusConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply bulk status change?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will update {selectionCount} selected dataset
+              {selectionCount === 1 ? "" : "s"} to{" "}
+              {bulkStatusConfirm ? statusLabels[bulkStatusConfirm] : "the selected status"}.
+              Audit logs will capture rollback guidance for this operation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkStatusPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBulkStatusPending || !bulkStatusConfirm}
+              onClick={() => {
+                if (!bulkStatusConfirm) return;
+                runBulkStatusChange(bulkStatusConfirm);
+                setBulkStatusConfirm(null);
+              }}
+            >
+              {isBulkStatusPending ? "Updating..." : "Apply change"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={bulkApprovalConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkApprovalConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply bulk approval update?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will set approval to{" "}
+              <span className="capitalize">{bulkApprovalConfirm || "selected status"}</span>{" "}
+              for {selectionCount} selected dataset
+              {selectionCount === 1 ? "" : "s"}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkApprovalPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBulkApprovalPending || !bulkApprovalConfirm}
+              onClick={() => {
+                if (!bulkApprovalConfirm) return;
+                runBulkApprovalChange(bulkApprovalConfirm);
+                setBulkApprovalConfirm(null);
+              }}
+            >
+              {isBulkApprovalPending ? "Updating..." : "Apply change"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={isBulkDeleteDialogOpen}

@@ -232,7 +232,7 @@ export async function createDatasetRequest(formData: {
 
   revalidatePath("/browse");
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
 
   return { data };
 }
@@ -280,7 +280,7 @@ export async function updateDatasetRequest(
 
   revalidatePath("/browse");
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
 
   return { data };
 }
@@ -300,7 +300,7 @@ export async function deleteDatasetRequest(id: string) {
 
   revalidatePath("/browse");
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/requests");
+  revalidatePath("/requester/datasets");
 
   return { success: true };
 }

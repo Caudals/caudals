@@ -11,19 +11,31 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function SupportForm() {
   const [form, setForm] = useState({ subject: "", description: "" });
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
   const router = useRouter();
   const t = useTranslations();
 
   const handleSubmit = () => {
+    setError(null);
+    if (form.subject.trim().length < 3) {
+      setError(
+        t("Subject must be at least 3 characters") ??
+          "Subject must be at least 3 characters"
+      );
+      return;
+    }
+
     startTransition(async () => {
       const result = await createSupportTicket(form);
       if ("error" in result) {
         toast.error(result.error);
+        setError(result.error ?? "Unable to create support ticket");
       } else {
         toast.success(t("Request sent"));
         setForm({ subject: "", description: "" });
+        router.push(`/requester/support/${result.id}`);
         router.refresh();
       }
     });
@@ -45,6 +57,9 @@ export function SupportForm() {
       <Button onClick={handleSubmit} disabled={isPending}>
         {t("Submit ticket")}
       </Button>
+      {error ? (
+        <p className="text-sm text-destructive">{error}</p>
+      ) : null}
     </div>
   );
 }

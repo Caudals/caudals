@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getSupportTickets } from "@/lib/actions/requester-actions";
 import { SupportForm } from "@/components/requester/support/support-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default async function SupportPage() {
   const tickets = await getSupportTickets();
@@ -31,7 +33,7 @@ export default async function SupportPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Open tickets</CardTitle>
+            <CardTitle>Tickets</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -39,21 +41,41 @@ export default async function SupportPage() {
                 <TableRow>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Messages</TableHead>
+                  <TableHead>Last update</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tickets.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                       No tickets yet.
                     </TableCell>
                   </TableRow>
                 ) : (
                   tickets.map((ticket) => (
                     <TableRow key={ticket.id}>
-                      <TableCell>{ticket.subject}</TableCell>
-                      <TableCell className="capitalize">{ticket.status}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/requester/support/${ticket.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {ticket.subject}
+                        </Link>
+                        {ticket.last_message_preview ? (
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                            {ticket.last_message_preview}
+                          </p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {ticket.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{ticket.message_count}</TableCell>
+                      <TableCell>{new Date(ticket.updated_at).toLocaleDateString()}</TableCell>
                       <TableCell>{new Date(ticket.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
                   ))

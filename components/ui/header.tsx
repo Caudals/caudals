@@ -25,10 +25,11 @@ interface HeaderProps {
 const DEFAULT_LINKS = [
   { href: "/browse", label: "Browse" },
   { href: "/collaborate", label: "Partnerships" },
+  { href: "/trust", label: "Trust" },
 ];
 
 export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const t = useTranslations();
   
   // Only hide nav/actions when deploy is in landing mode (NEXT_PUBLIC_* set at build time)
@@ -37,6 +38,13 @@ export function Header({ links, translucent = false, hideActions = false }: Head
   
   const navLinks =
     links && links.length > 0 ? links : isLandingMode ? [] : DEFAULT_LINKS;
+
+  const dashboardHref =
+    userRole === "admin"
+      ? "/admin"
+      : userRole === "contributor"
+        ? "/contributor"
+        : "/requester";
 
   const renderDesktopActions = () => {
     // Don't show actions in landing mode
@@ -55,7 +63,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
 
     return user ? (
       <Button size="sm" asChild>
-            <Link href="/dashboard">{t("Dashboard")}</Link>
+            <Link href={dashboardHref}>{t("Dashboard")}</Link>
           </Button>
         ) : (
           <>
@@ -87,7 +95,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
     return user ? (
       <SheetClose asChild>
         <Button size="sm" asChild className="w-full">
-          <Link href="/dashboard">{t("Dashboard")}</Link>
+          <Link href={dashboardHref}>{t("Dashboard")}</Link>
         </Button>
       </SheetClose>
     ) : (

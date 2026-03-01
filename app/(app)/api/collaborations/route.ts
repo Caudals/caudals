@@ -6,34 +6,115 @@ import {
   addContactEmailToSegment,
   ensureAudienceContact,
 } from "@/lib/resend/subscribers";
+import {
+  buildRateLimitHeaders,
+  consumeRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/security/rate-limit";
+import { logError, logWarn } from "@/lib/security/structured-logger";
+
+const COLLAB_IP_RATE_LIMIT = {
+  limit: 6,
+  windowMs: 15 * 60 * 1000,
+};
+
+const COLLAB_EMAIL_RATE_LIMIT = {
+  limit: 3,
+  windowMs: 60 * 60 * 1000,
+};
+
+function withHeaders(
+  response: NextResponse,
+  headers: Record<string, string>
+) {
+  Object.entries(headers).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
 
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIpFromHeaders(request.headers);
+  const ipRateLimit = consumeRateLimit({
+    key: `collaboration:ip:${clientIp}`,
+    limit: COLLAB_IP_RATE_LIMIT.limit,
+    windowMs: COLLAB_IP_RATE_LIMIT.windowMs,
+  });
+  const ipRateHeaders = buildRateLimitHeaders(ipRateLimit);
+
+  if (!ipRateLimit.allowed) {
+    return withHeaders(
+      NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      ),
+      ipRateHeaders
+    );
+  }
+
   const payload = await request.json().catch(() => null);
 
   if (!payload) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return withHeaders(
+      NextResponse.json({ error: "Invalid request" }, { status: 400 }),
+      ipRateHeaders
+    );
+  }
+
+  // Bot trap field: real form submissions should leave this empty.
+  if (typeof payload.website === "string" && payload.website.trim().length > 0) {
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: "Thanks for reaching out! We'll reply shortly.",
+      }),
+      ipRateHeaders
+    );
   }
 
   const parsed = collaborationFormSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: "Validation failed",
-        details: parsed.error.flatten(),
-      },
-      { status: 422 }
+    return withHeaders(
+      NextResponse.json(
+        {
+          error: "Validation failed",
+          details: parsed.error.flatten(),
+        },
+        { status: 422 }
+      ),
+      ipRateHeaders
     );
   }
 
   const data = parsed.data;
+  const normalizedWorkEmail = data.workEmail.toLowerCase();
+  const emailRateLimit = consumeRateLimit({
+    key: `collaboration:email:${normalizedWorkEmail}`,
+    limit: COLLAB_EMAIL_RATE_LIMIT.limit,
+    windowMs: COLLAB_EMAIL_RATE_LIMIT.windowMs,
+  });
+
+  if (!emailRateLimit.allowed) {
+    return withHeaders(
+      NextResponse.json(
+        { error: "Too many attempts for this email. Please try again later." },
+        { status: 429 }
+      ),
+      ipRateHeaders
+    );
+  }
+
   const resendFrom = process.env.RESEND_FROM_EMAIL;
 
   if (!resendFrom) {
-    console.error("RESEND_FROM_EMAIL is not configured");
-    return NextResponse.json(
-      { error: "Email service is not configured" },
-      { status: 500 }
+    logError("collaboration.resend_from_missing");
+    return withHeaders(
+      NextResponse.json(
+        { error: "Email service is not configured" },
+        { status: 500 }
+      ),
+      ipRateHeaders
     );
   }
 
@@ -44,7 +125,6 @@ export async function POST(request: NextRequest) {
     "contact@caudals.com";
 
   const resend = getResendClient();
-  const normalizedWorkEmail = data.workEmail.toLowerCase();
   const submittedAt = new Date().toISOString();
   const userAgent = request.headers.get("user-agent");
   const referer = request.headers.get("referer");
@@ -66,21 +146,24 @@ export async function POST(request: NextRequest) {
         fullName: data.fullName,
       });
     } catch (error) {
-      console.error("Failed to upsert collaboration contact in Resend audience", error);
+      logError("collaboration.contact_upsert_failed", {
+        error,
+        email: normalizedWorkEmail,
+        audienceId: partnershipsAudienceId,
+      });
     }
   } else {
-    console.warn(
-      "RESEND_PARTNERSHIPS_AUDIENCE_ID is not configured; skipping audience subscription"
-    );
+    logWarn("collaboration.partnerships_audience_missing");
   }
 
   if (partnershipsSegmentId) {
     if (!resendApiKey) {
-      console.warn("RESEND_API_KEY is not configured; skipping segment subscription");
+      logWarn("collaboration.resend_api_key_missing");
     } else if (!audienceContactReady) {
-      console.warn(
-        "Skipping partnership segment subscription because the contact was not saved in the audience"
-      );
+      logWarn("collaboration.segment_skipped_contact_not_ready", {
+        email: normalizedWorkEmail,
+        segmentId: partnershipsSegmentId,
+      });
     } else {
       try {
         await addContactEmailToSegment({
@@ -89,13 +172,15 @@ export async function POST(request: NextRequest) {
           apiKey: resendApiKey,
         });
       } catch (error) {
-        console.error("Failed to add collaboration contact to Resend segment", error);
+        logError("collaboration.segment_add_failed", {
+          error,
+          email: normalizedWorkEmail,
+          segmentId: partnershipsSegmentId,
+        });
       }
     }
   } else {
-    console.warn(
-      "RESEND_PARTNERSHIPS_SEGMENT_ID is not configured; skipping segment subscription"
-    );
+    logWarn("collaboration.partnerships_segment_missing");
   }
 
   const baseEmailPayload = {
@@ -117,7 +202,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (primaryResult.error) {
-    console.error("Failed to send collaboration inquiry notification", primaryResult.error);
+    logError("collaboration.notification_send_failed", {
+      error: primaryResult.error,
+      email: normalizedWorkEmail,
+    });
 
     if (resendFallbackFrom && resendFallbackFrom !== resendFrom) {
       const fallbackResult = await resend.emails.send({
@@ -126,26 +214,38 @@ export async function POST(request: NextRequest) {
       });
 
       if (fallbackResult.error) {
-        console.error("Fallback collaboration notification email also failed", fallbackResult.error);
-        return NextResponse.json(
-          { error: "We couldn't deliver your message. Please try again." },
-          { status: 500 }
+        logError("collaboration.notification_fallback_failed", {
+          error: fallbackResult.error,
+          email: normalizedWorkEmail,
+        });
+        return withHeaders(
+          NextResponse.json(
+            { error: "We couldn't deliver your message. Please try again." },
+            { status: 500 }
+          ),
+          ipRateHeaders
         );
       }
 
-      console.warn(
-        "Collaboration notification email delivered using fallback sender due to primary sender failure"
-      );
+      logWarn("collaboration.notification_fallback_used", {
+        email: normalizedWorkEmail,
+      });
     } else {
-      return NextResponse.json(
-        { error: "We couldn't deliver your message. Please try again." },
-        { status: 500 }
+      return withHeaders(
+        NextResponse.json(
+          { error: "We couldn't deliver your message. Please try again." },
+          { status: 500 }
+        ),
+        ipRateHeaders
       );
     }
   }
 
-  return NextResponse.json({
-    success: true,
-    message: "Thanks for reaching out! We'll reply shortly.",
-  });
+  return withHeaders(
+    NextResponse.json({
+      success: true,
+      message: "Thanks for reaching out! We'll reply shortly.",
+    }),
+    ipRateHeaders
+  );
 }

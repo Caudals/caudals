@@ -5,29 +5,110 @@ import { WaitlistConfirmationEmail } from "@/emails/waitlist-confirmation";
 import type { Database, Json } from "@/types/database";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
 import { splitFullName } from "@/lib/utils/names";
+import {
+  buildRateLimitHeaders,
+  consumeRateLimit,
+  getClientIpFromHeaders,
+} from "@/lib/security/rate-limit";
+import { logError, logInfo, logWarn } from "@/lib/security/structured-logger";
+
+const WAITLIST_IP_RATE_LIMIT = {
+  limit: 10,
+  windowMs: 15 * 60 * 1000,
+};
+
+const WAITLIST_EMAIL_RATE_LIMIT = {
+  limit: 4,
+  windowMs: 60 * 60 * 1000,
+};
+
+function withHeaders(
+  response: NextResponse,
+  headers: Record<string, string>
+) {
+  Object.entries(headers).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
 
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIpFromHeaders(request.headers);
+  const ipRateLimit = consumeRateLimit({
+    key: `waitlist:ip:${clientIp}`,
+    limit: WAITLIST_IP_RATE_LIMIT.limit,
+    windowMs: WAITLIST_IP_RATE_LIMIT.windowMs,
+  });
+  const ipRateHeaders = buildRateLimitHeaders(ipRateLimit);
+
+  if (!ipRateLimit.allowed) {
+    return withHeaders(
+      NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      ),
+      ipRateHeaders
+    );
+  }
+
   const requestBody = await request.json().catch(() => null);
 
   if (!requestBody) {
-    return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
+    return withHeaders(
+      NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      ),
+      ipRateHeaders
+    );
+  }
+
+  // Bot trap field: real clients should never submit this value.
+  if (
+    typeof requestBody.website === "string" &&
+    requestBody.website.trim().length > 0
+  ) {
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: "You're on the waitlist! We'll be in touch soon.",
+      }),
+      ipRateHeaders
     );
   }
 
   const parsed = waitlistFormSchema.safeParse(requestBody);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 422 }
+    return withHeaders(
+      NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 422 }
+      ),
+      ipRateHeaders
     );
   }
 
   const { fullName, email, company, useCase } = parsed.data;
+  const emailLower = email.toLowerCase();
+  const emailRateLimit = consumeRateLimit({
+    key: `waitlist:email:${emailLower}`,
+    limit: WAITLIST_EMAIL_RATE_LIMIT.limit,
+    windowMs: WAITLIST_EMAIL_RATE_LIMIT.windowMs,
+  });
+
+  if (!emailRateLimit.allowed) {
+    return withHeaders(
+      NextResponse.json(
+        { error: "Too many attempts for this email. Please try again later." },
+        { status: 429 }
+      ),
+      ipRateHeaders
+    );
+  }
+
   const generalAudienceId = process.env.RESEND_GENERAL_AUDIENCE_ID;
-  const supabase = createAdminClient();
+  const supabase = createAdminClient("waitlist_intake");
 
   const metadata: Record<string, Json> = {
     source: "landing-page",
@@ -47,8 +128,6 @@ export async function POST(request: NextRequest) {
     metadata.referer = referer;
   }
 
-  const emailLower = email.toLowerCase();
-
   const metadataJson = metadata as Json;
 
   type WaitlistSignupUpdate = Database["public"]["Tables"]["waitlist_signups"]["Update"];
@@ -61,10 +140,13 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (lookupError) {
-    console.error("Waitlist lookup error", lookupError);
-    return NextResponse.json(
-      { error: "Failed to save waitlist entry" },
-      { status: 500 }
+    logError("waitlist.lookup_failed", { error: lookupError, email: emailLower });
+    return withHeaders(
+      NextResponse.json(
+        { error: "Failed to save waitlist entry" },
+        { status: 500 }
+      ),
+      ipRateHeaders
     );
   }
 
@@ -79,7 +161,6 @@ export async function POST(request: NextRequest) {
       updated_at: timestamp,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client typing fails to infer waitlist table fields in this context
     const waitlistTable = supabase.from("waitlist_signups") as any;
 
     const recordId = (existingRecord as { id: string }).id;
@@ -89,18 +170,24 @@ export async function POST(request: NextRequest) {
       .eq("id", recordId);
 
     if (updateError) {
-      console.error("Waitlist update error", updateError);
-      return NextResponse.json(
-        { error: "Failed to update waitlist entry" },
-        { status: 500 }
+      logError("waitlist.update_failed", { error: updateError, email: emailLower, recordId });
+      return withHeaders(
+        NextResponse.json(
+          { error: "Failed to update waitlist entry" },
+          { status: 500 }
+        ),
+        ipRateHeaders
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: "You're already on the waitlist!",
-      alreadyRegistered: true,
-    });
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: "You're already on the waitlist!",
+        alreadyRegistered: true,
+      }),
+      ipRateHeaders
+    );
   }
 
   const insertPayload: WaitlistSignupInsert = {
@@ -113,7 +200,6 @@ export async function POST(request: NextRequest) {
     updated_at: timestamp,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase client typing fails to infer waitlist table fields in this context
   const waitlistInsert = supabase.from("waitlist_signups") as any;
 
   const { data: insertedRecord, error: insertError } = await waitlistInsert
@@ -122,21 +208,27 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (insertError || !insertedRecord) {
-    console.error("Waitlist insert error", insertError);
-    return NextResponse.json(
-      { error: "Failed to save waitlist entry" },
-      { status: 500 }
+    logError("waitlist.insert_failed", { error: insertError, email: emailLower });
+    return withHeaders(
+      NextResponse.json(
+        { error: "Failed to save waitlist entry" },
+        { status: 500 }
+      ),
+      ipRateHeaders
     );
   }
 
   const resendFrom = process.env.RESEND_FROM_EMAIL;
 
   if (!resendFrom) {
-    console.warn("Waitlist submission saved but RESEND_FROM_EMAIL is missing");
-    return NextResponse.json({
-      success: true,
-      message: "You're on the waitlist! We'll be in touch soon.",
-    });
+    logWarn("waitlist.resend_from_missing", { email: emailLower });
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: "You're on the waitlist! We'll be in touch soon.",
+      }),
+      ipRateHeaders
+    );
   }
 
   try {
@@ -164,12 +256,16 @@ export async function POST(request: NextRequest) {
             : undefined;
 
         if (statusCode === 409) {
-          console.info("Waitlist contact already exists in Resend audience", {
+          logInfo("waitlist.contact_already_exists", {
             email: emailLower,
             audienceId: generalAudienceId,
           });
         } else {
-          console.error("Failed to upsert waitlist contact in Resend audience", error);
+          logError("waitlist.contact_upsert_failed", {
+            error,
+            email: emailLower,
+            audienceId: generalAudienceId,
+          });
         }
       }
     }
@@ -200,17 +296,23 @@ ${useCase ? `<p><strong>Use case:</strong> ${useCase}</p>` : ""}
       });
     }
   } catch (error) {
-    console.error("Failed to send waitlist confirmation email", error);
-    return NextResponse.json({
-      success: true,
-      message: "You're on the waitlist! We'll be in touch soon.",
-      emailSent: false,
-    });
+    logError("waitlist.email_send_failed", { error, email: emailLower });
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: "You're on the waitlist! We'll be in touch soon.",
+        emailSent: false,
+      }),
+      ipRateHeaders
+    );
   }
 
-  return NextResponse.json({
-    success: true,
-    message: "You're on the waitlist! Check your inbox for a confirmation email.",
-    emailSent: true,
-  });
+  return withHeaders(
+    NextResponse.json({
+      success: true,
+      message: "You're on the waitlist! Check your inbox for a confirmation email.",
+      emailSent: true,
+    }),
+    ipRateHeaders
+  );
 }

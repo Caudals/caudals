@@ -39,7 +39,9 @@ export function UserMenu() {
     .toUpperCase() || "U";
 
   const billingHref =
-    userRole === "requester" ? "/dashboard/billing" : "/dashboard/earnings";
+    userRole === "requester" ? "/requester/billing" : "/contributor/earnings";
+  const settingsHref =
+    userRole === "contributor" ? "/contributor/settings" : "/requester/settings";
 
   return (
     <DropdownMenu>
@@ -67,11 +69,11 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+          <DropdownMenuItem onClick={() => router.push(settingsHref)}>
             <User className="mr-2 h-4 w-4" />
             <span>{t("Profile")}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+          <DropdownMenuItem onClick={() => router.push(settingsHref)}>
             <Settings className="mr-2 h-4 w-4" />
             <span>{t("Settings")}</span>
           </DropdownMenuItem>

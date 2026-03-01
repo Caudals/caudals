@@ -62,7 +62,7 @@ export async function updateProfile(updates: {
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/requester/settings");
 
   return { data };
 }

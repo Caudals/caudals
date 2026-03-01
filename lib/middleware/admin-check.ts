@@ -19,7 +19,9 @@ export async function requireAdmin() {
     .single();
 
   if (profile?.role !== "admin") {
-    redirect("/dashboard");
+    const fallback =
+      profile?.role === "contributor" ? "/contributor" : "/requester";
+    redirect(fallback);
   }
 
   return user;

@@ -45,8 +45,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NavUser } from "@/components/dashboard/nav-user";
-import { RoleSwitcher } from "@/components/dashboard/role-switcher";
+import { NavUser } from "@/components/app/nav-user";
+import { RoleSwitcher } from "@/components/app/role-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,47 +58,49 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { CommandPaletteButton } from "@/components/app/command-palette-button";
+import { NotificationBell } from "@/components/app/notification-bell";
 
 const requesterNav = [
   {
     group: "Overview",
-    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" }],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/requester" }],
   },
   {
     group: "My Requests",
     items: [
-      { title: "All Requests", icon: FileText, href: "/dashboard/requests" },
+      { title: "All Requests", icon: FileText, href: "/requester/datasets" },
       {
         title: "Active Requests",
         icon: CheckCircle,
-        href: "/dashboard/requests?status=active",
+        href: "/requester/datasets?status=active",
       },
       {
         title: "Completed",
         icon: CheckCircle,
-        href: "/dashboard/requests?status=completed",
+        href: "/requester/datasets?status=completed",
       },
     ],
   },
   {
     group: "Contributors",
     items: [
-      { title: "All Contributors", icon: Users, href: "/dashboard/contributors" },
-      { title: "Top Performers", icon: Star, href: "/dashboard/contributors?sort=top" },
+      { title: "All Contributors", icon: Users, href: "/requester/analytics" },
+      { title: "Top Performers", icon: Star, href: "/requester/analytics?sort=top" },
     ],
   },
   {
     group: "Analytics & Insights",
     items: [
-      { title: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
-      { title: "Performance", icon: TrendingUp, href: "/dashboard/analytics?tab=performance" },
+      { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
+      { title: "Performance", icon: TrendingUp, href: "/requester/analytics?tab=performance" },
     ],
   },
   {
     group: "Account",
     items: [
-      { title: "Billing & Wallet", icon: CreditCard, href: "/dashboard/billing" },
-      { title: "Settings", icon: Settings, href: "/dashboard/settings" },
+      { title: "Billing & Wallet", icon: CreditCard, href: "/requester/billing" },
+      { title: "Settings", icon: Settings, href: "/requester/settings" },
     ],
   },
 ];
@@ -107,7 +109,7 @@ const contributorNav = [
   {
     group: "Overview",
     items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard/contributor" },
+      { title: "Dashboard", icon: LayoutDashboard, href: "/contributor" },
     ],
   },
   {
@@ -121,23 +123,23 @@ const contributorNav = [
   {
     group: "My Activity",
     items: [
-      { title: "My Contributions", icon: FileUp, href: "/dashboard/contributions" },
-      { title: "In Progress", icon: Clock, href: "/dashboard/contributions?status=pending" },
+      { title: "My Contributions", icon: FileUp, href: "/contributor/contributions" },
+      { title: "In Progress", icon: Clock, href: "/contributor/contributions?status=pending" },
     ],
   },
   {
     group: "Earnings",
     items: [
-      { title: "Earnings Overview", icon: DollarSign, href: "/dashboard/earnings" },
-      { title: "Payouts", icon: Wallet, href: "/dashboard/earnings?tab=payouts" },
-      { title: "Transaction History", icon: Receipt, href: "/dashboard/earnings?tab=transactions" },
+      { title: "Earnings Overview", icon: DollarSign, href: "/contributor/earnings" },
+      { title: "Payouts", icon: Wallet, href: "/contributor/earnings?tab=payouts" },
+      { title: "Transaction History", icon: Receipt, href: "/contributor/earnings?tab=transactions" },
     ],
   },
   {
     group: "Account",
     items: [
-      { title: "Settings", icon: Settings, href: "/dashboard/settings" },
-      { title: "Payout Methods", icon: CreditCard, href: "/dashboard/settings?tab=payout" },
+      { title: "Settings", icon: Settings, href: "/contributor/settings" },
+      { title: "Payout Methods", icon: CreditCard, href: "/contributor/settings?tab=payout" },
     ],
   },
 ];
@@ -162,10 +164,8 @@ const adminNav = [
   },
 ];
 
-const utilityLinks = [
+const utilityLinksBase = [
   { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
-  { title: "Invite Members", icon: UserPlus, href: "/dashboard/settings?tab=members" },
-  { title: "Support", icon: LifeBuoy, href: "/support" },
 ];
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
@@ -209,18 +209,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   }
 
   const isAdminView = pathname.startsWith("/admin");
-  const contributorRoutes = [
-    "/dashboard/contributor",
-    "/dashboard/contributions",
-    "/dashboard/earnings",
-  ];
-  const isContributorView = contributorRoutes.some((route) =>
-    pathname.startsWith(route),
-  );
+  const isContributorView = pathname.startsWith("/contributor");
 
   let navGroups = requesterNav;
   let viewLabel = "Requester";
-  let homeHref = "/dashboard";
+  let homeHref = "/requester";
 
   if (userRole === "admin") {
     if (isAdminView) {
@@ -230,21 +223,49 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     } else if (isContributorView) {
       navGroups = contributorNav;
       viewLabel = "Contributor";
-      homeHref = "/dashboard/contributor";
+      homeHref = "/contributor";
     } else {
       navGroups = requesterNav;
       viewLabel = "Requester";
-      homeHref = "/dashboard";
+      homeHref = "/requester";
     }
   } else if (userRole === "contributor") {
     navGroups = contributorNav;
     viewLabel = "Contributor";
-    homeHref = "/dashboard/contributor";
+    homeHref = "/contributor";
   } else if (userRole === "requester") {
     navGroups = requesterNav;
     viewLabel = "Requester";
-    homeHref = "/dashboard";
+    homeHref = "/requester";
   }
+
+  const settingsHref =
+    viewLabel === "Admin"
+      ? "/admin/settings"
+      : viewLabel === "Contributor"
+        ? "/contributor/settings"
+        : "/requester/settings";
+  const supportHref =
+    viewLabel === "Admin"
+      ? "/admin/support"
+      : viewLabel === "Contributor"
+        ? "/contributor/settings"
+        : "/requester/support";
+  const utilityLinks = [
+    ...utilityLinksBase,
+    {
+      title: "Invite Members",
+      icon: UserPlus,
+      href:
+        viewLabel === "Admin"
+          ? "/admin/users"
+          : viewLabel === "Contributor"
+            ? "/contributor/settings"
+            : "/requester/settings?tab=members",
+      external: false,
+    },
+    { title: "Support", icon: LifeBuoy, href: supportHref, external: false },
+  ];
 
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
@@ -293,7 +314,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <a href={isAdminView ? "/admin/settings" : "/dashboard/settings"}>
+                  <a href={settingsHref}>
                     {t("Profile & settings")}
                   </a>
                 </DropdownMenuItem>
@@ -320,9 +341,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            <NotificationBell />
             <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className="px-2 pt-3">
+          <CommandPaletteButton />
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2">
@@ -382,6 +407,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
+        <div className="mt-3 border-t border-sidebar-border/60 pt-3">
+          <NavUser />
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
