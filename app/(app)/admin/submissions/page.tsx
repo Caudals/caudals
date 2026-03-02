@@ -1,6 +1,9 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getPendingSubmissions } from "@/lib/actions/admin-actions";
 import { PendingSubmissionsTable } from "@/components/admin/pending-submissions-table";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function AdminSubmissionsPage() {
   await requireAdmin();
@@ -22,13 +25,22 @@ export default async function AdminSubmissionsPage() {
   const submissions = result.data || [];
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold">Pending Submissions</h1>
-        <p className="text-sm text-muted-foreground">
-          Review and approve user contributions
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Moderation queue"
+        title="Pending submissions"
+        description="Validate contributor evidence, enforce quality standards, and keep SLA targets under control."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/requests"
+              data-dashboard-action="admin_submissions_open_requests"
+            >
+              Open request approvals
+            </Link>
+          </Button>
+        }
+      />
       <PendingSubmissionsTable submissions={submissions} />
     </div>
   );

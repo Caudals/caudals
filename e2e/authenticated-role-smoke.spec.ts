@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const AUTH_E2E_ENABLED = process.env.PLAYWRIGHT_AUTH_E2E === "true";
-const FIXTURE_PASSWORD = process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
+const FIXTURE_PASSWORD =
+  process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
 
 async function signIn(page: Page, email: string) {
   await page.goto("/auth/sign-in");
@@ -18,7 +19,7 @@ async function signIn(page: Page, email: string) {
       {
         timeout: 15_000,
         message: `Expected Supabase auth cookie after signing in as ${email}`,
-      }
+      },
     )
     .toBe(true);
 }
@@ -28,14 +29,16 @@ test.describe("authenticated role journeys", () => {
 
   test.skip(
     !AUTH_E2E_ENABLED,
-    "Set PLAYWRIGHT_AUTH_E2E=true to run authenticated fixture-user smoke checks."
+    "Set PLAYWRIGHT_AUTH_E2E=true to run authenticated fixture-user smoke checks.",
   );
 
-  test("requester can access role home and datasets workspace", async ({ page }) => {
+  test("requester can access role home and datasets workspace", async ({
+    page,
+  }) => {
     await signIn(page, "fixture.requester@caudals.local");
     await page.goto("/requester");
     await expect(
-      page.getByText(/requester workspace|espacio de solicitante/i)
+      page.getByText(/requester workspace|espacio de solicitante/i),
     ).toBeVisible();
 
     await page.goto("/requester/datasets");
@@ -47,14 +50,24 @@ test.describe("authenticated role journeys", () => {
     ).toBeVisible();
   });
 
-  test("contributor can access role home and contributions workspace", async ({ page }) => {
+  test("contributor can access role home and contributions workspace", async ({
+    page,
+  }) => {
     await signIn(page, "fixture.contributor@caudals.local");
     await page.goto("/contributor");
-    await expect(page.getByText(/contributor dashboard|panel de colaborador/i)).toBeVisible();
+    await expect(
+      page.getByText(
+        /contributor dashboard|contribution command center|panel de colaborador/i,
+      ),
+    ).toBeVisible();
 
     await page.goto("/contributor/contributions");
     await expect(page).toHaveURL(/\/contributor\/contributions/);
-    await expect(page.getByRole("heading", { name: /my contributions|mis contribuciones/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /my contributions|mis contribuciones/i,
+      }),
+    ).toBeVisible();
   });
 
   test("admin can access role home and moderation queue", async ({ page }) => {
@@ -63,12 +76,16 @@ test.describe("authenticated role journeys", () => {
     await expect(
       page.getByRole("heading", {
         name: /admin dashboard|panel de administración|good .*admin/i,
-      })
+      }),
     ).toBeVisible();
 
     await page.goto("/admin/requests");
     await expect(page).toHaveURL(/\/admin\/requests/);
-    await expect(page.getByRole("heading", { name: /pending dataset requests|solicitudes de dataset pendientes/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /pending dataset requests|solicitudes de dataset pendientes/i,
+      }),
+    ).toBeVisible();
   });
 
   test("requester dashboard layout remains functional across breakpoints", async ({
@@ -84,14 +101,19 @@ test.describe("authenticated role journeys", () => {
     ];
 
     for (const viewport of breakpoints) {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
       await page.goto("/requester");
 
       await expect(
         page.getByText(/requester workspace|espacio de solicitante/i),
-        `${viewport.name} viewport should render requester header`
+        `${viewport.name} viewport should render requester header`,
       ).toBeVisible();
-      await expect(page.getByRole("link", { name: /new dataset|nuevo dataset/i })).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /new dataset|nuevo dataset/i }),
+      ).toBeVisible();
     }
   });
 });

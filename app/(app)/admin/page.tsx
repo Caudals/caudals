@@ -27,16 +27,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import { DashboardTelemetry } from "@/components/analytics/dashboard-telemetry";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 
 export default async function AdminDashboard() {
   await requireAdmin();
 
-  const [overviewRes, analyticsRes, paymentsRes, supportRes] = await Promise.all([
-    getAdminOverview(),
-    getAdminAnalyticsSummary(),
-    getAdminPaymentsOverview(),
-    getAdminSupportTickets({ pageSize: 50 }),
-  ]);
+  const [overviewRes, analyticsRes, paymentsRes, supportRes] =
+    await Promise.all([
+      getAdminOverview(),
+      getAdminAnalyticsSummary(),
+      getAdminPaymentsOverview(),
+      getAdminSupportTickets({ pageSize: 50 }),
+    ]);
 
   type OverviewData = {
     stats: {
@@ -71,14 +73,11 @@ export default async function AdminDashboard() {
   if ("error" in overviewRes) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Platform administration and monitoring
-            </p>
-          </div>
-        </div>
+        <AdminPageHeader
+          eyebrow="Admin operations"
+          title="Control center"
+          description="Platform administration and monitoring"
+        />
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-6 w-6 text-destructive" />
@@ -110,11 +109,11 @@ export default async function AdminDashboard() {
   const pendingPayoutCount = payments?.totals.pendingPayouts ?? 0;
   const failedPayoutCount =
     payments?.transactions.filter(
-      (tx) => tx.type === "submission_payout" && tx.status === "failed"
+      (tx) => tx.type === "submission_payout" && tx.status === "failed",
     ).length ?? 0;
   const openSupportCount =
     support?.data.filter(
-      (ticket) => ticket.status === "open" || ticket.status === "in_progress"
+      (ticket) => ticket.status === "open" || ticket.status === "in_progress",
     ).length ?? 0;
 
   const latestSupportTimestamp =
@@ -132,13 +131,16 @@ export default async function AdminDashboard() {
       return latestSupportTimestamp - updated > 48 * 60 * 60 * 1000;
     }).length ?? 0;
 
-  const visitToFundRate = analytics?.funnel?.conversionRates?.visitToFundPct ?? 0;
+  const visitToFundRate =
+    analytics?.funnel?.conversionRates?.visitToFundPct ?? 0;
+  const greetingTime = new Date().getHours() < 12 ? "morning" : "afternoon";
 
   const anomalyRows = [
     {
       label: "Failed payouts",
       value: failedPayoutCount,
-      details: "Payout transactions marked as failed and needing reconciliation.",
+      details:
+        "Payout transactions marked as failed and needing reconciliation.",
       href: "/admin/payments",
       critical: failedPayoutCount > 0,
     },
@@ -154,7 +156,8 @@ export default async function AdminDashboard() {
       value: visitToFundRate,
       details: "30-day top-of-funnel to funding conversion rate.",
       href: "/admin/analytics",
-      critical: visitToFundRate < 2 && (analytics?.funnel?.counts?.visit ?? 0) > 20,
+      critical:
+        visitToFundRate < 2 && (analytics?.funnel?.counts?.visit ?? 0) > 20,
       suffix: "%",
     },
   ];
@@ -175,17 +178,12 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-8">
       <DashboardTelemetry role="admin" />
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">
-            Good {new Date().getHours() < 12 ? "morning" : "afternoon"}, Admin
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome back to your admin dashboard
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {thingsToDo.length > 0 ? (
+      <AdminPageHeader
+        eyebrow="Admin control center"
+        title={`Good ${greetingTime}, Admin`}
+        description="Monitor moderation queues, payout risk, and support workload from one unified surface."
+        actions={
+          thingsToDo.length > 0 ? (
             <Link
               href={thingsToDo[0].href}
               data-dashboard-action="admin_open_priority_queue"
@@ -207,9 +205,9 @@ export default async function AdminDashboard() {
               <ShieldCheck className="mr-2 h-4 w-4 text-emerald-600" />
               All clear
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-12">
         <Card className="lg:col-span-8 border-border/70 shadow-sm">
@@ -234,9 +232,7 @@ export default async function AdminDashboard() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Badge className="bg-emerald-100 text-emerald-700">
-                  Live
-                </Badge>
+                <Badge className="bg-emerald-100 text-emerald-700">Live</Badge>
                 {highlight?.featured && (
                   <Badge variant="outline">Featured</Badge>
                 )}
@@ -299,14 +295,20 @@ export default async function AdminDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <StatPill
               label="Pending reviews"
-              value={overview.stats.pendingRequests + overview.stats.pendingSubmissions}
+              value={
+                overview.stats.pendingRequests +
+                overview.stats.pendingSubmissions
+              }
             />
             <StatPill
               label="Approved datasets"
               value={overview.stats.approvedDatasets}
             />
             <StatPill label="Total users" value={overview.stats.totalUsers} />
-            <StatPill label="Submissions" value={overview.stats.totalSubmissions} />
+            <StatPill
+              label="Submissions"
+              value={overview.stats.totalSubmissions}
+            />
           </div>
         </div>
       </div>
@@ -384,7 +386,9 @@ export default async function AdminDashboard() {
               <div className="space-y-2 text-sm">
                 {Object.entries(analytics.usersByRole).map(([role, count]) => (
                   <div key={role} className="flex items-center justify-between">
-                    <span className="capitalize text-muted-foreground">{role}</span>
+                    <span className="capitalize text-muted-foreground">
+                      {role}
+                    </span>
                     <span className="font-semibold">{count}</span>
                   </div>
                 ))}
@@ -410,7 +414,7 @@ export default async function AdminDashboard() {
                       </span>
                       <span className="font-semibold">{count}</span>
                     </div>
-                  )
+                  ),
                 )}
               </div>
             </CardContent>
@@ -434,7 +438,7 @@ export default async function AdminDashboard() {
                       </span>
                       <span className="font-semibold">{count}</span>
                     </div>
-                  )
+                  ),
                 )}
               </div>
             </CardContent>
@@ -498,7 +502,9 @@ export default async function AdminDashboard() {
                     {row.suffix ?? ""}
                   </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{row.details}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {row.details}
+                </p>
               </Link>
             ))}
           </CardContent>

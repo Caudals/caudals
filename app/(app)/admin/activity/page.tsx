@@ -14,6 +14,7 @@ import { AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 
 type SearchParams = Promise<{
   action?: string;
@@ -25,7 +26,9 @@ type SearchParams = Promise<{
   pageSize?: string;
 }>;
 
-export default async function AdminActivityPage(props: { searchParams: SearchParams }) {
+export default async function AdminActivityPage(props: {
+  searchParams: SearchParams;
+}) {
   await requireAdmin();
   const searchParams = await props.searchParams;
   const action = searchParams.action?.trim() || undefined;
@@ -52,7 +55,9 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
         <CardContent className="flex items-center gap-3 py-6">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
-            <p className="font-semibold text-destructive">Unable to load activity</p>
+            <p className="font-semibold text-destructive">
+              Unable to load activity
+            </p>
             <p className="text-sm text-muted-foreground">
               {result.error || "Please try again later."}
             </p>
@@ -95,22 +100,32 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Activity & Audit Log</h1>
-          <p className="text-sm text-muted-foreground">
-            Trace every admin action with timestamp and target.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Governance"
+        title="Activity and audit log"
+        description="Trace admin actions by type, target, operator, and date windows."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/users"
+              data-dashboard-action="admin_activity_open_users"
+            >
+              Review role assignments
+            </Link>
+          </Button>
+        }
+      />
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 md:grid-cols-3 xl:grid-cols-6" method="GET">
+          <form
+            className="grid gap-3 md:grid-cols-3 xl:grid-cols-6"
+            method="GET"
+          >
             <select
               name="action"
               defaultValue={action ?? ""}
@@ -174,7 +189,13 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
               <Button type="submit" size="sm" className="h-9">
                 Apply
               </Button>
-              <Button type="button" size="sm" variant="outline" asChild className="h-9">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                asChild
+                className="h-9"
+              >
                 <Link href="/admin/activity">Reset</Link>
               </Button>
             </div>
@@ -202,7 +223,10 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
             <TableBody>
               {logs.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-6 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
                     No activity yet.
                   </TableCell>
                 </TableRow>
@@ -234,7 +258,9 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {entry.created_at
-                            ? formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })
+                            ? formatDistanceToNow(new Date(entry.created_at), {
+                                addSuffix: true,
+                              })
                             : "—"}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -262,7 +288,9 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
             asChild={currentPage > 1}
           >
             {currentPage > 1 ? (
-              <Link href={queryWith({ page: String(currentPage - 1) })}>Previous</Link>
+              <Link href={queryWith({ page: String(currentPage - 1) })}>
+                Previous
+              </Link>
             ) : (
               <span>Previous</span>
             )}
@@ -274,7 +302,9 @@ export default async function AdminActivityPage(props: { searchParams: SearchPar
             asChild={currentPage < totalPages}
           >
             {currentPage < totalPages ? (
-              <Link href={queryWith({ page: String(currentPage + 1) })}>Next</Link>
+              <Link href={queryWith({ page: String(currentPage + 1) })}>
+                Next
+              </Link>
             ) : (
               <span>Next</span>
             )}
