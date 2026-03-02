@@ -1,6 +1,9 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getAdminAnalyticsSummary } from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function AdminAnalyticsPage() {
   await requireAdmin();
@@ -10,7 +13,9 @@ export default async function AdminAnalyticsPage() {
     return (
       <Card className="border-destructive/40 bg-destructive/5">
         <CardContent className="py-6">
-          <p className="font-semibold text-destructive">Unable to load analytics</p>
+          <p className="font-semibold text-destructive">
+            Unable to load analytics
+          </p>
           <p className="text-sm text-muted-foreground">
             {res.error || "Please try again later."}
           </p>
@@ -39,13 +44,22 @@ export default async function AdminAnalyticsPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Platform engagement and growth summary
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Platform intelligence"
+        title="Analytics"
+        description="Track growth, conversion efficiency, and cross-role product behavior."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/activity"
+              data-dashboard-action="admin_analytics_open_activity"
+            >
+              Correlate with activity log
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnalyticsCard title="Users by role" entries={data.usersByRole} />
@@ -70,7 +84,7 @@ export default async function AdminAnalyticsPage() {
                   </p>
                   <p className="mt-2 text-2xl font-semibold">{step.count}</p>
                 </div>
-              )
+              ),
             )}
           </div>
           <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -96,7 +110,9 @@ export default async function AdminAnalyticsPage() {
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
-          <CardTitle>Dashboard Usability Telemetry ({dashboardTelemetry.windowDays}d)</CardTitle>
+          <CardTitle>
+            Dashboard Usability Telemetry ({dashboardTelemetry.windowDays}d)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -116,11 +132,15 @@ export default async function AdminAnalyticsPage() {
                   Actions: {dashboardTelemetry.actionsByRole[role] ?? 0}
                 </p>
                 <p className="text-muted-foreground">
-                  Avg TTA: {dashboardTelemetry.avgTimeToActionMsByRole[role] ?? 0}ms
+                  Avg TTA:{" "}
+                  {dashboardTelemetry.avgTimeToActionMsByRole[role] ?? 0}ms
                 </p>
                 <p className="text-muted-foreground">
                   Action/View:{" "}
-                  {(dashboardTelemetry.actionToViewRatePctByRole[role] ?? 0).toFixed(1)}%
+                  {(
+                    dashboardTelemetry.actionToViewRatePctByRole[role] ?? 0
+                  ).toFixed(1)}
+                  %
                 </p>
               </div>
             ))}
@@ -150,8 +170,12 @@ export default async function AdminAnalyticsPage() {
                 className="grid grid-cols-3 items-center rounded-lg px-3 py-2 text-sm hover:bg-muted/30"
               >
                 <span className="text-muted-foreground">{row.date}</span>
-                <span className="text-center font-semibold">{row.requests}</span>
-                <span className="text-center font-semibold">{row.submissions}</span>
+                <span className="text-center font-semibold">
+                  {row.requests}
+                </span>
+                <span className="text-center font-semibold">
+                  {row.submissions}
+                </span>
               </div>
             ))}
           </div>

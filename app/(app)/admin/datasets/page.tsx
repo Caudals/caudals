@@ -2,6 +2,9 @@ import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getAdminDatasetRequests } from "@/lib/actions/admin-actions";
 import { AdminDatasetsTable } from "@/components/admin/admin-datasets-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function AdminDatasetsPage() {
   await requireAdmin();
@@ -28,13 +31,22 @@ export default async function AdminDatasetsPage() {
   const datasets = result.data ?? [];
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold">Dataset Management</h1>
-        <p className="text-sm text-muted-foreground">
-          Edit active and pending dataset requests
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Moderation and catalog"
+        title="Dataset management"
+        description="Maintain request quality, edit metadata, and keep the active catalog healthy."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/featured"
+              data-dashboard-action="admin_datasets_open_featured"
+            >
+              Manage featured placements
+            </Link>
+          </Button>
+        }
+      />
       <AdminDatasetsTable datasets={datasets} />
     </div>
   );

@@ -6,7 +6,14 @@ import {
   reconcilePayoutTransaction,
 } from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertCircle,
@@ -19,6 +26,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import Link from "next/link";
 
 export default async function AdminPaymentsPage() {
   await requireAdmin();
@@ -34,7 +43,9 @@ export default async function AdminPaymentsPage() {
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-5 w-5 text-destructive" />
             <div>
-              <p className="font-semibold text-destructive">Unable to load payments</p>
+              <p className="font-semibold text-destructive">
+                Unable to load payments
+              </p>
               <p className="text-sm text-muted-foreground">
                 {"error" in overviewRes
                   ? overviewRes.error
@@ -56,15 +67,17 @@ export default async function AdminPaymentsPage() {
     Number((totals as { total_volume_cents?: number }).total_volume_cents) ||
     Number(totals.totalVolume || 0);
   const platformCommissionCents =
-    Number((totals as { platform_commission_cents?: number }).platform_commission_cents) ||
-    Number(totals.platformCommission || 0);
+    Number(
+      (totals as { platform_commission_cents?: number })
+        .platform_commission_cents,
+    ) || Number(totals.platformCommission || 0);
   const payoutVolumeCents =
     Number((totals as { payout_volume_cents?: number }).payout_volume_cents) ||
     Number(totals.payoutVolume || 0);
 
   const formatMoney = (amount: number | null | undefined, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
-      Number(amount || 0) / 100
+      Number(amount || 0) / 100,
     );
 
   const latest = transactions.slice(0, 12);
@@ -85,15 +98,27 @@ export default async function AdminPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Payment Overview</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage platform financial transactions and balances
-          </p>
-        </div>
-        <Download className="h-5 w-5 text-muted-foreground" />
-      </div>
+      <AdminPageHeader
+        eyebrow="Financial operations"
+        title="Payment overview"
+        description="Reconcile payout failures, monitor queue age, and keep transfer SLAs healthy."
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link
+                href="/admin/support?tPriority=urgent"
+                data-dashboard-action="admin_payments_open_support_escalations"
+              >
+                Escalation queue
+              </Link>
+            </Button>
+            <Button variant="outline" className="rounded-xl">
+              <Download className="mr-2 h-4 w-4" />
+              Export ledger
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -129,13 +154,19 @@ export default async function AdminPaymentsPage() {
         </Card>
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Pending payout queue</p>
-            <p className="text-2xl font-semibold">{payoutQueues.totals.pendingCount}</p>
+            <p className="text-xs text-muted-foreground">
+              Pending payout queue
+            </p>
+            <p className="text-2xl font-semibold">
+              {payoutQueues.totals.pendingCount}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Stale pending (24h+)</p>
+            <p className="text-xs text-muted-foreground">
+              Stale pending (24h+)
+            </p>
             <p className="text-2xl font-semibold text-amber-600">
               {payoutQueues.totals.stalePendingCount}
             </p>
@@ -165,7 +196,10 @@ export default async function AdminPaymentsPage() {
             <TableBody>
               {payoutQueues.failed.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-6 text-sm text-muted-foreground"
+                  >
                     No failed payouts.
                   </TableCell>
                 </TableRow>
@@ -174,24 +208,38 @@ export default async function AdminPaymentsPage() {
                 <TableRow key={tx.id} className="align-top hover:bg-muted/30">
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
-                    <div className="text-xs text-muted-foreground">{tx.contributor_email || "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {tx.contributor_email || "—"}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {tx.dataset_title || tx.dataset_request_id || "Unknown dataset"}
+                    {tx.dataset_title ||
+                      tx.dataset_request_id ||
+                      "Unknown dataset"}
                   </TableCell>
                   <TableCell className="font-semibold">
                     {formatMoney(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(tx.updated_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(tx.updated_at), {
+                      addSuffix: true,
+                    })}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-sm">
-                    {tx.failure_reason || "No explicit failure reason recorded."}
+                    {tx.failure_reason ||
+                      "No explicit failure reason recorded."}
                   </TableCell>
                   <TableCell>
                     <div className="flex min-w-[340px] flex-col gap-2 md:items-end">
-                      <form action={retryFailedPayout} className="flex w-full gap-2 md:w-auto">
-                        <input type="hidden" name="transactionId" value={tx.id} />
+                      <form
+                        action={retryFailedPayout}
+                        className="flex w-full gap-2 md:w-auto"
+                      >
+                        <input
+                          type="hidden"
+                          name="transactionId"
+                          value={tx.id}
+                        />
                         <Input
                           name="note"
                           placeholder="Retry note"
@@ -201,14 +249,26 @@ export default async function AdminPaymentsPage() {
                           Retry
                         </Button>
                       </form>
-                      <form action={cancelFailedPayout} className="flex w-full gap-2 md:w-auto">
-                        <input type="hidden" name="transactionId" value={tx.id} />
+                      <form
+                        action={cancelFailedPayout}
+                        className="flex w-full gap-2 md:w-auto"
+                      >
+                        <input
+                          type="hidden"
+                          name="transactionId"
+                          value={tx.id}
+                        />
                         <Input
                           name="note"
                           placeholder="Cancel note"
                           className="h-9 md:w-52"
                         />
-                        <Button size="sm" type="submit" variant="outline" className="h-9">
+                        <Button
+                          size="sm"
+                          type="submit"
+                          variant="outline"
+                          className="h-9"
+                        >
                           Cancel
                         </Button>
                       </form>
@@ -242,7 +302,10 @@ export default async function AdminPaymentsPage() {
             <TableBody>
               {payoutQueues.pending.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-6 text-sm text-muted-foreground"
+                  >
                     No pending payouts.
                   </TableCell>
                 </TableRow>
@@ -251,21 +314,38 @@ export default async function AdminPaymentsPage() {
                 <TableRow key={tx.id} className="hover:bg-muted/30">
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
-                    <div className="text-xs text-muted-foreground">{tx.contributor_email || "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {tx.contributor_email || "—"}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {tx.dataset_title || tx.dataset_request_id || "Unknown dataset"}
+                    {tx.dataset_title ||
+                      tx.dataset_request_id ||
+                      "Unknown dataset"}
                   </TableCell>
                   <TableCell className="font-semibold">
                     {formatMoney(tx.amount, tx.currency)}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <span className={tx.age_hours >= 24 ? "text-amber-700 font-medium" : "text-muted-foreground"}>
+                    <span
+                      className={
+                        tx.age_hours >= 24
+                          ? "text-amber-700 font-medium"
+                          : "text-muted-foreground"
+                      }
+                    >
                       {tx.age_hours}h
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={tx.age_hours >= 24 ? "border-amber-400 text-amber-700" : ""}>
+                    <Badge
+                      variant="outline"
+                      className={
+                        tx.age_hours >= 24
+                          ? "border-amber-400 text-amber-700"
+                          : ""
+                      }
+                    >
                       {tx.age_hours >= 24 ? "stale_pending" : "pending"}
                     </Badge>
                   </TableCell>
@@ -297,7 +377,10 @@ export default async function AdminPaymentsPage() {
             <TableBody>
               {latest.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center py-6 text-sm text-muted-foreground"
+                  >
                     No transactions yet.
                   </TableCell>
                 </TableRow>
@@ -309,7 +392,9 @@ export default async function AdminPaymentsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={tx.status === "completed" ? "outline" : "secondary"}
+                      variant={
+                        tx.status === "completed" ? "outline" : "secondary"
+                      }
                       className="capitalize"
                     >
                       {tx.status}
@@ -323,7 +408,9 @@ export default async function AdminPaymentsPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {tx.created_at
-                      ? formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })
+                      ? formatDistanceToNow(new Date(tx.created_at), {
+                          addSuffix: true,
+                        })
                       : "—"}
                   </TableCell>
                 </TableRow>

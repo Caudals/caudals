@@ -4,6 +4,9 @@ import {
   getUserEarnings,
 } from "@/lib/actions/contributor-actions";
 import { ContributionsView } from "@/components/contributor/contributions/contributions-view";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Database } from "lucide-react";
+import Link from "next/link";
 
 export default async function ContributionsPage() {
   const contributionsResult = await getUserContributionsDetailed();
@@ -13,11 +16,35 @@ export default async function ContributionsPage() {
     "error" in contributionsResult ? [] : contributionsResult.data || [];
 
   return (
-    <>
-      <ContributorPageHeader title="My Contributions" />
-      <div className="flex flex-1 flex-col gap-6 p-6">
-        <ContributionsView contributions={contributions} earnings={earnings} />
-      </div>
-    </>
+    <div className="space-y-6">
+      <ContributorPageHeader
+        eyebrow="Work queue"
+        title="My contributions"
+        description="Track every submission, filter feedback states, and act on revisions quickly."
+        actions={
+          <>
+            <Button asChild>
+              <Link
+                href="/browse"
+                data-dashboard-action="contributor_contributions_browse_opportunities"
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Browse opportunities
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link
+                href="/contributor/earnings"
+                data-dashboard-action="contributor_contributions_open_earnings"
+              >
+                Earnings
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </>
+        }
+      />
+      <ContributionsView contributions={contributions} earnings={earnings} />
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 # Completed Exec Plans
 
 ## Historical Phases
+
 - `phase-00-delivery-system-hygiene.md`
 - `phase-01-backend-truth-alignment.md`
 - `phase-02-requester-product-completion.md`
@@ -12,6 +13,8 @@
 - `phase-08-public-surface-market-readiness.md`
 - `phase-09-launch-operations-reliability.md`
 - `phase-10-cross-role-dashboard-expansion.md`
+- `phase-13-app-dashboard-refactor.md`
 
 ## Legacy Full Tracker Snapshot
+
 - `phase-00-to-10-legacy-tracker.md`

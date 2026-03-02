@@ -1,10 +1,22 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
-import { adminUpdateDatasetRequest, getAdminDatasetRequests } from "@/lib/actions/admin-actions";
+import {
+  adminUpdateDatasetRequest,
+  getAdminDatasetRequests,
+} from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import Link from "next/link";
 
 export default async function AdminFeaturedPage() {
   await requireAdmin();
@@ -14,7 +26,9 @@ export default async function AdminFeaturedPage() {
     return (
       <Card className="border-destructive/40 bg-destructive/5">
         <CardContent className="py-6">
-          <p className="font-semibold text-destructive">Unable to load datasets</p>
+          <p className="font-semibold text-destructive">
+            Unable to load datasets
+          </p>
           <p className="text-sm text-muted-foreground">
             {result.error || "Please try again later."}
           </p>
@@ -33,13 +47,22 @@ export default async function AdminFeaturedPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Featured Ads</h1>
-        <p className="text-sm text-muted-foreground">
-          Promote datasets on the platform homepage and browse experiences.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Growth merchandising"
+        title="Featured placements"
+        description="Promote approved datasets across homepage and discovery surfaces."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/datasets"
+              data-dashboard-action="admin_featured_open_datasets"
+            >
+              Back to dataset management
+            </Link>
+          </Button>
+        }
+      />
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
@@ -58,7 +81,10 @@ export default async function AdminFeaturedPage() {
             <TableBody>
               {datasets.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
                     No datasets available.
                   </TableCell>
                 </TableRow>
@@ -67,7 +93,9 @@ export default async function AdminFeaturedPage() {
                 <TableRow key={ds.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium">
                     <div>{ds.title}</div>
-                    <p className="text-xs text-muted-foreground">{ds.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ds.category}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">
@@ -84,11 +112,16 @@ export default async function AdminFeaturedPage() {
                         className="h-12 w-20 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="text-xs text-muted-foreground">No image</div>
+                      <div className="text-xs text-muted-foreground">
+                        No image
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <form action={toggleFeatured} className="inline-flex items-center gap-2">
+                    <form
+                      action={toggleFeatured}
+                      className="inline-flex items-center gap-2"
+                    >
                       <input type="hidden" name="id" value={ds.id} />
                       <input
                         type="hidden"

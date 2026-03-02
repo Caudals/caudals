@@ -1,35 +1,31 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type ContributorPageHeaderProps = {
+type AdminPageHeaderProps = {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
-  children?: ReactNode;
   className?: string;
 };
 
-export function ContributorPageHeader({
-  eyebrow = "Contributor workspace",
+export function AdminPageHeader({
+  eyebrow = "Admin operations",
   title,
   description,
   actions,
-  children,
   className,
-}: ContributorPageHeaderProps) {
-  const resolvedActions = actions ?? children;
-
+}: AdminPageHeaderProps) {
   return (
     <header
       className={cn(
-        "rounded-2xl border border-border/70 bg-gradient-to-br from-emerald-500/10 via-background to-background p-5 sm:p-6",
+        "rounded-2xl border border-border/70 bg-gradient-to-br from-slate-950/5 via-background to-background p-5 sm:p-6",
         className,
       )}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-700">
             {eyebrow}
           </p>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -41,10 +37,8 @@ export function ContributorPageHeader({
             </p>
           ) : null}
         </div>
-        {resolvedActions ? (
-          <div className="flex flex-wrap items-center gap-2">
-            {resolvedActions}
-          </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
         ) : null}
       </div>
     </header>

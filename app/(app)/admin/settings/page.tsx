@@ -1,9 +1,14 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
-import { getPlatformSettings, upsertPlatformSetting } from "@/lib/actions/admin-actions";
+import {
+  getPlatformSettings,
+  upsertPlatformSetting,
+} from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import Link from "next/link";
 
 export default async function AdminSettingsPage() {
   await requireAdmin();
@@ -13,7 +18,9 @@ export default async function AdminSettingsPage() {
     return (
       <Card className="border-destructive/40 bg-destructive/5">
         <CardContent className="py-6">
-          <p className="font-semibold text-destructive">Unable to load settings</p>
+          <p className="font-semibold text-destructive">
+            Unable to load settings
+          </p>
           <p className="text-sm text-muted-foreground">
             {result.error || "Please try again later."}
           </p>
@@ -25,7 +32,8 @@ export default async function AdminSettingsPage() {
   const settings = result.data || {};
   const defaultCommission = (settings["defaultCommission"] as number) ?? 10;
   const supportEmail = (settings["supportEmail"] as string) ?? "";
-  const defaultDomain = (settings["defaultDomain"] as string) ?? "app.caudals.com";
+  const defaultDomain =
+    (settings["defaultDomain"] as string) ?? "app.caudals.com";
 
   const saveSettings = async (formData: FormData) => {
     "use server";
@@ -39,13 +47,22 @@ export default async function AdminSettingsPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Platform Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure global platform settings and preferences.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Configuration"
+        title="Platform settings"
+        description="Set default commission, support contact routes, and production domain controls."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/analytics"
+              data-dashboard-action="admin_settings_open_analytics"
+            >
+              Open analytics
+            </Link>
+          </Button>
+        }
+      />
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>

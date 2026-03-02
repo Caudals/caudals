@@ -1,6 +1,9 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getPendingDatasetRequests } from "@/lib/actions/admin-actions";
 import { PendingRequestsTable } from "@/components/admin/pending-requests-table";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function AdminRequestsPage() {
   await requireAdmin();
@@ -22,13 +25,22 @@ export default async function AdminRequestsPage() {
   const requests = result.data || [];
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-xl font-semibold">Pending Dataset Requests</h1>
-        <p className="text-sm text-muted-foreground">
-          Review and approve dataset requests from requesters
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Moderation queue"
+        title="Pending dataset requests"
+        description="Review requester briefs, validate compliance, and approve high-quality dataset demand."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/submissions"
+              data-dashboard-action="admin_requests_open_submissions"
+            >
+              Open submissions queue
+            </Link>
+          </Button>
+        }
+      />
       <PendingRequestsTable requests={requests} />
     </div>
   );

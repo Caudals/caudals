@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
 
 type FollowupItem = {
   id: string;
@@ -41,7 +42,9 @@ type SearchParams = Promise<{
   tPage?: string;
 }>;
 
-export default async function AdminSupportPage(props: { searchParams: SearchParams }) {
+export default async function AdminSupportPage(props: {
+  searchParams: SearchParams;
+}) {
   await requireAdmin();
   const searchParams = await props.searchParams;
 
@@ -72,7 +75,9 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
         <CardContent className="flex items-center gap-3 py-6">
           <AlertCircle className="h-5 w-5 text-destructive" />
           <div>
-            <p className="font-semibold text-destructive">Unable to load support operations</p>
+            <p className="font-semibold text-destructive">
+              Unable to load support operations
+            </p>
             <p className="text-sm text-muted-foreground">
               {"error" in waitlistRes
                 ? waitlistRes.error
@@ -138,14 +143,21 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Support & Waitlist</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage lead pipeline and triage requester support queues.
-          </p>
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow="Operations triage"
+        title="Support and waitlist"
+        description="Manage lead qualification and requester ticket SLAs from a unified operations surface."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/activity"
+              data-dashboard-action="admin_support_open_activity"
+            >
+              View audit trail
+            </Link>
+          </Button>
+        }
+      />
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
@@ -154,10 +166,25 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form className="grid gap-2 md:grid-cols-4 lg:grid-cols-6" method="GET">
-            <input type="hidden" name="wStatus" value={searchParams.wStatus || ""} />
-            <input type="hidden" name="wSearch" value={searchParams.wSearch || ""} />
-            <input type="hidden" name="wPage" value={searchParams.wPage || "1"} />
+          <form
+            className="grid gap-2 md:grid-cols-4 lg:grid-cols-6"
+            method="GET"
+          >
+            <input
+              type="hidden"
+              name="wStatus"
+              value={searchParams.wStatus || ""}
+            />
+            <input
+              type="hidden"
+              name="wSearch"
+              value={searchParams.wSearch || ""}
+            />
+            <input
+              type="hidden"
+              name="wPage"
+              value={searchParams.wPage || "1"}
+            />
             <select
               name="tStatus"
               defaultValue={searchParams.tStatus || ""}
@@ -221,7 +248,10 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
             <TableBody>
               {tickets.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
                     No support tickets found.
                   </TableCell>
                 </TableRow>
@@ -229,12 +259,17 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
               {tickets.map((ticket) => (
                 <TableRow key={ticket.id} className="align-top">
                   <TableCell className="max-w-xs">
-                    <div className="font-medium line-clamp-1">{ticket.subject}</div>
+                    <div className="font-medium line-clamp-1">
+                      {ticket.subject}
+                    </div>
                     <div className="text-xs text-muted-foreground line-clamp-2">
-                      {ticket.last_message_preview || ticket.description || "No details"}
+                      {ticket.last_message_preview ||
+                        ticket.description ||
+                        "No details"}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {ticket.message_count} message{ticket.message_count === 1 ? "" : "s"}
+                      {ticket.message_count} message
+                      {ticket.message_count === 1 ? "" : "s"}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">
@@ -257,7 +292,9 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                     {ticket.assignee?.full_name || "Unassigned"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(ticket.updated_at), {
+                      addSuffix: true,
+                    })}
                   </TableCell>
                   <TableCell>
                     <form
@@ -297,7 +334,11 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                           </option>
                         ))}
                       </select>
-                      <Input name="reply" placeholder="Optional reply" className="h-9 md:w-52" />
+                      <Input
+                        name="reply"
+                        placeholder="Optional reply"
+                        className="h-9 md:w-52"
+                      />
                       <Button size="sm" type="submit" className="h-9">
                         Save
                       </Button>
@@ -323,7 +364,7 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                   <Link
                     href={buildQuery(
                       { tPage: String(ticketRes.page - 1) },
-                      sharedKeep
+                      sharedKeep,
                     )}
                   >
                     Previous
@@ -342,7 +383,7 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                   <Link
                     href={buildQuery(
                       { tPage: String(ticketRes.page + 1) },
-                      sharedKeep
+                      sharedKeep,
                     )}
                   >
                     Next
@@ -361,12 +402,35 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
           <CardTitle>Waitlist ({waitlistRes.total.toLocaleString()})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 p-0">
-          <form className="grid gap-2 border-b px-6 py-4 md:grid-cols-4 lg:grid-cols-6" method="GET">
-            <input type="hidden" name="tStatus" value={searchParams.tStatus || ""} />
-            <input type="hidden" name="tPriority" value={searchParams.tPriority || ""} />
-            <input type="hidden" name="tAssigned" value={searchParams.tAssigned || ""} />
-            <input type="hidden" name="tSearch" value={searchParams.tSearch || ""} />
-            <input type="hidden" name="tPage" value={searchParams.tPage || "1"} />
+          <form
+            className="grid gap-2 border-b px-6 py-4 md:grid-cols-4 lg:grid-cols-6"
+            method="GET"
+          >
+            <input
+              type="hidden"
+              name="tStatus"
+              value={searchParams.tStatus || ""}
+            />
+            <input
+              type="hidden"
+              name="tPriority"
+              value={searchParams.tPriority || ""}
+            />
+            <input
+              type="hidden"
+              name="tAssigned"
+              value={searchParams.tAssigned || ""}
+            />
+            <input
+              type="hidden"
+              name="tSearch"
+              value={searchParams.tSearch || ""}
+            />
+            <input
+              type="hidden"
+              name="tPage"
+              value={searchParams.tPage || "1"}
+            />
             <select
               name="wStatus"
               defaultValue={searchParams.wStatus || ""}
@@ -406,7 +470,10 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
             <TableBody>
               {waitlist.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={6}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
                     No waitlist entries found.
                   </TableCell>
                 </TableRow>
@@ -430,7 +497,9 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {entry.updated_at
-                      ? formatDistanceToNow(new Date(entry.updated_at), { addSuffix: true })
+                      ? formatDistanceToNow(new Date(entry.updated_at), {
+                          addSuffix: true,
+                        })
                       : "—"}
                   </TableCell>
                   <TableCell>
@@ -453,7 +522,10 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                         name="notes"
                         placeholder="Notes"
                         className="h-9 md:w-56"
-                        defaultValue={(entry.metadata as { notes?: string } | null)?.notes || ""}
+                        defaultValue={
+                          (entry.metadata as { notes?: string } | null)
+                            ?.notes || ""
+                        }
                       />
                       <Button size="sm" type="submit" className="rounded-lg">
                         Save
@@ -480,7 +552,7 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                   <Link
                     href={buildQuery(
                       { wPage: String(waitlistRes.page - 1) },
-                      sharedKeep
+                      sharedKeep,
                     )}
                   >
                     Previous
@@ -499,7 +571,7 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                   <Link
                     href={buildQuery(
                       { wPage: String(waitlistRes.page + 1) },
-                      sharedKeep
+                      sharedKeep,
                     )}
                   >
                     Next
@@ -534,14 +606,20 @@ export default async function AdminSupportPage(props: { searchParams: SearchPara
                 </Badge>
                 <span>
                   {item.created_at
-                    ? formatDistanceToNow(new Date(item.created_at), { addSuffix: true })
+                    ? formatDistanceToNow(new Date(item.created_at), {
+                        addSuffix: true,
+                      })
                     : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold">{item.title}</div>
                 <Link
-                  href={item.type === "dataset" ? `/browse/${item.id}` : "/admin/submissions"}
+                  href={
+                    item.type === "dataset"
+                      ? `/browse/${item.id}`
+                      : "/admin/submissions"
+                  }
                   className="text-xs font-medium text-primary hover:underline"
                 >
                   View

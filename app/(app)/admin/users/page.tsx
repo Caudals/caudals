@@ -1,9 +1,18 @@
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import { getAllUsers, updateUserRole } from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AdminPageHeader } from "@/components/admin/admin-page-header";
+import Link from "next/link";
 
 export default async function AdminUsersPage() {
   await requireAdmin();
@@ -34,13 +43,22 @@ export default async function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage platform users and roles
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        eyebrow="Identity and access"
+        title="Users and roles"
+        description="Manage platform members, enforce role boundaries, and preserve least-privilege access."
+        actions={
+          <Button asChild variant="outline">
+            <Link
+              href="/admin/activity"
+              data-dashboard-action="admin_users_open_activity"
+            >
+              Open audit log
+            </Link>
+          </Button>
+        }
+      />
 
       <Card className="border-border/70 shadow-sm">
         <CardHeader>
@@ -59,7 +77,10 @@ export default async function AdminUsersPage() {
             <TableBody>
               {users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">
+                  <TableCell
+                    colSpan={4}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
                     No users found.
                   </TableCell>
                 </TableRow>
@@ -78,7 +99,10 @@ export default async function AdminUsersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <form action={changeRole} className="inline-flex items-center gap-2">
+                    <form
+                      action={changeRole}
+                      className="inline-flex items-center gap-2"
+                    >
                       <input type="hidden" name="userId" value={user.id} />
                       <select
                         name="role"
@@ -89,7 +113,12 @@ export default async function AdminUsersPage() {
                         <option value="requester">requester</option>
                         <option value="admin">admin</option>
                       </select>
-                      <Button type="submit" size="sm" variant="outline" className="rounded-lg">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        variant="outline"
+                        className="rounded-lg"
+                      >
                         Save
                       </Button>
                     </form>
