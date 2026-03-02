@@ -6,6 +6,6 @@ export default async function ContributorLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireRole(["contributor"]);
+  await requireRole(["contributor", "admin"]);
   return <>{children}</>;
 }

@@ -40,7 +40,11 @@ test.describe("authenticated role journeys", () => {
 
     await page.goto("/requester/datasets");
     await expect(page).toHaveURL(/\/requester\/datasets/);
-    await expect(page.getByRole("heading", { name: /manage briefs|gestionar/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /manage dataset briefs|manage briefs|gestionar/i,
+      }),
+    ).toBeVisible();
   });
 
   test("contributor can access role home and contributions workspace", async ({ page }) => {

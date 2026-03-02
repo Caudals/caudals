@@ -43,18 +43,30 @@ export function SupportForm() {
 
   return (
     <div className="space-y-4">
-      <Input
-        placeholder={t("Subject")}
-        value={form.subject}
-        onChange={(event) => setForm((prev) => ({ ...prev, subject: event.target.value }))}
-      />
-      <Textarea
-        rows={4}
-        placeholder={t("Describe your issue")}
-        value={form.description}
-        onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-      />
-      <Button onClick={handleSubmit} disabled={isPending}>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {t("Subject")}
+        </p>
+        <Input
+          placeholder={t("Subject")}
+          value={form.subject}
+          onChange={(event) => setForm((prev) => ({ ...prev, subject: event.target.value }))}
+        />
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {t("Description")}
+        </p>
+        <Textarea
+          rows={5}
+          placeholder={t("Describe your issue")}
+          value={form.description}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, description: event.target.value }))
+          }
+        />
+      </div>
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full sm:w-auto">
         {t("Submit ticket")}
       </Button>
       {error ? (

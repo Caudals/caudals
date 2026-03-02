@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Briefcase, User, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "@/lib/i18n/use-translations";
@@ -21,18 +19,11 @@ interface RoleSwitcherProps {
 
 export function RoleSwitcher({ userRole, currentView }: RoleSwitcherProps) {
   const router = useRouter();
-  const [selectedView, setSelectedView] = useState<string>(currentView);
   const t = useTranslations();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  useEffect(() => {
-    // Update local state when parent changes view
-    setSelectedView(currentView);
-  }, [currentView]);
-
   const handleChange = (value: string) => {
-    setSelectedView(value);
     if (value === "contributor") {
       router.push("/contributor");
     } else if (value === "requester") {
@@ -53,7 +44,7 @@ export function RoleSwitcher({ userRole, currentView }: RoleSwitcherProps) {
 
   return (
     <div className="px-2">
-      <Select value={selectedView} onValueChange={handleChange}>
+      <Select value={currentView} onValueChange={handleChange}>
         <SelectTrigger className="w-full h-8 text-xs font-medium bg-sidebar-accent/50 border-0 focus:ring-0 focus:ring-offset-0 text-muted-foreground hover:text-foreground">
           <SelectValue />
         </SelectTrigger>

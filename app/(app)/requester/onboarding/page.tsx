@@ -1,5 +1,6 @@
 import { getRequesterOnboarding } from "@/lib/actions/requester-actions";
 import { OnboardingSteps } from "@/components/requester/onboarding/onboarding-steps";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function OnboardingPage() {
   const stepsResult = await getRequesterOnboarding();
@@ -15,12 +16,15 @@ export default async function OnboardingPage() {
     return null;
   }
 
+  const completed = stepsResult.filter((step) => step.status === "done").length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Onboarding</p>
-        <h1 className="text-2xl font-semibold">Get set up</h1>
-      </div>
+      <RequesterPageHeader
+        eyebrow="Onboarding"
+        title="Workspace setup"
+        description={`Complete setup milestones to unlock full requester operations and automation. ${completed}/${stepsResult.length} completed.`}
+      />
       <OnboardingSteps steps={stepsResult} />
     </div>
   );

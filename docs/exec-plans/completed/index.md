@@ -1,0 +1,17 @@
+# Completed Exec Plans
+
+## Historical Phases
+- `phase-00-delivery-system-hygiene.md`
+- `phase-01-backend-truth-alignment.md`
+- `phase-02-requester-product-completion.md`
+- `phase-03-admin-operations-completion.md`
+- `phase-04-contributor-payout-reliability.md`
+- `phase-05-design-system-ia-conformance.md`
+- `phase-06-quality-engineering-and-tests.md`
+- `phase-07-security-abuse-compliance.md`
+- `phase-08-public-surface-market-readiness.md`
+- `phase-09-launch-operations-reliability.md`
+- `phase-10-cross-role-dashboard-expansion.md`
+
+## Legacy Full Tracker Snapshot
+- `phase-00-to-10-legacy-tracker.md`
