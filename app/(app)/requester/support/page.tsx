@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getSupportTickets } from "@/lib/actions/requester-actions";
 import { SupportForm } from "@/components/requester/support/support-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function SupportPage() {
   const tickets = await getSupportTickets();
@@ -16,24 +17,54 @@ export default async function SupportPage() {
     );
   }
 
+  const openCount = tickets.filter((ticket) => ticket.status === "open" || ticket.status === "in_progress").length;
+
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Support</p>
-        <h1 className="text-2xl font-semibold">Contact us</h1>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <RequesterPageHeader
+        eyebrow="Support"
+        title="Support operations"
+        description="Create tickets, track replies, and monitor resolution status for workspace issues."
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>New request</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Open tickets</CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-semibold">{openCount}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Total tickets</CardTitle>
+          </CardHeader>
+          <CardContent className="text-3xl font-semibold">{tickets.length}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm text-muted-foreground">Latest update</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm font-medium">
+            {tickets[0]?.updated_at ? new Date(tickets[0].updated_at).toLocaleString() : "No activity yet"}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.6fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>New ticket</CardTitle>
+            <CardDescription>Share context and expected outcome to speed resolution.</CardDescription>
           </CardHeader>
           <CardContent>
             <SupportForm />
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle>Tickets</CardTitle>
+            <CardTitle>Ticket inbox</CardTitle>
+            <CardDescription>Track status and open threaded conversations</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -43,13 +74,12 @@ export default async function SupportPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Messages</TableHead>
                   <TableHead>Last update</TableHead>
-                  <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tickets.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                       No tickets yet.
                     </TableCell>
                   </TableRow>
@@ -57,10 +87,7 @@ export default async function SupportPage() {
                   tickets.map((ticket) => (
                     <TableRow key={ticket.id}>
                       <TableCell>
-                        <Link
-                          href={`/requester/support/${ticket.id}`}
-                          className="font-medium hover:underline"
-                        >
+                        <Link href={`/requester/support/${ticket.id}`} className="font-medium hover:underline">
                           {ticket.subject}
                         </Link>
                         {ticket.last_message_preview ? (
@@ -71,12 +98,11 @@ export default async function SupportPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
-                          {ticket.status}
+                          {ticket.status.replaceAll("_", " ")}
                         </Badge>
                       </TableCell>
                       <TableCell>{ticket.message_count}</TableCell>
                       <TableCell>{new Date(ticket.updated_at).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(ticket.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
                   ))
                 )}

@@ -1,33 +1,28 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   BarChart3,
-  Bookmark,
+  BookOpen,
   CheckCircle,
-  ChevronDown,
-  Clock,
   CreditCard,
   Database,
-  DollarSign,
+  FilePlus2,
   FileText,
   FileUp,
+  FolderArchive,
   LayoutDashboard,
   LifeBuoy,
   Megaphone,
   Settings,
   Shield,
-  Sparkles,
-  Star,
-  TrendingUp,
+  UserPlus,
   Users,
   Wallet,
-  BookOpen,
-  UserPlus,
-  Receipt,
+  LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import {
@@ -43,138 +38,169 @@ import {
   SidebarMenuItem,
   SidebarMenuSkeleton,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { NavUser } from "@/components/app/nav-user";
 import { RoleSwitcher } from "@/components/app/role-switcher";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
 import { NotificationBell } from "@/components/app/notification-bell";
 
-const requesterNav = [
+type ViewKey = "requester" | "contributor" | "admin";
+
+type NavItem = {
+  title: string;
+  icon: LucideIcon;
+  href: string;
+  external?: boolean;
+  exact?: boolean;
+  query?: Record<string, string>;
+  clearQueryKeys?: string[];
+};
+
+type NavGroup = {
+  group: string;
+  items: NavItem[];
+};
+
+const requesterNav: NavGroup[] = [
   {
     group: "Overview",
-    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/requester" }],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true }],
   },
   {
-    group: "My Requests",
+    group: "Datasets",
     items: [
-      { title: "All Requests", icon: FileText, href: "/requester/datasets" },
       {
-        title: "Active Requests",
-        icon: CheckCircle,
-        href: "/requester/datasets?status=active",
+        title: "All datasets",
+        icon: FileText,
+        href: "/requester/datasets",
+        clearQueryKeys: ["status", "filter"],
       },
       {
-        title: "Completed",
+        title: "Review queue",
         icon: CheckCircle,
-        href: "/requester/datasets?status=completed",
+        href: "/requester/datasets?filter=pending_review",
+        query: { filter: "pending_review" },
       },
+      {
+        title: "Funding needed",
+        icon: Wallet,
+        href: "/requester/datasets?filter=needs_funding",
+        query: { filter: "needs_funding" },
+      },
+      { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
     ],
   },
   {
-    group: "Contributors",
+    group: "Operations",
     items: [
-      { title: "All Contributors", icon: Users, href: "/requester/analytics" },
-      { title: "Top Performers", icon: Star, href: "/requester/analytics?sort=top" },
-    ],
-  },
-  {
-    group: "Analytics & Insights",
-    items: [
+      { title: "Files & exports", icon: FolderArchive, href: "/requester/files" },
       { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
-      { title: "Performance", icon: TrendingUp, href: "/requester/analytics?tab=performance" },
     ],
   },
   {
-    group: "Account",
+    group: "Workspace",
     items: [
-      { title: "Billing & Wallet", icon: CreditCard, href: "/requester/billing" },
+      { title: "Billing", icon: CreditCard, href: "/requester/billing" },
+      { title: "Support", icon: LifeBuoy, href: "/requester/support" },
+      { title: "Onboarding", icon: UserPlus, href: "/requester/onboarding" },
       { title: "Settings", icon: Settings, href: "/requester/settings" },
     ],
   },
 ];
 
-const contributorNav = [
+const contributorNav: NavGroup[] = [
   {
     group: "Overview",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/contributor" },
-    ],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/contributor", exact: true }],
   },
   {
-    group: "Datasets",
+    group: "Work",
     items: [
-      { title: "Browse All", icon: Database, href: "/browse" },
-      { title: "Recommended", icon: Sparkles, href: "/browse?filter=recommended" },
-      { title: "Saved", icon: Bookmark, href: "/browse?filter=saved" },
-    ],
-  },
-  {
-    group: "My Activity",
-    items: [
-      { title: "My Contributions", icon: FileUp, href: "/contributor/contributions" },
-      { title: "In Progress", icon: Clock, href: "/contributor/contributions?status=pending" },
+      { title: "My contributions", icon: FileUp, href: "/contributor/contributions" },
+      { title: "Browse opportunities", icon: Database, href: "/browse" },
     ],
   },
   {
     group: "Earnings",
-    items: [
-      { title: "Earnings Overview", icon: DollarSign, href: "/contributor/earnings" },
-      { title: "Payouts", icon: Wallet, href: "/contributor/earnings?tab=payouts" },
-      { title: "Transaction History", icon: Receipt, href: "/contributor/earnings?tab=transactions" },
-    ],
+    items: [{ title: "Earnings & payouts", icon: Wallet, href: "/contributor/earnings" }],
   },
   {
-    group: "Account",
-    items: [
-      { title: "Settings", icon: Settings, href: "/contributor/settings" },
-      { title: "Payout Methods", icon: CreditCard, href: "/contributor/settings?tab=payout" },
-    ],
+    group: "Workspace",
+    items: [{ title: "Settings", icon: Settings, href: "/contributor/settings" }],
   },
 ];
 
-const adminNav = [
+const adminNav: NavGroup[] = [
   {
     group: "Overview",
-    items: [{ title: "Admin Console", icon: Shield, href: "/admin" }],
+    items: [{ title: "Control center", icon: Shield, href: "/admin", exact: true }],
   },
   {
-    group: "Admin",
+    group: "Moderation",
     items: [
-      { title: "Requests / Datasets", icon: Database, href: "/admin/datasets" },
       { title: "Requests", icon: FileText, href: "/admin/requests" },
+      { title: "Datasets", icon: Database, href: "/admin/datasets" },
       { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
       { title: "Users", icon: Users, href: "/admin/users" },
-      { title: "Payments & Payouts", icon: CreditCard, href: "/admin/payments" },
-      { title: "Featured / Ads", icon: Megaphone, href: "/admin/featured" },
+    ],
+  },
+  {
+    group: "Operations",
+    items: [
+      { title: "Payments", icon: CreditCard, href: "/admin/payments" },
+      { title: "Support", icon: LifeBuoy, href: "/admin/support" },
+      { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
+    ],
+  },
+  {
+    group: "Intelligence",
+    items: [
       { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+      { title: "Featured", icon: Megaphone, href: "/admin/featured" },
       { title: "Settings", icon: Settings, href: "/admin/settings" },
     ],
   },
 ];
 
-const utilityLinksBase = [
+const utilityLinksBase: NavItem[] = [
   { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
 ];
+
+function parseHref(href: string): { path: string; params: URLSearchParams } {
+  const url = new URL(href, "https://app.caudals.local");
+  return { path: url.pathname, params: url.searchParams };
+}
+
+function resolveView(pathname: string, userRole: string): ViewKey {
+  if (pathname.startsWith("/admin")) {
+    return "admin";
+  }
+  if (pathname.startsWith("/contributor")) {
+    return "contributor";
+  }
+  if (pathname.startsWith("/requester")) {
+    return "requester";
+  }
+
+  if (userRole === "admin") {
+    return "admin";
+  }
+  if (userRole === "contributor") {
+    return "contributor";
+  }
+  return "requester";
+}
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { user, userRole, loading } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { state } = useSidebar();
   const t = useTranslations();
-  const router = useRouter();
-  const supabase = createClient();
-  const toast = useLocaleToast();
+  const isCollapsed = state === "collapsed";
 
   const workspaceTitle =
     user?.user_metadata?.workspace ||
@@ -194,7 +220,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         </SidebarHeader>
         <SidebarContent className="px-4">
           <SidebarMenu>
-            {Array.from({ length: 6 }).map((_, idx) => (
+            {Array.from({ length: 8 }).map((_, idx) => (
               <SidebarMenuItem key={idx}>
                 <SidebarMenuSkeleton showIcon />
               </SidebarMenuItem>
@@ -208,145 +234,127 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  const isAdminView = pathname.startsWith("/admin");
-  const isContributorView = pathname.startsWith("/contributor");
+  const viewKey = resolveView(pathname, userRole);
 
-  let navGroups = requesterNav;
+  let navGroups: NavGroup[] = requesterNav;
   let viewLabel = "Requester";
   let homeHref = "/requester";
 
-  if (userRole === "admin") {
-    if (isAdminView) {
-      navGroups = adminNav;
-      viewLabel = "Admin";
-      homeHref = "/admin";
-    } else if (isContributorView) {
-      navGroups = contributorNav;
-      viewLabel = "Contributor";
-      homeHref = "/contributor";
-    } else {
-      navGroups = requesterNav;
-      viewLabel = "Requester";
-      homeHref = "/requester";
-    }
-  } else if (userRole === "contributor") {
+  if (viewKey === "admin") {
+    navGroups = adminNav;
+    viewLabel = "Admin";
+    homeHref = "/admin";
+  } else if (viewKey === "contributor") {
     navGroups = contributorNav;
     viewLabel = "Contributor";
     homeHref = "/contributor";
-  } else if (userRole === "requester") {
-    navGroups = requesterNav;
-    viewLabel = "Requester";
-    homeHref = "/requester";
   }
 
   const settingsHref =
-    viewLabel === "Admin"
+    viewKey === "admin"
       ? "/admin/settings"
-      : viewLabel === "Contributor"
+      : viewKey === "contributor"
         ? "/contributor/settings"
         : "/requester/settings";
+
   const supportHref =
-    viewLabel === "Admin"
+    viewKey === "admin"
       ? "/admin/support"
-      : viewLabel === "Contributor"
+      : viewKey === "contributor"
         ? "/contributor/settings"
         : "/requester/support";
-  const utilityLinks = [
+
+  const utilityLinks: NavItem[] = [
     ...utilityLinksBase,
     {
-      title: "Invite Members",
+      title: "Invite members",
       icon: UserPlus,
       href:
-        viewLabel === "Admin"
+        viewKey === "admin"
           ? "/admin/users"
-          : viewLabel === "Contributor"
+          : viewKey === "contributor"
             ? "/contributor/settings"
-            : "/requester/settings?tab=members",
-      external: false,
+            : "/requester/settings",
     },
-    { title: "Support", icon: LifeBuoy, href: supportHref, external: false },
+    { title: "Support", icon: LifeBuoy, href: supportHref },
   ];
+
+  const isItemActive = (item: NavItem) => {
+    const { path: itemPath, params } = parseHref(item.href);
+    const samePath = pathname === itemPath;
+    const nestedPath = pathname.startsWith(`${itemPath}/`);
+
+    const pathMatches = item.exact
+      ? samePath
+      : samePath || (itemPath !== homeHref && nestedPath);
+
+    if (!pathMatches) {
+      return false;
+    }
+
+    if (item.clearQueryKeys?.some((key) => searchParams.has(key))) {
+      return false;
+    }
+
+    if (item.query) {
+      return Object.entries(item.query).every(
+        ([key, value]) => searchParams.get(key) === value,
+      );
+    }
+
+    if (params.size > 0) {
+      return Array.from(params.entries()).every(
+        ([key, value]) => searchParams.get(key) === value,
+      );
+    }
+
+    return true;
+  };
 
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
       <SidebarHeader className="pb-4 pt-6 px-4">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="h-10 rounded-lg hover:bg-transparent hover:text-foreground flex-1"
-                >
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage
-                        src={
-                          user?.user_metadata?.avatar_url ||
-                          user?.user_metadata?.picture ||
-                          undefined
-                        }
-                        alt={workspaceTitle}
-                      />
-                      <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-                        {workspaceTitle.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">
-                        {user?.user_metadata?.full_name || workspaceTitle}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {t("Profile & settings")}
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronDown className="size-4 text-muted-foreground" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="bottom"
-                align="start"
-                className="w-64 rounded-xl"
+        <div className="flex items-center gap-2 px-2">
+          <Avatar className="h-9 w-9 rounded-lg">
+            <AvatarImage
+              src={
+                user?.user_metadata?.avatar_url ||
+                user?.user_metadata?.picture ||
+                undefined
+              }
+              alt={workspaceTitle}
+            />
+            <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
+              {workspaceTitle.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">
+              {user?.user_metadata?.full_name || workspaceTitle}
+            </p>
+            <div className="mt-0.5 flex items-center gap-2">
+              <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px]">
+                {t(`${viewLabel} view`)}
+              </Badge>
+              <Link
+                href={settingsHref}
+                className="truncate text-[11px] text-muted-foreground hover:text-foreground"
               >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  {user?.email}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href={settingsHref}>
-                    {t("Profile & settings")}
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    toast.success(t("Signed out"));
-                    router.push("/auth/sign-in");
-                    router.refresh();
-                  }}
-                >
-                  {t("Log out")}
-                </DropdownMenuItem>
-                {userRole === "admin" && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1">
-                      <RoleSwitcher
-                        userRole={userRole}
-                        currentView={viewLabel.toLowerCase()}
-                      />
-                    </div>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <NotificationBell />
-            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <div className="px-2 pt-3">
+                {t("Profile & settings")}
+              </Link>
+            </div>
+          </div>
+          <NotificationBell />
+          <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
+        </div>
+
+        <div className="px-2 pt-3 space-y-2">
           <CommandPaletteButton />
+          {userRole === "admin" && !isCollapsed ? (
+            <div className="rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-2 py-2">
+              <RoleSwitcher userRole={userRole} currentView={viewKey} />
+            </div>
+          ) : null}
         </div>
       </SidebarHeader>
 
@@ -358,27 +366,25 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== homeHref && pathname.startsWith(item.href));
-
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        tooltip={t(item.title)}
-                        className="h-8 text-sm font-medium text-muted-foreground hover:text-foreground data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:bg-[var(--accent)]/10"
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isItemActive(item)}
+                      tooltip={t(item.title)}
+                      className="h-8 text-sm font-medium text-muted-foreground hover:text-foreground data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:bg-[var(--accent)]/10"
+                    >
+                      <Link
+                        href={item.href}
+                        target={item.external ? "_blank" : undefined}
+                        rel={item.external ? "noopener noreferrer" : undefined}
                       >
-                        <Link href={item.href}>
-                          <item.icon className="size-4" />
-                          <span>{t(item.title)}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
+                        <item.icon className="size-4" />
+                        <span>{t(item.title)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

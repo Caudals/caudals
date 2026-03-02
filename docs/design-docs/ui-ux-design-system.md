@@ -18,7 +18,7 @@ You should use frontend-design agents skill.
 
 ### Fidelity target
 
-Design output must be near-identical to visual language shown in `design/*.webp`:
+Design output must be near-identical to visual language shown in `./mobbin-screen-*.webp`:
 
 1. Light gray app canvas
 2. White primary content surfaces
@@ -75,27 +75,27 @@ All screenshots are in 1920x1320 and should be treated as composition references
 
 | Reference file | Pattern family | Primary usage in Caudals |
 | --- | --- | --- |
-| `design/mobbin-screen-1772365016117.webp` | Marketing hero + product preview shell | Main landing hero direction |
-| `design/mobbin-screen-1772365026230.webp` | App overview dashboard shell | Requester overview shell baseline |
-| `design/mobbin-screen-1772365036095.webp` | Expanded activity row + status logs | Requester tables with expandable details |
-| `design/mobbin-screen-1772365041045.webp` | Left rail + dashboard list variant | Contributor dashboard list pattern |
-| `design/mobbin-screen-1772365056390.webp` | Settings-like table with cards | Requester settings and support list layouts |
-| `design/mobbin-screen-1772365073728.webp` | Editor workspace split nav + content | Dense workspace pages with file/data navigation |
-| `design/mobbin-screen-1772365088434.webp` | Documentation page shell | Help/docs style content pages |
-| `design/mobbin-screen-1772365094652.webp` | Search/command overlay | Command palette + query result overlays |
-| `design/mobbin-screen-1772365100818.webp` | Analytics table + controls | Admin and requester analytics data tables |
-| `design/mobbin-screen-1772365106027.webp` | Line chart analytics | KPI and trend visualization style |
-| `design/mobbin-screen-1772365111686.webp` | Feature toggles list | Settings toggles and integrations sections |
-| `design/mobbin-screen-1772365126469.webp` | Two-column settings form cards | Billing/setup configuration forms |
-| `design/mobbin-screen-1772365129201.webp` | Auth split layout | Sign-in/sign-up layout model |
-| `design/mobbin-screen-1772365132656.webp` | Pricing plans cards | Billing plans and upgrade cards |
-| `design/mobbin-screen-1772365136766.webp` | Feature comparison matrix | Plan comparison tables |
-| `design/mobbin-screen-1772365141082.webp` | API key settings page | Requester API key management pages |
-| `design/mobbin-screen-1772365147381.webp` | Team members table + toast | Members/admin users list screens |
-| `design/mobbin-screen-1772365174944.webp` | Dashboard variant with top actions | Requester/contributor overview with primary actions |
-| `design/mobbin-screen-1772367953526.webp` | Marketing hero variant | Secondary landing state |
-| `design/mobbin-screen-1772368168095.webp` | API playground modal-like workspace | Advanced admin tooling or debug screens |
-| `design/mobbin-screen-1772368187321.webp` | Git settings panel variant | Secondary settings panel structure |
+| `./mobbin-screen-1772365016117.webp` | Marketing hero + product preview shell | Main landing hero direction |
+| `./mobbin-screen-1772365026230.webp` | App overview dashboard shell | Requester overview shell baseline |
+| `./mobbin-screen-1772365036095.webp` | Expanded activity row + status logs | Requester tables with expandable details |
+| `./mobbin-screen-1772365041045.webp` | Left rail + dashboard list variant | Contributor dashboard list pattern |
+| `./mobbin-screen-1772365056390.webp` | Settings-like table with cards | Requester settings and support list layouts |
+| `./mobbin-screen-1772365073728.webp` | Editor workspace split nav + content | Dense workspace pages with file/data navigation |
+| `./mobbin-screen-1772365088434.webp` | Documentation page shell | Help/docs style content pages |
+| `./mobbin-screen-1772365094652.webp` | Search/command overlay | Command palette + query result overlays |
+| `./mobbin-screen-1772365100818.webp` | Analytics table + controls | Admin and requester analytics data tables |
+| `./mobbin-screen-1772365106027.webp` | Line chart analytics | KPI and trend visualization style |
+| `./mobbin-screen-1772365111686.webp` | Feature toggles list | Settings toggles and integrations sections |
+| `./mobbin-screen-1772365126469.webp` | Two-column settings form cards | Billing/setup configuration forms |
+| `./mobbin-screen-1772365129201.webp` | Auth split layout | Sign-in/sign-up layout model |
+| `./mobbin-screen-1772365132656.webp` | Pricing plans cards | Billing plans and upgrade cards |
+| `./mobbin-screen-1772365136766.webp` | Feature comparison matrix | Plan comparison tables |
+| `./mobbin-screen-1772365141082.webp` | API key settings page | Requester API key management pages |
+| `./mobbin-screen-1772365147381.webp` | Team members table + toast | Members/admin users list screens |
+| `./mobbin-screen-1772365174944.webp` | Dashboard variant with top actions | Requester/contributor overview with primary actions |
+| `./mobbin-screen-1772367953526.webp` | Marketing hero variant | Secondary landing state |
+| `./mobbin-screen-1772368168095.webp` | API playground modal-like workspace | Advanced admin tooling or debug screens |
+| `./mobbin-screen-1772368187321.webp` | Git settings panel variant | Secondary settings panel structure |
 
 ---
 

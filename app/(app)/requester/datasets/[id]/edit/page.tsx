@@ -4,6 +4,7 @@ import {
   getRequesterDatasetDetail,
 } from "@/lib/actions/requester-actions";
 import { DatasetBuilder, DuplicateDataset } from "@/components/requester/datasets/dataset-builder";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function EditRequesterDatasetPage({
   params,
@@ -25,10 +26,11 @@ export default async function EditRequesterDatasetPage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">Edit dataset</p>
-        <h1 className="text-2xl font-semibold">Update brief</h1>
-      </div>
+      <RequesterPageHeader
+        eyebrow="Edit dataset"
+        title="Update brief"
+        description="Adjust scope, reward, and requirements while preserving workflow history."
+      />
       <DatasetBuilder templates={templates} duplicate={initial} datasetId={id} />
     </div>
   );

@@ -1,5 +1,6 @@
 import { DatasetBuilder, DuplicateDataset } from "@/components/requester/datasets/dataset-builder";
 import { getDatasetTemplates, getRequesterDatasetDetail } from "@/lib/actions/requester-actions";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function NewDatasetPage({
   searchParams,
@@ -20,10 +21,11 @@ export default async function NewDatasetPage({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">New dataset</p>
-        <h1 className="text-2xl font-semibold">Launch a dataset brief</h1>
-      </div>
+      <RequesterPageHeader
+        eyebrow="New dataset"
+        title="Launch a dataset brief"
+        description="Define requirements, rewards, and quality controls before opening submissions."
+      />
       <DatasetBuilder templates={templates} duplicate={duplicate ?? undefined} />
     </div>
   );

@@ -3,7 +3,8 @@ import { getOrgSettings, getRequesterApiKeys } from "@/lib/actions/requester-act
 import { ProfileForm, ProfileData } from "@/components/requester/settings/profile-form";
 import { OrgForm, OrgSettings } from "@/components/requester/settings/org-form";
 import { ApiKeysCard, ApiKey } from "@/components/requester/settings/api-keys-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function SettingsPage() {
   const [profile, org, apiKeys] = await Promise.all([
@@ -50,36 +51,43 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Settings</p>
-        <h1 className="text-2xl font-semibold">Workspace settings</h1>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <RequesterPageHeader
+        eyebrow="Settings"
+        title="Workspace configuration"
+        description="Manage personal profile details, organization defaults, and API credentials used by your integrations."
+      />
+
+      <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>
+            <CardDescription>Your identity and communication preferences</CardDescription>
           </CardHeader>
           <CardContent>
             <ProfileForm profile={profileData} />
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Organization</CardTitle>
+            <CardDescription>Billing and account defaults for requester operations</CardDescription>
           </CardHeader>
           <CardContent>
             <OrgForm org={orgData} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>API keys</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ApiKeysCard keys={apiKeyData} />
-          </CardContent>
-        </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>API keys</CardTitle>
+          <CardDescription>Create and revoke integration credentials safely</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ApiKeysCard keys={apiKeyData} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,8 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import { getSupportTicketDetail } from "@/lib/actions/requester-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TicketThread } from "@/components/requester/support/ticket-thread";
+import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
 export default async function SupportTicketDetailPage({
   params,
@@ -21,39 +22,38 @@ export default async function SupportTicketDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <Button variant="outline" asChild>
-          <Link href="/requester/support">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to support
-          </Link>
-        </Button>
-        <Badge variant="outline" className="capitalize">
-          {ticket.status}
-        </Badge>
-      </div>
+      <RequesterPageHeader
+        eyebrow="Support ticket"
+        title={ticket.subject}
+        description={ticket.description || "No description provided."}
+        actions={
+          <>
+            <Badge variant="outline" className="capitalize">
+              {ticket.status.replaceAll("_", " ")}
+            </Badge>
+            <Button variant="outline" asChild>
+              <Link href="/requester/support">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to support
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <Card className="border-border/70 shadow-none">
         <CardHeader>
-          <CardTitle>{ticket.subject}</CardTitle>
+          <CardTitle>Ticket details</CardTitle>
+          <CardDescription>Timeline and metadata for this support request</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {ticket.description || "No description provided."}
-          </p>
-          <div className="grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
-            <p>Priority: {ticket.priority}</p>
-            <p>Created: {new Date(ticket.created_at).toLocaleString()}</p>
-            <p>Updated: {new Date(ticket.updated_at).toLocaleString()}</p>
-          </div>
+        <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+          <p>Priority: <span className="font-medium text-foreground">{ticket.priority}</span></p>
+          <p>Created: <span className="font-medium text-foreground">{new Date(ticket.created_at).toLocaleString()}</span></p>
+          <p>Updated: <span className="font-medium text-foreground">{new Date(ticket.updated_at).toLocaleString()}</span></p>
         </CardContent>
       </Card>
 
-      <TicketThread
-        ticketId={ticket.id}
-        status={ticket.status}
-        messages={ticket.messages}
-      />
+      <TicketThread ticketId={ticket.id} status={ticket.status} messages={ticket.messages} />
     </div>
   );
 }

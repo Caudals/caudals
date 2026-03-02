@@ -64,7 +64,7 @@ export function TicketThread({
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <Badge variant="outline" className="capitalize">
-                  {message.role}
+                  {message.role.replaceAll("_", " ")}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
                   {new Date(message.created_at).toLocaleString()}
@@ -76,7 +76,7 @@ export function TicketThread({
         )}
       </div>
 
-      <div className="space-y-3 rounded-xl border border-border/70 p-4">
+      <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
           <div className="space-y-2">
             <Label>Add reply</Label>
