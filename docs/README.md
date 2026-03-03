@@ -50,6 +50,13 @@ npm run dev
 - `npm run perf:lighthouse` - Lighthouse CI route budget check
 - `npm run seed` - seed database baseline
 - `npm run seed:test-fixtures` - deterministic fixture seed for local/CI tests
+- `npm run fixtures:ensure` - verify fixture users/data freshness and auto-reseed when stale
+- `npm run jobs:process-exports` - process queued dataset export jobs
+- `npm run payments:check-ledger` - validate payment ledger invariants
+- `npm run payments:repair-ledger` - dry-run/apply ledger repair actions
+- `npm run payments:check-compliance-policies` - verify compliance table RLS policy surface
+- `scripts/supabase-selfhosted-tunnel.sh` - start/stop/status SSH tunnels for self-hosted Supabase MCP + DB
+- `scripts/supabase-cli-selfhosted.sh` - run Supabase CLI against self-hosted remote DB via tunnel
 
 ## Testing and Validation
 
@@ -69,11 +76,45 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-
 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/public-routes.spec.ts --project=chromium
 ```
 
+Fixture freshness controls for authenticated smoke tests:
+
+- `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
+- `TEST_FIXTURE_AUTO_RESEED` (default `true`)
+
+Internal export worker endpoint auth:
+
+- `EXPORT_JOBS_TOKEN` (required for `/api/internal/export-jobs`)
+
 ## Database and Migrations
 
 - Migration files live in `supabase/migrations`.
 - Apply and rollback policy is documented in `docs/db-runbook.md`.
 - Always apply migrations in staging first and complete parity checks in `docs/staging-parity-checklist.md` before production.
+
+### Self-Hosted Supabase (Agent Workflow)
+
+For this self-hosted deployment, keep agent DB and MCP access on localhost tunnels:
+
+1. Create local secret file (not committed): `~/.config/caudals/supabase-selfhosted.env`
+2. Start tunnels:
+
+```bash
+./scripts/supabase-selfhosted-tunnel.sh start all
+```
+
+3. Run remote migration commands via wrapper:
+
+```bash
+./scripts/supabase-cli-selfhosted.sh migration list
+./scripts/supabase-cli-selfhosted.sh db push --dry-run
+```
+
+4. Codex MCP endpoint for self-hosted Supabase:
+- `http://127.0.0.1:18100/mcp` (configured as `mcp_servers.supabase` in `~/.codex/config.toml`)
+
+Detailed CLI/MCP operating rules for Supabase and Stripe are in:
+- `docs/references/tooling-and-mcp.md`
+- `docs/references/payments-cutover-runbook.md`
 
 ## Deployment Notes
 
@@ -94,3 +135,6 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/public-routes.
 - Webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
   - inspect `stripe_webhook_events` and transaction logs.
+- Export jobs stuck in `pending`:
+  - verify `EXPORT_JOBS_TOKEN` and scheduler wiring for `/api/internal/export-jobs`,
+  - run `npm run jobs:process-exports` to drain queue manually.

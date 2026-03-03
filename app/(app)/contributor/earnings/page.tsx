@@ -35,6 +35,15 @@ export default async function EarningsPage() {
     }
     return 0;
   };
+  const getPayoutFailureReason = (metadata: unknown): string | null => {
+    if (!metadata || typeof metadata !== "object") return null;
+
+    const record = metadata as Record<string, unknown>;
+    const reason = record.failure_reason ?? record.error_message ?? record.transfer_status;
+    return typeof reason === "string" && reason.trim().length > 0
+      ? reason.trim()
+      : null;
+  };
 
   const payouts = allTransactions.filter((t) => t.type === "submission_payout");
   const completedPayouts = payouts.filter((t) => t.status === "completed");
@@ -216,6 +225,7 @@ export default async function EarningsPage() {
                   Boolean(payout.reference_id) || payout.status !== "cancelled";
                 const settled = payout.status === "completed";
                 const failed = payout.status === "failed";
+                const failureReason = getPayoutFailureReason(payout.metadata);
 
                 return (
                   <div
@@ -295,6 +305,28 @@ export default async function EarningsPage() {
                         state={failed ? "failed" : settled ? "done" : "waiting"}
                       />
                     </div>
+
+                    {failed ? (
+                      <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
+                        <p className="font-medium text-destructive">
+                          Payout requires remediation
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {failureReason ??
+                            "The transfer failed. Update payout account details and contact support if the issue persists."}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href="/contributor/settings">
+                              Update payout settings
+                            </Link>
+                          </Button>
+                          <Button asChild size="sm" variant="ghost">
+                            <Link href="/contributor">Open contributor dashboard</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}

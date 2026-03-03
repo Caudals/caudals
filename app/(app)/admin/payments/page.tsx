@@ -1,9 +1,12 @@
 import React from "react";
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
+  getAdminPaymentAnomalies,
+  getAdminPaymentComplianceRecords,
   getAdminPaymentsOverview,
   getAdminPayoutQueues,
   reconcilePayoutTransaction,
+  upsertAdminPaymentComplianceRecord,
 } from "@/lib/actions/admin-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,14 +32,56 @@ import { Input } from "@/components/ui/input";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import Link from "next/link";
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireAdmin();
-  const [overviewRes, queueRes] = await Promise.all([
+  const params = await searchParams;
+  const failedFilterRaw = typeof params.failed === "string" ? params.failed : "all";
+  const pendingFilterRaw =
+    typeof params.pending === "string" ? params.pending : "all";
+  const anomalyFilterRaw =
+    typeof params.anomaly === "string" ? params.anomaly : "all";
+  const complianceTxRaw =
+    typeof params.compliance_tx === "string" ? params.compliance_tx : "";
+  const failedFilter = ["all", "high_value", "repeated"].includes(failedFilterRaw)
+    ? failedFilterRaw
+    : "all";
+  const pendingFilter = ["all", "stale"].includes(pendingFilterRaw)
+    ? pendingFilterRaw
+    : "all";
+  const anomalyFilter = ["all", "high", "payout", "transfer", "webhook"].includes(
+    anomalyFilterRaw,
+  )
+    ? anomalyFilterRaw
+    : "all";
+
+  const [overviewRes, queueRes, anomalyRes, complianceRes] = await Promise.all([
     getAdminPaymentsOverview(),
     getAdminPayoutQueues(),
+    getAdminPaymentAnomalies(),
+    getAdminPaymentComplianceRecords(),
   ]);
 
-  if ("error" in overviewRes || "error" in queueRes) {
+  if (
+    "error" in overviewRes ||
+    "error" in queueRes ||
+    "error" in anomalyRes ||
+    "error" in complianceRes
+  ) {
+    const loadError =
+      "error" in overviewRes
+        ? overviewRes.error
+        : "error" in queueRes
+          ? queueRes.error
+          : "error" in anomalyRes
+            ? anomalyRes.error
+            : "error" in complianceRes
+              ? complianceRes.error
+              : "Please try again later.";
+
     return (
       <div className="space-y-4">
         <Card className="border-destructive/40 bg-destructive/5">
@@ -46,13 +91,7 @@ export default async function AdminPaymentsPage() {
               <p className="font-semibold text-destructive">
                 Unable to load payments
               </p>
-              <p className="text-sm text-muted-foreground">
-                {"error" in overviewRes
-                  ? overviewRes.error
-                  : "error" in queueRes
-                    ? queueRes.error
-                    : "Please try again later."}
-              </p>
+              <p className="text-sm text-muted-foreground">{loadError}</p>
             </div>
           </CardContent>
         </Card>
@@ -62,6 +101,8 @@ export default async function AdminPaymentsPage() {
 
   const { totals, transactions } = overviewRes.data;
   const payoutQueues = queueRes;
+  const anomaliesOverview = anomalyRes;
+  const complianceOverview = complianceRes;
 
   const totalVolumeCents =
     Number((totals as { total_volume_cents?: number }).total_volume_cents) ||
@@ -74,26 +115,138 @@ export default async function AdminPaymentsPage() {
   const payoutVolumeCents =
     Number((totals as { payout_volume_cents?: number }).payout_volume_cents) ||
     Number(totals.payoutVolume || 0);
+  const highValueThresholdCents = 10000;
 
   const formatMoney = (amount: number | null | undefined, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
       Number(amount || 0) / 100,
     );
 
+  const filterHref = (next: {
+    failed?: string;
+    pending?: string;
+    anomaly?: string;
+    complianceTx?: string;
+  }) => {
+    const query = new URLSearchParams();
+    const failed = next.failed ?? failedFilter;
+    const pending = next.pending ?? pendingFilter;
+    const anomaly = next.anomaly ?? anomalyFilter;
+    const complianceTx = next.complianceTx ?? complianceTxRaw;
+    if (failed !== "all") query.set("failed", failed);
+    if (pending !== "all") query.set("pending", pending);
+    if (anomaly !== "all") query.set("anomaly", anomaly);
+    if (complianceTx) query.set("compliance_tx", complianceTx);
+    const queryString = query.toString();
+    return queryString ? `/admin/payments?${queryString}` : "/admin/payments";
+  };
+
+  const failedRows = payoutQueues.failed
+    .filter((row) => {
+      if (failedFilter === "high_value") {
+        return row.amount >= highValueThresholdCents;
+      }
+      if (failedFilter === "repeated") {
+        return row.is_repeated_failure;
+      }
+      return true;
+    })
+    .sort((a, b) =>
+      failedFilter === "high_value"
+        ? b.amount - a.amount
+        : new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    );
+  const pendingRows = payoutQueues.pending
+    .filter((row) => (pendingFilter === "stale" ? row.age_hours >= 24 : true))
+    .sort((a, b) => b.age_hours - a.age_hours);
+  const anomalyRows = anomaliesOverview.rows
+    .filter((row) => {
+      if (anomalyFilter === "high") {
+        return row.severity === "high";
+      }
+      if (anomalyFilter === "payout") {
+        return (
+          row.category === "stale_pending_payout" ||
+          row.category === "failed_payout" ||
+          row.category === "repeated_payout_failure"
+        );
+      }
+      if (anomalyFilter === "transfer") {
+        return (
+          row.category === "missing_transfer_reference" ||
+          row.category === "duplicate_transfer_reference" ||
+          row.category === "orphan_transfer_event"
+        );
+      }
+      if (anomalyFilter === "webhook") {
+        return (
+          row.category === "webhook_processing_failed" ||
+          row.category === "webhook_processing_stuck" ||
+          row.category === "missing_webhook_ledger"
+        );
+      }
+      return true;
+    })
+    .slice(0, 80);
+
   const latest = transactions.slice(0, 12);
+  const complianceByTransaction = new Map(
+    complianceOverview.rows.map((row) => [row.transaction_id, row])
+  );
+  const selectedComplianceTxId =
+    complianceTxRaw ||
+    (latest.find((row) => complianceByTransaction.has(row.id))?.id ??
+      latest[0]?.id ??
+      "");
+  const selectedComplianceRecord = selectedComplianceTxId
+    ? complianceByTransaction.get(selectedComplianceTxId)
+    : undefined;
+  const selectedComplianceTransaction = selectedComplianceTxId
+    ? transactions.find((tx) => tx.id === selectedComplianceTxId) ?? null
+    : null;
+  const complianceLegalHoldCount = complianceOverview.rows.filter(
+    (row) => row.legal_hold
+  ).length;
 
   const retryFailedPayout = async (formData: FormData) => {
     "use server";
     const transactionId = String(formData.get("transactionId") || "");
     const note = String(formData.get("note") || "");
-    await reconcilePayoutTransaction(transactionId, "pending", note);
+    const reasonCode = String(formData.get("reasonCode") || "");
+    await reconcilePayoutTransaction(transactionId, "pending", note, reasonCode);
   };
 
   const cancelFailedPayout = async (formData: FormData) => {
     "use server";
     const transactionId = String(formData.get("transactionId") || "");
     const note = String(formData.get("note") || "");
-    await reconcilePayoutTransaction(transactionId, "cancelled", note);
+    const reasonCode = String(formData.get("reasonCode") || "");
+    await reconcilePayoutTransaction(
+      transactionId,
+      "cancelled",
+      note,
+      reasonCode,
+    );
+  };
+
+  const saveComplianceRecord = async (formData: FormData) => {
+    "use server";
+    const transactionId = String(formData.get("transactionId") ?? "");
+    await upsertAdminPaymentComplianceRecord({
+      transactionId,
+      legalEntityName: String(formData.get("legalEntityName") ?? ""),
+      legalEntityCountry: String(formData.get("legalEntityCountry") ?? ""),
+      taxReference: String(formData.get("taxReference") ?? ""),
+      vatReference: String(formData.get("vatReference") ?? ""),
+      invoiceReference: String(formData.get("invoiceReference") ?? ""),
+      purchaseOrderReference: String(formData.get("purchaseOrderReference") ?? ""),
+      payoutStatementReference: String(
+        formData.get("payoutStatementReference") ?? ""
+      ),
+      notes: String(formData.get("notes") ?? ""),
+      legalHold:
+        String(formData.get("legalHold") ?? "").toLowerCase() === "on",
+    });
   };
 
   return (
@@ -174,6 +327,304 @@ export default async function AdminPaymentsPage() {
         </Card>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          asChild
+          size="sm"
+          variant={failedFilter === "all" ? "default" : "outline"}
+        >
+          <Link href={filterHref({ failed: "all" })}>All failed payouts</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={failedFilter === "high_value" ? "default" : "outline"}
+        >
+          <Link href={filterHref({ failed: "high_value" })}>
+            High value failed (&gt;$100)
+          </Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={failedFilter === "repeated" ? "default" : "outline"}
+        >
+          <Link href={filterHref({ failed: "repeated" })}>
+            Repeated failures
+          </Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={pendingFilter === "all" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ pending: "all" })}>All pending</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={pendingFilter === "stale" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ pending: "stale" })}>Stale pending (24h+)</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={anomalyFilter === "all" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ anomaly: "all" })}>All anomalies</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={anomalyFilter === "high" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ anomaly: "high" })}>High severity</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={anomalyFilter === "webhook" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ anomaly: "webhook" })}>Webhook signals</Link>
+        </Button>
+        <Button
+          asChild
+          size="sm"
+          variant={anomalyFilter === "transfer" ? "secondary" : "outline"}
+        >
+          <Link href={filterHref({ anomaly: "transfer" })}>Transfer signals</Link>
+        </Button>
+      </div>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-col gap-1">
+          <CardTitle>Unified payment anomalies</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Correlates payout transactions, transfer references, and webhook processing state.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Total anomalies</p>
+              <p className="text-xl font-semibold">{anomaliesOverview.totals.total}</p>
+            </div>
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">High severity</p>
+              <p className="text-xl font-semibold text-destructive">
+                {anomaliesOverview.totals.high}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Transfer-linked</p>
+              <p className="text-xl font-semibold">{anomaliesOverview.totals.transfer}</p>
+            </div>
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Webhook-linked</p>
+              <p className="text-xl font-semibold">{anomaliesOverview.totals.webhook}</p>
+            </div>
+          </div>
+
+          {!anomaliesOverview.webhookLedgerAvailable ? (
+            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900">
+              `stripe_webhook_events` is unavailable in this environment. Webhook anomaly correlation is running in fallback mode.
+            </div>
+          ) : null}
+        </CardContent>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead>Severity</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Signal</TableHead>
+                <TableHead>Entity</TableHead>
+                <TableHead>Detected</TableHead>
+                <TableHead className="text-right">Drilldown</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {anomalyRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-6 text-center text-sm text-muted-foreground"
+                  >
+                    No anomalies in current filter.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {anomalyRows.map((row) => (
+                <TableRow key={row.id} className="align-top hover:bg-muted/30">
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        row.severity === "high"
+                          ? "border-destructive/40 text-destructive"
+                          : row.severity === "medium"
+                            ? "border-amber-500/50 text-amber-700"
+                            : ""
+                      }
+                    >
+                      {row.severity}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{row.category}</TableCell>
+                  <TableCell className="max-w-md text-sm">
+                    <div className="font-medium">{row.title}</div>
+                    <div className="text-muted-foreground">{row.description}</div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    <div>{row.dataset_title || row.dataset_request_id || "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.contributor_name || row.contributor_email || row.reference_id || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(row.created_at), {
+                      addSuffix: true,
+                    })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={row.quick_link}>Open</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="flex flex-col gap-1">
+          <CardTitle>Compliance metadata registry</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Capture tax/legal references for enterprise finance and audit workflows.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Records tracked</p>
+              <p className="text-xl font-semibold">
+                {complianceOverview.rows.length}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Legal hold flags</p>
+              <p className="text-xl font-semibold text-amber-700">
+                {complianceLegalHoldCount}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 p-3">
+              <p className="text-xs text-muted-foreground">Selected transaction</p>
+              <p className="text-sm font-mono">
+                {selectedComplianceTxId || "None"}
+              </p>
+            </div>
+          </div>
+
+          {!complianceOverview.tableAvailable ? (
+            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900">
+              `payment_compliance_records` table is missing. Apply migration
+              `025_payment_compliance_records.sql` to enable compliance workflows.
+            </div>
+          ) : null}
+
+          {selectedComplianceTransaction ? (
+            <form
+              action={saveComplianceRecord}
+              className="grid gap-3 rounded-lg border border-border/70 p-4"
+            >
+              <input
+                type="hidden"
+                name="transactionId"
+                value={selectedComplianceTransaction.id}
+              />
+              <div className="grid gap-2 md:grid-cols-3">
+                <Input
+                  name="legalEntityName"
+                  placeholder="Legal entity name"
+                  defaultValue={selectedComplianceRecord?.legal_entity_name ?? ""}
+                />
+                <Input
+                  name="legalEntityCountry"
+                  placeholder="Country (ISO-2)"
+                  maxLength={2}
+                  defaultValue={selectedComplianceRecord?.legal_entity_country ?? ""}
+                />
+                <Input
+                  name="taxReference"
+                  placeholder="Tax reference"
+                  defaultValue={selectedComplianceRecord?.tax_reference ?? ""}
+                />
+              </div>
+              <div className="grid gap-2 md:grid-cols-3">
+                <Input
+                  name="vatReference"
+                  placeholder="VAT reference"
+                  defaultValue={selectedComplianceRecord?.vat_reference ?? ""}
+                />
+                <Input
+                  name="invoiceReference"
+                  placeholder="Invoice reference"
+                  defaultValue={selectedComplianceRecord?.invoice_reference ?? ""}
+                />
+                <Input
+                  name="purchaseOrderReference"
+                  placeholder="PO reference"
+                  defaultValue={
+                    selectedComplianceRecord?.purchase_order_reference ?? ""
+                  }
+                />
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <Input
+                  name="payoutStatementReference"
+                  placeholder="Payout statement reference"
+                  defaultValue={
+                    selectedComplianceRecord?.payout_statement_reference ?? ""
+                  }
+                />
+                <label className="flex items-center gap-2 rounded-md border border-input px-3 text-sm">
+                  <input
+                    type="checkbox"
+                    name="legalHold"
+                    defaultChecked={Boolean(selectedComplianceRecord?.legal_hold)}
+                  />
+                  Legal hold
+                </label>
+              </div>
+              <textarea
+                name="notes"
+                placeholder="Compliance notes"
+                defaultValue={selectedComplianceRecord?.notes ?? ""}
+                className="min-h-20 rounded-md border border-input bg-background p-2 text-sm"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Transaction type:{" "}
+                  <span className="font-mono">
+                    {selectedComplianceTransaction.type ?? "unknown"}
+                  </span>
+                </p>
+                <Button type="submit" size="sm">
+                  Save compliance record
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Select a transaction from the recent ledger table to edit compliance metadata.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="border-border/70 shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Failed payouts (reconciliation queue)</CardTitle>
@@ -189,22 +640,23 @@ export default async function AdminPaymentsPage() {
                 <TableHead>Dataset</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Failed</TableHead>
+                <TableHead>Signals</TableHead>
                 <TableHead>Reason</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payoutQueues.failed.length === 0 && (
+              {failedRows.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-6 text-sm text-muted-foreground"
                   >
                     No failed payouts.
                   </TableCell>
                 </TableRow>
               )}
-              {payoutQueues.failed.map((tx) => (
+              {failedRows.map((tx) => (
                 <TableRow key={tx.id} className="align-top hover:bg-muted/30">
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
@@ -224,6 +676,23 @@ export default async function AdminPaymentsPage() {
                     {formatDistanceToNow(new Date(tx.updated_at), {
                       addSuffix: true,
                     })}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    <div className="flex flex-wrap gap-1">
+                      {tx.is_repeated_failure ? (
+                        <Badge variant="outline" className="text-destructive">
+                          repeated
+                        </Badge>
+                      ) : null}
+                      {tx.amount >= highValueThresholdCents ? (
+                        <Badge variant="outline" className="text-amber-700">
+                          high_value
+                        </Badge>
+                      ) : null}
+                      {tx.is_repeated_failure || tx.amount >= highValueThresholdCents
+                        ? null
+                        : "—"}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground max-w-sm">
                     {tx.failure_reason ||
@@ -245,6 +714,16 @@ export default async function AdminPaymentsPage() {
                           placeholder="Retry note"
                           className="h-9 md:w-52"
                         />
+                        <select
+                          name="reasonCode"
+                          defaultValue="transient_stripe_error"
+                          className="h-9 rounded-md border border-input bg-background px-2 text-sm md:w-44"
+                        >
+                          <option value="transient_stripe_error">transient_stripe_error</option>
+                          <option value="bank_details_updated">bank_details_updated</option>
+                          <option value="onboarding_completed">onboarding_completed</option>
+                          <option value="manual_retry">manual_retry</option>
+                        </select>
                         <Button size="sm" type="submit" className="h-9">
                           Retry
                         </Button>
@@ -263,6 +742,16 @@ export default async function AdminPaymentsPage() {
                           placeholder="Cancel note"
                           className="h-9 md:w-52"
                         />
+                        <select
+                          name="reasonCode"
+                          defaultValue="manual_cancellation"
+                          className="h-9 rounded-md border border-input bg-background px-2 text-sm md:w-44"
+                        >
+                          <option value="manual_cancellation">manual_cancellation</option>
+                          <option value="duplicate_payout">duplicate_payout</option>
+                          <option value="submission_reversed">submission_reversed</option>
+                          <option value="compliance_block">compliance_block</option>
+                        </select>
                         <Button
                           size="sm"
                           type="submit"
@@ -300,7 +789,7 @@ export default async function AdminPaymentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payoutQueues.pending.length === 0 && (
+              {pendingRows.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={5}
@@ -310,7 +799,7 @@ export default async function AdminPaymentsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {payoutQueues.pending.map((tx) => (
+              {pendingRows.map((tx) => (
                 <TableRow key={tx.id} className="hover:bg-muted/30">
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
@@ -370,6 +859,7 @@ export default async function AdminPaymentsPage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Compliance</TableHead>
                 <TableHead>Direction</TableHead>
                 <TableHead>When</TableHead>
               </TableRow>
@@ -378,43 +868,63 @@ export default async function AdminPaymentsPage() {
               {latest.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="text-center py-6 text-sm text-muted-foreground"
                   >
                     No transactions yet.
                   </TableCell>
                 </TableRow>
               )}
-              {latest.map((tx) => (
-                <TableRow key={tx.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium capitalize">
-                    {tx.type?.replace("_", " ")}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        tx.status === "completed" ? "outline" : "secondary"
-                      }
-                      className="capitalize"
-                    >
-                      {tx.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    {formatMoney(tx.amount, tx.currency || "USD")}
-                  </TableCell>
-                  <TableCell className="capitalize text-muted-foreground">
-                    {tx.direction}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {tx.created_at
-                      ? formatDistanceToNow(new Date(tx.created_at), {
-                          addSuffix: true,
-                        })
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {latest.map((tx) => {
+                const complianceRecord = complianceByTransaction.get(tx.id);
+                const hasComplianceRecord = Boolean(complianceRecord);
+
+                return (
+                  <TableRow key={tx.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium capitalize">
+                      {tx.type?.replace("_", " ")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          tx.status === "completed" ? "outline" : "secondary"
+                        }
+                        className="capitalize"
+                      >
+                        {tx.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">
+                      {formatMoney(tx.amount, tx.currency || "USD")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Badge
+                          variant={hasComplianceRecord ? "outline" : "secondary"}
+                          className={hasComplianceRecord ? "text-emerald-700" : ""}
+                        >
+                          {hasComplianceRecord ? "configured" : "missing"}
+                        </Badge>
+                        <Button asChild size="sm" variant="ghost" className="h-7 px-1">
+                          <Link href={filterHref({ complianceTx: tx.id })}>
+                            Edit
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="capitalize text-muted-foreground">
+                      {tx.direction}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {tx.created_at
+                        ? formatDistanceToNow(new Date(tx.created_at), {
+                            addSuffix: true,
+                          })
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

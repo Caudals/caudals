@@ -1,6 +1,6 @@
 # Database Schema Snapshot
 
-Last reviewed: 2026-03-02
+Last reviewed: 2026-03-03
 
 ## Core Tables
 - `profiles`
@@ -25,6 +25,8 @@ Last reviewed: 2026-03-02
 - `wallets`
 - `transactions`
 - `stripe_accounts`
+- `stripe_webhook_events`
+- `payment_compliance_records`
 
 ## How to Refresh
 Use migration history in `supabase/migrations/` and runtime inspection with Supabase tooling.

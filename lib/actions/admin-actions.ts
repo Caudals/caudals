@@ -1622,6 +1622,40 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isMissingTableError(error: unknown, tableName: string) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const message = "message" in error ? String(error.message ?? "") : "";
+  const normalized = message.toLowerCase();
+  const table = tableName.toLowerCase();
+
+  return (
+    normalized.includes(`could not find the table 'public.${table}'`) ||
+    normalized.includes(`relation "public.${table}" does not exist`)
+  );
+}
+
+function extractStripeObjectIdFromEventPayload(payload: unknown): string | null {
+  if (!isObjectRecord(payload)) {
+    return null;
+  }
+
+  const data = payload.data;
+  if (!isObjectRecord(data)) {
+    return null;
+  }
+
+  const object = data.object;
+  if (!isObjectRecord(object)) {
+    return null;
+  }
+
+  const id = object.id;
+  return typeof id === "string" ? id : null;
+}
+
 export async function getAdminActivityLog(filters: {
   actionType?: string | null;
   targetType?: string | null;
@@ -2205,42 +2239,110 @@ export async function updateAdminSupportTicket(
   return { ok: true };
 }
 
+type AdminPayoutQueueRow = {
+  id: string;
+  contributor_id: string;
+  status: "pending" | "failed";
+  amount: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+  reference_id: string | null;
+  submission_id: string | null;
+  dataset_request_id: string | null;
+  contributor_name: string | null;
+  contributor_email: string | null;
+  dataset_title: string | null;
+  submission_status: string | null;
+  failure_reason: string | null;
+  age_hours: number;
+  failure_count_for_contributor: number;
+  is_repeated_failure: boolean;
+};
+
+type AdminPendingPayoutQueueRow = AdminPayoutQueueRow & { status: "pending" };
+type AdminFailedPayoutQueueRow = AdminPayoutQueueRow & { status: "failed" };
+
+type AdminPaymentAnomalySeverity = "high" | "medium" | "low";
+type AdminPaymentAnomalyCategory =
+  | "stale_pending_payout"
+  | "failed_payout"
+  | "repeated_payout_failure"
+  | "missing_transfer_reference"
+  | "duplicate_transfer_reference"
+  | "webhook_processing_failed"
+  | "webhook_processing_stuck"
+  | "orphan_transfer_event"
+  | "missing_webhook_ledger";
+
+export type AdminPaymentAnomalyRow = {
+  id: string;
+  severity: AdminPaymentAnomalySeverity;
+  category: AdminPaymentAnomalyCategory;
+  title: string;
+  description: string;
+  created_at: string;
+  transaction_id: string | null;
+  stripe_event_id: string | null;
+  reference_id: string | null;
+  contributor_name: string | null;
+  contributor_email: string | null;
+  dataset_title: string | null;
+  dataset_request_id: string | null;
+  quick_link: string;
+};
+
+export type AdminPaymentComplianceRecord = {
+  id: string;
+  transaction_id: string;
+  transaction_type: string | null;
+  transaction_status: string | null;
+  transaction_amount: number | null;
+  transaction_currency: string | null;
+  transaction_reference_id: string | null;
+  dataset_request_id: string | null;
+  dataset_title: string | null;
+  contributor_id: string | null;
+  contributor_name: string | null;
+  contributor_email: string | null;
+  legal_entity_name: string | null;
+  legal_entity_country: string | null;
+  tax_reference: string | null;
+  vat_reference: string | null;
+  invoice_reference: string | null;
+  purchase_order_reference: string | null;
+  payout_statement_reference: string | null;
+  legal_hold: boolean;
+  notes: string | null;
+  metadata: Record<string, unknown> | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AdminPaymentComplianceUpsertInput = {
+  transactionId: string;
+  legalEntityName?: string | null;
+  legalEntityCountry?: string | null;
+  taxReference?: string | null;
+  vatReference?: string | null;
+  invoiceReference?: string | null;
+  purchaseOrderReference?: string | null;
+  payoutStatementReference?: string | null;
+  legalHold?: boolean;
+  notes?: string | null;
+};
+
+function normalizeComplianceText(value: string | null | undefined) {
+  const text = String(value ?? "").trim();
+  return text.length > 0 ? text : null;
+}
+
 export async function getAdminPayoutQueues(limit = 300): Promise<
   | {
-      pending: Array<{
-        id: string;
-        status: "pending";
-        amount: number;
-        currency: string;
-        created_at: string;
-        updated_at: string;
-        reference_id: string | null;
-        submission_id: string | null;
-        dataset_request_id: string | null;
-        contributor_name: string | null;
-        contributor_email: string | null;
-        dataset_title: string | null;
-        submission_status: string | null;
-        failure_reason: string | null;
-        age_hours: number;
-      }>;
-      failed: Array<{
-        id: string;
-        status: "failed";
-        amount: number;
-        currency: string;
-        created_at: string;
-        updated_at: string;
-        reference_id: string | null;
-        submission_id: string | null;
-        dataset_request_id: string | null;
-        contributor_name: string | null;
-        contributor_email: string | null;
-        dataset_title: string | null;
-        submission_status: string | null;
-        failure_reason: string | null;
-        age_hours: number;
-      }>;
+      pending: AdminPendingPayoutQueueRow[];
+      failed: AdminFailedPayoutQueueRow[];
       totals: {
         pendingCount: number;
         failedCount: number;
@@ -2378,6 +2480,7 @@ export async function getAdminPayoutQueues(limit = 300): Promise<
 
     return {
       id: row.id,
+      contributor_id: row.user_id,
       status: row.status,
       amount: Number(row.amount ?? 0),
       currency: (row.currency ?? "USD").toUpperCase(),
@@ -2395,13 +2498,28 @@ export async function getAdminPayoutQueues(limit = 300): Promise<
     };
   });
 
-  const pending = mapped.filter(
-    (row): row is (typeof mapped)[number] & { status: "pending" } =>
-      row.status === "pending"
+  const failureCountByContributor = mapped.reduce((acc, row) => {
+    if (row.status === "failed") {
+      const current = acc.get(row.contributor_id) ?? 0;
+      acc.set(row.contributor_id, current + 1);
+    }
+    return acc;
+  }, new Map<string, number>());
+
+  const enriched: AdminPayoutQueueRow[] = mapped.map((row) => {
+    const failureCount = failureCountByContributor.get(row.contributor_id) ?? 0;
+    return {
+      ...row,
+      failure_count_for_contributor: failureCount,
+      is_repeated_failure: failureCount >= 2,
+    };
+  });
+
+  const pending = enriched.filter(
+    (row): row is AdminPendingPayoutQueueRow => row.status === "pending"
   );
-  const failed = mapped.filter(
-    (row): row is (typeof mapped)[number] & { status: "failed" } =>
-      row.status === "failed"
+  const failed = enriched.filter(
+    (row): row is AdminFailedPayoutQueueRow => row.status === "failed"
   );
 
   const stalePendingCount = pending.filter((row) => row.age_hours >= 24).length;
@@ -2417,10 +2535,737 @@ export async function getAdminPayoutQueues(limit = 300): Promise<
   };
 }
 
+export async function getAdminPaymentAnomalies(limit = 150): Promise<
+  | {
+      rows: AdminPaymentAnomalyRow[];
+      totals: {
+        total: number;
+        high: number;
+        medium: number;
+        low: number;
+        payout: number;
+        transfer: number;
+        webhook: number;
+      };
+      webhookLedgerAvailable: boolean;
+    }
+  | ActionError
+> {
+  if (!(await isAdmin())) {
+    return actionError("FORBIDDEN", "Admin access required");
+  }
+
+  const adminClient = createAdminClient("admin_operations") as any;
+  const maxLimit = Math.min(Math.max(25, limit), 1000);
+
+  const { data: txRows, error: txError } = await adminClient
+    .from("transactions")
+    .select(
+      "id,user_id,amount,currency,status,reference_id,dataset_request_id,submission_id,metadata,created_at,updated_at"
+    )
+    .eq("type", "submission_payout")
+    .in("status", ["pending", "failed", "completed"])
+    .order("created_at", { ascending: false })
+    .limit(maxLimit);
+
+  if (txError) {
+    return actionError("DB_ERROR", txError.message);
+  }
+
+  const payoutRows = (txRows ?? []) as Array<{
+    id: string;
+    user_id: string;
+    amount: number;
+    currency: string | null;
+    status: "pending" | "failed" | "completed";
+    reference_id: string | null;
+    dataset_request_id: string | null;
+    submission_id: string | null;
+    metadata: unknown;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  const userIds = Array.from(new Set(payoutRows.map((row) => row.user_id))).filter(
+    Boolean
+  );
+  const datasetIds = Array.from(
+    new Set(payoutRows.map((row) => row.dataset_request_id).filter(Boolean))
+  ) as string[];
+
+  const [profilesRes, datasetsRes] = await Promise.all([
+    userIds.length > 0
+      ? adminClient
+          .from("profiles")
+          .select("id,full_name,mail")
+          .in("id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    datasetIds.length > 0
+      ? adminClient.from("dataset_requests").select("id,title").in("id", datasetIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (profilesRes.error || datasetsRes.error) {
+    return actionError(
+      "DB_ERROR",
+      profilesRes.error?.message ??
+        datasetsRes.error?.message ??
+        "Failed to load anomaly metadata"
+    );
+  }
+
+  const profileMap = new Map<
+    string,
+    { id: string; full_name: string | null; mail: string | null }
+  >(
+    (profilesRes.data ?? []).map((profile: any) => [
+      profile.id,
+      {
+        id: profile.id,
+        full_name: profile.full_name ?? null,
+        mail: profile.mail ?? null,
+      },
+    ])
+  );
+  const datasetMap = new Map<string, { id: string; title: string | null }>(
+    (datasetsRes.data ?? []).map((dataset: any) => [
+      dataset.id,
+      {
+        id: dataset.id,
+        title: dataset.title ?? null,
+      },
+    ])
+  );
+
+  const payoutFailuresByContributor = payoutRows.reduce((acc, row) => {
+    if (row.status === "failed") {
+      const current = acc.get(row.user_id) ?? 0;
+      acc.set(row.user_id, current + 1);
+    }
+    return acc;
+  }, new Map<string, number>());
+
+  const completedTransferRefs = payoutRows
+    .filter((row) => row.status === "completed" && row.reference_id)
+    .map((row) => String(row.reference_id));
+  const transferRefCounts = completedTransferRefs.reduce((acc, ref) => {
+    acc.set(ref, (acc.get(ref) ?? 0) + 1);
+    return acc;
+  }, new Map<string, number>());
+
+  const anomalies: AdminPaymentAnomalyRow[] = [];
+  const nowMs = Date.now();
+
+  for (const row of payoutRows) {
+    const profile = profileMap.get(row.user_id);
+    const dataset = row.dataset_request_id
+      ? datasetMap.get(row.dataset_request_id)
+      : null;
+    const metadata = isObjectRecord(row.metadata) ? row.metadata : {};
+    const failureReason = (() => {
+      const message = metadata.error_message ?? metadata.error ?? metadata.reason;
+      return typeof message === "string" ? message : null;
+    })();
+    const ageHours = Math.max(
+      0,
+      Math.round((nowMs - new Date(row.created_at).getTime()) / (1000 * 60 * 60))
+    );
+
+    if (row.status === "pending" && ageHours >= 24) {
+      anomalies.push({
+        id: `stale_pending_${row.id}`,
+        severity: ageHours >= 72 ? "high" : "medium",
+        category: "stale_pending_payout",
+        title: "Stale pending payout",
+        description: `Payout has remained pending for ${ageHours}h.`,
+        created_at: row.updated_at,
+        transaction_id: row.id,
+        stripe_event_id: null,
+        reference_id: row.reference_id,
+        contributor_name: profile?.full_name ?? null,
+        contributor_email: profile?.mail ?? null,
+        dataset_title: dataset?.title ?? null,
+        dataset_request_id: row.dataset_request_id,
+        quick_link: "/admin/payments?pending=stale&anomaly=payout",
+      });
+    }
+
+    if (row.status === "failed") {
+      anomalies.push({
+        id: `failed_payout_${row.id}`,
+        severity: "medium",
+        category: "failed_payout",
+        title: "Failed payout",
+        description: failureReason ?? "Payout failed without explicit failure metadata.",
+        created_at: row.updated_at,
+        transaction_id: row.id,
+        stripe_event_id: null,
+        reference_id: row.reference_id,
+        contributor_name: profile?.full_name ?? null,
+        contributor_email: profile?.mail ?? null,
+        dataset_title: dataset?.title ?? null,
+        dataset_request_id: row.dataset_request_id,
+        quick_link: "/admin/payments?failed=all&anomaly=payout",
+      });
+
+      const failureCount = payoutFailuresByContributor.get(row.user_id) ?? 0;
+      if (failureCount >= 2) {
+        anomalies.push({
+          id: `repeated_failure_${row.id}`,
+          severity: "high",
+          category: "repeated_payout_failure",
+          title: "Repeated payout failures",
+          description: `Contributor has ${failureCount} failed payouts in the current queue.`,
+          created_at: row.updated_at,
+          transaction_id: row.id,
+          stripe_event_id: null,
+          reference_id: row.reference_id,
+          contributor_name: profile?.full_name ?? null,
+          contributor_email: profile?.mail ?? null,
+          dataset_title: dataset?.title ?? null,
+          dataset_request_id: row.dataset_request_id,
+          quick_link: "/admin/payments?failed=repeated&anomaly=payout",
+        });
+      }
+    }
+
+    if (row.status === "completed" && !row.reference_id) {
+      anomalies.push({
+        id: `missing_transfer_reference_${row.id}`,
+        severity: "high",
+        category: "missing_transfer_reference",
+        title: "Completed payout missing transfer reference",
+        description:
+          "Completed submission payout has no Stripe transfer reference_id for reconciliation.",
+        created_at: row.updated_at,
+        transaction_id: row.id,
+        stripe_event_id: null,
+        reference_id: null,
+        contributor_name: profile?.full_name ?? null,
+        contributor_email: profile?.mail ?? null,
+        dataset_title: dataset?.title ?? null,
+        dataset_request_id: row.dataset_request_id,
+        quick_link: "/admin/payments?anomaly=transfer",
+      });
+    }
+
+    if (
+      row.status === "completed" &&
+      row.reference_id &&
+      (transferRefCounts.get(String(row.reference_id)) ?? 0) > 1
+    ) {
+      anomalies.push({
+        id: `duplicate_transfer_reference_${row.id}`,
+        severity: "high",
+        category: "duplicate_transfer_reference",
+        title: "Duplicate transfer reference",
+        description: `Transfer reference ${row.reference_id} appears on multiple payout transactions.`,
+        created_at: row.updated_at,
+        transaction_id: row.id,
+        stripe_event_id: null,
+        reference_id: row.reference_id,
+        contributor_name: profile?.full_name ?? null,
+        contributor_email: profile?.mail ?? null,
+        dataset_title: dataset?.title ?? null,
+        dataset_request_id: row.dataset_request_id,
+        quick_link: "/admin/payments?anomaly=transfer",
+      });
+    }
+  }
+
+  let webhookLedgerAvailable = true;
+  const { data: webhookRows, error: webhookError } = await adminClient
+    .from("stripe_webhook_events")
+    .select(
+      "stripe_event_id,event_type,processing_state,last_error,received_at,processed_at,payload"
+    )
+    .order("received_at", { ascending: false })
+    .limit(maxLimit);
+
+  const payoutTransferRefSet = new Set(
+    payoutRows
+      .map((row) => row.reference_id)
+      .filter((value): value is string => typeof value === "string")
+  );
+
+  if (webhookError) {
+    if (isMissingTableError(webhookError, "stripe_webhook_events")) {
+      webhookLedgerAvailable = false;
+      anomalies.push({
+        id: "missing_webhook_ledger",
+        severity: "medium",
+        category: "missing_webhook_ledger",
+        title: "Webhook replay ledger unavailable",
+        description:
+          "Table public.stripe_webhook_events is missing. Event replay correlation is operating in fallback mode.",
+        created_at: new Date().toISOString(),
+        transaction_id: null,
+        stripe_event_id: null,
+        reference_id: null,
+        contributor_name: null,
+        contributor_email: null,
+        dataset_title: null,
+        dataset_request_id: null,
+        quick_link: "/admin/payments?anomaly=webhook",
+      });
+    } else {
+      return actionError("DB_ERROR", webhookError.message);
+    }
+  } else {
+    const events = (webhookRows ?? []) as Array<{
+      stripe_event_id: string;
+      event_type: string;
+      processing_state: string | null;
+      last_error: string | null;
+      received_at: string;
+      processed_at: string | null;
+      payload: unknown;
+    }>;
+
+    for (const event of events) {
+      const state = String(event.processing_state ?? "").toLowerCase();
+
+      if (state === "failed") {
+        anomalies.push({
+          id: `webhook_failed_${event.stripe_event_id}`,
+          severity: "high",
+          category: "webhook_processing_failed",
+          title: "Webhook processing failed",
+          description:
+            event.last_error ??
+            `Stripe webhook ${event.event_type} failed during processing.`,
+          created_at: event.received_at,
+          transaction_id: null,
+          stripe_event_id: event.stripe_event_id,
+          reference_id: null,
+          contributor_name: null,
+          contributor_email: null,
+          dataset_title: null,
+          dataset_request_id: null,
+          quick_link: "/admin/payments?anomaly=webhook",
+        });
+      }
+
+      if (state === "processing") {
+        const ageMinutes = Math.max(
+          0,
+          Math.round(
+            (nowMs - new Date(event.received_at).getTime()) / (1000 * 60)
+          )
+        );
+        if (ageMinutes >= 15) {
+          anomalies.push({
+            id: `webhook_stuck_${event.stripe_event_id}`,
+            severity: ageMinutes >= 60 ? "high" : "medium",
+            category: "webhook_processing_stuck",
+            title: "Webhook processing appears stuck",
+            description: `Event ${event.event_type} has been in processing state for ${ageMinutes} minutes.`,
+            created_at: event.received_at,
+            transaction_id: null,
+            stripe_event_id: event.stripe_event_id,
+            reference_id: null,
+            contributor_name: null,
+            contributor_email: null,
+            dataset_title: null,
+            dataset_request_id: null,
+            quick_link: "/admin/payments?anomaly=webhook",
+          });
+        }
+      }
+
+      if (
+        event.event_type === "transfer.created" ||
+        event.event_type === "transfer.failed"
+      ) {
+        const transferId = extractStripeObjectIdFromEventPayload(event.payload);
+        if (transferId && !payoutTransferRefSet.has(transferId)) {
+          anomalies.push({
+            id: `orphan_transfer_event_${event.stripe_event_id}`,
+            severity: "medium",
+            category: "orphan_transfer_event",
+            title: "Transfer event missing ledger transaction",
+            description: `Webhook ${event.event_type} references transfer ${transferId} with no matching payout transaction reference.`,
+            created_at: event.received_at,
+            transaction_id: null,
+            stripe_event_id: event.stripe_event_id,
+            reference_id: transferId,
+            contributor_name: null,
+            contributor_email: null,
+            dataset_title: null,
+            dataset_request_id: null,
+            quick_link: "/admin/payments?anomaly=transfer",
+          });
+        }
+      }
+    }
+  }
+
+  const severityWeight: Record<AdminPaymentAnomalySeverity, number> = {
+    high: 0,
+    medium: 1,
+    low: 2,
+  };
+  const sorted = anomalies.sort(
+    (a, b) =>
+      severityWeight[a.severity] - severityWeight[b.severity] ||
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const totals = sorted.reduce(
+    (acc, row) => {
+      acc.total += 1;
+      acc[row.severity] += 1;
+
+      if (
+        row.category === "stale_pending_payout" ||
+        row.category === "failed_payout" ||
+        row.category === "repeated_payout_failure"
+      ) {
+        acc.payout += 1;
+      } else if (
+        row.category === "missing_transfer_reference" ||
+        row.category === "duplicate_transfer_reference" ||
+        row.category === "orphan_transfer_event"
+      ) {
+        acc.transfer += 1;
+      } else {
+        acc.webhook += 1;
+      }
+
+      return acc;
+    },
+    {
+      total: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      payout: 0,
+      transfer: 0,
+      webhook: 0,
+    }
+  );
+
+  return {
+    rows: sorted,
+    totals,
+    webhookLedgerAvailable,
+  };
+}
+
+export async function getAdminPaymentComplianceRecords(limit = 120): Promise<
+  | {
+      rows: AdminPaymentComplianceRecord[];
+      tableAvailable: boolean;
+    }
+  | ActionError
+> {
+  if (!(await isAdmin())) {
+    return actionError("FORBIDDEN", "Admin access required");
+  }
+
+  const adminClient = createAdminClient("admin_operations") as any;
+  const maxLimit = Math.min(Math.max(10, limit), 300);
+
+  const { data: complianceRows, error: complianceError } = await adminClient
+    .from("payment_compliance_records")
+    .select(
+      "id,transaction_id,legal_entity_name,legal_entity_country,tax_reference,vat_reference,invoice_reference,purchase_order_reference,payout_statement_reference,legal_hold,notes,metadata,created_by,updated_by,created_at,updated_at"
+    )
+    .order("updated_at", { ascending: false })
+    .limit(maxLimit);
+
+  if (complianceError) {
+    if (isMissingTableError(complianceError, "payment_compliance_records")) {
+      return {
+        rows: [],
+        tableAvailable: false,
+      };
+    }
+    return actionError("DB_ERROR", complianceError.message);
+  }
+
+  const rows = (complianceRows ?? []) as Array<{
+    id: string;
+    transaction_id: string;
+    legal_entity_name: string | null;
+    legal_entity_country: string | null;
+    tax_reference: string | null;
+    vat_reference: string | null;
+    invoice_reference: string | null;
+    purchase_order_reference: string | null;
+    payout_statement_reference: string | null;
+    legal_hold: boolean | null;
+    notes: string | null;
+    metadata: unknown;
+    created_by: string | null;
+    updated_by: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+
+  if (rows.length === 0) {
+    return {
+      rows: [],
+      tableAvailable: true,
+    };
+  }
+
+  const transactionIds = rows.map((row) => row.transaction_id);
+  const { data: txRows, error: txError } = await adminClient
+    .from("transactions")
+    .select("id,user_id,type,status,amount,currency,reference_id,dataset_request_id")
+    .in("id", transactionIds);
+
+  if (txError) {
+    return actionError("DB_ERROR", txError.message);
+  }
+
+  const txMap = new Map<
+    string,
+    {
+      id: string;
+      user_id: string;
+      type: string | null;
+      status: string | null;
+      amount: number | null;
+      currency: string | null;
+      reference_id: string | null;
+      dataset_request_id: string | null;
+    }
+  >(
+    ((txRows ?? []) as Array<{
+      id: string;
+      user_id: string;
+      type: string | null;
+      status: string | null;
+      amount: number | null;
+      currency: string | null;
+      reference_id: string | null;
+      dataset_request_id: string | null;
+    }>).map((row) => [row.id, row])
+  );
+
+  const userIds = Array.from(
+    new Set(
+      Array.from(txMap.values())
+        .map((row) => row.user_id)
+        .filter(Boolean)
+    )
+  );
+  const datasetIds = Array.from(
+    new Set(
+      Array.from(txMap.values())
+        .map((row) => row.dataset_request_id)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  const [profilesRes, datasetsRes] = await Promise.all([
+    userIds.length > 0
+      ? adminClient
+          .from("profiles")
+          .select("id,full_name,mail")
+          .in("id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+    datasetIds.length > 0
+      ? adminClient.from("dataset_requests").select("id,title").in("id", datasetIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (profilesRes.error || datasetsRes.error) {
+    return actionError(
+      "DB_ERROR",
+      profilesRes.error?.message ??
+        datasetsRes.error?.message ??
+        "Failed to load payment compliance references"
+    );
+  }
+
+  const profileMap = new Map<string, { full_name: string | null; mail: string | null }>(
+    (profilesRes.data ?? []).map((row: any) => [
+      row.id,
+      {
+        full_name: row.full_name ?? null,
+        mail: row.mail ?? null,
+      },
+    ])
+  );
+  const datasetMap = new Map<string, { title: string | null }>(
+    (datasetsRes.data ?? []).map((row: any) => [
+      row.id,
+      {
+        title: row.title ?? null,
+      },
+    ])
+  );
+
+  const mapped: AdminPaymentComplianceRecord[] = rows.map((row) => {
+    const tx = txMap.get(row.transaction_id);
+    const profile = tx?.user_id ? profileMap.get(tx.user_id) : null;
+    const dataset = tx?.dataset_request_id
+      ? datasetMap.get(tx.dataset_request_id)
+      : null;
+
+    return {
+      id: row.id,
+      transaction_id: row.transaction_id,
+      transaction_type: tx?.type ?? null,
+      transaction_status: tx?.status ?? null,
+      transaction_amount: tx?.amount ?? null,
+      transaction_currency: tx?.currency ?? null,
+      transaction_reference_id: tx?.reference_id ?? null,
+      dataset_request_id: tx?.dataset_request_id ?? null,
+      dataset_title: dataset?.title ?? null,
+      contributor_id: tx?.user_id ?? null,
+      contributor_name: profile?.full_name ?? null,
+      contributor_email: profile?.mail ?? null,
+      legal_entity_name: row.legal_entity_name ?? null,
+      legal_entity_country: row.legal_entity_country ?? null,
+      tax_reference: row.tax_reference ?? null,
+      vat_reference: row.vat_reference ?? null,
+      invoice_reference: row.invoice_reference ?? null,
+      purchase_order_reference: row.purchase_order_reference ?? null,
+      payout_statement_reference: row.payout_statement_reference ?? null,
+      legal_hold: Boolean(row.legal_hold),
+      notes: row.notes ?? null,
+      metadata: isObjectRecord(row.metadata) ? row.metadata : {},
+      created_by: row.created_by ?? null,
+      updated_by: row.updated_by ?? null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  });
+
+  return {
+    rows: mapped,
+    tableAvailable: true,
+  };
+}
+
+export async function upsertAdminPaymentComplianceRecord(
+  input: AdminPaymentComplianceUpsertInput
+): Promise<{ ok: true } | ActionError> {
+  if (!(await isAdmin())) {
+    return actionError("FORBIDDEN", "Admin access required");
+  }
+
+  const transactionId = String(input.transactionId ?? "").trim();
+  if (!transactionId) {
+    return actionError("VALIDATION_ERROR", "transactionId is required");
+  }
+
+  const legalEntityCountryRaw = normalizeComplianceText(input.legalEntityCountry);
+  const legalEntityCountry = legalEntityCountryRaw
+    ? legalEntityCountryRaw.toUpperCase()
+    : null;
+  if (legalEntityCountry && legalEntityCountry.length !== 2) {
+    return actionError(
+      "VALIDATION_ERROR",
+      "legalEntityCountry must be a 2-letter ISO country code"
+    );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const adminClient = createAdminClient("admin_operations") as any;
+
+  const { data: tx, error: txError } = await adminClient
+    .from("transactions")
+    .select("id,type")
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (txError || !tx) {
+    return actionError(
+      txError ? "DB_ERROR" : "NOT_FOUND",
+      txError?.message ?? "Transaction not found"
+    );
+  }
+
+  const eligibleTypes = new Set([
+    "dataset_funding",
+    "submission_payout",
+    "wallet_deposit",
+    "wallet_withdrawal",
+    "refund",
+    "platform_fee",
+    "stripe_adjustment",
+  ]);
+  if (!eligibleTypes.has(String(tx.type ?? ""))) {
+    return actionError(
+      "VALIDATION_ERROR",
+      "Compliance records are only allowed for payment ledger transactions"
+    );
+  }
+
+  const { data: existing, error: existingError } = await adminClient
+    .from("payment_compliance_records")
+    .select("id,created_by")
+    .eq("transaction_id", transactionId)
+    .maybeSingle();
+
+  if (existingError) {
+    if (isMissingTableError(existingError, "payment_compliance_records")) {
+      return actionError(
+        "DB_ERROR",
+        "payment_compliance_records table is missing; run migrations before writing compliance metadata"
+      );
+    }
+    return actionError("DB_ERROR", existingError.message);
+  }
+
+  const payload = {
+    transaction_id: transactionId,
+    legal_entity_name: normalizeComplianceText(input.legalEntityName),
+    legal_entity_country: legalEntityCountry,
+    tax_reference: normalizeComplianceText(input.taxReference),
+    vat_reference: normalizeComplianceText(input.vatReference),
+    invoice_reference: normalizeComplianceText(input.invoiceReference),
+    purchase_order_reference: normalizeComplianceText(input.purchaseOrderReference),
+    payout_statement_reference: normalizeComplianceText(input.payoutStatementReference),
+    legal_hold: input.legalHold === true,
+    notes: normalizeComplianceText(input.notes),
+    created_by: existing?.created_by ?? user?.id ?? null,
+    updated_by: user?.id ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: upsertError } = await adminClient
+    .from("payment_compliance_records")
+    .upsert(payload, { onConflict: "transaction_id" });
+
+  if (upsertError) {
+    if (isMissingTableError(upsertError, "payment_compliance_records")) {
+      return actionError(
+        "DB_ERROR",
+        "payment_compliance_records table is missing; run migrations before writing compliance metadata"
+      );
+    }
+    return actionError("DB_ERROR", upsertError.message);
+  }
+
+  const activityResult = await writeAdminActivity(supabase, {
+    adminId: user?.id,
+    actionType: "upsert_payment_compliance_record",
+    targetType: "transaction",
+    targetId: transactionId,
+    notes: `Compliance metadata upserted for transaction ${transactionId}. legal_hold=${payload.legal_hold}.`,
+  });
+  if (activityResult) {
+    return activityResult;
+  }
+
+  revalidatePath("/admin/payments");
+  return { ok: true };
+}
+
 export async function reconcilePayoutTransaction(
   transactionId: string,
   nextStatus: "pending" | "cancelled",
-  note?: string
+  note?: string,
+  reasonCode?: string
 ): Promise<{ ok: true } | ActionError> {
   if (!(await isAdmin())) {
     return actionError("FORBIDDEN", "Admin access required");
@@ -2428,6 +3273,27 @@ export async function reconcilePayoutTransaction(
 
   if (!transactionId) {
     return actionError("VALIDATION_ERROR", "Transaction id is required");
+  }
+
+  const retryReasonCodes = [
+    "bank_details_updated",
+    "transient_stripe_error",
+    "onboarding_completed",
+    "manual_retry",
+  ] as const;
+  const cancelReasonCodes = [
+    "duplicate_payout",
+    "submission_reversed",
+    "compliance_block",
+    "manual_cancellation",
+  ] as const;
+  const allowedReasonCodes: readonly string[] =
+    nextStatus === "pending" ? retryReasonCodes : cancelReasonCodes;
+  if (!reasonCode || !allowedReasonCodes.includes(reasonCode)) {
+    return actionError(
+      "VALIDATION_ERROR",
+      `Reason code is required for ${nextStatus} reconciliation`
+    );
   }
 
   const supabase = await createClient();
@@ -2456,6 +3322,7 @@ export async function reconcilePayoutTransaction(
   metadata.reconciled_at = new Date().toISOString();
   metadata.reconciled_by = user?.id ?? null;
   metadata.reconcile_note = note?.trim() || null;
+  metadata.reconcile_reason_code = reasonCode;
   metadata.previous_status = tx.status;
 
   const { error: updateError } = await adminClient
@@ -2476,7 +3343,7 @@ export async function reconcilePayoutTransaction(
     actionType: "reconcile_payout_transaction",
     targetType: "transaction",
     targetId: transactionId,
-    notes: `Payout status changed from "${tx.status}" to "${nextStatus}". ${note?.trim() ? `Note: ${note.trim()}` : ""}`.trim(),
+    notes: `Payout status changed from "${tx.status}" to "${nextStatus}" (reason=${reasonCode}). ${note?.trim() ? `Note: ${note.trim()}` : ""}`.trim(),
   });
   if (activityResult) {
     return activityResult;

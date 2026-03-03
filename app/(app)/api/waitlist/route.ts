@@ -34,7 +34,7 @@ function withHeaders(
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIpFromHeaders(request.headers);
-  const ipRateLimit = consumeRateLimit({
+  const ipRateLimit = await consumeRateLimit({
     key: `waitlist:ip:${clientIp}`,
     limit: WAITLIST_IP_RATE_LIMIT.limit,
     windowMs: WAITLIST_IP_RATE_LIMIT.windowMs,
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
   const { fullName, email, company, useCase } = parsed.data;
   const emailLower = email.toLowerCase();
-  const emailRateLimit = consumeRateLimit({
+  const emailRateLimit = await consumeRateLimit({
     key: `waitlist:email:${emailLower}`,
     limit: WAITLIST_EMAIL_RATE_LIMIT.limit,
     windowMs: WAITLIST_EMAIL_RATE_LIMIT.windowMs,

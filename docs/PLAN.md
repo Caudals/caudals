@@ -9,7 +9,8 @@ This is the global execution board for long-running autonomous delivery.
 - Historical delivery Phases 00-10 are completed and archived in `docs/exec-plans/completed/`.
 - Phase 11 (Autonomous Agent Runtime) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
 - Phase 12 (App Review and Dashboard Refactor) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
-- No active phase is currently queued; next scoped phase should be created under `docs/exec-plans/active/`.
+- Phase 15 (Payments and Payouts Market Readiness) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
+- Phase 14 (Export Queue Reliability and Debt Closure) is active and in progress.
 
 ## Queueing Rules
 
@@ -20,11 +21,15 @@ This is the global execution board for long-running autonomous delivery.
 
 ## Active Phase Queue
 
-No active phases.
+| Queue | Phase                                              | Status      | Priority | Depends On | File                                                            |
+| ----- | -------------------------------------------------- | ----------- | -------- | ---------- | --------------------------------------------------------------- |
+| 1     | Phase 14 - Export Queue Reliability and Debt Closure | IN_PROGRESS | P0       | None       | `docs/exec-plans/active/phase-14-export-queue-reliability-and-debt-closure.md` |
 
 ## Planning Lifecycle
 
 - Create one new file per new large phase in `docs/exec-plans/active/`.
+- Author each new phase from `docs/exec-plans/phase-template.md` with enough detail for resume/recovery (context, scope, validation, and evidence expectations).
+- Require a `## Stages` section in every new phase file, with ordered stage breakdown and task/subtask mapping under each stage.
 - Use checkboxes and task IDs (`Pxx-Tnn`) for every task and subtask.
 - Treat files in `docs/exec-plans/active/` as living execution documents while a phase is `IN_PROGRESS`.
 - During execution, agents may steer the phase by editing scope/order and adding tasks or subtasks (for example, newly discovered implementation or validation work).

@@ -1,6 +1,7 @@
 import { getRequesterDatasetDetail } from "@/lib/actions/requester-actions";
 import { getDatasetSubmissionsDetailed } from "@/lib/actions/submission-actions";
 import { DatasetWorkspace } from "@/components/requester/datasets/dataset-workspace";
+import { FundingCheckoutStatusSync } from "@/components/requester/payments/funding-checkout-status-sync";
 import type { SubmissionItem } from "@/components/requester/datasets/submissions-panel";
 import { notFound } from "next/navigation";
 
@@ -37,6 +38,7 @@ export default async function RequesterDatasetDetailPage({
 
   return (
     <div className="space-y-6">
+      <FundingCheckoutStatusSync />
       <DatasetWorkspace detail={datasetResult} submissions={submissions} />
     </div>
   );

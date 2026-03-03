@@ -20,17 +20,17 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
   },
 });
 
-const FIXTURE_PASSWORD = process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
-const FIXTURE_DATASET_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const FIXTURE_SUBMISSION_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+export const FIXTURE_PASSWORD = process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
+export const FIXTURE_DATASET_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+export const FIXTURE_SUBMISSION_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-type FixtureUser = {
+export type FixtureUser = {
   email: string;
   full_name: string;
   role: "requester" | "contributor" | "admin";
 };
 
-const FIXTURE_USERS: FixtureUser[] = [
+export const FIXTURE_USERS: FixtureUser[] = [
   {
     email: "fixture.requester@caudals.local",
     full_name: "Fixture Requester",
@@ -95,7 +95,7 @@ async function ensureAuthUser(user: FixtureUser) {
   return created.data.user.id;
 }
 
-async function run() {
+export async function seedTestFixtures() {
   console.log("Seeding deterministic test fixtures...");
 
   const userIds = new Map<string, string>();
@@ -127,6 +127,8 @@ async function run() {
     throw new Error(`Failed to upsert profiles: ${profileError.message}`);
   }
 
+  const now = new Date().toISOString();
+
   const { error: datasetError } = await supabase.from("dataset_requests").upsert(
     {
       id: FIXTURE_DATASET_ID,
@@ -149,7 +151,7 @@ async function run() {
       paid_amount: 37.5,
       payment_status: "paid",
       featured: false,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     },
     { onConflict: "id" }
   );
@@ -166,8 +168,8 @@ async function run() {
       file_urls: ["https://example.com/fixture/submission-1.json"],
       status: "approved",
       notes: "Fixture submission for lifecycle tests.",
-      metadata: { seeded_by: "seed-test-fixtures.ts" },
-      updated_at: new Date().toISOString(),
+      metadata: { seeded_by: "seed-test-fixtures.ts", seeded_at: now },
+      updated_at: now,
     },
     { onConflict: "id" }
   );
@@ -184,7 +186,9 @@ async function run() {
   console.log(`Submission ID: ${FIXTURE_SUBMISSION_ID}`);
 }
 
-run().catch((error) => {
-  console.error("Fixture seed failed:", error);
-  process.exit(1);
-});
+if (process.argv[1]?.includes("seed-test-fixtures.ts")) {
+  seedTestFixtures().catch((error) => {
+    console.error("Fixture seed failed:", error);
+    process.exit(1);
+  });
+}

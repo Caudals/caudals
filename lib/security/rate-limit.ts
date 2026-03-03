@@ -1,3 +1,7 @@
+import { createHash } from "crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { logWarn } from "@/lib/security/structured-logger";
+
 type RateLimitEntry = {
   count: number;
   resetAt: number;
@@ -21,6 +25,7 @@ export type RateLimitResult = {
 
 declare global {
   var __caudalsRateLimitStore: RateLimitStore | undefined;
+  var __caudalsRateLimitRpcFallbackWarned: boolean | undefined;
 }
 
 const MAX_STORE_KEYS = 10_000;
@@ -61,7 +66,11 @@ export function getClientIpFromHeaders(headers: Headers): string {
   return directIp?.trim() || "unknown";
 }
 
-export function consumeRateLimit({
+function hashRateLimitKey(rawKey: string) {
+  return createHash("sha256").update(rawKey).digest("hex");
+}
+
+function consumeRateLimitInMemory({
   key,
   limit,
   windowMs,
@@ -102,6 +111,76 @@ export function consumeRateLimit({
     retryAfterSeconds,
     resetAt: current.resetAt,
   };
+}
+
+type ConsumeRateLimitRpcRow = {
+  allowed?: boolean;
+  limit_count?: number;
+  remaining?: number;
+  retry_after_seconds?: number;
+  reset_at?: string;
+};
+
+export async function consumeRateLimit({
+  key,
+  limit,
+  windowMs,
+}: RateLimitOptions): Promise<RateLimitResult> {
+  const keyHash = `rl:${hashRateLimitKey(key)}`;
+  const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+
+  try {
+    const adminClient = createAdminClient("abuse_controls") as any;
+    const { data, error } = await adminClient.rpc("consume_abuse_rate_limit", {
+      p_key: keyHash,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | ConsumeRateLimitRpcRow
+      | null
+      | undefined;
+
+    if (!row) {
+      throw new Error("consume_abuse_rate_limit returned no data");
+    }
+
+    const resetAtMs = new Date(String(row.reset_at ?? "")).getTime();
+    const safeResetAt = Number.isFinite(resetAtMs)
+      ? resetAtMs
+      : Date.now() + windowSeconds * 1000;
+
+    return {
+      allowed: Boolean(row.allowed),
+      limit: Number(row.limit_count ?? limit),
+      remaining: Math.max(0, Number(row.remaining ?? 0)),
+      retryAfterSeconds: Math.max(0, Number(row.retry_after_seconds ?? 0)),
+      resetAt: safeResetAt,
+    };
+  } catch (error) {
+    if (!globalThis.__caudalsRateLimitRpcFallbackWarned) {
+      globalThis.__caudalsRateLimitRpcFallbackWarned = true;
+      logWarn("rate_limit.rpc_unavailable_fallback_memory", {
+        error,
+      });
+    }
+
+    return consumeRateLimitInMemory({
+      key: keyHash,
+      limit,
+      windowMs,
+    });
+  }
+}
+
+export function __resetRateLimitMemoryStoreForTests() {
+  globalThis.__caudalsRateLimitStore = new Map<string, RateLimitEntry>();
+  globalThis.__caudalsRateLimitRpcFallbackWarned = false;
 }
 
 export function buildRateLimitHeaders(result: RateLimitResult): Record<string, string> {

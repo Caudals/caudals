@@ -45,6 +45,8 @@ Caudals is an AI dataset operations platform with three role surfaces:
 
 ## Plan Lifecycle Rules
 - Every large initiative gets its own phase file in `docs/exec-plans/active/`.
+- Every new phase file must be a detailed execution plan (not a short checklist) and should be authored from `docs/exec-plans/phase-template.md`.
+- Every new phase file must include a `## Stages` section with ordered stages (`S1`, `S2`, ...), and each stage must define scope/objective plus mapped task IDs.
 - Use task IDs: `P<phase>-T<nn>` and optional subtasks `P<phase>-T<nn>-S<nn>`.
 - Track each task with:
   - checkbox (`[ ]` or `[x]`)
