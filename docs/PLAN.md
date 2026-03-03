@@ -7,7 +7,9 @@ This is the global execution board for long-running autonomous delivery.
 ## Program State
 
 - Historical delivery Phases 00-10 are completed and archived in `docs/exec-plans/completed/`.
-- Current work is tracked as independent active phase files for better context-window efficiency.
+- Phase 11 (Autonomous Agent Runtime) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
+- Phase 12 (App Review and Dashboard Refactor) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
+- No active phase is currently queued; next scoped phase should be created under `docs/exec-plans/active/`.
 
 ## Queueing Rules
 
@@ -18,10 +20,7 @@ This is the global execution board for long-running autonomous delivery.
 
 ## Active Phase Queue
 
-| Queue | Phase                                 | Status      | Priority | Depends On | File                                                            |
-| ----- | ------------------------------------- | ----------- | -------- | ---------- | --------------------------------------------------------------- |
-| 1     | Phase 11 - Autonomous Agent Runtime   | IN_PROGRESS | P0       | None       | `docs/exec-plans/active/phase-11-autonomous-agent-runtime.md`   |
-| 2     | Phase 12 - Market Readiness Expansion | QUEUED      | P1       | Phase 11   | `docs/exec-plans/active/phase-12-market-readiness-expansion.md` |
+No active phases.
 
 ## Planning Lifecycle
 
@@ -39,6 +38,16 @@ This is the global execution board for long-running autonomous delivery.
 2. Add an entry to `docs/logs/changelog/<date>-<topic>.md`.
 3. Add validation evidence to `docs/logs/validations/<date>-<topic>.md`.
 4. If debt is introduced, add it to `docs/exec-plans/tech-debt-tracker.md`.
+
+## Validation Standards
+
+- Use `docs/exec-plans/task-validation-checklist-template.md` for per-task validation completion.
+- For frontend changes, follow `docs/exec-plans/ui-verification-protocol.md` (console/network checks, required viewports, screenshot naming).
+- For blocker handling and long-running retries, follow `docs/exec-plans/blocker-escalation-protocol.md`.
+
+## Planning Cadence
+
+- Run `docs/exec-plans/weekly-planning-reset.md` once per week (or immediately after closing a major phase) to keep queue/order/status artifacts fresh.
 
 ## Completed Phases
 

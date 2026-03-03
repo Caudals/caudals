@@ -36,6 +36,9 @@ Caudals is an AI dataset operations platform with three role surfaces:
    - Run automated checks (`typecheck`, tests, lint, targeted E2E).
    - For UI changes, use Chrome DevTools MCP: inspect console/network, verify responsive breakpoints, capture screenshots.
    - For DB-impacting changes, verify schema and policy behavior in Supabase.
+   - Use `docs/exec-plans/task-validation-checklist-template.md` for per-task evidence.
+   - Follow `docs/exec-plans/ui-verification-protocol.md` for frontend QA and screenshot naming.
+   - Follow `docs/exec-plans/blocker-escalation-protocol.md` for retry and escalation handling on blocked/long-running tasks.
 4. Update checkboxes and status tags in the phase file.
 5. Write a dated entry in changelog and validation logs.
 6. Continue with next queued task until blocked.
@@ -68,5 +71,7 @@ Pause only when:
 - required credentials/access are missing,
 - conflicting requirements cannot be resolved from repo context,
 - the next action is irreversible and high risk.
+
+Before pausing, apply the bounded retry/escalation sequence in `docs/exec-plans/blocker-escalation-protocol.md` unless the stop condition is immediate high risk.
 
 When paused, log blocker details in the active phase file and `docs/logs/changelog/`.

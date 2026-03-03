@@ -7,6 +7,10 @@ Implements an execution-plan workflow for long-running autonomous work.
 - `active/`: only phases currently being executed.
 - `completed/`: immutable finished phases.
 - `tech-debt-tracker.md`: cross-phase debt and refactor queue.
+- `task-validation-checklist-template.md`: per-task validation checklist.
+- `ui-verification-protocol.md`: frontend QA and screenshot protocol.
+- `blocker-escalation-protocol.md`: retry/escalation sequence for blocked work.
+- `weekly-planning-reset.md`: recurring queue hygiene cadence.
 
 ## Phase File Requirements
 Every phase file must include:
