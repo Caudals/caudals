@@ -3,11 +3,13 @@ import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
   getAdminPaymentAnomalies,
   getAdminPaymentComplianceRecords,
+  getAdminOperationalHealthStatus,
   getAdminPaymentsOverview,
   getAdminPayoutQueues,
   reconcilePayoutTransaction,
   upsertAdminPaymentComplianceRecord,
 } from "@/lib/actions/admin-actions";
+import { OperationalHealthStrip } from "@/components/admin/operational-health-strip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -58,11 +60,12 @@ export default async function AdminPaymentsPage({
     ? anomalyFilterRaw
     : "all";
 
-  const [overviewRes, queueRes, anomalyRes, complianceRes] = await Promise.all([
+  const [overviewRes, queueRes, anomalyRes, complianceRes, healthRes] = await Promise.all([
     getAdminPaymentsOverview(),
     getAdminPayoutQueues(),
     getAdminPaymentAnomalies(),
     getAdminPaymentComplianceRecords(),
+    getAdminOperationalHealthStatus(),
   ]);
 
   if (
@@ -103,6 +106,7 @@ export default async function AdminPaymentsPage({
   const payoutQueues = queueRes;
   const anomaliesOverview = anomalyRes;
   const complianceOverview = complianceRes;
+  const operationalHealth = "data" in healthRes ? healthRes.data : null;
 
   const totalVolumeCents =
     Number((totals as { total_volume_cents?: number }).total_volume_cents) ||
@@ -272,6 +276,8 @@ export default async function AdminPaymentsPage({
           </>
         }
       />
+
+      {operationalHealth && <OperationalHealthStrip snapshot={operationalHealth} />}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard

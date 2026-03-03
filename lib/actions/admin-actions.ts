@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { getDatasetBudgetSummary } from "@/lib/actions/payment-actions";
+import { runPaymentLedgerConsistencyCheck } from "@/lib/jobs/payment-ledger-consistency";
 import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 import {
   DatasetCategory,
@@ -27,6 +28,27 @@ import {
 } from "@/lib/validators/requester-admin";
 
 type PlatformSettings = Record<string, unknown>;
+
+export type AdminOperationalHealthSignalStatus =
+  | "healthy"
+  | "warning"
+  | "critical"
+  | "unknown";
+
+export type AdminOperationalHealthSignal = {
+  id: "analytics_surface" | "ledger_consistency";
+  label: string;
+  status: AdminOperationalHealthSignalStatus;
+  summary: string;
+  detail: string;
+  href: string;
+};
+
+export type AdminOperationalHealthSnapshot = {
+  checked_at: string;
+  overall_status: AdminOperationalHealthSignalStatus;
+  signals: AdminOperationalHealthSignal[];
+};
 
 type AdminActivityInput = {
   adminId: string | undefined;
@@ -1241,6 +1263,160 @@ export async function getAdminPaymentsOverview() {
         pendingPayouts: pendingPayouts.length,
       },
       transactions: transactions ?? [],
+    },
+  };
+}
+
+function getHealthSeverityWeight(status: AdminOperationalHealthSignalStatus) {
+  switch (status) {
+    case "critical":
+      return 0;
+    case "warning":
+      return 1;
+    case "unknown":
+      return 2;
+    case "healthy":
+    default:
+      return 3;
+  }
+}
+
+function getMostSevereHealthStatus(
+  statuses: AdminOperationalHealthSignalStatus[]
+): AdminOperationalHealthSignalStatus {
+  if (statuses.length === 0) {
+    return "unknown";
+  }
+
+  return statuses.reduce((worst, current) =>
+    getHealthSeverityWeight(current) < getHealthSeverityWeight(worst)
+      ? current
+      : worst
+  );
+}
+
+export async function getAdminOperationalHealthStatus(): Promise<
+  | {
+      data: AdminOperationalHealthSnapshot;
+    }
+  | ActionError
+> {
+  if (!(await isAdmin())) {
+    return actionError("FORBIDDEN", "Admin access required");
+  }
+
+  const checkedAt = new Date().toISOString();
+  const analyticsAdmin = createAdminClient("analytics_ingest");
+  const analyticsClient = analyticsAdmin as any;
+
+  const [analyticsProbe, ledgerProbe] = await Promise.allSettled([
+    analyticsClient.from("product_analytics_events").select("id").limit(1),
+    runPaymentLedgerConsistencyCheck(),
+  ]);
+
+  const signals: AdminOperationalHealthSignal[] = [];
+
+  if (analyticsProbe.status === "fulfilled") {
+    const analyticsError = analyticsProbe.value.error;
+
+    if (!analyticsError) {
+      signals.push({
+        id: "analytics_surface",
+        label: "Analytics ingestion",
+        status: "healthy",
+        summary: "Product analytics surface is available.",
+        detail: "Events can be written and queried from product_analytics_events.",
+        href: "/admin/analytics",
+      });
+    } else if (isMissingTableError(analyticsError, "product_analytics_events")) {
+      signals.push({
+        id: "analytics_surface",
+        label: "Analytics ingestion",
+        status: "warning",
+        summary: "Analytics table is missing in this environment.",
+        detail:
+          "Ingestion is fail-open, but funnel and dashboard telemetry are degraded until migration 024 is applied.",
+        href: "/admin/analytics",
+      });
+    } else {
+      signals.push({
+        id: "analytics_surface",
+        label: "Analytics ingestion",
+        status: "critical",
+        summary: "Analytics probe returned an unexpected error.",
+        detail: analyticsError.message || "Unknown analytics probe failure.",
+        href: "/admin/analytics",
+      });
+    }
+  } else {
+    signals.push({
+      id: "analytics_surface",
+      label: "Analytics ingestion",
+      status: "unknown",
+      summary: "Analytics probe could not be completed.",
+      detail:
+        analyticsProbe.reason instanceof Error
+          ? analyticsProbe.reason.message
+          : "Unknown analytics probe failure.",
+      href: "/admin/analytics",
+    });
+  }
+
+  if (ledgerProbe.status === "fulfilled") {
+    const report = ledgerProbe.value;
+    const highSeverityCount = report.totals.highSeverityCount;
+    const issueCount = report.totals.issueCount;
+
+    if (highSeverityCount > 0) {
+      signals.push({
+        id: "ledger_consistency",
+        label: "Ledger consistency",
+        status: "critical",
+        summary: `${highSeverityCount} high-severity ledger drift issue(s) detected.`,
+        detail: `${issueCount} total issue(s) across wallets, dataset funding, and payout transactions.`,
+        href: "/admin/payments",
+      });
+    } else if (issueCount > 0) {
+      signals.push({
+        id: "ledger_consistency",
+        label: "Ledger consistency",
+        status: "warning",
+        summary: `${issueCount} non-critical ledger drift issue(s) detected.`,
+        detail:
+          "Run payments consistency repair for missing wallets or balance/data alignment before payout volume increases.",
+        href: "/admin/payments",
+      });
+    } else {
+      signals.push({
+        id: "ledger_consistency",
+        label: "Ledger consistency",
+        status: "healthy",
+        summary: "No ledger drift detected.",
+        detail: `${report.totals.transactionsChecked} transaction rows scanned.`,
+        href: "/admin/payments",
+      });
+    }
+  } else {
+    signals.push({
+      id: "ledger_consistency",
+      label: "Ledger consistency",
+      status: "unknown",
+      summary: "Ledger consistency check could not be completed.",
+      detail:
+        ledgerProbe.reason instanceof Error
+          ? ledgerProbe.reason.message
+          : "Unknown ledger check failure.",
+      href: "/admin/payments",
+    });
+  }
+
+  return {
+    data: {
+      checked_at: checkedAt,
+      overall_status: getMostSevereHealthStatus(
+        signals.map((signal) => signal.status)
+      ),
+      signals,
     },
   };
 }

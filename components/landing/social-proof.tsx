@@ -1,7 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowRight, BadgeCheck, FileCheck2, WalletCards } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
+
+const REQUESTER_ONBOARDING_CTA =
+  "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function SocialProofSection() {
   const t = useTranslations();
@@ -16,6 +21,32 @@ export function SocialProofSection() {
     { name: "Azure", caption: t("Regional storage") },
     { name: "Lambda Labs", caption: t("GPU infrastructure") },
     { name: "Stripe", caption: t("Global payouts") },
+  ];
+  const proofPoints = [
+    {
+      title: t("Funding controls"),
+      value: t("Approval-linked billing"),
+      detail: t(
+        "Requesters fund datasets and only approved submissions move through payout rails.",
+      ),
+      icon: FileCheck2,
+    },
+    {
+      title: t("Payout operations"),
+      value: t("Ledger-backed transfers"),
+      detail: t(
+        "Contributor payouts reconcile against transaction, wallet, and webhook consistency checks.",
+      ),
+      icon: WalletCards,
+    },
+    {
+      title: t("Trust posture"),
+      value: t("Security baseline published"),
+      detail: t(
+        "Security controls, abuse prevention, and reliability procedures are documented for buyers.",
+      ),
+      icon: BadgeCheck,
+    },
   ];
 
   return (
@@ -49,6 +80,60 @@ export function SocialProofSection() {
               <span className="text-xs text-muted-foreground">{ecosystem.caption}</span>
             </motion.div>
           ))}
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-border/70 bg-card/70 p-5 sm:p-6">
+          <div className="grid gap-3 md:grid-cols-3">
+            {proofPoints.map((point) => {
+              const Icon = point.icon;
+              return (
+                <div
+                  key={point.title}
+                  className="rounded-2xl border border-border/70 bg-background/80 p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {point.title}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    {point.value}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {point.detail}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Link
+                href="/trust"
+                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+              >
+                {t("Trust center")}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                href="/docs/security-baseline"
+                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+              >
+                {t("Security baseline")}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            <Link
+              href={REQUESTER_ONBOARDING_CTA}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background hover:bg-foreground/90"
+            >
+              {t("Launch requester onboarding")}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>

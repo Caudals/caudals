@@ -1,6 +1,6 @@
 # Phase 14 - Export Queue Reliability and Debt Closure
 
-- Status: IN_PROGRESS
+- Status: DONE
 - Priority: P0
 - Owner: autonomous-agent
 - Last Updated: 2026-03-03
@@ -45,9 +45,9 @@ Close the highest-impact reliability debt by moving dataset export generation to
 
 - [x] `P14-T01` (P0, DONE) Implement durable export job worker flow and decouple export generation from requester action path.
 - [x] `P14-T02` (P1, DONE) Add automated fixture freshness verification workflow for role E2E test stability (TD-004).
-- [ ] `P14-T03` (P1, QUEUED) Replace in-memory abuse limiter with durable distributed backing (TD-001).
+- [x] `P14-T03` (P1, DONE) Replace in-memory abuse limiter with durable distributed backing (TD-001).
 - [x] `P14-T04` (P1, DONE) Add unified webhook+payout anomaly correlation operational view (TD-003, delivered in Phase 15 and validated).
-- [ ] `P14-T05` (P2, QUEUED) Add missing-key localization guardrail in CI for EN/ES parity (TD-005).
+- [x] `P14-T05` (P2, DONE) Add missing-key localization guardrail in CI for EN/ES parity (TD-005).
 
 ## Subtasks
 
@@ -60,14 +60,14 @@ Close the highest-impact reliability debt by moving dataset export generation to
 - [x] `P14-T02-S02` Add fixture freshness check script with stale-detection + auto-reseed behavior.
 - [x] `P14-T02-S03` Wire fixture freshness check into `e2e:auth-smoke` workflow and docs/env templates.
 - [x] `P14-T04-S01` Validate debt closure handoff from Phase 15 anomaly tooling and update debt tracker status.
-- [ ] `P14-T03-S01` Inventory current abuse limiter callsites and define durable limiter storage contract.
-- [ ] `P14-T03-S02` Implement durable limiter backend (DB/Redis-backed) with atomic increment + TTL semantics.
-- [ ] `P14-T03-S03` Replace in-memory limiter callsites in auth/contact/risk-sensitive routes and keep equivalent error UX.
-- [ ] `P14-T03-S04` Add automated tests for limiter correctness under repeated/multi-key requests.
-- [ ] `P14-T03-S05` Update runbook/docs for abuse-limiter operations and incident handling.
-- [ ] `P14-T05-S01` Add translation key parity checker for EN/ES locale dictionaries.
-- [ ] `P14-T05-S02` Add CI command/script that fails on missing or orphaned translation keys.
-- [ ] `P14-T05-S03` Document localization QA workflow and add validation evidence template for i18n parity checks.
+- [x] `P14-T03-S01` Inventory current abuse limiter callsites and define durable limiter storage contract.
+- [x] `P14-T03-S02` Implement durable limiter backend (DB/Redis-backed) with atomic increment + TTL semantics.
+- [x] `P14-T03-S03` Replace in-memory limiter callsites in auth/contact/risk-sensitive routes and keep equivalent error UX.
+- [x] `P14-T03-S04` Add automated tests for limiter correctness under repeated/multi-key requests.
+- [x] `P14-T03-S05` Update runbook/docs for abuse-limiter operations and incident handling.
+- [x] `P14-T05-S01` Add translation key parity checker for EN/ES locale dictionaries.
+- [x] `P14-T05-S02` Add CI command/script that fails on missing-key parity issues (orphan keys reported, strict mode optional).
+- [x] `P14-T05-S03` Document localization QA workflow and add validation evidence template for i18n parity checks.
 
 ## Validation Required
 

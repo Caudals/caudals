@@ -9,8 +9,9 @@ This is the global execution board for long-running autonomous delivery.
 - Historical delivery Phases 00-10 are completed and archived in `docs/exec-plans/completed/`.
 - Phase 11 (Autonomous Agent Runtime) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
 - Phase 12 (App Review and Dashboard Refactor) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
+- Phase 14 (Export Queue Reliability and Debt Closure) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
 - Phase 15 (Payments and Payouts Market Readiness) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
-- Phase 14 (Export Queue Reliability and Debt Closure) is active and in progress.
+- Phase 16 (Market Readiness Polish and Growth) was completed on 2026-03-03 and archived in `docs/exec-plans/completed/`.
 
 ## Queueing Rules
 
@@ -21,9 +22,7 @@ This is the global execution board for long-running autonomous delivery.
 
 ## Active Phase Queue
 
-| Queue | Phase                                              | Status      | Priority | Depends On | File                                                            |
-| ----- | -------------------------------------------------- | ----------- | -------- | ---------- | --------------------------------------------------------------- |
-| 1     | Phase 14 - Export Queue Reliability and Debt Closure | IN_PROGRESS | P0       | None       | `docs/exec-plans/active/phase-14-export-queue-reliability-and-debt-closure.md` |
+1. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
 
 ## Planning Lifecycle
 

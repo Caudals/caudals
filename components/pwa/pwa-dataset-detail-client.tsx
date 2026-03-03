@@ -15,6 +15,7 @@ import {
   TimerReset,
 } from "lucide-react";
 import { dataTypeLabels, statusLabels } from "@/lib/data/datasets";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface Submission {
   id: string;
@@ -43,6 +44,7 @@ export function PwaDatasetDetailClient({
   dataset,
   submissions,
 }: PwaDatasetDetailClientProps) {
+  const t = useTranslations();
   const completion =
     dataset.samplesNeeded > 0
       ? Math.min(
@@ -52,7 +54,7 @@ export function PwaDatasetDetailClient({
       : 0;
   const rewardLabel = `${dataset.currency} ${dataset.rewardAmount.toFixed(2)}`;
   const deadlineLabel = new Date(dataset.deadline).toLocaleDateString(
-    "en-US",
+    undefined,
     {
       month: "long",
       day: "numeric",
@@ -68,7 +70,7 @@ export function PwaDatasetDetailClient({
         className="inline-flex items-center gap-2 text-sm text-white/70"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to briefs
+        {t("Back to briefs")}
       </Link>
 
       <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
@@ -96,17 +98,17 @@ export function PwaDatasetDetailClient({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">
-                Reward
+                {t("Reward")}
               </p>
               <p className="text-xl font-semibold">{rewardLabel}</p>
-              <p className="text-xs text-white/60">Per approved submission</p>
+              <p className="text-xs text-white/60">{t("Per approved submission")}</p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">
-                Deadline
+                {t("Deadline")}
               </p>
               <p className="text-xl font-semibold">{deadlineLabel}</p>
-              <p className="text-xs text-white/60">Local timezone</p>
+              <p className="text-xs text-white/60">{t("Local timezone")}</p>
             </div>
           </div>
 
@@ -133,7 +135,7 @@ export function PwaDatasetDetailClient({
       <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5 text-sky-300" />
-          <h3 className="text-lg font-semibold">Quality checklist</h3>
+          <h3 className="text-lg font-semibold">{t("Quality checklist")}</h3>
         </div>
         <ul className="space-y-2 text-sm text-white/80">
           {dataset.qualityCriteria.map((criterion) => (
@@ -148,7 +150,7 @@ export function PwaDatasetDetailClient({
       <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center gap-2">
           <ListChecks className="h-5 w-5 text-amber-200" />
-          <h3 className="text-lg font-semibold">Requirements</h3>
+          <h3 className="text-lg font-semibold">{t("Requirements")}</h3>
         </div>
         {dataset.requirements.length > 0 ? (
           <ul className="space-y-2 text-sm text-white/80">
@@ -161,7 +163,7 @@ export function PwaDatasetDetailClient({
           </ul>
         ) : (
           <p className="text-sm text-white/60">
-            No specific requirements were provided for this brief.
+            {t("No specific requirements were provided for this brief.")}
           </p>
         )}
       </div>
@@ -170,7 +172,7 @@ export function PwaDatasetDetailClient({
         <div className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center gap-2">
             <TimerReset className="h-5 w-5 text-slate-200" />
-            <h3 className="text-lg font-semibold">Recent activity</h3>
+            <h3 className="text-lg font-semibold">{t("Recent activity")}</h3>
           </div>
           <ul className="space-y-2 text-sm text-white/80">
             {recentSubmissions.map((submission) => (
@@ -180,7 +182,7 @@ export function PwaDatasetDetailClient({
               >
                 <div>
                   <p className="font-semibold">
-                    {submission.profiles?.full_name || "Anonymous"}
+                    {submission.profiles?.full_name || t("Anonymous")}
                   </p>
                   <p className="text-xs text-white/60">
                     {new Date(submission.created_at).toLocaleDateString()}
@@ -199,13 +201,13 @@ export function PwaDatasetDetailClient({
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/60">
-              Upload center
+              {t("Upload center")}
             </p>
             <p className="text-lg font-semibold">
-              Submit your sample for review
+              {t("Submit your sample for review")}
             </p>
             <p className="text-sm text-white/70">
-              Files are encrypted in transit and linked to your contributor ID.
+              {t("Files are encrypted in transit and linked to your contributor ID.")}
             </p>
           </div>
           <ContributeDialog
@@ -214,7 +216,7 @@ export function PwaDatasetDetailClient({
             dataType={dataset.dataType}
           >
             <Button className="w-full rounded-2xl bg-white text-slate-900 hover:bg-white/90">
-              Upload to this brief
+              {t("Upload to this brief")}
             </Button>
           </ContributeDialog>
         </div>

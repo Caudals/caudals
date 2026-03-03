@@ -6,6 +6,7 @@ Security changes are first-class deliverables, not optional follow-ups.
 ## Non-Negotiables
 - No secret leakage in code, docs, logs, screenshots, or test fixtures.
 - Keep public API abuse controls active.
+- Use durable (DB-backed) rate limiting for public intake APIs; avoid in-memory-only limiter state.
 - Keep upload validation and path constraints enforced.
 - Maintain webhook idempotency/replay protection.
 - Keep service-role usage minimal and scoped.

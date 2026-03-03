@@ -55,6 +55,7 @@ npm run dev
 - `npm run payments:check-ledger` - validate payment ledger invariants
 - `npm run payments:repair-ledger` - dry-run/apply ledger repair actions
 - `npm run payments:check-compliance-policies` - verify compliance table RLS policy surface
+- `npm run i18n:check-parity` - verify EN source keys have ES translations (missing-key guardrail)
 - `scripts/supabase-selfhosted-tunnel.sh` - start/stop/status SSH tunnels for self-hosted Supabase MCP + DB
 - `scripts/supabase-cli-selfhosted.sh` - run Supabase CLI against self-hosted remote DB via tunnel
 

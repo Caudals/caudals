@@ -2,39 +2,45 @@
 
 import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
-
-const testimonials = [
-  {
-    quote:
-      "Caudals unlocked a global contributor base that matched our medical imaging criteria in record time. The review tooling kept clinicians in control of every approval.",
-    name: "Dr. Anika Forster",
-    role: "Director of Data Science, HelioLabs",
-  },
-  {
-    quote:
-      "Within two weeks we launched three multimodal programs across Spanish and Korean markets. Contributor training modules reduced rework by over 60%.",
-    name: "Joel Reyes",
-    role: "Lead Researcher, Polyphonic AI",
-  },
-  {
-    quote:
-      "The partnership team felt like an extension of ours—designing incentives, QA policies, and even helping us publish a public dataset for the research community.",
-    name: "Mina Patel",
-    role: "Head of AI Innovation, Northwind Robotics",
-  },
-];
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function TestimonialsSection() {
+  const t = useTranslations();
+
+  const testimonials = [
+    {
+      quote: t(
+        "Caudals unlocked a global contributor base that matched our medical imaging criteria in record time. The review tooling kept clinicians in control of every approval.",
+      ),
+      name: "Dr. Anika Forster",
+      role: t("Director of Data Science, HelioLabs"),
+    },
+    {
+      quote: t(
+        "Within two weeks we launched three multimodal programs across Spanish and Korean markets. Contributor training modules reduced rework by over 60%.",
+      ),
+      name: "Joel Reyes",
+      role: t("Lead Researcher, Polyphonic AI"),
+    },
+    {
+      quote: t(
+        "The partnership team felt like an extension of ours—designing incentives, QA policies, and even helping us publish a public dataset for the research community.",
+      ),
+      name: "Mina Patel",
+      role: t("Head of AI Innovation, Northwind Robotics"),
+    },
+  ];
+
   return (
     <section className="relative py-24">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.5),transparent_65%)]" />
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-12 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            Customer stories
+            {t("Customer stories")}
           </p>
           <h2 className="mt-4 text-3xl font-semibold text-foreground sm:text-4xl">
-            Teams shipping production AI trust Caudals
+            {t("Teams shipping production AI trust Caudals")}
           </h2>
         </div>
 

@@ -3,12 +3,18 @@ import { getRequesterBillingOverview } from "@/lib/actions/requester-actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 import { WalletFundingCard } from "@/components/requester/billing/wallet-funding-card";
 import { BillingAccountControls } from "@/components/requester/billing/billing-account-controls";
 import { FundingCheckoutStatusSync } from "@/components/requester/payments/funding-checkout-status-sync";
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
   const overview = await getRequesterBillingOverview();
 
   if ("error" in overview) {
@@ -21,6 +27,58 @@ export default async function BillingPage() {
 
   const wallet = overview.wallet;
   const transactions = overview.transactions;
+  const statusFilterRaw = typeof params.status === "string" ? params.status : "all";
+  const directionFilterRaw =
+    typeof params.direction === "string" ? params.direction : "all";
+  const typeFilterRaw = typeof params.type === "string" ? params.type : "all";
+  const queryRaw = typeof params.q === "string" ? params.q.trim() : "";
+  const allowedStatuses = new Set(["all", "pending", "completed", "failed", "cancelled"]);
+  const allowedDirections = new Set(["all", "credit", "debit"]);
+  const availableTypes = Array.from(new Set(transactions.map((tx) => tx.type))).sort(
+    (a, b) => a.localeCompare(b)
+  );
+  const statusFilter = allowedStatuses.has(statusFilterRaw)
+    ? statusFilterRaw
+    : "all";
+  const directionFilter = allowedDirections.has(directionFilterRaw)
+    ? directionFilterRaw
+    : "all";
+  const typeFilter =
+    typeFilterRaw === "all" || availableTypes.includes(typeFilterRaw)
+      ? typeFilterRaw
+      : "all";
+  const query = queryRaw.toLowerCase();
+  const filteredTransactions = transactions.filter((tx) => {
+    if (statusFilter !== "all" && tx.status !== statusFilter) {
+      return false;
+    }
+    if (directionFilter !== "all" && tx.direction !== directionFilter) {
+      return false;
+    }
+    if (typeFilter !== "all" && tx.type !== typeFilter) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+
+    const searchable = [
+      tx.type,
+      tx.status ?? "",
+      tx.direction ?? "",
+      tx.reference_id ?? "",
+      tx.failure_reason ?? "",
+      tx.dataset_request_id ?? "",
+      tx.submission_id ?? "",
+    ].join(" ").toLowerCase();
+
+    return searchable.includes(query);
+  });
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    directionFilter !== "all" ||
+    typeFilter !== "all" ||
+    queryRaw.length > 0;
 
   const availableDollars = (wallet?.available_balance ? wallet.available_balance / 100 : 0);
   const pendingDollars = (wallet?.pending_balance ? wallet.pending_balance / 100 : 0);
@@ -76,7 +134,10 @@ export default async function BillingPage() {
             <CardDescription>Latest 100 records</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{transactions.length}</p>
+            <p className="text-3xl font-semibold">{filteredTransactions.length}</p>
+            <p className="text-xs text-muted-foreground">
+              {transactions.length} total in current window
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -92,6 +153,72 @@ export default async function BillingPage() {
 
       <WalletFundingCard />
       <BillingAccountControls />
+      <Card>
+        <CardHeader>
+          <CardTitle>Filter ledger</CardTitle>
+          <CardDescription>
+            Narrow by status, direction, type, or reference context.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-3 md:grid-cols-4">
+            <Input
+              name="q"
+              placeholder="Search reference, dataset, error…"
+              defaultValue={queryRaw}
+              className="md:col-span-2"
+            />
+            <select
+              name="status"
+              defaultValue={statusFilter}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select
+              name="direction"
+              defaultValue={directionFilter}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All directions</option>
+              <option value="credit">Credit</option>
+              <option value="debit">Debit</option>
+            </select>
+            <select
+              name="type"
+              defaultValue={typeFilter}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All types</option>
+              {availableTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                Apply filters
+              </button>
+              {hasActiveFilters ? (
+                <Link
+                  href="/requester/billing"
+                  className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  Clear
+                </Link>
+              ) : null}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -113,14 +240,16 @@ export default async function BillingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-                    No transactions yet.
+                    {hasActiveFilters
+                      ? "No transactions match the active filters."
+                      : "No transactions yet."}
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions.map((tx) => (
+                filteredTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell>{new Date(tx.created_at).toLocaleString()}</TableCell>
                     <TableCell className="capitalize">{tx.type.replaceAll("_", " ")}</TableCell>

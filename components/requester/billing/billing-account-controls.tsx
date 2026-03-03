@@ -7,9 +7,11 @@ import { exportRequesterBillingLedgerCsv } from "@/lib/actions/requester-actions
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function BillingAccountControls() {
   const toast = useLocaleToast();
+  const t = useTranslations();
   const [isPortalPending, startPortalTransition] = useTransition();
   const [isExportPending, startExportTransition] = useTransition();
 
@@ -60,9 +62,9 @@ export function BillingAccountControls() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Billing tools</CardTitle>
+        <CardTitle>{t("Billing tools")}</CardTitle>
         <CardDescription>
-          Manage Stripe payment methods and export your transaction ledger for finance workflows.
+          {t("Manage Stripe payment methods and export your transaction ledger for finance workflows.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 sm:flex-row">
@@ -76,7 +78,7 @@ export function BillingAccountControls() {
           ) : (
             <WalletCards className="mr-2 h-4 w-4" />
           )}
-          Manage payment methods
+          {t("Manage payment methods")}
         </Button>
         <Button
           variant="secondary"
@@ -88,7 +90,7 @@ export function BillingAccountControls() {
           ) : (
             <Download className="mr-2 h-4 w-4" />
           )}
-          Download ledger CSV
+          {t("Download ledger CSV")}
         </Button>
       </CardContent>
     </Card>

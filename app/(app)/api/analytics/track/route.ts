@@ -39,7 +39,7 @@ function withHeaders(
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIpFromHeaders(request.headers);
-  const ipRateLimit = consumeRateLimit({
+  const ipRateLimit = await consumeRateLimit({
     key: `analytics:ip:${clientIp}`,
     limit: TRACK_RATE_LIMIT.limit,
     windowMs: TRACK_RATE_LIMIT.windowMs,

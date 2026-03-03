@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { saveContributorSettings } from "@/lib/actions/contributor-actions";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type ContributorSettingsPayload = {
   full_name: string;
@@ -43,6 +44,7 @@ export function ContributorSettingsForm({
   });
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
+  const t = useTranslations();
   const router = useRouter();
 
   const focusAreaCount = useMemo(
@@ -89,26 +91,26 @@ export function ContributorSettingsForm({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Contributor profile</CardTitle>
+          <CardTitle>{t("Contributor profile")}</CardTitle>
           <CardDescription>
-            Keep your profile complete so requesters and reviewers can trust your work.
+            {t("Keep your profile complete so requesters and reviewers can trust your work.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Display name</Label>
+              <Label htmlFor="fullName">{t("Display name")}</Label>
               <Input
                 id="fullName"
                 value={form.full_name}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, full_name: event.target.value }))
                 }
-                placeholder="Jane Doe"
+                placeholder={t("Jane Doe")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="portfolio">Portfolio URL</Label>
+              <Label htmlFor="portfolio">{t("Portfolio URL")}</Label>
               <Input
                 id="portfolio"
                 value={form.portfolio_url}
@@ -121,7 +123,7 @@ export function ContributorSettingsForm({
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone">{t("Timezone")}</Label>
               <Input
                 id="timezone"
                 value={form.timezone}
@@ -132,7 +134,7 @@ export function ContributorSettingsForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="availability">Availability</Label>
+              <Label htmlFor="availability">{t("Availability")}</Label>
               <select
                 id="availability"
                 value={form.availability}
@@ -144,14 +146,14 @@ export function ContributorSettingsForm({
                 }
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="open">open</option>
-                <option value="limited">limited</option>
-                <option value="unavailable">unavailable</option>
+                <option value="open">{t("open")}</option>
+                <option value="limited">{t("limited")}</option>
+                <option value="unavailable">{t("unavailable")}</option>
               </select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="bio">{t("Bio")}</Label>
             <Textarea
               id="bio"
               rows={4}
@@ -159,21 +161,21 @@ export function ContributorSettingsForm({
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, bio: event.target.value }))
               }
-              placeholder="Share your data collection strengths and review experience."
+              placeholder={t("Share your data collection strengths and review experience.")}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="focusAreas">Focus areas (comma separated)</Label>
+            <Label htmlFor="focusAreas">{t("Focus areas (comma separated)")}</Label>
             <Input
               id="focusAreas"
               value={form.focusAreasInput}
               onChange={(event) =>
                 setForm((prev) => ({ ...prev, focusAreasInput: event.target.value }))
               }
-              placeholder="computer vision, audio annotation, quality review"
+              placeholder={t("computer vision, audio annotation, quality review")}
             />
             <p className="text-xs text-muted-foreground">
-              {focusAreaCount} area{focusAreaCount === 1 ? "" : "s"} selected
+              {focusAreaCount} {focusAreaCount === 1 ? t("area selected") : t("areas selected")}
             </p>
           </div>
         </CardContent>
@@ -181,31 +183,31 @@ export function ContributorSettingsForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Notification preferences</CardTitle>
+          <CardTitle>{t("Notification preferences")}</CardTitle>
           <CardDescription>
-            Control alerts for review feedback, payouts, and new opportunities.
+            {t("Control alerts for review feedback, payouts, and new opportunities.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <PreferenceRow
-            title="Review updates"
-            description="Get notified when submissions are approved, rejected, or need changes."
+            title={t("Review updates")}
+            description={t("Get notified when submissions are approved, rejected, or need changes.")}
             checked={form.review_updates}
             onCheckedChange={(checked) =>
               setForm((prev) => ({ ...prev, review_updates: checked }))
             }
           />
           <PreferenceRow
-            title="Payout updates"
-            description="Get notified when payout transactions move from pending to settled."
+            title={t("Payout updates")}
+            description={t("Get notified when payout transactions move from pending to settled.")}
             checked={form.payout_updates}
             onCheckedChange={(checked) =>
               setForm((prev) => ({ ...prev, payout_updates: checked }))
             }
           />
           <PreferenceRow
-            title="Opportunity recommendations"
-            description="Get matched dataset opportunities based on your focus areas."
+            title={t("Opportunity recommendations")}
+            description={t("Get matched dataset opportunities based on your focus areas.")}
             checked={form.recommendations}
             onCheckedChange={(checked) =>
               setForm((prev) => ({ ...prev, recommendations: checked }))
@@ -216,7 +218,7 @@ export function ContributorSettingsForm({
 
       <div className="flex justify-end">
         <Button onClick={submit} disabled={isPending}>
-          {isPending ? "Saving..." : "Save settings"}
+          {isPending ? t("Saving...") : t("Save settings")}
         </Button>
       </div>
     </div>
