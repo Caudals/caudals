@@ -13,6 +13,8 @@
 - `phase-08-public-surface-market-readiness.md`
 - `phase-09-launch-operations-reliability.md`
 - `phase-10-cross-role-dashboard-expansion.md`
+- `phase-11-autonomous-agent-runtime.md`
+- `phase-12-app-review-and-dashboard-refactor.md`
 - `phase-13-app-dashboard-refactor.md`
 
 ## Legacy Full Tracker Snapshot

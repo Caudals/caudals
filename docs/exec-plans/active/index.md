@@ -2,8 +2,7 @@
 
 ## Queue
 
-1. `phase-11-autonomous-agent-runtime.md` (P0, IN_PROGRESS)
-2. `phase-12-market-readiness-expansion.md` (P1, QUEUED)
+No active phases. Add the next phase file in this folder when new scoped work starts.
 
 ## Task Selection Order
 

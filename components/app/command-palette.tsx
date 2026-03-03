@@ -15,7 +15,20 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { AlertCircle, FileText, Search, Settings, Shield, Users } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  BarChart3,
+  CreditCard,
+  Database,
+  FileText,
+  FileUp,
+  FolderArchive,
+  Search,
+  Settings,
+  Shield,
+  Users,
+} from "lucide-react";
 
 type DatasetResult = {
   id: string;
@@ -226,11 +239,14 @@ export function CommandPalette() {
   const navigationItems = useMemo(() => {
     if (userRole === "admin") {
       return [
-        { label: t("Admin Overview"), href: "/admin", icon: Shield },
+        { label: t("Control center"), href: "/admin", icon: Shield },
         { label: t("Requests"), href: "/admin/requests", icon: FileText },
-        { label: t("Submissions"), href: "/admin/submissions", icon: FileText },
-        { label: t("Payments"), href: "/admin/payments", icon: FileText },
+        { label: t("Submissions"), href: "/admin/submissions", icon: FileUp },
+        { label: t("Datasets"), href: "/admin/datasets", icon: Database },
+        { label: t("Payments"), href: "/admin/payments", icon: CreditCard },
         { label: t("Support queue"), href: "/admin/support", icon: AlertCircle },
+        { label: t("Activity"), href: "/admin/activity", icon: Activity },
+        { label: t("Analytics"), href: "/admin/analytics", icon: BarChart3 },
         { label: t("Users"), href: "/admin/users", icon: Users },
         { label: t("Settings"), href: "/admin/settings", icon: Settings },
       ];
@@ -239,9 +255,9 @@ export function CommandPalette() {
     if (userRole === "contributor") {
       return [
         { label: t("Dashboard"), href: "/contributor", icon: FileText },
-        { label: t("Browse"), href: "/browse", icon: Search },
-        { label: t("My contributions"), href: "/contributor/contributions", icon: FileText },
-        { label: t("Earnings"), href: "/contributor/earnings", icon: FileText },
+        { label: t("Browse opportunities"), href: "/browse", icon: Search },
+        { label: t("My contributions"), href: "/contributor/contributions", icon: FileUp },
+        { label: t("Earnings & payouts"), href: "/contributor/earnings", icon: CreditCard },
         { label: t("Settings"), href: "/contributor/settings", icon: Settings },
       ];
     }
@@ -249,8 +265,11 @@ export function CommandPalette() {
     return [
       { label: t("Dashboard"), href: "/requester", icon: FileText },
       { label: t("Datasets"), href: "/requester/datasets", icon: FileText },
-      { label: t("Files"), href: "/requester/files", icon: FileText },
+      { label: t("Review queue"), href: "/requester/datasets?filter=pending_review", icon: AlertCircle },
+      { label: t("Funding needed"), href: "/requester/datasets?filter=needs_funding", icon: CreditCard },
+      { label: t("Files & exports"), href: "/requester/files", icon: FolderArchive },
       { label: t("Support"), href: "/requester/support", icon: AlertCircle },
+      { label: t("Analytics"), href: "/requester/analytics", icon: BarChart3 },
       { label: t("Settings"), href: "/requester/settings", icon: Settings },
     ];
   }, [t, userRole]);

@@ -275,11 +275,15 @@ export default async function AdminDashboard() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="icon" className="rounded-xl">
-                  <RefreshCw className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="rounded-xl" asChild>
+                  <Link href="/admin" aria-label="Refresh control center">
+                    <RefreshCw className="h-4 w-4" />
+                  </Link>
                 </Button>
-                <Button variant="outline" size="icon" className="rounded-xl">
-                  <FileText className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="rounded-xl" asChild>
+                  <Link href="/admin/datasets" aria-label="Open dataset queue">
+                    <FileText className="h-4 w-4" />
+                  </Link>
                 </Button>
                 <Link href="/" className="w-full">
                   <Button className="w-full rounded-xl bg-black text-white hover:bg-black/90">

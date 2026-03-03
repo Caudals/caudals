@@ -5,23 +5,6 @@ Production-oriented platform for launching and operating dataset programs across
 - contributor (discovery, submissions, earnings),
 - admin (moderation, support queues, analytics, payments oversight).
 
-Stack:
-- Next.js App Router + TypeScript
-- Supabase (Auth + Postgres)
-- Stripe (funding + payout flows)
-- DigitalOcean Spaces (uploads/exports)
-
-## Repository Docs
-
-- Project tracker: `docs/project-tracker.md`
-- System context: `docs/caudals-context.md`
-- Design system: `docs/design-system.md`
-- Architecture map: `docs/architecture-map.md`
-- Agent execution protocol: `docs/execution-rules.md`
-- Release checklist: `docs/release-checklist.md`
-- Staging parity checklist: `docs/staging-parity-checklist.md`
-- DB migration runbook: `docs/db-runbook.md`
-
 ## Prerequisites
 
 - Node.js 20+

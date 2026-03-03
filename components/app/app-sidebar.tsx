@@ -70,14 +70,8 @@ const requesterNav: NavGroup[] = [
     items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true }],
   },
   {
-    group: "Datasets",
+    group: "Execution queues",
     items: [
-      {
-        title: "All datasets",
-        icon: FileText,
-        href: "/requester/datasets",
-        clearQueryKeys: ["status", "filter"],
-      },
       {
         title: "Review queue",
         icon: CheckCircle,
@@ -90,15 +84,30 @@ const requesterNav: NavGroup[] = [
         href: "/requester/datasets?filter=needs_funding",
         query: { filter: "needs_funding" },
       },
-      { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
+      {
+        title: "Ready for download",
+        icon: FolderArchive,
+        href: "/requester/datasets?filter=download_ready",
+        query: { filter: "download_ready" },
+      },
     ],
   },
   {
-    group: "Operations",
+    group: "Dataset ops",
     items: [
+      {
+        title: "All datasets",
+        icon: FileText,
+        href: "/requester/datasets",
+        clearQueryKeys: ["status", "filter"],
+      },
+      { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
       { title: "Files & exports", icon: FolderArchive, href: "/requester/files" },
-      { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
     ],
+  },
+  {
+    group: "Intelligence",
+    items: [{ title: "Analytics", icon: BarChart3, href: "/requester/analytics" }],
   },
   {
     group: "Workspace",
@@ -117,7 +126,7 @@ const contributorNav: NavGroup[] = [
     items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/contributor", exact: true }],
   },
   {
-    group: "Work",
+    group: "Work queue",
     items: [
       { title: "My contributions", icon: FileUp, href: "/contributor/contributions" },
       { title: "Browse opportunities", icon: Database, href: "/browse" },
@@ -139,19 +148,24 @@ const adminNav: NavGroup[] = [
     items: [{ title: "Control center", icon: Shield, href: "/admin", exact: true }],
   },
   {
-    group: "Moderation",
+    group: "SLA queues",
     items: [
       { title: "Requests", icon: FileText, href: "/admin/requests" },
-      { title: "Datasets", icon: Database, href: "/admin/datasets" },
       { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
+      { title: "Support", icon: LifeBuoy, href: "/admin/support" },
+    ],
+  },
+  {
+    group: "Governance",
+    items: [
+      { title: "Datasets", icon: Database, href: "/admin/datasets" },
       { title: "Users", icon: Users, href: "/admin/users" },
     ],
   },
   {
-    group: "Operations",
+    group: "Finance & risk",
     items: [
       { title: "Payments", icon: CreditCard, href: "/admin/payments" },
-      { title: "Support", icon: LifeBuoy, href: "/admin/support" },
       { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
     ],
   },
@@ -160,6 +174,11 @@ const adminNav: NavGroup[] = [
     items: [
       { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
       { title: "Featured", icon: Megaphone, href: "/admin/featured" },
+    ],
+  },
+  {
+    group: "Workspace",
+    items: [
       { title: "Settings", icon: Settings, href: "/admin/settings" },
     ],
   },
@@ -202,11 +221,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const t = useTranslations();
   const isCollapsed = state === "collapsed";
 
-  const workspaceTitle =
-    user?.user_metadata?.workspace ||
-    user?.user_metadata?.full_name ||
-    user?.email ||
-    "Caudals";
+  const workspaceTitle = user?.user_metadata?.workspace || "Caudals";
 
   if (loading || !userRole) {
     return (
@@ -257,27 +272,20 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         ? "/contributor/settings"
         : "/requester/settings";
 
-  const supportHref =
-    viewKey === "admin"
-      ? "/admin/support"
-      : viewKey === "contributor"
-        ? "/contributor/settings"
-        : "/requester/support";
-
-  const utilityLinks: NavItem[] = [
-    ...utilityLinksBase,
-    {
-      title: "Invite members",
-      icon: UserPlus,
-      href:
-        viewKey === "admin"
-          ? "/admin/users"
-          : viewKey === "contributor"
-            ? "/contributor/settings"
-            : "/requester/settings",
-    },
-    { title: "Support", icon: LifeBuoy, href: supportHref },
-  ];
+  const utilityLinks: NavItem[] =
+    viewKey === "contributor"
+      ? [
+          ...utilityLinksBase,
+          { title: "Payout readiness", icon: Wallet, href: "/contributor/earnings" },
+        ]
+      : [
+          ...utilityLinksBase,
+          {
+            title: "Invite members",
+            icon: UserPlus,
+            href: viewKey === "admin" ? "/admin/users" : "/requester/settings",
+          },
+        ];
 
   const isItemActive = (item: NavItem) => {
     const { path: itemPath, params } = parseHref(item.href);
@@ -313,8 +321,10 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
-      <SidebarHeader className="pb-4 pt-6 px-4">
-        <div className="flex items-center gap-2 px-2">
+      <SidebarHeader className="pb-4 pt-5 px-4">
+        <div
+          className={`flex items-center gap-2 ${isCollapsed ? "justify-center px-0" : "px-2"}`}
+        >
           <Avatar className="h-9 w-9 rounded-lg">
             <AvatarImage
               src={
@@ -328,31 +338,42 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               {workspaceTitle.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">
-              {user?.user_metadata?.full_name || workspaceTitle}
-            </p>
-            <div className="mt-0.5 flex items-center gap-2">
-              <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px]">
-                {t(`${viewLabel} view`)}
-              </Badge>
-              <Link
-                href={settingsHref}
-                className="truncate text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                {t("Profile & settings")}
-              </Link>
+
+          {!isCollapsed ? (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{workspaceTitle}</p>
+              <div className="mt-0.5 flex items-center gap-2">
+                <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px]">
+                  {t(`${viewLabel} View`)}
+                </Badge>
+                <Link
+                  href={settingsHref}
+                  className="truncate text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  {t("Workspace settings")}
+                </Link>
+              </div>
             </div>
-          </div>
-          <NotificationBell />
+          ) : null}
+
+          {!isCollapsed ? <NotificationBell /> : null}
           <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
         </div>
 
-        <div className="px-2 pt-3 space-y-2">
-          <CommandPaletteButton />
-          {userRole === "admin" && !isCollapsed ? (
-            <div className="rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-2 py-2">
-              <RoleSwitcher userRole={userRole} currentView={viewKey} />
+        <div className={`${isCollapsed ? "px-0" : "px-2"} pt-3 space-y-2`}>
+          <CommandPaletteButton
+            compact={isCollapsed}
+            className={isCollapsed ? "mx-auto flex" : "w-full justify-between rounded-lg"}
+          />
+          {userRole === "admin" ? (
+            <div
+              className={
+                isCollapsed
+                  ? "flex justify-center"
+                  : "rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-2 py-2"
+              }
+            >
+              <RoleSwitcher userRole={userRole} currentView={viewKey} isCollapsed={isCollapsed} />
             </div>
           ) : null}
         </div>
@@ -361,7 +382,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="px-2">
         {navGroups.map((group) => (
           <SidebarGroup key={group.group}>
-            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70">
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70 group-data-[collapsible=icon]:sr-only">
               {t(group.group)}
             </SidebarGroupLabel>
             <SidebarGroupContent>
