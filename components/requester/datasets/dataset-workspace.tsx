@@ -18,6 +18,7 @@ import {
   payWithWallet,
 } from "@/lib/actions/payment-actions";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type RequesterDatasetDetail = {
   id: string;
@@ -51,6 +52,7 @@ export function DatasetWorkspace({
 }) {
   const router = useRouter();
   const toast = useLocaleToast();
+  const t = useTranslations();
   const [isFundingPending, startFundingTransition] = useTransition();
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [fundingAmount, setFundingAmount] = useState<string>("");
@@ -77,7 +79,7 @@ export function DatasetWorkspace({
 
   const currencyCode = (detail.currency ?? "USD").toUpperCase();
   const formatMoney = (value: number) =>
-    new Intl.NumberFormat("en-US", {
+    new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: currencyCode,
       maximumFractionDigits: 2,
@@ -186,48 +188,48 @@ export function DatasetWorkspace({
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" asChild>
                 <Link href={`/requester/datasets/new?duplicate=${detail.id}`}>
-                  Duplicate
+                  {t("Duplicate")}
                 </Link>
               </Button>
               <Button asChild>
                 <Link href={`/requester/datasets/${detail.id}/edit`}>
-                  Edit brief
+                  {t("Edit brief")}
                 </Link>
               </Button>
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground">
-            {detail.description || "No description provided yet."}
+            {detail.description || t("No description provided yet.")}
           </p>
 
           <div className="grid gap-4 md:grid-cols-4">
             <div className="rounded-xl border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">Samples</p>
+              <p className="text-xs uppercase text-muted-foreground">{t("Samples")}</p>
               <p className="text-lg font-semibold">
                 {samplesCollected} / {samplesNeeded}
               </p>
               <Progress className="mt-2" value={progress} />
             </div>
             <div className="rounded-xl border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">Reward</p>
+              <p className="text-xs uppercase text-muted-foreground">{t("Reward")}</p>
               <p className="text-lg font-semibold">
                 {detail.currency ?? "USD"} {Number(detail.reward_amount ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="rounded-xl border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">Budget</p>
+              <p className="text-xs uppercase text-muted-foreground">{t("Budget")}</p>
               <p className="text-lg font-semibold">
                 {(detail.currency ?? "USD")} {Number(detail.paid_amount ?? 0).toLocaleString()} /{" "}
                 {Number(detail.total_budget ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="rounded-xl border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">Deadline</p>
+              <p className="text-xs uppercase text-muted-foreground">{t("Deadline")}</p>
               <p className="text-lg font-semibold">
                 {detail.deadline
                   ? new Date(detail.deadline).toLocaleDateString()
-                  : "No deadline"}
+                  : t("No deadline")}
               </p>
             </div>
           </div>
@@ -235,17 +237,17 @@ export function DatasetWorkspace({
           <div className="rounded-xl border border-border/70 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">Funding actions</p>
+                <p className="text-sm font-medium">{t("Funding actions")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Remaining budget: {formatMoney(remainingToFund)}
+                  {t("Remaining budget:")} {formatMoney(remainingToFund)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Wallet available:{" "}
+                  {t("Wallet available:")}{" "}
                   {walletBalance === null ? "—" : formatMoney(walletBalance)}
                 </p>
               </div>
               <Button variant="outline" asChild>
-                <Link href="/requester/billing">Top up wallet</Link>
+                <Link href="/requester/billing">{t("Top up wallet")}</Link>
               </Button>
             </div>
             <div className="mt-3 flex flex-col gap-2 md:flex-row">
@@ -262,13 +264,13 @@ export function DatasetWorkspace({
                 disabled={isFundingPending || remainingToFund <= 0}
                 onClick={onFundWithWallet}
               >
-                Fund from wallet
+                {t("Fund from wallet")}
               </Button>
               <Button
                 disabled={isFundingPending || remainingToFund <= 0}
                 onClick={onFundWithCard}
               >
-                Fund with card
+                {t("Fund with card")}
               </Button>
             </div>
           </div>
@@ -277,24 +279,24 @@ export function DatasetWorkspace({
 
       <Tabs defaultValue="submissions" className="space-y-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t("Overview")}</TabsTrigger>
           <TabsTrigger value="submissions">
-            Submissions ({submissions.length})
+            {t("Submissions")} ({submissions.length})
           </TabsTrigger>
           <TabsTrigger value="exports">
-            Exports ({detail.exports?.length ?? 0})
+            {t("Exports")} ({detail.exports?.length ?? 0})
           </TabsTrigger>
-          <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="automation">{t("Automation")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <Card className="border-border/70 shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Brief requirements</CardTitle>
+              <CardTitle className="text-base">{t("Brief requirements")}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium">Quality criteria</p>
+                <p className="text-sm font-medium">{t("Quality criteria")}</p>
                 {detail.quality_criteria && detail.quality_criteria.length > 0 ? (
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     {detail.quality_criteria.map((item, index) => (
@@ -302,11 +304,11 @@ export function DatasetWorkspace({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No criteria listed.</p>
+                  <p className="text-sm text-muted-foreground">{t("No criteria listed.")}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium">Contributor requirements</p>
+                <p className="text-sm font-medium">{t("Contributor requirements")}</p>
                 {detail.requirements && detail.requirements.length > 0 ? (
                   <ul className="space-y-1 text-sm text-muted-foreground">
                     {detail.requirements.map((item, index) => (
@@ -314,7 +316,7 @@ export function DatasetWorkspace({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No requirements listed.</p>
+                  <p className="text-sm text-muted-foreground">{t("No requirements listed.")}</p>
                 )}
               </div>
             </CardContent>
@@ -324,7 +326,7 @@ export function DatasetWorkspace({
         <TabsContent value="submissions">
           <Card className="border-border/70 shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Submission review queue</CardTitle>
+              <CardTitle className="text-base">{t("Submission review queue")}</CardTitle>
             </CardHeader>
             <CardContent>
               <SubmissionsPanel submissions={submissions} />
@@ -335,7 +337,7 @@ export function DatasetWorkspace({
         <TabsContent value="exports">
           <Card className="border-border/70 shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Export jobs</CardTitle>
+              <CardTitle className="text-base">{t("Export jobs")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ExportPanel datasetId={detail.id} exports={detail.exports ?? []} />
@@ -346,7 +348,7 @@ export function DatasetWorkspace({
         <TabsContent value="automation">
           <Card className="border-border/70 shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Automation rules</CardTitle>
+              <CardTitle className="text-base">{t("Automation rules")}</CardTitle>
             </CardHeader>
             <CardContent>
               <AutomationPanel

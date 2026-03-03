@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface WaitlistResponse {
   success: boolean;
@@ -31,6 +32,7 @@ interface WaitlistResponse {
 export function WaitlistSection() {
   const [result, setResult] = useState<WaitlistResponse | null>(null);
   const toast = useLocaleToast();
+  const t = useTranslations();
   const form = useForm<WaitlistFormValues>({
     resolver: zodResolver(waitlistFormSchema),
     defaultValues: {
@@ -113,13 +115,13 @@ export function WaitlistSection() {
       <div className="mx-auto flex max-w-4xl flex-col gap-4 text-center sm:text-left">
         <div>
           <Badge variant="outline" className="border-transparent bg-primary/10 text-primary">
-            Early access
+            {t("Early access")}
           </Badge>
           <p className="mt-3 text-2xl font-semibold text-slate-900">
-            Join the Caudals waitlist
+            {t("Join the Caudals waitlist")}
           </p>
           <p className="text-sm text-muted-foreground">
-            We announce new cohort openings here first.
+            {t("We announce new cohort openings here first.")}
           </p>
         </div>
 
@@ -134,7 +136,7 @@ export function WaitlistSection() {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="you@company.com"
+                        placeholder={t("you@company.com")}
                         className="h-11 w-full rounded-full border-0 bg-transparent px-4 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
                         {...field}
                       />
@@ -149,7 +151,7 @@ export function WaitlistSection() {
                 disabled={isSubmitting}
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Notify me
+                {t("Notify me")}
               </Button>
             </div>
           </form>
@@ -158,8 +160,8 @@ export function WaitlistSection() {
         {result && (
           <p className="text-sm text-primary">
             {result.alreadyRegistered
-              ? "You're already on the list—we'll keep the updates coming."
-              : "Thanks for joining! We'll reach out soon with next steps."}
+              ? t("You're already on the list—we'll keep the updates coming.")
+              : t("Thanks for joining! We'll reach out soon with next steps.")}
           </p>
         )}
       </div>

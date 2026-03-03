@@ -98,27 +98,27 @@ export function ContributionsView({
     if (status === "approved") {
       return (
         <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20">
-          Approved
+          {t("Approved")}
         </Badge>
       );
     }
     if (status === "rejected") {
       return (
         <Badge className="bg-red-500/10 text-red-700 border-red-500/20">
-          Rejected
+          {t("Rejected")}
         </Badge>
       );
     }
     if (status === "needs_changes") {
       return (
         <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20">
-          Needs changes
+          {t("Needs changes")}
         </Badge>
       );
     }
     return (
       <Badge className="bg-blue-500/10 text-blue-700 border-blue-500/20">
-        Pending
+        {t("Pending")}
       </Badge>
     );
   };
@@ -135,7 +135,7 @@ export function ContributionsView({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Earnings
+              {t("Total Earnings")}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </CardHeader>
@@ -144,14 +144,14 @@ export function ContributionsView({
               ${earnings.totalEarnings.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              From {earnings.approvedSubmissions} approved submissions
+              {t("From {{count}} approved submissions", { count: earnings.approvedSubmissions })}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("Pending")}</CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
@@ -159,14 +159,14 @@ export function ContributionsView({
               {earnings.pendingSubmissions}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              ${earnings.pendingEarnings.toFixed(2)} potential payout
+              ${earnings.pendingEarnings.toFixed(2)} {t("potential payout")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Needs Changes</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("Needs Changes")}</CardTitle>
             <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
@@ -174,28 +174,28 @@ export function ContributionsView({
               {earnings.needsChangesSubmissions || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Reviewer feedback waiting for revision
+              {t("Reviewer feedback waiting for revision")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("Approval Rate")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-violet-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{approvalRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground mt-1">
               {earnings.approvedSubmissions}/{earnings.totalSubmissions}{" "}
-              approved
+              {t("approved")}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("Rejected")}</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -203,7 +203,7 @@ export function ContributionsView({
               {earnings.rejectedSubmissions}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Review feedback to improve
+              {t("Review feedback to improve")}
             </p>
           </CardContent>
         </Card>
@@ -214,9 +214,9 @@ export function ContributionsView({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>All Contributions</CardTitle>
+              <CardTitle>{t("All Contributions")}</CardTitle>
               <CardDescription>
-                Your submission history across all datasets
+                {t("Your submission history across all datasets")}
               </CardDescription>
             </div>
             <select
@@ -224,30 +224,30 @@ export function ContributionsView({
               onChange={(e) => setStatusFilter(e.target.value)}
               className="border rounded-md px-3 py-2 text-sm"
             >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="needs_changes">Needs changes</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">{t("All Status")}</option>
+              <option value="pending">{t("Pending")}</option>
+              <option value="needs_changes">{t("Needs changes")}</option>
+              <option value="approved">{t("Approved")}</option>
+              <option value="rejected">{t("Rejected")}</option>
             </select>
           </div>
         </CardHeader>
         <CardContent>
           {filteredContributions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <p>No contributions yet. Start contributing to datasets!</p>
+              <p>{t("No contributions yet. Start contributing to datasets!")}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Dataset</TableHead>
-                  <TableHead>Files</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reward</TableHead>
-                  <TableHead>Feedback</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("Dataset")}</TableHead>
+                  <TableHead>{t("Files")}</TableHead>
+                  <TableHead>{t("Status")}</TableHead>
+                  <TableHead>{t("Reward")}</TableHead>
+                  <TableHead>{t("Feedback")}</TableHead>
+                  <TableHead>{t("Submitted")}</TableHead>
+                  <TableHead className="text-right">{t("Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -260,7 +260,7 @@ export function ContributionsView({
                     <TableRow key={contribution.id}>
                       <TableCell className="font-medium max-w-xs">
                         <div className="line-clamp-2">
-                          {dataset?.title || "Unknown"}
+                          {dataset?.title || t("Unknown")}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -309,7 +309,7 @@ export function ContributionsView({
                               }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Files
+                              {t("View Files")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -319,7 +319,7 @@ export function ContributionsView({
                               }}
                             >
                               <Download className="mr-2 h-4 w-4" />
-                              Download
+                              {t("Download")}
                             </DropdownMenuItem>
                             {(contribution.status === "pending" ||
                               contribution.status === "needs_changes") && (
@@ -330,7 +330,7 @@ export function ContributionsView({
                                   className="text-red-600"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                                  {t("Delete")}
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -348,7 +348,7 @@ export function ContributionsView({
                                       );
                                     }}
                                   >
-                                    View Feedback
+                                    {t("View Feedback")}
                                   </DropdownMenuItem>
                                 </>
                               )}

@@ -202,13 +202,13 @@ export default function SignUpPage() {
           >
             <Image
               src="/caudals_logo_black.svg"
-              alt="Caudals logo"
+              alt={t("Caudals logo")}
               width={28}
               height={28}
               className="h-7 w-7"
               priority
             />
-            <span>Caudals</span>
+            <span>{t("Caudals")}</span>
           </Link>
         </div>
 
@@ -238,7 +238,7 @@ export default function SignUpPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t("••••••••")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -251,7 +251,7 @@ export default function SignUpPage() {
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t("••••••••")}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -346,7 +346,7 @@ export default function SignUpPage() {
                     fill="#EA4335"
                   />
                 </svg>
-                Google
+                {t("Google")}
               </Button>
               <Button
                 variant="outline"
@@ -364,7 +364,7 @@ export default function SignUpPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                GitHub
+                {t("GitHub")}
               </Button>
             </div>
           </CardContent>

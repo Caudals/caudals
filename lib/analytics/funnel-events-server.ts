@@ -8,7 +8,12 @@ import type {
   ProductEventName,
   ProductEventPayload,
 } from "@/lib/analytics/funnel-events";
-import { logError } from "@/lib/security/structured-logger";
+import { logError, logWarn } from "@/lib/security/structured-logger";
+
+declare global {
+  var __caudalsAnalyticsIngestDisabledUntilMs: number | undefined;
+  var __caudalsAnalyticsMissingTableLogged: boolean | undefined;
+}
 
 type RecordFunnelEventInput = {
   eventName: FunnelEventName;
@@ -67,7 +72,26 @@ function resolveEventCategory(eventName: ProductEventName) {
   return "product";
 }
 
+function isMissingAnalyticsTableError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const code = String((error as { code?: string }).code ?? "");
+  return code === "42P01" || code === "PGRST205";
+}
+
+function isAnalyticsIngestTemporarilyDisabled() {
+  return (
+    typeof globalThis.__caudalsAnalyticsIngestDisabledUntilMs === "number" &&
+    globalThis.__caudalsAnalyticsIngestDisabledUntilMs > Date.now()
+  );
+}
+
 export async function recordProductEvent(input: RecordProductEventInput) {
+  if (isAnalyticsIngestTemporarilyDisabled()) {
+    return { skipped: true };
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { error: "Analytics disabled: missing Supabase admin credentials." };
   }
@@ -99,6 +123,18 @@ export async function recordProductEvent(input: RecordProductEventInput) {
   });
 
   if (error) {
+    if (isMissingAnalyticsTableError(error)) {
+      globalThis.__caudalsAnalyticsIngestDisabledUntilMs =
+        Date.now() + 10 * 60 * 1000;
+      if (!globalThis.__caudalsAnalyticsMissingTableLogged) {
+        globalThis.__caudalsAnalyticsMissingTableLogged = true;
+        logWarn("analytics.product_events_table_missing_ingest_paused", {
+          error,
+        });
+      }
+      return { skipped: true, error: error.message };
+    }
+
     logError("analytics.record_funnel_event_failed", {
       event: input.eventName,
       error,

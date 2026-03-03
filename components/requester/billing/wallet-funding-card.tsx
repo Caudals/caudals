@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function WalletFundingCard() {
   const [amount, setAmount] = useState("100");
   const [isPending, startTransition] = useTransition();
   const toast = useLocaleToast();
+  const t = useTranslations();
 
   const handleTopUp = () => {
     const parsed = Number(amount);
@@ -40,9 +42,9 @@ export function WalletFundingCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top up wallet</CardTitle>
+        <CardTitle>{t("Top up wallet")}</CardTitle>
         <CardDescription>
-          Add funds with Stripe Checkout and use your wallet for fast dataset funding.
+          {t("Add funds with Stripe Checkout and use your wallet for fast dataset funding.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -53,7 +55,7 @@ export function WalletFundingCard() {
             step="0.01"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            placeholder="Amount in USD"
+            placeholder={t("Amount in USD")}
           />
           <Button onClick={handleTopUp} disabled={isPending}>
             {isPending ? (
@@ -61,11 +63,11 @@ export function WalletFundingCard() {
             ) : (
               <PlusCircle className="mr-2 h-4 w-4" />
             )}
-            Continue to Stripe
+            {t("Continue to Stripe")}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Sandbox mode: no real charges are created.
+          {t("Sandbox mode: no real charges are created.")}
         </p>
       </CardContent>
     </Card>

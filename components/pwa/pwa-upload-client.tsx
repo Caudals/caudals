@@ -37,23 +37,6 @@ interface PwaUploadClientProps {
   submissions: SubmissionWithDataset[];
 }
 
-const STATUS_DISPLAY: Record<
-  SubmissionWithDataset["status"],
-  { label: string; className: string }
-> = {
-  pending: {
-    label: "Pending review",
-    className: "border-amber-200/70 bg-amber-400/20 text-amber-100",
-  },
-  approved: {
-    label: "Approved",
-    className: "border-emerald-200/70 bg-emerald-500/15 text-emerald-50",
-  },
-  rejected: {
-    label: "Needs edits",
-    className: "border-rose-200/70 bg-rose-500/15 text-rose-50",
-  },
-};
 
 const ACCEPTED_FORMATS: Record<DataType, string> = {
   image: "image/*",
@@ -68,6 +51,25 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
   const router = useRouter();
   const toast = useLocaleToast();
   const t = useTranslations();
+
+  const STATUS_DISPLAY: Record<
+    SubmissionWithDataset["status"],
+    { label: string; className: string }
+  > = {
+    pending: {
+      label: t("Pending review"),
+      className: "border-amber-200/70 bg-amber-400/20 text-amber-100",
+    },
+    approved: {
+      label: t("Approved"),
+      className: "border-emerald-200/70 bg-emerald-500/15 text-emerald-50",
+    },
+    rejected: {
+      label: t("Needs edits"),
+      className: "border-rose-200/70 bg-rose-500/15 text-rose-50",
+    },
+  };
+
   const [datasetId, setDatasetId] = useState<string>(datasets[0]?.id || "");
   const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState("");
@@ -152,7 +154,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
     return (
       <div className="flex items-center justify-center rounded-3xl border border-white/10 bg-white/5 p-6 text-white/70">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-        Loading your workspace...
+        {t("Loading your workspace...")}
       </div>
     );
   }
@@ -161,12 +163,12 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-white">
         <UploadCloud className="mx-auto mb-3 h-10 w-10 text-white/70" />
-        <h2 className="text-xl font-semibold">Sign in to contribute</h2>
+        <h2 className="text-xl font-semibold">{t("Sign in to contribute")}</h2>
         <p className="mt-2 text-sm text-white/70">
-          Log in to link uploads to your contributor account and unlock rewards.
+          {t("Log in to link uploads to your contributor account and unlock rewards.")}
         </p>
         <Button asChild className="mt-4 rounded-2xl bg-white text-slate-900">
-          <Link href="/auth/sign-in">Open sign-in</Link>
+          <Link href="/auth/sign-in">{t("Open sign-in")}</Link>
         </Button>
       </div>
     );
@@ -175,7 +177,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
   if (!hasDatasets) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-white/80">
-        No dataset briefs are open for contributions right now. Check back soon!
+        {t("No dataset briefs are open for contributions right now. Check back soon!")}
       </div>
     );
   }
@@ -184,20 +186,20 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
     <div className="space-y-5">
       <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 text-white shadow-[0_12px_30px_rgba(8,15,40,0.45)]">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/50">Upload</p>
-          <h2 className="text-2xl font-semibold">Submit a new contribution</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/50">{t("Upload")}</p>
+          <h2 className="text-2xl font-semibold">{t("Submit a new contribution")}</h2>
           <p className="text-sm text-white/70">
-            Pick a brief, attach your files, and leave any helpful reviewer notes.
+            {t("Pick a brief, attach your files, and leave any helpful reviewer notes.")}
           </p>
         </div>
 
         <div className="space-y-2">
           <Label className="text-xs uppercase tracking-[0.3em] text-white/50">
-            Dataset brief
+            {t("Dataset brief")}
           </Label>
           <Select value={datasetId} onValueChange={setDatasetId}>
             <SelectTrigger className="rounded-2xl border border-white/20 bg-black/20 text-white">
-              <SelectValue placeholder="Select a brief" />
+              <SelectValue placeholder={t("Select a brief")} />
             </SelectTrigger>
             <SelectContent className="border border-white/15 bg-slate-950 text-white">
               {datasets.map((dataset) => (
@@ -218,7 +220,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
 
         <div className="space-y-2">
           <Label className="text-xs uppercase tracking-[0.3em] text-white/50">
-            Files
+            {t("Files")}
           </Label>
           <FileUpload
             accept={acceptedFormats}
@@ -229,7 +231,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
           />
           {isSubmitting && (
             <div className="space-y-1 text-xs text-white/70">
-              <p>Uploading... {Math.round(uploadProgress)}%</p>
+              <p>{t("Uploading...")} {Math.round(uploadProgress)}%</p>
               <div className="h-2 w-full rounded-full bg-white/10">
                 <div
                   className="h-full rounded-full bg-white"
@@ -241,11 +243,11 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-[0.3em] text-white/50">Notes</Label>
+          <Label className="text-xs uppercase tracking-[0.3em] text-white/50">{t("Notes")}</Label>
           <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Add helpful context for reviewers..."
+            placeholder={t("Add helpful context for reviewers...")}
             className="min-h-[120px] rounded-2xl border border-white/10 bg-black/20 text-white"
           />
         </div>
@@ -256,7 +258,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
           className="w-full rounded-2xl bg-white text-slate-900"
         >
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isSubmitting ? "Submitting..." : "Submit upload"}
+          {isSubmitting ? t("Submitting...") : t("Submit upload")}
         </Button>
       </section>
 
@@ -264,9 +266,9 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-              History
+              {t("History")}
             </p>
-            <h3 className="text-lg font-semibold">Recent uploads</h3>
+            <h3 className="text-lg font-semibold">{t("Recent uploads")}</h3>
           </div>
           <Badge className="rounded-xl border-white/20 bg-white/10 text-xs text-white">
             {submissions.length} total
@@ -274,8 +276,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
         </div>
         {submissions.length === 0 ? (
           <p className="text-sm text-white/70">
-            Your approved and pending submissions will appear here once you start
-            contributing.
+            {t("Your approved and pending submissions will appear here once you start contributing.")}
           </p>
         ) : (
           <div className="space-y-3">
@@ -292,7 +293,7 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold">
-                        {dataset?.title ?? "Dataset brief"}
+                        {dataset?.title ?? t("Dataset brief")}
                       </p>
                       <p className="text-xs text-white/60">
                         {currency} {rewardAmount.toFixed(2)} •{" "}
@@ -316,14 +317,14 @@ export function PwaUploadClient({ datasets, submissions }: PwaUploadClientProps)
                         href={`/pwa/datasets/${dataset.id}`}
                         className="flex-1 rounded-2xl border border-white/15 px-4 py-2 text-center text-sm text-white hover:bg-white/10"
                       >
-                        View brief
+                        {t("View brief")}
                       </Link>
                     )}
                     <Link
                       href="/pwa"
                       className="flex-1 rounded-2xl border border-white/15 px-4 py-2 text-center text-sm text-white hover:bg-white/10"
                     >
-                      Browse more
+                      {t("Browse more")}
                     </Link>
                   </div>
                 </article>

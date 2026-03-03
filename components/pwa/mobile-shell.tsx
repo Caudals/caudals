@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Compass, UploadCloud, LayoutDashboard, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 const NAV_ITEMS = [
   {
@@ -34,13 +35,14 @@ interface MobileShellProps {
 
 export function MobileShell({ children }: MobileShellProps) {
   const pathname = usePathname();
+  const t = useTranslations();
   const pageTitle = pathname.startsWith("/pwa/upload")
-    ? "Contribute uploads"
+    ? t("Contribute uploads")
     : pathname.startsWith("/pwa/settings")
-      ? "Settings"
+      ? t("Settings")
       : pathname.startsWith("/pwa/datasets")
-        ? "Dataset brief"
-        : "Browse briefs";
+        ? t("Dataset brief")
+        : t("Browse briefs");
 
   return (
     <div className="relative flex min-h-screen flex-col bg-slate-950 text-slate-50">
@@ -54,7 +56,7 @@ export function MobileShell({ children }: MobileShellProps) {
         <Link
           href="/browse"
           className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 text-white/70 transition hover:bg-white/10"
-          aria-label="Open desktop marketplace"
+          aria-label={t("Open desktop marketplace")}
         >
           <LayoutDashboard className="h-5 w-5" />
         </Link>
@@ -80,7 +82,7 @@ export function MobileShell({ children }: MobileShellProps) {
                 )}
               >
                 <Icon className="h-5 w-5" />
-                {item.label}
+                {t(item.label)}
               </Link>
             );
           })}

@@ -16,7 +16,9 @@
 - `phase-11-autonomous-agent-runtime.md`
 - `phase-12-app-review-and-dashboard-refactor.md`
 - `phase-13-app-dashboard-refactor.md`
+- `phase-14-export-queue-reliability-and-debt-closure.md`
 - `phase-15-payments-and-payouts-market-readiness.md`
+- `phase-16-market-readiness-polish-and-growth.md`
 
 ## Legacy Full Tracker Snapshot
 

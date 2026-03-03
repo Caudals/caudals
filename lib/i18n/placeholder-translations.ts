@@ -15,7 +15,7 @@ export const placeholderTranslations: PlaceholderMap = {
     },
     {
       key: "Pay {{amount}} with Wallet",
-      translation: "Paga {{amount}} con la billetera",
+      translation: "Paga {{amount}} con la cartera",
     },
     {
       key: "Additional {{amount}} needed to fully fund this dataset",
@@ -31,7 +31,7 @@ export const placeholderTranslations: PlaceholderMap = {
     },
     {
       key: "Payment setup failed: {{error}}",
-      translation: "La configuración del pago falló: {{error}}",
+      translation: "Error en la configuración del pago: {{error}}",
     },
     {
       key: "{{count}} submissions approved!",
@@ -55,7 +55,7 @@ export const placeholderTranslations: PlaceholderMap = {
     },
     {
       key: "Wallet Balance ({{amount}})",
-      translation: "Saldo de la billetera ({{amount}})",
+      translation: "Saldo de la cartera ({{amount}})",
     },
     {
       key: "• Max {{size}}MB",

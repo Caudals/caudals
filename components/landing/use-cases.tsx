@@ -4,69 +4,79 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Brain, MessageSquare, Mic, Video, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
-
-const useCases = [
-  {
-    icon: Brain,
-    category: "Computer Vision",
-    title: "Image classification & object detection",
-    description:
-      "Collect labeled images for training models across industries—from medical imaging to autonomous vehicles.",
-    tag: "Popular",
-  },
-  {
-    icon: MessageSquare,
-    category: "Natural Language",
-    title: "Text annotation & sentiment analysis",
-    description:
-      "Build datasets for NLP tasks including named entity recognition, intent classification, and conversational AI.",
-    tag: "Trending",
-  },
-  {
-    icon: Mic,
-    category: "Speech & Audio",
-    title: "Voice data collection",
-    description:
-      "Gather diverse voice samples across languages, accents, and demographics for speech recognition models.",
-    tag: null,
-  },
-  {
-    icon: Video,
-    category: "Video Analysis",
-    title: "Action recognition & tracking",
-    description:
-      "Collect video data with temporal annotations for activity recognition and video understanding models.",
-    tag: null,
-  },
-  {
-    icon: MapPin,
-    category: "Geospatial",
-    title: "Location-based data",
-    description:
-      "Build datasets with geographic context for mapping, navigation, and location-aware applications.",
-    tag: null,
-  },
-  {
-    icon: Brain,
-    category: "Multimodal",
-    title: "Cross-modal datasets",
-    description:
-      "Create datasets that combine multiple data types for advanced AI systems that understand the world holistically.",
-    tag: "New",
-  },
-];
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 export function UseCasesSection() {
+  const t = useTranslations();
+
+  const useCases = [
+    {
+      icon: Brain,
+      category: t("Computer Vision"),
+      title: t("Image classification & object detection"),
+      description: t(
+        "Collect labeled images for training models across industries—from medical imaging to autonomous vehicles.",
+      ),
+      tag: t("Popular"),
+    },
+    {
+      icon: MessageSquare,
+      category: t("Natural Language"),
+      title: t("Text annotation & sentiment analysis"),
+      description: t(
+        "Build datasets for NLP tasks including named entity recognition, intent classification, and conversational AI.",
+      ),
+      tag: t("Trending"),
+    },
+    {
+      icon: Mic,
+      category: t("Speech & Audio"),
+      title: t("Voice data collection"),
+      description: t(
+        "Gather diverse voice samples across languages, accents, and demographics for speech recognition models.",
+      ),
+      tag: null,
+    },
+    {
+      icon: Video,
+      category: t("Video Analysis"),
+      title: t("Action recognition & tracking"),
+      description: t(
+        "Collect video data with temporal annotations for activity recognition and video understanding models.",
+      ),
+      tag: null,
+    },
+    {
+      icon: MapPin,
+      category: t("Geospatial"),
+      title: t("Location-based data"),
+      description: t(
+        "Build datasets with geographic context for mapping, navigation, and location-aware applications.",
+      ),
+      tag: null,
+    },
+    {
+      icon: Brain,
+      category: t("Multimodal"),
+      title: t("Cross-modal datasets"),
+      description: t(
+        "Create datasets that combine multiple data types for advanced AI systems that understand the world holistically.",
+      ),
+      tag: t("New"),
+    },
+  ];
+
   return (
     <section className="relative py-24">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center">
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Built for every AI use case
+            {t("Built for every AI use case")}
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            From computer vision to conversational AI—we provide the collection flows,
-            contributor training, and review workflows tailored to your modality.
+            {t(
+              "From computer vision to conversational AI—we provide the collection flows, contributor training, and review workflows tailored to your modality.",
+            )}
           </p>
         </div>
 

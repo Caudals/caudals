@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Eye } from "lucide-react";
 import { ApprovalDialog } from "./approval-dialog";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface Submission {
   id: string;
@@ -43,13 +44,14 @@ export function PendingSubmissionsTable({
   const [dialogType, setDialogType] = useState<"approve" | "reject" | null>(
     null
   );
+  const t = useTranslations();
 
   if (submissions.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No Pending Submissions</CardTitle>
-          <CardDescription>All submissions have been reviewed</CardDescription>
+          <CardTitle>{t("No Pending Submissions")}</CardTitle>
+          <CardDescription>{t("All submissions have been reviewed")}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -59,21 +61,21 @@ export function PendingSubmissionsTable({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Contributions Awaiting Review</CardTitle>
+          <CardTitle>{t("Contributions Awaiting Review")}</CardTitle>
           <CardDescription>
             {submissions.length} submission{submissions.length !== 1 ? "s" : ""}{" "}
-            pending review
+            {t("pending review")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Dataset</TableHead>
-                <TableHead>Contributor</TableHead>
-                <TableHead>Files</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("Dataset")}</TableHead>
+                <TableHead>{t("Contributor")}</TableHead>
+                <TableHead>{t("Files")}</TableHead>
+                <TableHead>{t("Submitted")}</TableHead>
+                <TableHead className="text-right">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -81,14 +83,14 @@ export function PendingSubmissionsTable({
                 <TableRow key={submission.id}>
                   <TableCell className="font-medium max-w-md">
                     <div className="line-clamp-2">
-                      {submission.dataset_requests?.title || "Unknown Dataset"}
+                      {submission.dataset_requests?.title || t("Unknown Dataset")}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {submission.profiles?.full_name || "Anonymous"}
+                    {submission.profiles?.full_name || t("Anonymous")}
                   </TableCell>
                   <TableCell>
-                    {submission.file_urls?.length || 0} file(s)
+                    {submission.file_urls?.length || 0} {t("file(s)")}
                   </TableCell>
                   <TableCell>
                     {new Date(submission.created_at).toLocaleDateString()}

@@ -15,6 +15,7 @@ import {
   File,
   ExternalLink
 } from "lucide-react";
+import { useTranslations } from "@/lib/i18n/use-translations";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ interface FileViewerProps {
 }
 
 export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
+  const t = useTranslations();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -107,10 +109,10 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
-              Preview: {fileName}
+              {t("Preview:")} {fileName}
             </DialogTitle>
             <DialogDescription>
-              {fileType} file preview
+              {fileType} {t("file preview")}
             </DialogDescription>
           </DialogHeader>
           
@@ -135,7 +137,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
                   controls 
                   className="max-w-full max-h-[60vh] rounded-lg border"
                 >
-                  Your browser does not support the video tag.
+                  {t("Your browser does not support the video tag.")}
                 </video>
               </div>
             )}
@@ -147,7 +149,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
                   controls 
                   className="w-full max-w-md"
                 >
-                  Your browser does not support the audio tag.
+                  {t("Your browser does not support the audio tag.")}
                 </audio>
               </div>
             )}
@@ -156,11 +158,11 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
               <div className="text-center py-8">
                 <File className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">
-                  Preview not available for {fileType.toLowerCase()} files
+                  {t("Preview not available for this file type")}
                 </p>
                 <Button onClick={() => handleDownload(selectedFile)}>
                   <Download className="mr-2 h-4 w-4" />
-                  Download to view
+                  {t("Download to view")}
                 </Button>
               </div>
             )}
@@ -169,11 +171,11 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
           <div className="flex justify-between items-center pt-4 border-t">
             <Button variant="outline" onClick={() => handleDownload(selectedFile)}>
               <Download className="mr-2 h-4 w-4" />
-              Download
+              {t("Download")}
             </Button>
             <Button variant="outline" onClick={() => window.open(selectedFile, '_blank')}>
               <ExternalLink className="mr-2 h-4 w-4" />
-              Open in new tab
+              {t("Open in new tab")}
             </Button>
           </div>
         </DialogContent>
@@ -186,7 +188,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
       <Card>
         <CardContent className="p-6 text-center">
           <File className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">No files submitted</p>
+          <p className="text-muted-foreground">{t("No files submitted")}</p>
         </CardContent>
       </Card>
     );
@@ -198,14 +200,14 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <File className="h-5 w-5" />
-            Submitted Files
+            {t("Submitted Files")}
             <Badge variant="secondary">
               {fileUrls.length} file{fileUrls.length !== 1 ? 's' : ''}
             </Badge>
           </CardTitle>
           {metadata?.totalSize && (
             <p className="text-sm text-muted-foreground">
-              Total size: {formatFileSize(metadata.totalSize)}
+              {t("Total size:")} {formatFileSize(metadata.totalSize)}
             </p>
           )}
         </CardHeader>
@@ -236,7 +238,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
                       onClick={() => handlePreview(url)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
-                      Preview
+                      {t("Preview")}
                     </Button>
                     <Button
                       size="sm"
@@ -244,7 +246,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
                       onClick={() => handleDownload(url)}
                     >
                       <Download className="h-4 w-4 mr-1" />
-                      Download
+                      {t("Download")}
                     </Button>
                   </div>
                 </div>

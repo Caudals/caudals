@@ -175,13 +175,13 @@ export default function ResetPasswordPage() {
           >
             <Image
               src="/caudals_logo_black.svg"
-              alt="Caudals logo"
+              alt={t("Caudals logo")}
               width={28}
               height={28}
               className="h-7 w-7"
               priority
             />
-            <span>Caudals</span>
+            <span>{t("Caudals")}</span>
           </Link>
         </div>
 
@@ -248,7 +248,7 @@ export default function ResetPasswordPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t("••••••••")}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -262,7 +262,7 @@ export default function ResetPasswordPage() {
                   <Input
                     id="confirmPassword"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t("••••••••")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required

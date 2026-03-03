@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms?: string[];
@@ -34,6 +35,7 @@ const isIosDevice = () =>
   typeof navigator !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export function PwaInstallBanner() {
+  const t = useTranslations();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
     null
   );
@@ -113,22 +115,22 @@ export function PwaInstallBanner() {
             <Download className="h-4 w-4" />
           </div>
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-semibold">Install Caudals Companion</p>
+            <p className="text-sm font-semibold">{t("Install Caudals Companion")}</p>
             {showIosInstruction && !deferredPrompt ? (
               <p className="text-xs text-slate-600">
-                Tap the share icon in Safari and choose <strong>Add to Home Screen</strong>
-                {" "}for quick uploads.
+                {t("Tap the share icon in Safari and choose")}{" "}
+                <strong>{t("Add to Home Screen")}</strong>{" "}
+                {t("for quick uploads.")}
               </p>
             ) : (
               <p className="text-xs text-slate-600">
-                Add the PWA to your home screen to browse briefs and upload files lightning
-                fast.
+                {t("Add the PWA to your home screen to browse briefs and upload files lightning fast.")}
               </p>
             )}
             <div className="mt-2 flex gap-2">
               {deferredPrompt ? (
                 <Button size="sm" className="rounded-2xl px-4" onClick={triggerInstall}>
-                  Install now
+                  {t("Install now")}
                 </Button>
               ) : (
                 <Button
@@ -137,7 +139,7 @@ export function PwaInstallBanner() {
                   className="rounded-2xl border border-slate-200 px-4"
                   onClick={dismissBanner}
                 >
-                  Got it
+                  {t("Got it")}
                 </Button>
               )}
               <Button

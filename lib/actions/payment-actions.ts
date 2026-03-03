@@ -897,6 +897,96 @@ export async function getUserTransactions(limit = 50) {
   };
 }
 
+function toCsvCell(value: unknown): string {
+  const raw = value == null ? "" : String(value);
+  return `"${raw.replaceAll('"', '""')}"`;
+}
+
+function extractFailureReasonFromMetadata(
+  metadata: unknown
+): string {
+  if (!metadata || typeof metadata !== "object") {
+    return "";
+  }
+
+  const record = metadata as Record<string, unknown>;
+  const candidate =
+    record.failure_reason ?? record.error_message ?? record.transfer_status;
+
+  return typeof candidate === "string" ? candidate : "";
+}
+
+export async function exportContributorPayoutLedgerCsv(
+  limit = 500
+): Promise<
+  | {
+      data: {
+        filename: string;
+        content: string;
+        rowCount: number;
+      };
+    }
+  | { error: string }
+> {
+  const transactionsResult = await getUserTransactions(limit);
+  if ("error" in transactionsResult) {
+    return {
+      error: transactionsResult.error ?? "Failed to export contributor payouts",
+    };
+  }
+
+  const payouts = (transactionsResult.data ?? []).filter(
+    (tx) => tx.type === "submission_payout"
+  );
+
+  const header = [
+    "id",
+    "created_at",
+    "status",
+    "direction",
+    "type",
+    "amount_decimal",
+    "fee_decimal",
+    "net_decimal",
+    "currency",
+    "dataset_request_id",
+    "submission_id",
+    "reference_id",
+    "failure_reason",
+  ];
+
+  const lines = payouts.map((tx) => {
+    return [
+      tx.id,
+      tx.created_at,
+      tx.status ?? "",
+      tx.direction ?? "",
+      tx.type ?? "",
+      Number(tx.amount ?? 0).toFixed(2),
+      Number(tx.fee_amount ?? 0).toFixed(2),
+      Number(tx.net_amount ?? 0).toFixed(2),
+      String(tx.currency ?? "usd").toUpperCase(),
+      tx.dataset_request_id ?? "",
+      tx.submission_id ?? "",
+      tx.reference_id ?? "",
+      extractFailureReasonFromMetadata(tx.metadata),
+    ]
+      .map((cell) => toCsvCell(cell))
+      .join(",");
+  });
+
+  const content = [header.map(toCsvCell).join(","), ...lines].join("\n");
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  return {
+    data: {
+      filename: `contributor-payouts-${stamp}.csv`,
+      content,
+      rowCount: payouts.length,
+    },
+  };
+}
+
 export async function createPaymentIntent(
   datasetId: string,
   amount: number,

@@ -19,6 +19,7 @@ import { getUserTransactions } from "@/lib/actions/payment-actions";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { EarningsAccountTools } from "@/components/contributor/earnings/earnings-account-tools";
 
 export default async function EarningsPage() {
   const transactionsResult = await getUserTransactions(75);
@@ -153,6 +154,7 @@ export default async function EarningsPage() {
       </div>
 
       <StripeConnectStatus />
+      <EarningsAccountTools />
 
       <Card>
         <CardHeader>

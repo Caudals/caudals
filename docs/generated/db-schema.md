@@ -20,6 +20,7 @@ Last reviewed: 2026-03-03
 - `admin_activity_log`
 - `platform_settings`
 - `waitlist_signups`
+- `abuse_rate_limits`
 
 ## Payments and Ledger
 - `wallets`

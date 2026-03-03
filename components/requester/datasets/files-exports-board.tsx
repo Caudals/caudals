@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExportPanel, ExportRecord } from "@/components/requester/datasets/export-panel";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type ExportWithDataset = ExportRecord & {
   dataset_requests?: { title?: string } | null;
@@ -15,6 +16,7 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [datasetId, setDatasetId] = useState<string>("all");
+  const t = useTranslations();
 
   const datasetOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -67,21 +69,21 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
       <Card className="border-border/70 shadow-none">
         <CardContent className="grid gap-4 p-4 md:grid-cols-3">
           <div className="space-y-2">
-            <Label>Search</Label>
+            <Label>{t("Search")}</Label>
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Dataset, type, or status"
+              placeholder={t("Dataset, type, or status")}
             />
           </div>
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label>{t("Status")}</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="all">{t("All statuses")}</SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
@@ -91,13 +93,13 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Dataset</Label>
+            <Label>{t("Dataset")}</Label>
             <Select value={datasetId} onValueChange={setDatasetId}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All datasets</SelectItem>
+                <SelectItem value="all">{t("All datasets")}</SelectItem>
                 {datasetOptions.map((option) => (
                   <SelectItem key={option.id} value={option.id}>
                     {option.title}
@@ -111,7 +113,7 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
 
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-muted-foreground">
-          No exports match your filters.
+          {t("No exports match your filters.")}
         </div>
       ) : (
         groups.map(([id, group]) => (

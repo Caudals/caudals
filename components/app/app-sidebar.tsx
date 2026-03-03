@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -40,7 +41,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NavUser } from "@/components/app/nav-user";
 import { RoleSwitcher } from "@/components/app/role-switcher";
@@ -287,6 +287,22 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           },
         ];
 
+  const sidebarGroups: NavGroup[] = (() => {
+    const workspaceGroupIndex = navGroups.findIndex(
+      (group) => group.group === "Workspace",
+    );
+
+    if (workspaceGroupIndex >= 0) {
+      return navGroups.map((group, index) =>
+        index === workspaceGroupIndex
+          ? { ...group, items: [...group.items, ...utilityLinks] }
+          : group,
+      );
+    }
+
+    return [...navGroups, { group: "Resources", items: utilityLinks }];
+  })();
+
   const isItemActive = (item: NavItem) => {
     const { path: itemPath, params } = parseHref(item.href);
     const samePath = pathname === itemPath;
@@ -322,24 +338,39 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
       <SidebarHeader className="pb-4 pt-5 px-4">
-        <div
-          className={`flex items-center gap-2 ${isCollapsed ? "justify-center px-0" : "px-2"}`}
-        >
-          <Avatar className="h-9 w-9 rounded-lg">
-            <AvatarImage
-              src={
-                user?.user_metadata?.avatar_url ||
-                user?.user_metadata?.picture ||
-                undefined
-              }
-              alt={workspaceTitle}
-            />
-            <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
-              {workspaceTitle.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2 px-0">
+            <Link
+              href={homeHref}
+              aria-label={t("Caudals")}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30"
+            >
+              <Image
+                src="/caudals_logo_black.svg"
+                alt={t("Caudals logo")}
+                width={20}
+                height={20}
+                className="h-5 w-5"
+              />
+            </Link>
+            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-2">
+            <Link
+              href={homeHref}
+              aria-label={t("Caudals")}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30"
+            >
+              <Image
+                src="/caudals_logo_black.svg"
+                alt={t("Caudals logo")}
+                width={20}
+                height={20}
+                className="h-5 w-5"
+              />
+            </Link>
 
-          {!isCollapsed ? (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{workspaceTitle}</p>
               <div className="mt-0.5 flex items-center gap-2">
@@ -354,11 +385,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 </Link>
               </div>
             </div>
-          ) : null}
 
-          {!isCollapsed ? <NotificationBell /> : null}
-          <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
-        </div>
+            <NotificationBell />
+            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
+          </div>
+        )}
 
         <div className={`${isCollapsed ? "px-0" : "px-2"} pt-3 space-y-2`}>
           <CommandPaletteButton
@@ -380,7 +411,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        {navGroups.map((group) => (
+        {sidebarGroups.map((group) => (
           <SidebarGroup key={group.group}>
             <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70 group-data-[collapsible=icon]:sr-only">
               {t(group.group)}
@@ -413,28 +444,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter className="pb-4 px-4">
-        <SidebarMenu>
-          {utilityLinks.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                size="sm"
-                className="h-8 text-muted-foreground hover:text-foreground"
-                tooltip={t(item.title)}
-              >
-                <Link
-                  href={item.href}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
-                >
-                  <item.icon className="size-4" />
-                  <span>{t(item.title)}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-        <div className="mt-3 border-t border-sidebar-border/60 pt-3">
+        <div
+          className={
+            isCollapsed
+              ? "mt-1 flex justify-center border-t border-sidebar-border/60 pt-3"
+              : "mt-1 border-t border-sidebar-border/60 pt-3"
+          }
+        >
           <NavUser />
         </div>
       </SidebarFooter>

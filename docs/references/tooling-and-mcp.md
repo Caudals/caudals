@@ -91,6 +91,14 @@
 3. Prefer safe/forward migrations over destructive changes.
 4. If MCP context is stale, use the self-hosted Supabase operational path documented in `docs/references/legacy/caudals-context-legacy.md` and `docs/references/legacy/db-runbook.md`.
 
+## Localization QA Guardrail
+- Run EN/ES parity check before merge on localization-impacting changes:
+  - `npm run i18n:check-parity`
+- Run strict orphan audit when cleaning translation debt:
+  - `npm run i18n:check-parity -- --strict-orphans`
+- Reference:
+  - `docs/references/localization-qa-runbook.md`
+
 ## GitHub Usage Pattern
 1. Keep PR descriptions aligned with phase task IDs.
 2. Link completed tasks to validation evidence.

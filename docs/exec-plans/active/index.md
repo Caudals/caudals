@@ -2,14 +2,12 @@
 
 ## Queue
 
-1. `phase-14-export-queue-reliability-and-debt-closure.md` (P0, IN_PROGRESS)
+1. `phase-17-castilian-spanish-localization-overhaul.md` — IN_PROGRESS (P0)
 
 ## Task Selection Order
 
-1. `IN_PROGRESS` tasks in queue position 1
-2. remaining `P0` in queue position 1
-3. `P1` in queue position 1
-4. then queue position 2 and onward
+1. If an active phase exists, execute `IN_PROGRESS` tasks first.
+2. Then execute remaining `P0`, followed by `P1`, then `P2`.
 
 ## Active Plan Governance
 

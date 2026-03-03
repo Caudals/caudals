@@ -23,6 +23,7 @@ import { ApprovalDialog } from "./approval-dialog";
 import { categoryLabels } from "@/lib/data/datasets";
 import { AdminDatasetRequest } from "@/types/admin";
 import { DatasetEditDialog } from "./dataset-edit-dialog";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface PendingRequestsTableProps {
   requests: AdminDatasetRequest[];
@@ -37,14 +38,15 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
   const [editingRequest, setEditingRequest] =
     useState<AdminDatasetRequest | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const t = useTranslations();
 
   if (requests.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No Pending Requests</CardTitle>
+          <CardTitle>{t("No Pending Requests")}</CardTitle>
           <CardDescription>
-            All dataset requests have been reviewed
+            {t("All dataset requests have been reviewed")}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -55,23 +57,23 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Dataset Requests Awaiting Approval</CardTitle>
+          <CardTitle>{t("Dataset Requests Awaiting Approval")}</CardTitle>
           <CardDescription>
-            {requests.length} request{requests.length !== 1 ? "s" : ""} pending
-            review
+            {requests.length} request{requests.length !== 1 ? "s" : ""}{" "}
+            {t("pending review")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Requester</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Samples Needed</TableHead>
-                <TableHead>Reward</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("Title")}</TableHead>
+                <TableHead>{t("Requester")}</TableHead>
+                <TableHead>{t("Category")}</TableHead>
+                <TableHead>{t("Samples Needed")}</TableHead>
+                <TableHead>{t("Reward")}</TableHead>
+                <TableHead>{t("Submitted")}</TableHead>
+                <TableHead className="text-right">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -81,7 +83,7 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
                     <div className="line-clamp-2">{request.title}</div>
                   </TableCell>
                   <TableCell>
-                    {request.profiles?.full_name || "Unknown"}
+                    {request.profiles?.full_name || t("Unknown")}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">

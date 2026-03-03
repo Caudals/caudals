@@ -33,6 +33,7 @@ import {
 } from "@/lib/data/datasets";
 import { PwaDatasetCard } from "./pwa-dataset-card";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/i18n/use-translations";
 
 type SortOption = "recent" | "reward" | "popular";
 
@@ -41,6 +42,7 @@ interface PwaBrowseClientProps {
 }
 
 export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
+  const t = useTranslations();
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState<DatasetCategory | "all">("all");
   const [dataType, setDataType] = useState<DataType | "all">("all");
@@ -135,7 +137,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
           <Input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search briefs or organizations"
+            placeholder={t("Search briefs or organizations")}
             className="border-0 bg-transparent text-sm text-white placeholder:text-white/50 focus-visible:ring-0"
           />
         </div>
@@ -148,7 +150,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                 className="flex-1 rounded-2xl border border-white/15 bg-white/10 text-white hover:bg-white/20"
               >
                 <Filter className="mr-2 h-4 w-4" />
-                Refine
+                {t("Refine")}
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -156,12 +158,12 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
               className="h-[80vh] rounded-t-[30px] border-white/10 bg-slate-950 text-white"
             >
               <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
+                <SheetTitle>{t("Filters")}</SheetTitle>
               </SheetHeader>
               <div className="mt-6 space-y-5 overflow-y-auto pb-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-                    Category
+                    {t("Category")}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {categoryOptions.map((value) => (
@@ -178,7 +180,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                             : "border-white/20 bg-white/5 text-white/70"
                         )}
                       >
-                        {value === "all" ? "All topics" : categoryLabels[value]}
+                        {value === "all" ? t("All topics") : t(categoryLabels[value])}
                       </button>
                     ))}
                   </div>
@@ -186,7 +188,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
 
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-                    Data type
+                    {t("Data type")}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {dataTypeOptions.map((value) => (
@@ -201,7 +203,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                             : "border-white/15 bg-white/5 text-white/70"
                         )}
                       >
-                        {value === "all" ? "Any" : dataTypeLabels[value]}
+                        {value === "all" ? t("Any") : t(dataTypeLabels[value])}
                       </button>
                     ))}
                   </div>
@@ -209,7 +211,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
 
                 <div>
                   <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-                    Status
+                    {t("Status")}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {statusOptions.map((value) => (
@@ -226,7 +228,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                             : "border-white/15 bg-white/5 text-white/70"
                         )}
                       >
-                        {value === "all" ? "Any" : statusLabels[value]}
+                        {value === "all" ? t("Any") : t(statusLabels[value])}
                       </button>
                     ))}
                   </div>
@@ -235,9 +237,9 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                 <div className="flex items-center justify-between rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-white/40">
-                      Spotlight
+                      {t("Spotlight")}
                     </p>
-                    <p className="text-sm text-white">Featured only</p>
+                    <p className="text-sm text-white">{t("Featured only")}</p>
                   </div>
                   <Button
                     variant="outline"
@@ -248,7 +250,7 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                     )}
                     onClick={() => setFeaturedOnly((prev) => !prev)}
                   >
-                    {featuredOnly ? "Disable" : "Enable"}
+                    {featuredOnly ? t("Disable") : t("Enable")}
                   </Button>
                 </div>
               </div>
@@ -258,11 +260,11 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
                   className="w-full rounded-2xl border border-white/15 bg-transparent text-white"
                   onClick={resetFilters}
                 >
-                  Reset filters
+                  {t("Reset filters")}
                 </Button>
                 <SheetClose asChild>
                   <Button className="w-full rounded-2xl bg-white text-slate-900">
-                    Show results
+                    {t("Show results")}
                   </Button>
                 </SheetClose>
               </SheetFooter>
@@ -271,18 +273,18 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
 
           <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
             <SelectTrigger className="flex-1 rounded-2xl border border-white/15 bg-black/20 text-white">
-              <SelectValue placeholder="Sort" />
+              <SelectValue placeholder={t("Sort")} />
             </SelectTrigger>
             <SelectContent className="border border-white/10 bg-slate-900 text-white">
-              <SelectItem value="recent">Newest</SelectItem>
-              <SelectItem value="reward">Top reward</SelectItem>
-              <SelectItem value="popular">Most active</SelectItem>
+              <SelectItem value="recent">{t("Newest")}</SelectItem>
+              <SelectItem value="reward">{t("Top reward")}</SelectItem>
+              <SelectItem value="popular">{t("Most active")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <p className="mt-3 text-xs uppercase tracking-[0.4em] text-white/40">
-          {filteredDatasets.length} briefs
+          {filteredDatasets.length} {t("briefs")}
         </p>
       </div>
 
@@ -295,17 +297,17 @@ export function PwaBrowseClient({ initialDatasets }: PwaBrowseClientProps) {
       ) : (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center text-white/70">
           <p className="text-lg font-semibold text-white">
-            No briefs match those filters
+            {t("No briefs match those filters")}
           </p>
           <p className="mt-2 text-sm">
-            Try widening your category or data type selections.
+            {t("Try widening your category or data type selections.")}
           </p>
           <Button
             variant="secondary"
             className="mt-4 rounded-2xl"
             onClick={resetFilters}
           >
-            Clear filters
+            {t("Clear filters")}
           </Button>
         </div>
       )}
