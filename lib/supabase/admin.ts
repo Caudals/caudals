@@ -9,14 +9,15 @@ export const SERVICE_ROLE_SCOPES = [
   "analytics_ingest",
   "file_uploads",
   "waitlist_intake",
+  "abuse_controls",
   "retention_jobs",
+  "export_jobs",
   "debug_tools",
-  "legacy_misc",
 ] as const;
 
 export type ServiceRoleScope = (typeof SERVICE_ROLE_SCOPES)[number];
 
-export function createAdminClient(scope: ServiceRoleScope = "legacy_misc") {
+export function createAdminClient(scope: ServiceRoleScope) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 

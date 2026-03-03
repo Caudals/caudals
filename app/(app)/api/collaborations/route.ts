@@ -35,7 +35,7 @@ function withHeaders(
 
 export async function POST(request: NextRequest) {
   const clientIp = getClientIpFromHeaders(request.headers);
-  const ipRateLimit = consumeRateLimit({
+  const ipRateLimit = await consumeRateLimit({
     key: `collaboration:ip:${clientIp}`,
     limit: COLLAB_IP_RATE_LIMIT.limit,
     windowMs: COLLAB_IP_RATE_LIMIT.windowMs,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   const data = parsed.data;
   const normalizedWorkEmail = data.workEmail.toLowerCase();
-  const emailRateLimit = consumeRateLimit({
+  const emailRateLimit = await consumeRateLimit({
     key: `collaboration:email:${normalizedWorkEmail}`,
     limit: COLLAB_EMAIL_RATE_LIMIT.limit,
     windowMs: COLLAB_EMAIL_RATE_LIMIT.windowMs,

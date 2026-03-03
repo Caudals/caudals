@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   handlePaymentIntentSucceeded,
+  handlePaymentIntentFailed,
+  handleCheckoutSessionCompleted,
   handleTransferCreated,
   markStripeWebhookEventProcessed,
   reserveStripeWebhookEvent,
@@ -126,6 +128,128 @@ describe("stripe webhook idempotency", () => {
 
     expect(adminClient.from).toHaveBeenCalledTimes(2);
     expect(accountLookupBuilder.insert).not.toHaveBeenCalled();
+    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
+  });
+
+  it("skips payment_intent failure processing when transaction already exists", async () => {
+    const existingTxBuilder = createBuilder({
+      maybeSingleResult: {
+        data: { id: "tx_existing_3" },
+        error: null,
+      },
+    });
+    const adminClient = {
+      from: vi.fn((_table: string) => existingTxBuilder),
+    };
+
+    const event = {
+      data: {
+        object: {
+          id: "pi_failed_1",
+          metadata: {
+            user_id: "user_3",
+            type: "dataset_funding",
+            dataset_id: "dataset_1",
+          },
+          amount: 3000,
+          currency: "usd",
+          last_payment_error: {
+            message: "Card declined",
+          },
+        },
+      },
+    };
+
+    await handlePaymentIntentFailed(event as any, adminClient as any);
+
+    expect(adminClient.from).toHaveBeenCalledTimes(1);
+    expect(adminClient.from).toHaveBeenCalledWith("transactions");
+    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
+  });
+
+  it("processes checkout.session.completed through payment-intent logic", async () => {
+    const transactionBuilder = createBuilder({
+      maybeSingleResult: {
+        data: null,
+        error: null,
+      },
+      awaitResult: {
+        data: null,
+        error: null,
+      },
+    });
+    const adminClient = {
+      from: vi.fn((_table: string) => transactionBuilder),
+    };
+
+    const event = {
+      data: {
+        object: {
+          id: "cs_123",
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: {
+            id: "pi_456",
+            metadata: {
+              user_id: "user_4",
+              type: "wallet_deposit",
+            },
+            amount_received: 1200,
+            amount: 1200,
+            currency: "usd",
+            customer: null,
+          },
+        },
+      },
+    };
+
+    await handleCheckoutSessionCompleted(event as any, adminClient as any);
+
+    expect(adminClient.from).toHaveBeenCalledWith("transactions");
+    expect(transactionBuilder.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reference_id: "pi_456",
+        type: "wallet_deposit",
+        status: "completed",
+      })
+    );
+  });
+
+  it("skips checkout.session.completed when payment transaction already exists", async () => {
+    const existingTxBuilder = createBuilder({
+      maybeSingleResult: {
+        data: { id: "tx_existing_4" },
+        error: null,
+      },
+    });
+    const adminClient = {
+      from: vi.fn((_table: string) => existingTxBuilder),
+    };
+
+    const event = {
+      data: {
+        object: {
+          id: "cs_456",
+          mode: "payment",
+          payment_status: "paid",
+          payment_intent: {
+            id: "pi_789",
+            metadata: {
+              user_id: "user_5",
+              type: "wallet_deposit",
+            },
+            amount_received: 3000,
+            amount: 3000,
+            currency: "usd",
+            customer: null,
+          },
+        },
+      },
+    };
+
+    await handleCheckoutSessionCompleted(event as any, adminClient as any);
+
+    expect(adminClient.from).toHaveBeenCalledTimes(1);
     expect(existingTxBuilder.insert).not.toHaveBeenCalled();
   });
 });

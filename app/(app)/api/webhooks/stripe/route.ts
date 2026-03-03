@@ -30,6 +30,9 @@ const stripeEventHandlers: Record<
 > = {
   "payment_intent.succeeded": handlePaymentIntentSucceeded,
   "payment_intent.payment_failed": handlePaymentIntentFailed,
+  "checkout.session.completed": handleCheckoutSessionCompleted,
+  "checkout.session.async_payment_succeeded": handleCheckoutSessionCompleted,
+  "checkout.session.async_payment_failed": handleCheckoutSessionAsyncPaymentFailed,
   "account.updated": handleAccountUpdated,
   "transfer.created": handleTransferCreated,
   "transfer.failed": handleTransferFailed,
@@ -55,6 +58,21 @@ function isUniqueViolation(error: unknown) {
 
   const message = "message" in error ? String(error.message ?? "") : "";
   return message.toLowerCase().includes("duplicate key");
+}
+
+function isMissingWebhookEventsTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const message = "message" in error ? String(error.message ?? "") : "";
+  if (
+    message
+      .toLowerCase()
+      .includes("could not find the table 'public.stripe_webhook_events'")
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function reserveStripeWebhookEvent(
@@ -206,11 +224,30 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient("stripe_webhooks");
+  let usingWebhookEventLedger = true;
 
   try {
-    const reservation = await reserveStripeWebhookEvent(event, admin);
+    let reservation:
+      | { shouldProcess: boolean; deduplicated: boolean; retrying: boolean }
+      | null = null;
+    try {
+      reservation = await reserveStripeWebhookEvent(event, admin);
+    } catch (error) {
+      if (isMissingWebhookEventsTableError(error)) {
+        usingWebhookEventLedger = false;
+        logWarn(
+          "stripe_webhook_events table missing; continuing without dedupe ledger",
+          {
+            eventId: event.id,
+            eventType: event.type,
+          }
+        );
+      } else {
+        throw error;
+      }
+    }
 
-    if (!reservation.shouldProcess) {
+    if (reservation && !reservation.shouldProcess) {
       return NextResponse.json({ received: true, deduplicated: true });
     }
 
@@ -222,23 +259,26 @@ export async function POST(request: NextRequest) {
       logInfo(`Unhandled Stripe event type: ${event.type}`);
     }
 
-    await markStripeWebhookEventProcessed(event.id, admin);
+    if (usingWebhookEventLedger) {
+      await markStripeWebhookEventProcessed(event.id, admin);
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
     logError("Error processing Stripe webhook:", error);
     const message =
       error instanceof Error ? error.message : "Webhook processing failed";
-    await markStripeWebhookEventFailed(event.id, message, admin);
+    if (usingWebhookEventLedger) {
+      await markStripeWebhookEventFailed(event.id, message, admin);
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-export async function handlePaymentIntentSucceeded(
-  event: Stripe.Event,
+async function processPaymentIntentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
   admin: ReturnType<typeof createAdminClient>
 ) {
-  const paymentIntent = event.data.object as Stripe.PaymentIntent;
   const adminClient = admin as any;
   const metadata = paymentIntent.metadata ?? {};
   const userId = metadata.user_id;
@@ -444,11 +484,74 @@ export async function handlePaymentIntentSucceeded(
   }
 }
 
-async function handlePaymentIntentFailed(
+export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
   admin: ReturnType<typeof createAdminClient>
 ) {
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  await processPaymentIntentSucceeded(paymentIntent, admin);
+}
+
+async function resolveCheckoutPaymentIntent(
+  checkoutSession: Stripe.Checkout.Session
+): Promise<Stripe.PaymentIntent | null> {
+  if (!checkoutSession.payment_intent) {
+    return null;
+  }
+
+  if (typeof checkoutSession.payment_intent !== "string") {
+    return checkoutSession.payment_intent;
+  }
+
+  const stripe = getStripeServer();
+  const paymentIntent = await stripe.paymentIntents.retrieve(
+    checkoutSession.payment_intent
+  );
+
+  if ("deleted" in paymentIntent && paymentIntent.deleted) {
+    return null;
+  }
+
+  return paymentIntent;
+}
+
+export async function handleCheckoutSessionCompleted(
+  event: Stripe.Event,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const checkoutSession = event.data.object as Stripe.Checkout.Session;
+
+  if (checkoutSession.mode !== "payment") {
+    return;
+  }
+
+  if (checkoutSession.payment_status !== "paid") {
+    return;
+  }
+
+  try {
+    const paymentIntent = await resolveCheckoutPaymentIntent(checkoutSession);
+    if (!paymentIntent) {
+      logWarn(
+        "checkout.session.completed missing payment intent",
+        checkoutSession.id
+      );
+      return;
+    }
+    await processPaymentIntentSucceeded(paymentIntent, admin);
+  } catch (error) {
+    logError("Failed processing checkout.session.completed", {
+      sessionId: checkoutSession.id,
+      error,
+    });
+    throw error;
+  }
+}
+
+async function processPaymentIntentFailed(
+  paymentIntent: Stripe.PaymentIntent,
+  admin: ReturnType<typeof createAdminClient>
+) {
   const adminClient = admin as any;
   const metadata = paymentIntent.metadata ?? {};
   const userId = metadata.user_id;
@@ -456,6 +559,19 @@ async function handlePaymentIntentFailed(
   const paymentType = metadata.type;
 
   if (!userId || !paymentType) {
+    return;
+  }
+
+  const { data: existingTx } = await adminClient
+    .from("transactions")
+    .select("id")
+    .eq("reference_id", paymentIntent.id)
+    .maybeSingle();
+
+  if (existingTx) {
+    logInfo(
+      `Transaction already recorded for failed payment intent ${paymentIntent.id}, skipping`
+    );
     return;
   }
 
@@ -498,6 +614,43 @@ async function handlePaymentIntentFailed(
     if (error) {
       logError("Failed to update dataset after failed payment", error);
     }
+  }
+}
+
+export async function handlePaymentIntentFailed(
+  event: Stripe.Event,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  await processPaymentIntentFailed(paymentIntent, admin);
+}
+
+export async function handleCheckoutSessionAsyncPaymentFailed(
+  event: Stripe.Event,
+  admin: ReturnType<typeof createAdminClient>
+) {
+  const checkoutSession = event.data.object as Stripe.Checkout.Session;
+
+  if (checkoutSession.mode !== "payment") {
+    return;
+  }
+
+  try {
+    const paymentIntent = await resolveCheckoutPaymentIntent(checkoutSession);
+    if (!paymentIntent) {
+      logWarn(
+        "checkout.session.async_payment_failed missing payment intent",
+        checkoutSession.id
+      );
+      return;
+    }
+    await processPaymentIntentFailed(paymentIntent, admin);
+  } catch (error) {
+    logError("Failed processing checkout.session.async_payment_failed", {
+      sessionId: checkoutSession.id,
+      error,
+    });
+    throw error;
   }
 }
 

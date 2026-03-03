@@ -10,6 +10,7 @@ import { getStripeServer } from "@/lib/stripe/server";
 import type { Database, Json } from "@/types/database";
 import { deriveDatasetStatus } from "@/lib/utils/dataset-status";
 import { recordFunnelEvent } from "@/lib/analytics/funnel-events-server";
+import { logError } from "@/lib/security/structured-logger";
 
 const PLATFORM_FEE_PERCENTAGE = Number(
   process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE ?? "10"
@@ -127,6 +128,8 @@ type TransactionType =
   | "platform_fee"
   | "stripe_adjustment"
   | "refund";
+type FundingCheckoutStatus = "pending" | "succeeded" | "failed" | "cancelled";
+type FundingCheckoutType = "wallet_deposit" | "dataset_funding" | "unknown";
 
 interface RecordTransactionInput {
   userId: string;
@@ -155,6 +158,24 @@ function assertStripeConfigured() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error("Stripe is not configured. Missing STRIPE_SECRET_KEY.");
   }
+}
+
+async function resolveAppOrigin(): Promise<string> {
+  const headerStore = await headers();
+  const origin = headerStore.get("origin");
+  if (origin) return origin;
+
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  if (host) {
+    const proto = headerStore.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`;
+  }
+
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+
+  return "http://127.0.0.1:3000";
 }
 
 function describeTransaction(tx: TransactionRow): string {
@@ -283,7 +304,7 @@ async function recordFundingFunnelEvent(input: {
       },
     });
   } catch (error) {
-    console.error("Failed to record funnel funding event", {
+    logError("Failed to record funnel funding event", {
       userId: input.userId,
       datasetId: input.datasetId,
       source: input.source,
@@ -314,13 +335,13 @@ export async function getDatasetBudgetSummary(
   const { data: dataset, error: datasetError } = await adminClient
     .from("dataset_requests")
     .select(
-      "id, total_budget, reward_amount, samples_needed, approval_status, payment_status, status"
+      "id, total_budget, reward_amount, samples_needed, paid_amount, approval_status, payment_status, status"
     )
     .eq("id", datasetId)
     .maybeSingle();
 
   if (datasetError || !dataset) {
-    console.error("Failed to load dataset budget", datasetError);
+    logError("Failed to load dataset budget", datasetError);
     return { error: "Dataset not found or budget unavailable" };
   }
 
@@ -330,35 +351,51 @@ export async function getDatasetBudgetSummary(
   const totalBudgetCents = Math.round(Number(dataset.total_budget ?? 0) * 100) || derivedBudgetCents;
   const rewardCents = Math.round(Number(dataset.reward_amount ?? 0) * 100);
 
-  const { data: fundingRow, error: fundingError } = await adminClient
-    .from("transactions")
-    .select("funded_cents:sum(net_amount)")
-    .eq("dataset_request_id", datasetId)
-    .eq("type", "dataset_funding")
-    .eq("status", "completed")
-    .maybeSingle();
+  const [{ data: fundingRows, error: fundingError }, { data: payoutRows, error: payoutError }] =
+    await Promise.all([
+      adminClient
+        .from("transactions")
+        .select("amount, net_amount")
+        .eq("dataset_request_id", datasetId)
+        .eq("type", "dataset_funding")
+        .eq("status", "completed"),
+      adminClient
+        .from("transactions")
+        .select("amount, net_amount")
+        .eq("dataset_request_id", datasetId)
+        .eq("type", "submission_payout")
+        .eq("status", "completed"),
+    ]);
 
-  if (fundingError && fundingError.code !== "PGRST116") {
-    console.warn("Failed to aggregate dataset funding, defaulting to 0", fundingError);
+  if (fundingError) {
+    console.warn("Failed to load dataset funding rows, defaulting to stored budget", fundingError);
   }
 
-  const { data: payoutRow, error: payoutError } = await adminClient
-    .from("transactions")
-    .select("payout_cents:sum(net_amount)")
-    .eq("dataset_request_id", datasetId)
-    .eq("type", "submission_payout")
-    .eq("status", "completed")
-    .maybeSingle();
-
-  if (payoutError && payoutError.code !== "PGRST116") {
-    console.warn("Failed to aggregate dataset payouts, defaulting to 0", payoutError);
+  if (payoutError) {
+    console.warn("Failed to load dataset payout rows, defaulting to 0", payoutError);
   }
 
-  const fundedCents = Math.round(
-    Number((fundingRow as { funded_cents: number | null } | null)?.funded_cents ?? 0)
+  const sumCents = (rows: Array<{ amount?: number | null; net_amount?: number | null }> | null) =>
+    (rows ?? []).reduce((sum, row) => {
+      const netAmount = Number(row.net_amount ?? row.amount ?? 0);
+      return sum + (Number.isFinite(netAmount) ? Math.round(netAmount) : 0);
+    }, 0);
+
+  const fundedFromTransactionsCents = sumCents(
+    fundingRows as Array<{ amount?: number | null; net_amount?: number | null }> | null
   );
-  const paidOutCents = Math.round(
-    Number((payoutRow as { payout_cents: number | null } | null)?.payout_cents ?? 0)
+  const storedFundedCents = Math.round(Number(dataset.paid_amount ?? 0) * 100);
+  // Keep compatibility with pre-ledger datasets where paid_amount is populated but transaction rows are sparse.
+  const fundedCents = Math.max(
+    0,
+    Math.max(fundedFromTransactionsCents, storedFundedCents)
+  );
+
+  const paidOutCents = Math.max(
+    0,
+    sumCents(
+      payoutRows as Array<{ amount?: number | null; net_amount?: number | null }> | null
+    )
   );
   const remainingForFundingCents = Math.max(0, totalBudgetCents - fundedCents);
   const remainingForPayoutCents = Math.max(0, fundedCents - paidOutCents);
@@ -400,7 +437,7 @@ export const ensureWalletRecord = async (
     .maybeSingle();
 
   if (walletError && walletError.code !== "PGRST116") {
-    console.error("Failed to load wallet record", walletError);
+    logError("Failed to load wallet record", walletError);
     throw new Error("Failed to load wallet record");
   }
 
@@ -422,7 +459,7 @@ export const ensureWalletRecord = async (
     .single();
 
   if (upsertError || !inserted) {
-    console.error("Failed to ensure wallet record", upsertError);
+    logError("Failed to ensure wallet record", upsertError);
     throw new Error("Failed to ensure wallet record");
   }
 
@@ -462,7 +499,7 @@ export const ensureStripeCustomerForUser = async (
     .single();
 
   if (updateError || !updatedWallet) {
-    console.error("Failed to persist Stripe customer id", updateError);
+    logError("Failed to persist Stripe customer id", updateError);
     throw new Error("Failed to persist Stripe customer id");
   }
 
@@ -570,7 +607,7 @@ export const syncWalletFromConnectAccount = async (
     }
 
     if (updateError) {
-      console.error("Failed to update wallet from Stripe balance", updateError);
+      logError("Failed to update wallet from Stripe balance", updateError);
     }
 
     return {
@@ -581,7 +618,7 @@ export const syncWalletFromConnectAccount = async (
       last_synced_at: syncedAt,
     };
   } catch (error) {
-    console.error("Failed to retrieve Stripe balance", error);
+    logError("Failed to retrieve Stripe balance", error);
     return wallet;
   }
 };
@@ -640,7 +677,7 @@ export const syncWalletFromCustomer = async (
     }
 
     if (updateError) {
-      console.error(
+      logError(
         "Failed to update wallet from Stripe customer",
         updateError
       );
@@ -654,7 +691,7 @@ export const syncWalletFromCustomer = async (
       last_synced_at: syncedAt,
     };
   } catch (error) {
-    console.error("Failed to retrieve Stripe customer balance", error);
+    logError("Failed to retrieve Stripe customer balance", error);
     return wallet;
   }
 };
@@ -697,7 +734,7 @@ async function recordTransaction({
     .single();
 
   if (error) {
-    console.error("Failed to record transaction", error);
+    logError("Failed to record transaction", error);
     throw new Error("Failed to record transaction");
   }
 
@@ -753,7 +790,7 @@ async function upsertStripeAccountRecord(
     .upsert(payload, { onConflict: "user_id" });
 
   if (upsertError) {
-    console.error("Failed to upsert stripe account record", upsertError);
+    logError("Failed to upsert stripe account record", upsertError);
     throw new Error("Failed to persist Stripe account record");
   }
 
@@ -793,7 +830,7 @@ export async function getUserWallet() {
   try {
     walletRecord = await ensureWalletRecord(adminClient, user.id);
   } catch (errorEnsure) {
-    console.error("Failed to prepare wallet record", errorEnsure);
+    logError("Failed to prepare wallet record", errorEnsure);
     return { error: "Failed to load wallet" };
   }
 
@@ -843,7 +880,7 @@ export async function getUserTransactions(limit = 50) {
     .limit(limit);
 
   if (error) {
-    console.error("Error fetching transactions", error);
+    logError("Error fetching transactions", error);
     return { error: "Failed to fetch transactions" };
   }
 
@@ -906,7 +943,7 @@ export async function createPaymentIntent(
     );
     customerId = ensuredCustomer.customerId;
   } catch (customerError) {
-    console.error(
+    logError(
       "Failed to ensure Stripe customer before payment intent",
       customerError
     );
@@ -1013,12 +1050,430 @@ export async function createPaymentIntent(
       },
     };
   } catch (error) {
-    console.error("Failed to create PaymentIntent", error);
+    logError("Failed to create PaymentIntent", error);
     const message =
       error instanceof Error
         ? error.message
         : "Failed to create payment intent";
     return { error: message };
+  }
+}
+
+export async function createWalletFundingCheckoutSession(
+  amount: number,
+  currency = "USD"
+) {
+  assertStripeConfigured();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const amountInCents = centsFromAmount(amount);
+  if (amountInCents <= 0) {
+    return { error: "Amount must be greater than zero" };
+  }
+
+  const normalizedCurrency = currency.toLowerCase();
+  const admin = createAdminClient("payments_ledger");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
+  const stripe = getStripeServer();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, mail")
+    .eq("id", user.id)
+    .single();
+
+  let customerId: string;
+  try {
+    const ensured = await ensureStripeCustomerForUser(
+      stripe,
+      adminClient,
+      user.id,
+      profile?.mail ?? user.email,
+      profile?.full_name
+    );
+    customerId = ensured.customerId;
+  } catch (error) {
+    logError("Failed to ensure Stripe customer before wallet top-up", error);
+    return { error: "Unable to prepare wallet funding session" };
+  }
+
+  try {
+    const appOrigin = await resolveAppOrigin();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      success_url: `${appOrigin}/requester/billing?funding=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appOrigin}/requester/billing?funding=cancelled`,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: normalizedCurrency,
+            unit_amount: amountInCents,
+            product_data: {
+              name: "Caudals wallet funding",
+              description: "Requester wallet top-up",
+            },
+          },
+        },
+      ],
+      payment_intent_data: {
+        receipt_email: profile?.mail ?? user.email ?? undefined,
+        metadata: {
+          user_id: user.id,
+          type: "wallet_deposit",
+          stripe_customer_id: customerId,
+        },
+      },
+      metadata: {
+        user_id: user.id,
+        type: "wallet_deposit",
+      },
+    });
+
+    if (!session.url) {
+      return { error: "Stripe did not return a checkout URL" };
+    }
+
+    return {
+      data: {
+        checkout_url: session.url,
+        session_id: session.id,
+      },
+    };
+  } catch (error) {
+    logError("Failed to create wallet funding checkout session", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create wallet funding checkout session",
+    };
+  }
+}
+
+export async function createDatasetFundingCheckoutSession(
+  datasetId: string,
+  amount: number,
+  currency = "USD"
+) {
+  assertStripeConfigured();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const amountInCents = centsFromAmount(amount);
+  if (amountInCents <= 0) {
+    return { error: "Amount must be greater than zero" };
+  }
+
+  const normalizedCurrency = currency.toLowerCase();
+  const admin = createAdminClient("payments_ledger");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
+  const stripe = getStripeServer();
+
+  const [{ data: profile }, { data: dataset, error: datasetError }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, mail")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("dataset_requests")
+        .select("id, title, created_by")
+        .eq("id", datasetId)
+        .single(),
+    ]);
+
+  if (datasetError || !dataset || dataset.created_by !== user.id) {
+    return { error: "Dataset not found or access denied" };
+  }
+
+  const budgetSummary = await getDatasetBudgetSummary(datasetId, adminClient);
+  if (budgetSummary.error || !budgetSummary.data) {
+    return { error: budgetSummary.error ?? "Failed to load dataset budget" };
+  }
+
+  const {
+    totalBudgetCents,
+    fundedCents,
+    remainingForFundingCents,
+  } = budgetSummary.data;
+
+  if (totalBudgetCents <= 0) {
+    return { error: "Dataset has no total budget set. Add a budget before funding." };
+  }
+
+  if (remainingForFundingCents <= 0) {
+    return { error: "Dataset is already fully funded." };
+  }
+
+  if (amountInCents > remainingForFundingCents) {
+    return {
+      error: `You can fund up to ${amountFromCents(remainingForFundingCents).toFixed(
+        2
+      )} to reach the dataset budget.`,
+    };
+  }
+
+  let customerId: string;
+  try {
+    const ensured = await ensureStripeCustomerForUser(
+      stripe,
+      adminClient,
+      user.id,
+      profile?.mail ?? user.email,
+      profile?.full_name
+    );
+    customerId = ensured.customerId;
+  } catch (error) {
+    logError(
+      "Failed to ensure Stripe customer before dataset funding checkout",
+      error
+    );
+    return { error: "Unable to prepare dataset funding session" };
+  }
+
+  try {
+    const appOrigin = await resolveAppOrigin();
+    const successPath = `/requester/datasets/${datasetId}`;
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      success_url: `${appOrigin}${successPath}?funding=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appOrigin}${successPath}?funding=cancelled`,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: normalizedCurrency,
+            unit_amount: amountInCents,
+            product_data: {
+              name: `Dataset funding: ${dataset.title}`,
+              description: "Requester dataset budget allocation",
+            },
+          },
+        },
+      ],
+      payment_intent_data: {
+        receipt_email: profile?.mail ?? user.email ?? undefined,
+        transfer_group: `dataset_${datasetId}`,
+        metadata: {
+          user_id: user.id,
+          dataset_id: datasetId,
+          type: "dataset_funding",
+          current_funded: fundedCents.toString(),
+          stripe_customer_id: customerId,
+        },
+      },
+      metadata: {
+        user_id: user.id,
+        dataset_id: datasetId,
+        type: "dataset_funding",
+      },
+    });
+
+    if (!session.url) {
+      return { error: "Stripe did not return a checkout URL" };
+    }
+
+    return {
+      data: {
+        checkout_url: session.url,
+        session_id: session.id,
+      },
+    };
+  } catch (error) {
+    logError("Failed to create dataset funding checkout session", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create dataset funding checkout session",
+    };
+  }
+}
+
+export async function createRequesterBillingPortalSession(
+  returnPath = "/requester/billing"
+): Promise<{ data: { url: string } } | { error: string }> {
+  assertStripeConfigured();
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const stripe = getStripeServer();
+  const admin = createAdminClient("payments_ledger");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminClient = admin as any;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, mail")
+    .eq("id", user.id)
+    .single();
+
+  let customerId: string;
+  try {
+    const ensured = await ensureStripeCustomerForUser(
+      stripe,
+      adminClient,
+      user.id,
+      profile?.mail ?? user.email,
+      profile?.full_name
+    );
+    customerId = ensured.customerId;
+  } catch (error) {
+    logError("Failed to ensure Stripe customer for billing portal", error);
+    return { error: "Unable to prepare billing management session" };
+  }
+
+  const normalizedReturnPath =
+    returnPath.startsWith("/") && !returnPath.startsWith("//")
+      ? returnPath
+      : "/requester/billing";
+
+  try {
+    const appOrigin = await resolveAppOrigin();
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${appOrigin}${normalizedReturnPath}`,
+    });
+
+    return { data: { url: portal.url } };
+  } catch (error) {
+    logError("Failed to create billing portal session", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create billing portal session",
+    };
+  }
+}
+
+export async function getFundingCheckoutSessionStatus(sessionId: string): Promise<
+  | {
+      data: {
+        status: FundingCheckoutStatus;
+        funding_type: FundingCheckoutType;
+        dataset_id: string | null;
+        payment_intent_id: string | null;
+      };
+    }
+  | { error: string }
+> {
+  assertStripeConfigured();
+
+  const normalizedSessionId = sessionId.trim();
+  if (!normalizedSessionId.startsWith("cs_")) {
+    return { error: "Invalid checkout session id." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const stripe = getStripeServer();
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(normalizedSessionId, {
+      expand: ["payment_intent"],
+    });
+
+    const sessionMetadata = session.metadata ?? {};
+    const paymentIntentObject =
+      typeof session.payment_intent === "string"
+        ? null
+        : session.payment_intent;
+    const paymentIntentMetadata =
+      paymentIntentObject &&
+      typeof paymentIntentObject === "object" &&
+      "metadata" in paymentIntentObject
+        ? paymentIntentObject.metadata ?? {}
+        : {};
+    const ownerUserId =
+      sessionMetadata.user_id ?? paymentIntentMetadata.user_id ?? null;
+
+    if (!ownerUserId || ownerUserId !== user.id) {
+      return { error: "Checkout session not found or access denied." };
+    }
+
+    const typeRaw = sessionMetadata.type ?? paymentIntentMetadata.type;
+    const fundingType: FundingCheckoutType =
+      typeRaw === "wallet_deposit" || typeRaw === "dataset_funding"
+        ? typeRaw
+        : "unknown";
+    const datasetId =
+      sessionMetadata.dataset_id ?? paymentIntentMetadata.dataset_id ?? null;
+    const paymentIntentId =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null;
+
+    let status: FundingCheckoutStatus = "pending";
+    if (session.status === "expired") {
+      status = "failed";
+    } else if (session.status === "complete") {
+      status = session.payment_status === "paid" ? "succeeded" : "pending";
+    }
+
+    if (status === "succeeded" && paymentIntentId) {
+      const confirmation = await confirmPayment(paymentIntentId);
+      if ("error" in confirmation) {
+        return { error: confirmation.error ?? "Failed to confirm payment." };
+      }
+
+      revalidatePath("/requester/billing");
+      if (datasetId) {
+        revalidatePath(`/requester/datasets/${datasetId}`);
+      }
+    }
+
+    return {
+      data: {
+        status,
+        funding_type: fundingType,
+        dataset_id: datasetId,
+        payment_intent_id: paymentIntentId,
+      },
+    };
+  } catch (error) {
+    logError("Failed to retrieve funding checkout session", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unable to verify checkout session status",
+    };
   }
 }
 
@@ -1078,7 +1533,7 @@ export async function confirmPayment(paymentIntentId: string) {
 
           await syncWalletFromCustomer(stripe, adminClient, wallet, customerId);
         } catch (syncError) {
-          console.error(
+          logError(
             "Failed to sync wallet after payment confirmation",
             syncError
           );
@@ -1170,7 +1625,7 @@ export async function confirmPayment(paymentIntentId: string) {
 
           await syncWalletFromCustomer(stripe, adminClient, wallet, customerId);
         } catch (syncError) {
-          console.error(
+          logError(
             "Failed to sync wallet after dataset payment",
             syncError
           );
@@ -1182,7 +1637,7 @@ export async function confirmPayment(paymentIntentId: string) {
 
     return { data: { success: true } };
   } catch (error) {
-    console.error("Error confirming payment", error);
+    logError("Error confirming payment", error);
     return { error: "Failed to confirm payment" };
   }
 }
@@ -1603,7 +2058,7 @@ export async function submitStripeOnboarding(
       },
     };
   } catch (error) {
-    console.error("Error during Stripe onboarding", error);
+    logError("Error during Stripe onboarding", error);
     const message =
       error instanceof Error
         ? error.message
@@ -1643,7 +2098,7 @@ export async function deleteStripeConnectAccount() {
     await stripe.accounts.del(accountRecord.stripe_account_id);
   } catch (error) {
     if (!isAccessRevokedError(error, accountRecord.stripe_account_id)) {
-      console.error("Failed to delete Stripe connect account", error);
+      logError("Failed to delete Stripe connect account", error);
       const message =
         error instanceof Error
           ? error.message
@@ -1754,7 +2209,7 @@ export async function getStripeConnectStatus() {
       },
     };
   } catch (error) {
-    console.error("Failed to fetch Stripe status", error);
+    logError("Failed to fetch Stripe status", error);
     return { error: "Failed to fetch Stripe account status" };
   }
 }
@@ -1805,7 +2260,7 @@ export async function getStripeConnectBalance() {
       },
     };
   } catch (error) {
-    console.error("Failed to fetch Stripe balance", error);
+    logError("Failed to fetch Stripe balance", error);
     return { error: "Failed to fetch Stripe balance" };
   }
 }
@@ -1819,6 +2274,10 @@ export async function payoutToContributor(
   assertStripeConfigured();
 
   const amountInCents = centsFromAmount(amount);
+  if (amountInCents <= 0) {
+    return { error: "Payout amount must be greater than zero" };
+  }
+
   const stripe = getStripeServer();
   const admin = createAdminClient("payments_ledger");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1830,6 +2289,10 @@ export async function payoutToContributor(
     .eq("id", datasetId)
     .maybeSingle();
 
+  if (datasetError || !datasetRecord) {
+    return { error: "Dataset not found for payout" };
+  }
+
   const { data: accountRecord, error: accountError } = await adminClient
     .from("stripe_accounts")
     .select("*")
@@ -1840,14 +2303,56 @@ export async function payoutToContributor(
     return { error: "Contributor has no Stripe account" };
   }
 
+  if (!accountRecord.stripe_account_id) {
+    return { error: "Contributor Stripe account is missing an account id" };
+  }
+
+  if (!accountRecord.details_submitted) {
+    return { error: "Contributor payout details are incomplete" };
+  }
+
   if (!accountRecord.payouts_enabled) {
     return { error: "Contributor payouts are not enabled yet" };
+  }
+
+  const requirementsCurrentlyDue = Array.isArray(
+    accountRecord.requirements_currently_due
+  )
+    ? accountRecord.requirements_currently_due
+    : [];
+
+  if (requirementsCurrentlyDue.length > 0) {
+    return {
+      error:
+        "Contributor payout account still has pending Stripe requirements. Ask the contributor to complete Stripe onboarding updates.",
+    };
+  }
+
+  if (typeof accountRecord.requirements_disabled_reason === "string" &&
+      accountRecord.requirements_disabled_reason.trim().length > 0) {
+    return {
+      error: `Contributor payout account is restricted: ${accountRecord.requirements_disabled_reason}`,
+    };
+  }
+
+  const { data: existingPayoutTx } = await adminClient
+    .from("transactions")
+    .select("id,status")
+    .eq("submission_id", submissionId)
+    .eq("type", "submission_payout")
+    .in("status", ["pending", "completed"])
+    .maybeSingle();
+
+  if (existingPayoutTx) {
+    return {
+      error: `Submission already has a ${existingPayoutTx.status} payout transaction`,
+    };
   }
 
   const feeAmount = calculatePlatformFee(amountInCents);
   const netAmount = amountInCents - feeAmount;
 
-  if (netAmount <= 0) {
+  if (netAmount < 1) {
     return { error: "Calculated payout is not valid" };
   }
 
@@ -1855,9 +2360,28 @@ export async function payoutToContributor(
     accountRecord.default_currency ?? "usd"
   ).toLowerCase();
   const datasetCurrency = datasetRecord?.currency?.toLowerCase();
+
+  if (
+    datasetCurrency &&
+    accountCurrency &&
+    datasetCurrency !== accountCurrency
+  ) {
+    return {
+      error: `Currency mismatch: dataset is ${datasetCurrency.toUpperCase()} but contributor payout account is ${accountCurrency.toUpperCase()}`,
+    };
+  }
+
   const transferCurrency = (accountCurrency || datasetCurrency || "usd").toLowerCase();
 
   try {
+    const liveAccount = await stripe.accounts.retrieve(accountRecord.stripe_account_id);
+    if ("deleted" in liveAccount && liveAccount.deleted) {
+      return { error: "Contributor Stripe account no longer exists" };
+    }
+    if (!liveAccount.payouts_enabled) {
+      return { error: "Contributor payouts are currently disabled in Stripe" };
+    }
+
     const transfer = await stripe.transfers.create({
       amount: netAmount,
       currency: transferCurrency,
@@ -1908,7 +2432,40 @@ export async function payoutToContributor(
       },
     };
   } catch (error) {
-    console.error("Failed to create Stripe transfer", error);
+    logError("Failed to create Stripe transfer", error);
+
+    const failedReferenceId = `payout-failed:${submissionId}:${Date.now()}`;
+    try {
+      await recordTransaction({
+        userId: contributorId,
+        direction: "credit",
+        type: "submission_payout",
+        amountInCents: netAmount,
+        currency: transferCurrency,
+        status: "failed",
+        referenceId: failedReferenceId,
+        datasetRequestId: datasetId,
+        submissionId,
+        metadata: {
+          gross_amount: amountInCents,
+          platform_fee: feeAmount,
+          stripe_account_id: accountRecord.stripe_account_id,
+          transfer_currency: transferCurrency,
+          error_message: error instanceof Error ? error.message : "unknown",
+          error_type:
+            error && typeof error === "object" && "type" in error
+              ? String((error as { type?: unknown }).type ?? "")
+              : "",
+          error_code:
+            error && typeof error === "object" && "code" in error
+              ? String((error as { code?: unknown }).code ?? "")
+              : "",
+        },
+      });
+    } catch (recordError) {
+      logError("Failed to record payout failure transaction", recordError);
+    }
+
     const message =
       error instanceof Error ? error.message : "Failed to create payout";
     return { error: message };

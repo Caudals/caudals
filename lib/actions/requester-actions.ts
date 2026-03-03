@@ -2,10 +2,9 @@
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createClient } from "@/lib/supabase/server";
-import { exportDatasetToJSON } from "@/lib/actions/export-actions";
-import { spacesClient, SPACES_BUCKET, CDN_URL } from "@/lib/storage/spaces-client";
+import { processPendingDatasetExportJobs } from "@/lib/jobs/export-jobs";
+import { SPACES_BUCKET, CDN_URL } from "@/lib/storage/spaces-client";
 import { recordFunnelEvent } from "@/lib/analytics/funnel-events-server";
 import {
   actionError,
@@ -316,22 +315,6 @@ async function writeDatasetActivity(
   }
 
   return { ok: true };
-}
-
-async function failDatasetExport(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  exportId: string,
-  errorMessage: string
-) {
-  await supabase
-    .from("dataset_exports")
-    .update({
-      status: "failed",
-      error: errorMessage.slice(0, 500),
-      progress: 0,
-      completed_at: null,
-    })
-    .eq("id", exportId);
 }
 
 export async function getRequesterDatasets(
@@ -925,88 +908,6 @@ export async function requestDatasetExport(
 
   const exportId = createdExport.id as string;
 
-  await supabase
-    .from("dataset_exports")
-    .update({
-      status: "preparing",
-      progress: 35,
-    })
-    .eq("id", exportId);
-
-  const exported = await exportDatasetToJSON(validated.id);
-  if (exported.error || !exported.data) {
-    await failDatasetExport(
-      supabase,
-      exportId,
-      exported.error ?? "Failed to generate export payload"
-    );
-    return actionError(
-      "INTERNAL_ERROR",
-      exported.error ?? "Failed to generate export payload"
-    );
-  }
-
-  const objectKey = `exports/${validated.id}/${exportId}.json`;
-  const body = Buffer.from(exported.data, "utf8");
-
-  try {
-    await spacesClient.send(
-      new PutObjectCommand({
-        Bucket: SPACES_BUCKET,
-        Key: objectKey,
-        Body: body,
-        ACL: "public-read",
-        ContentType: "application/json",
-        CacheControl: "max-age=300",
-      })
-    );
-  } catch (uploadError) {
-    const errorMessage =
-      uploadError instanceof Error ? uploadError.message : "Failed to upload export artifact";
-    await failDatasetExport(supabase, exportId, errorMessage);
-    return actionError("INTERNAL_ERROR", errorMessage);
-  }
-
-  const fileUrl = resolveExportUrlFromRecord({
-    id: exportId,
-    dataset_request_id: validated.id,
-    status: "ready",
-    export_type: "full",
-    created_at: new Date().toISOString(),
-    completed_at: new Date().toISOString(),
-    file_url: objectKey,
-  });
-
-  if (!fileUrl) {
-    await failDatasetExport(supabase, exportId, "Unable to generate export download URL");
-    return actionError("INTERNAL_ERROR", "Unable to generate export download URL");
-  }
-
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const { error: readyError } = await supabase
-    .from("dataset_exports")
-    .update({
-      status: "ready",
-      progress: 100,
-      file_url: fileUrl,
-      size_bytes: body.length,
-      completed_at: now.toISOString(),
-      expires_at: expiresAt,
-      metadata: {
-        requested_at: now.toISOString(),
-        format: "json",
-        object_key: objectKey,
-      },
-    })
-    .eq("id", exportId);
-
-  if (readyError) {
-    await failDatasetExport(supabase, exportId, readyError.message);
-    return actionError("DB_ERROR", readyError.message);
-  }
-
   const activity = await writeDatasetActivity(
     supabase,
     userId,
@@ -1024,6 +925,14 @@ export async function requestDatasetExport(
       `Export created but activity logging failed: ${activity.error}`
     );
   }
+
+  // Durable queue is the source of truth. This optional kick is best-effort only.
+  void processPendingDatasetExportJobs({ exportId }).catch((error) => {
+    console.error("Failed to trigger export job processor", {
+      exportId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
 
   revalidatePath("/requester/files");
   revalidatePath(`/requester/datasets/${validated.id}`);
@@ -1685,6 +1594,12 @@ export async function getRequesterBillingOverview(): Promise<
         type: string;
         status?: string;
         direction?: "debit" | "credit";
+        currency?: string;
+        reference_id?: string | null;
+        dataset_request_id?: string | null;
+        submission_id?: string | null;
+        failure_reason?: string | null;
+        metadata?: Record<string, unknown> | null;
         created_at: string;
       }>;
     }
@@ -1706,7 +1621,9 @@ export async function getRequesterBillingOverview(): Promise<
         .maybeSingle(),
       supabase
         .from("transactions")
-        .select("id,amount,type,status,direction,created_at")
+        .select(
+          "id,amount,type,status,direction,currency,reference_id,dataset_request_id,submission_id,metadata,created_at"
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(100),
@@ -1721,14 +1638,37 @@ export async function getRequesterBillingOverview(): Promise<
 
   const availableBalanceCents = toNumber(wallet?.available_balance);
   const pendingBalanceCents = toNumber(wallet?.pending_balance);
-  const normalizedTransactions = (transactions ?? []).map((tx) => ({
-    id: tx.id,
-    amount: toNumber(tx.amount),
-    type: tx.type,
-    status: tx.status ?? "pending",
-    direction: (tx.direction ?? "debit") as "debit" | "credit",
-    created_at: tx.created_at,
-  }));
+  const normalizedTransactions = (transactions ?? []).map((tx) => {
+    const normalizedStatus = ["pending", "completed", "failed", "cancelled"].includes(
+      String(tx.status ?? "pending").toLowerCase()
+    )
+      ? String(tx.status ?? "pending").toLowerCase()
+      : "pending";
+    const normalizedDirection =
+      tx.direction === "credit" || tx.direction === "debit"
+        ? tx.direction
+        : "debit";
+    const failureReason = isRecord(tx.metadata)
+      ? typeof tx.metadata.failure_reason === "string"
+        ? tx.metadata.failure_reason
+        : null
+      : null;
+
+    return {
+      id: tx.id,
+      amount: toNumber(tx.amount),
+      type: tx.type,
+      status: normalizedStatus,
+      direction: normalizedDirection,
+      currency: tx.currency ?? "usd",
+      reference_id: tx.reference_id ?? null,
+      dataset_request_id: tx.dataset_request_id ?? null,
+      submission_id: tx.submission_id ?? null,
+      failure_reason: failureReason,
+      metadata: isRecord(tx.metadata) ? tx.metadata : null,
+      created_at: tx.created_at,
+    };
+  });
 
   return {
     wallet: {
@@ -1746,6 +1686,94 @@ export async function getRequesterBillingOverview(): Promise<
     })),
     invoices: [],
     transactions: normalizedTransactions,
+  };
+}
+
+function toCsvCell(value: unknown): string {
+  const raw = value == null ? "" : String(value);
+  const escaped = raw.replaceAll('"', '""');
+  return `"${escaped}"`;
+}
+
+export async function exportRequesterBillingLedgerCsv(): Promise<
+  | {
+      data: {
+        filename: string;
+        content: string;
+      };
+    }
+  | ActionError
+> {
+  const auth = await getRequesterAuthContext();
+  if ("error" in auth) {
+    return auth;
+  }
+
+  const { supabase, userId } = auth;
+  const { data: transactions, error } = await supabase
+    .from("transactions")
+    .select(
+      "id,created_at,type,status,direction,amount,currency,dataset_request_id,submission_id,reference_id,metadata"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+
+  if (error) {
+    return actionError("DB_ERROR", error.message);
+  }
+
+  const header = [
+    "id",
+    "created_at",
+    "type",
+    "status",
+    "direction",
+    "amount_cents",
+    "amount_currency",
+    "amount_decimal",
+    "dataset_request_id",
+    "submission_id",
+    "reference_id",
+    "failure_reason",
+  ];
+
+  const lines = (transactions ?? []).map((tx) => {
+    const failureReason = isRecord(tx.metadata)
+      ? typeof tx.metadata.failure_reason === "string"
+        ? tx.metadata.failure_reason
+        : ""
+      : "";
+
+    const amountCents = toNumber(tx.amount);
+    const amountDecimal = (amountCents / 100).toFixed(2);
+
+    return [
+      tx.id,
+      tx.created_at,
+      tx.type ?? "",
+      tx.status ?? "",
+      tx.direction ?? "",
+      amountCents,
+      String(tx.currency ?? "usd").toUpperCase(),
+      amountDecimal,
+      tx.dataset_request_id ?? "",
+      tx.submission_id ?? "",
+      tx.reference_id ?? "",
+      failureReason,
+    ]
+      .map((cell) => toCsvCell(cell))
+      .join(",");
+  });
+
+  const content = [header.map(toCsvCell).join(","), ...lines].join("\n");
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  return {
+    data: {
+      filename: `requester-ledger-${stamp}.csv`,
+      content,
+    },
   };
 }
 

@@ -48,6 +48,14 @@ test.describe("authenticated role journeys", () => {
         name: /manage dataset briefs|manage briefs|gestionar/i,
       }),
     ).toBeVisible();
+
+    await page.goto("/requester/billing");
+    await expect(page).toHaveURL(/\/requester\/billing/);
+    await expect(
+      page.getByRole("heading", {
+        name: /funding and ledger|financiación|ledger/i,
+      }),
+    ).toBeVisible();
   });
 
   test("contributor can access role home and contributions workspace", async ({
@@ -68,6 +76,14 @@ test.describe("authenticated role journeys", () => {
         name: /my contributions|mis contribuciones/i,
       }),
     ).toBeVisible();
+
+    await page.goto("/contributor/earnings");
+    await expect(page).toHaveURL(/\/contributor\/earnings/);
+    await expect(
+      page.getByRole("heading", {
+        name: /earnings and payouts|ganancias/i,
+      }),
+    ).toBeVisible();
   });
 
   test("admin can access role home and moderation queue", async ({ page }) => {
@@ -84,6 +100,14 @@ test.describe("authenticated role journeys", () => {
     await expect(
       page.getByRole("heading", {
         name: /pending dataset requests|solicitudes de dataset pendientes/i,
+      }),
+    ).toBeVisible();
+
+    await page.goto("/admin/payments");
+    await expect(page).toHaveURL(/\/admin\/payments/);
+    await expect(
+      page.getByRole("heading", {
+        name: /payment overview|resumen de pagos/i,
       }),
     ).toBeVisible();
   });

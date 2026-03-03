@@ -2,7 +2,7 @@
 
 ## Queue
 
-No active phases. Add the next phase file in this folder when new scoped work starts.
+1. `phase-14-export-queue-reliability-and-debt-closure.md` (P0, IN_PROGRESS)
 
 ## Task Selection Order
 

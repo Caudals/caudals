@@ -1,14 +1,23 @@
 "use client";
 
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubmissionsPanel, SubmissionItem } from "@/components/requester/datasets/submissions-panel";
 import { ExportPanel, ExportRecord } from "@/components/requester/datasets/export-panel";
 import { AutomationPanel } from "@/components/requester/datasets/automation-panel";
+import {
+  createDatasetFundingCheckoutSession,
+  getUserWallet,
+  payWithWallet,
+} from "@/lib/actions/payment-actions";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 
 type RequesterDatasetDetail = {
   id: string;
@@ -40,12 +49,122 @@ export function DatasetWorkspace({
   detail: RequesterDatasetDetail;
   submissions: SubmissionItem[];
 }) {
+  const router = useRouter();
+  const toast = useLocaleToast();
+  const [isFundingPending, startFundingTransition] = useTransition();
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [fundingAmount, setFundingAmount] = useState<string>("");
+
   const samplesCollected = Number(detail.samples_collected ?? 0);
   const samplesNeeded = Number(detail.samples_needed ?? 0);
   const progress =
     samplesNeeded > 0
       ? Math.min(100, Math.round((samplesCollected / samplesNeeded) * 100))
       : 0;
+  const totalBudget = Number(detail.total_budget ?? 0);
+  const fundedAmount = Number(detail.paid_amount ?? 0);
+  const remainingToFund = Math.max(0, totalBudget - fundedAmount);
+
+  const resolvedFundingAmount = useMemo(() => {
+    if (fundingAmount.trim().length === 0) {
+      return remainingToFund > 0 ? remainingToFund : 0;
+    }
+
+    const parsed = Number(fundingAmount);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return parsed;
+  }, [fundingAmount, remainingToFund]);
+
+  const currencyCode = (detail.currency ?? "USD").toUpperCase();
+  const formatMoney = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  useEffect(() => {
+    const loadWallet = async () => {
+      const walletResult = await getUserWallet();
+      if ("error" in walletResult || !walletResult.data) {
+        setWalletBalance(null);
+        return;
+      }
+      setWalletBalance(Number(walletResult.data.available_balance ?? 0));
+    };
+
+    void loadWallet();
+  }, []);
+
+  const onFundWithWallet = () => {
+    if (remainingToFund <= 0) {
+      toast.error("This dataset is already fully funded.");
+      return;
+    }
+
+    if (resolvedFundingAmount <= 0) {
+      toast.error("Enter a valid amount greater than 0.");
+      return;
+    }
+
+    if (resolvedFundingAmount > remainingToFund) {
+      toast.error(`Maximum remaining amount is ${formatMoney(remainingToFund)}.`);
+      return;
+    }
+
+    startFundingTransition(async () => {
+      const result = await payWithWallet(detail.id, resolvedFundingAmount);
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Wallet funding applied.");
+      router.refresh();
+      const walletResult = await getUserWallet();
+      if (!("error" in walletResult) && walletResult.data) {
+        setWalletBalance(Number(walletResult.data.available_balance ?? 0));
+      }
+    });
+  };
+
+  const onFundWithCard = () => {
+    if (remainingToFund <= 0) {
+      toast.error("This dataset is already fully funded.");
+      return;
+    }
+
+    if (resolvedFundingAmount <= 0) {
+      toast.error("Enter a valid amount greater than 0.");
+      return;
+    }
+
+    if (resolvedFundingAmount > remainingToFund) {
+      toast.error(`Maximum remaining amount is ${formatMoney(remainingToFund)}.`);
+      return;
+    }
+
+    startFundingTransition(async () => {
+      const result = await createDatasetFundingCheckoutSession(
+        detail.id,
+        resolvedFundingAmount,
+        currencyCode
+      );
+
+      if ("error" in result) {
+        toast.error(result.error);
+        return;
+      }
+
+      const checkoutUrl = result.data?.checkout_url;
+      if (!checkoutUrl) {
+        toast.error("Stripe checkout URL was not returned.");
+        return;
+      }
+
+      window.location.assign(checkoutUrl);
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -110,6 +229,47 @@ export function DatasetWorkspace({
                   ? new Date(detail.deadline).toLocaleDateString()
                   : "No deadline"}
               </p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border/70 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Funding actions</p>
+                <p className="text-xs text-muted-foreground">
+                  Remaining budget: {formatMoney(remainingToFund)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Wallet available:{" "}
+                  {walletBalance === null ? "—" : formatMoney(walletBalance)}
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link href="/requester/billing">Top up wallet</Link>
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-col gap-2 md:flex-row">
+              <Input
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder={remainingToFund > 0 ? remainingToFund.toFixed(2) : "0.00"}
+                value={fundingAmount}
+                onChange={(event) => setFundingAmount(event.target.value)}
+              />
+              <Button
+                variant="secondary"
+                disabled={isFundingPending || remainingToFund <= 0}
+                onClick={onFundWithWallet}
+              >
+                Fund from wallet
+              </Button>
+              <Button
+                disabled={isFundingPending || remainingToFund <= 0}
+                onClick={onFundWithCard}
+              >
+                Fund with card
+              </Button>
             </div>
           </div>
         </CardContent>

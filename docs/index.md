@@ -13,7 +13,8 @@ This directory is organized for long-horizon autonomous execution.
 
 ## How Agents Should Use This
 1. Pick phase from `docs/exec-plans/active/index.md`.
-2. Execute tasks and treat the selected active phase file as a living document.
-3. If execution reveals extra scope, extend/refine tasks and subtasks in that same phase file before continuing.
-4. Log outcomes in `docs/logs/changelog/` and `docs/logs/validations/`.
-5. Keep product/design/security docs synchronized with behavior changes.
+2. For new phases, start from `docs/exec-plans/phase-template.md` and include stage-based breakdown plus tasks/subtasks.
+3. Execute tasks and treat the selected active phase file as a living document.
+4. If execution reveals extra scope, extend/refine stages/tasks/subtasks in that same phase file before continuing.
+5. Log outcomes in `docs/logs/changelog/` and `docs/logs/validations/`.
+6. Keep product/design/security docs synchronized with behavior changes.

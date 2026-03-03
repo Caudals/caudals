@@ -17,6 +17,7 @@
 | `docs/exec-plans/active/` | Current phase execution details (living plan files) | During active task progress and whenever scope/task breakdown changes mid-phase |
 | `docs/exec-plans/completed/` | Historical completed phases | On phase completion only |
 | `docs/exec-plans/tech-debt-tracker.md` | Deferred debt backlog | When debt is introduced/resolved |
+| `docs/exec-plans/phase-template.md` | Authoring baseline for new detailed phase plans | Whenever a new phase file is created |
 | `docs/product-specs/` | Product behavior contracts | Product requirements change |
 | `docs/design-docs/` | Design system and IA contracts | UX behavior or visual contracts change |
 | `docs/generated/` | Generated snapshots | After regeneration event |
@@ -32,5 +33,5 @@
 
 ## Mid-Execution Plan Steering
 1. When execution reveals missing scope, edit the current active phase file first.
-2. Add/adjust tasks or subtasks with correct priority and status tags.
+2. Add/adjust stage definitions, tasks, or subtasks with correct priority and status tags.
 3. Continue implementation against the updated plan and then follow the completed-task write sequence above.
