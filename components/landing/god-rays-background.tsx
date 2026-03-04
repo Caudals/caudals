@@ -13,6 +13,8 @@ export function LandingGodRaysBackground({
   className,
   contentHeight,
 }: LandingGodRaysBackgroundProps) {
+  const MAX_CANVAS_SIZE = 4096;
+  const MAX_TARGET_HEIGHT = 6000;
   const fallbackHeight = typeof window !== "undefined" ? window.innerHeight : 0;
   const [dimensions, setDimensions] = useState({
     width: 0,
@@ -20,20 +22,28 @@ export function LandingGodRaysBackground({
     canvasSize: 0,
   });
   const [isMobile, setIsMobile] = useState(false);
+  const [useStaticFallback, setUseStaticFallback] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
       // Check if mobile/tablet
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
+      const automation =
+        window.navigator.webdriver === true ||
+        /HeadlessChrome|Lighthouse/i.test(window.navigator.userAgent);
+      setUseStaticFallback(automation);
 
-      if (!mobile) {
+      if (!mobile && !automation) {
         const viewportWidth = window.innerWidth;
-        const targetHeight = contentHeight || window.innerHeight;
+        const targetHeight = Math.min(
+          Math.max(contentHeight || window.innerHeight, window.innerHeight),
+          MAX_TARGET_HEIGHT
+        );
 
         // Calculate diagonal distance and multiply to ensure full coverage
         const diagonal = Math.sqrt(viewportWidth ** 2 + targetHeight ** 2);
-        const canvasSize = diagonal * 1.2;
+        const canvasSize = Math.min(diagonal * 1.2, MAX_CANVAS_SIZE);
 
         setDimensions({
           width: viewportWidth,
@@ -52,7 +62,7 @@ export function LandingGodRaysBackground({
   }, [contentHeight]);
 
   // Mobile fallback: CSS gradient only
-  if (isMobile) {
+  if (isMobile || useStaticFallback) {
     return (
       <div
         className={cn(

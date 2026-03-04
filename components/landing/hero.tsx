@@ -32,8 +32,8 @@ export function HeroSection() {
     <section className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center px-6 py-16 sm:px-8 lg:px-12">
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="mb-6"
         >
@@ -47,8 +47,8 @@ export function HeroSection() {
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.05 }}
           className={`${interHeading.className} text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl`}
         >
@@ -56,8 +56,8 @@ export function HeroSection() {
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.15 }}
           className="mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl"
         >
@@ -67,8 +67,8 @@ export function HeroSection() {
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.25 }}
           className="mt-10 flex flex-col gap-4 sm:flex-row"
         >
@@ -89,8 +89,8 @@ export function HeroSection() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.35 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground"
         >
@@ -103,8 +103,8 @@ export function HeroSection() {
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.45 }}
           className="mt-14 w-full"
         >
