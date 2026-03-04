@@ -57,7 +57,8 @@ Caudals is an AI dataset operations platform with three role surfaces:
 
 ## Tooling and MCP Usage
 - Supabase MCP / CLI: schema checks, data validation, safe migrations.
-- GitHub MCP: issue/PR tracking and review workflows.
+- GitHub MCP: issue/PR tracking, review workflows, and repository/CI context checks.
+- GitHub CLI (`gh`): inspect GitHub Actions CI/CD runs and logs, especially on failures (for example: `gh run list`, `gh run view <run-id>`, `gh run view <run-id> --log-failed`, `gh run watch <run-id>`).
 - Chrome DevTools MCP: visual QA, interaction checks, screenshots.
 - Terminal tooling: build, tests, lint, static analysis.
 

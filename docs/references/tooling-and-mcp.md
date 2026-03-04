@@ -6,7 +6,8 @@
 - Supabase MCP: runtime DB inspection and operational queries.
 - Stripe CLI: local webhook forwarding and deterministic event simulation.
 - Stripe MCP: Stripe resource inspection and controlled billing/subscription operations.
-- GitHub MCP: PR/issues/review workflows.
+- GitHub MCP: PR/issues/review workflows, repository and CI context checks.
+- GitHub CLI (`gh`): GitHub Actions CI/CD run inspection, failure triage, and log access.
 - Chrome DevTools MCP: UI verification and screenshot capture.
 
 ## Tool Selection Matrix
@@ -14,6 +15,8 @@
 - Quick DB inspection and ad hoc read queries: Supabase MCP.
 - Stripe webhook route testing (`/api/webhooks/stripe`): Stripe CLI.
 - Stripe object lookup/ops inside Codex: Stripe MCP.
+- PR/issues/review workflows inside Codex: GitHub MCP.
+- CI/CD run status and failed job logs: GitHub CLI (`gh`).
 
 ## Supabase CLI Usage Pattern (Self-Hosted)
 1. Source self-hosted credentials from local secret file (never commit):
@@ -76,6 +79,17 @@
 4. Capture screenshots for desktop and mobile.
 5. Store evidence in `docs/logs/validations/`.
 
+## GitHub CLI (`gh`) Usage Pattern
+1. List recent workflow runs:
+   - `gh run list`
+2. Inspect run summary, jobs, and statuses:
+   - `gh run view <run-id>`
+3. Read failed-step logs directly for triage:
+   - `gh run view <run-id> --log-failed`
+4. Stream run progress for an in-flight CI/CD pipeline:
+   - `gh run watch <run-id>`
+5. For failed builds, attach run ID, failing job, and key log excerpt to validation/changelog notes.
+
 ## Payments Cutover and Incident Runbook
 - Canonical runbook:
   - `docs/references/payments-cutover-runbook.md`
@@ -99,6 +113,6 @@
 - Reference:
   - `docs/references/localization-qa-runbook.md`
 
-## GitHub Usage Pattern
+## GitHub MCP Usage Pattern
 1. Keep PR descriptions aligned with phase task IDs.
 2. Link completed tasks to validation evidence.
