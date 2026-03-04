@@ -60,14 +60,11 @@ export default async function AdminUsersPage() {
         }
       />
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle>All users</CardTitle>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
@@ -86,7 +83,7 @@ export default async function AdminUsersPage() {
                 </TableRow>
               )}
               {users.map((user) => (
-                <TableRow key={user.id} className="hover:bg-muted/30">
+                <TableRow key={user.id} >
                   <TableCell className="font-medium">
                     {user.full_name || "Unknown"}
                   </TableCell>
@@ -107,7 +104,7 @@ export default async function AdminUsersPage() {
                       <select
                         name="role"
                         defaultValue={user.role}
-                        className="h-9 rounded-lg border border-border/70 bg-card px-3 text-sm"
+                        className="h-9 rounded-lg border border-border bg-card px-3 text-sm"
                       >
                         <option value="contributor">contributor</option>
                         <option value="requester">requester</option>

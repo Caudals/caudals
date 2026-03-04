@@ -159,7 +159,7 @@ export default async function AdminSupportPage(props: {
         }
       />
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>
             Support tickets ({ticketRes.total.toLocaleString()})
@@ -235,7 +235,7 @@ export default async function AdminSupportPage(props: {
 
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Ticket</TableHead>
                 <TableHead>Requester</TableHead>
                 <TableHead>Status</TableHead>
@@ -397,7 +397,7 @@ export default async function AdminSupportPage(props: {
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>Waitlist ({waitlistRes.total.toLocaleString()})</CardTitle>
         </CardHeader>
@@ -458,7 +458,7 @@ export default async function AdminSupportPage(props: {
 
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Use case</TableHead>
@@ -585,7 +585,7 @@ export default async function AdminSupportPage(props: {
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>Follow-ups from rejections</CardTitle>
         </CardHeader>
@@ -598,7 +598,7 @@ export default async function AdminSupportPage(props: {
           {followups.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col gap-1 rounded-lg border border-border/70 bg-muted/20 p-3"
+              className="flex flex-col gap-1 rounded-lg border border-border  p-3"
             >
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline" className="capitalize">

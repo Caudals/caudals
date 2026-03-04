@@ -221,7 +221,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
               return (
                 <div 
                   key={index}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between p-3 border rounded-lg hover: transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-8 w-8 text-muted-foreground" />

@@ -132,7 +132,7 @@ export function ContributionsView({
     <div className="space-y-6">
       {/* Earnings Overview */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               {t("Total Earnings")}
@@ -149,7 +149,7 @@ export function ContributionsView({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">{t("Pending")}</CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
@@ -164,7 +164,7 @@ export function ContributionsView({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">{t("Needs Changes")}</CardTitle>
             <Clock className="h-4 w-4 text-amber-600" />
@@ -179,7 +179,7 @@ export function ContributionsView({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">{t("Approval Rate")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-violet-600" />
@@ -193,7 +193,7 @@ export function ContributionsView({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">{t("Rejected")}</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
@@ -210,7 +210,7 @@ export function ContributionsView({
       </div>
 
       {/* Contributions Table */}
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

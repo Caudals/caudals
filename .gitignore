@@ -42,5 +42,5 @@ next-env.d.ts
 /.npm-cache
 
 # Screenshots
-docs/logs/validations/*.png
-*.png
+docs/logs/validations/#*.png
+#*.png

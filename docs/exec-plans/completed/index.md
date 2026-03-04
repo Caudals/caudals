@@ -19,6 +19,8 @@
 - `phase-14-export-queue-reliability-and-debt-closure.md`
 - `phase-15-payments-and-payouts-market-readiness.md`
 - `phase-16-market-readiness-polish-and-growth.md`
+- `phase-18-design-system-refactor.md`
+- `phase-19-dashboard-redesign-design-image-parity.md`
 
 ## Legacy Full Tracker Snapshot
 

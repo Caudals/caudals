@@ -14,8 +14,8 @@ Global execution board for long-running autonomous delivery.
 - `docs/exec-plans/weekly-planning-reset.md`: recurring queue hygiene checklist
 
 ## Program State
-- Phases 00-16 are completed and archived in `docs/exec-plans/completed/`.
-- Active delivery focus is Phase 17.
+- Phases 00-19 are completed and archived in `docs/exec-plans/completed/`.
+- Active delivery focus is Phase 19 (user-requested dashboard redesign handoff), with Phase 17 retained as an active legacy in-progress record.
 
 ## Queueing Rules
 1. Work explicit user-requested items first.
@@ -24,7 +24,8 @@ Global execution board for long-running autonomous delivery.
 4. Prefer tasks that unlock multiple downstream tasks.
 
 ## Active Phase Queue
-1. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
+1. **Phase 19 – Cross-Role Dashboard Redesign With Design-Image Parity** (`docs/exec-plans/active/phase-19-dashboard-redesign-design-image-parity.md`) — IN_PROGRESS, P0
+2. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
 
 ## Phase Lifecycle (Canonical)
 - Create one detailed phase file per initiative in `docs/exec-plans/active/` using `docs/exec-plans/phase-template.md`.

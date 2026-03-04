@@ -47,7 +47,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   return (
     <Link
       href={`/browse/${dataset.id}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background transition-all duration-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background transition-all duration-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       aria-label={dataset.title}
     >
       {/* Image Section */}

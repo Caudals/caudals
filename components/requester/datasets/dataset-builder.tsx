@@ -214,7 +214,7 @@ export function DatasetBuilder({
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardHeader className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="text-lg">
@@ -252,7 +252,7 @@ export function DatasetBuilder({
         </CardHeader>
       </Card>
 
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardContent className="grid gap-6 p-6">
           <div className="space-y-2">
             <Label>{t("Title")}</Label>
@@ -411,7 +411,7 @@ export function DatasetBuilder({
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
             <p className="text-sm text-muted-foreground">{t("Estimated budget")}</p>

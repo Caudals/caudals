@@ -67,7 +67,7 @@ export default async function AdminAnalyticsPage() {
         <AnalyticsCard title="Submissions" entries={data.submissionsByStatus} />
       </div>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>Funnel Conversion ({funnel.windowDays}d)</CardTitle>
         </CardHeader>
@@ -77,7 +77,7 @@ export default async function AdminAnalyticsPage() {
               (step: { key: string; label: string; count: number }) => (
                 <div
                   key={step.key}
-                  className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3"
+                  className="rounded-xl border border-border  px-4 py-3"
                 >
                   <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                     {step.label}
@@ -108,7 +108,7 @@ export default async function AdminAnalyticsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>
             Dashboard Usability Telemetry ({dashboardTelemetry.windowDays}d)
@@ -122,7 +122,7 @@ export default async function AdminAnalyticsPage() {
             }).map((role) => (
               <div
                 key={role}
-                className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm"
+                className="rounded-xl border border-border  px-4 py-3 text-sm"
               >
                 <p className="capitalize text-muted-foreground">{role}</p>
                 <p className="mt-1 font-semibold">
@@ -153,7 +153,7 @@ export default async function AdminAnalyticsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>Last 30 days</CardTitle>
         </CardHeader>
@@ -167,7 +167,7 @@ export default async function AdminAnalyticsPage() {
             {data.dailySeries.map((row) => (
               <div
                 key={row.date}
-                className="grid grid-cols-3 items-center rounded-lg px-3 py-2 text-sm hover:bg-muted/30"
+                className="grid grid-cols-3 items-center rounded-lg px-3 py-2 text-sm"
               >
                 <span className="text-muted-foreground">{row.date}</span>
                 <span className="text-center font-semibold">
@@ -193,7 +193,7 @@ function AnalyticsCard({
   entries: Record<string, number>;
 }) {
   return (
-    <Card className="border-border/70 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
@@ -216,7 +216,7 @@ function AnalyticsCard({
 
 function ConversionStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-semibold">{value.toFixed(1)}%</span>
     </div>

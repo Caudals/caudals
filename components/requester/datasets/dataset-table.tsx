@@ -183,13 +183,13 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12"></TableHead>
-            <TableHead>{t("Dataset")}</TableHead>
-            <TableHead>{t("Status")}</TableHead>
-            <TableHead>{t("Samples")}</TableHead>
-            <TableHead>{t("Budget")}</TableHead>
-            <TableHead>{t("Pending")}</TableHead>
-            <TableHead className="text-right">{t("Actions")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent w-12"></TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Dataset")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Status")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Samples")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Budget")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Pending")}</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-right">{t("Actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

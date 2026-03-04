@@ -153,12 +153,12 @@ export function SubmissionsPanel({ submissions }: { submissions: SubmissionItem[
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
-              <TableHead>{t("Contributor")}</TableHead>
-              <TableHead>{t("Status")}</TableHead>
-              <TableHead>{t("Notes")}</TableHead>
-              <TableHead>{t("Date")}</TableHead>
-              <TableHead className="text-right">{t("Actions")}</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent w-12"></TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Contributor")}</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Status")}</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Notes")}</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Date")}</TableHead>
+              <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-right">{t("Actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

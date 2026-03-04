@@ -48,26 +48,18 @@ export function PendingSubmissionsTable({
 
   if (submissions.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("No Pending Submissions")}</CardTitle>
-          <CardDescription>{t("All submissions have been reviewed")}</CardDescription>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
+        <CardContent className="py-8 text-center text-muted-foreground">
+          {t("No Pending Submissions. All submissions have been reviewed.")}
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("Contributions Awaiting Review")}</CardTitle>
-          <CardDescription>
-            {submissions.length} submission{submissions.length !== 1 ? "s" : ""}{" "}
-            {t("pending review")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>

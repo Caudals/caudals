@@ -35,7 +35,7 @@ export function OnboardingSteps({ steps }: { steps: OnboardingStep[] }) {
   return (
     <div className="space-y-3">
       {steps.map((step) => (
-        <div key={step.id} className="flex items-center justify-between rounded-2xl border border-border/70 p-4">
+        <div key={step.id} className="flex items-center justify-between rounded-2xl border border-border p-4">
           <div>
             <p className="font-medium">{step.label}</p>
             <p className="text-xs text-muted-foreground capitalize">

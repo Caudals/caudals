@@ -89,7 +89,7 @@ export function ContributorSettingsForm({
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle>{t("Contributor profile")}</CardTitle>
           <CardDescription>
@@ -181,7 +181,7 @@ export function ContributorSettingsForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle>{t("Notification preferences")}</CardTitle>
           <CardDescription>
@@ -237,7 +237,7 @@ function PreferenceRow({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between rounded-lg border border-border/70 p-3">
+    <div className="flex items-start justify-between rounded-lg border border-border p-3">
       <div className="space-y-1 pr-4">
         <p className="text-sm font-medium">{title}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
