@@ -1,23 +1,37 @@
 # Autonomous Delivery Spec
 
 ## Goal
-Enable agents to continuously deliver product improvements without manual step-by-step supervision.
+Enable agents to continuously plan, build, validate, and document product improvements with minimal supervision.
 
 ## Execution Contract
-1. Plan from active phase files.
-2. Implement small coherent increments.
-3. Validate code, behavior, and UI evidence.
-4. Document outcomes in logs.
-5. Continue with next queued task.
+1. Select work from `docs/PLAN.md` and active phase files.
+2. Implement coherent increments end-to-end.
+3. Validate behavior and runtime impact.
+4. Log changelog + validation evidence.
+5. Continue with next queued unblocked task.
 
 ## Validation Requirements
-- Backend: tests and type checks for affected modules.
-- Frontend: Chrome DevTools MCP validation and screenshots.
-- Data: schema/policy checks for DB-impacting changes.
+- Backend: type checks and targeted tests for affected modules.
+- Frontend: Chrome DevTools MCP checks + responsive screenshots.
+- Data: schema/policy checks for DB-impacting work.
+- Payments: webhook and ledger integrity checks for payment-impacting work.
 
-## Evidence Requirements
-Every completed task must include:
-- changed files summary,
-- command/test outcomes,
-- UI evidence for visual changes,
-- risk or debt notes if any.
+## Definition of Done (Per Task)
+- scope implemented,
+- tests/checks executed,
+- runtime behavior validated,
+- evidence logged,
+- debt captured if unresolved tradeoffs remain.
+
+## Autonomous Roadmap Heuristics (When User Queue Is Empty)
+1. Implement missing DB-backed requester/admin action flows before UI polish.
+2. Prioritize payout/funding/webhook resilience and ledger consistency checks.
+3. Eliminate placeholder-heavy operational workflows (support, analytics, moderation sidecars).
+4. Expand integration tests for critical lifecycle transitions (approval, funding, payout, export).
+5. Harden export orchestration and recovery behavior using durable queue semantics.
+6. Unify wallet/ledger contract assumptions and remove stale legacy behavior paths.
+7. Close route/link dead-ends that break trust on public and app surfaces.
+
+## Stop Conditions
+Pause only for missing access, unresolvable requirement conflicts, or irreversible high-risk actions.
+Use `docs/exec-plans/blocker-escalation-protocol.md` for bounded retries and escalation logging.

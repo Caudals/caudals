@@ -82,7 +82,7 @@
     - `lib/i18n/es.json` (`Reach us at`)
   - docs:
     - `docs/references/localization-qa-runbook.md`
-    - `docs/references/tooling-and-mcp.md`
+    - `docs/TOOLS.md`
     - `docs/README.md`
 
 - Updated security/schema/debt artifacts:

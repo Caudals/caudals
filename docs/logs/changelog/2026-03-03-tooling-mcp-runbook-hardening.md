@@ -8,7 +8,7 @@
 ## Completed Work
 
 - Updated tooling runbook:
-  - `docs/references/tooling-and-mcp.md`
+  - `docs/TOOLS.md`
   - Added:
     - tool selection matrix,
     - self-hosted Supabase CLI workflow and hard rules (`--db-url`, no `--linked`),
@@ -18,4 +18,4 @@
 
 - Added onboarding cross-link:
   - `docs/README.md`
-  - Added pointer from self-hosted Supabase section to `docs/references/tooling-and-mcp.md` for detailed agent instructions.
+  - Added pointer from self-hosted Supabase section to `docs/TOOLS.md` for detailed agent instructions.

@@ -1,13 +1,12 @@
 # Design Docs Index
 
-## Primary Documents
-- `core-beliefs.md`: product UX principles and visual direction.
-- `ui-ux-design-system.md`: token and component contracts.
-- `dashboard-ia-spec.md`: role dashboard information architecture.
-- `dashboard-ui-spec.md`: shared dashboard component patterns.
-- `ux-role-discovery.md`: role workflow and failure-mode insights.
+## Canonical Documents
+- `ui-ux-design-system.md`: global visual/system contracts and component behavior.
+- `dashboard-role-blueprints.md`: role IA, workflows, entrypoints, and failure-mode guards.
+
+## Supporting Assets
+- `design-images/`: visual references used for design-direction checks.
 
 ## Update Rules
-- When interaction behavior changes, update IA/UI specs.
-- When visual primitives change, update `ui-ux-design-system.md`.
-- For major UX decisions, add rationale in `core-beliefs.md`.
+- Update `ui-ux-design-system.md` when tokens, primitives, or shared shell behavior changes.
+- Update `dashboard-role-blueprints.md` when role IA, route ownership, or dashboard workflow behavior changes.

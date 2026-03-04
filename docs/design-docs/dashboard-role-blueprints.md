@@ -1,80 +1,94 @@
-# Dashboard Role Blueprints (App.caudals.com)
+# Dashboard Role Blueprints
 
 ## Purpose
-Define market-ready information architecture, section ownership, and operational flows for requester, contributor, and admin dashboards.
+Define role-specific information architecture, flows, and failure-mode guardrails for requester, contributor, and admin dashboards.
 
 ## Shared Shell Rules
 - One canonical sidebar system across all roles.
-- Explicit top/middle/bottom zoning in sidebar.
-- Stable active-state behavior for path + query-driven routes.
-- Role switcher available only to admins and must never mutate account role.
+- Top/middle/bottom zone split is mandatory.
+- Active nav state must reflect route + query state.
+- Role switcher is admin-only and must not mutate account role.
 
 ## Requester Blueprint
-### Sidebar sections
-1. Overview
-- Dashboard (`/requester`)
-2. Datasets
-- All datasets (`/requester/datasets`)
-- Review queue (`/requester/datasets?filter=pending_review`)
-- Funding needed (`/requester/datasets?filter=needs_funding`)
-- New dataset (`/requester/datasets/new`)
-3. Operations
-- Files & exports (`/requester/files`)
-- Analytics (`/requester/analytics`)
-4. Workspace
-- Billing (`/requester/billing`)
-- Support (`/requester/support`)
-- Onboarding (`/requester/onboarding`)
-- Settings (`/requester/settings`)
+### Jobs to be done
+- Launch dataset briefs quickly and confidently.
+- Monitor review backlog, funding health, and export readiness.
+- Resolve support/billing/org blockers without leaving core workspace.
 
-### Core flows
-1. Launch workflow: dashboard -> new dataset -> dataset workspace -> approval/funding.
-2. Review workflow: dashboard alerts or review queue -> submissions panel -> approve/reject.
-3. Delivery workflow: exports board -> download/expiry management.
-4. Operations workflow: billing ledger, support tickets, API/org settings.
+### IA zones
+1. Urgent Work: review queue, low funding, closing-soon datasets
+2. Operational Control: datasets, exports/files, support
+3. Progress & Health: throughput KPIs and trends
+
+### Required entrypoints
+- `/requester`
+- `/requester/datasets`
+- `/requester/datasets?filter=pending_review`
+- `/requester/datasets?filter=needs_funding`
+- `/requester/datasets/new`
+- `/requester/files`
+- `/requester/support`
+
+### Failure modes to prevent
+- alerts without direct action destinations,
+- hidden funding/review risk,
+- export failure states without retry guidance.
 
 ## Contributor Blueprint
-### Sidebar sections
-1. Overview
-- Dashboard (`/contributor`)
-2. Work
-- Contributions (`/contributor/contributions`)
-- Browse opportunities (`/browse`)
-3. Earnings
-- Earnings & payouts (`/contributor/earnings`)
-4. Workspace
-- Settings (`/contributor/settings`)
+### Jobs to be done
+- Find relevant opportunities quickly.
+- Submit work and react to feedback with low friction.
+- Track payout readiness and blockers with confidence.
 
-### Core flows
-1. Work intake: dashboard inbox -> contribution detail -> submit/revise.
-2. Earnings confidence: forecast + payout timeline + failed transfer visibility.
-3. Profile trust: settings completion and payout readiness.
+### IA zones
+1. Action Inbox: `needs_changes`, pending reviews, due items
+2. Work Surfaces: browse opportunities and contributions list
+3. Payout Readiness: earnings state, payout timeline, blocker alerts
+
+### Required entrypoints
+- `/contributor`
+- `/browse`
+- `/contributor/contributions`
+- `/contributor/earnings`
+- `/contributor/settings?tab=payout`
+
+### Failure modes to prevent
+- buried review feedback,
+- opaque payout status,
+- unclear next-highest-impact action.
 
 ## Admin Blueprint
-### Sidebar sections
-1. Overview
-- Admin dashboard (`/admin`)
-2. Moderation
-- Requests (`/admin/requests`)
-- Datasets (`/admin/datasets`)
-- Submissions (`/admin/submissions`)
-- Users (`/admin/users`)
-3. Operations
-- Payments (`/admin/payments`)
-- Support (`/admin/support`)
-- Activity (`/admin/activity`)
-4. Intelligence
-- Analytics (`/admin/analytics`)
-- Featured (`/admin/featured`)
-- Settings (`/admin/settings`)
+### Jobs to be done
+- Triage moderation/support queues within SLA.
+- Detect platform anomalies and payout risk quickly.
+- Execute interventions with auditability.
 
-### Core flows
-1. Moderation queue triage and SLA handling.
-2. Payout anomaly resolution and reconciliation.
-3. Platform health review via analytics + activity.
+### IA zones
+1. SLA Queues: pending requests/submissions/support
+2. Operational Signals: moderation spikes, payout failures, user anomalies
+3. Controls: users/settings/featured/activity
+
+### Required entrypoints
+- `/admin`
+- `/admin/requests`
+- `/admin/submissions`
+- `/admin/support`
+- `/admin/payments`
+- `/admin/activity`
+
+### Failure modes to prevent
+- queue fragmentation without severity context,
+- non-actionable stat blocks,
+- delayed visibility into payout/support incidents.
+
+## Shared Interaction Rules
+- Critical cards/rows in action zones are always clickable.
+- Status chips use consistent severity semantics.
+- No icon-only controls without explicit labels/destinations.
+- Empty/error states keep users one click away from recovery actions.
 
 ## Quality Acceptance
 - No incorrect role/view switches during navigation.
 - Active menu state always reflects current route/filters.
-- All critical role loops reachable in <=2 clicks from role dashboard.
-- Responsive consistency across mobile/tablet/desktop.
+- Critical role loops reachable in <=2 clicks from dashboard.
+- Responsive behavior stable across desktop/tablet/mobile.

@@ -2,15 +2,15 @@
 
 ## Doc Verification
 
-1. `rg -n "Supabase CLI Usage Pattern|Supabase MCP Usage Pattern|Stripe CLI Usage Pattern|Stripe MCP Usage Pattern" docs/references/tooling-and-mcp.md`
+1. `rg -n "Supabase CLI Usage Pattern|Supabase MCP Usage Pattern|Stripe CLI Usage Pattern|Stripe MCP Usage Pattern" docs/TOOLS.md`
 - Result: PASS
 - Verified all new agent runbook sections exist.
 
-2. `rg -n "tooling-and-mcp.md" docs/README.md docs/index.md`
+2. `rg -n "TOOLS.md" docs/README.md docs/index.md`
 - Result: PASS
 - Verified onboarding docs reference the detailed tooling runbook.
 
-3. `git diff -- docs/references/tooling-and-mcp.md docs/README.md`
+3. `git diff -- docs/TOOLS.md docs/README.md`
 - Result: PASS
 - Verified changes are documentation-only and scoped to tooling guidance.
 
