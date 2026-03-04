@@ -88,7 +88,7 @@ export default async function ContributorDashboardPage() {
           <>
             <Button asChild>
               <Link
-                href="/browse"
+                href="/contributor/browse"
                 data-dashboard-action="contributor_header_browse_opportunities"
               >
                 <Database className="mr-2 h-4 w-4" />
@@ -110,7 +110,7 @@ export default async function ContributorDashboardPage() {
       <ContributorStatsCards />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-emerald-500/20">
+        <Card className="shadow-sm bg-white border-emerald-500/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-emerald-600" />
@@ -154,7 +154,7 @@ export default async function ContributorDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
@@ -167,7 +167,7 @@ export default async function ContributorDashboardPage() {
           <CardContent className="space-y-2">
             <Button asChild className="w-full">
               <Link
-                href="/browse"
+                href="/contributor/browse"
                 data-dashboard-action="contributor_browse_datasets"
               >
                 <Database className="mr-2 h-4 w-4" />
@@ -186,7 +186,7 @@ export default async function ContributorDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader>
             <CardTitle>{t("Profile trust score")}</CardTitle>
             <CardDescription>
@@ -227,7 +227,7 @@ export default async function ContributorDashboardPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle>{t("Submission Pipeline")}</CardTitle>
           <CardDescription>
@@ -277,7 +277,7 @@ export default async function ContributorDashboardPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+        <Card className="shadow-sm bg-white xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ListChecks className="h-5 w-5" />
@@ -292,7 +292,7 @@ export default async function ContributorDashboardPage() {
               essentialsData.taskInbox.map((task) => (
                 <div
                   key={task.submissionId}
-                  className="flex flex-col gap-3 rounded-xl border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ export default async function ContributorDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <WalletCards className="h-5 w-5" />
@@ -387,7 +387,7 @@ export default async function ContributorDashboardPage() {
               tone="danger"
             />
 
-            <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
+            <div className="rounded-xl border border-border  p-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {t("Blockers")}
               </p>
@@ -407,7 +407,7 @@ export default async function ContributorDashboardPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquareWarning className="h-5 w-5" />
@@ -424,7 +424,7 @@ export default async function ContributorDashboardPage() {
             essentialsData.feedbackQueue.map((item) => (
               <div
                 key={item.submissionId}
-                className="flex flex-col gap-3 rounded-xl border border-border/70 p-4 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-3 rounded-xl border border-border p-4 md:flex-row md:items-center md:justify-between"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -486,7 +486,7 @@ function ForecastRow({
   tone?: "default" | "danger";
 }) {
   return (
-    <div className="rounded-xl border border-border/70 p-3">
+    <div className="rounded-xl border border-border p-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{label}</p>
         <p

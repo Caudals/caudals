@@ -66,7 +66,7 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardContent className="grid gap-4 p-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label>{t("Search")}</Label>
@@ -112,12 +112,12 @@ export function FilesExportsBoard({ records }: { records: ExportWithDataset[] })
       </Card>
 
       {groups.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/70 p-8 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
           {t("No exports match your filters.")}
         </div>
       ) : (
         groups.map(([id, group]) => (
-          <Card key={id} className="border-border/70 shadow-none">
+          <Card key={id} className="border-border shadow-none">
             <CardHeader>
               <CardTitle className="text-base">{group.title}</CardTitle>
             </CardHeader>

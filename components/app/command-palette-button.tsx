@@ -34,23 +34,25 @@ export function CommandPaletteButton({
       size="sm"
       className={cn(
         compact
-          ? "h-9 w-9 p-0"
-          : "hidden h-9 gap-2 px-3 md:flex",
+          ? "h-9 w-9 p-0 bg-transparent border-transparent hover:bg-gray-100"
+          : "hidden h-9 gap-2 px-3 md:flex w-full justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200/60 shadow-none text-muted-foreground transition-colors",
         className
       )}
       onClick={handleClick}
       aria-label={t("Open command palette")}
     >
-      <Search className="h-4 w-4 text-muted-foreground" />
-      {!compact && (
-        <>
-          <span className="text-muted-foreground text-sm">
+      <div className="flex items-center gap-2">
+        <Search className="h-4 w-4" />
+        {!compact && (
+          <span className="text-sm font-normal">
             {t("Search or jump to...")}
           </span>
-          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 sm:flex">
-            <span className="text-xs">{shortcut}</span>
-          </kbd>
-        </>
+        )}
+      </div>
+      {!compact && (
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded bg-white border border-gray-200 px-1.5 font-mono text-[10px] font-medium text-gray-500 opacity-100 sm:flex shadow-sm">
+          <span className="text-xs">{shortcut}</span>
+        </kbd>
       )}
     </Button>
   );

@@ -25,7 +25,7 @@ export default async function ContributionsPage() {
           <>
             <Button asChild>
               <Link
-                href="/browse"
+                href="/contributor/browse"
                 data-dashboard-action="contributor_contributions_browse_opportunities"
               >
                 <Database className="mr-2 h-4 w-4" />

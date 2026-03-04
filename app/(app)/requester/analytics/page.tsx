@@ -38,28 +38,28 @@ export default async function AnalyticsPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Datasets</CardTitle>
             <CardDescription>Total briefs launched</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{analytics.datasets.length}</CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Submissions</CardTitle>
             <CardDescription>Across all requester datasets</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{totalSubmissions}</CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Approval rate</CardTitle>
             <CardDescription>Quality trend indicator</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{approvalRate}%</CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Pending reviews</CardTitle>
             <CardDescription>Submission backlog</CardDescription>
@@ -69,18 +69,18 @@ export default async function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 lg:col-span-2">
           <CardHeader>
             <CardTitle>Last 7 days</CardTitle>
             <CardDescription>Submission and approval pulse</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/70 p-4">
+              <div className="rounded-xl border border-border p-4">
                 <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Submissions</p>
                 <p className="mt-2 text-3xl font-semibold">{last7Submitted}</p>
               </div>
-              <div className="rounded-xl border border-border/70 p-4">
+              <div className="rounded-xl border border-border p-4">
                 <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Approvals</p>
                 <p className="mt-2 text-3xl font-semibold">{last7Approved}</p>
               </div>
@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Category mix</CardTitle>
             <CardDescription>Most active dataset categories</CardDescription>
@@ -118,7 +118,7 @@ export default async function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
         <CardHeader>
           <CardTitle>Recent submissions</CardTitle>
           <CardDescription>Latest review activity across your datasets</CardDescription>

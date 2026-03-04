@@ -42,28 +42,18 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
 
   if (requests.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("No Pending Requests")}</CardTitle>
-          <CardDescription>
-            {t("All dataset requests have been reviewed")}
-          </CardDescription>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
+        <CardContent className="py-8 text-center text-muted-foreground">
+          {t("No Pending Requests. All dataset requests have been reviewed.")}
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("Dataset Requests Awaiting Approval")}</CardTitle>
-          <CardDescription>
-            {requests.length} request{requests.length !== 1 ? "s" : ""}{" "}
-            {t("pending review")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>

@@ -117,10 +117,7 @@ export default async function AdminActivityPage(props: {
         }
       />
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white">
         <CardContent>
           <form
             className="grid gap-3 md:grid-cols-3 xl:grid-cols-6"
@@ -203,16 +200,11 @@ export default async function AdminActivityPage(props: {
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base">
-            Recent activity ({total.toLocaleString()})
-          </CardTitle>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Action</TableHead>
                 <TableHead>Target</TableHead>
                 <TableHead>Admin</TableHead>
@@ -232,7 +224,7 @@ export default async function AdminActivityPage(props: {
                 </TableRow>
               )}
               {logs.map((entry) => (
-                <TableRow key={entry.id} className="hover:bg-muted/30">
+                <TableRow key={entry.id} >
                   {(() => {
                     const adminProfile = Array.isArray(entry.profiles)
                       ? entry.profiles[0]

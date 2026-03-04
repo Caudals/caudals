@@ -19,7 +19,7 @@ export default async function RequesterOverviewPage() {
 
   if ("error" in dashboard) {
     return (
-      <Card className="border-destructive/40 bg-destructive/5">
+      <Card className="border-0 shadow-sm ring-1 ring-destructive/40 bg-destructive/5">
         <CardHeader>
           <CardTitle className="text-destructive">Unable to load dashboard</CardTitle>
           <CardDescription>{dashboard.error}</CardDescription>
@@ -60,7 +60,7 @@ export default async function RequesterOverviewPage() {
       />
 
       {highPriorityAlerts.length > 0 ? (
-        <Card className="border-amber-300/60 bg-amber-50/60">
+        <Card className="border-0 shadow-sm ring-1 ring-amber-300/60 bg-amber-50/60">
           <CardContent className="flex items-start gap-3 p-4">
             <TriangleAlert className="mt-0.5 h-4 w-4 text-amber-700" />
             <div>

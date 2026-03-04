@@ -48,7 +48,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+    <Card className="group hover:shadow-sm transition-all duration-300 hover:-translate-y-1">
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">

@@ -41,7 +41,7 @@ export function EarningsAccountTools() {
   };
 
   return (
-    <Card>
+    <Card className="shadow-sm border-border bg-white">
       <CardHeader>
         <CardTitle>{t("Payout tools")}</CardTitle>
         <CardDescription>

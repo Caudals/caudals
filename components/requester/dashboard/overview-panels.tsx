@@ -99,7 +99,7 @@ export function KpiCards({ stats }: { stats: DashboardStats }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
-        <Card key={card.label} className="border-border/70 shadow-none">
+        <Card key={card.label} className="bg-card shadow-sm border border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
               {card.label}
@@ -122,14 +122,14 @@ export function ActivityAreaChart({ data }: { data: ChartPoint[] }) {
   const maxValue = Math.max(5, ...data.map((point) => point.submissions));
 
   return (
-    <Card className="border-border/70 shadow-none">
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader>
         <CardTitle>30 day submissions</CardTitle>
         <CardDescription>Incoming vs approved contributions</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 lg:grid-cols-[1fr,200px]">
-          <div className="h-56 w-full rounded-2xl bg-muted/60 p-3">
+          <div className="h-56 w-full rounded-2xl  p-3">
             <div className="flex h-full items-end gap-1">
               {data.map((point) => (
                 <div key={point.date} className="flex flex-1 flex-col items-center gap-2">
@@ -155,7 +155,7 @@ export function ActivityAreaChart({ data }: { data: ChartPoint[] }) {
               ))}
             </div>
           </div>
-          <div className="space-y-3 rounded-2xl border border-border/70 p-4">
+          <div className="space-y-3 rounded-2xl border border-border bg-gray-50/50 p-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
                 Pending reviews
@@ -163,7 +163,7 @@ export function ActivityAreaChart({ data }: { data: ChartPoint[] }) {
               <p className="text-2xl font-semibold">{data.reduce((sum, item) => sum + item.submissions, 0)}</p>
               <p className="text-xs text-muted-foreground">submissions this month</p>
             </div>
-            <div className="rounded-xl bg-muted/70 p-4">
+            <div className="rounded-xl  p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Approval rate
               </p>
@@ -197,7 +197,7 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
   };
 
   return (
-    <Card className="border-border/70 shadow-none">
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>{t("Next actions")}</CardTitle>
@@ -212,7 +212,7 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
       </CardHeader>
       <CardContent>
         {actions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/70 py-6 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 py-6 text-center text-muted-foreground">
             <ListChecks className="mb-2 h-6 w-6" />
             {t("Nothing urgent right now.")}
           </div>
@@ -221,10 +221,10 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
             {actions.slice(0, 6).map((action) => (
               <div
                 key={`${action.id}-${action.type}`}
-                className="flex items-center justify-between rounded-xl border border-border/70 p-3"
+                className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 py-3 last:border-0"
               >
                 <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-muted/70 p-2">
+                  <div className="rounded-full  p-2">
                     {iconMap[action.type]}
                   </div>
                     <div>
@@ -265,7 +265,7 @@ export async function OnboardingProgressCard({ steps }: { steps: OnboardingStep[
   };
 
   return (
-    <Card className="border-border/70 shadow-none">
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader>
         <CardTitle>{t("Onboarding progress")}</CardTitle>
         <CardDescription>
@@ -287,7 +287,7 @@ export async function OnboardingProgressCard({ steps }: { steps: OnboardingStep[
         </div>
         <div className="space-y-2">
           {steps.map((step) => (
-            <div key={step.id} className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2 text-sm">
+            <div key={step.id} className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 py-3 text-sm last:border-0">
               <div className="flex items-center gap-2">
                 <Badge
                   variant="secondary"
@@ -383,14 +383,14 @@ export async function NotificationsFeed({
   };
 
   return (
-    <Card className="border-border/70 shadow-none">
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader>
         <CardTitle>{t("Notifications")}</CardTitle>
         <CardDescription>{t("Live health of your workspace")}</CardDescription>
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 py-6 text-center text-sm text-muted-foreground">
             {t("All good for now.")}
           </div>
         ) : (
@@ -399,7 +399,7 @@ export async function NotificationsFeed({
               <Link
                 key={notification.id}
                 href={getHref(notification)}
-                className="block rounded-xl border border-border/70 p-3 transition-colors hover:bg-muted/40"
+                className="block border-b border-slate-100 dark:border-zinc-800 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/50 last:border-0"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -427,27 +427,27 @@ export async function QuickOpsPanel({
 }) {
   const t = await getServerTranslator();
   return (
-    <Card className="border-border/70 shadow-none">
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader>
         <CardTitle>{t("Operations")}</CardTitle>
         <CardDescription>{t("Fast access to the most used requester workflows")}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
-        <Link href="/requester/datasets/new" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+        <Link href="/requester/datasets/new" className="rounded-xl border border-border bg-gray-50/50 p-4 transition-colors hover:bg-gray-100">
           <p className="text-sm font-medium">{t("Create dataset")}</p>
           <p className="text-xs text-muted-foreground">{t("Launch a new data brief")}</p>
         </Link>
-        <Link href="/requester/datasets?filter=pending_review" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+        <Link href="/requester/datasets?filter=pending_review" className="rounded-xl border border-border bg-gray-50/50 p-4 transition-colors hover:bg-gray-100">
           <p className="text-sm font-medium">{t("Review queue")}</p>
           <p className="text-xs text-muted-foreground">
             {t("Pending submissions: {{count}}", { count: pendingActions })}
           </p>
         </Link>
-        <Link href="/requester/files" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+        <Link href="/requester/files" className="rounded-xl border border-border bg-gray-50/50 p-4 transition-colors hover:bg-gray-100">
           <p className="text-sm font-medium">{t("Exports & files")}</p>
           <p className="text-xs text-muted-foreground">{t("Download and monitor export jobs")}</p>
         </Link>
-        <Link href="/requester/support" className="rounded-xl border border-border/70 p-3 hover:bg-muted/40">
+        <Link href="/requester/support" className="rounded-xl border border-border bg-gray-50/50 p-4 transition-colors hover:bg-gray-100">
           <p className="text-sm font-medium">{t("Support center")}</p>
           <p className="text-xs text-muted-foreground">{t("Open or reply to support tickets")}</p>
         </Link>

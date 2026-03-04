@@ -62,7 +62,7 @@ export async function OperationalHealthStrip({
   });
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

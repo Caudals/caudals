@@ -27,7 +27,7 @@ export default async function ContributorSettingsPage() {
       />
 
       {"error" in settingsRes ? (
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="shadow-sm bg-white border-destructive/40 bg-destructive/5">
           <CardHeader>
             <CardTitle className="text-destructive">
               Unable to load settings

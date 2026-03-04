@@ -250,20 +250,10 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Manage Dataset Requests</CardTitle>
-          <CardDescription>
-            {datasets.length} dataset{datasets.length !== 1 ? "s" : ""} •{" "}
-            <span className="text-muted-foreground">
-              {totals.approved} approved · {totals.pending} pending ·{" "}
-              {totals.rejected} rejected
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
+        <CardContent className="space-y-4 p-0">
           {selectionCount > 0 && (
-            <div className="flex flex-col gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-b border-primary/20 bg-primary/5 px-4 py-3 md:flex-row md:items-center md:justify-between m-4 rounded-lg">
               <div className="space-y-1">
                 <p className="font-medium">
                   {selectionCount} dataset{selectionCount === 1 ? "" : "s"} selected

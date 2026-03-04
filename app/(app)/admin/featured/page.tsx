@@ -64,14 +64,11 @@ export default async function AdminFeaturedPage() {
         }
       />
 
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle>Available datasets</CardTitle>
-        </CardHeader>
+      <Card className="border-border shadow-sm bg-white overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Dataset</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Preview</TableHead>
@@ -90,7 +87,7 @@ export default async function AdminFeaturedPage() {
                 </TableRow>
               )}
               {datasets.map((ds) => (
-                <TableRow key={ds.id} className="hover:bg-muted/30">
+                <TableRow key={ds.id} >
                   <TableCell className="font-medium">
                     <div>{ds.title}</div>
                     <p className="text-xs text-muted-foreground">

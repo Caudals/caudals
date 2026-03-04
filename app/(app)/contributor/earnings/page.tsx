@@ -87,7 +87,7 @@ export default async function EarningsPage() {
         }
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="pb-3">
             <CardDescription>Total Earnings (After Fee)</CardDescription>
             <CardTitle className="text-3xl text-emerald-600">
@@ -106,7 +106,7 @@ export default async function EarningsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="pb-3">
             <CardDescription>Pending Payouts</CardDescription>
             <CardTitle className="text-3xl text-amber-600">
@@ -120,7 +120,7 @@ export default async function EarningsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="pb-3">
             <CardDescription>Failed Payouts</CardDescription>
             <CardTitle className="text-3xl text-destructive">
@@ -134,7 +134,7 @@ export default async function EarningsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm border-border bg-white">
           <CardHeader className="pb-3">
             <CardDescription>Gross Earnings</CardDescription>
             <CardTitle className="text-3xl">
@@ -156,7 +156,7 @@ export default async function EarningsPage() {
       <StripeConnectStatus />
       <EarningsAccountTools />
 
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
@@ -212,7 +212,7 @@ export default async function EarningsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle>Payout History</CardTitle>
           <CardDescription>
@@ -232,7 +232,7 @@ export default async function EarningsPage() {
                 return (
                   <div
                     key={payout.id}
-                    className="space-y-3 rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                    className="space-y-3 rounded-lg border p-4 transition-colors hover:"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="flex flex-1 items-center gap-3">
@@ -360,7 +360,7 @@ function TimelinePill({
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : state === "failed"
         ? "border-destructive/30 bg-destructive/10 text-destructive"
-        : "border-border/70 bg-muted/30 text-muted-foreground";
+        : "border-border  text-muted-foreground";
 
   return (
     <div

@@ -109,7 +109,7 @@ export function StripeConnectStatus() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -129,7 +129,7 @@ export function StripeConnectStatus() {
   if (!status?.connected) {
     return (
       <>
-        <Card className="border-blue-500/30">
+        <Card className="shadow-sm bg-white border-blue-500/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-blue-500" />
@@ -250,7 +250,7 @@ export function StripeConnectStatus() {
             </div>
           )}
 
-          <div className="rounded-lg border bg-muted/50 p-4">
+          <div className="rounded-lg border  p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium flex items-center gap-1">

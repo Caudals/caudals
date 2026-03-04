@@ -19,28 +19,22 @@ export function AdminPageHeader({
   return (
     <header
       className={cn(
-        "rounded-2xl border border-border/70 bg-gradient-to-br from-slate-950/5 via-background to-background p-5 sm:p-6",
+        "flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-6 border-b border-border/40 mb-6",
         className,
       )}
     >
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-700">
+      <div className="space-y-1.5">
+        {eyebrow ? (
+          <p className="text-sm font-medium text-muted-foreground">
             {eyebrow}
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {title}
-          </h1>
-          {description ? (
-            <p className="max-w-3xl text-sm text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
-        </div>
-        {actions ? (
-          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        {description ? (
+          <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
+      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </header>
   );
 }

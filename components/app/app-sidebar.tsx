@@ -129,7 +129,7 @@ const contributorNav: NavGroup[] = [
     group: "Work queue",
     items: [
       { title: "My contributions", icon: FileUp, href: "/contributor/contributions" },
-      { title: "Browse opportunities", icon: Database, href: "/browse" },
+      { title: "Browse opportunities", icon: Database, href: "/contributor/browse" },
     ],
   },
   {
@@ -226,7 +226,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   if (loading || !userRole) {
     return (
       <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
-        <SidebarHeader className="pb-4 pt-6 px-6">
+        <SidebarHeader className="pb-2 pt-4 px-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuSkeleton showIcon />
@@ -242,8 +242,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="pb-6 px-6">
-          <NavUser />
+        <SidebarFooter className="pb-2 px-2">
         </SidebarFooter>
       </Sidebar>
     );
@@ -337,56 +336,21 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
-      <SidebarHeader className="pb-4 pt-5 px-4">
-        {isCollapsed ? (
-          <div className="flex flex-col items-center gap-2 px-0">
-            <Link
-              href={homeHref}
-              aria-label={t("Caudals")}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30"
-            >
-              <Image
-                src="/caudals_logo_black.svg"
-                alt={t("Caudals logo")}
-                width={20}
-                height={20}
-                className="h-5 w-5"
-              />
-            </Link>
-            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
+      <SidebarHeader className="pb-2 pt-4 px-2">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex-1 overflow-hidden">
+             <NavUser />
           </div>
-        ) : (
-          <div className="flex items-center gap-2 px-2">
-            <Link
-              href={homeHref}
-              aria-label={t("Caudals")}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30"
-            >
-              <Image
-                src="/caudals_logo_black.svg"
-                alt={t("Caudals logo")}
-                width={20}
-                height={20}
-                className="h-5 w-5"
-              />
-            </Link>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{workspaceTitle}</p>
-              <div className="mt-0.5 flex items-center gap-2">
-                <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px]">
-                  {t(`${viewLabel} View`)}
-                </Badge>
-                <Link
-                  href={settingsHref}
-                  className="truncate text-[11px] text-muted-foreground hover:text-foreground"
-                >
-                  {t("Workspace settings")}
-                </Link>
-              </div>
+          {!isCollapsed && (
+            <div className="flex items-center gap-1 ml-1">
+              <NotificationBell />
+              <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
             </div>
-
-            <NotificationBell />
+          )}
+        </div>
+        
+        {isCollapsed && (
+          <div className="flex flex-col items-center gap-2 mt-2 w-full">
             <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
           </div>
         )}
@@ -410,7 +374,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 gap-0">
         {sidebarGroups.map((group) => (
           <SidebarGroup key={group.group}>
             <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70 group-data-[collapsible=icon]:sr-only">
@@ -443,16 +407,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="pb-4 px-4">
-        <div
-          className={
-            isCollapsed
-              ? "mt-1 flex justify-center border-t border-sidebar-border/60 pt-3"
-              : "mt-1 border-t border-sidebar-border/60 pt-3"
-          }
-        >
-          <NavUser />
-        </div>
+      <SidebarFooter className="pb-2 px-2">
       </SidebarFooter>
     </Sidebar>
   );

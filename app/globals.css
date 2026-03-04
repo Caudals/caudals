@@ -2,33 +2,33 @@
 @import "tw-animate-css";
 
 :root {
-  --ds-canvas: #f5f5f5;
-  --ds-sidebar-bg: #f4f4f4;
+  --ds-canvas: #f9fafb;
+  --ds-sidebar-bg: #f9fafb;
   --ds-surface: #ffffff;
-  --ds-surface-muted: #fafafa;
-  --ds-border-soft: #ebebeb;
-  --ds-border-strong: #e3e3e3;
+  --ds-surface-muted: #f9fafb;
+  --ds-border-soft: #f3f4f6;
+  --ds-border-strong: #e5e7eb;
 
-  --ds-text-primary: #121212;
-  --ds-text-secondary: #6d6d6d;
-  --ds-text-tertiary: #9a9a9a;
+  --ds-text-primary: #111827;
+  --ds-text-secondary: #6b7280;
+  --ds-text-tertiary: #9ca3af;
   --ds-text-inverse: #ffffff;
 
-  --ds-accent: #14a44c;
-  --ds-accent-hover: #129546;
-  --ds-accent-soft: #eaf7ee;
-  --ds-accent-soft-2: #daf4e0;
-  --ds-accent-text: #11823c;
+  --ds-accent: #059669;
+  --ds-accent-hover: #047857;
+  --ds-accent-soft: #ecfdf5;
+  --ds-accent-soft-2: #d1fae5;
+  --ds-accent-text: #047857;
 
-  --ds-danger: #d64545;
-  --ds-danger-soft: #fdecec;
-  --ds-warning: #c9771a;
-  --ds-warning-soft: #fff3e5;
-  --ds-info: #2f7fd3;
-  --ds-info-soft: #eaf2fc;
+  --ds-danger: #dc2626;
+  --ds-danger-soft: #fef2f2;
+  --ds-warning: #d97706;
+  --ds-warning-soft: #fffbeb;
+  --ds-info: #2563eb;
+  --ds-info-soft: #eff6ff;
 
-  --ds-cta-bg: #121212;
-  --ds-cta-bg-hover: #1e1e1e;
+  --ds-cta-bg: #111827;
+  --ds-cta-bg-hover: #1f2937;
   --ds-cta-text: #ffffff;
 
   --ds-radius-xs: 6px;
@@ -39,8 +39,8 @@
   --ds-radius-shell: 14px;
   --ds-radius-pill: 999px;
 
-  --ds-shadow-surface: 0 1px 1px rgba(0, 0, 0, 0.02);
-  --ds-shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --ds-shadow-surface: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --ds-shadow-overlay: 0 10px 30px rgba(0, 0, 0, 0.08);
 
   --radius: var(--ds-radius-lg);
   --background: var(--ds-canvas);
@@ -64,7 +64,7 @@
   --ring: var(--ds-accent);
   --chart-1: var(--ds-accent);
   --chart-2: var(--ds-accent-text);
-  --chart-3: #8abf9c;
+  --chart-3: #10b981;
   --chart-4: var(--ds-info);
   --chart-5: var(--ds-warning);
   --sidebar: var(--ds-sidebar-bg);
@@ -73,7 +73,7 @@
   --sidebar-primary-foreground: var(--ds-cta-text);
   --sidebar-accent: var(--ds-accent-soft);
   --sidebar-accent-foreground: var(--ds-accent-text);
-  --sidebar-border: var(--ds-border-soft);
+  --sidebar-border: transparent; /* No strong border for sidebar in new design */
   --sidebar-ring: var(--ds-accent);
 }
 

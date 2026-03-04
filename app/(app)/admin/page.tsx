@@ -194,7 +194,7 @@ export default async function AdminDashboard() {
             <Link
               href={thingsToDo[0].href}
               data-dashboard-action="admin_open_priority_queue"
-              className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm hover:border-border/70"
+              className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm hover:border-border"
             >
               <div className="flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-semibold text-[var(--accent-foreground)]">
@@ -219,10 +219,10 @@ export default async function AdminDashboard() {
       {health && <OperationalHealthStrip snapshot={health} />}
 
       <div className="grid gap-6 lg:grid-cols-12">
-        <Card className="lg:col-span-8 border-border/70 shadow-sm">
+        <Card className="lg:col-span-8 border-border shadow-sm">
           <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.6fr_1fr]">
-            <div className="relative rounded-2xl border border-border/70 bg-muted/60 p-4">
-              <div className="aspect-video rounded-xl border border-dashed border-border/70 bg-white/70 flex items-center justify-center">
+            <div className="relative rounded-2xl border border-border  p-4">
+              <div className="aspect-video rounded-xl border border-dashed border-border bg-white/70 flex items-center justify-center">
                 {highlight?.image_url ? (
                   <Image
                     src={highlight.image_url}
@@ -341,9 +341,9 @@ export default async function AdminDashboard() {
           </Link>
         </div>
 
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="p-0">
-            <div className="grid grid-cols-12 gap-4 border-b border-border/70 bg-muted/40 px-6 py-3 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-12 gap-4 border-b border-border  px-6 py-3 text-xs font-medium text-muted-foreground">
               <div className="col-span-6">{t("Activity")}</div>
               <div className="col-span-3">{t("Type")}</div>
               <div className="col-span-3">{t("When")}</div>
@@ -357,7 +357,7 @@ export default async function AdminDashboard() {
               {overview.activity.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-muted/30 transition-colors"
+                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center transition-colors"
                 >
                   <div className="col-span-6">
                     <p className="text-sm font-medium capitalize">
@@ -390,7 +390,7 @@ export default async function AdminDashboard() {
 
       {analytics && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-border/70 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{t("Users")}</h3>
@@ -409,7 +409,7 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{t("Datasets")}</h3>
@@ -433,7 +433,7 @@ export default async function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 shadow-sm">
+          <Card className="border-border shadow-sm">
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{t("Submissions")}</h3>
@@ -460,7 +460,7 @@ export default async function AdminDashboard() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">{t("Operational SLA Queues")}</h3>
@@ -490,7 +490,7 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">{t("Anomaly Detection")}</h3>
@@ -500,7 +500,7 @@ export default async function AdminDashboard() {
               <Link
                 key={row.label}
                 href={row.href}
-                className="block rounded-xl border border-border/70 p-3 hover:bg-muted/30"
+                className="block rounded-xl border border-border p-3"
               >
                 <div className="flex items-center justify-between">
                   <p className="text-sm">{row.label}</p>
@@ -523,7 +523,7 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">{t("Escalation Shortcuts")}</h3>
@@ -562,7 +562,7 @@ export default async function AdminDashboard() {
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg font-semibold">{value}</p>
     </div>
@@ -586,7 +586,7 @@ function QueueRow({
     <Link
       href={href}
       data-dashboard-action={actionId}
-      className="block rounded-xl border border-border/70 p-3 hover:bg-muted/30"
+      className="block rounded-xl border border-border p-3"
     >
       <div className="flex items-center justify-between">
         <p className="text-sm">{label}</p>
@@ -612,7 +612,7 @@ function ShortcutRow({
     <Link
       href={href}
       data-dashboard-action={actionId}
-      className="flex items-center justify-between rounded-xl border border-border/70 px-3 py-2 text-sm hover:bg-muted/30"
+      className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm"
     >
       <span className="flex items-center gap-2 text-muted-foreground">
         {icon}

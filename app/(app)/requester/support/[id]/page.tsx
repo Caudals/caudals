@@ -41,7 +41,7 @@ export default async function SupportTicketDetailPage({
         }
       />
 
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardHeader>
           <CardTitle>Ticket details</CardTitle>
           <CardDescription>Timeline and metadata for this support request</CardDescription>

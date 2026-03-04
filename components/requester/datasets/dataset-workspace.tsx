@@ -170,7 +170,7 @@ export function DatasetWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 shadow-none">
+      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -204,27 +204,27 @@ export function DatasetWorkspace({
           </p>
 
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="rounded-xl border border-border/70 p-3">
+            <div className="rounded-xl border border-border p-3">
               <p className="text-xs uppercase text-muted-foreground">{t("Samples")}</p>
               <p className="text-lg font-semibold">
                 {samplesCollected} / {samplesNeeded}
               </p>
               <Progress className="mt-2" value={progress} />
             </div>
-            <div className="rounded-xl border border-border/70 p-3">
+            <div className="rounded-xl border border-border p-3">
               <p className="text-xs uppercase text-muted-foreground">{t("Reward")}</p>
               <p className="text-lg font-semibold">
                 {detail.currency ?? "USD"} {Number(detail.reward_amount ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-xl border border-border/70 p-3">
+            <div className="rounded-xl border border-border p-3">
               <p className="text-xs uppercase text-muted-foreground">{t("Budget")}</p>
               <p className="text-lg font-semibold">
                 {(detail.currency ?? "USD")} {Number(detail.paid_amount ?? 0).toLocaleString()} /{" "}
                 {Number(detail.total_budget ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-xl border border-border/70 p-3">
+            <div className="rounded-xl border border-border p-3">
               <p className="text-xs uppercase text-muted-foreground">{t("Deadline")}</p>
               <p className="text-lg font-semibold">
                 {detail.deadline
@@ -234,7 +234,7 @@ export function DatasetWorkspace({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border/70 p-4">
+          <div className="rounded-xl border border-border p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">{t("Funding actions")}</p>
@@ -290,7 +290,7 @@ export function DatasetWorkspace({
         </TabsList>
 
         <TabsContent value="overview">
-          <Card className="border-border/70 shadow-none">
+          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
             <CardHeader>
               <CardTitle className="text-base">{t("Brief requirements")}</CardTitle>
             </CardHeader>
@@ -324,7 +324,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="submissions">
-          <Card className="border-border/70 shadow-none">
+          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
             <CardHeader>
               <CardTitle className="text-base">{t("Submission review queue")}</CardTitle>
             </CardHeader>
@@ -335,7 +335,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="exports">
-          <Card className="border-border/70 shadow-none">
+          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
             <CardHeader>
               <CardTitle className="text-base">{t("Export jobs")}</CardTitle>
             </CardHeader>
@@ -346,7 +346,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="automation">
-          <Card className="border-border/70 shadow-none">
+          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
             <CardHeader>
               <CardTitle className="text-base">{t("Automation rules")}</CardTitle>
             </CardHeader>

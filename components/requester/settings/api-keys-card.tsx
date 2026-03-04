@@ -73,7 +73,7 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
         </Button>
       </div>
       {generatedKey && (
-        <div className="rounded-xl border border-border/70 p-4 text-sm">
+        <div className="rounded-xl border border-border p-4 text-sm">
           <p className="font-medium">{t("Copy your key:")}</p>
           <p className="mt-2 font-mono text-xs">{generatedKey}</p>
           <div className="mt-3">
@@ -88,7 +88,7 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
           <p className="text-sm text-muted-foreground">{t("No keys yet.")}</p>
         ) : (
           keys.map((key) => (
-            <div key={key.id} className="flex items-center justify-between rounded-xl border border-border/70 p-3 text-sm">
+            <div key={key.id} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm">
               <div>
                 <p className="font-medium">{key.name || t("API key")}</p>
                 <p className="text-xs text-muted-foreground">

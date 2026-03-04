@@ -64,7 +64,7 @@ export default async function AdminSettingsPage() {
         }
       />
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader>
           <CardTitle>General</CardTitle>
         </CardHeader>

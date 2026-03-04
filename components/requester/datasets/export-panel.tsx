@@ -108,7 +108,7 @@ export function ExportPanel({
       </div>
       <div className="space-y-3">
         {exports.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/70 p-6 text-center text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
             {t("No exports yet.")}
           </div>
         ) : (
@@ -123,7 +123,7 @@ export function ExportPanel({
             return (
               <div
                 key={record.id}
-                className="space-y-3 rounded-2xl border border-border/70 p-4"
+                className="space-y-3 rounded-2xl border border-border p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>

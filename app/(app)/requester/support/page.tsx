@@ -28,19 +28,19 @@ export default async function SupportPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Open tickets</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{openCount}</CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total tickets</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{tickets.length}</CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Latest update</CardTitle>
           </CardHeader>
@@ -51,7 +51,7 @@ export default async function SupportPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1.6fr]">
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>New ticket</CardTitle>
             <CardDescription>Share context and expected outcome to speed resolution.</CardDescription>
@@ -61,7 +61,7 @@ export default async function SupportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
           <CardHeader>
             <CardTitle>Ticket inbox</CardTitle>
             <CardDescription>Track status and open threaded conversations</CardDescription>
@@ -70,10 +70,10 @@ export default async function SupportPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Messages</TableHead>
-                  <TableHead>Last update</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">Subject</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">Status</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">Messages</TableHead>
+                  <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">Last update</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

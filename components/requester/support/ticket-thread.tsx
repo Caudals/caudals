@@ -55,14 +55,14 @@ export function TicketThread({
     <div className="space-y-4">
       <div className="space-y-3">
         {messages.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 p-4 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
             {t("No messages yet.")}
           </div>
         ) : (
           messages.map((message) => (
             <div
               key={message.id}
-              className="rounded-xl border border-border/70 p-4"
+              className="rounded-xl border border-border p-4"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <Badge variant="outline" className="capitalize">
@@ -78,7 +78,7 @@ export function TicketThread({
         )}
       </div>
 
-      <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4">
+      <div className="space-y-3 rounded-xl border border-border  p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
           <div className="space-y-2">
             <Label>{t("Add reply")}</Label>

@@ -165,9 +165,9 @@ function HeroPreview() {
   ];
 
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/70 bg-white/95 p-3 shadow-[0_25px_70px_-40px_rgba(15,23,42,0.55)] sm:p-4 lg:flex-row">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/40 bg-white p-3 shadow-xl sm:p-4 lg:flex-row">
       
-      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-muted-foreground lg:flex border-r border-border/60 mr-5">
+      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-muted-foreground lg:flex border-r border-border/40 mr-5">
         <div>
           <p className="text-lg font-semibold text-foreground">{t("Dashboard")}</p>
         </div>
@@ -178,8 +178,8 @@ function HeroPreview() {
               type="button"
               className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-xs transition-colors ${
                 link.active
-                  ? "bg-muted text-foreground "
-                  : "border border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground"
+                  ? "bg-accent/10 text-accent-foreground "
+                  : "border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -199,7 +199,7 @@ function HeroPreview() {
               {t("My contributions")}
             </h3>
           </div>
-          <button className="self-start rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground sm:self-auto sm:px-4 sm:py-1.5">
+          <button className="self-start rounded-full border border-border/40 px-3 py-1 text-xs text-muted-foreground sm:self-auto sm:px-4 sm:py-1.5">
             {t("All status")}
           </button>
         </div>
@@ -208,25 +208,25 @@ function HeroPreview() {
           {statCards.map((stat) => (
             <div
               key={stat.label}
-              className="rounded-xl border border-border/60 bg-white px-3 py-3 text-left shadow-[0_8px_20px_-14px_rgba(15,23,42,0.35)] sm:rounded-2xl sm:px-4 sm:py-4"
+              className="rounded-xl border border-border/40 bg-white px-3 py-3 text-left shadow-sm sm:rounded-2xl sm:px-4 sm:py-4"
             >
-              <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-xs">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
                 {stat.label}
               </p>
-              <p className="text-xl font-semibold text-foreground sm:text-2xl">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground sm:text-xs">{stat.note}</p>
+              <p className="text-xl font-semibold text-foreground sm:text-2xl mt-1">{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground sm:text-xs mt-1">{stat.note}</p>
             </div>
           ))}
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border/70 bg-white shadow-[0_10px_30px_-20px_rgba(15,23,42,0.4)] sm:rounded-2xl">
-          <div className="flex flex-col gap-2 border-b border-border/60 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3">
+        <div className="overflow-hidden rounded-xl border border-border/40 bg-white shadow-sm sm:rounded-2xl">
+          <div className="flex flex-col gap-2 border-b border-border/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3">
             <div>
               <p className="text-xs text-muted-foreground sm:text-sm">
                 {t("Your submission history across all datasets")}
               </p>
             </div>
-            <button className="self-start rounded-full border border-border/60 px-2.5 py-0.5 text-[10px] text-muted-foreground sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
+            <button className="self-start rounded-full border border-border/40 px-2.5 py-0.5 text-[10px] text-muted-foreground sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
               {t("All status")}
             </button>
           </div>

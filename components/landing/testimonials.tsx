@@ -52,7 +52,7 @@ export function TestimonialsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.08 }}
               viewport={{ once: true, margin: "-60px" }}
-              className="flex h-full flex-col gap-6 rounded-[1.6rem] border border-black/10 bg-white/80 p-6 text-left shadow-[0_26px_70px_-38px_rgba(15,15,15,0.25)] backdrop-blur-xl"
+              className="flex h-full flex-col gap-6 rounded-[1.6rem] border border-border/40 bg-white/80 p-6 text-left shadow-sm backdrop-blur-xl"
             >
               <Quote className="h-6 w-6 text-[#7f8cff]" />
               <p className="text-base leading-relaxed text-muted-foreground">{testimonial.quote}</p>

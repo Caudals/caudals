@@ -255,7 +255,7 @@ export function CommandPalette() {
     if (userRole === "contributor") {
       return [
         { label: t("Dashboard"), href: "/contributor", icon: FileText },
-        { label: t("Browse opportunities"), href: "/browse", icon: Search },
+        { label: t("Browse opportunities"), href: "/contributor/browse", icon: Search },
         { label: t("My contributions"), href: "/contributor/contributions", icon: FileUp },
         { label: t("Earnings & payouts"), href: "/contributor/earnings", icon: CreditCard },
         { label: t("Settings"), href: "/contributor/settings", icon: Settings },

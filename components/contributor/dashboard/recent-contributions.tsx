@@ -103,7 +103,7 @@ export function RecentContributions() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="shadow-sm border-border bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
@@ -120,7 +120,7 @@ export function RecentContributions() {
   }
 
   return (
-    <Card>
+    <Card className="shadow-sm border-border bg-white">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
@@ -158,7 +158,7 @@ export function RecentContributions() {
               </div>
             ))}
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/browse">
+              <Link href="/contributor/browse">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t("Browse More Projects")}
               </Link>
@@ -170,7 +170,7 @@ export function RecentContributions() {
             <p className="text-sm">{t("No contributions yet")}</p>
             <p className="text-xs">{t("Start contributing to datasets!")}</p>
             <Button variant="outline" className="mt-3" asChild>
-              <Link href="/browse">
+              <Link href="/contributor/browse">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t("Browse Projects")}
               </Link>

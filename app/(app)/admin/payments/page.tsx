@@ -303,7 +303,7 @@ export default async function AdminPaymentsPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Failed payout queue</p>
             <p className="text-2xl font-semibold text-destructive">
@@ -311,7 +311,7 @@ export default async function AdminPaymentsPage({
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">
               Pending payout queue
@@ -321,7 +321,7 @@ export default async function AdminPaymentsPage({
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border/70 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">
               Stale pending (24h+)
@@ -403,7 +403,7 @@ export default async function AdminPaymentsPage({
         </Button>
       </div>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Unified payment anomalies</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -412,21 +412,21 @@ export default async function AdminPaymentsPage({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Total anomalies</p>
               <p className="text-xl font-semibold">{anomaliesOverview.totals.total}</p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">High severity</p>
               <p className="text-xl font-semibold text-destructive">
                 {anomaliesOverview.totals.high}
               </p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Transfer-linked</p>
               <p className="text-xl font-semibold">{anomaliesOverview.totals.transfer}</p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Webhook-linked</p>
               <p className="text-xl font-semibold">{anomaliesOverview.totals.webhook}</p>
             </div>
@@ -441,7 +441,7 @@ export default async function AdminPaymentsPage({
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Severity</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Signal</TableHead>
@@ -462,7 +462,7 @@ export default async function AdminPaymentsPage({
                 </TableRow>
               ) : null}
               {anomalyRows.map((row) => (
-                <TableRow key={row.id} className="align-top hover:bg-muted/30">
+                <TableRow key={row.id} className="align-top">
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -505,7 +505,7 @@ export default async function AdminPaymentsPage({
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Compliance metadata registry</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -514,19 +514,19 @@ export default async function AdminPaymentsPage({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Records tracked</p>
               <p className="text-xl font-semibold">
                 {complianceOverview.rows.length}
               </p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Legal hold flags</p>
               <p className="text-xl font-semibold text-amber-700">
                 {complianceLegalHoldCount}
               </p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
+            <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Selected transaction</p>
               <p className="text-sm font-mono">
                 {selectedComplianceTxId || "None"}
@@ -544,7 +544,7 @@ export default async function AdminPaymentsPage({
           {selectedComplianceTransaction ? (
             <form
               action={saveComplianceRecord}
-              className="grid gap-3 rounded-lg border border-border/70 p-4"
+              className="grid gap-3 rounded-lg border border-border p-4"
             >
               <input
                 type="hidden"
@@ -631,7 +631,7 @@ export default async function AdminPaymentsPage({
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Failed payouts (reconciliation queue)</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -641,7 +641,7 @@ export default async function AdminPaymentsPage({
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Contributor</TableHead>
                 <TableHead>Dataset</TableHead>
                 <TableHead>Amount</TableHead>
@@ -663,7 +663,7 @@ export default async function AdminPaymentsPage({
                 </TableRow>
               )}
               {failedRows.map((tx) => (
-                <TableRow key={tx.id} className="align-top hover:bg-muted/30">
+                <TableRow key={tx.id} className="align-top">
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
                     <div className="text-xs text-muted-foreground">
@@ -776,7 +776,7 @@ export default async function AdminPaymentsPage({
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Pending payouts (SLA queue)</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -786,7 +786,7 @@ export default async function AdminPaymentsPage({
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Contributor</TableHead>
                 <TableHead>Dataset</TableHead>
                 <TableHead>Amount</TableHead>
@@ -806,7 +806,7 @@ export default async function AdminPaymentsPage({
                 </TableRow>
               )}
               {pendingRows.map((tx) => (
-                <TableRow key={tx.id} className="hover:bg-muted/30">
+                <TableRow key={tx.id} >
                   <TableCell className="text-sm">
                     <div>{tx.contributor_name || "Unknown contributor"}</div>
                     <div className="text-xs text-muted-foreground">
@@ -851,7 +851,7 @@ export default async function AdminPaymentsPage({
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="flex flex-col gap-1">
           <CardTitle>Recent transactions</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -861,7 +861,7 @@ export default async function AdminPaymentsPage({
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
+              <TableRow>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Amount</TableHead>
@@ -886,7 +886,7 @@ export default async function AdminPaymentsPage({
                 const hasComplianceRecord = Boolean(complianceRecord);
 
                 return (
-                  <TableRow key={tx.id} className="hover:bg-muted/30">
+                  <TableRow key={tx.id} >
                     <TableCell className="font-medium capitalize">
                       {tx.type?.replace("_", " ")}
                     </TableCell>
@@ -949,7 +949,7 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card className="border-border/70 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
