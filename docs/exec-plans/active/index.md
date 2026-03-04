@@ -1,16 +1,10 @@
 # Active Exec Plans
 
-## Queue
-
+## Active Files
 1. `phase-17-castilian-spanish-localization-overhaul.md` — IN_PROGRESS (P0)
 
-## Task Selection Order
+## Selection Rule
+Queue priority and selection order are canonical in `docs/PLAN.md`.
 
-1. If an active phase exists, execute `IN_PROGRESS` tasks first.
-2. Then execute remaining `P0`, followed by `P1`, then `P2`.
-
-## Active Plan Governance
-
-- Active phase files are living documents and can be edited during execution.
-- If new work is discovered, add tasks/subtasks in the phase file before continuing implementation.
-- Keep task IDs, priorities, and status tags aligned with the latest scope after each plan adjustment.
+## Editing Rule
+Active phase files are living execution documents. If scope changes during implementation, update the active phase file (stages/tasks/status) before continuing.

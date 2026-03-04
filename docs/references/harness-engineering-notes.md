@@ -3,7 +3,7 @@
 ## Key Principles Adopted
 - Persistent external memory is mandatory for long-running tasks.
 - Milestone plans should be explicit, durable, and easy to resume.
-- Agents should continuously loop: plan -> implement -> validate -> document.
+- Agents should continuously loop: plan -> implement -> observe/ validate -> (fix) -> document -> repeat.
 - Documentation structure should optimize context retrieval and reduce entropy.
 
 ## Reference Sources

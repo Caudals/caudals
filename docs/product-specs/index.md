@@ -1,10 +1,10 @@
 # Product Specs Index
 
 ## Specs
-- `platform-overview.md`: product purpose, users, and outcomes.
-- `role-workflows.md`: requester, contributor, and admin operational loops.
-- `autonomous-delivery-spec.md`: how agents should continuously plan/build/validate.
+- `platform-overview.md`: startup context, product outcomes, value axes, KPI and maturity map.
+- `role-workflows.md`: requester/contributor/admin lifecycle and workflow guarantees.
+- `autonomous-delivery-spec.md`: autonomous execution contract and fallback roadmap.
 
 ## Update Policy
-- Update specs when behavior contracts change.
-- Keep implementation details in architecture docs, not in these specs.
+- Update specs when behavior contracts or product outcomes change.
+- Keep low-level implementation details in `ARCHITECTURE.md` and code-level docs.

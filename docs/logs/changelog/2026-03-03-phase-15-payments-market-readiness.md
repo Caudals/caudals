@@ -262,7 +262,7 @@
 - Published payments cutover and incident operations runbook (`P15-T14-S01`):
   - new doc: `docs/references/payments-cutover-runbook.md`
   - linked from:
-    - `docs/references/tooling-and-mcp.md`
+    - `docs/TOOLS.md`
     - `docs/README.md`
 
 - Updated security/schema/debt planning artifacts:
