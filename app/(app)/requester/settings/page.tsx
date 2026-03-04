@@ -58,7 +58,7 @@ export default async function SettingsPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Profile</CardTitle>
             <CardDescription>Your identity and communication preferences</CardDescription>
@@ -68,7 +68,7 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Organization</CardTitle>
             <CardDescription>Billing and account defaults for requester operations</CardDescription>
@@ -79,7 +79,7 @@ export default async function SettingsPage() {
         </Card>
       </div>
 
-      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+      <Card className="bg-card shadow-sm border border-border">
         <CardHeader>
           <CardTitle>API keys</CardTitle>
           <CardDescription>Create and revoke integration credentials safely</CardDescription>

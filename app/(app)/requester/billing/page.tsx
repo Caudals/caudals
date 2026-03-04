@@ -110,7 +110,7 @@ export default async function BillingPage({
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Available balance</CardTitle>
             <CardDescription>Ready to allocate</CardDescription>
@@ -119,7 +119,7 @@ export default async function BillingPage({
             <p className="text-3xl font-semibold">${availableDollars.toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Pending funds</CardTitle>
             <CardDescription>Awaiting settlement</CardDescription>
@@ -128,7 +128,7 @@ export default async function BillingPage({
             <p className="text-3xl font-semibold">${pendingDollars.toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Transactions</CardTitle>
             <CardDescription>Latest 100 records</CardDescription>
@@ -140,7 +140,7 @@ export default async function BillingPage({
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Net flow</CardTitle>
             <CardDescription>Credit minus debit (sample window)</CardDescription>
@@ -153,7 +153,7 @@ export default async function BillingPage({
 
       <WalletFundingCard />
       <BillingAccountControls />
-      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+      <Card className="bg-card shadow-sm border border-border">
         <CardHeader>
           <CardTitle>Filter ledger</CardTitle>
           <CardDescription>
@@ -220,7 +220,7 @@ export default async function BillingPage({
         </CardContent>
       </Card>
 
-      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+      <Card className="bg-card shadow-sm border border-border">
         <CardHeader>
           <CardTitle>Transaction history</CardTitle>
           <CardDescription>Funding, payouts, and operational ledger entries</CardDescription>

@@ -170,7 +170,7 @@ export function DatasetWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
+      <Card className="bg-white shadow-sm border border-border">
         <CardContent className="space-y-4 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -290,7 +290,7 @@ export function DatasetWorkspace({
         </TabsList>
 
         <TabsContent value="overview">
-          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
+          <Card className="bg-white shadow-sm border border-border">
             <CardHeader>
               <CardTitle className="text-base">{t("Brief requirements")}</CardTitle>
             </CardHeader>
@@ -324,7 +324,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="submissions">
-          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
+          <Card className="bg-white shadow-sm border border-border">
             <CardHeader>
               <CardTitle className="text-base">{t("Submission review queue")}</CardTitle>
             </CardHeader>
@@ -335,7 +335,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="exports">
-          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
+          <Card className="bg-white shadow-sm border border-border">
             <CardHeader>
               <CardTitle className="text-base">{t("Export jobs")}</CardTitle>
             </CardHeader>
@@ -346,7 +346,7 @@ export function DatasetWorkspace({
         </TabsContent>
 
         <TabsContent value="automation">
-          <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0">
+          <Card className="bg-white shadow-sm border border-border">
             <CardHeader>
               <CardTitle className="text-base">{t("Automation rules")}</CardTitle>
             </CardHeader>

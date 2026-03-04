@@ -212,7 +212,7 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
       </CardHeader>
       <CardContent>
         {actions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 py-6 text-center text-muted-foreground">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-6 text-center text-muted-foreground">
             <ListChecks className="mb-2 h-6 w-6" />
             {t("Nothing urgent right now.")}
           </div>
@@ -221,7 +221,7 @@ export async function NextActionsList({ actions }: { actions: DashboardStats["pe
             {actions.slice(0, 6).map((action) => (
               <div
                 key={`${action.id}-${action.type}`}
-                className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 py-3 last:border-0"
+                className="flex items-center justify-between border-b border-border py-3 last:border-0"
               >
                 <div className="flex items-center gap-3">
                   <div className="rounded-full  p-2">
@@ -287,7 +287,7 @@ export async function OnboardingProgressCard({ steps }: { steps: OnboardingStep[
         </div>
         <div className="space-y-2">
           {steps.map((step) => (
-            <div key={step.id} className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 py-3 text-sm last:border-0">
+            <div key={step.id} className="flex items-center justify-between border-b border-border py-3 text-sm last:border-0">
               <div className="flex items-center gap-2">
                 <Badge
                   variant="secondary"
@@ -390,7 +390,7 @@ export async function NotificationsFeed({
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 dark:border-zinc-800 py-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border py-6 text-center text-sm text-muted-foreground">
             {t("All good for now.")}
           </div>
         ) : (
@@ -399,7 +399,7 @@ export async function NotificationsFeed({
               <Link
                 key={notification.id}
                 href={getHref(notification)}
-                className="block border-b border-slate-100 dark:border-zinc-800 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-zinc-800/50 last:border-0"
+                className="block border-b border-border py-3 transition-colors hover:bg-gray-50/50 last:border-0"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
