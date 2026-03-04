@@ -29,19 +29,19 @@ export default async function FilesDownloadsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Ready</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{ready}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Processing</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{processing}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Failed</CardTitle>
           </CardHeader>

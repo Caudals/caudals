@@ -28,19 +28,19 @@ export default async function SupportPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Open tickets</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{openCount}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Total tickets</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{tickets.length}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle className="text-sm text-muted-foreground">Latest update</CardTitle>
           </CardHeader>
@@ -51,7 +51,7 @@ export default async function SupportPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1.6fr]">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>New ticket</CardTitle>
             <CardDescription>Share context and expected outcome to speed resolution.</CardDescription>
@@ -61,7 +61,7 @@ export default async function SupportPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Ticket inbox</CardTitle>
             <CardDescription>Track status and open threaded conversations</CardDescription>

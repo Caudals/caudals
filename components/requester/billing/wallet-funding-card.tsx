@@ -40,7 +40,7 @@ export function WalletFundingCard() {
   };
 
   return (
-    <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+    <Card className="bg-white shadow-sm border border-border">
       <CardHeader>
         <CardTitle>{t("Top up wallet")}</CardTitle>
         <CardDescription>

@@ -38,28 +38,28 @@ export default async function AnalyticsPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Datasets</CardTitle>
             <CardDescription>Total briefs launched</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{analytics.datasets.length}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Submissions</CardTitle>
             <CardDescription>Across all requester datasets</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{totalSubmissions}</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Approval rate</CardTitle>
             <CardDescription>Quality trend indicator</CardDescription>
           </CardHeader>
           <CardContent className="text-3xl font-semibold">{approvalRate}%</CardContent>
         </Card>
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Pending reviews</CardTitle>
             <CardDescription>Submission backlog</CardDescription>
@@ -69,7 +69,7 @@ export default async function AnalyticsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 lg:col-span-2">
+        <Card className="bg-card shadow-sm border border-border lg:col-span-2">
           <CardHeader>
             <CardTitle>Last 7 days</CardTitle>
             <CardDescription>Submission and approval pulse</CardDescription>
@@ -98,7 +98,7 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+        <Card className="bg-card shadow-sm border border-border">
           <CardHeader>
             <CardTitle>Category mix</CardTitle>
             <CardDescription>Most active dataset categories</CardDescription>
@@ -118,7 +118,7 @@ export default async function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card className="bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 border-0 bg-white shadow-sm ring-1 ring-slate-200 dark:bg-zinc-900 dark:ring-zinc-800 -0">
+      <Card className="bg-card shadow-sm border border-border">
         <CardHeader>
           <CardTitle>Recent submissions</CardTitle>
           <CardDescription>Latest review activity across your datasets</CardDescription>
