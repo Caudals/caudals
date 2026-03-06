@@ -144,7 +144,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
             <Link
               key={href}
               href={href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm font-medium text-slate-500 transition-colors hover:text-foreground"
             >
               {t(label)}
             </Link>
@@ -184,7 +184,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
                     <SheetClose asChild key={href}>
                       <Link
                         href={href}
-                        className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-base font-medium text-slate-500 transition-colors hover:text-foreground"
                       >
                         {t(label)}
                       </Link>

@@ -68,7 +68,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Admin Analytics Dashboard</h1>
-          <p className="text-muted-foreground">
+          <p className="text-slate-500">
             Comprehensive platform monitoring and business intelligence
           </p>
         </div>
@@ -97,7 +97,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">Excellent</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               All systems operational
             </p>
           </CardContent>
@@ -110,7 +110,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">892</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               +12.5% from last month
             </p>
           </CardContent>
@@ -123,7 +123,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$45,680</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               +18.5% from last month
             </p>
           </CardContent>
@@ -136,7 +136,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">156</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               62.8% completion rate
             </p>
           </CardContent>
@@ -240,7 +240,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium">New dataset request created</p>
-                <p className="text-xs text-muted-foreground">TechCorp Inc. • 2 minutes ago</p>
+                <p className="text-xs text-slate-500">TechCorp Inc. • 2 minutes ago</p>
               </div>
               <Badge variant="outline">Computer Vision</Badge>
             </div>
@@ -249,7 +249,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Payment completed</p>
-                <p className="text-xs text-muted-foreground">$500.00 • 5 minutes ago</p>
+                <p className="text-xs text-slate-500">$500.00 • 5 minutes ago</p>
               </div>
               <Badge className="bg-green-500">Success</Badge>
             </div>
@@ -258,7 +258,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium">New contributor registered</p>
-                <p className="text-xs text-muted-foreground">Alice Johnson • 10 minutes ago</p>
+                <p className="text-xs text-slate-500">Alice Johnson • 10 minutes ago</p>
               </div>
               <Badge variant="outline">Contributor</Badge>
             </div>
@@ -267,7 +267,7 @@ export function AdminAnalytics({ onRefresh }: AdminAnalyticsProps) {
               <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium">Dataset completed</p>
-                <p className="text-xs text-muted-foreground">Street Scene Object Detection • 15 minutes ago</p>
+                <p className="text-xs text-slate-500">Street Scene Object Detection • 15 minutes ago</p>
               </div>
               <Badge className="bg-green-500">Completed</Badge>
             </div>

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ContributorPageHeaderProps = {
-  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
@@ -11,7 +10,6 @@ type ContributorPageHeaderProps = {
 };
 
 export function ContributorPageHeader({
-  eyebrow = "Contributor workspace",
   title,
   description,
   actions,
@@ -27,16 +25,14 @@ export function ContributorPageHeader({
         className,
       )}
     >
-      <div className="space-y-1.5">
-        {eyebrow ? (
-          <p className="text-sm font-medium text-muted-foreground">
-            {eyebrow}
-          </p>
-        ) : null}
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {description ? (
-          <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
-        ) : null}
+      <div className="flex items-stretch gap-3">
+        <div className="w-1.5 rounded-full bg-[var(--accent)]/80" />
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+          {description ? (
+            <p className="max-w-2xl text-sm text-slate-500 leading-relaxed">{description}</p>
+          ) : null}
+        </div>
       </div>
       {resolvedActions ? <div className="flex items-center gap-2">{resolvedActions}</div> : null}
     </header>

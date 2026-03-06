@@ -156,8 +156,8 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
             
             {(fileType === 'Text' || fileType === 'File') && (
               <div className="text-center py-8">
-                <File className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-4">
+                <File className="h-16 w-16 mx-auto text-slate-500 mb-4" />
+                <p className="text-slate-500 mb-4">
                   {t("Preview not available for this file type")}
                 </p>
                 <Button onClick={() => handleDownload(selectedFile)}>
@@ -187,8 +187,8 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <File className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">{t("No files submitted")}</p>
+          <File className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+          <p className="text-slate-500">{t("No files submitted")}</p>
         </CardContent>
       </Card>
     );
@@ -206,7 +206,7 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
             </Badge>
           </CardTitle>
           {metadata?.totalSize && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               {t("Total size:")} {formatFileSize(metadata.totalSize)}
             </p>
           )}
@@ -224,10 +224,10 @@ export function FileViewer({ fileUrls, metadata }: FileViewerProps) {
                   className="flex items-center justify-between p-3 border rounded-lg hover: transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="h-8 w-8 text-muted-foreground" />
+                    <Icon className="h-8 w-8 text-slate-500" />
                     <div>
                       <p className="font-medium text-sm">{fileName}</p>
-                      <p className="text-xs text-muted-foreground">{fileType}</p>
+                      <p className="text-xs text-slate-500">{fileType}</p>
                     </div>
                   </div>
                   

@@ -97,7 +97,7 @@ export function ExportPanel({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">{t("Exports")}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-500">
             {t("Track export state, errors, and expiration windows")}
           </p>
         </div>
@@ -108,7 +108,7 @@ export function ExportPanel({
       </div>
       <div className="space-y-3">
         {exports.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-slate-500">
             {t("No exports yet.")}
           </div>
         ) : (
@@ -130,14 +130,14 @@ export function ExportPanel({
                     <p className="text-sm font-semibold">
                       {record.export_type || t("Full")} export
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500">
                       {new Date(record.created_at).toLocaleString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"
-                      className={STATUS_TONE[record.status] ?? "bg-muted text-muted-foreground"}
+                      className={STATUS_TONE[record.status] ?? "bg-muted text-slate-500"}
                     >
                       {record.status}
                     </Badge>
@@ -149,7 +149,7 @@ export function ExportPanel({
 
                 {(record.status === "pending" || record.status === "preparing") && (
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex justify-between text-xs text-slate-500">
                       <span>{t("Preparing export")}</span>
                       <span>{record.progress ?? 0}%</span>
                     </div>
@@ -166,7 +166,7 @@ export function ExportPanel({
                   </div>
                 ) : null}
 
-                <div className="grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
+                <div className="grid gap-2 text-xs text-slate-500 md:grid-cols-3">
                   <p>{t("Size")}: {formatBytes(record.size_bytes)}</p>
                   <p>
                     {t("Completed")}:

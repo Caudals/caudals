@@ -126,7 +126,7 @@ export function FiltersPopover({
             <div className="space-y-4">
               {/* Category Filters */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                <Label className="text-xs font-semibold text-slate-500 uppercase">
                   {t("Category")}
                 </Label>
                 <div className="space-y-2">
@@ -152,7 +152,7 @@ export function FiltersPopover({
 
               {/* Data Type Filters */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                <Label className="text-xs font-semibold text-slate-500 uppercase">
                   {t("Data type")}
                 </Label>
                 <div className="space-y-2">
@@ -178,7 +178,7 @@ export function FiltersPopover({
 
               {/* Reward Range Slider */}
               <div className="space-y-3">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                <Label className="text-xs font-semibold text-slate-500 uppercase">
                   {t("Reward range (USD)")}
                 </Label>
                 <div className="space-y-4 pt-2">
@@ -190,7 +190,7 @@ export function FiltersPopover({
                     onValueChange={handleRewardRangeChange}
                     className="w-full"
                   />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
                     <span>${filters.rewardRange[0]}</span>
                     <span>${filters.rewardRange[1]}+</span>
                   </div>
@@ -201,7 +201,7 @@ export function FiltersPopover({
 
               {/* Status Filters */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase">
+                <Label className="text-xs font-semibold text-slate-500 uppercase">
                   {t("Status")}
                 </Label>
                 <div className="space-y-2">

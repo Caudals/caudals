@@ -13,7 +13,7 @@ export function StatsCards() {
       {DEFAULT_STATS.map((stat) => (
         <Card key={stat.label}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-500">{stat.label}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold">{stat.value}</p>

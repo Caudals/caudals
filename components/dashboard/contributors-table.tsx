@@ -21,13 +21,13 @@ export function ContributorsTable({ contributors = [] }: ContributorsTableProps)
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No contributors yet.</p>
+          <p className="text-sm text-slate-500">No contributors yet.</p>
         ) : (
           <div className="space-y-2">
             {rows.map((contributor, index) => (
               <div key={contributor.id ?? `contributor-${index}`} className="rounded-md border p-3 text-sm">
                 <p className="font-medium">{contributor.full_name ?? "Unnamed contributor"}</p>
-                <p className="text-muted-foreground">{contributor.email ?? "No email"}</p>
+                <p className="text-slate-500">{contributor.email ?? "No email"}</p>
               </div>
             ))}
           </div>

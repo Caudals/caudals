@@ -21,7 +21,6 @@ export default async function OnboardingPage() {
   return (
     <div className="space-y-6">
       <RequesterPageHeader
-        eyebrow="Onboarding"
         title="Workspace setup"
         description={`Complete setup milestones to unlock full requester operations and automation. ${completed}/${stepsResult.length} completed.`}
       />

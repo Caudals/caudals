@@ -120,7 +120,7 @@ export function CollaborateForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {t("If you'd like to share more details in the meantime, reach us directly at")}
             <Button variant="link" className="px-1 text-base" asChild>
               <a href="mailto:contact@caudals.com">contact@caudals.com</a>

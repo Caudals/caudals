@@ -124,7 +124,7 @@ export function DatasetDetailClient({
     <main className="mx-auto max-w-7xl px-4 pb-16 pt-10">
       <Link
         href="/browse"
-        className="mb-6 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="mb-6 inline-flex items-center text-sm text-slate-500 transition-colors hover:text-foreground"
       >
         <ArrowLeft className="mr-2 h-4 w-4" /> {t("Back to browse")}
       </Link>
@@ -132,7 +132,7 @@ export function DatasetDetailClient({
       <div className="grid gap-8 lg:grid-cols-[1fr_400px] lg:items-start">
         <section className="space-y-6">
           {/* Main Info Card */}
-          <Card className="overflow-hidden rounded-xl border border-border">
+          <Card className="overflow-hidden rounded-xl border border-border py-0 gap-0">
             <CardContent className="space-y-8 p-6">
               {/* Image */}
               <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border bg-muted">
@@ -190,13 +190,13 @@ export function DatasetDetailClient({
                         <CheckCircle2 className="h-4 w-4 text-blue-600" />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500">
                       {t("Posted")} {postedLabel}
                     </p>
                   </div>
                 </div>
 
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-slate-500 leading-relaxed">
                   {dataset.description}
                 </p>
               </div>
@@ -218,7 +218,7 @@ export function DatasetDetailClient({
                 {dataset.qualityCriteria.map((criterion, index) => (
                   <li key={index} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                    <span className="text-muted-foreground">{criterion}</span>
+                    <span className="text-slate-500">{criterion}</span>
                   </li>
                 ))}
               </ul>
@@ -241,7 +241,7 @@ export function DatasetDetailClient({
                   {dataset.requirements.map((requirement, index) => (
                     <li
                       key={index}
-                      className="flex items-start gap-2 text-sm text-muted-foreground"
+                      className="flex items-start gap-2 text-sm text-slate-500"
                     >
                       <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-foreground" />
                       <span>{requirement}</span>
@@ -249,7 +249,7 @@ export function DatasetDetailClient({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-500">
                   No additional requirements
                 </p>
               )}
@@ -285,7 +285,7 @@ export function DatasetDetailClient({
                       <p className="text-sm font-medium">
                         {submission.profiles?.full_name || t("Anonymous")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500">
                         {new Date(submission.created_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -323,14 +323,14 @@ export function DatasetDetailClient({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-slate-500">
                   <ShieldCheck className="h-4 w-4" />
                   <span>{t("Quality validation required")}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <FileText className="h-4 w-4 text-slate-500" />
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
                       {t("Data type")}
                     </p>
                     <p className="font-medium text-foreground">
@@ -341,9 +341,9 @@ export function DatasetDetailClient({
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <Calendar className="h-4 w-4 text-slate-500" />
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
                       {t("Deadline")}
                     </p>
                     <p className="font-medium text-foreground">
@@ -352,7 +352,7 @@ export function DatasetDetailClient({
                     <p
                       className={cn(
                         "text-xs",
-                        isExpired ? "text-red-600" : "text-muted-foreground"
+                        isExpired ? "text-red-600" : "text-slate-500"
                       )}
                     >
                       {deadlineLabel}
@@ -360,9 +360,9 @@ export function DatasetDetailClient({
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Timer className="h-4 w-4 text-muted-foreground" />
+                  <Timer className="h-4 w-4 text-slate-500" />
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
                       {t("Estimated effort")}
                     </p>
                     <p className="font-medium text-foreground">
@@ -400,14 +400,14 @@ export function DatasetDetailClient({
             <CardContent className="space-y-4 text-sm">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t("Progress")}</span>
+                  <span className="text-slate-500">{t("Progress")}</span>
                   <span className="font-medium text-foreground">
                     {dataset.samplesCollected.toLocaleString()} /{" "}
                     {dataset.samplesNeeded.toLocaleString()}
                   </span>
                 </div>
                 <Progress value={progressValue} className="h-2" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center justify-between text-xs text-slate-500">
                   <span>
                     {progressValue}
                     {t("% complete")}
@@ -424,7 +424,7 @@ export function DatasetDetailClient({
               <Separator />
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
+                  <span className="text-slate-500">
                     {t("Samples needed")}
                   </span>
                   <span className="font-semibold">
@@ -432,7 +432,7 @@ export function DatasetDetailClient({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
+                  <span className="text-slate-500">
                     {t("Collected")}
                   </span>
                   <span className="font-semibold">
@@ -440,13 +440,13 @@ export function DatasetDetailClient({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
+                  <span className="text-slate-500">
                     {t("Reward/item")}
                   </span>
                   <span className="font-semibold">{rewardLabel}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
+                  <span className="text-slate-500">
                     {t("Time remaining")}
                   </span>
                   <span

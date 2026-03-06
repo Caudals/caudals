@@ -42,7 +42,6 @@ const guideCards = [
 export default function DocsPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Documentation"
       title="Guides to run reliable data operations"
       description="Explore launch guides, role workflows, and operational playbooks to keep dataset programs predictable from intake to payout."
       ctaLabel="Open Dashboard"
@@ -55,7 +54,7 @@ export default function DocsPage() {
               <CardTitle className="text-lg">{guide.title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{guide.description}</p>
+              <p className="text-sm text-slate-500">{guide.description}</p>
               <Button asChild variant="outline" size="sm">
                 <Link href={guide.href}>
                   Open guide

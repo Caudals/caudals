@@ -254,7 +254,7 @@ export function StripeOnboardingDialog({
                 onSubmit={form.handleSubmit(handleSubmit)}
               >
             <section className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Personal Details
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
@@ -411,7 +411,7 @@ export function StripeOnboardingDialog({
             </section>
 
             <section className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Payout Details
               </h3>
               <div className="grid gap-4 md:grid-cols-2">

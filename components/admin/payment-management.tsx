@@ -217,11 +217,11 @@ export function PaymentManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CreditCard className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               All time
             </p>
           </CardContent>
@@ -230,11 +230,11 @@ export function PaymentManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Volume</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(stats.totalVolume)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Processed
             </p>
           </CardContent>
@@ -243,11 +243,11 @@ export function PaymentManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingTransactions}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Awaiting processing
             </p>
           </CardContent>
@@ -256,11 +256,11 @@ export function PaymentManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.completedTransactions}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Successful
             </p>
           </CardContent>
@@ -269,11 +269,11 @@ export function PaymentManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(stats.platformRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               10% commission
             </p>
           </CardContent>
@@ -287,7 +287,7 @@ export function PaymentManagement() {
             <CardTitle>Transaction Management</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
                 <Input
                   placeholder="Search transactions..."
                   value={searchTerm}
@@ -328,7 +328,7 @@ export function PaymentManagement() {
                       {getTransactionIcon(transaction.type)}
                       <div>
                         <p className="text-sm font-medium">{transaction.id}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-500">
                           {transaction.description}
                         </p>
                       </div>
@@ -348,7 +348,7 @@ export function PaymentManagement() {
                       <span className="ml-1">{transaction.status}</span>
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-slate-500">
                     {formatDate(transaction.created_at)}
                   </TableCell>
                   <TableCell>

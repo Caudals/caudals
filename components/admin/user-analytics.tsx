@@ -296,8 +296,8 @@ export function UserAnalytics() {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No user analytics data available</p>
+              <Users className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-500">No user analytics data available</p>
             </div>
           </CardContent>
         </Card>
@@ -313,7 +313,7 @@ export function UserAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">User Analytics</h2>
-          <p className="text-muted-foreground">Comprehensive user behavior and engagement metrics</p>
+          <p className="text-slate-500">Comprehensive user behavior and engagement metrics</p>
         </div>
         <Button onClick={handleExport} variant="outline">
           <Download className="mr-2 h-4 w-4" />
@@ -326,11 +326,11 @@ export function UserAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               +{analyticsData.userGrowth}% from last month
             </p>
           </CardContent>
@@ -339,11 +339,11 @@ export function UserAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New Users</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <UserPlus className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.newUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               This month
             </p>
           </CardContent>
@@ -352,11 +352,11 @@ export function UserAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <UserCheck className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.activeUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {((analyticsData.activeUsers / analyticsData.totalUsers) * 100).toFixed(1)}% of total
             </p>
           </CardContent>
@@ -365,11 +365,11 @@ export function UserAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Retention Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.userRetention}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {analyticsData.averageSessionTime}min avg session
             </p>
           </CardContent>
@@ -391,7 +391,7 @@ export function UserAnalytics() {
                 </div>
                 <div className="text-right">
                   <div className="font-medium">{analyticsData.userDistribution.contributors}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-slate-500">
                     {((analyticsData.userDistribution.contributors / analyticsData.totalUsers) * 100).toFixed(1)}%
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export function UserAnalytics() {
                 </div>
                 <div className="text-right">
                   <div className="font-medium">{analyticsData.userDistribution.requesters}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-slate-500">
                     {((analyticsData.userDistribution.requesters / analyticsData.totalUsers) * 100).toFixed(1)}%
                   </div>
                 </div>
@@ -415,7 +415,7 @@ export function UserAnalytics() {
                 </div>
                 <div className="text-right">
                   <div className="font-medium">{analyticsData.userDistribution.admins}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-slate-500">
                     {((analyticsData.userDistribution.admins / analyticsData.totalUsers) * 100).toFixed(1)}%
                   </div>
                 </div>
@@ -433,12 +433,12 @@ export function UserAnalytics() {
               {analyticsData.geographicDistribution.map((location, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 text-slate-500" />
                     <span className="text-sm">{location.country}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium">{location.users}</div>
-                    <div className="text-xs text-muted-foreground">{location.percentage}%</div>
+                    <div className="text-xs text-slate-500">{location.percentage}%</div>
                   </div>
                 </div>
               ))}
@@ -454,7 +454,7 @@ export function UserAnalytics() {
             <CardTitle>User Management</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
@@ -504,7 +504,7 @@ export function UserAnalytics() {
                   <TableCell>
                     <div>
                       <p className="font-medium">{user.name}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -524,12 +524,12 @@ export function UserAnalytics() {
                       {user.role === "contributor" ? (
                         <div>
                           <p>{user.contributions} contributions</p>
-                          <p className="text-muted-foreground">{formatAmount(user.earnings || 0)} earned</p>
+                          <p className="text-slate-500">{formatAmount(user.earnings || 0)} earned</p>
                         </div>
                       ) : (
                         <div>
                           <p>{user.datasets} datasets</p>
-                          <p className="text-muted-foreground">{formatAmount(user.spending || 0)} spent</p>
+                          <p className="text-slate-500">{formatAmount(user.spending || 0)} spent</p>
                         </div>
                       )}
                     </div>

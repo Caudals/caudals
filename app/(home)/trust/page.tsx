@@ -60,7 +60,6 @@ const supportSla = [
 export default function TrustCenterPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Trust Center"
       title="Evaluate Caudals reliability before you launch"
       description="This page summarizes the controls behind platform security, governance, payout integrity, and support responsiveness so your team can self-qualify fit."
       ctaLabel="Open Security Baseline"
@@ -80,7 +79,7 @@ export default function TrustCenterPage() {
                 <pillar.icon className="h-5 w-5 text-primary" />
                 {pillar.title}
               </CardTitle>
-              <p className="text-sm text-muted-foreground">{pillar.description}</p>
+              <p className="text-sm text-slate-500">{pillar.description}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               {pillar.checkpoints.map((item) => (
@@ -105,13 +104,13 @@ export default function TrustCenterPage() {
               className="grid gap-2 rounded-xl border border-border/70 px-4 py-3 text-sm md:grid-cols-[2fr_1fr_1fr]"
             >
               <span className="font-medium">{row.tier}</span>
-              <span className="text-muted-foreground">First response: {row.firstResponse}</span>
-              <span className="text-muted-foreground">
+              <span className="text-slate-500">First response: {row.firstResponse}</span>
+              <span className="text-slate-500">
                 Target resolution: {row.targetResolution}
               </span>
             </div>
           ))}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-500">
             SLA targets apply to standard business-hours support and are reviewed quarterly.
           </p>
         </CardContent>

@@ -10,7 +10,7 @@ export function AnalyticsCharts() {
           <CardTitle>Conversion</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Analytics data will appear once traffic is recorded.</p>
+          <p className="text-sm text-slate-500">Analytics data will appear once traffic is recorded.</p>
         </CardContent>
       </Card>
     </div>

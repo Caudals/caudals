@@ -199,33 +199,33 @@ export function DatasetWorkspace({
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {detail.description || t("No description provided yet.")}
           </p>
 
           <div className="grid gap-4 md:grid-cols-4">
             <div className="rounded-xl border border-border p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Samples")}</p>
+              <p className="text-xs uppercase text-slate-500">{t("Samples")}</p>
               <p className="text-lg font-semibold">
                 {samplesCollected} / {samplesNeeded}
               </p>
               <Progress className="mt-2" value={progress} />
             </div>
             <div className="rounded-xl border border-border p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Reward")}</p>
+              <p className="text-xs uppercase text-slate-500">{t("Reward")}</p>
               <p className="text-lg font-semibold">
                 {detail.currency ?? "USD"} {Number(detail.reward_amount ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="rounded-xl border border-border p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Budget")}</p>
+              <p className="text-xs uppercase text-slate-500">{t("Budget")}</p>
               <p className="text-lg font-semibold">
                 {(detail.currency ?? "USD")} {Number(detail.paid_amount ?? 0).toLocaleString()} /{" "}
                 {Number(detail.total_budget ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="rounded-xl border border-border p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Deadline")}</p>
+              <p className="text-xs uppercase text-slate-500">{t("Deadline")}</p>
               <p className="text-lg font-semibold">
                 {detail.deadline
                   ? new Date(detail.deadline).toLocaleDateString()
@@ -238,10 +238,10 @@ export function DatasetWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">{t("Funding actions")}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   {t("Remaining budget:")} {formatMoney(remainingToFund)}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   {t("Wallet available:")}{" "}
                   {walletBalance === null ? "—" : formatMoney(walletBalance)}
                 </p>
@@ -298,25 +298,25 @@ export function DatasetWorkspace({
               <div className="space-y-2">
                 <p className="text-sm font-medium">{t("Quality criteria")}</p>
                 {detail.quality_criteria && detail.quality_criteria.length > 0 ? (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
+                  <ul className="space-y-1 text-sm text-slate-500">
                     {detail.quality_criteria.map((item, index) => (
                       <li key={`${item}-${index}`}>- {item}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">{t("No criteria listed.")}</p>
+                  <p className="text-sm text-slate-500">{t("No criteria listed.")}</p>
                 )}
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">{t("Contributor requirements")}</p>
                 {detail.requirements && detail.requirements.length > 0 ? (
-                  <ul className="space-y-1 text-sm text-muted-foreground">
+                  <ul className="space-y-1 text-sm text-slate-500">
                     {detail.requirements.map((item, index) => (
                       <li key={`${item}-${index}`}>- {item}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">{t("No requirements listed.")}</p>
+                  <p className="text-sm text-slate-500">{t("No requirements listed.")}</p>
                 )}
               </div>
             </CardContent>

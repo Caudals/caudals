@@ -20,7 +20,7 @@ export default async function AdminDatasetsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {result.error || "Please try again later."}
           </p>
         </CardContent>
@@ -33,7 +33,6 @@ export default async function AdminDatasetsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Moderation and catalog"
         title="Dataset management"
         description="Maintain request quality, edit metadata, and keep the active catalog healthy."
         actions={

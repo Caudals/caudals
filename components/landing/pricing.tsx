@@ -61,7 +61,7 @@ export function PricingSection() {
           <h2 className="mt-3 text-2xl font-semibold text-foreground sm:mt-6 sm:text-3xl lg:text-4xl">
             {t("Custom plans for ML teams, research labs, and enterprise partners")}
           </h2>
-          <p className="mx-auto mt-3 max-w-3xl text-sm text-muted-foreground sm:text-base">
+          <p className="mx-auto mt-3 max-w-3xl text-sm text-slate-500 sm:text-base">
             {t(
               "Mix project-based briefs when you need a focused sprint or retain an embedded Caudals pod for managed operations. All plans bill only on approved submissions.",
             )}
@@ -82,11 +82,11 @@ export function PricingSection() {
                 <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
                   {t(plan.name)}
                 </h3>
-                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+                <p className="mt-2 text-xs text-slate-500 sm:text-sm">
                   {t(plan.description)}
                 </p>
               </div>
-              <ul className="space-y-2.5 text-xs text-muted-foreground sm:space-y-3 sm:text-sm">
+              <ul className="space-y-2.5 text-xs text-slate-500 sm:space-y-3 sm:text-sm">
                 {plan.perks.map((perk) => (
                   <li key={perk} className="flex items-start gap-2.5 sm:gap-3">
                     <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/15 text-accent sm:mt-1 sm:h-5 sm:w-5 ">
@@ -111,7 +111,7 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="rounded-xl border border-dashed border-border/80 bg-card px-4 py-4 text-center text-xs text-muted-foreground sm:rounded-[1.6rem] sm:px-6 sm:py-5 sm:text-sm">
+        <div className="rounded-xl border border-dashed border-border/80 bg-card px-4 py-4 text-center text-xs text-slate-500 sm:rounded-[1.6rem] sm:px-6 sm:py-5 sm:text-sm">
           {t(
             "Add-ons: dataset bootcamps for your contributors, private Slack channels, or promotional placement for requests in the browse feed. Mention them during your intro call.",
           )}

@@ -69,7 +69,6 @@ export default async function RequesterDatasetsPage({
   return (
     <div className="space-y-6">
       <RequesterPageHeader
-        eyebrow="Datasets"
         title="Manage dataset briefs"
         description="Track funding, progress, and review readiness across all active and draft requests."
         actions={
@@ -88,7 +87,7 @@ export default async function RequesterDatasetsPage({
 
       <DatasetTable datasets={result.items} />
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between text-sm text-slate-500">
         <span>
           {t("Showing {{count}} of {{total}} datasets", {
             count: result.items.length,

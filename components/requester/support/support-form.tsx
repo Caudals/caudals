@@ -44,7 +44,7 @@ export function SupportForm() {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
           {t("Subject")}
         </p>
         <Input
@@ -54,7 +54,7 @@ export function SupportForm() {
         />
       </div>
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
           {t("Description")}
         </p>
         <Textarea

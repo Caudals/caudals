@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { saveContributorSettings } from "@/lib/actions/contributor-actions";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { Save } from "lucide-react";
 
 type ContributorSettingsPayload = {
   full_name: string;
@@ -88,18 +89,18 @@ export function ContributorSettingsForm({
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-sm border-border bg-white">
-        <CardHeader>
-          <CardTitle>{t("Contributor profile")}</CardTitle>
+    <div className="space-y-6 pb-10">
+      <Card className="shadow-none border-border bg-background rounded-2xl max-w-3xl">
+        <CardHeader className="pb-4 border-b border-slate-200">
+          <CardTitle className="text-base">{t("Contributor profile")}</CardTitle>
           <CardDescription>
             {t("Keep your profile complete so requesters and reviewers can trust your work.")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+        <CardContent className="space-y-6 pt-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="fullName">{t("Display name")}</Label>
+              <Label htmlFor="fullName" className="text-sm font-medium">{t("Display name")}</Label>
               <Input
                 id="fullName"
                 value={form.full_name}
@@ -107,10 +108,11 @@ export function ContributorSettingsForm({
                   setForm((prev) => ({ ...prev, full_name: event.target.value }))
                 }
                 placeholder={t("Jane Doe")}
+                className="shadow-none rounded-lg h-10 bg-muted/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="portfolio">{t("Portfolio URL")}</Label>
+              <Label htmlFor="portfolio" className="text-sm font-medium">{t("Portfolio URL")}</Label>
               <Input
                 id="portfolio"
                 value={form.portfolio_url}
@@ -118,12 +120,13 @@ export function ContributorSettingsForm({
                   setForm((prev) => ({ ...prev, portfolio_url: event.target.value }))
                 }
                 placeholder="https://portfolio.example.com"
+                className="shadow-none rounded-lg h-10 bg-muted/20"
               />
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="timezone">{t("Timezone")}</Label>
+              <Label htmlFor="timezone" className="text-sm font-medium">{t("Timezone")}</Label>
               <Input
                 id="timezone"
                 value={form.timezone}
@@ -131,10 +134,11 @@ export function ContributorSettingsForm({
                   setForm((prev) => ({ ...prev, timezone: event.target.value }))
                 }
                 placeholder="America/New_York"
+                className="shadow-none rounded-lg h-10 bg-muted/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="availability">{t("Availability")}</Label>
+              <Label htmlFor="availability" className="text-sm font-medium">{t("Availability")}</Label>
               <select
                 id="availability"
                 value={form.availability}
@@ -144,16 +148,16 @@ export function ContributorSettingsForm({
                     availability: event.target.value as ContributorSettingsPayload["availability"],
                   }))
                 }
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border-border bg-muted/20 px-3 text-sm focus:ring-2 focus:ring-ring focus:outline-none"
               >
-                <option value="open">{t("open")}</option>
-                <option value="limited">{t("limited")}</option>
-                <option value="unavailable">{t("unavailable")}</option>
+                <option value="open">{t("Open")}</option>
+                <option value="limited">{t("Limited")}</option>
+                <option value="unavailable">{t("Unavailable")}</option>
               </select>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bio">{t("Bio")}</Label>
+            <Label htmlFor="bio" className="text-sm font-medium">{t("Bio")}</Label>
             <Textarea
               id="bio"
               rows={4}
@@ -162,10 +166,11 @@ export function ContributorSettingsForm({
                 setForm((prev) => ({ ...prev, bio: event.target.value }))
               }
               placeholder={t("Share your data collection strengths and review experience.")}
+              className="shadow-none rounded-lg bg-muted/20 resize-none"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="focusAreas">{t("Focus areas (comma separated)")}</Label>
+            <Label htmlFor="focusAreas" className="text-sm font-medium">{t("Focus areas (comma separated)")}</Label>
             <Input
               id="focusAreas"
               value={form.focusAreasInput}
@@ -173,22 +178,23 @@ export function ContributorSettingsForm({
                 setForm((prev) => ({ ...prev, focusAreasInput: event.target.value }))
               }
               placeholder={t("computer vision, audio annotation, quality review")}
+              className="shadow-none rounded-lg h-10 bg-muted/20"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500 mt-1">
               {focusAreaCount} {focusAreaCount === 1 ? t("area selected") : t("areas selected")}
             </p>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm border-border bg-white">
-        <CardHeader>
-          <CardTitle>{t("Notification preferences")}</CardTitle>
+      <Card className="shadow-none border-border bg-background rounded-2xl max-w-3xl">
+        <CardHeader className="pb-4 border-b border-slate-200">
+          <CardTitle className="text-base">{t("Notification preferences")}</CardTitle>
           <CardDescription>
             {t("Control alerts for review feedback, payouts, and new opportunities.")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <PreferenceRow
             title={t("Review updates")}
             description={t("Get notified when submissions are approved, rejected, or need changes.")}
@@ -216,8 +222,9 @@ export function ContributorSettingsForm({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={submit} disabled={isPending}>
+      <div className="flex justify-end max-w-3xl">
+        <Button onClick={submit} disabled={isPending} className="rounded-lg shadow-none px-6 h-10">
+          <Save className="mr-2 h-4 w-4" />
           {isPending ? t("Saving...") : t("Save settings")}
         </Button>
       </div>
@@ -237,12 +244,12 @@ function PreferenceRow({
   onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between rounded-lg border border-border p-3">
+    <div className="flex items-start justify-between rounded-xl border border-border/60 bg-muted/10 p-4 hover:bg-muted/30 transition-colors">
       <div className="space-y-1 pr-4">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} className="mt-1 data-[state=checked]:bg-primary" />
     </div>
   );
 }

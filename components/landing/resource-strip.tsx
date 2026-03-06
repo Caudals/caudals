@@ -30,13 +30,13 @@ export function ResourceStrip() {
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="flex flex-col gap-6 rounded-[1.8rem] border border-border/80 bg-card p-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-xl space-y-1">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">
+            <p className="text-xs font-semibold uppercase text-slate-500">
               {t("Keep exploring")}
             </p>
             <h3 className="text-2xl font-semibold text-foreground">
               {t("Resources to accelerate your next dataset sprint")}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               {t(
                 "Save time with proven playbooks, security documentation, and planning templates used by teams already live on Caudals.",
               )}
@@ -53,7 +53,7 @@ export function ResourceStrip() {
                     <resource.icon className="h-4 w-4 text-accent" />
                     {t(resource.label)}
                   </span>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
+                  <ArrowUpRight className="h-4 w-4 text-slate-500 transition group-hover:text-foreground" />
                 </Link>
               </li>
             ))}

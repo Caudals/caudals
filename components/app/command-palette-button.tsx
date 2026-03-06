@@ -35,7 +35,7 @@ export function CommandPaletteButton({
       className={cn(
         compact
           ? "h-9 w-9 p-0 bg-transparent border-transparent hover:bg-gray-100"
-          : "hidden h-9 gap-2 px-3 md:flex w-full justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200/60 shadow-none text-muted-foreground transition-colors",
+          : "hidden h-9 gap-2 px-3 md:flex w-full justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200/60 shadow-none text-slate-500 transition-colors",
         className
       )}
       onClick={handleClick}

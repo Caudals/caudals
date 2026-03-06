@@ -1,11 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
   getAdminOverview,
   getAdminAnalyticsSummary,
-  getAdminOperationalHealthStatus,
   getAdminPaymentsOverview,
   getAdminSupportTickets,
 } from "@/lib/actions/admin-actions";
@@ -15,34 +13,29 @@ import {
   Activity,
   AlertCircle,
   ArrowRight,
+  CheckCircle,
   FileText,
-  Globe2,
-  LifeBuoy,
-  Radar,
-  RefreshCw,
-  ShieldCheck,
+  ShieldAlert,
   Users,
   Wallet,
+  Clock,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { DashboardTelemetry } from "@/components/analytics/dashboard-telemetry";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { OperationalHealthStrip } from "@/components/admin/operational-health-strip";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { DashboardAreaChart } from "@/components/admin/dashboard-area-chart";
 
 export default async function AdminDashboard() {
   await requireAdmin();
   const t = await getServerTranslator();
 
-  const [overviewRes, analyticsRes, paymentsRes, supportRes, healthRes] =
+  const [overviewRes, analyticsRes, paymentsRes] =
     await Promise.all([
       getAdminOverview(),
       getAdminAnalyticsSummary(),
       getAdminPaymentsOverview(),
-      getAdminSupportTickets({ pageSize: 50 }),
-      getAdminOperationalHealthStatus(),
     ]);
 
   type OverviewData = {
@@ -61,17 +54,6 @@ export default async function AdminDashboard() {
       notes: string | null;
       created_at: string | null;
     }[];
-    highlight: {
-      id: string;
-      title: string | null;
-      image_url: string | null;
-      approval_status: string | null;
-      status: string | null;
-      featured: boolean | null;
-      updated_at: string | null;
-      created_at: string | null;
-      profiles?: { full_name: string | null } | null;
-    } | null;
     lastUpdated: string | null;
   };
 
@@ -79,18 +61,17 @@ export default async function AdminDashboard() {
     return (
       <div className="space-y-6">
         <AdminPageHeader
-          eyebrow={t("Admin operations")}
           title={t("Control center")}
           description={t("Platform administration and monitoring")}
         />
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="border-destructive/40 bg-destructive/5 shadow-none rounded-2xl">
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-6 w-6 text-destructive" />
             <div>
               <p className="font-semibold text-destructive">
                 {t("Error loading dashboard")}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-slate-500">
                 {overviewRes.error || t("Please try again later.")}
               </p>
             </div>
@@ -102,523 +83,186 @@ export default async function AdminDashboard() {
 
   const overview = overviewRes.data as OverviewData;
   const analytics = "data" in analyticsRes ? analyticsRes.data : null;
-  const payments = "data" in paymentsRes ? paymentsRes.data : null;
-  const support = "data" in supportRes ? supportRes : null;
-  const health = "data" in healthRes ? healthRes.data : null;
-  const highlight = overview.highlight;
-  const lastUpdated = overview.lastUpdated
-    ? formatDistanceToNow(new Date(overview.lastUpdated), { addSuffix: true })
-    : "—";
+  
+  const pendingPayoutCount = "data" in paymentsRes && paymentsRes.data ? paymentsRes.data.totals.pendingPayouts : 0;
+  const failedPayoutCount = "data" in paymentsRes && paymentsRes.data ? paymentsRes.data.transactions.filter(
+    (tx) => tx.type === "submission_payout" && tx.status === "failed",
+  ).length : 0;
 
-  const reviewQueueCount =
-    overview.stats.pendingRequests + overview.stats.pendingSubmissions;
-  const pendingPayoutCount = payments?.totals.pendingPayouts ?? 0;
-  const failedPayoutCount =
-    payments?.transactions.filter(
-      (tx) => tx.type === "submission_payout" && tx.status === "failed",
-    ).length ?? 0;
-  const openSupportCount =
-    support?.data.filter(
-      (ticket) => ticket.status === "open" || ticket.status === "in_progress",
-    ).length ?? 0;
-
-  const latestSupportTimestamp =
-    support?.data.reduce((max, ticket) => {
-      const updated = new Date(ticket.updated_at).getTime();
-      return Number.isFinite(updated) ? Math.max(max, updated) : max;
-    }, 0) ?? 0;
-
-  const staleSupportCount =
-    support?.data.filter((ticket) => {
-      if (ticket.status === "resolved" || ticket.status === "closed") {
-        return false;
-      }
-      const updated = new Date(ticket.updated_at).getTime();
-      return latestSupportTimestamp - updated > 48 * 60 * 60 * 1000;
-    }).length ?? 0;
-
-  const visitToFundRate =
-    analytics?.funnel?.conversionRates?.visitToFundPct ?? 0;
   const greetingTime = new Date().getHours() < 12 ? "morning" : "afternoon";
 
-  const anomalyRows = [
-    {
-      label: t("Failed payouts"),
-      value: failedPayoutCount,
-      details: t(
-        "Payout transactions marked as failed and needing reconciliation.",
-      ),
-      href: "/admin/payments",
-      critical: failedPayoutCount > 0,
-    },
-    {
-      label: t("Stale support tickets (>48h)"),
-      value: staleSupportCount,
-      details: t("Open or in-progress tickets with stale updates."),
-      href: "/admin/support?status=open",
-      critical: staleSupportCount > 0,
-    },
-    {
-      label: t("Visit -> fund conversion"),
-      value: visitToFundRate,
-      details: t("30-day top-of-funnel to funding conversion rate."),
-      href: "/admin/analytics",
-      critical:
-        visitToFundRate < 2 && (analytics?.funnel?.counts?.visit ?? 0) > 20,
-      suffix: "%",
-    },
-  ];
-
-  const thingsToDo = [
-    {
-      label: t("Pending requests"),
-      href: "/admin/requests",
-      count: overview.stats.pendingRequests,
-    },
-    {
-      label: t("Pending submissions"),
-      href: "/admin/submissions",
-      count: overview.stats.pendingSubmissions,
-    },
-  ].filter((item) => item.count > 0);
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pb-10">
       <DashboardTelemetry role="admin" />
-      <AdminPageHeader
-        eyebrow={t("Admin control center")}
-        title={t(`Good ${greetingTime}, Admin`)}
-        description={t("Monitor moderation queues, payout risk, and support workload from one unified surface.")}
-        actions={
-          thingsToDo.length > 0 ? (
-            <Link
-              href={thingsToDo[0].href}
-              data-dashboard-action="admin_open_priority_queue"
-              className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm hover:border-border"
-            >
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-semibold text-[var(--accent-foreground)]">
-                  {thingsToDo[0].count}
-                </span>
-                {thingsToDo[0].label}
-              </div>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : (
-            <Button
-              variant="outline"
-              className="rounded-xl border px-3 py-2 text-sm"
-            >
-              <ShieldCheck className="mr-2 h-4 w-4 text-emerald-600" />
-              {t("All clear")}
-            </Button>
-          )
-        }
-      />
-
-      {health && <OperationalHealthStrip snapshot={health} />}
-
-      <div className="grid gap-6 lg:grid-cols-12">
-        <Card className="lg:col-span-8 border-border shadow-sm">
-          <CardContent className="grid gap-6 p-6 lg:grid-cols-[1.6fr_1fr]">
-            <div className="relative rounded-2xl border border-border  p-4">
-              <div className="aspect-video rounded-xl border border-dashed border-border bg-white/70 flex items-center justify-center">
-                {highlight?.image_url ? (
-                  <Image
-                    src={highlight.image_url}
-                    alt={highlight.title || t("Dataset preview")}
-                    width={640}
-                    height={360}
-                    className="h-full w-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="text-center text-sm text-muted-foreground">
-                    {t("Preview unavailable")}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-emerald-100 text-emerald-700">{t("Live")}</Badge>
-                {highlight?.featured && (
-                  <Badge variant="outline">{t("Featured")}</Badge>
-                )}
-              </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>
-                  {t("Last updated")}{" "}
-                  <span className="font-medium text-foreground">
-                    {lastUpdated}
-                  </span>
-                </p>
-                {highlight?.title && (
-                  <p className="text-foreground">
-                    {t("Highlight:")}{" "}
-                    <span className="font-semibold">{highlight.title}</span>
-                  </p>
-                )}
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Globe2 className="h-4 w-4" />
-                  <span>app.caudals.com</span>
-                </div>
-                {highlight?.profiles?.full_name && (
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>{t("Requester:")}{" "}{highlight.profiles.full_name}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  <span>
-                    {t("Status:")}{" "}{highlight?.status || "—"} /{" "}
-                    {highlight?.approval_status || "—"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" size="icon" className="rounded-xl" asChild>
-                  <Link href="/admin" aria-label={t("Refresh control center")}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="icon" className="rounded-xl" asChild>
-                  <Link href="/admin/datasets" aria-label={t("Open dataset queue")}>
-                    <FileText className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Link href="/" className="w-full">
-                  <Button className="w-full rounded-xl bg-black text-white hover:bg-black/90">
-                    {t("Visit site")}
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="lg:col-span-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <StatPill
-              label={t("Pending reviews")}
-              value={
-                overview.stats.pendingRequests +
-                overview.stats.pendingSubmissions
-              }
-            />
-            <StatPill
-              label={t("Approved datasets")}
-              value={overview.stats.approvedDatasets}
-            />
-            <StatPill label={t("Total users")} value={overview.stats.totalUsers} />
-            <StatPill
-              label={t("Submissions")}
-              value={overview.stats.totalSubmissions}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-border/40 pb-6 mb-6">
+        <div className="flex items-stretch gap-3">
+          <div className="w-1.5 rounded-full bg-[var(--accent)]/80" />
           <div>
-            <h2 className="text-lg font-semibold">{t("Activity")}</h2>
-            <p className="text-sm text-muted-foreground">
-              {t("Recent admin actions across the platform")}
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-1.5">Admin Workspace</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {t(`Good ${greetingTime}, Admin`)}
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              {t("Here is what's happening on your platform today.")}
             </p>
           </div>
-          <Link href="/admin/requests">
-            <Button variant="outline" className="rounded-xl">
-              {t("View all")}
-            </Button>
-          </Link>
         </div>
-
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-12 gap-4 border-b border-border  px-6 py-3 text-xs font-medium text-muted-foreground">
-              <div className="col-span-6">{t("Activity")}</div>
-              <div className="col-span-3">{t("Type")}</div>
-              <div className="col-span-3">{t("When")}</div>
-            </div>
-            <div className="divide-y divide-border/70">
-              {overview.activity.length === 0 && (
-                <div className="px-6 py-6 text-sm text-muted-foreground">
-                  {t("No activity yet.")}
-                </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="shadow-none rounded-lg" asChild>
+            <Link href="/admin/activity">
+              <Activity className="mr-2 h-4 w-4" />
+              {t("Audit Log")}
+            </Link>
+          </Button>
+          <Button className="shadow-none rounded-lg bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white" asChild>
+            <Link href="/admin/requests">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              {t("Review Queue")}
+              {overview.stats.pendingRequests > 0 && (
+                <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
+                  {overview.stats.pendingRequests}
+                </span>
               )}
-              {overview.activity.map((item) => (
-                <div
-                  key={item.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-4 items-center transition-colors"
-                >
-                  <div className="col-span-6">
-                    <p className="text-sm font-medium capitalize">
-                      {item.action_type?.replace("_", " ")}
-                    </p>
-                    {item.notes && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {item.notes}
-                      </p>
-                    )}
-                  </div>
-                  <div className="col-span-3">
-                    <Badge variant="outline" className="capitalize">
-                      {item.target_type || t("item")}
-                    </Badge>
-                  </div>
-                  <div className="col-span-3 text-sm text-muted-foreground">
-                    {item.created_at
-                      ? formatDistanceToNow(new Date(item.created_at), {
-                          addSuffix: true,
-                        })
-                      : "—"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {analytics && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-border shadow-sm">
-            <CardContent className="space-y-3 p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{t("Users")}</h3>
-                <Users className="h-4 w-4 text-muted-foreground" />
+      <div className="grid gap-6 md:grid-cols-7">
+        <div className="md:col-span-5 space-y-6">
+          <Card className="shadow-none border-border bg-background rounded-2xl">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
+                <div className="p-4 flex flex-col justify-center">
+                  <div className="flex items-center gap-2 text-slate-500 mb-2">
+                    <Users className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Total Users</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">{overview.stats.totalUsers.toLocaleString()}</div>
+                </div>
+                <div className="p-4 flex flex-col justify-center">
+                  <div className="flex items-center gap-2 text-slate-500 mb-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Approved Datasets</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground">{overview.stats.approvedDatasets.toLocaleString()}</div>
+                </div>
+                <div className="p-4 flex flex-col justify-center bg-amber-50/30">
+                  <div className="flex items-center gap-2 text-amber-700 mb-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Pending Submissions</span>
+                  </div>
+                  <div className="text-2xl font-bold text-amber-800">{overview.stats.pendingSubmissions.toLocaleString()}</div>
+                </div>
+                <div className={`p-4 flex flex-col justify-center ${failedPayoutCount > 0 ? 'bg-red-50/50' : 'bg-emerald-50/30'}`}>
+                  <div className={`flex items-center gap-2 mb-2 ${failedPayoutCount > 0 ? 'text-destructive' : 'text-emerald-700'}`}>
+                    <Wallet className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Failed Payouts</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${failedPayoutCount > 0 ? 'text-destructive' : 'text-emerald-800'}`}>
+                    {failedPayoutCount.toLocaleString()}
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2 text-sm">
-                {Object.entries(analytics.usersByRole).map(([role, count]) => (
-                  <div key={role} className="flex items-center justify-between">
-                    <span className="capitalize text-muted-foreground">
-                      {role}
-                    </span>
-                    <span className="font-semibold">{count}</span>
+            </CardContent>
+          </Card>
+
+          <DashboardAreaChart />
+        </div>
+
+        <div className="md:col-span-2 space-y-6">
+          <Card className="shadow-none border-border bg-muted/10 rounded-2xl">
+            <CardHeader className="pb-3 border-b border-slate-200">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 uppercase tracking-wider">
+                <ShieldAlert className="h-4 w-4 text-[var(--accent)]" />
+                {t("Action Required")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 grid gap-2">
+              <ActionItem
+                title={t("Review Requests")}
+                description={`${overview.stats.pendingRequests} ${t("waiting")}`}
+                href="/admin/requests"
+                urgent={overview.stats.pendingRequests > 10}
+              />
+              <ActionItem
+                title={t("Process Payouts")}
+                description={`${pendingPayoutCount} ${t("pending transfers")}`}
+                href="/admin/payments"
+                urgent={pendingPayoutCount > 5}
+              />
+              {analytics && (
+                <ActionItem
+                  title={t("Conversion Alert")}
+                  description={t("Visit to fund < 2%")}
+                  href="/admin/analytics"
+                  urgent={
+                    (analytics.funnel?.conversionRates?.visitToFundPct ?? 0) < 2 &&
+                    (analytics.funnel?.counts?.visit ?? 0) > 20
+                  }
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none border-border rounded-2xl bg-background overflow-hidden py-0 gap-0">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-slate-200 bg-muted/5">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider">{t("Recent Activity")}</CardTitle>
+              <Button variant="ghost" size="sm" className="h-6 text-xs px-2 shadow-none" asChild>
+                <Link href="/admin/activity">{t("View all")}</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/50">
+                {overview.activity.slice(0, 4).map((item) => (
+                  <div key={item.id} className="p-3 hover:bg-muted/10 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background">
+                        <Activity className="h-3.5 w-3.5 text-slate-500" />
+                      </div>
+                      <div className="grid gap-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-foreground line-clamp-1 capitalize">
+                            {item.action_type?.replace("_", " ")}
+                          </p>
+                          <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                            {item.created_at ? formatDistanceToNow(new Date(item.created_at)) : ""}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 line-clamp-1">
+                          {item.notes || `${t("Target:")} ${item.target_type}`}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border shadow-sm">
-            <CardContent className="space-y-3 p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{t("Datasets")}</h3>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-2 text-sm">
-                {Object.entries(analytics.datasetsByStatus).map(
-                  ([status, count]) => (
-                    <div
-                      key={status}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="capitalize text-muted-foreground">
-                        {status.replace("_", " ")}
-                      </span>
-                      <span className="font-semibold">{count}</span>
-                    </div>
-                  ),
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border shadow-sm">
-            <CardContent className="space-y-3 p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{t("Submissions")}</h3>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-2 text-sm">
-                {Object.entries(analytics.submissionsByStatus).map(
-                  ([status, count]) => (
-                    <div
-                      key={status}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="capitalize text-muted-foreground">
-                        {status}
-                      </span>
-                      <span className="font-semibold">{count}</span>
-                    </div>
-                  ),
+                {overview.activity.length === 0 && (
+                  <div className="p-6 text-center text-sm text-slate-500">{t("No recent activity.")}</div>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Card className="border-border shadow-sm">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{t("Operational SLA Queues")}</h3>
-              <Radar className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <QueueRow
-              label={t("Review backlog")}
-              value={reviewQueueCount}
-              href="/admin/requests"
-              actionId="admin_queue_review_backlog"
-              helper={t("Pending request and submission approvals.")}
-            />
-            <QueueRow
-              label={t("Pending payouts")}
-              value={pendingPayoutCount}
-              href="/admin/payments"
-              actionId="admin_queue_pending_payouts"
-              helper={t("Transfers created but not yet settled.")}
-            />
-            <QueueRow
-              label={t("Open support")}
-              value={openSupportCount}
-              href="/admin/support?status=open"
-              actionId="admin_queue_open_support"
-              helper={t("Tickets awaiting support ownership.")}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-sm">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{t("Anomaly Detection")}</h3>
-              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-            </div>
-            {anomalyRows.map((row) => (
-              <Link
-                key={row.label}
-                href={row.href}
-                className="block rounded-xl border border-border p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">{row.label}</p>
-                  <p
-                    className={
-                      row.critical
-                        ? "font-semibold text-destructive"
-                        : "font-semibold"
-                    }
-                  >
-                    {row.value}
-                    {row.suffix ?? ""}
-                  </p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {row.details}
-                </p>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border shadow-sm">
-          <CardContent className="space-y-4 p-5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{t("Escalation Shortcuts")}</h3>
-              <LifeBuoy className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <ShortcutRow
-              icon={<Wallet className="h-4 w-4" />}
-              label={t("Resolve payout failures")}
-              href="/admin/payments"
-              actionId="admin_shortcut_resolve_payout_failures"
-            />
-            <ShortcutRow
-              icon={<LifeBuoy className="h-4 w-4" />}
-              label={t("Triage urgent tickets")}
-              href="/admin/support?priority=high"
-              actionId="admin_shortcut_triage_tickets"
-            />
-            <ShortcutRow
-              icon={<FileText className="h-4 w-4" />}
-              label={t("Clear review queue")}
-              href="/admin/requests"
-              actionId="admin_shortcut_clear_review_queue"
-            />
-            <ShortcutRow
-              icon={<Activity className="h-4 w-4" />}
-              label={t("Audit recent actions")}
-              href="/admin/activity"
-              actionId="admin_shortcut_audit_activity"
-            />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
 }
 
-function StatPill({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function QueueRow({
-  label,
-  value,
-  href,
-  actionId,
-  helper,
-}: {
-  label: string;
-  value: number;
-  href: string;
-  actionId: string;
-  helper: string;
-}) {
+function ActionItem({ title, description, href, urgent }: { title: string; description: string; href: string; urgent: boolean }) {
   return (
     <Link
       href={href}
-      data-dashboard-action={actionId}
-      className="block rounded-xl border border-border p-3"
+      className={`group flex items-center justify-between rounded-xl border p-3 transition-colors ${
+        urgent 
+          ? "border-destructive/30 bg-destructive/5 hover:border-destructive/50 hover:bg-destructive/10" 
+          : "border-border bg-background hover:border-foreground/30 hover:bg-muted/10"
+      }`}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-sm">{label}</p>
-        <p className="font-semibold">{value}</p>
+      <div className="grid gap-0.5">
+        <p className={`text-sm font-semibold ${urgent ? "text-destructive" : "text-foreground"}`}>{title}</p>
+        <p className="text-xs text-slate-500">{description}</p>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
-    </Link>
-  );
-}
-
-function ShortcutRow({
-  icon,
-  label,
-  href,
-  actionId,
-}: {
-  icon: ReactNode;
-  label: string;
-  href: string;
-  actionId: string;
-}) {
-  return (
-    <Link
-      href={href}
-      data-dashboard-action={actionId}
-      className="flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm"
-    >
-      <span className="flex items-center gap-2 text-muted-foreground">
-        {icon}
-        {label}
-      </span>
-      <ArrowRight className="h-4 w-4" />
+      <ArrowRight className={`h-4 w-4 transition-transform group-hover:translate-x-1 ${urgent ? "text-destructive" : "text-slate-500"}`} />
     </Link>
   );
 }

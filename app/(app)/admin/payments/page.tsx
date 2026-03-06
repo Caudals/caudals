@@ -3,13 +3,11 @@ import { requireAdmin } from "@/lib/middleware/admin-check";
 import {
   getAdminPaymentAnomalies,
   getAdminPaymentComplianceRecords,
-  getAdminOperationalHealthStatus,
   getAdminPaymentsOverview,
   getAdminPayoutQueues,
   reconcilePayoutTransaction,
   upsertAdminPaymentComplianceRecord,
 } from "@/lib/actions/admin-actions";
-import { OperationalHealthStrip } from "@/components/admin/operational-health-strip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -31,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import Link from "next/link";
 
@@ -60,12 +59,11 @@ export default async function AdminPaymentsPage({
     ? anomalyFilterRaw
     : "all";
 
-  const [overviewRes, queueRes, anomalyRes, complianceRes, healthRes] = await Promise.all([
+  const [overviewRes, queueRes, anomalyRes, complianceRes] = await Promise.all([
     getAdminPaymentsOverview(),
     getAdminPayoutQueues(),
     getAdminPaymentAnomalies(),
     getAdminPaymentComplianceRecords(),
-    getAdminOperationalHealthStatus(),
   ]);
 
   if (
@@ -87,14 +85,14 @@ export default async function AdminPaymentsPage({
 
     return (
       <div className="space-y-4">
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="border-destructive/40 bg-destructive/5 shadow-none">
           <CardContent className="flex items-center gap-3 py-6">
             <AlertCircle className="h-5 w-5 text-destructive" />
             <div>
               <p className="font-semibold text-destructive">
                 Unable to load payments
               </p>
-              <p className="text-sm text-muted-foreground">{loadError}</p>
+              <p className="text-sm text-slate-500">{loadError}</p>
             </div>
           </CardContent>
         </Card>
@@ -106,7 +104,6 @@ export default async function AdminPaymentsPage({
   const payoutQueues = queueRes;
   const anomaliesOverview = anomalyRes;
   const complianceOverview = complianceRes;
-  const operationalHealth = "data" in healthRes ? healthRes.data : null;
 
   const totalVolumeCents =
     Number((totals as { total_volume_cents?: number }).total_volume_cents) ||
@@ -254,14 +251,13 @@ export default async function AdminPaymentsPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <AdminPageHeader
-        eyebrow="Financial operations"
-        title="Payment overview"
+        title="Payment Operations"
         description="Reconcile payout failures, monitor queue age, and keep transfer SLAs healthy."
         actions={
           <>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="shadow-none rounded-lg">
               <Link
                 href="/admin/support?tPriority=urgent"
                 data-dashboard-action="admin_payments_open_support_escalations"
@@ -269,15 +265,13 @@ export default async function AdminPaymentsPage({
                 Escalation queue
               </Link>
             </Button>
-            <Button variant="outline" className="rounded-xl">
+            <Button variant="outline" className="shadow-none rounded-lg">
               <Download className="mr-2 h-4 w-4" />
               Export ledger
             </Button>
           </>
         }
       />
-
-      {operationalHealth && <OperationalHealthStrip snapshot={operationalHealth} />}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -293,7 +287,7 @@ export default async function AdminPaymentsPage({
         <StatCard
           label="Payouts sent"
           value={formatMoney(payoutVolumeCents)}
-          icon={<ArrowDownRight className="h-4 w-4 text-muted-foreground" />}
+          icon={<ArrowDownRight className="h-4 w-4 text-slate-500" />}
         />
         <StatCard
           label="Pending payouts"
@@ -303,151 +297,140 @@ export default async function AdminPaymentsPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Failed payout queue</p>
-            <p className="text-2xl font-semibold text-destructive">
+        <Card className="border-slate-200 shadow-none bg-white rounded-2xl">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Failed payout queue</p>
+            <p className="mt-2 text-3xl font-bold text-destructive">
               {payoutQueues.totals.failedCount}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">
+        <Card className="border-slate-200 shadow-none bg-white rounded-2xl">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Pending payout queue
             </p>
-            <p className="text-2xl font-semibold">
+            <p className="mt-2 text-3xl font-bold text-foreground">
               {payoutQueues.totals.pendingCount}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">
+        <Card className="border-slate-200 shadow-none bg-white rounded-2xl">
+          <CardContent className="p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Stale pending (24h+)
             </p>
-            <p className="text-2xl font-semibold text-amber-600">
+            <p className="mt-2 text-3xl font-bold text-amber-600">
               {payoutQueues.totals.stalePendingCount}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 bg-muted/30 p-2 rounded-xl border border-border">
         <Button
           asChild
           size="sm"
-          variant={failedFilter === "all" ? "default" : "outline"}
+          variant={failedFilter === "all" ? "secondary" : "ghost"}
+          className={`rounded-lg ${failedFilter === "all" ? "shadow-sm bg-background border border-border" : ""}`}
         >
-          <Link href={filterHref({ failed: "all" })}>All failed payouts</Link>
+          <Link href={filterHref({ failed: "all" })}>All failed</Link>
         </Button>
         <Button
           asChild
           size="sm"
-          variant={failedFilter === "high_value" ? "default" : "outline"}
+          variant={failedFilter === "high_value" ? "secondary" : "ghost"}
+          className={`rounded-lg ${failedFilter === "high_value" ? "shadow-sm bg-background border border-border text-amber-700" : ""}`}
         >
           <Link href={filterHref({ failed: "high_value" })}>
-            High value failed (&gt;$100)
+            High value (&gt;$100)
           </Link>
         </Button>
         <Button
           asChild
           size="sm"
-          variant={failedFilter === "repeated" ? "default" : "outline"}
+          variant={failedFilter === "repeated" ? "secondary" : "ghost"}
+          className={`rounded-lg ${failedFilter === "repeated" ? "shadow-sm bg-background border border-border text-destructive" : ""}`}
         >
           <Link href={filterHref({ failed: "repeated" })}>
             Repeated failures
           </Link>
         </Button>
+        <div className="w-px h-4 bg-border mx-1"></div>
         <Button
           asChild
           size="sm"
-          variant={pendingFilter === "all" ? "secondary" : "outline"}
+          variant={pendingFilter === "all" ? "secondary" : "ghost"}
+          className={`rounded-lg ${pendingFilter === "all" ? "shadow-sm bg-background border border-border" : ""}`}
         >
           <Link href={filterHref({ pending: "all" })}>All pending</Link>
         </Button>
         <Button
           asChild
           size="sm"
-          variant={pendingFilter === "stale" ? "secondary" : "outline"}
+          variant={pendingFilter === "stale" ? "secondary" : "ghost"}
+          className={`rounded-lg ${pendingFilter === "stale" ? "shadow-sm bg-background border border-border text-amber-700" : ""}`}
         >
-          <Link href={filterHref({ pending: "stale" })}>Stale pending (24h+)</Link>
+          <Link href={filterHref({ pending: "stale" })}>Stale (24h+)</Link>
         </Button>
+        <div className="w-px h-4 bg-border mx-1 hidden md:block"></div>
         <Button
           asChild
           size="sm"
-          variant={anomalyFilter === "all" ? "secondary" : "outline"}
+          variant={anomalyFilter === "all" ? "secondary" : "ghost"}
+          className={`rounded-lg hidden md:flex ${anomalyFilter === "all" ? "shadow-sm bg-background border border-border" : ""}`}
         >
           <Link href={filterHref({ anomaly: "all" })}>All anomalies</Link>
         </Button>
-        <Button
-          asChild
-          size="sm"
-          variant={anomalyFilter === "high" ? "secondary" : "outline"}
-        >
-          <Link href={filterHref({ anomaly: "high" })}>High severity</Link>
-        </Button>
-        <Button
-          asChild
-          size="sm"
-          variant={anomalyFilter === "webhook" ? "secondary" : "outline"}
-        >
-          <Link href={filterHref({ anomaly: "webhook" })}>Webhook signals</Link>
-        </Button>
-        <Button
-          asChild
-          size="sm"
-          variant={anomalyFilter === "transfer" ? "secondary" : "outline"}
-        >
-          <Link href={filterHref({ anomaly: "transfer" })}>Transfer signals</Link>
-        </Button>
       </div>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>Unified payment anomalies</CardTitle>
-          <p className="text-sm text-muted-foreground">
+      <Card className="border-slate-200 shadow-none rounded-2xl overflow-hidden bg-white py-0 gap-0">
+        <CardHeader className="bg-slate-50 border-b border-slate-200 pb-4">
+          <CardTitle className="text-lg">Unified payment anomalies</CardTitle>
+          <p className="text-sm text-slate-500 mt-1">
             Correlates payout transactions, transfer references, and webhook processing state.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Total anomalies</p>
-              <p className="text-xl font-semibold">{anomaliesOverview.totals.total}</p>
+        <CardContent className="p-0">
+          <div className="grid gap-0 md:grid-cols-4 border-b border-slate-200 bg-slate-50/50">
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total anomalies</p>
+              <p className="text-2xl font-bold mt-1 text-slate-900">{anomaliesOverview.totals.total}</p>
             </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">High severity</p>
-              <p className="text-xl font-semibold text-destructive">
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">High severity</p>
+              <p className="text-2xl font-bold mt-1 text-red-600">
                 {anomaliesOverview.totals.high}
               </p>
             </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Transfer-linked</p>
-              <p className="text-xl font-semibold">{anomaliesOverview.totals.transfer}</p>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Transfer-linked</p>
+              <p className="text-2xl font-bold mt-1 text-slate-900">{anomaliesOverview.totals.transfer}</p>
             </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Webhook-linked</p>
-              <p className="text-xl font-semibold">{anomaliesOverview.totals.webhook}</p>
+            <div className="p-4">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Webhook-linked</p>
+              <p className="text-2xl font-bold mt-1 text-slate-900">{anomaliesOverview.totals.webhook}</p>
             </div>
           </div>
 
           {!anomaliesOverview.webhookLedgerAvailable ? (
-            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900">
-              `stripe_webhook_events` is unavailable in this environment. Webhook anomaly correlation is running in fallback mode.
+            <div className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+              <p>
+                <span className="font-semibold">`stripe_webhook_events` is unavailable.</span> Webhook anomaly correlation is running in fallback mode.
+              </p>
             </div>
           ) : null}
-        </CardContent>
-        <CardContent className="p-0">
+
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Severity</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Signal</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>Detected</TableHead>
-                <TableHead className="text-right">Drilldown</TableHead>
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 pl-8">Severity</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Category</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Signal</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Entity</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Detected</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -455,47 +438,47 @@ export default async function AdminPaymentsPage({
                 <TableRow>
                   <TableCell
                     colSpan={6}
-                    className="py-6 text-center text-sm text-muted-foreground"
+                    className="py-12 text-center text-sm text-slate-500"
                   >
                     No anomalies in current filter.
                   </TableCell>
                 </TableRow>
               ) : null}
               {anomalyRows.map((row) => (
-                <TableRow key={row.id} className="align-top">
-                  <TableCell>
+                <TableRow key={row.id} className="align-top hover:bg-slate-50/50 transition-colors border-slate-200 bg-white">
+                  <TableCell className="pt-4 pl-8">
                     <Badge
-                      variant="outline"
-                      className={
+                      variant="secondary"
+                      className={`shadow-none font-semibold text-[10px] uppercase tracking-wider ${
                         row.severity === "high"
-                          ? "border-destructive/40 text-destructive"
+                          ? "bg-red-50 text-red-700 border-red-200"
                           : row.severity === "medium"
-                            ? "border-amber-500/50 text-amber-700"
-                            : ""
-                      }
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
                     >
                       {row.severity}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{row.category}</TableCell>
-                  <TableCell className="max-w-md text-sm">
-                    <div className="font-medium">{row.title}</div>
-                    <div className="text-muted-foreground">{row.description}</div>
+                  <TableCell className="pt-4 font-mono text-[11px] text-slate-500">{row.category}</TableCell>
+                  <TableCell className="pt-4 max-w-sm">
+                    <div className="font-medium text-sm text-slate-900">{row.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{row.description}</div>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    <div>{row.dataset_title || row.dataset_request_id || "—"}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <TableCell className="pt-4">
+                    <div className="text-sm font-medium text-slate-900">{row.dataset_title || row.dataset_request_id || "—"}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
                       {row.contributor_name || row.contributor_email || row.reference_id || "—"}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="pt-4 text-xs text-slate-500 whitespace-nowrap">
                     {formatDistanceToNow(new Date(row.created_at), {
                       addSuffix: true,
                     })}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={row.quick_link}>Open</Link>
+                  <TableCell className="pt-4 text-right pr-8">
+                    <Button asChild size="sm" variant="outline" className="shadow-none rounded-lg h-8 px-3 border-slate-200">
+                      <Link href={row.quick_link}>Investigate</Link>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -505,207 +488,269 @@ export default async function AdminPaymentsPage({
         </CardContent>
       </Card>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>Compliance metadata registry</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Capture tax/legal references for enterprise finance and audit workflows.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Records tracked</p>
-              <p className="text-xl font-semibold">
-                {complianceOverview.rows.length}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Legal hold flags</p>
-              <p className="text-xl font-semibold text-amber-700">
-                {complianceLegalHoldCount}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Selected transaction</p>
-              <p className="text-sm font-mono">
-                {selectedComplianceTxId || "None"}
-              </p>
-            </div>
-          </div>
-
-          {!complianceOverview.tableAvailable ? (
-            <div className="rounded-lg border border-amber-400/60 bg-amber-50 p-3 text-sm text-amber-900">
-              `payment_compliance_records` table is missing. Apply migration
-              `025_payment_compliance_records.sql` to enable compliance workflows.
-            </div>
-          ) : null}
-
-          {selectedComplianceTransaction ? (
-            <form
-              action={saveComplianceRecord}
-              className="grid gap-3 rounded-lg border border-border p-4"
-            >
-              <input
-                type="hidden"
-                name="transactionId"
-                value={selectedComplianceTransaction.id}
-              />
-              <div className="grid gap-2 md:grid-cols-3">
-                <Input
-                  name="legalEntityName"
-                  placeholder="Legal entity name"
-                  defaultValue={selectedComplianceRecord?.legal_entity_name ?? ""}
-                />
-                <Input
-                  name="legalEntityCountry"
-                  placeholder="Country (ISO-2)"
-                  maxLength={2}
-                  defaultValue={selectedComplianceRecord?.legal_entity_country ?? ""}
-                />
-                <Input
-                  name="taxReference"
-                  placeholder="Tax reference"
-                  defaultValue={selectedComplianceRecord?.tax_reference ?? ""}
-                />
-              </div>
-              <div className="grid gap-2 md:grid-cols-3">
-                <Input
-                  name="vatReference"
-                  placeholder="VAT reference"
-                  defaultValue={selectedComplianceRecord?.vat_reference ?? ""}
-                />
-                <Input
-                  name="invoiceReference"
-                  placeholder="Invoice reference"
-                  defaultValue={selectedComplianceRecord?.invoice_reference ?? ""}
-                />
-                <Input
-                  name="purchaseOrderReference"
-                  placeholder="PO reference"
-                  defaultValue={
-                    selectedComplianceRecord?.purchase_order_reference ?? ""
-                  }
-                />
-              </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <Input
-                  name="payoutStatementReference"
-                  placeholder="Payout statement reference"
-                  defaultValue={
-                    selectedComplianceRecord?.payout_statement_reference ?? ""
-                  }
-                />
-                <label className="flex items-center gap-2 rounded-md border border-input px-3 text-sm">
-                  <input
-                    type="checkbox"
-                    name="legalHold"
-                    defaultChecked={Boolean(selectedComplianceRecord?.legal_hold)}
-                  />
-                  Legal hold
-                </label>
-              </div>
-              <textarea
-                name="notes"
-                placeholder="Compliance notes"
-                defaultValue={selectedComplianceRecord?.notes ?? ""}
-                className="min-h-20 rounded-md border border-input bg-background p-2 text-sm"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Transaction type:{" "}
-                  <span className="font-mono">
-                    {selectedComplianceTransaction.type ?? "unknown"}
-                  </span>
-                </p>
-                <Button type="submit" size="sm">
-                  Save compliance record
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Select a transaction from the recent ledger table to edit compliance metadata.
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card className="border-slate-200 shadow-none rounded-2xl overflow-hidden bg-white py-0 gap-0">
+          <CardHeader className="bg-slate-50 border-b border-slate-200 pb-4">
+            <CardTitle className="text-lg">Recent transactions</CardTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Latest records from Stripe Connect
             </p>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-slate-50 border-b border-slate-200">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 pl-8">Type</TableHead>
+                  <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Status</TableHead>
+                  <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {latest.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={3}
+                      className="text-center py-6 text-sm text-slate-500"
+                    >
+                      No transactions yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {latest.map((tx) => {
+                  const complianceRecord = complianceByTransaction.get(tx.id);
+                  const hasComplianceRecord = Boolean(complianceRecord);
 
-      <Card className="border-border shadow-sm">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>Failed payouts (reconciliation queue)</CardTitle>
-          <p className="text-sm text-muted-foreground">
+                  return (
+                    <TableRow key={tx.id} className="hover:bg-slate-50/50 group transition-colors border-slate-200 bg-white">
+                      <TableCell className="pl-8 py-3">
+                        <div className="font-medium capitalize text-sm text-slate-900">
+                          {tx.type?.replace("_", " ")}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] text-slate-500 capitalize">
+                            {tx.direction}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="text-[11px] text-slate-500">
+                            {tx.created_at ? formatDistanceToNow(new Date(tx.created_at), { addSuffix: true }) : "—"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Badge
+                          variant="secondary"
+                          className={`shadow-none font-semibold text-[10px] uppercase tracking-wider border ${
+                            tx.status === "completed" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {tx.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8 py-3">
+                        <div className="font-semibold text-sm text-slate-900">
+                          {formatMoney(tx.amount, tx.currency || "USD")}
+                        </div>
+                        <div className="mt-1 flex justify-end gap-1">
+                          <Badge
+                            variant="secondary"
+                            className={`shadow-none font-semibold text-[9px] uppercase px-1.5 py-0 border ${
+                              hasComplianceRecord ? "bg-emerald-50/50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-500 border-slate-200"
+                            }`}
+                          >
+                            {hasComplianceRecord ? "Cmpl" : "No Cmpl"}
+                          </Badge>
+                          <Button asChild size="sm" variant="ghost" className="h-4 text-[10px] px-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500">
+                            <Link href={filterHref({ complianceTx: tx.id })}>
+                              Edit
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 shadow-none rounded-2xl flex flex-col bg-white">
+          <CardHeader className="bg-slate-50 border-b border-slate-200 pb-4">
+            <CardTitle className="text-lg flex justify-between items-center">
+              <span>Compliance registry</span>
+              <Badge variant="outline" className="font-mono text-xs border-slate-200 bg-white">{selectedComplianceTxId ? selectedComplianceTxId.substring(0, 12) + "..." : "Select TX"}</Badge>
+            </CardTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Capture tax/legal references for enterprise finance.
+            </p>
+          </CardHeader>
+          <CardContent className="p-5 flex-1 flex flex-col">
+            {!complianceOverview.tableAvailable ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 mb-4">
+                `payment_compliance_records` table is missing. Apply migration
+                `025_payment_compliance_records.sql` to enable compliance workflows.
+              </div>
+            ) : null}
+
+            {selectedComplianceTransaction ? (
+              <form
+                action={saveComplianceRecord}
+                className="flex-1 flex flex-col gap-4"
+              >
+                <input
+                  type="hidden"
+                  name="transactionId"
+                  value={selectedComplianceTransaction.id}
+                />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Entity Name</label>
+                    <Input
+                      name="legalEntityName"
+                      placeholder="e.g. Acme Corp"
+                      defaultValue={selectedComplianceRecord?.legal_entity_name ?? ""}
+                      className="shadow-none rounded-lg h-9 bg-slate-50 border-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Country (ISO)</label>
+                    <Input
+                      name="legalEntityCountry"
+                      placeholder="US"
+                      maxLength={2}
+                      defaultValue={selectedComplianceRecord?.legal_entity_country ?? ""}
+                      className="shadow-none rounded-lg h-9 bg-slate-50 border-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Tax Reference</label>
+                    <Input
+                      name="taxReference"
+                      placeholder="EIN/TIN"
+                      defaultValue={selectedComplianceRecord?.tax_reference ?? ""}
+                      className="shadow-none rounded-lg h-9 bg-slate-50 border-slate-200"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">VAT Reference</label>
+                    <Input
+                      name="vatReference"
+                      placeholder="VAT Number"
+                      defaultValue={selectedComplianceRecord?.vat_reference ?? ""}
+                      className="shadow-none rounded-lg h-9 bg-slate-50 border-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 mt-2">
+                  <label className="text-xs font-semibold text-slate-500">Internal Notes</label>
+                  <textarea
+                    name="notes"
+                    placeholder="Add audit notes or context here..."
+                    defaultValue={selectedComplianceRecord?.notes ?? ""}
+                    className="w-full min-h-[100px] rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm shadow-none focus:ring-2 focus:ring-ring focus:outline-none"
+                  />
+                </div>
+
+                <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-200">
+                  <label className="flex items-center gap-2 text-sm font-medium text-amber-700 cursor-pointer">
+                    <Checkbox
+                      name="legalHold"
+                      defaultChecked={Boolean(selectedComplianceRecord?.legal_hold)}
+                      className="border-amber-700/50 data-[state=checked]:bg-amber-700 data-[state=checked]:border-amber-700"
+                    />
+                    Apply Legal Hold
+                  </label>
+                  <Button type="submit" size="sm" className="shadow-none rounded-lg px-6">
+                    Save Record
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-200 rounded-xl">
+                <CreditCard className="h-8 w-8 text-slate-300 mb-3" />
+                <p className="text-sm font-medium text-slate-900">No transaction selected</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
+                  Select a transaction from the list to view or edit compliance details.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-slate-200 shadow-none rounded-2xl overflow-hidden bg-white py-0 gap-0">
+        <CardHeader className="bg-red-50/50 border-b border-red-100 pb-4">
+          <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            Failed payouts (reconciliation queue)
+          </CardTitle>
+          <p className="text-sm text-red-600/70 mt-1">
             Retry failed payout transactions or cancel with an audit note.
           </p>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contributor</TableHead>
-                <TableHead>Dataset</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Failed</TableHead>
-                <TableHead>Signals</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 pl-8">Entity</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Amount</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Failed</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Signals</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Reason</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">Resolution</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {failedRows.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
-                    className="text-center py-6 text-sm text-muted-foreground"
+                    colSpan={6}
+                    className="text-center py-12 text-sm text-slate-500"
                   >
-                    No failed payouts.
+                    No failed payouts requiring action.
                   </TableCell>
                 </TableRow>
               )}
               {failedRows.map((tx) => (
-                <TableRow key={tx.id} className="align-top">
-                  <TableCell className="text-sm">
-                    <div>{tx.contributor_name || "Unknown contributor"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {tx.contributor_email || "—"}
+                <TableRow key={tx.id} className="align-top hover:bg-slate-50/50 transition-colors border-slate-200 bg-white">
+                  <TableCell className="pl-8 py-4">
+                    <div className="font-medium text-sm text-slate-900">{tx.contributor_name || "Unknown contributor"}</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5 max-w-[200px] truncate">
+                      {tx.dataset_title || tx.dataset_request_id || "Unknown dataset"}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {tx.dataset_title ||
-                      tx.dataset_request_id ||
-                      "Unknown dataset"}
-                  </TableCell>
-                  <TableCell className="font-semibold">
+                  <TableCell className="font-bold text-sm py-4 text-slate-900">
                     {formatMoney(tx.amount, tx.currency)}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-xs text-slate-500 py-4">
                     {formatDistanceToNow(new Date(tx.updated_at), {
                       addSuffix: true,
                     })}
                   </TableCell>
-                  <TableCell className="text-xs">
-                    <div className="flex flex-wrap gap-1">
+                  <TableCell className="py-4">
+                    <div className="flex flex-col gap-1.5 items-start">
                       {tx.is_repeated_failure ? (
-                        <Badge variant="outline" className="text-destructive">
+                        <Badge variant="secondary" className="shadow-none font-semibold text-[9px] uppercase px-1.5 py-0 bg-red-50 text-red-700 border border-red-200">
                           repeated
                         </Badge>
                       ) : null}
                       {tx.amount >= highValueThresholdCents ? (
-                        <Badge variant="outline" className="text-amber-700">
-                          high_value
+                        <Badge variant="secondary" className="shadow-none font-semibold text-[9px] uppercase px-1.5 py-0 bg-amber-50 text-amber-700 border border-amber-200">
+                          high value
                         </Badge>
                       ) : null}
-                      {tx.is_repeated_failure || tx.amount >= highValueThresholdCents
-                        ? null
-                        : "—"}
+                      {!tx.is_repeated_failure && tx.amount < highValueThresholdCents && (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-sm">
-                    {tx.failure_reason ||
-                      "No explicit failure reason recorded."}
+                  <TableCell className="text-xs text-slate-500 max-w-[200px] py-4 pr-4">
+                    {tx.failure_reason || "No explicit reason."}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex min-w-[340px] flex-col gap-2 md:items-end">
+                  <TableCell className="py-4 pr-8">
+                    <div className="flex flex-col gap-2 md:items-end">
                       <form
                         action={retryFailedPayout}
                         className="flex w-full gap-2 md:w-auto"
@@ -715,22 +760,17 @@ export default async function AdminPaymentsPage({
                           name="transactionId"
                           value={tx.id}
                         />
-                        <Input
-                          name="note"
-                          placeholder="Retry note"
-                          className="h-9 md:w-52"
-                        />
                         <select
                           name="reasonCode"
                           defaultValue="transient_stripe_error"
-                          className="h-9 rounded-md border border-input bg-background px-2 text-sm md:w-44"
+                          className="h-8 rounded-md border-slate-200 bg-slate-50 px-2 text-xs md:w-36 focus:ring-2 focus:ring-ring focus:outline-none"
                         >
-                          <option value="transient_stripe_error">transient_stripe_error</option>
-                          <option value="bank_details_updated">bank_details_updated</option>
-                          <option value="onboarding_completed">onboarding_completed</option>
+                          <option value="transient_stripe_error">stripe_error</option>
+                          <option value="bank_details_updated">bank_updated</option>
+                          <option value="onboarding_completed">onboarding_done</option>
                           <option value="manual_retry">manual_retry</option>
                         </select>
-                        <Button size="sm" type="submit" className="h-9">
+                        <Button size="sm" type="submit" className="h-8 text-xs px-3 shadow-none rounded-md">
                           Retry
                         </Button>
                       </form>
@@ -743,26 +783,21 @@ export default async function AdminPaymentsPage({
                           name="transactionId"
                           value={tx.id}
                         />
-                        <Input
-                          name="note"
-                          placeholder="Cancel note"
-                          className="h-9 md:w-52"
-                        />
                         <select
                           name="reasonCode"
                           defaultValue="manual_cancellation"
-                          className="h-9 rounded-md border border-input bg-background px-2 text-sm md:w-44"
+                          className="h-8 rounded-md border-slate-200 bg-slate-50 px-2 text-xs md:w-36 focus:ring-2 focus:ring-ring focus:outline-none"
                         >
-                          <option value="manual_cancellation">manual_cancellation</option>
-                          <option value="duplicate_payout">duplicate_payout</option>
-                          <option value="submission_reversed">submission_reversed</option>
-                          <option value="compliance_block">compliance_block</option>
+                          <option value="manual_cancellation">manual_cancel</option>
+                          <option value="duplicate_payout">duplicate</option>
+                          <option value="submission_reversed">reversed</option>
+                          <option value="compliance_block">compliance</option>
                         </select>
                         <Button
                           size="sm"
                           type="submit"
                           variant="outline"
-                          className="h-9"
+                          className="h-8 text-xs px-3 shadow-none rounded-md text-slate-500 border-slate-200"
                         >
                           Cancel
                         </Button>
@@ -775,168 +810,7 @@ export default async function AdminPaymentsPage({
           </Table>
         </CardContent>
       </Card>
-
-      <Card className="border-border shadow-sm">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>Pending payouts (SLA queue)</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Monitor pending payouts and prioritize stale entries.
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contributor</TableHead>
-                <TableHead>Dataset</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingRows.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-6 text-sm text-muted-foreground"
-                  >
-                    No pending payouts.
-                  </TableCell>
-                </TableRow>
-              )}
-              {pendingRows.map((tx) => (
-                <TableRow key={tx.id} >
-                  <TableCell className="text-sm">
-                    <div>{tx.contributor_name || "Unknown contributor"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {tx.contributor_email || "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {tx.dataset_title ||
-                      tx.dataset_request_id ||
-                      "Unknown dataset"}
-                  </TableCell>
-                  <TableCell className="font-semibold">
-                    {formatMoney(tx.amount, tx.currency)}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    <span
-                      className={
-                        tx.age_hours >= 24
-                          ? "text-amber-700 font-medium"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {tx.age_hours}h
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        tx.age_hours >= 24
-                          ? "border-amber-400 text-amber-700"
-                          : ""
-                      }
-                    >
-                      {tx.age_hours >= 24 ? "stale_pending" : "pending"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border shadow-sm">
-        <CardHeader className="flex flex-col gap-1">
-          <CardTitle>Recent transactions</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Latest records from Stripe Connect and wallet ledger
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Compliance</TableHead>
-                <TableHead>Direction</TableHead>
-                <TableHead>When</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {latest.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-6 text-sm text-muted-foreground"
-                  >
-                    No transactions yet.
-                  </TableCell>
-                </TableRow>
-              )}
-              {latest.map((tx) => {
-                const complianceRecord = complianceByTransaction.get(tx.id);
-                const hasComplianceRecord = Boolean(complianceRecord);
-
-                return (
-                  <TableRow key={tx.id} >
-                    <TableCell className="font-medium capitalize">
-                      {tx.type?.replace("_", " ")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          tx.status === "completed" ? "outline" : "secondary"
-                        }
-                        className="capitalize"
-                      >
-                        {tx.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      {formatMoney(tx.amount, tx.currency || "USD")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge
-                          variant={hasComplianceRecord ? "outline" : "secondary"}
-                          className={hasComplianceRecord ? "text-emerald-700" : ""}
-                        >
-                          {hasComplianceRecord ? "configured" : "missing"}
-                        </Badge>
-                        <Button asChild size="sm" variant="ghost" className="h-7 px-1">
-                          <Link href={filterHref({ complianceTx: tx.id })}>
-                            Edit
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="capitalize text-muted-foreground">
-                      {tx.direction}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {tx.created_at
-                        ? formatDistanceToNow(new Date(tx.created_at), {
-                            addSuffix: true,
-                          })
-                        : "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+      </div>  );
 }
 
 function StatCard({
@@ -949,13 +823,13 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card className="border-border shadow-sm">
-      <CardContent className="flex items-center justify-between gap-3 p-4">
+    <Card className="border-border shadow-none rounded-2xl bg-background">
+      <CardContent className="flex items-center justify-between gap-3 p-5">
         <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-lg font-semibold">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-1">{label}</p>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
         </div>
-        <div className="rounded-xl bg-muted p-2">{icon}</div>
+        <div className="rounded-full bg-muted/50 p-3 border border-slate-200">{icon}</div>
       </CardContent>
     </Card>
   );

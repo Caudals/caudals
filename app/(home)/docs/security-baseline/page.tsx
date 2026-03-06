@@ -11,14 +11,13 @@ export const metadata: Metadata = {
 export default function SecurityBaselineDocsPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Documentation"
       title="Security baseline overview"
       description="Snapshot of baseline controls currently enforced in the platform."
       ctaLabel="Read full baseline note"
       ctaHref="/contact"
     >
       <Card className="border-border/70">
-        <CardContent className="space-y-4 p-6 text-sm text-muted-foreground">
+        <CardContent className="space-y-4 p-6 text-sm text-slate-500">
           <p>
             Public APIs use rate limiting and bot-trap controls for basic abuse prevention.
           </p>

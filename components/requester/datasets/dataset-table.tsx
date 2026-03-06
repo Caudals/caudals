@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MoreHorizontal, PauseCircle, PlayCircle } from "lucide-react";
+import { MoreHorizontal, PauseCircle, PlayCircle, ShieldCheck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -28,17 +28,17 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const statusVariant: Record<string, string> = {
-  draft: "border-dashed border-muted-foreground/30 text-muted-foreground",
-  active: "bg-emerald-500/10 text-emerald-600",
-  paused: "bg-amber-500/10 text-amber-700",
-  completed: "bg-blue-500/10 text-blue-700",
-  archived: "bg-muted text-muted-foreground",
+  draft: "border-dashed border-border text-slate-500",
+  active: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+  paused: "bg-amber-50 text-amber-700 border-amber-200/50",
+  completed: "bg-blue-50 text-blue-700 border-blue-200/50",
+  archived: "bg-muted text-slate-500 border-transparent",
 };
 
 const approvalVariant: Record<string, string> = {
-  approved: "bg-emerald-500/10 text-emerald-600",
-  pending: "bg-amber-500/10 text-amber-700",
-  rejected: "bg-rose-500/10 text-rose-700",
+  approved: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
+  pending: "bg-amber-50 text-amber-700 border-amber-200/50",
+  rejected: "bg-red-50 text-red-700 border-red-200/50",
 };
 
 export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
@@ -134,12 +134,13 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border/60">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 p-4">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+    <div className="rounded-2xl border border-slate-200 shadow-none bg-white overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/50 p-4">
+        <div className="flex items-center gap-3 text-sm text-slate-700 font-medium">
           <Checkbox
             checked={allSelected}
             onCheckedChange={(value) => toggleAll(Boolean(value))}
+            className="data-[state=checked]:bg-[var(--accent)] data-[state=checked]:border-[var(--accent)]"
           />
           <span>
             {selected.length > 0
@@ -154,6 +155,7 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
               variant="outline"
               disabled={isPending}
               onClick={() => bulkUpdateStatus("paused")}
+              className="shadow-none rounded-lg h-8 px-3 border-slate-200 bg-white"
             >
               <PauseCircle className="mr-2 h-4 w-4" /> {t("Pause")}
             </Button>
@@ -162,6 +164,7 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
               variant="outline"
               disabled={isPending}
               onClick={() => bulkUpdateStatus("active")}
+              className="shadow-none rounded-lg h-8 px-3 border-slate-200 bg-white"
             >
               <PlayCircle className="mr-2 h-4 w-4" /> {t("Resume")}
             </Button>
@@ -170,33 +173,37 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
               variant="outline"
               disabled={isPending}
               onClick={() => bulkUpdateStatus("archived")}
+              className="shadow-none rounded-lg h-8 px-3 border-slate-200 bg-white"
             >
               {t("Archive")}
             </Button>
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-slate-500">
             {t("Track status, funding, and QA for every dataset.")}
           </div>
         )}
       </div>
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent w-12"></TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Dataset")}</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Status")}</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Samples")}</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Budget")}</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent">{t("Pending")}</TableHead>
-            <TableHead className="text-xs uppercase tracking-wider text-slate-500 font-semibold bg-transparent text-right">{t("Actions")}</TableHead>
+        <TableHeader className="bg-slate-50 border-b border-slate-200">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-12 pl-8 py-4"></TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Dataset")}</TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Status")}</TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Samples")}</TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Budget")}</TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Pending")}</TableHead>
+            <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">{t("Actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {datasets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                {t("Nothing to show yet.")}
+              <TableCell colSpan={7} className="py-16 text-center text-slate-500">
+                <div className="flex flex-col items-center justify-center">
+                  <ShieldCheck className="h-10 w-10 text-slate-300 mb-3" />
+                  <p>{t("Nothing to show yet.")}</p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (
@@ -214,18 +221,19 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
               const pending = dataset.pendingSubmissions;
 
               return (
-                <TableRow key={dataset.id} className="align-top">
-                  <TableCell>
+                <TableRow key={dataset.id} className="align-top hover:bg-slate-50/50 transition-colors border-slate-200 bg-white">
+                  <TableCell className="pl-8 py-4">
                     <Checkbox
                       checked={selected.includes(dataset.id)}
                       onCheckedChange={(value) => toggleRow(dataset.id, Boolean(value))}
+                      className="data-[state=checked]:bg-[var(--accent)] data-[state=checked]:border-[var(--accent)]"
                     />
                   </TableCell>
-                  <TableCell className="max-w-xs">
-                    <div className="space-y-1">
+                  <TableCell className="max-w-xs py-4">
+                    <div className="space-y-1.5">
                       <Link
                         href={`/requester/datasets/${dataset.id}`}
-                        className="font-medium hover:underline"
+                        className="font-semibold text-slate-900 hover:text-[var(--accent)] transition-colors line-clamp-2"
                       >
                         {dataset.title}
                       </Link>
@@ -233,8 +241,8 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "capitalize",
-                            statusVariant[dataset.status] ?? "bg-muted"
+                            "shadow-none font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5 border",
+                            statusVariant[dataset.status] ?? "bg-slate-100 text-slate-600 border-slate-200"
                           )}
                         >
                           {formatStatus(dataset.status)}
@@ -242,7 +250,7 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "capitalize",
+                            "shadow-none font-semibold text-[10px] uppercase tracking-wider px-2 py-0.5 border",
                             approvalVariant[dataset.approval_status] ?? ""
                           )}
                         >
@@ -251,51 +259,53 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {t("Reward")} ${Number(dataset.reward_amount).toLocaleString()}
+                  <TableCell className="py-4">
+                    <div className="text-sm font-medium text-slate-900">
+                      ${Number(dataset.reward_amount).toLocaleString()}
                     </div>
-                    <div className="text-xs text-muted-foreground">{dataset.data_type}</div>
+                    <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mt-0.5">
+                      {dataset.data_type}
+                    </div>
                   </TableCell>
-                  <TableCell className="min-w-[160px]">
-                    <div className="flex items-center justify-between text-xs">
-                      <span>
+                  <TableCell className="min-w-[160px] py-4">
+                    <div className="flex items-center justify-between text-xs font-medium mb-1.5">
+                      <span className="text-slate-900">
                         {dataset.samples_collected}/{dataset.samples_needed}
                       </span>
-                      <span>{progress}%</span>
+                      <span className="text-slate-500">{progress}%</span>
                     </div>
-                    <Progress value={progress} className="mt-1" />
+                    <Progress value={progress} className="h-1.5" />
                   </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium">
+                  <TableCell className="py-4">
+                    <div className="text-sm font-bold text-slate-900">
                       ${budget.funded.toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
                       {t("of {{amount}} budget", { amount: `$${budget.total.toLocaleString()}` })}
                     </p>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={pending > 0 ? "destructive" : "outline"}>
+                  <TableCell className="py-4">
+                    <Badge variant={pending > 0 ? "destructive" : "secondary"} className={`shadow-none font-medium ${pending > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                       {t("{{count}} pending", { count: pending })}
                     </Badge>
                     {dataset.latestExport?.status === "ready" && (
-                      <p className="text-xs text-muted-foreground">{t("Export ready")}</p>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600 mt-1">{t("Export ready")}</p>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-4 pr-8">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem asChild>
+                      <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-md border-slate-200 p-1.5">
+                        <DropdownMenuItem asChild className="rounded-lg text-sm">
                           <Link href={`/requester/datasets/${dataset.id}`}>
                             {t("View workspace")}
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(dataset.id)}>
+                        <DropdownMenuItem onClick={() => handleDuplicate(dataset.id)} className="rounded-lg text-sm">
                           {t("Duplicate as draft")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -311,10 +321,11 @@ export function DatasetTable({ datasets }: { datasets: DatasetListItem[] }) {
                               router.refresh();
                             })
                           }
+                          className="rounded-lg text-sm"
                         >
                           {dataset.status === "paused" ? t("Resume") : t("Pause")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleArchive(dataset.id)}>
+                        <DropdownMenuItem onClick={() => handleArchive(dataset.id)} className="rounded-lg text-sm text-red-600 focus:text-red-700 focus:bg-red-50">
                           {t("Archive dataset")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>

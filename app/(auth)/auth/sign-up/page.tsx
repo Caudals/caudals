@@ -165,14 +165,14 @@ export default function SignUpPage() {
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden lg:block">
           <div className="rounded-3xl border border-border/70 bg-card p-10 shadow-[var(--ds-shadow-overlay)]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-xs text-muted-foreground">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-muted px-3 py-1 text-xs text-slate-500">
               <Sparkles className="h-3.5 w-3.5 text-[var(--ds-accent)]" />
               {t("Start building production-grade datasets")}
             </div>
             <h1 className="mt-5 text-4xl font-semibold leading-tight">
               {t("Create your Caudals workspace in minutes")}
             </h1>
-            <p className="mt-3 max-w-xl text-sm text-muted-foreground">
+            <p className="mt-3 max-w-xl text-sm text-slate-500">
               {t(
                 "Pick your role now and unlock a guided workflow for dataset requests, contribution pipelines, and payout-ready operations.",
               )}
@@ -276,7 +276,7 @@ export default function SignUpPage() {
                         onClick={() => setSelectedRole(option.value)}
                       >
                         <div className="flex items-start space-x-3">
-                          <Icon className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                          <Icon className="mt-0.5 h-5 w-5 text-slate-500" />
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center space-x-2">
                               <input
@@ -295,7 +295,7 @@ export default function SignUpPage() {
                                 {t(option.label)}
                               </Label>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-500">
                               {t(option.description)}
                             </p>
                           </div>
@@ -316,7 +316,7 @@ export default function SignUpPage() {
                 <Separator />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-2 text-muted-foreground">
+                <span className="bg-card px-2 text-slate-500">
                   {t("Or continue with")}
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default function SignUpPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               {t("Already have an account?")}{" "}
               <Link
                 href="/auth/sign-in"

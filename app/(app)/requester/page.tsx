@@ -10,7 +10,7 @@ import {
 import { getRequesterDashboardData } from "@/lib/actions/requester-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, PlusCircle, TriangleAlert } from "lucide-react";
+import { ArrowRight, PlusCircle, TriangleAlert, Database } from "lucide-react";
 import { DashboardTelemetry } from "@/components/analytics/dashboard-telemetry";
 import { RequesterPageHeader } from "@/components/requester/requester-page-header";
 
@@ -19,7 +19,7 @@ export default async function RequesterOverviewPage() {
 
   if ("error" in dashboard) {
     return (
-      <Card className="border-0 shadow-sm ring-1 ring-destructive/40 bg-destructive/5">
+      <Card className="border-border shadow-none bg-destructive/5 rounded-2xl">
         <CardHeader>
           <CardTitle className="text-destructive">Unable to load dashboard</CardTitle>
           <CardDescription>{dashboard.error}</CardDescription>
@@ -34,38 +34,37 @@ export default async function RequesterOverviewPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <DashboardTelemetry role="requester" />
 
       <RequesterPageHeader
-        eyebrow="Requester workspace"
-        title="Dataset operations control center"
+        title="Dataset Operations Command"
         description="Monitor collection progress, clear review bottlenecks, and keep funding and exports on track from one place."
         actions={
-          <>
-            <Button asChild>
+          <div className="flex gap-2">
+            <Button asChild className="shadow-none rounded-lg">
               <Link href="/requester/datasets/new" data-dashboard-action="requester_new_dataset">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 New dataset
               </Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="shadow-none rounded-lg">
               <Link href="/requester/datasets?filter=pending_review" data-dashboard-action="requester_open_review_queue">
-                Open review queue
+                Review queue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-          </>
+          </div>
         }
       />
 
       {highPriorityAlerts.length > 0 ? (
-        <Card className="border-0 shadow-sm ring-1 ring-amber-300/60 bg-amber-50/60">
-          <CardContent className="flex items-start gap-3 p-4">
-            <TriangleAlert className="mt-0.5 h-4 w-4 text-amber-700" />
+        <Card className="border border-amber-200/50 shadow-none bg-amber-50/50 rounded-2xl">
+          <CardContent className="flex items-start gap-3 p-5">
+            <TriangleAlert className="mt-0.5 h-5 w-5 text-amber-600" />
             <div>
               <p className="text-sm font-semibold text-amber-800">Attention required</p>
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-amber-700/80 mt-0.5">
                 You have {highPriorityAlerts.length} critical or warning notifications impacting active datasets.
               </p>
             </div>

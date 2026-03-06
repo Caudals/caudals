@@ -66,7 +66,10 @@ type NavGroup = {
 const requesterNav: NavGroup[] = [
   {
     group: "Overview",
-    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true }],
+    items: [
+      { title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true },
+      { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
+    ],
   },
   {
     group: "Execution queues",
@@ -77,18 +80,6 @@ const requesterNav: NavGroup[] = [
         href: "/requester/datasets?filter=pending_review",
         query: { filter: "pending_review" },
       },
-      {
-        title: "Funding needed",
-        icon: Wallet,
-        href: "/requester/datasets?filter=needs_funding",
-        query: { filter: "needs_funding" },
-      },
-      {
-        title: "Ready for download",
-        icon: FolderArchive,
-        href: "/requester/datasets?filter=download_ready",
-        query: { filter: "download_ready" },
-      },
     ],
   },
   {
@@ -98,6 +89,7 @@ const requesterNav: NavGroup[] = [
         title: "All datasets",
         icon: FileText,
         href: "/requester/datasets",
+        exact: true,
         clearQueryKeys: ["status", "filter"],
       },
       { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
@@ -105,16 +97,9 @@ const requesterNav: NavGroup[] = [
     ],
   },
   {
-    group: "Intelligence",
-    items: [{ title: "Analytics", icon: BarChart3, href: "/requester/analytics" }],
-  },
-  {
-    group: "Workspace",
+    group: "Finance & billing",
     items: [
-      { title: "Billing", icon: CreditCard, href: "/requester/billing" },
-      { title: "Support", icon: LifeBuoy, href: "/requester/support" },
-      { title: "Onboarding", icon: UserPlus, href: "/requester/onboarding" },
-      { title: "Settings", icon: Settings, href: "/requester/settings" },
+      { title: "Billing & payouts", icon: CreditCard, href: "/requester/billing" },
     ],
   },
 ];
@@ -132,58 +117,41 @@ const contributorNav: NavGroup[] = [
     ],
   },
   {
-    group: "Earnings",
+    group: "Finance & earnings",
     items: [{ title: "Earnings & payouts", icon: Wallet, href: "/contributor/earnings" }],
-  },
-  {
-    group: "Workspace",
-    items: [{ title: "Settings", icon: Settings, href: "/contributor/settings" }],
   },
 ];
 
 const adminNav: NavGroup[] = [
   {
     group: "Overview",
-    items: [{ title: "Control center", icon: Shield, href: "/admin", exact: true }],
-  },
-  {
-    group: "SLA queues",
     items: [
-      { title: "Requests", icon: FileText, href: "/admin/requests" },
-      { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
-      { title: "Support", icon: LifeBuoy, href: "/admin/support" },
+      { title: "Control center", icon: Shield, href: "/admin", exact: true },
+      { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+      { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
     ],
   },
   {
-    group: "Governance",
+    group: "Operations",
     items: [
+      { title: "Requests", icon: FileText, href: "/admin/requests" },
+      { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
       { title: "Datasets", icon: Database, href: "/admin/datasets" },
       { title: "Users", icon: Users, href: "/admin/users" },
+      { title: "Featured", icon: Megaphone, href: "/admin/featured" },
     ],
   },
   {
     group: "Finance & risk",
     items: [
       { title: "Payments", icon: CreditCard, href: "/admin/payments" },
-      { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
-    ],
-  },
-  {
-    group: "Intelligence",
-    items: [
-      { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-      { title: "Featured", icon: Megaphone, href: "/admin/featured" },
-    ],
-  },
-  {
-    group: "Workspace",
-    items: [
-      { title: "Settings", icon: Settings, href: "/admin/settings" },
     ],
   },
 ];
 
-const utilityLinksBase: NavItem[] = [
+const baseFooterLinks: NavItem[] = [
+  { title: "Support", icon: LifeBuoy, href: "" }, // Href resolved dynamically
+  { title: "Settings", icon: Settings, href: "" }, // Href resolved dynamically
   { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
 ];
 
@@ -243,43 +211,17 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     homeHref = "/contributor";
   }
 
-  const settingsHref =
-    viewKey === "admin"
-      ? "/admin/settings"
-      : viewKey === "contributor"
-        ? "/contributor/settings"
-        : "/requester/settings";
-
-  const utilityLinks: NavItem[] =
-    viewKey === "contributor"
-      ? [
-          ...utilityLinksBase,
-          { title: "Payout readiness", icon: Wallet, href: "/contributor/earnings" },
-        ]
-      : [
-          ...utilityLinksBase,
-          {
-            title: "Invite members",
-            icon: UserPlus,
-            href: viewKey === "admin" ? "/admin/users" : "/requester/settings",
-          },
-        ];
-
-  const sidebarGroups: NavGroup[] = (() => {
-    const workspaceGroupIndex = navGroups.findIndex(
-      (group) => group.group === "Workspace",
-    );
-
-    if (workspaceGroupIndex >= 0) {
-      return navGroups.map((group, index) =>
-        index === workspaceGroupIndex
-          ? { ...group, items: [...group.items, ...utilityLinks] }
-          : group,
-      );
+  const footerLinks = baseFooterLinks.map(item => {
+    if (item.title === "Support") {
+      return { ...item, href: `/${viewKey}/support` };
     }
+    if (item.title === "Settings") {
+      return { ...item, href: `/${viewKey}/settings` };
+    }
+    return item;
+  });
 
-    return [...navGroups, { group: "Resources", items: utilityLinks }];
-  })();
+  const sidebarGroups: NavGroup[] = [...navGroups, { group: "Workspace", items: footerLinks }];
 
   const isItemActive = (item: NavItem) => {
     const { path: itemPath, params } = parseHref(item.href);
@@ -316,37 +258,23 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" className="bg-sidebar border-r-0" {...props}>
       <SidebarHeader className="pb-2 pt-4 px-2">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex-1 overflow-hidden">
+        <div className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <div className={`overflow-hidden transition-all ${isCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'}`}>
              <NavUser />
           </div>
-          {!isCollapsed && (
-            <div className="flex items-center gap-1 ml-1">
-              <NotificationBell />
-              <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
-            </div>
-          )}
-        </div>
-        
-        {isCollapsed && (
-          <div className="flex flex-col items-center gap-2 mt-2 w-full">
-            <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:text-foreground" />
+          <div className="flex items-center gap-1 shrink-0">
+            {!isCollapsed && <NotificationBell />}
+            <SidebarTrigger className="h-8 w-8 text-slate-500 hover:text-foreground shrink-0 flex items-center justify-center" />
           </div>
-        )}
+        </div>
 
-        <div className={`${isCollapsed ? "px-0" : "px-2"} pt-3 space-y-2`}>
+        <div className={`${isCollapsed ? "px-0 flex flex-col items-center" : "px-2"} pt-3 space-y-2`}>
           <CommandPaletteButton
             compact={isCollapsed}
-            className={isCollapsed ? "mx-auto flex" : "w-full justify-between rounded-lg"}
+            className={isCollapsed ? "mx-auto flex justify-center w-8 h-8 p-0" : "w-full justify-between rounded-lg"}
           />
           {userRole === "admin" ? (
-            <div
-              className={
-                isCollapsed
-                  ? "flex justify-center"
-                  : "rounded-lg border border-sidebar-border/60 bg-sidebar-accent/40 px-2 py-2"
-              }
-            >
+            <div className="flex justify-center">
               <RoleSwitcher userRole={userRole} currentView={viewKey} isCollapsed={isCollapsed} />
             </div>
           ) : null}
@@ -356,7 +284,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent className="px-2 gap-0">
         {sidebarGroups.map((group) => (
           <SidebarGroup key={group.group}>
-            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground/70 group-data-[collapsible=icon]:sr-only">
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-slate-500/70 group-data-[collapsible=icon]:sr-only">
               {t(group.group)}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -367,15 +295,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                       asChild
                       isActive={isItemActive(item)}
                       tooltip={t(item.title)}
-                      className="h-8 text-sm font-medium text-muted-foreground hover:text-foreground data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:bg-[var(--accent)]/10"
+                      className={`h-8 text-sm font-medium text-slate-500 hover:text-foreground data-[active=true]:text-[var(--accent-foreground)] data-[active=true]:bg-[var(--accent)]/10 ${isCollapsed ? 'justify-center' : ''}`}
                     >
                       <Link
                         href={item.href}
                         target={item.external ? "_blank" : undefined}
                         rel={item.external ? "noopener noreferrer" : undefined}
+                        className={isCollapsed ? "flex items-center justify-center w-full" : ""}
                       >
-                        <item.icon className="size-4" />
-                        <span>{t(item.title)}</span>
+                        <item.icon className="size-4 shrink-0" />
+                        {!isCollapsed && <span>{t(item.title)}</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

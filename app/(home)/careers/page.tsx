@@ -11,12 +11,11 @@ export const metadata: Metadata = {
 export default function CareersPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Company"
       title="Careers at Caudals"
       description="We are building role-driven infrastructure for reliable dataset operations."
     >
       <Card className="border-border/70">
-        <CardContent className="space-y-3 p-6 text-sm text-muted-foreground">
+        <CardContent className="space-y-3 p-6 text-sm text-slate-500">
           <p>Open roles are published periodically as we scale product and operations.</p>
           <p>
             For general hiring interest, email{" "}

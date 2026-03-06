@@ -29,16 +29,16 @@ export function RequestsTable({ requests = [] }: RequestsTableProps) {
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No requests yet.</p>
+          <p className="text-sm text-slate-500">No requests yet.</p>
         ) : (
           <div className="space-y-2">
             {rows.map((request, index) => (
               <div key={request.id ?? `request-${index}`} className="rounded-md border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium">{request.title ?? "Untitled request"}</p>
-                  <span className="text-xs uppercase text-muted-foreground">{request.status ?? "draft"}</span>
+                  <span className="text-xs uppercase text-slate-500">{request.status ?? "draft"}</span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">Created: {formatDate(request.created_at)}</p>
+                <p className="mt-1 text-xs text-slate-500">Created: {formatDate(request.created_at)}</p>
                 {request.id ? (
                   <Link href={`/dashboard/requests/${request.id}`} className="mt-2 inline-block text-sm underline underline-offset-4">
                     Open request

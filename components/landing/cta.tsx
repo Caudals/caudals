@@ -14,13 +14,13 @@ export function CTASection() {
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="flex flex-col gap-6 rounded-[2.4rem] border border-border/80 bg-card px-8 py-12 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
+          <p className="text-xs font-semibold uppercase text-slate-500">
             {t("Next steps")}
           </p>
           <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
             {t("Ready to co-build your dataset or partnerships program?")}
           </h2>
-          <p className="mx-auto max-w-3xl text-base text-muted-foreground">
+          <p className="mx-auto max-w-3xl text-base text-slate-500">
             {t(
               "Jump straight into the dashboard to post a blueprint or head to the Partnerships tab to co-design a custom engagement with Caudals Labs.",
             )}
@@ -41,7 +41,7 @@ export function CTASection() {
               <Link href="/#partnerships">{t("Go to Partnerships")}</Link>
             </Button>
           </div>
-          <div className="flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground sm:flex-row sm:gap-6">
+          <div className="flex flex-col items-center justify-center gap-2 text-sm text-slate-500 sm:flex-row sm:gap-6">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-accent" />
               {t("Payment, QA, and compliance rails included")}

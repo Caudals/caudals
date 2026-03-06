@@ -414,7 +414,7 @@ export function DatasetBuilder({
       <Card className="bg-white shadow-sm border border-border">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
-            <p className="text-sm text-muted-foreground">{t("Estimated budget")}</p>
+            <p className="text-sm text-slate-500">{t("Estimated budget")}</p>
             <p className="text-2xl font-semibold">
               {form.currency.toUpperCase()} {estimatedBudget.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </p>

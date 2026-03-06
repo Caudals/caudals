@@ -15,7 +15,7 @@ export default async function AdminSubmissionsPage() {
         <p className="text-lg font-semibold text-destructive">
           Error loading submissions
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-slate-500">
           Please try again later
         </p>
       </div>
@@ -27,7 +27,6 @@ export default async function AdminSubmissionsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Moderation queue"
         title="Pending submissions"
         description="Validate contributor evidence, enforce quality standards, and keep SLA targets under control."
         actions={

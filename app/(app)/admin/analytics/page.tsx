@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { AnalyticsBarChart } from "@/components/admin/analytics-bar-chart";
+import { AnalyticsPieChart } from "@/components/admin/analytics-pie-chart";
+import { Activity, BarChart3, TrendingUp, Users } from "lucide-react";
 
 export default async function AdminAnalyticsPage() {
   await requireAdmin();
@@ -11,12 +14,12 @@ export default async function AdminAnalyticsPage() {
 
   if ("error" in res) {
     return (
-      <Card className="border-destructive/40 bg-destructive/5">
+      <Card className="border-destructive/40 bg-destructive/5 shadow-none">
         <CardContent className="py-6">
           <p className="font-semibold text-destructive">
             Unable to load analytics
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {res.error || "Please try again later."}
           </p>
         </CardContent>
@@ -44,143 +47,142 @@ export default async function AdminAnalyticsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <AdminPageHeader
-        eyebrow="Platform intelligence"
-        title="Analytics"
-        description="Track growth, conversion efficiency, and cross-role product behavior."
+        title="Analytics & Growth"
+        description="Track user growth, conversion efficiency, and cross-role product behavior."
         actions={
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="shadow-none rounded-lg">
             <Link
               href="/admin/activity"
               data-dashboard-action="admin_analytics_open_activity"
             >
-              Correlate with activity log
+              <Activity className="h-4 w-4 mr-2" />
+              Correlate Activity
             </Link>
           </Button>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <AnalyticsCard title="Users by role" entries={data.usersByRole} />
-        <AnalyticsCard title="Datasets" entries={data.datasetsByStatus} />
-        <AnalyticsCard title="Submissions" entries={data.submissionsByStatus} />
+      <div className="grid gap-6 md:grid-cols-2">
+        <AnalyticsBarChart />
+        <AnalyticsPieChart />
       </div>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle>Funnel Conversion ({funnel.windowDays}d)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {funnel.steps.map(
-              (step: { key: string; label: string; count: number }) => (
+      <div className="grid gap-6 md:grid-cols-3">
+        <AnalyticsCard 
+          title="Users by role" 
+          entries={data.usersByRole} 
+          icon={<Users className="h-4 w-4 text-slate-500" />} 
+        />
+        <AnalyticsCard 
+          title="Datasets" 
+          entries={data.datasetsByStatus} 
+          icon={<BarChart3 className="h-4 w-4 text-slate-500" />}
+        />
+        <AnalyticsCard 
+          title="Submissions" 
+          entries={data.submissionsByStatus} 
+          icon={<Activity className="h-4 w-4 text-slate-500" />}
+        />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-slate-200 shadow-none bg-white">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-emerald-600" />
+              Funnel Conversion ({funnel.windowDays}d)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {funnel.steps.map(
+                (step: { key: string; label: string; count: number }) => (
+                  <div
+                    key={step.key}
+                    className="flex flex-col justify-center items-center text-center p-3 rounded-xl bg-muted/30"
+                  >
+                    <p className="text-[10px] uppercase font-semibold tracking-wider text-slate-500">
+                      {step.label}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">{step.count}</p>
+                  </div>
+                ),
+              )}
+            </div>
+            <div className="grid gap-3 text-sm grid-cols-1 sm:grid-cols-2">
+              <ConversionStat
+                label="Visit to Sign up"
+                value={funnel.conversionRates.visitToSignupPct}
+              />
+              <ConversionStat
+                label="Sign up to Dataset"
+                value={funnel.conversionRates.signupToDatasetPct}
+              />
+              <ConversionStat
+                label="Dataset to Fund"
+                value={funnel.conversionRates.datasetToFundPct}
+              />
+              <ConversionStat
+                label="Visit to Fund"
+                value={funnel.conversionRates.visitToFundPct}
+                highlight={true}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 shadow-none bg-white">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">
+              Dashboard Usability ({dashboardTelemetry.windowDays}d)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Object.keys({
+                ...dashboardTelemetry.visitsByRole,
+                ...dashboardTelemetry.actionsByRole,
+              }).map((role) => (
                 <div
-                  key={step.key}
-                  className="rounded-xl border border-border  px-4 py-3"
+                  key={role}
+                  className="rounded-xl border border-border p-4 text-sm"
                 >
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                    {step.label}
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold">{step.count}</p>
+                  <p className="capitalize font-medium text-base mb-2 border-b border-border pb-2">{role}</p>
+                  <div className="space-y-1.5 mt-2 text-slate-500">
+                    <div className="flex justify-between">
+                      <span>Views:</span>
+                      <span className="font-medium text-foreground">{dashboardTelemetry.visitsByRole[role] ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Actions:</span>
+                      <span className="font-medium text-foreground">{dashboardTelemetry.actionsByRole[role] ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Avg TTA:</span>
+                      <span className="font-medium text-foreground">{dashboardTelemetry.avgTimeToActionMsByRole[role] ?? 0}ms</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Conversion:</span>
+                      <span className="font-medium text-foreground">
+                        {((dashboardTelemetry.actionToViewRatePctByRole[role] ?? 0)).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              ),
+              ))}
+            </div>
+            {Object.keys(dashboardTelemetry.visitsByRole).length === 0 && (
+              <div className="h-full min-h-[160px] flex items-center justify-center border border-dashed border-border rounded-xl">
+                <p className="text-sm text-slate-500">
+                  No dashboard telemetry captured yet.
+                </p>
+              </div>
             )}
-          </div>
-          <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <ConversionStat
-              label="Visit -> Sign up"
-              value={funnel.conversionRates.visitToSignupPct}
-            />
-            <ConversionStat
-              label="Sign up -> Dataset"
-              value={funnel.conversionRates.signupToDatasetPct}
-            />
-            <ConversionStat
-              label="Dataset -> Fund"
-              value={funnel.conversionRates.datasetToFundPct}
-            />
-            <ConversionStat
-              label="Visit -> Fund"
-              value={funnel.conversionRates.visitToFundPct}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle>
-            Dashboard Usability Telemetry ({dashboardTelemetry.windowDays}d)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Object.keys({
-              ...dashboardTelemetry.visitsByRole,
-              ...dashboardTelemetry.actionsByRole,
-            }).map((role) => (
-              <div
-                key={role}
-                className="rounded-xl border border-border  px-4 py-3 text-sm"
-              >
-                <p className="capitalize text-muted-foreground">{role}</p>
-                <p className="mt-1 font-semibold">
-                  Views: {dashboardTelemetry.visitsByRole[role] ?? 0}
-                </p>
-                <p className="text-muted-foreground">
-                  Actions: {dashboardTelemetry.actionsByRole[role] ?? 0}
-                </p>
-                <p className="text-muted-foreground">
-                  Avg TTA:{" "}
-                  {dashboardTelemetry.avgTimeToActionMsByRole[role] ?? 0}ms
-                </p>
-                <p className="text-muted-foreground">
-                  Action/View:{" "}
-                  {(
-                    dashboardTelemetry.actionToViewRatePctByRole[role] ?? 0
-                  ).toFixed(1)}
-                  %
-                </p>
-              </div>
-            ))}
-          </div>
-          {Object.keys(dashboardTelemetry.visitsByRole).length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No dashboard telemetry captured yet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle>Last 30 days</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 text-sm font-semibold text-muted-foreground">
-            <span>Date</span>
-            <span className="text-center">Requests</span>
-            <span className="text-center">Submissions</span>
-          </div>
-          <div className="mt-3 max-h-[360px] overflow-y-auto">
-            {data.dailySeries.map((row) => (
-              <div
-                key={row.date}
-                className="grid grid-cols-3 items-center rounded-lg px-3 py-2 text-sm"
-              >
-                <span className="text-muted-foreground">{row.date}</span>
-                <span className="text-center font-semibold">
-                  {row.requests}
-                </span>
-                <span className="text-center font-semibold">
-                  {row.submissions}
-                </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -188,25 +190,31 @@ export default async function AdminAnalyticsPage() {
 function AnalyticsCard({
   title,
   entries,
+  icon,
 }: {
   title: string;
   entries: Record<string, number>;
+  icon: React.ReactNode;
 }) {
   return (
-    <Card className="border-border shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="border-slate-200 shadow-none bg-white">
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
+        {icon}
       </CardHeader>
-      <CardContent className="space-y-2 text-sm">
+      <CardContent className="space-y-3">
         {Object.entries(entries).length === 0 && (
-          <p className="text-muted-foreground">No data yet.</p>
+          <p className="text-sm text-slate-500">No data yet.</p>
         )}
         {Object.entries(entries).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between">
-            <span className="capitalize text-muted-foreground">
-              {key.replace("_", " ")}
-            </span>
-            <span className="font-semibold">{value}</span>
+          <div key={key} className="flex items-center justify-between group">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+              <span className="capitalize text-sm text-slate-500 group-hover:text-foreground transition-colors">
+                {key.replace("_", " ")}
+              </span>
+            </div>
+            <span className="font-semibold text-sm">{value}</span>
           </div>
         ))}
       </CardContent>
@@ -214,11 +222,15 @@ function AnalyticsCard({
   );
 }
 
-function ConversionStat({ label, value }: { label: string; value: number }) {
+function ConversionStat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value.toFixed(1)}%</span>
+    <div className={`flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ${
+      highlight 
+        ? "bg-primary text-primary-foreground border-primary" 
+        : "bg-background border-border hover:border-foreground/20"
+    }`}>
+      <span className={highlight ? "font-medium" : "text-slate-500"}>{label}</span>
+      <span className="font-bold">{value.toFixed(1)}%</span>
     </div>
   );
 }

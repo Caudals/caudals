@@ -44,7 +44,7 @@ export default function SimpleLandingPage() {
               {t("Build production-grade datasets to train tailored AI models")}
             </h1>
             
-            <p className="mx-auto mb-12 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+            <p className="mx-auto mb-12 max-w-2xl text-lg text-slate-500 sm:text-xl">
               {t(
                 "Caudals connects your ML team with certified contributors, reviewer pods, and automated payouts so every dataset sprint ships faster without compromising compliance or governance."
               )}
@@ -59,7 +59,7 @@ export default function SimpleLandingPage() {
               <h2 className="mb-4 text-3xl font-bold text-foreground sm:text-4xl">
                 {t("Why Caudals")}
               </h2>
-              <p className="mx-auto max-w-2xl text-muted-foreground">
+              <p className="mx-auto max-w-2xl text-slate-500">
                 {t("Everything you need to build and scale AI training datasets")}
               </p>
             </div>
@@ -78,7 +78,7 @@ export default function SimpleLandingPage() {
                     <h3 className="mb-2 text-xl font-semibold text-foreground">
                       {feature.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {feature.description}
                     </p>
                   </div>
@@ -95,7 +95,7 @@ export default function SimpleLandingPage() {
               <h2 className="mb-4 text-3xl font-bold text-foreground sm:text-4xl">
                 {t("Get in touch")}
               </h2>
-              <p className="mx-auto max-w-2xl text-muted-foreground">
+              <p className="mx-auto max-w-2xl text-slate-500">
                 {t(
                   "Interested in learning more? Send us a message and we'll get back to you within 48 hours."
                 )}

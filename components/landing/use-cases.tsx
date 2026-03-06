@@ -73,7 +73,7 @@ export function UseCasesSection() {
           <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
             {t("Built for every AI use case")}
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-lg text-slate-500">
             {t(
               "From computer vision to conversational AI—we provide the collection flows, contributor training, and review workflows tailored to your modality.",
             )}
@@ -89,7 +89,7 @@ export function UseCasesSection() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true, margin: "-50px" }}
             >
-              <Card className="group relative h-full overflow-hidden rounded-3xl border border-border/50 bg-white/85 p-6 shadow-sm backdrop-blur transition-transform hover:-translate-y-1">
+              <Card className="group relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur transition-transform hover:-translate-y-1 py-0 gap-0">
                 <CardContent className="p-0">
                   <div className="mb-4 flex items-start justify-between">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform group-hover:scale-110">
@@ -110,7 +110,7 @@ export function UseCasesSection() {
                   <h3 className="mb-2 text-lg font-semibold text-slate-900">
                     {useCase.title}
                   </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-slate-500">
                     {useCase.description}
                   </p>
                 </CardContent>

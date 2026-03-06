@@ -11,7 +11,6 @@ export default async function ContributorSettingsPage() {
   return (
     <div className="space-y-6">
       <ContributorPageHeader
-        eyebrow="Workspace"
         title="Contributor settings"
         description="Configure profile trust signals, availability, focus areas, and notification preferences."
         actions={

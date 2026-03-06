@@ -49,7 +49,6 @@ const plans = [
 export default function PricingPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Pricing"
       title="Plans built for production dataset delivery"
       description="Choose a plan aligned with your current operation stage and upgrade as your contributor workflows and governance requirements grow."
       ctaLabel="Start a project"
@@ -61,7 +60,7 @@ export default function PricingPage() {
             <CardHeader>
               <CardTitle>{plan.name}</CardTitle>
               <p className="text-2xl font-semibold">{plan.price}</p>
-              <p className="text-sm text-muted-foreground">{plan.summary}</p>
+              <p className="text-sm text-slate-500">{plan.summary}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               {plan.features.map((feature) => (
@@ -79,7 +78,7 @@ export default function PricingPage() {
         <CardContent className="flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Need a custom rollout plan?</h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               We can tailor security, support, and payout operations to your org requirements.
             </p>
           </div>

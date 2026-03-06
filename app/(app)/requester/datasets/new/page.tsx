@@ -22,7 +22,6 @@ export default async function NewDatasetPage({
   return (
     <div className="space-y-6">
       <RequesterPageHeader
-        eyebrow="New dataset"
         title="Launch a dataset brief"
         description="Define requirements, rewards, and quality controls before opening submissions."
       />
