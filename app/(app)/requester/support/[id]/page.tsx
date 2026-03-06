@@ -23,7 +23,6 @@ export default async function SupportTicketDetailPage({
   return (
     <div className="space-y-6">
       <RequesterPageHeader
-        eyebrow="Support ticket"
         title={ticket.subject}
         description={ticket.description || "No description provided."}
         actions={
@@ -46,7 +45,7 @@ export default async function SupportTicketDetailPage({
           <CardTitle>Ticket details</CardTitle>
           <CardDescription>Timeline and metadata for this support request</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+        <CardContent className="grid gap-2 text-sm text-slate-500 md:grid-cols-3">
           <p>Priority: <span className="font-medium text-foreground">{ticket.priority}</span></p>
           <p>Created: <span className="font-medium text-foreground">{new Date(ticket.created_at).toLocaleString()}</span></p>
           <p>Updated: <span className="font-medium text-foreground">{new Date(ticket.updated_at).toLocaleString()}</span></p>

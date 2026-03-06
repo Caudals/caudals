@@ -120,7 +120,7 @@ export function StripeConnectStatus() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </CardContent>
       </Card>
     );
@@ -254,10 +254,10 @@ export function StripeConnectStatus() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium flex items-center gap-1">
-                  <Wallet2 className="h-4 w-4 text-muted-foreground" />
+                  <Wallet2 className="h-4 w-4 text-slate-500" />
                   Stripe balance
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   Available balance updates as Stripe settles payouts.
                 </p>
               </div>
@@ -311,7 +311,7 @@ function StatusRow({
 }) {
   return (
     <div className="flex items-center justify-between rounded-md border p-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm text-slate-500">{label}</span>
       <span
         className={`text-sm font-medium ${
           positive ? "text-emerald-600" : "text-orange-600"
@@ -334,7 +334,7 @@ function BalanceBlock({
 }) {
   return (
     <div className="rounded-md border bg-background p-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs uppercase tracking-wide text-slate-500">
         {title}
       </p>
       <p className="text-xl font-semibold">

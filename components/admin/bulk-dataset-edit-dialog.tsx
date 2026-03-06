@@ -218,7 +218,7 @@ export function BulkDatasetEditDialog({
                   <Label htmlFor="bulk-status">Dataset status</Label>
                   <p
                     id="bulk-status-description"
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-slate-500"
                   >
                     Update the lifecycle badge shown to contributors.
                   </p>
@@ -262,7 +262,7 @@ export function BulkDatasetEditDialog({
                   <Label htmlFor="bulk-reward-value">Reward amount</Label>
                   <p
                     id="bulk-reward-description"
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-slate-500"
                   >
                     Set a new base reward for each approved contribution.
                   </p>
@@ -295,7 +295,7 @@ export function BulkDatasetEditDialog({
                   <Label htmlFor="bulk-samples-value">Samples needed</Label>
                   <p
                     id="bulk-samples-description"
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-slate-500"
                   >
                     Adjust the remaining quota shown to contributors.
                   </p>
@@ -328,7 +328,7 @@ export function BulkDatasetEditDialog({
                   <Label htmlFor="bulk-deadline-value">Deadline</Label>
                   <p
                     id="bulk-deadline-description"
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-slate-500"
                   >
                     Ensure the collection window is accurate across requests.
                   </p>
@@ -360,7 +360,7 @@ export function BulkDatasetEditDialog({
                   <Label htmlFor="bulk-currency-value">Currency</Label>
                   <p
                     id="bulk-currency-description"
-                    className="text-sm text-muted-foreground"
+                    className="text-sm text-slate-500"
                   >
                     Provide a three-letter ISO code (USD, EUR, GBP, etc.).
                   </p>
@@ -394,7 +394,7 @@ export function BulkDatasetEditDialog({
                     <Label htmlFor="bulk-featured-value">Featured spotlight</Label>
                     <p
                       id="bulk-featured-description"
-                      className="text-sm text-muted-foreground"
+                      className="text-sm text-slate-500"
                     >
                       Toggle homepage promotion for these datasets.
                     </p>

@@ -65,7 +65,7 @@ export function PageHeaderDescription({
   ...props
 }: PageHeaderDescriptionProps) {
   return (
-    <p className={cn("text-muted-foreground", className)} {...props}>
+    <p className={cn("text-slate-500", className)} {...props}>
       {children}
     </p>
   );

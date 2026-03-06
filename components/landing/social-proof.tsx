@@ -53,13 +53,13 @@ export function SocialProofSection() {
     <section className="py-16">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
+          <p className="text-xs font-semibold uppercase text-slate-500">
             {t("Ecosystem fit")}
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
             {t("Plug Caudals into the stacks you already run")}
           </h2>
-          <p className="mt-3 text-base text-muted-foreground">
+          <p className="mt-3 text-base text-slate-500">
             {t(
               "Approved batches sync into NVIDIA, PyTorch, Hugging Face, Pandas, Snowflake, every major cloud, and the payout rails your finance team trusts.",
             )}
@@ -77,7 +77,7 @@ export function SocialProofSection() {
               className="flex h-24 flex-col justify-center rounded-2xl border border-border/80 bg-card p-4 text-left"
             >
               <span className="text-base font-semibold text-foreground">{ecosystem.name}</span>
-              <span className="text-xs text-muted-foreground">{ecosystem.caption}</span>
+              <span className="text-xs text-slate-500">{ecosystem.caption}</span>
             </motion.div>
           ))}
         </div>
@@ -92,15 +92,15 @@ export function SocialProofSection() {
                   className="rounded-2xl border border-border/70 bg-background/80 p-4"
                 >
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Icon className="h-4 w-4 text-slate-500" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {point.title}
                     </p>
                   </div>
                   <p className="mt-2 text-sm font-semibold text-foreground">
                     {point.value}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-slate-500">
                     {point.detail}
                   </p>
                 </div>
@@ -109,7 +109,7 @@ export function SocialProofSection() {
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <Link
                 href="/trust"
                 className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"

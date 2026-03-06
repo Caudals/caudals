@@ -66,7 +66,7 @@ export function WalletFundingCard() {
             {t("Continue to Stripe")}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-slate-500">
           {t("Sandbox mode: no real charges are created.")}
         </p>
       </CardContent>

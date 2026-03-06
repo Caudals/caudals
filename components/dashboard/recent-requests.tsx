@@ -8,7 +8,7 @@ export function RecentRequests() {
         <CardTitle>Recent requests</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-muted-foreground">No recent requests available yet.</p>
+        <p className="text-sm text-slate-500">No recent requests available yet.</p>
         <Link href="/requester/datasets" className="text-sm font-medium underline underline-offset-4">
           View datasets
         </Link>

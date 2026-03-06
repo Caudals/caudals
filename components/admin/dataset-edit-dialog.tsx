@@ -301,7 +301,7 @@ export function DatasetEditDialog({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <Label className="text-sm font-semibold">Cover image</Label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     Upload a new preview image for the dataset card and detail page.
                   </p>
                 </div>
@@ -330,7 +330,7 @@ export function DatasetEditDialog({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                    <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
                       {isUploadingImage ? "Uploading image..." : "No image selected"}
                     </div>
                   )}
@@ -348,7 +348,7 @@ export function DatasetEditDialog({
                   {imageUploadError && (
                     <p className="text-xs text-destructive">{imageUploadError}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     • JPG, PNG, or WEBP up to 8MB. <br />
                     • Landscape images display best in browse cards. <br />
                     • Uploading a new file replaces the existing image.
@@ -552,7 +552,7 @@ export function DatasetEditDialog({
                   <Label htmlFor="dataset-featured" className="text-sm">
                     Feature this dataset
                   </Label>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     Featured datasets receive prioritized placement.
                   </p>
                 </div>
@@ -581,7 +581,7 @@ export function DatasetEditDialog({
             </DialogFooter>
           </form>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             Select a dataset to edit.
           </p>
         )}

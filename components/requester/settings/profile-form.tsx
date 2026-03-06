@@ -76,7 +76,7 @@ export function ProfileForm({ profile }: { profile: ProfileData | null }) {
       </Button>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {savedAt ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-slate-500">
           {t("Last saved at {{time}}", { time: savedAt })}
         </p>
       ) : null}

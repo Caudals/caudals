@@ -157,7 +157,7 @@ export function ContributorBrowseClient({ initialDatasets }: BrowseClientProps) 
                   <h2 className="text-xl font-semibold text-foreground">
                     {t("Featured requests")}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500">
                     {t("High-priority opportunities from top organizations")}
                   </p>
                 </div>
@@ -182,7 +182,7 @@ export function ContributorBrowseClient({ initialDatasets }: BrowseClientProps) 
                 <h2 className="text-xl font-semibold text-foreground">
                   {t("All requests")}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-500">
                   {t("{{count}} opportunities available", {
                     count: sortedDatasets.length.toLocaleString(),
                   })}
@@ -200,13 +200,13 @@ export function ContributorBrowseClient({ initialDatasets }: BrowseClientProps) 
       ) : (
         <section className="mt-8 flex flex-col items-center justify-center gap-6 rounded-2xl border border-dashed bg-white shadow-sm p-12 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/50">
-            <Database className="h-10 w-10 text-muted-foreground" />
+            <Database className="h-10 w-10 text-slate-500" />
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-foreground">
               {t("No matches found")}
             </h2>
-            <p className="mx-auto max-w-md text-sm text-muted-foreground">
+            <p className="mx-auto max-w-md text-sm text-slate-500">
               {t("Try adjusting your filters to see more results")}
             </p>
           </div>

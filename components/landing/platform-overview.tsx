@@ -78,13 +78,13 @@ export function PlatformLayersSection() {
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
+          <p className="text-xs font-semibold uppercase text-slate-500">
             {t("Caudals operating layers")}
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
             {t("Interactive tooling for every stage of dataset ops")}
           </h2>
-          <p className="mt-3 text-base text-muted-foreground">
+          <p className="mt-3 text-base text-slate-500">
             {t(
               "Switch between the layers to see how briefs move from planning to contributor pods, quality loops, and delivery rails.",
             )}
@@ -101,7 +101,7 @@ export function PlatformLayersSection() {
                 className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition-colors ${
                   activeLayer === id
                     ? "border-border bg-muted/60 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                    : "border-border bg-card text-slate-500 hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-3 ">
@@ -125,16 +125,16 @@ export function PlatformLayersSection() {
                 transition={{ duration: 0.35 }}
                 className="space-y-5"
               >
-                <p className="text-sm font-semibold uppercase text-muted-foreground">
+                <p className="text-sm font-semibold uppercase text-slate-500">
                   {t(layers[activeLayer].label)}
                 </p>
                 <h3 className="text-2xl font-semibold text-foreground">
                   {t(layers[activeLayer].title)}
                 </h3>
-                <p className="text-base text-muted-foreground">
+                <p className="text-base text-slate-500">
                   {t(layers[activeLayer].description)}
                 </p>
-                <ul className="grid gap-3 text-sm text-muted-foreground">
+                <ul className="grid gap-3 text-sm text-slate-500">
                   {layers[activeLayer].bullets.map((bullet) => (
                     <li key={bullet} className="flex items-start gap-2">
                       <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-muted" />

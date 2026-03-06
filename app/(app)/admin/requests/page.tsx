@@ -15,7 +15,7 @@ export default async function AdminRequestsPage() {
         <p className="text-lg font-semibold text-destructive">
           Error loading requests
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-slate-500">
           Please try again later
         </p>
       </div>
@@ -27,7 +27,6 @@ export default async function AdminRequestsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Moderation queue"
         title="Pending dataset requests"
         description="Review requester briefs, validate compliance, and approve high-quality dataset demand."
         actions={

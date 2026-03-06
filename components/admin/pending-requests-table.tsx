@@ -4,9 +4,6 @@ import { useState } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -42,9 +39,13 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
 
   if (requests.length === 0) {
     return (
-      <Card className="border-border shadow-sm bg-white overflow-hidden">
-        <CardContent className="py-8 text-center text-muted-foreground">
-          {t("No Pending Requests. All dataset requests have been reviewed.")}
+      <Card className="border-slate-200 shadow-none bg-white overflow-hidden rounded-2xl py-0 gap-0">
+        <CardContent className="py-16 text-center">
+          <div className="flex flex-col items-center justify-center">
+            <CheckCircle className="h-10 w-10 text-emerald-500/50 mb-4" />
+            <p className="text-foreground font-medium">{t("All caught up!")}</p>
+            <p className="text-sm text-slate-500 mt-1">{t("No Pending Requests. All dataset requests have been reviewed.")}</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -52,48 +53,50 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
 
   return (
     <>
-      <Card className="border-border shadow-sm bg-white overflow-hidden">
+      <Card className="border-slate-200 shadow-none bg-white overflow-hidden rounded-2xl py-0 gap-0">
         <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("Title")}</TableHead>
-                <TableHead>{t("Requester")}</TableHead>
-                <TableHead>{t("Category")}</TableHead>
-                <TableHead>{t("Samples Needed")}</TableHead>
-                <TableHead>{t("Reward")}</TableHead>
-                <TableHead>{t("Submitted")}</TableHead>
-                <TableHead className="text-right">{t("Actions")}</TableHead>
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 pl-8">{t("Title")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Requester")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Category")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Samples Needed")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Reward")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">{t("Submitted")}</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">{t("Actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {requests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell className="font-medium max-w-md">
-                    <div className="line-clamp-2">{request.title}</div>
+                <TableRow key={request.id} className="group hover:bg-slate-50/50 transition-colors border-slate-200 bg-white">
+                  <TableCell className="font-medium max-w-[280px] pl-8 py-4">
+                    <div className="line-clamp-2 text-sm text-slate-900">{request.title}</div>
                   </TableCell>
-                  <TableCell>
-                    {request.profiles?.full_name || t("Unknown")}
+                  <TableCell className="py-4">
+                    <span className="text-sm text-slate-700">{request.profiles?.full_name || t("Unknown")}</span>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
+                  <TableCell className="py-4">
+                    <Badge variant="secondary" className="shadow-none bg-slate-100 border-slate-200 text-slate-700 font-normal">
                       {categoryLabels[request.category] || request.category}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {request.samples_needed.toLocaleString()}
+                  <TableCell className="py-4">
+                    <span className="text-sm font-medium text-slate-900">{request.samples_needed.toLocaleString()}</span>
                   </TableCell>
-                  <TableCell>
-                    ${request.reward_amount} {request.currency}
+                  <TableCell className="py-4">
+                    <span className="text-sm font-medium text-emerald-700">${request.reward_amount}</span> <span className="text-xs text-slate-500">{request.currency}</span>
                   </TableCell>
-                  <TableCell>
-                    {new Date(request.created_at).toLocaleDateString()}
+                  <TableCell className="py-4 text-sm text-slate-500">
+                    {new Date(request.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
+                  <TableCell className="py-4 pr-8">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-slate-900"
+                        title={t("View Details")}
                         onClick={() => {
                           setSelectedRequest(request);
                           setDialogType(null);
@@ -103,18 +106,9 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedRequest(request);
-                          setDialogType("approve");
-                        }}
-                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-slate-900"
+                        title={t("Edit")}
                         onClick={() => {
                           setEditingRequest(request);
                           setIsEditOpen(true);
@@ -122,16 +116,30 @@ export function PendingRequestsTable({ requests }: PendingRequestsTableProps) {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
+                      <div className="w-px h-4 bg-slate-200 mx-1"></div>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
+                        title={t("Reject")}
                         onClick={() => {
                           setSelectedRequest(request);
                           setDialogType("reject");
                         }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-8 w-8 text-slate-500 hover:text-red-700 hover:bg-red-50"
                       >
                         <XCircle className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={t("Approve")}
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setDialogType("approve");
+                        }}
+                        className="h-8 w-8 text-emerald-600 bg-emerald-50 hover:text-emerald-700 hover:bg-emerald-100 shadow-none border border-emerald-200/50"
+                      >
+                        <CheckCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

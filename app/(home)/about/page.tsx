@@ -10,7 +10,6 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <MarketingPageLayout
-      eyebrow="About"
       title="A dataset platform designed for operational trust"
       description="Caudals helps teams ship high-quality datasets through structured requester workflows, contributor programs, and auditable admin controls."
     >
@@ -19,7 +18,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle>Mission</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-sm text-slate-500">
             Make production dataset delivery reliable, safe, and measurable across global teams.
           </CardContent>
         </Card>
@@ -27,7 +26,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle>Approach</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-sm text-slate-500">
             Combine role-focused product surfaces with review discipline, payout rails, and operational visibility.
           </CardContent>
         </Card>
@@ -35,7 +34,7 @@ export default function AboutPage() {
           <CardHeader>
             <CardTitle>Promise</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="text-sm text-slate-500">
             Clear accountability from first brief to final export, with no black-box handoffs.
           </CardContent>
         </Card>

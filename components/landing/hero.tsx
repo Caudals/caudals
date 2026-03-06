@@ -59,7 +59,7 @@ export function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl"
+          className="mt-6 max-w-3xl text-lg text-slate-500 sm:text-xl"
         >
           {t(
             "Caudals links your ML team with certified contributors, reviewer pods, and automated payouts so every dataset sprint ships faster without compromising compliance or governance.",
@@ -92,7 +92,7 @@ export function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground"
+          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500"
         >
           {heroHighlights.map((highlight) => (
             <div key={highlight} className="flex items-center gap-2 text-foreground/70">
@@ -167,7 +167,7 @@ function HeroPreview() {
   return (
     <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/40 bg-white p-3 shadow-xl sm:p-4 lg:flex-row">
       
-      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-muted-foreground lg:flex border-r border-border/40 mr-5">
+      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-slate-500 lg:flex border-r border-border/40 mr-5">
         <div>
           <p className="text-lg font-semibold text-foreground">{t("Dashboard")}</p>
         </div>
@@ -179,7 +179,7 @@ function HeroPreview() {
               className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-xs transition-colors ${
                 link.active
                   ? "bg-accent/10 text-accent-foreground "
-                  : "border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "border border-transparent text-slate-500 hover:bg-muted hover:text-foreground"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -199,7 +199,7 @@ function HeroPreview() {
               {t("My contributions")}
             </h3>
           </div>
-          <button className="self-start rounded-full border border-border/40 px-3 py-1 text-xs text-muted-foreground sm:self-auto sm:px-4 sm:py-1.5">
+          <button className="self-start rounded-full border border-border/40 px-3 py-1 text-xs text-slate-500 sm:self-auto sm:px-4 sm:py-1.5">
             {t("All status")}
           </button>
         </div>
@@ -210,11 +210,11 @@ function HeroPreview() {
               key={stat.label}
               className="rounded-xl border border-border/40 bg-white px-3 py-3 text-left shadow-sm sm:rounded-2xl sm:px-4 sm:py-4"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">
                 {stat.label}
               </p>
               <p className="text-xl font-semibold text-foreground sm:text-2xl mt-1">{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground sm:text-xs mt-1">{stat.note}</p>
+              <p className="text-[10px] text-slate-500 sm:text-xs mt-1">{stat.note}</p>
             </div>
           ))}
         </div>
@@ -222,18 +222,18 @@ function HeroPreview() {
         <div className="overflow-hidden rounded-xl border border-border/40 bg-white shadow-sm sm:rounded-2xl">
           <div className="flex flex-col gap-2 border-b border-border/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3">
             <div>
-              <p className="text-xs text-muted-foreground sm:text-sm">
+              <p className="text-xs text-slate-500 sm:text-sm">
                 {t("Your submission history across all datasets")}
               </p>
             </div>
-            <button className="self-start rounded-full border border-border/40 px-2.5 py-0.5 text-[10px] text-muted-foreground sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
+            <button className="self-start rounded-full border border-border/40 px-2.5 py-0.5 text-[10px] text-slate-500 sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
               {t("All status")}
             </button>
           </div>
           
           {/* Desktop Table View */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/40 px-5 py-2 text-[11px] font-semibold uppercase text-muted-foreground">
+            <div className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/40 px-5 py-2 text-[11px] font-semibold uppercase text-slate-500">
               <span>{t("Dataset")}</span>
               <span>{t("Files")}</span>
               <span>{t("Status")}</span>
@@ -247,10 +247,10 @@ function HeroPreview() {
                 className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/30 px-5 py-3 text-sm text-foreground last:border-b-0"
               >
                 <span className="font-medium text-foreground/90">{entry.dataset}</span>
-                <span className="text-muted-foreground">{entry.files}</span>
+                <span className="text-slate-500">{entry.files}</span>
                 <span>
                   <span
-                    className={`rounded-full border border-border/50 px-3 py-0.5 text-xs font-medium ${
+                    className={`rounded-full border border-slate-200 px-3 py-0.5 text-xs font-medium ${
                       entry.status === t("Approved")
                         ? "bg-emerald-50 text-emerald-700"
                         : "bg-amber-50 text-amber-700"
@@ -259,9 +259,9 @@ function HeroPreview() {
                     {entry.status}
                   </span>
                 </span>
-                <span className="text-muted-foreground">{entry.reward}</span>
-                <span className="text-right text-muted-foreground">{entry.submitted}</span>
-                <span className="flex justify-end text-muted-foreground">
+                <span className="text-slate-500">{entry.reward}</span>
+                <span className="text-right text-slate-500">{entry.submitted}</span>
+                <span className="flex justify-end text-slate-500">
                   <MoreHorizontal className="h-4 w-4" />
                 </span>
               </div>
@@ -277,7 +277,7 @@ function HeroPreview() {
                     {entry.dataset}
                   </h4>
                   <span
-                    className={`shrink-0 rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium sm:px-2.5 sm:text-xs ${
+                    className={`shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium sm:px-2.5 sm:text-xs ${
                       entry.status === t("Approved")
                         ? "bg-emerald-50 text-emerald-700"
                         : "bg-amber-50 text-amber-700"
@@ -286,7 +286,7 @@ function HeroPreview() {
                     {entry.status}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground sm:text-xs">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 sm:text-xs">
                   <span>{entry.files}</span>
                   <span className="font-medium text-foreground">{entry.reward}</span>
                   <span>{entry.submitted}</span>

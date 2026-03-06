@@ -116,7 +116,7 @@ export function SubmissionsPanel({ submissions }: { submissions: SubmissionItem[
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-500">
         <div className="flex items-center gap-3">
           <Checkbox
             checked={selected.length === submissions.length && submissions.length > 0}
@@ -164,7 +164,7 @@ export function SubmissionsPanel({ submissions }: { submissions: SubmissionItem[
           <TableBody>
             {submissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-9 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-9 text-center text-slate-500">
                   {t("No submissions yet.")}
                 </TableCell>
               </TableRow>
@@ -181,7 +181,7 @@ export function SubmissionsPanel({ submissions }: { submissions: SubmissionItem[
                     <div className="text-sm font-medium">
                       {submission.profiles?.full_name ?? t("Unknown")}
                     </div>
-                    <p className="text-xs text-muted-foreground">{submission.profiles?.id}</p>
+                    <p className="text-xs text-slate-500">{submission.profiles?.id}</p>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -199,7 +199,7 @@ export function SubmissionsPanel({ submissions }: { submissions: SubmissionItem[
                       {statusLabel(submission.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-sm text-sm text-muted-foreground">
+                  <TableCell className="max-w-sm text-sm text-slate-500">
                     {submission.notes || "—"}
                   </TableCell>
                   <TableCell className="text-sm">

@@ -63,7 +63,7 @@ export function UserMenu() {
             <p className="text-sm font-medium leading-none">
               {user?.user_metadata?.full_name || t("User")}
             </p>
-            <p className="text-xs leading-none text-muted-foreground">
+            <p className="text-xs leading-none text-slate-500">
               {user?.email}
             </p>
           </div>

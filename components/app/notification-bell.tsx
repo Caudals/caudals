@@ -108,13 +108,13 @@ export function NotificationBell() {
         </div>
         <div className="max-h-[360px] overflow-y-auto">
           {loading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-sm text-slate-500">
               {t("Loading...")}
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Bell className="h-8 w-8 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
+              <Bell className="h-8 w-8 text-slate-500 mb-2" />
+              <p className="text-sm text-slate-500">
                 {t("No new notifications")}
               </p>
             </div>
@@ -134,10 +134,10 @@ export function NotificationBell() {
                       {item.severity}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                  <p className="mt-1 text-xs text-slate-500 line-clamp-2">
                     {item.body}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className="mt-1 text-[11px] text-slate-500">
                     {new Date(item.created_at).toLocaleString()}
                   </p>
                 </Link>

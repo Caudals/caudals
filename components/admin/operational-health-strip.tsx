@@ -65,12 +65,12 @@ export async function OperationalHealthStrip({
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {t("Operational health")}
           </p>
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
+            <Gauge className="h-4 w-4 text-slate-500" />
+            <p className="text-sm text-slate-500">
               {t("Last checked")} {checkedLabel}
             </p>
           </div>
@@ -100,16 +100,16 @@ export async function OperationalHealthStrip({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     {t(signal.label)}
                   </p>
                   <p className="text-sm font-semibold text-foreground">
                     {t(signal.summary)}
                   </p>
                 </div>
-                <SignalIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <SignalIcon className="h-4 w-4 shrink-0 text-slate-500" />
               </div>
-              <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500">
                 <span className="line-clamp-2">{t(signal.detail)}</span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100" />
               </div>

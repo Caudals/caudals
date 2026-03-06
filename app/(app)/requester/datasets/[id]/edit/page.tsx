@@ -27,7 +27,6 @@ export default async function EditRequesterDatasetPage({
   return (
     <div className="space-y-6">
       <RequesterPageHeader
-        eyebrow="Edit dataset"
         title="Update brief"
         description="Adjust scope, reward, and requirements while preserving workflow history."
       />

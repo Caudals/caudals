@@ -26,14 +26,14 @@ export function Breadcrumbs() {
           return (
             <li key={crumb.href || index} className="flex items-center gap-2">
               {index > 0 && (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-slate-500" />
               )}
               {isLast || !crumb.href ? (
                 <span className="font-medium text-foreground">{label}</span>
               ) : (
                 <Link
                   href={crumb.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-slate-500 hover:text-foreground transition-colors"
                 >
                   {label}
                 </Link>

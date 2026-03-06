@@ -18,7 +18,6 @@ export default async function ContributionsPage() {
   return (
     <div className="space-y-6">
       <ContributorPageHeader
-        eyebrow="Work queue"
         title="My contributions"
         description="Track every submission, filter feedback states, and act on revisions quickly."
         actions={

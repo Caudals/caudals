@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Contact"
       title="Talk to the Caudals team"
       description="Share your dataset goals and we will route your request to sales, support, or partnerships."
     >
@@ -26,7 +25,7 @@ export default function ContactPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p className="text-muted-foreground">
+            <p className="text-slate-500">
               For general questions and onboarding support.
             </p>
             <Link href="mailto:contact@caudals.com" className="font-medium text-foreground underline-offset-4 hover:underline">
@@ -43,7 +42,7 @@ export default function ContactPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p className="text-muted-foreground">
+            <p className="text-slate-500">
               For strategic collaborations, enterprise programs, and co-designed initiatives.
             </p>
             <Button asChild variant="outline" size="sm">

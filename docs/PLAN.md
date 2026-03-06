@@ -24,7 +24,7 @@ Global execution board for long-running autonomous delivery.
 4. Prefer tasks that unlock multiple downstream tasks.
 
 ## Active Phase Queue
-1. **Phase 19 – Cross-Role Dashboard Redesign With Design-Image Parity** (`docs/exec-plans/active/phase-19-dashboard-redesign-design-image-parity.md`) — IN_PROGRESS, P0
+1. **Phase 20 – Dashboard Feature Gaps and Missing Workflows** (`docs/exec-plans/active/phase-20-dashboard-missing-features.md`) — QUEUED, P1
 2. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
 
 ## Phase Lifecycle (Canonical)

@@ -85,13 +85,13 @@ export function ApiKeysCard({ keys }: { keys: ApiKey[] }) {
       )}
       <div className="space-y-3">
         {keys.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("No keys yet.")}</p>
+          <p className="text-sm text-slate-500">{t("No keys yet.")}</p>
         ) : (
           keys.map((key) => (
             <div key={key.id} className="flex items-center justify-between rounded-xl border border-border p-3 text-sm">
               <div>
                 <p className="font-medium">{key.name || t("API key")}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   {new Date(key.created_at).toLocaleDateString()}
                 </p>
               </div>

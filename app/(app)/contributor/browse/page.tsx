@@ -13,7 +13,6 @@ export default async function ContributorBrowsePage() {
   return (
     <div className="space-y-6">
       <ContributorPageHeader
-        eyebrow={t("Discovery")}
         title={t("Browse opportunities")}
         description={t(
           "Find datasets that need your contributions. Filter by category, reward, or status."

@@ -7,7 +7,7 @@ export function BillingOverview() {
         <CardTitle>Billing overview</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        <p className="text-sm text-muted-foreground">No billing activity yet.</p>
+        <p className="text-sm text-slate-500">No billing activity yet.</p>
         <p className="text-lg font-semibold">Current balance: $0.00</p>
       </CardContent>
     </Card>

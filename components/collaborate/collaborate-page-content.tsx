@@ -38,7 +38,7 @@ export function CollaboratePageContent() {
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
               {t("Partner with Caudals")}
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-slate-500">
               {t(
                 "Work with our team to co-create responsible AI datasets, launch global contributor programs, and unlock new collaboration models.",
               )}
@@ -59,11 +59,11 @@ export function CollaboratePageContent() {
                         <CheckCircle className="h-4 w-4" />
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                           {t("Step {{index}}", { index: index + 1 })}
                         </p>
                         <h3 className="text-lg font-semibold text-foreground">{t(step.title)}</h3>
-                        <p className="text-sm text-muted-foreground">{t(step.description)}</p>
+                        <p className="text-sm text-slate-500">{t(step.description)}</p>
                       </div>
                     </div>
                   ))}
@@ -71,7 +71,7 @@ export function CollaboratePageContent() {
               </div>
 
               <div className="rounded-xl border border-border/60 bg-card/50 p-5">
-                <p className="text-sm font-medium text-muted-foreground">
+                <p className="text-sm font-medium text-slate-500">
                   {t("Questions? Reach us at")}{" "}
                   <a
                     href="mailto:contact@caudals.com"

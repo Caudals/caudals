@@ -57,7 +57,7 @@ export function PartnershipsSection() {
                     "Partner with Caudals to co-design research programs, educational cohorts, or strategic distribution alliances",
                   )}
                 </h2>
-                <p className="text-base leading-relaxed text-muted-foreground">
+                <p className="text-base leading-relaxed text-slate-500">
                   {t(
                     "Unlock a dedicated Caudals Labs pod to architect bespoke datasets, energize your contributor community, or co-brand initiatives with universities and enterprises. We compress months of planning into a single aligned track.",
                   )}
@@ -70,7 +70,7 @@ export function PartnershipsSection() {
                     key={metric.label}
                     className="rounded-2xl border border-border/70 bg-white p-4 text-left"
                   >
-                    <p className="text-xs uppercase text-muted-foreground">{t(metric.label)}</p>
+                    <p className="text-xs uppercase text-slate-500">{t(metric.label)}</p>
                     <p className="text-lg font-semibold text-foreground">{t(metric.value)}</p>
                   </div>
                 ))}
@@ -102,13 +102,13 @@ export function PartnershipsSection() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground">{t(highlight.title)}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-slate-500">
                     {t(highlight.description)}
                   </p>
                 </div>
               </motion.div>
             ))}
-            <div className="rounded-2xl border border-dashed border-border/80 bg-card p-5 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border/80 bg-card p-5 text-sm text-slate-500">
               <p>
                 {t(
                   "Partnerships turn your briefs into sponsored placements, curriculum-aligned cohorts, and co-branded activations. Loop in universities, research labs, or internal communities and we'll run the playbook end-to-end.",

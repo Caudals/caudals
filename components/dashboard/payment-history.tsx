@@ -7,7 +7,7 @@ export function PaymentHistory() {
         <CardTitle>Payment history</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">No transactions found.</p>
+        <p className="text-sm text-slate-500">No transactions found.</p>
       </CardContent>
     </Card>
   );

@@ -90,7 +90,7 @@ export function FiltersSidebar({
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
+          <SlidersHorizontal className="h-5 w-5 text-slate-500" />
           <h2 className="text-lg font-semibold">{t("Filters")}</h2>
         </div>
         {hasActiveFilters && (
@@ -170,7 +170,7 @@ export function FiltersSidebar({
                 onValueChange={handleRewardRangeChange}
                 className="w-full"
               />
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center justify-between text-sm text-slate-500">
                 <span>${filters.rewardRange[0]}</span>
                 <span>${filters.rewardRange[1]}+</span>
               </div>

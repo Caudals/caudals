@@ -268,8 +268,8 @@ export function AdvancedAnalytics() {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No analytics data available</p>
+              <BarChart3 className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-500">No analytics data available</p>
             </div>
           </CardContent>
         </Card>
@@ -285,7 +285,7 @@ export function AdvancedAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Advanced Analytics</h2>
-          <p className="text-muted-foreground">Comprehensive platform monitoring and insights</p>
+          <p className="text-slate-500">Comprehensive platform monitoring and insights</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -310,11 +310,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               +{analyticsData.userMetrics.userGrowth}% from last period
             </p>
           </CardContent>
@@ -323,11 +323,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.activeUsers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {formatPercentage((analyticsData.overview.activeUsers / analyticsData.overview.totalUsers) * 100)} active
             </p>
           </CardContent>
@@ -336,11 +336,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Datasets</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
+            <Database className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.totalDatasets}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {formatPercentage(analyticsData.datasetMetrics.successRate)} success rate
             </p>
           </CardContent>
@@ -349,11 +349,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Contributions</CardTitle>
-            <Upload className="h-4 w-4 text-muted-foreground" />
+            <Upload className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.totalContributions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {formatPercentage(analyticsData.contributionMetrics.averageQualityScore)} avg quality
             </p>
           </CardContent>
@@ -362,11 +362,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.overview.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {formatAmount(analyticsData.overview.platformCommission)} platform commission
             </p>
           </CardContent>
@@ -375,11 +375,11 @@ export function AdvancedAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Transaction</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CreditCard className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.paymentMetrics.averageTransaction)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {analyticsData.paymentMetrics.totalTransactions} total transactions
             </p>
           </CardContent>
@@ -532,14 +532,14 @@ export function AdvancedAnalytics() {
                     </div>
                     <div>
                       <p className="font-medium">{contributor.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-500">
                         {contributor.contributions} contributions
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">{formatAmount(contributor.earnings)}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {formatPercentage(contributor.approvalRate)} approval
                     </p>
                   </div>
@@ -566,14 +566,14 @@ export function AdvancedAnalytics() {
                     </div>
                     <div>
                       <p className="font-medium">{requester.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-500">
                         {requester.datasets} datasets
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">{formatAmount(requester.spending)}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {formatPercentage(requester.completionRate)} completion
                     </p>
                   </div>
@@ -595,9 +595,9 @@ export function AdvancedAnalytics() {
         <CardContent>
           <div className="h-64 flex items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg">
             <div className="text-center">
-              <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">Chart visualization would go here</p>
-              <p className="text-sm text-muted-foreground">
+              <BarChart3 className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-500">Chart visualization would go here</p>
+              <p className="text-sm text-slate-500">
                 Integration with Chart.js or Recharts recommended
               </p>
             </div>

@@ -2,15 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DollarSign,
-  Upload,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Users,
-} from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface ContributorStats {
@@ -96,99 +87,49 @@ export function ContributorStatsCards() {
     fetchStats();
   }, []);
 
-  const cards = [
-    {
-      title: t("Total Earnings"),
-      value: `$${(stats.totalEarnings * 0.9).toFixed(2)}`,
-      description: t("Net earnings (after 10% platform fee)"),
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: t("Total Submissions"),
-      value: stats.totalSubmissions.toString(),
-      description: t("All your contributions"),
-      icon: Upload,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: t("Approved"),
-      value: stats.approvedSubmissions.toString(),
-      description: t("Successfully approved submissions"),
-      icon: CheckCircle,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: t("Pending"),
-      value: stats.pendingSubmissions.toString(),
-      description: t("Awaiting review"),
-      icon: Clock,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
-    },
-    {
-      title: t("Active Projects"),
-      value: stats.activeProjects.toString(),
-      description: t("Projects you're contributing to"),
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-    {
-      title: t("Avg. Earning"),
-      value: `$${stats.averageEarning.toFixed(2)}`,
-      description: t("Per approved submission"),
-      icon: TrendingUp,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-    },
-  ];
+  const approvalRate = stats.totalSubmissions > 0 
+    ? Math.round((stats.approvedSubmissions / stats.totalSubmissions) * 100) 
+    : 0;
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-              <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
-              <div className="h-3 w-32 bg-muted animate-pulse rounded" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="w-full flex items-center justify-between border border-slate-200 bg-white rounded-2xl p-6">
+        <div className="h-10 w-32 bg-muted/40 animate-pulse rounded" />
+        <div className="h-10 w-24 bg-muted/40 animate-pulse rounded" />
+        <div className="h-10 w-24 bg-muted/40 animate-pulse rounded" />
+        <div className="h-10 w-24 bg-muted/40 animate-pulse rounded" />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {cards.map((card) => {
-        const Icon = card.icon;
-        return (
-          <Card key={card.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {card.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${card.bgColor}`}>
-                <Icon className={`h-4 w-4 ${card.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {card.description}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between border border-slate-200 bg-white rounded-2xl p-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 mb-6">
+      <div className="flex-1 pr-6 pb-4 sm:pb-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("Net Earnings")}</span>
+        </div>
+        <div className="flex items-end gap-3">
+          <span className="text-4xl font-bold text-slate-900 tracking-tight">${(stats.totalEarnings * 0.9).toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div className="flex-1 sm:px-6 py-4 sm:py-0">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">{t("Quality Rate")}</span>
+        <span className="text-2xl font-bold text-slate-900 tracking-tight">{approvalRate}%</span>
+        <p className="text-xs text-slate-400 mt-1">{stats.approvedSubmissions} {t("approved")}</p>
+      </div>
+
+      <div className="flex-1 sm:px-6 py-4 sm:py-0">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">{t("Pending")}</span>
+        <span className="text-2xl font-bold text-amber-600 tracking-tight">{stats.pendingSubmissions}</span>
+        <p className="text-xs text-slate-400 mt-1">{t("Awaiting review")}</p>
+      </div>
+
+      <div className="flex-1 sm:pl-6 pt-4 sm:pt-0">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">{t("Avg. Payout")}</span>
+        <span className="text-2xl font-bold text-slate-900 tracking-tight">${stats.averageEarning.toFixed(2)}</span>
+        <p className="text-xs text-slate-400 mt-1">{t("Per approved")}</p>
+      </div>
     </div>
   );
 }

@@ -220,7 +220,7 @@ export default function ResetPasswordPage() {
                   )}
                 </Button>
                 {emailSent && (
-                  <div className="flex items-center justify-between rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-md border border-dashed p-3 text-sm text-slate-500">
                     <div className="flex items-center gap-2">
                       <MailCheck className="h-4 w-4" />
                       <span>{t("Didn't get it? Check spam or resend.")}</span>
@@ -292,7 +292,7 @@ export default function ResetPasswordPage() {
             )}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <div className="w-full space-y-2 text-center text-sm text-muted-foreground">
+            <div className="w-full space-y-2 text-center text-sm text-slate-500">
               <div className="flex items-center">
                 <Separator className="flex-1" />
                 <span className="px-3">{t("Remembered your password?")}</span>

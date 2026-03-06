@@ -10,12 +10,11 @@ export const metadata: Metadata = {
 export default function BlogPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Company"
       title="Caudals Blog"
       description="We will publish product updates, launch notes, and operations deep-dives here."
     >
       <Card className="border-border/70">
-        <CardContent className="p-6 text-sm text-muted-foreground">
+        <CardContent className="p-6 text-sm text-slate-500">
           First articles are in preparation. Check back soon for roadmap updates and deployment notes.
         </CardContent>
       </Card>

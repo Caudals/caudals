@@ -49,11 +49,11 @@ export function FAQSection() {
     <section className="py-20">
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
         <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">{t("FAQ")}</p>
+          <p className="text-xs font-semibold uppercase text-slate-500">{t("FAQ")}</p>
           <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
             {t("Answers before you schedule a walkthrough")}
           </h2>
-          <p className="mt-3 text-base text-muted-foreground">
+          <p className="mt-3 text-base text-slate-500">
             {t(
               "Need more specifics? Book a call and we'll tailor the implementation plan to your governance, volume, and modality requirements.",
             )}
@@ -76,7 +76,7 @@ export function FAQSection() {
                 <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-foreground">
                   {t(faq.question)}
                 </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6 text-sm leading-relaxed text-muted-foreground">
+                <AccordionContent className="px-6 pb-6 text-sm leading-relaxed text-slate-500">
                   {t(faq.answer)}
                 </AccordionContent>
               </motion.div>

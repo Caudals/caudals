@@ -339,8 +339,8 @@ export function PaymentAnalytics() {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No payment analytics data available</p>
+              <DollarSign className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-500">No payment analytics data available</p>
             </div>
           </CardContent>
         </Card>
@@ -354,7 +354,7 @@ export function PaymentAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Payment Analytics</h2>
-          <p className="text-muted-foreground">Comprehensive payment and revenue insights</p>
+          <p className="text-slate-500">Comprehensive payment and revenue insights</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -379,11 +379,11 @@ export function PaymentAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.overview.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               +{analyticsData.revenueMetrics.growthRate}% from last period
             </p>
           </CardContent>
@@ -392,11 +392,11 @@ export function PaymentAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Platform Commission</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.overview.platformCommission)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               10% of total revenue
             </p>
           </CardContent>
@@ -405,11 +405,11 @@ export function PaymentAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CreditCard className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.totalTransactions.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {analyticsData.overview.successRate}% success rate
             </p>
           </CardContent>
@@ -418,11 +418,11 @@ export function PaymentAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <BarChart3 className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.overview.averageTransaction)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Per transaction
             </p>
           </CardContent>
@@ -431,11 +431,11 @@ export function PaymentAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.successRate}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Payment success
             </p>
           </CardContent>
@@ -451,7 +451,7 @@ export function PaymentAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.transactionMetrics.completed.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {((analyticsData.transactionMetrics.completed / analyticsData.overview.totalTransactions) * 100).toFixed(1)}% of total
             </p>
           </CardContent>
@@ -464,7 +464,7 @@ export function PaymentAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.transactionMetrics.pending}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Awaiting processing
             </p>
           </CardContent>
@@ -477,7 +477,7 @@ export function PaymentAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.transactionMetrics.failed}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {((analyticsData.transactionMetrics.failed / analyticsData.overview.totalTransactions) * 100).toFixed(1)}% failure rate
             </p>
           </CardContent>
@@ -490,7 +490,7 @@ export function PaymentAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.transactionMetrics.refunded}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Total refunds
             </p>
           </CardContent>
@@ -507,17 +507,17 @@ export function PaymentAnalytics() {
             {analyticsData.paymentMethods.map((method, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <CreditCard className="h-4 w-4 text-slate-500" />
                   <div>
                     <p className="font-medium">{method.method}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {method.count} transactions
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{formatAmount(method.volume)}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500">
                     {method.percentage}% of total
                   </p>
                 </div>
@@ -540,10 +540,10 @@ export function PaymentAnalytics() {
                   {getStatusIcon(transaction.status)}
                   <div>
                     <p className="font-medium">{transaction.id}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {transaction.user} • {transaction.description}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500">
                       {formatDate(transaction.date)}
                     </p>
                   </div>
@@ -571,10 +571,10 @@ export function PaymentAnalytics() {
                   <XCircle className="h-4 w-4 text-red-600" />
                   <div>
                     <p className="font-medium">{payment.id}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {payment.user} • {payment.reason}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500">
                       {formatDate(payment.date)} • {payment.retryCount} retries
                     </p>
                   </div>

@@ -79,13 +79,13 @@ export function HowItWorksSection() {
     <section className="py-12 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
         <div className="mb-6 text-center sm:mb-8">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">
+          <p className="text-xs font-semibold uppercase text-slate-500">
             {t("How it works")}
           </p>
           <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
             {t("One platform, two seamless experiences")}
           </h2>
-          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+          <p className="mt-3 text-sm text-slate-500 sm:text-base">
             {t(
               "Toggle between organizations and contributors to see how each role moves through the Caudals loop.",
             )}
@@ -104,7 +104,7 @@ export function HowItWorksSection() {
               className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                 role === option.id
                   ? "bg-foreground text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-slate-500 hover:text-foreground"
               }`}
             >
               {t(option.label)}
@@ -129,13 +129,13 @@ export function HowItWorksSection() {
                   <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground sm:text-sm">
+                  <p className="text-[10px] font-semibold uppercase text-slate-500 sm:text-sm">
                     {t("Step {{index}}", { index: index + 1 })}
                   </p>
                   <h4 className="text-base font-semibold text-foreground sm:text-lg">
                     {t(step.label)}
                   </h4>
-                  <p className="text-xs text-muted-foreground sm:text-sm">{t(step.description)}</p>
+                  <p className="text-xs text-slate-500 sm:text-sm">{t(step.description)}</p>
                 </div>
               </div>
             ))}

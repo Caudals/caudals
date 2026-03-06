@@ -34,7 +34,7 @@ export function MarketingPageLayout({
           <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
             {title}
           </h1>
-          <p className="mt-3 max-w-3xl text-sm text-muted-foreground sm:text-base">
+          <p className="mt-3 max-w-3xl text-sm text-slate-500 sm:text-base">
             {description}
           </p>
           {ctaLabel && ctaHref ? (

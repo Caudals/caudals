@@ -15,7 +15,7 @@ export default function BrowseLoading() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <Skeleton
                   key={index}
-                  className="h-8 w-28 rounded-full border border-border/50"
+                  className="h-8 w-28 rounded-full border border-slate-200"
                 />
               ))}
             </div>

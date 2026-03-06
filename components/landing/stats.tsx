@@ -33,13 +33,13 @@ export function StatsSection() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
         <div className="rounded-[1.5rem] border border-border/80 bg-card p-6 sm:rounded-[2.4rem] sm:p-8 lg:p-10">
           <div className="mb-8 text-center sm:mb-10">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">
+            <p className="text-xs font-semibold uppercase text-slate-500">
               {t("Proof in numbers")}
             </p>
             <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
               {t("Scaling frontier AI responsibly")}
             </h2>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-3 text-sm text-slate-500 sm:text-base">
               {t(
                 "Every metric combines human expertise and automation so you can trust the workflow end to end.",
               )}
@@ -57,10 +57,10 @@ export function StatsSection() {
                 className="rounded-2xl border border-border/70 bg-white p-5 text-left sm:rounded-3xl sm:p-6"
               >
                 <div className="text-3xl font-semibold text-foreground sm:text-4xl">{stat.value}</div>
-                <p className="mt-2 text-xs font-semibold uppercase text-muted-foreground sm:text-sm">
+                <p className="mt-2 text-xs font-semibold uppercase text-slate-500 sm:text-sm">
                   {t(stat.label)}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground sm:text-sm">
+                <p className="mt-2 text-xs text-slate-500 sm:text-sm">
                   {t(stat.description)}
                 </p>
               </motion.div>

@@ -357,7 +357,7 @@ export function CommandPalette() {
                     <FileText className="h-4 w-4" />
                     <div className="flex flex-col">
                       <span className="line-clamp-1">{dataset.title}</span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-[11px] text-slate-500">
                         {dataset.status} / {dataset.approval_status}
                       </span>
                     </div>
@@ -387,7 +387,7 @@ export function CommandPalette() {
                     <span className="line-clamp-1">
                       {ticket.subject || t("Support ticket")}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] text-slate-500">
                       {ticket.status} / {ticket.priority}
                     </span>
                   </div>
@@ -412,7 +412,7 @@ export function CommandPalette() {
                     <span className="line-clamp-1">
                       {extractDatasetTitle(submission.dataset_requests)}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[11px] text-slate-500">
                       {submission.status}
                     </span>
                   </div>

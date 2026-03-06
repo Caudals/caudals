@@ -157,7 +157,7 @@ export function ApprovalDialog({
 
               <div>
                 <h4 className="font-semibold mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-slate-500 leading-relaxed">
                   {item.description}
                 </p>
               </div>
@@ -207,7 +207,7 @@ export function ApprovalDialog({
                 <ul className="list-disc list-inside space-y-1">
                   {item.quality_criteria?.map(
                     (criterion: string, i: number) => (
-                      <li key={i} className="text-sm text-muted-foreground">
+                      <li key={i} className="text-sm text-slate-500">
                         {criterion}
                       </li>
                     )
@@ -219,7 +219,7 @@ export function ApprovalDialog({
                 <h4 className="font-semibold mb-2">Requirements</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {item.requirements?.map((req: string, i: number) => (
-                    <li key={i} className="text-sm text-muted-foreground">
+                    <li key={i} className="text-sm text-slate-500">
                       {req}
                     </li>
                   ))}
@@ -259,7 +259,7 @@ export function ApprovalDialog({
                   <Separator />
                   <div>
                     <h4 className="font-semibold mb-2">Contributor Notes</h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {item.notes}
                     </p>
                   </div>

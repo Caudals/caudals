@@ -50,41 +50,40 @@ export default async function SettingsPage() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <RequesterPageHeader
-        eyebrow="Settings"
-        title="Workspace configuration"
+        title="Workspace Configuration"
         description="Manage personal profile details, organization defaults, and API credentials used by your integrations."
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="bg-card shadow-sm border border-border">
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
+        <Card className="shadow-none border-border bg-background rounded-2xl">
+          <CardHeader className="pb-4 border-b border-slate-200">
+            <CardTitle className="text-base">Profile</CardTitle>
             <CardDescription>Your identity and communication preferences</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <ProfileForm profile={profileData} />
           </CardContent>
         </Card>
 
-        <Card className="bg-card shadow-sm border border-border">
-          <CardHeader>
-            <CardTitle>Organization</CardTitle>
+        <Card className="shadow-none border-border bg-background rounded-2xl">
+          <CardHeader className="pb-4 border-b border-slate-200">
+            <CardTitle className="text-base">Organization</CardTitle>
             <CardDescription>Billing and account defaults for requester operations</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <OrgForm org={orgData} />
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-card shadow-sm border border-border">
-        <CardHeader>
-          <CardTitle>API keys</CardTitle>
+      <Card className="shadow-none border-border bg-background rounded-2xl">
+        <CardHeader className="pb-4 border-b border-slate-200">
+          <CardTitle className="text-base">API keys</CardTitle>
           <CardDescription>Create and revoke integration credentials safely</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ApiKeysCard keys={apiKeyData} />
         </CardContent>
       </Card>

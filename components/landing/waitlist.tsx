@@ -120,7 +120,7 @@ export function WaitlistSection() {
           <p className="mt-3 text-2xl font-semibold text-slate-900">
             {t("Join the Caudals waitlist")}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {t("We announce new cohort openings here first.")}
           </p>
         </div>

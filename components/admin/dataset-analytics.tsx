@@ -368,8 +368,8 @@ export function DatasetAnalytics() {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <Database className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No dataset analytics data available</p>
+              <Database className="h-12 w-12 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-500">No dataset analytics data available</p>
             </div>
           </CardContent>
         </Card>
@@ -383,7 +383,7 @@ export function DatasetAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Dataset Analytics</h2>
-          <p className="text-muted-foreground">Comprehensive dataset performance and quality insights</p>
+          <p className="text-slate-500">Comprehensive dataset performance and quality insights</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -408,11 +408,11 @@ export function DatasetAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Datasets</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
+            <Database className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.totalDatasets}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {analyticsData.overview.successRate}% success rate
             </p>
           </CardContent>
@@ -425,7 +425,7 @@ export function DatasetAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.completedDatasets}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {((analyticsData.overview.completedDatasets / analyticsData.overview.totalDatasets) * 100).toFixed(1)}% of total
             </p>
           </CardContent>
@@ -434,11 +434,11 @@ export function DatasetAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Completion Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.averageCompletionTime}d</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Days to completion
             </p>
           </CardContent>
@@ -447,11 +447,11 @@ export function DatasetAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Quality Score</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <Target className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.qualityMetrics.averageQualityScore}%</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Overall quality
             </p>
           </CardContent>
@@ -467,7 +467,7 @@ export function DatasetAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.pendingDatasets}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Currently active
             </p>
           </CardContent>
@@ -480,7 +480,7 @@ export function DatasetAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.overview.cancelledDatasets}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               {((analyticsData.overview.cancelledDatasets / analyticsData.overview.totalDatasets) * 100).toFixed(1)}% of total
             </p>
           </CardContent>
@@ -489,11 +489,11 @@ export function DatasetAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Contributors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analyticsData.performanceMetrics.averageContributorsPerDataset}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Per dataset
             </p>
           </CardContent>
@@ -502,11 +502,11 @@ export function DatasetAnalytics() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Spending</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatAmount(analyticsData.performanceMetrics.averageSpendingPerDataset)}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500">
               Per dataset
             </p>
           </CardContent>
@@ -523,17 +523,17 @@ export function DatasetAnalytics() {
             {analyticsData.categoryMetrics.map((category, index) => (
               <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Database className="h-4 w-4 text-muted-foreground" />
+                  <Database className="h-4 w-4 text-slate-500" />
                   <div>
                     <p className="font-medium">{category.category}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {category.count} datasets • {category.averageTime}d avg time
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{category.completionRate}% completion</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500">
                     {formatAmount(category.totalSpending)} spent
                   </p>
                 </div>
@@ -556,17 +556,17 @@ export function DatasetAnalytics() {
                   {getStatusIcon(dataset.status)}
                   <div>
                     <p className="font-medium">{dataset.title}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-500">
                       {dataset.requester} • {dataset.category}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-500">
                       {dataset.samplesCollected.toLocaleString()}/{dataset.samplesNeeded.toLocaleString()} samples
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">{dataset.completionRate}% complete</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500">
                     {formatAmount(dataset.totalSpending)} • {dataset.qualityScore}% quality
                   </p>
                   {getStatusBadge(dataset.status)}

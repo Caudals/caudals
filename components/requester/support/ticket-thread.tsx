@@ -55,7 +55,7 @@ export function TicketThread({
     <div className="space-y-4">
       <div className="space-y-3">
         {messages.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-slate-500">
             {t("No messages yet.")}
           </div>
         ) : (
@@ -68,7 +68,7 @@ export function TicketThread({
                 <Badge variant="outline" className="capitalize">
                   {message.role.replaceAll("_", " ")}
                 </Badge>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-slate-500">
                   {new Date(message.created_at).toLocaleString()}
                 </span>
               </div>

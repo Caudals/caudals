@@ -69,7 +69,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="text-xs">
               {dataset.organization.name.substring(0, 2).toUpperCase()}
@@ -83,7 +83,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground line-clamp-3">
+        <p className="text-sm text-slate-500 line-clamp-3">
           {dataset.description}
         </p>
 
@@ -94,7 +94,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t("Progress")}</span>
+            <span className="text-slate-500">{t("Progress")}</span>
             <span className="font-medium">
               {dataset.samplesCollected.toLocaleString()} /{" "}
               {dataset.samplesNeeded.toLocaleString()}
@@ -107,7 +107,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
           <div className="flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-emerald-600" />
             <div>
-              <p className="text-muted-foreground text-xs">{t("Reward")}</p>
+              <p className="text-slate-500 text-xs">{t("Reward")}</p>
               <p className="font-semibold">
                 {dataset.currency} {dataset.rewardAmount.toFixed(2)}
               </p>
@@ -116,14 +116,14 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-600" />
             <div>
-              <p className="text-muted-foreground text-xs">{t("Contributors")}</p>
+              <p className="text-slate-500 text-xs">{t("Contributors")}</p>
               <p className="font-semibold">{dataset.activeContributors}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-orange-600" />
             <div>
-              <p className="text-muted-foreground text-xs">{t("Deadline")}</p>
+              <p className="text-slate-500 text-xs">{t("Deadline")}</p>
               <p className="font-semibold">
                 {daysUntilDeadline > 0
                   ? t("{{count}} days", { count: daysUntilDeadline })
@@ -134,7 +134,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-purple-600" />
             <div>
-              <p className="text-muted-foreground text-xs">{t("Posted")}</p>
+              <p className="text-slate-500 text-xs">{t("Posted")}</p>
               <p className="font-semibold">
                 {new Date(dataset.datePosted).toLocaleDateString(undefined, {
                   month: "short",

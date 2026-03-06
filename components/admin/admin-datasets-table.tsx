@@ -7,15 +7,13 @@ import {
   CheckCircle2,
   ShieldCheck,
   Edit3,
+  MoreHorizontal,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Table,
@@ -40,6 +38,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -250,15 +249,15 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
 
   return (
     <>
-      <Card className="border-border shadow-sm bg-white overflow-hidden">
+      <Card className="border-slate-200 shadow-none bg-white overflow-hidden rounded-2xl pb-4 py-0 gap-0">
         <CardContent className="space-y-4 p-0">
           {selectionCount > 0 && (
-            <div className="flex flex-col gap-3 border-b border-primary/20 bg-primary/5 px-4 py-3 md:flex-row md:items-center md:justify-between m-4 rounded-lg">
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-5 py-3 md:flex-row md:items-center md:justify-between m-4 rounded-xl">
               <div className="space-y-1">
-                <p className="font-medium">
+                <p className="font-medium text-sm text-[var(--accent-foreground)]">
                   {selectionCount} dataset{selectionCount === 1 ? "" : "s"} selected
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-[var(--accent-foreground)]/80">
                   Apply bulk actions across the selected dataset requests.
                 </p>
               </div>
@@ -266,16 +265,17 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
+                      className="shadow-none bg-white border-slate-200 h-8 text-xs"
                       disabled={anyBulkPending || selectionCount === 0}
                     >
                       {isBulkStatusPending ? (
                         "Updating..."
                       ) : (
                         <>
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Change status
+                          <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                          Status
                         </>
                       )}
                     </Button>
@@ -297,16 +297,17 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
+                      className="shadow-none bg-white border-slate-200 h-8 text-xs"
                       disabled={anyBulkPending || selectionCount === 0}
                     >
                       {isBulkApprovalPending ? (
                         "Updating..."
                       ) : (
                         <>
-                          <ShieldCheck className="mr-2 h-4 w-4" />
-                          Update approval
+                          <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                          Approval
                         </>
                       )}
                     </Button>
@@ -328,25 +329,26 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="shadow-none bg-white border-slate-200 h-8 text-xs"
                   onClick={() => setIsBulkDialogOpen(true)}
                   disabled={anyBulkPending || selectionCount === 0}
                 >
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  Bulk edit
+                  <Edit3 className="mr-2 h-3.5 w-3.5" />
+                  Edit
                 </Button>
 
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="shadow-none h-8 text-xs"
                   onClick={() => setIsBulkDeleteDialogOpen(true)}
                   disabled={anyBulkPending || selectionCount === 0}
                 >
                   {isBulkDeletePending ? (
-                    "Deleting..."
+                    "..."
                   ) : (
                     <>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
+                      <Trash2 className="h-3.5 w-3.5" />
                     </>
                   )}
                 </Button>
@@ -355,9 +357,9 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
           )}
 
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]">
+            <TableHeader className="bg-slate-50 border-b border-slate-200">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[40px] pl-8 py-4">
                   <Checkbox
                     aria-label="Select all datasets"
                     checked={
@@ -369,27 +371,35 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                     }
                     onCheckedChange={(value) => toggleSelectAll(Boolean(value))}
                     disabled={datasets.length === 0}
+                    className="border-slate-300 data-[state=checked]:bg-[var(--accent)] data-[state=checked]:border-[var(--accent)]"
                   />
                 </TableHead>
-                <TableHead>Dataset</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Reward</TableHead>
-                <TableHead>Deadline</TableHead>
-                <TableHead>Approval</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Dataset</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Status</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Category</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Type</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Reward</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4">Approval</TableHead>
+                <TableHead className="font-semibold text-xs text-slate-500 uppercase tracking-wider py-4 text-right pr-8">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {datasets.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-12 text-center text-sm text-slate-500">
+                    No datasets available.
+                  </TableCell>
+                </TableRow>
+              )}
               {datasets.map((dataset) => (
                 <TableRow
                   key={dataset.id}
+                  className="group hover:bg-slate-50/50 transition-colors border-slate-200 bg-white"
                   data-state={
                     selectedIds.includes(dataset.id) ? "selected" : undefined
                   }
                 >
-                  <TableCell>
+                  <TableCell className="pl-8 py-3">
                     <Checkbox
                       aria-label={`Select ${dataset.title}`}
                       checked={selectedIds.includes(dataset.id)}
@@ -397,59 +407,44 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                         toggleSelection(dataset.id, Boolean(value))
                       }
                       disabled={anyBulkPending}
+                      className="border-slate-300 data-[state=checked]:bg-[var(--accent)] data-[state=checked]:border-[var(--accent)]"
                     />
                   </TableCell>
-                  <TableCell className="max-w-md">
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground line-clamp-2">
+                  <TableCell className="max-w-[300px] py-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm text-slate-900 line-clamp-1" title={dataset.title}>
                         {dataset.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground flex flex-wrap gap-2">
-                        <span>
-                          {dataset.profiles?.full_name || "Unknown requester"}
+                      </span>
+                      <span className="text-[11px] text-slate-500 flex gap-1.5 items-center mt-1">
+                        <span className="truncate max-w-[120px]">
+                          {dataset.profiles?.full_name || "Unknown"}
                         </span>
-                        <span>•</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                         <span>
-                          Created{" "}
-                          {new Date(dataset.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )}
+                          {new Date(dataset.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </span>
-                      </p>
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
+                  <TableCell className="py-3">
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-normal shadow-none border border-slate-200">
                       {statusLabels[dataset.status]}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
+                  <TableCell className="py-3">
+                    <span className="text-xs text-slate-600 font-medium">
                       {categoryLabels[dataset.category]}
-                    </Badge>
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    {dataTypeLabels[dataset.data_type]}
+                  <TableCell className="py-3">
+                    <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded border border-slate-200 text-slate-600">
+                      {dataTypeLabels[dataset.data_type]}
+                    </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3 text-sm font-medium text-slate-900">
                     {dataset.currency} {dataset.reward_amount.toFixed(2)}
                   </TableCell>
-                  <TableCell>
-                    {new Date(dataset.deadline).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      }
-                    )}
-                  </TableCell>
-                  <TableCell>
+                  <TableCell className="py-3">
                     <Badge
                       variant={
                         dataset.approval_status === "approved"
@@ -458,71 +453,80 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
                             ? "outline"
                             : "destructive"
                       }
+                      className={`shadow-none font-semibold text-[10px] uppercase tracking-wider ${
+                        dataset.approval_status === "approved" 
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                          : dataset.approval_status === "pending"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }`}
                     >
                       {dataset.approval_status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={isStatusPending && statusDatasetId === dataset.id}
-                          >
-                            {isStatusPending && statusDatasetId === dataset.id ? (
-                              "Updating..."
-                            ) : (
-                              <>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Set status
-                              </>
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {(["approved", "pending", "rejected"] as ApprovalStatus[]).map(
-                            (status) => (
-                              <DropdownMenuItem
-                                key={status}
-                                onSelect={() => handleApprovalChange(dataset, status)}
-                                className="flex items-center justify-between"
-                              >
-                                <span className="capitalize">{status}</span>
-                                {dataset.approval_status === status && (
-                                  <span className="text-xs text-muted-foreground">
-                                    current
-                                  </span>
-                                )}
-                              </DropdownMenuItem>
-                            )
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(dataset)}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => confirmDelete(dataset)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
+                  <TableCell className="text-right py-3 pr-8">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-400 hover:text-slate-900"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[180px] rounded-xl shadow-md border-slate-200 p-1.5">
+                        <DropdownMenuItem onClick={() => handleEdit(dataset)} className="text-sm rounded-lg">
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Dataset
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-slate-100 my-1" />
+                        <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                          Set Approval
+                        </div>
+                        {(["approved", "pending", "rejected"] as ApprovalStatus[]).map(
+                          (status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onSelect={() => handleApprovalChange(dataset, status)}
+                              className="text-sm flex items-center justify-between rounded-lg"
+                              disabled={isStatusPending && statusDatasetId === dataset.id}
+                            >
+                              <span className="capitalize">{status}</span>
+                              {dataset.approval_status === status && (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              )}
+                            </DropdownMenuItem>
+                          )
+                        )}
+                        <DropdownMenuSeparator className="bg-slate-100 my-1" />
+                        <DropdownMenuItem 
+                          onClick={() => confirmDelete(dataset)}
+                          className="text-red-600 focus:text-red-700 focus:bg-red-50 text-sm rounded-lg"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Request
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <div className="flex items-center justify-between border-t border-slate-200 p-4 bg-white">
+            <p className="text-xs font-medium text-slate-500">
+              Showing {datasets.length} datasets
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled className="shadow-none rounded-lg h-8 text-xs border-slate-200">
+                Prev
+              </Button>
+              <Button variant="outline" size="sm" disabled className="shadow-none rounded-lg h-8 text-xs border-slate-200">
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -678,7 +682,7 @@ export function AdminDatasetsTable({ datasets }: AdminDatasetsTableProps) {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-none"
               onClick={handleBulkDelete}
               disabled={isBulkDeletePending}
             >

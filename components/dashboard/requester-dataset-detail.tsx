@@ -30,7 +30,7 @@ export function RequesterDatasetDetail({
           <CardTitle>{dataset.title ?? "Dataset detail"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">{dataset.description ?? "No description provided."}</p>
+          <p className="text-sm text-slate-500">{dataset.description ?? "No description provided."}</p>
           <p className="text-sm">Status: <span className="font-medium">{dataset.status ?? "draft"}</span></p>
           <p className="text-sm">Submissions: <span className="font-medium">{submissions.length}</span></p>
         </CardContent>

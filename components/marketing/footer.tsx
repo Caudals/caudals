@@ -17,7 +17,7 @@ export function MarketingFooter() {
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               {t("Build production-grade datasets to train tailored AI models")}
             </p>
             <Link
@@ -33,7 +33,7 @@ export function MarketingFooter() {
                 <h4 className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Product")}
                 </h4>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <ul className="space-y-2 text-sm text-slate-500">
                   <li>
                     <Link href="/browse" className="hover:text-foreground">
                       {t("Browse requests")}
@@ -65,7 +65,7 @@ export function MarketingFooter() {
                 <h4 className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Company")}
                 </h4>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <ul className="space-y-2 text-sm text-slate-500">
                   <li>
                     <Link href="/about" className="hover:text-foreground">
                       {t("About")}
@@ -94,7 +94,7 @@ export function MarketingFooter() {
             <h4 className="mb-4 text-sm font-semibold text-slate-900">
               {t("Legal")}
             </h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-2 text-sm text-slate-500">
               <li>
                 <Link href="/legal/privacy" className="hover:text-foreground">
                   {t("Privacy Policy")}
@@ -114,7 +114,7 @@ export function MarketingFooter() {
           </div>
         </div>
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-slate-500">
             {t("© {{year}} Caudals. All rights reserved.", {
               year: new Date().getFullYear(),
             })}
@@ -122,7 +122,7 @@ export function MarketingFooter() {
           <div className="flex gap-6">
             <Link
               href="https://twitter.com"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -137,7 +137,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://github.com"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -156,7 +156,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://linkedin.com"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-foreground"
               target="_blank"
               rel="noopener noreferrer"
             >

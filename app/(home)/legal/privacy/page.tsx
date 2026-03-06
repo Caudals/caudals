@@ -33,7 +33,6 @@ const sections = [
 export default function PrivacyPolicyPage() {
   return (
     <MarketingPageLayout
-      eyebrow="Legal"
       title="Privacy Policy"
       description="Effective date: March 1, 2026. This policy explains how Caudals handles personal data across platform operations."
     >
@@ -42,7 +41,7 @@ export default function PrivacyPolicyPage() {
           {sections.map((section) => (
             <section key={section.title} className="space-y-2">
               <h2 className="text-lg font-semibold">{section.title}</h2>
-              <p className="text-sm leading-6 text-muted-foreground">{section.body}</p>
+              <p className="text-sm leading-6 text-slate-500">{section.body}</p>
             </section>
           ))}
         </CardContent>

@@ -43,14 +43,14 @@ export function DatasetFilters() {
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border/60 p-4">
+    <div className="space-y-4 rounded-t-2xl border-b-0 border border-slate-200 bg-slate-50/50 p-4">
       <div className="grid gap-3 md:grid-cols-[1.5fr,1fr]">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <Input
             defaultValue={currentSearch}
             placeholder={t("Search datasets")}
-            className="pl-9"
+            className="pl-9 h-10 shadow-none rounded-xl bg-background border-border"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 const target = event.target as HTMLInputElement;
@@ -63,10 +63,10 @@ export function DatasetFilters() {
           defaultValue={currentStatus}
           onValueChange={(value) => updateParams({ status: value === "all" ? null : value })}
         >
-          <SelectTrigger className="h-10">
+          <SelectTrigger className="h-10 shadow-none rounded-xl bg-background border-border">
             <SelectValue placeholder={t("Status")} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-border">
             <SelectItem value="all">{t("All statuses")}</SelectItem>
             <SelectItem value="active">{t("Active")}</SelectItem>
             <SelectItem value="paused">{t("Paused")}</SelectItem>
@@ -80,8 +80,9 @@ export function DatasetFilters() {
         {QUICK_FILTERS.map((filter) => (
           <Button
             key={filter.id}
-            variant={quickFilter === filter.id ? "default" : "outline"}
+            variant={quickFilter === filter.id ? "secondary" : "outline"}
             size="sm"
+            className={`shadow-none rounded-lg text-xs h-8 ${quickFilter === filter.id ? 'bg-[var(--accent)]/10 text-[var(--accent-foreground)] border-transparent' : 'bg-background border-border/60 hover:bg-slate-50/500'}`}
             onClick={() =>
               updateParams({
                 filter: quickFilter === filter.id ? null : filter.id,
