@@ -17,14 +17,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/provider";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { resolveSettingsHref } from "@/lib/navigation/role-view";
 
 export function NavUser() {
   const { user, userRole } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
   const toast = useLocaleToast();
   const t = useTranslations();
@@ -57,12 +59,7 @@ export function NavUser() {
     }
   };
 
-  const settingsHref =
-    userRole === "admin"
-      ? "/admin/settings"
-      : userRole === "contributor"
-        ? "/contributor/settings"
-        : "/requester/settings";
+  const settingsHref = resolveSettingsHref(pathname, userRole);
 
   return (
     <SidebarMenu>

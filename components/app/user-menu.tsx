@@ -12,9 +12,10 @@ import {
   FileText,
   HelpCircle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { resolveSettingsHref } from "@/lib/navigation/role-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export function UserMenu() {
   const { user, userRole } = useAuth();
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(" ")
@@ -40,8 +42,7 @@ export function UserMenu() {
 
   const billingHref =
     userRole === "requester" ? "/requester/billing" : "/contributor/earnings";
-  const settingsHref =
-    userRole === "contributor" ? "/contributor/settings" : "/requester/settings";
+  const settingsHref = resolveSettingsHref(pathname, userRole);
 
   return (
     <DropdownMenu>
