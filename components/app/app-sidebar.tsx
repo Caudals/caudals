@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { resolveViewKey, type ViewKey } from "@/lib/navigation/role-view";
 import {
   Sidebar,
   SidebarContent,
@@ -46,8 +47,6 @@ import { NavUser } from "@/components/app/nav-user";
 import { RoleSwitcher } from "@/components/app/role-switcher";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
 import { NotificationBell } from "@/components/app/notification-bell";
-
-type ViewKey = "requester" | "contributor" | "admin";
 
 type NavItem = {
   title: string;
@@ -193,26 +192,6 @@ function parseHref(href: string): { path: string; params: URLSearchParams } {
   return { path: url.pathname, params: url.searchParams };
 }
 
-function resolveView(pathname: string, userRole: string): ViewKey {
-  if (pathname.startsWith("/admin")) {
-    return "admin";
-  }
-  if (pathname.startsWith("/contributor")) {
-    return "contributor";
-  }
-  if (pathname.startsWith("/requester")) {
-    return "requester";
-  }
-
-  if (userRole === "admin") {
-    return "admin";
-  }
-  if (userRole === "contributor") {
-    return "contributor";
-  }
-  return "requester";
-}
-
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { user, userRole, loading } = useAuth();
   const pathname = usePathname();
@@ -248,7 +227,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  const viewKey = resolveView(pathname, userRole);
+  const viewKey = resolveViewKey(pathname, userRole);
 
   let navGroups: NavGroup[] = requesterNav;
   let viewLabel = "Requester";
