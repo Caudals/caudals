@@ -29,6 +29,24 @@ import {
 
 type PlatformSettings = Record<string, unknown>;
 
+function isMissingPlatformSettingsTableError(error: {
+  code?: string;
+  message?: string;
+} | null): boolean {
+  if (!error) return false;
+
+  if (error.code === "PGRST205" || error.code === "42P01") {
+    return true;
+  }
+
+  const message = (error.message ?? "").toLowerCase();
+  return (
+    message.includes("platform_settings") &&
+    (message.includes("could not find the table") ||
+      message.includes("does not exist"))
+  );
+}
+
 export type AdminOperationalHealthSignalStatus =
   | "healthy"
   | "warning"
@@ -1035,6 +1053,13 @@ export async function getPlatformSettings() {
     .select("key, value");
 
   if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      console.warn(
+        "platform_settings table missing; returning empty admin settings payload",
+      );
+      return { data: {} as PlatformSettings };
+    }
+
     console.error("Error fetching platform settings:", error);
     return { error: error.message };
   }
@@ -1070,6 +1095,13 @@ export async function upsertPlatformSetting(
     });
 
   if (error) {
+    if (isMissingPlatformSettingsTableError(error)) {
+      return {
+        error:
+          "Platform settings storage is unavailable. Apply migration 019_platform_settings.sql and retry.",
+      };
+    }
+
     console.error("Error upserting platform setting:", error);
     return { error: error.message };
   }
