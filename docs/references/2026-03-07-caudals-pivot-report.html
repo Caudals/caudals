@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caudals Pivot Report</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --paper: #fffdfa;
+      --ink: #1d2433;
+      --muted: #5d6778;
+      --rule: #d8d1c4;
+      --accent: #0d5c63;
+      --accent-soft: #e6f0ef;
+      --code-bg: #f4efe7;
+      --quote-bg: #f7f4ee;
+    }
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    html { font-size: 15px; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(13,92,99,0.08), transparent 34%),
+        linear-gradient(180deg, #f7f3ea 0%, #f1ece2 100%);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+    .hero {
+      margin-bottom: 26px;
+      padding: 26px 28px;
+      border: 1px solid rgba(13,92,99,0.14);
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(13,92,99,0.10), rgba(255,255,255,0.92)),
+        var(--paper);
+      box-shadow: 0 18px 48px rgba(25, 35, 52, 0.08);
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.3rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .meta span {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.76);
+      border: 1px solid rgba(13,92,99,0.14);
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    article {
+      padding: 30px 34px 42px;
+      border-radius: 24px;
+      background: var(--paper);
+      box-shadow: 0 20px 52px rgba(25, 35, 52, 0.09);
+      border: 1px solid rgba(29,36,51,0.06);
+    }
+    h1, h2, h3, h4 {
+      color: var(--ink);
+      page-break-after: avoid;
+      break-after: avoid-page;
+    }
+    article > h1:first-child { display: none; }
+    h2 {
+      margin-top: 2.2rem;
+      margin-bottom: 0.8rem;
+      padding-top: 0.2rem;
+      border-top: 1px solid var(--rule);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.6rem;
+      line-height: 1.2;
+    }
+    h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 0.45rem;
+      font-size: 1.08rem;
+      color: var(--accent);
+    }
+    h4 {
+      margin-top: 1rem;
+      margin-bottom: 0.35rem;
+      font-size: 0.97rem;
+      color: var(--ink);
+    }
+    p, li { orphans: 3; widows: 3; }
+    p { margin: 0.7rem 0; }
+    ul, ol {
+      margin: 0.55rem 0 0.95rem 1.3rem;
+      padding: 0;
+    }
+    li + li { margin-top: 0.25rem; }
+    strong { color: var(--ink); }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(13,92,99,0.28);
+    }
+    code {
+      padding: 0.12rem 0.38rem;
+      border-radius: 6px;
+      background: var(--code-bg);
+      border: 1px solid rgba(29,36,51,0.08);
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      overflow: auto;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #f6f2ea;
+      border: 1px solid rgba(29,36,51,0.08);
+      page-break-inside: avoid;
+      break-inside: avoid-page;
+    }
+    pre code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-size: 0.86rem;
+    }
+    blockquote {
+      margin: 1rem 0;
+      padding: 0.9rem 1rem;
+      background: var(--quote-bg);
+      border-left: 4px solid rgba(13,92,99,0.45);
+      color: var(--muted);
+      border-radius: 0 12px 12px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.2rem;
+      font-size: 0.95rem;
+      page-break-inside: avoid;
+      break-inside: avoid-page;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--rule);
+    }
+    th {
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-weight: 700;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid var(--rule);
+      margin: 1.4rem 0;
+    }
+    .sources h3 { color: var(--ink); }
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">Caudals Strategic Review</p>
+      <h1>Pivot Report</h1>
+      <p>A market-grounded recommendation for how Caudals should reposition, what parts of the current platform to keep, and how to start selling the next version of the company.</p>
+      <div class="meta">
+        <span>Prepared: 2026-03-07</span>
+        <span>Format: Research Report</span>
+        <span>Focus: Pivot, GTM, product changes</span>
+      </div>
+    </section>
+    <article class="markdown-body">
+<h1>Caudals Pivot Report</h1>
+<ul>
+<li>Date: 2026-03-07</li>
+<li>Author: Codex</li>
+<li>Purpose: Evaluate Caudals&#39; current marketplace thesis, assess current market demand in adjacent AI sectors, and recommend pivot options with concrete product and go-to-market changes.</li>
+</ul>
+<h2>Executive Summary</h2>
+<p>Caudals&#39; current product is a solid software foundation for an AI dataset marketplace, but the marketplace thesis is the weakest part of the business.</p>
+<p>The main issue is not software execution. The issue is market structure:</p>
+<ul>
+<li>Caudals currently needs supply (<code>contributors</code>) and demand (<code>requesters</code>) to grow at the same time.</li>
+<li>The most valuable enterprise data is often private, regulated, or operationally sensitive.</li>
+<li>Buyers increasingly care less about &quot;buying generic data&quot; and more about safely improving model performance inside their own workflows.</li>
+<li>Fine-tuning and evaluation infrastructure are being rapidly commoditized by OpenAI, AWS, Google Cloud, and Microsoft, so a startup should not compete on generic customization plumbing alone.</li>
+</ul>
+<p>My recommendation is to pivot Caudals away from a public two-sided dataset marketplace and toward a private, services-led <code>EvalOps + Model Customization</code> platform for companies deploying AI in real workflows.</p>
+<p>The best near-term direction is:</p>
+<ol>
+<li><code>Primary recommendation</code>: turn Caudals into a private evaluation, human review, and model-customization control plane for enterprise AI teams.</li>
+<li><code>Short-term revenue motion</code>: sell a paid implementation/pilot service around eval design, review queues, and domain-specific fine-tuning.</li>
+<li><code>Medium-term productization</code>: narrow into one vertical workflow where the ROI is obvious and the data is already inside the customer&#39;s systems.</li>
+</ol>
+<p>If you do this well, you remove the chicken-and-egg problem, rely on customer-owned data instead of public collection, preserve much of the current product and operations architecture, and give yourself a cleaner path to early revenue.</p>
+<h2>What Caudals Is Today</h2>
+<p>Based on the current repo and product docs:</p>
+<ul>
+<li>Caudals is built as an <code>AI dataset operations platform</code> with three role surfaces: <code>requester</code>, <code>contributor</code>, and <code>admin</code>.</li>
+<li>The current north star is to help ML teams procure high-quality datasets faster while giving contributors a trustworthy earning workflow.</li>
+<li>The product already includes meaningful infrastructure for:<ul>
+<li>role-based workflows,</li>
+<li>moderation and review queues,</li>
+<li>uploads and artifact handling,</li>
+<li>payments and payouts,</li>
+<li>exports,</li>
+<li>audit-oriented admin workflows,</li>
+<li>public marketing plus authenticated application shells.</li>
+</ul>
+</li>
+</ul>
+<p>Internal references:</p>
+<ul>
+<li><a href="../../AGENTS.md">AGENTS.md</a></li>
+<li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a></li>
+<li><a href="../product-specs/platform-overview.md">docs/product-specs/platform-overview.md</a></li>
+<li><a href="../product-specs/role-workflows.md">docs/product-specs/role-workflows.md</a></li>
+</ul>
+<h2>Why the Current Thesis Is Weak</h2>
+<p>Your diagnosis is correct. The marketplace has structural disadvantages:</p>
+<h3>1. The two-sided marketplace problem is real</h3>
+<p>A public dataset marketplace requires both:</p>
+<ul>
+<li>a steady stream of buyers with funded jobs, and</li>
+<li>a large enough supply of contributors to fulfill those jobs quickly.</li>
+</ul>
+<p>Without buyers, contributors churn. Without contributors, buyers do not trust throughput. This is a classic cold-start problem.</p>
+<h3>2. The highest-value data is usually not publicly collectible</h3>
+<p>In regulated or high-value domains such as healthcare, finance, insurance, legal, internal support, or enterprise operations, the data that matters most is often:</p>
+<ul>
+<li>proprietary,</li>
+<li>privacy-sensitive,</li>
+<li>access-controlled,</li>
+<li>bound to compliance or contractual restrictions.</li>
+</ul>
+<p>That makes a public contributor marketplace a poor fit for many of the customers who can pay the most.</p>
+<h3>3. Data collection is not the only bottleneck anymore</h3>
+<p>Many companies are no longer asking only, &quot;How do I get more data?&quot; They are asking:</p>
+<ul>
+<li>&quot;How do I evaluate whether this model is safe and accurate?&quot;</li>
+<li>&quot;How do I use our internal documents, tickets, calls, and workflows?&quot;</li>
+<li>&quot;How do I customize a model for our domain without breaking compliance?&quot;</li>
+<li>&quot;How do I keep humans in the loop for high-risk outputs and actions?&quot;</li>
+</ul>
+<p>This is a better market because the budget owner already exists and the pain is immediate.</p>
+<h3>4. Fine-tuning infrastructure is getting commoditized</h3>
+<p>OpenAI, AWS, Google Cloud, and Microsoft all now offer first-party tuning and evaluation workflows. That means a startup should not position itself as generic tuning infrastructure.</p>
+<p>The defensible layer is higher up the stack:</p>
+<ul>
+<li>domain-specific eval datasets,</li>
+<li>human review pipelines,</li>
+<li>expert graders and rubrics,</li>
+<li>compliance and audit trails,</li>
+<li>workflow-specific integrations,</li>
+<li>vertical outcomes.</li>
+</ul>
+<h2>Market Research: What Customers Actually Need Now</h2>
+<h3>Signal 1: Enterprise AI spend is real, fast-growing, and moving up the stack</h3>
+<p>Menlo Ventures&#39; 2025 enterprise AI report says enterprise generative AI spend reached <code>$37B</code> in 2025, and that more than half of this spend went to AI applications rather than long-term infrastructure bets. It also highlights growing spend in departmental and vertical solutions, including healthcare and legal.</p>
+<p>What that means for Caudals:</p>
+<ul>
+<li>Customers want business outcomes now.</li>
+<li>They will pay for applications and workflow acceleration before they pay for generalized infrastructure.</li>
+<li>A product that sits closer to a measurable workflow has a better chance than a horizontal dataset marketplace.</li>
+</ul>
+<h3>Signal 2: AI adoption is broad, but maturity and trust are still weak</h3>
+<p>McKinsey&#39;s 2025 AI survey shows:</p>
+<ul>
+<li>AI adoption has accelerated materially.</li>
+<li>Risk and data governance remain among the most centralized parts of AI deployment.</li>
+<li>Organizations still vary widely in how much human review they apply to AI outputs.</li>
+<li>Many organizations are still early in realizing bottom-line value from AI.</li>
+</ul>
+<p>What that means for Caudals:</p>
+<ul>
+<li>Companies are using AI, but they do not yet have reliable internal systems for evaluation, governance, and review.</li>
+<li>This creates demand for products that help them move from experimentation to controlled production.</li>
+</ul>
+<h3>Signal 3: Evals and human review are becoming a required layer</h3>
+<p>OpenAI&#39;s enterprise guidance explicitly pushes teams to start with evals and to only invest in fine-tuning after setting up evals. OpenAI&#39;s tuning documentation also emphasizes that reinforcement fine-tuning depends on expert graders agreeing on what good output looks like.</p>
+<p>AWS, Google Cloud, and Microsoft are all expanding model evaluation features:</p>
+<ul>
+<li>AWS Bedrock supports human evaluation, custom metrics, and customer-provided datasets.</li>
+<li>Google Vertex AI supports customizable judge metrics, agent evaluation, and secure tuning flows.</li>
+<li>Microsoft Foundry supports evaluation runs, AI-assisted metrics, and safety evaluation around fine-tuning.</li>
+</ul>
+<p>What that means for Caudals:</p>
+<ul>
+<li>Evaluation is not a side feature. It is becoming part of the standard AI production stack.</li>
+<li>Human review, custom rubrics, and expert grading are now product categories.</li>
+<li>Caudals already has workflow DNA that fits review and moderation much better than it fits open marketplace growth.</li>
+</ul>
+<h3>Signal 4: Regulated and high-trust use cases are pulling budget</h3>
+<p>OpenAI&#39;s Pioneers Program frames domain-specific evals and narrow expert models as especially important in sectors like legal, finance, insurance, healthcare, and accounting.</p>
+<p>The EU AI Act increases pressure on providers and deployers to care about:</p>
+<ul>
+<li>high-quality datasets,</li>
+<li>traceability and logging,</li>
+<li>documentation,</li>
+<li>human oversight,</li>
+<li>robustness and accuracy.</li>
+</ul>
+<p>What that means for Caudals:</p>
+<ul>
+<li>European and regulated buyers increasingly need process, auditability, and oversight.</li>
+<li>A startup that helps them document and evaluate AI systems can ride this compliance wave instead of being hurt by it.</li>
+</ul>
+<h3>Signal 5: Vertical AI is where willingness to pay is strongest</h3>
+<p>Menlo&#39;s 2025 healthcare AI report is especially useful because it shows how buyers behave when the pain is acute:</p>
+<ul>
+<li>healthcare AI spending reached roughly <code>$1.4B</code> in 2025 in Menlo&#39;s estimate,</li>
+<li>22% of healthcare organizations had implemented domain-specific AI tools,</li>
+<li>buyer priorities were production readiness, risk level, and short-term value delivery,</li>
+<li>many winning AI products are automating workflows that were previously funded out of services budgets rather than software budgets.</li>
+</ul>
+<p>This pattern likely generalizes beyond healthcare:</p>
+<ul>
+<li>the best AI startups often do not sell &quot;AI&quot; first,</li>
+<li>they sell a faster, safer, cheaper workflow.</li>
+</ul>
+<h2>Strategic Conclusion</h2>
+<p>Do not pivot to &quot;generic custom datasets and fine-tuning for everyone.&quot;</p>
+<p>That market statement is still too broad and still pushes you toward service-heavy, low-differentiation work.</p>
+<p>Instead, pivot Caudals toward one of these higher-quality positions:</p>
+<ul>
+<li>a private <code>EvalOps + human review + expert tuning</code> platform,</li>
+<li>a <code>private workforce orchestration</code> product for customer-owned or partner-owned reviewer cohorts,</li>
+<li>or a <code>vertical AI workflow product</code> built on top of the current review/audit infrastructure.</li>
+</ul>
+<h2>Recommended Pivot Options</h2>
+<h2>Option A: Caudals EvalOps</h2>
+<h3>Summary</h3>
+<p>Turn Caudals into a private platform for:</p>
+<ul>
+<li>building evaluation datasets,</li>
+<li>running AI output review workflows,</li>
+<li>capturing expert grades,</li>
+<li>comparing prompts/models/agent versions,</li>
+<li>producing approval, audit, and compliance evidence.</li>
+</ul>
+<h3>Why this is the best fit</h3>
+<p>This is the cleanest pivot because it:</p>
+<ul>
+<li>removes the open marketplace cold start,</li>
+<li>uses customer-owned data instead of public contributors,</li>
+<li>fits the current moderation/review/admin architecture,</li>
+<li>aligns with market demand for evals, human oversight, and traceability,</li>
+<li>leaves room to add fine-tuning services later.</li>
+</ul>
+<h3>Ideal customer profile</h3>
+<ul>
+<li>Teams with 20-500 employees already shipping AI features.</li>
+<li>Strong initial targets:<ul>
+<li>customer support AI teams,</li>
+<li>legal/insurance/finance copilots,</li>
+<li>healthcare admin automation teams,</li>
+<li>AI consultancies building production systems for end clients,</li>
+<li>enterprises needing multilingual or regulated review loops.</li>
+</ul>
+</li>
+</ul>
+<h3>Core value proposition</h3>
+<p>&quot;Caudals helps you turn AI experiments into production systems by combining eval datasets, human review, expert rubrics, and audit trails in one workspace.&quot;</p>
+<h3>What the product becomes</h3>
+<p>Map existing concepts to the new model:</p>
+<ul>
+<li><code>requester</code> -&gt; <code>workspace owner</code> or <code>AI team</code></li>
+<li><code>dataset request</code> -&gt; <code>evaluation project</code> or <code>AI workflow</code></li>
+<li><code>submission</code> -&gt; <code>test case</code>, <code>model output</code>, <code>review item</code>, or <code>agent run</code></li>
+<li><code>contributor</code> -&gt; <code>reviewer</code>, <code>expert</code>, or <code>operator</code></li>
+<li><code>admin</code> -&gt; <code>ops/compliance lead</code></li>
+<li><code>export</code> -&gt; <code>evaluation report</code>, <code>approval package</code>, <code>release sign-off</code></li>
+</ul>
+<h3>Reuse from current Caudals</h3>
+<p>High reuse:</p>
+<ul>
+<li>role-based workspace model,</li>
+<li>review and moderation flows,</li>
+<li>upload/file handling,</li>
+<li>support and admin operations,</li>
+<li>export jobs,</li>
+<li>audit-friendly data model,</li>
+<li>public site and auth/onboarding.</li>
+</ul>
+<h3>Product changes required</h3>
+<ol>
+<li>Replace public browse marketplace with private projects and invite-only reviewers.</li>
+<li>Add connectors for internal enterprise data sources:<ul>
+<li>Google Drive,</li>
+<li>Notion,</li>
+<li>Slack,</li>
+<li>Zendesk,</li>
+<li>Jira,</li>
+<li>HubSpot,</li>
+<li>CSV/JSON import.</li>
+</ul>
+</li>
+<li>Add rubric builder and scorecards.</li>
+<li>Add model/version comparison runs.</li>
+<li>Add human review queues for sampled outputs.</li>
+<li>Add approval thresholds and sign-off states.</li>
+<li>Add compliance features:<ul>
+<li>reviewer traceability,</li>
+<li>immutable logs,</li>
+<li>PII tagging/redaction,</li>
+<li>region-aware storage controls.</li>
+</ul>
+</li>
+<li>Reduce emphasis on payouts unless reviewers are paid external contractors.</li>
+</ol>
+<h3>Business model</h3>
+<ul>
+<li>Paid pilot: <code>EUR 8k-EUR 20k</code></li>
+<li>Platform subscription: <code>EUR 1.5k-EUR 6k MRR</code></li>
+<li>Optional managed review/eval operations: <code>EUR 3k-EUR 15k MRR</code></li>
+</ul>
+<h3>Risks</h3>
+<ul>
+<li>Needs a sharp ICP and use case, or it becomes another generic eval tool.</li>
+<li>You will face competition from dedicated eval vendors and cloud-native tooling.</li>
+</ul>
+<h3>How to beat that competition</h3>
+<p>Differentiate on:</p>
+<ul>
+<li>human-in-the-loop workflows,</li>
+<li>compliance and auditability,</li>
+<li>managed setup and implementation,</li>
+<li>vertical templates,</li>
+<li>multilingual review operations,</li>
+<li>private reviewer orchestration.</li>
+</ul>
+<h2>Option B: Caudals Model Customization Studio</h2>
+<h3>Summary</h3>
+<p>Offer a services-led product for companies that want:</p>
+<ul>
+<li>data preparation,</li>
+<li>eval design,</li>
+<li>fine-tuning,</li>
+<li>prompt optimization,</li>
+<li>deployment guidance,</li>
+<li>and post-launch monitoring.</li>
+</ul>
+<h3>Why it works</h3>
+<ul>
+<li>Fastest route to first revenue.</li>
+<li>Easier to sell than a pure software platform when you do not yet have brand distribution.</li>
+<li>Lets you learn real customer pain before hard-committing product direction.</li>
+</ul>
+<h3>Best use</h3>
+<p>This should be a <code>revenue bridge</code>, not the final company identity.</p>
+<h3>Recommended positioning</h3>
+<p>Do not say:</p>
+<ul>
+<li>&quot;We train models for companies.&quot;</li>
+</ul>
+<p>Say:</p>
+<ul>
+<li>&quot;We improve the reliability of your AI workflow using your data, custom evals, and narrow model optimization.&quot;</li>
+</ul>
+<h3>Offer structure</h3>
+<ol>
+<li><code>AI workflow audit</code> (1-2 weeks)</li>
+<li><code>Pilot implementation</code> (4-6 weeks)</li>
+<li><code>Managed optimization</code> (monthly retainer)</li>
+</ol>
+<h3>Risks</h3>
+<ul>
+<li>Harder to scale.</li>
+<li>Can become bespoke consulting.</li>
+<li>Weak moat if you do not turn repeated work into software.</li>
+</ul>
+<h2>Option C: Private Workforce Orchestration</h2>
+<h3>Summary</h3>
+<p>Keep the workforce/review DNA, but remove the public marketplace. Instead of sourcing an open crowd, Caudals becomes the control layer for:</p>
+<ul>
+<li>customer-owned reviewers,</li>
+<li>partner BPO teams,</li>
+<li>universities,</li>
+<li>certified contractors,</li>
+<li>expert SMEs.</li>
+</ul>
+<h3>Why this is attractive</h3>
+<p>This preserves more of the current product and avoids the cold-start loop.</p>
+<h3>Best use cases</h3>
+<ul>
+<li>internal annotation teams,</li>
+<li>law firms or compliance teams reviewing outputs,</li>
+<li>healthcare operations teams reviewing AI actions,</li>
+<li>industrial QA teams reviewing image or document outputs,</li>
+<li>call center QA for voice agents.</li>
+</ul>
+<h3>Risks</h3>
+<ul>
+<li>Still somewhat operationally heavy.</li>
+<li>If you stay too generic, it looks like a smaller label/review platform.</li>
+</ul>
+<h3>Best framing</h3>
+<p>Treat this as the workforce layer inside Option A, not as a standalone end-state.</p>
+<h2>Option D: Vertical AI Workflow Product</h2>
+<h3>Summary</h3>
+<p>Use Caudals as the operational backbone for one narrow AI workflow with obvious ROI.</p>
+<h3>Strong vertical candidates</h3>
+<ol>
+<li><code>Healthcare administrative AI</code><ul>
+<li>prior authorization,</li>
+<li>coding review,</li>
+<li>referral intake,</li>
+<li>patient messaging QA.</li>
+</ul>
+</li>
+<li><code>Insurance / claims AI</code><ul>
+<li>document triage,</li>
+<li>claim summarization review,</li>
+<li>underwriting memo QA,</li>
+<li>call review and compliance.</li>
+</ul>
+</li>
+<li><code>Customer support AI QA</code><ul>
+<li>response evaluation,</li>
+<li>escalation routing,</li>
+<li>multilingual quality assurance,</li>
+<li>release approval for support agents.</li>
+</ul>
+</li>
+<li><code>Industrial / robotics data and review ops</code><ul>
+<li>private image/video review,</li>
+<li>defect detection QA,</li>
+<li>edge-case harvesting,</li>
+<li>expert validation.</li>
+</ul>
+</li>
+</ol>
+<h3>Why this is powerful</h3>
+<p>Vertical AI buyers often pay for outcomes, not tooling. That gives clearer ROI and better retention.</p>
+<h3>Why this is harder</h3>
+<p>You need much deeper domain knowledge and a narrower brand.</p>
+<h2>Ranking of Pivot Paths</h2>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Pivot</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Option A: EvalOps</td>
+<td>Best mix of market pull, product reuse, defensibility, and speed to first revenue</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Option B: Model Customization Studio</td>
+<td>Fastest path to revenue and discovery, but should support Option A rather than replace it</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Option D: Vertical AI Workflow</td>
+<td>Highest upside if you choose well, but requires stronger focus and customer intimacy</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Option C: Private Workforce Orchestration</td>
+<td>Useful capability, but weaker as a standalone company thesis</td>
+</tr>
+</tbody></table>
+<h2>My Recommended Direction</h2>
+<h3>New company thesis</h3>
+<p><code>Caudals helps companies evaluate, review, and safely customize AI systems using their own data and expert workflows.</code></p>
+<p>This is better than the current thesis because:</p>
+<ul>
+<li>it starts from existing enterprise pain,</li>
+<li>it does not depend on a public marketplace,</li>
+<li>it fits compliance-heavy sectors,</li>
+<li>and it preserves a large share of the current platform&#39;s architecture.</li>
+</ul>
+<h3>Suggested initial wedge</h3>
+<p>Start with one narrow problem:
+<code>AI output review and release approval for customer-facing copilots and agents.</code></p>
+<p>That wedge is attractive because:</p>
+<ul>
+<li>every team shipping AI has output quality problems,</li>
+<li>review can start manually before full automation,</li>
+<li>it naturally leads into eval datasets and fine-tuning,</li>
+<li>and it creates recurring usage.</li>
+</ul>
+<h3>Suggested first ICP</h3>
+<p>Start with one of these:</p>
+<ol>
+<li>AI consultancies and dev shops building copilots for clients.</li>
+<li>Mid-market support teams deploying AI agents or AI drafting tools.</li>
+<li>Legal, compliance, insurance, or finance teams where auditability matters.</li>
+<li>Multilingual European teams that need human review and governance.</li>
+</ol>
+<p>If you want a stronger vertical angle from day one, choose:</p>
+<ul>
+<li><code>support AI QA</code> or <code>insurance/legal review ops</code> before healthcare.</li>
+</ul>
+<p>Healthcare is attractive, but the sales cycles, integrations, and compliance burden are heavier unless you already have strong domain access.</p>
+<h2>Related Startup Ideas You Could Pivot Toward</h2>
+<p>These are adjacent ideas that are more in demand than a generic public dataset marketplace and still fit parts of the existing Caudals platform.</p>
+<h3>1. AI Agent QA and Release Management</h3>
+<p>A platform that:</p>
+<ul>
+<li>runs sampled conversations,</li>
+<li>scores outputs against custom rubrics,</li>
+<li>routes failures to humans,</li>
+<li>blocks release if thresholds fail.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>agent adoption is increasing,</li>
+<li>evaluation tooling is becoming standard,</li>
+<li>teams need something between raw logs and production confidence.</li>
+</ul>
+<h3>2. Human Approval Layer for High-Risk Agent Actions</h3>
+<p>A product for workflows where AI drafts or proposes actions, but humans approve before execution.</p>
+<p>Examples:</p>
+<ul>
+<li>refund approval,</li>
+<li>claims decision support,</li>
+<li>legal document response review,</li>
+<li>outbound communication approval.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>this is where trust, liability, and compliance matter most.</li>
+</ul>
+<h3>3. EU AI Act Readiness and Audit Workspace</h3>
+<p>A product focused on:</p>
+<ul>
+<li>logging,</li>
+<li>evidence collection,</li>
+<li>review policies,</li>
+<li>human oversight workflows,</li>
+<li>incident traceability.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>EU regulation is now concrete and time-bound.</li>
+<li>Many companies will need lightweight operational tooling, not just legal advice.</li>
+</ul>
+<h3>4. Multilingual AI Quality Assurance for European Companies</h3>
+<p>A system for:</p>
+<ul>
+<li>review of AI outputs across Spanish, English, French, German, etc.,</li>
+<li>rubric-based approval,</li>
+<li>language-specific edge-case tracking,</li>
+<li>release sign-off by locale.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>multilingual quality is often materially worse than English quality.</li>
+<li>Europe offers a natural geographic wedge.</li>
+</ul>
+<h3>5. Voice Agent QA and Compliance Review</h3>
+<p>A platform that ingests call transcripts and audio metadata, then supports:</p>
+<ul>
+<li>conversation scoring,</li>
+<li>hallucination/compliance review,</li>
+<li>escalation labeling,</li>
+<li>supervisor sign-off.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>voice agents are proliferating in support, sales, healthcare access, and insurance.</li>
+</ul>
+<h3>6. Private Multimodal Review Platform for Industrial AI</h3>
+<p>A product for companies with proprietary image/video/sensor data who need:</p>
+<ul>
+<li>review workflows,</li>
+<li>edge-case tagging,</li>
+<li>human verification,</li>
+<li>audit logs,</li>
+<li>exportable evaluation sets.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>data is sensitive,</li>
+<li>teams cannot use public marketplaces,</li>
+<li>and multimodal QA is operationally messy.</li>
+</ul>
+<h3>7. Services-to-Software Automation in Regulated Back Offices</h3>
+<p>A vertical product for workflows like:</p>
+<ul>
+<li>prior auth,</li>
+<li>claims intake,</li>
+<li>compliance review,</li>
+<li>vendor onboarding,</li>
+<li>document triage.</li>
+</ul>
+<p>Why demand exists:</p>
+<ul>
+<li>these budgets often come from services spend,</li>
+<li>which creates larger upside than replacing existing software alone.</li>
+</ul>
+<h2>What Not To Pivot To</h2>
+<p>Avoid these paths unless you have a very specific unfair advantage:</p>
+<h3>1. Generic public dataset marketplace</h3>
+<p>This is the current problem. It keeps the worst structural risk.</p>
+<h3>2. Generic annotation platform</h3>
+<p>This is crowded and increasingly commoditized.</p>
+<h3>3. Generic &quot;we fine-tune models for companies&quot; consultancy</h3>
+<p>Too broad, too easy to copy, too dependent on custom work.</p>
+<h3>4. Sensitive-data acquisition marketplace</h3>
+<p>Especially in healthcare, legal, and enterprise ops, data access is the bottleneck. A marketplace does not solve that.</p>
+<h2>Product Changes to Make Now</h2>
+<h2>Product strategy changes</h2>
+<ol>
+<li>Shift from <code>public marketplace</code> to <code>private workspace</code> by default.</li>
+<li>Reposition around <code>evaluation, review, and safe customization</code>.</li>
+<li>Narrow to one wedge before expanding.</li>
+<li>Keep optional human reviewer orchestration, but stop making open crowdsourcing the center of the business.</li>
+</ol>
+<h2>UX and information architecture changes</h2>
+<ol>
+<li>Rename core concepts across the app:<ul>
+<li>dataset -&gt; project / workflow / evaluation set</li>
+<li>contributor -&gt; reviewer / expert / operator</li>
+<li>submission -&gt; review item / test case / output sample</li>
+</ul>
+</li>
+<li>Replace <code>/browse</code> with a private project or reviewer task inbox model.</li>
+<li>Add a first-class <code>Runs</code> or <code>Evaluations</code> section.</li>
+<li>Add a <code>Rubrics</code> section.</li>
+<li>Add a <code>Review Queue</code> with confidence buckets and sampling rules.</li>
+<li>Add an <code>Approvals</code> section for release sign-off.</li>
+<li>Add a <code>Compliance / Audit</code> page with immutable logs and exportable evidence.</li>
+</ol>
+<h2>Data model changes</h2>
+<p>High-level target entities:</p>
+<ul>
+<li><code>projects</code></li>
+<li><code>data_sources</code></li>
+<li><code>evaluation_sets</code></li>
+<li><code>runs</code></li>
+<li><code>rubrics</code></li>
+<li><code>review_items</code></li>
+<li><code>review_assignments</code></li>
+<li><code>approvals</code></li>
+<li><code>audit_events</code></li>
+<li><code>model_versions</code></li>
+<li><code>connectors</code></li>
+</ul>
+<h3>Mapping from existing tables</h3>
+<p>A practical migration path could be:</p>
+<ul>
+<li><code>dataset_requests</code> -&gt; <code>projects</code></li>
+<li><code>submissions</code> -&gt; <code>review_items</code></li>
+<li><code>dataset_exports</code> -&gt; <code>reports</code> or <code>export_jobs</code></li>
+<li><code>dataset_activity</code> -&gt; <code>audit_events</code></li>
+<li><code>requester_org_settings</code> -&gt; workspace configuration</li>
+<li><code>requester_api_keys</code> -&gt; connector credentials / API access</li>
+<li><code>wallets</code> and <code>transactions</code> -&gt; keep only if paid external reviewers remain in scope</li>
+</ul>
+<h2>Go-to-market changes</h2>
+<ol>
+<li>Sell a paid pilot, not a self-serve marketplace.</li>
+<li>Start with founder-led outbound.</li>
+<li>Target companies already using LLMs, not companies merely curious about them.</li>
+<li>Sell measurable outcomes:<ul>
+<li>reduce hallucinations,</li>
+<li>improve approval rate,</li>
+<li>cut review time,</li>
+<li>create compliance evidence,</li>
+<li>improve production confidence.</li>
+</ul>
+</li>
+<li>Use services to close the first deals and software to retain them.</li>
+</ol>
+<h2>What To Keep, Repurpose, or Deprecate</h2>
+<h3>Keep</h3>
+<ul>
+<li>Auth, workspace, and role infrastructure.</li>
+<li>Admin and moderation-style queue patterns.</li>
+<li>Uploads, storage, and export jobs.</li>
+<li>Audit-oriented activity logging.</li>
+<li>Billing foundations for pilots, subscriptions, or paid expert reviewers.</li>
+<li>Support and account management surfaces.</li>
+</ul>
+<h3>Repurpose</h3>
+<ul>
+<li><code>requester</code> surface into customer AI team workspace.</li>
+<li><code>contributor</code> surface into reviewer / expert / operator task inbox.</li>
+<li><code>admin</code> surface into compliance, QA, and release operations console.</li>
+<li><code>dataset builder</code> into evaluation-set or rubric builder.</li>
+<li><code>submissions panel</code> into review queue and adjudication console.</li>
+<li><code>files / exports</code> into evidence packs, release reports, and evaluation exports.</li>
+</ul>
+<h3>Deprecate or hide early</h3>
+<ul>
+<li>Public browse marketplace.</li>
+<li>Public contributor acquisition flows as the primary growth engine.</li>
+<li>Any messaging centered on global open crowdsourcing as the main differentiator.</li>
+<li>Pricing built around dataset marketplace economics before the new wedge is validated.</li>
+</ul>
+<h2>How To Acquire The First Customers</h2>
+<h3>Best immediate offer</h3>
+<p>Sell a <code>4-6 week AI reliability pilot</code>.</p>
+<p>Deliverables:</p>
+<ul>
+<li>one evaluation dataset,</li>
+<li>one rubric pack,</li>
+<li>one review workflow,</li>
+<li>one baseline vs candidate comparison,</li>
+<li>one exported recommendation report,</li>
+<li>optional fine-tuning or prompt-optimization follow-up.</li>
+</ul>
+<h3>Who to sell it to first</h3>
+<p>Prioritize:</p>
+<ol>
+<li>AI agencies and consultancies</li>
+<li>SaaS companies with customer support copilots</li>
+<li>legal / insurance / compliance teams using AI drafting tools</li>
+<li>enterprise innovation teams that already have pilots and now need governance</li>
+</ol>
+<h3>Sample positioning</h3>
+<ul>
+<li>&quot;We help your team evaluate and safely release AI features.&quot;</li>
+<li>&quot;We turn your experts into a repeatable review and model-improvement loop.&quot;</li>
+<li>&quot;We build the evals, human review, and audit trail your AI workflow is missing.&quot;</li>
+</ul>
+<h3>Why this is a better first sale than the current product</h3>
+<ul>
+<li>One customer can start immediately with their own data.</li>
+<li>No need to wait for a marketplace to form.</li>
+<li>Revenue can start with implementation work.</li>
+<li>The product naturally expands into recurring software usage.</li>
+</ul>
+<h2>30 / 60 / 90 Day Plan</h2>
+<h2>Next 30 days</h2>
+<ol>
+<li>Choose one wedge: <code>EvalOps for AI outputs</code>.</li>
+<li>Rewrite homepage and core messaging around review, evals, and safe customization.</li>
+<li>Hide or de-emphasize public contributor marketplace flows.</li>
+<li>Define new core entities and migration plan.</li>
+<li>Build a pilot manually for one design partner using the existing platform where possible.</li>
+<li>Start outbound to 30-50 target companies.</li>
+</ol>
+<h2>Days 31-60</h2>
+<ol>
+<li>Ship rubric builder and review queue MVP.</li>
+<li>Add CSV / JSON import and basic connector ingest.</li>
+<li>Add run comparison and exportable summary report.</li>
+<li>Sign 1-3 paid pilots.</li>
+<li>Document a repeatable onboarding playbook.</li>
+</ol>
+<h2>Days 61-90</h2>
+<ol>
+<li>Productize the best pilot into a template.</li>
+<li>Add approval workflow and audit log views.</li>
+<li>Narrow vertical focus if one segment pulls hardest.</li>
+<li>Move from custom pilot delivery toward recurring subscription plus optional managed services.</li>
+</ol>
+<h2>Decision Framework</h2>
+<p>Use this to choose whether to fully commit to the pivot:</p>
+<h3>Commit if these are true</h3>
+<ul>
+<li>You can name one buyer persona with budget and urgency.</li>
+<li>You can close a paid pilot without needing a marketplace.</li>
+<li>You can use customer-owned data instead of sourcing public data.</li>
+<li>You can describe the ROI in workflow terms, not model terms.</li>
+</ul>
+<h3>Do not commit yet if these are false</h3>
+<ul>
+<li>You still need a public crowd to make the value proposition work.</li>
+<li>You cannot define a narrow wedge.</li>
+<li>The pitch is still mostly &quot;we can build AI stuff for you&quot;.</li>
+</ul>
+<h2>Bottom Line</h2>
+<p>The current Caudals codebase is more valuable than the current Caudals business thesis.</p>
+<p>You already have the beginnings of a serious operations platform:</p>
+<ul>
+<li>roles,</li>
+<li>queues,</li>
+<li>approvals,</li>
+<li>exports,</li>
+<li>payments,</li>
+<li>admin oversight,</li>
+<li>and enterprise-style workflow structure.</li>
+</ul>
+<p>What should change is not &quot;whether to keep building software.&quot;
+It is <code>what problem the software is for</code>.</p>
+<p>My strongest recommendation is:</p>
+<ul>
+<li>stop centering the company on an open dataset marketplace,</li>
+<li>reposition Caudals as a private AI evaluation and human-review platform,</li>
+<li>use services-led pilots to get first customers,</li>
+<li>and only then decide whether to deepen into a vertical.</li>
+</ul>
+<p>That gives you a much better chance of getting paid early while preserving a large portion of the work you have already done.</p>
+<h2>Sources</h2>
+<h3>Internal repo sources</h3>
+<ul>
+<li><a href="../../AGENTS.md">AGENTS.md</a></li>
+<li><a href="../../ARCHITECTURE.md">ARCHITECTURE.md</a></li>
+<li><a href="../PLAN.md">docs/PLAN.md</a></li>
+<li><a href="../product-specs/platform-overview.md">docs/product-specs/platform-overview.md</a></li>
+<li><a href="../product-specs/role-workflows.md">docs/product-specs/role-workflows.md</a></li>
+<li><a href="../../components/landing/hero.tsx">components/landing/hero.tsx</a></li>
+<li><a href="../../components/landing/platform-overview.tsx">components/landing/platform-overview.tsx</a></li>
+<li><a href="../../components/landing/pricing.tsx">components/landing/pricing.tsx</a></li>
+<li><a href="../../supabase/migrations/001_initial_schema.sql">supabase/migrations/001_initial_schema.sql</a></li>
+<li><a href="../../supabase/migrations/013_rebuild_payment_infrastructure.sql">supabase/migrations/013_rebuild_payment_infrastructure.sql</a></li>
+</ul>
+<h3>External market and product sources</h3>
+<ul>
+<li>Menlo Ventures, <a href="https://menlovc.com/perspective/2025-the-state-of-generative-ai-in-the-enterprise/">2025: The State of Generative AI in the Enterprise</a></li>
+<li>McKinsey, <a href="https://www.mckinsey.com/~/media/mckinsey/business%20functions/quantumblack/our%20insights/the%20state%20of%20ai/2025/the-state-of-ai-how-organizations-are-rewiring-to-capture-value_final.pdf">The state of AI: How organizations are rewiring to capture value</a></li>
+<li>OpenAI, <a href="https://cdn.openai.com/business-guides-and-resources/ai-in-the-enterprise.pdf">AI in the Enterprise: Lessons from seven frontier companies</a></li>
+<li>OpenAI, <a href="https://openai.com/index/openai-pioneers-program/">Announcing OpenAI Pioneers Program</a></li>
+<li>OpenAI API docs, <a href="https://developers.openai.com/api/docs/guides/model-optimization">Model optimization</a></li>
+<li>OpenAI API docs, <a href="https://developers.openai.com/api/docs/guides/supervised-fine-tuning">Supervised fine-tuning</a></li>
+<li>OpenAI API docs, <a href="https://developers.openai.com/api/docs/guides/reinforcement-fine-tuning">Reinforcement fine-tuning</a></li>
+<li>AWS, <a href="https://aws.amazon.com/about-aws/whats-new/2024/10/amazon-bedrock-model-evaluation-evaluating-custom-models/">Amazon Bedrock model evaluation now supports evaluating custom models</a></li>
+<li>AWS, <a href="https://aws.amazon.com/about-aws/whats-new/2025/04/amazon-bedrock-rag-model-evaluations-custom-metrics/">Amazon Bedrock RAG and Model Evaluations now support custom metrics</a></li>
+<li>AWS docs, <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-evaluation-jobs-management-create-human.html">Create a human-based model evaluation job</a></li>
+<li>AWS docs, <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/custom-model-fine-tuning.html">Customize a model with fine-tuning or continued pre-training in Amazon Bedrock</a></li>
+<li>Google Cloud, <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/models/evaluation-overview">Gen AI evaluation service overview</a></li>
+<li>Google Cloud, <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/evaluation">Gen AI evaluation service API</a></li>
+<li>Google Cloud, <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/models/evaluation-agents">Evaluate Gen AI agents</a></li>
+<li>Google Cloud, <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/tuning">Tuning API</a></li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/en-us/azure/foundry/how-to/evaluate-generative-ai-app">Evaluate generative AI models and applications by using Microsoft Foundry</a></li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/fine-tuning">Customize a model with fine-tuning</a></li>
+<li>Microsoft Learn, <a href="https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/fine-tuning-safety-evaluation">Safety evaluation for fine-tuning</a></li>
+<li>European Commission, <a href="https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai">AI Act</a></li>
+<li>Menlo Ventures, <a href="https://menlovc.com/perspective/2025-the-state-of-ai-in-healthcare/">2025: The State of AI in Healthcare</a></li>
+<li>Y Combinator, <a href="https://www.ycombinator.com/launches/Mnp-confident-ai-the-evals-platform-for-ai-quality-observability">Confident AI: The Evals Platform for AI Quality &amp; Observability</a></li>
+<li>Y Combinator, <a href="https://www.ycombinator.com/launches/M8e-humanlayer-human-in-the-loop-for-ai-agents-and-beyond">HumanLayer - Human-in-the-loop for AI Agents and beyond</a></li>
+</ul>
+
+    </article>
+    <p class="footer-note">Generated from the repository Markdown source.</p>
+  </main>
+</body>
+</html>
