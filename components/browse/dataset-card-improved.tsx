@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { categoryLabels, statusLabels } from "@/lib/data/datasets";
-import { CheckCircle2, Clock, DollarSign, Users } from "lucide-react";
+import { CheckCircle2, Clock, Database, Users } from "lucide-react";
 
 import { useTranslations } from "@/lib/i18n/use-translations";
 
@@ -17,10 +17,10 @@ interface DatasetCardProps {
 }
 
 const statusStyles: Record<Dataset["status"], string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
-  "closing-soon": "bg-amber-50 text-amber-700 border-amber-200/50",
-  completed: "bg-blue-50 text-blue-700 border-blue-200/50",
-  paused: "bg-gray-100 text-gray-600 border-gray-200/50",
+  active: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+  "closing-soon": "bg-amber-50 text-amber-700 hover:bg-amber-100",
+  completed: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+  paused: "bg-slate-100 text-slate-700 hover:bg-slate-200",
 };
 
 export function DatasetCardImproved({ dataset }: DatasetCardProps) {
@@ -47,97 +47,90 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
   return (
     <Link
       href={`/browse/${dataset.id}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-background border border-border/80 transition-all duration-300 hover:border-foreground/30 hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
       aria-label={dataset.title}
     >
       {/* Image Section */}
-      <div className="relative block overflow-hidden border-b border-slate-200 p-2 pb-0">
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted">
-          <Image
-            src={dataset.imageUrl}
-            alt={dataset.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          {/* Badges overlay on image */}
-          <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap items-center gap-2">
-            <Badge
-              className={cn(
-                "text-[10px] uppercase tracking-wider font-semibold shadow-none border",
-                statusStyles[dataset.status]
-              )}
-            >
-              {t(statusLabels[dataset.status])}
-            </Badge>
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-semibold shadow-none bg-background/90 backdrop-blur-sm">
-              {t(categoryLabels[dataset.category])}
-            </Badge>
-          </div>
-        </div>
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-50 border-b border-slate-100">
+        <Image
+          src={dataset.imageUrl}
+          alt={dataset.title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
       </div>
 
       {/* Content Section */}
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex flex-1 flex-col gap-3">
+        <div className="flex items-center gap-2 mb-3">
+          <Badge
+            className={cn(
+              "text-[11px] font-medium tracking-wide shadow-none border-0 px-2 py-0.5",
+              statusStyles[dataset.status]
+            )}
+          >
+            {t(statusLabels[dataset.status])}
+          </Badge>
+          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+            {t(categoryLabels[dataset.category])}
+          </span>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-2">
           {/* Title */}
-          <div className="min-h-[2.5rem]">
-            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground transition-colors">
-              {dataset.title}
-            </h3>
-          </div>
+          <h3 className="line-clamp-2 text-base font-semibold leading-tight text-slate-900">
+            {dataset.title}
+          </h3>
 
           {/* Description */}
-          <div className="min-h-[4rem]">
-            <p className="line-clamp-3 text-sm text-slate-500 leading-relaxed">
-              {dataset.description}
-            </p>
-          </div>
+          <p className="line-clamp-2 text-sm text-slate-500 leading-relaxed">
+            {dataset.description}
+          </p>
+        </div>
 
-          {/* Organization */}
-          <div className="flex items-center gap-2 mt-auto pt-3">
-            <Avatar className="h-6 w-6 border border-slate-200">
+        {/* Organization & Metrics */}
+        <div className="mt-5 flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-5 w-5 rounded-md border border-slate-200">
               {dataset.organization.avatar ? (
-                <AvatarImage src={dataset.organization.avatar} />
+                <AvatarImage src={dataset.organization.avatar} className="object-cover" />
               ) : null}
-              <AvatarFallback className="text-[10px] bg-muted/50 text-foreground font-medium">
+              <AvatarFallback className="rounded-md text-[9px] bg-slate-100 text-slate-600 font-medium">
                 {dataset.organization.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex items-center gap-1 text-sm">
-              <span className="font-medium text-foreground text-xs">
+              <span className="font-medium text-slate-700 text-xs">
                 {dataset.organization.name}
               </span>
               {dataset.organization.verified && (
-                <CheckCircle2 className="h-3.5 w-3.5 text-[var(--accent)]" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
               )}
             </div>
           </div>
-        </div>
 
-        {/* Metrics */}
-        <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 bg-emerald-50/50 px-2 py-1 rounded-md border border-emerald-100">
-            <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="font-bold text-emerald-700 text-xs">
-              {rewardDisplay}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-slate-500">
-              <Users className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">{contributorDisplay}</span>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-center gap-4 text-slate-500">
+              <div className="flex items-center gap-1.5" title={t("Contributors")}>
+                <Users className="h-4 w-4" />
+                <span className="text-xs font-medium">{contributorDisplay}</span>
+              </div>
+              <div className="flex items-center gap-1.5" title={t("Time remaining")}>
+                <Clock className="h-4 w-4" />
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    isExpired ? "text-red-600" : ""
+                  )}
+                >
+                  {deadlineLabel}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-500">
-              <Clock className="h-3.5 w-3.5" />
-              <span
-                className={cn(
-                  "text-xs font-medium",
-                  isExpired ? "text-destructive" : ""
-                )}
-              >
-                {deadlineLabel}
-              </span>
+            
+            <div className="font-semibold text-slate-900 text-sm">
+              {rewardDisplay}
             </div>
           </div>
         </div>

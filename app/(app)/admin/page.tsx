@@ -98,7 +98,6 @@ export default async function AdminDashboard() {
         <div className="flex items-stretch gap-3">
           <div className="w-1.5 rounded-full bg-[var(--accent)]/80" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-1.5">Admin Workspace</p>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {t(`Good ${greetingTime}, Admin`)}
             </h1>

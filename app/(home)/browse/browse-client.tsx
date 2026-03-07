@@ -131,11 +131,24 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
   const hasResults = sortedDatasets.length > 0;
 
   return (
-    <main className="container mx-auto w-full max-w-7xl px-4 pb-16 pt-10">
-
-      <div className="mb-10">
-        <SearchSortBar
-          search={filters.search}
+    <div className="flex w-full flex-col min-h-screen bg-slate-50/50">
+      <div className="bg-white border-b border-slate-200">
+        <div className="mx-auto w-full max-w-7xl px-4 pt-16 pb-12 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl mb-4">
+              Explore <span className="text-emerald-600">Datasets</span>
+            </h1>
+            <p className="text-lg text-slate-500 leading-relaxed">
+              Discover high-quality dataset requests. Contribute your data, get rewarded, and help build the next generation of AI models.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex-1">
+        <div className="mb-8">
+          <SearchSortBar
+            search={filters.search}
           onSearchChange={(value) =>
             setFilters((prev) => ({ ...prev, search: value }))
           }
@@ -216,6 +229,7 @@ export function BrowseClient({ initialDatasets }: BrowseClientProps) {
           </Button>
         </section>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
