@@ -6,12 +6,12 @@
 - Last Updated: 2026-03-28
 
 ## Goal
-- Fix blog article media playback so the launch video loads at article-leading size and quality without third-party embed chrome degrading the reading experience.
+- Fix blog article media playback so the launch video loads at article-leading size and quality while remaining YouTube-backed for deployment.
 
 ## Exit Criteria
 - The operational playbooks article starts with a full-width video block before the body copy.
 - The video uses the same outer frame and spacing contract as blog images.
-- The article no longer depends on the YouTube iframe embed for this media block.
+- The article uses a custom YouTube preview/player treatment instead of exposing the raw default YouTube embed chrome on initial load.
 - `npm run typecheck` and `npm run build` pass.
 - Chrome DevTools QA confirms clean playback/render on desktop, tablet, and mobile.
 
@@ -20,16 +20,16 @@
 - Blocking Dependencies: none
 
 ## Scope Context
-- The current article uses a YouTube iframe that renders with a prominent play overlay and inconsistent perceived quality.
-- The repo already contains a local 1080p launch video artifact at `output/caudals-launch-video.mp4`.
+- The current article uses a raw YouTube iframe that renders with a prominent play overlay and inconsistent perceived quality.
+- The user explicitly wants the solution to stay on YouTube because it will be used in deployment.
 - The user explicitly requested the video at the beginning of the article and matching image placement/size.
 
 ## Stages
 
 ### S1 - Media Delivery Refactor
-- Objective: Replace the article embed with a first-party video asset and move it to the article lead position.
-- Outputs: local public video asset, updated MDX article content, updated media renderer if needed.
-- Done when: the article starts with the local video and no longer shows the YouTube embed.
+- Objective: Replace the raw embed treatment with a custom YouTube preview/player block and move it to the article lead position.
+- Outputs: updated MDX article content and updated media renderer/components.
+- Done when: the article starts with the new YouTube block and no longer shows the raw iframe embed in-body.
 - Mapped Tasks: `P29-T01`
 
 ### S2 - Validation and Closeout
@@ -39,7 +39,7 @@
 - Mapped Tasks: `P29-T02`
 
 ## Tasks
-- [ ] `P29-T01` (P0, IN_PROGRESS, owner: agent) Replace the operational playbooks YouTube iframe with the local launch MP4, move the media block to the top of the article, and preserve the blog image-frame visual contract.
+- [ ] `P29-T01` (P0, IN_PROGRESS, owner: agent) Replace the operational playbooks raw YouTube iframe with a custom full-width YouTube block, move it to the top of the article, and preserve the blog image-frame visual contract.
 - [ ] `P29-T02` (P0, QUEUED, owner: agent) Run validation, capture responsive QA evidence, update logs, and archive the phase.
 
 ## Validation Required
@@ -54,3 +54,4 @@
 
 ## Mid-Execution Steering Notes
 - Keep the visual rhythm aligned with the existing editorial system instead of introducing a separate video treatment.
+- Use YouTube-backed playback for deployment parity rather than local binary assets.
