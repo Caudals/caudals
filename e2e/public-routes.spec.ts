@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 const publicRoutes = [
+  { path: "/blog", heading: /clear signal for dataset operations/i },
+  {
+    path: "/blog/launching-caudals-clearer-dataset-operations",
+    heading: /launching caudals: a clearer control plane for dataset operations/i,
+  },
   { path: "/pricing", heading: /plans built for production dataset delivery/i },
   { path: "/docs", heading: /guides to run reliable data operations/i },
   { path: "/trust", heading: /evaluate caudals reliability before you launch/i },

@@ -25,6 +25,7 @@ interface HeaderProps {
 const DEFAULT_LINKS = [
   { href: "/browse", label: "Browse" },
   { href: "/collaborate", label: "Partnerships" },
+  { href: "/blog", label: "Blog" },
   { href: "/trust", label: "Trust" },
 ];
 const REQUESTER_SIGN_UP_CTA =

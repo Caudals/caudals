@@ -12,12 +12,10 @@ import {
   Settings,
   MoreHorizontal,
 } from "lucide-react";
-import { Inter } from "next/font/google";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
-const interHeading = Inter({ subsets: ["latin"], weight: ["600", "700"] });
 const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function HeroSection() {
@@ -50,7 +48,7 @@ export function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className={`${interHeading.className} text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl`}
+          className="text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl"
         >
           {t("Build production-grade datasets to train tailored AI models")}
         </motion.h1>

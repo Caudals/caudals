@@ -38,7 +38,13 @@ const cspDirectives = [
     "connect-src 'self' https:",
     isDev ? "http: ws: wss:" : "wss:",
   ].join(" "),
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+  [
+    "frame-src 'self'",
+    "https://js.stripe.com",
+    "https://hooks.stripe.com",
+    "https://www.youtube.com",
+    "https://www.youtube-nocookie.com",
+  ].join(" "),
   "worker-src 'self' blob:",
   ...(!isDev ? ["upgrade-insecure-requests"] : []),
 ].join("; ");

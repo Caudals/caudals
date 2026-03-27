@@ -1,0 +1,85 @@
+---
+title: Operational playbooks for multimodal dataset launches
+excerpt: A practical way to scope collection contracts, review load, and export shape before a multimodal dataset program starts moving.
+publishedAt: 2026-03-22
+author: The Caudals Team
+authorRole: Dataset operations
+category: Dataset Ops
+categoryKey: dataset-ops
+tags:
+  - Playbooks
+  - Multimodal
+  - Quality
+featured: false
+coverVariant: ledger
+---
+
+<Callout title="Rule of thumb">
+If a multimodal program cannot describe its review cadence and export package on day one, it will almost always pay for that ambiguity later.
+</Callout>
+
+## Start with the collection contract
+
+Multimodal requests fail when teams describe the desired data but not the operating conditions around it. The collection contract needs to define more than volume targets.
+
+At minimum, lock these inputs before sourcing contributors:
+
+- the modality mix you actually need,
+- device and environment constraints,
+- required metadata per submission,
+- rejection reasons reviewers are allowed to use,
+- export structure for approved data.
+
+That contract becomes the bridge between requester expectations, contributor instructions, and admin moderation. Without it, every surface will invent its own interpretation.
+
+## Build review by modality, not by accident
+
+A single “review queue” sounds simple, but audio, image, and text submissions usually create different failure modes. Put explicit review handling around each modality.
+
+| Modality | Common operational risk | Review guardrail |
+| --- | --- | --- |
+| Image | framing drift, lighting inconsistency | visual rubric with example-based rejection reasons |
+| Audio | clipping, background noise, format mismatch | pre-check waveform and enforce capture instructions |
+| Text | template drift, weak labeling consistency | structured validation and second-pass spot checks |
+
+The point is not to create bureaucracy. It is to prevent reviewers from improvising quality standards in real time.
+
+## Model review capacity before launch
+
+The collection side usually scales faster than the review side. A dataset launch plan should estimate reviewer capacity with the same seriousness as contributor acquisition.
+
+Use a simple planning frame:
+
+1. estimate expected submission volume by week,
+2. estimate approval-rate assumptions,
+3. translate that into reviewer minutes required,
+4. set queue-depth thresholds that trigger intervention.
+
+If the queue passes those thresholds, someone should know whether to tighten intake, shift reviewer coverage, or pause a region before backlog turns into dataset debt.
+
+## Decide what an export means
+
+Teams often say they want a “clean export,” but that phrase hides three different jobs:
+
+- finalizing approved files,
+- structuring metadata and lineage,
+- making the package understandable for downstream training teams.
+
+An export plan should answer:
+
+- how assets are grouped,
+- which metadata fields ship with each asset,
+- what approval state is represented,
+- what documentation explains known caveats.
+
+<Callout title="Operational signal">
+Exports should not surprise anyone. The ideal export package is boring because every approval, rejection, and metadata decision already happened in the open.
+</Callout>
+
+<iframe src="https://www.youtube-nocookie.com/embed/7ighNNc2lao" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen />
+
+## Treat launch as a systems exercise
+
+Multimodal work looks creative from the outside, but reliable delivery is mostly systems design. Good programs align instructions, incentives, review criteria, and export expectations before the first contributor submits anything.
+
+That is the bar we use inside Caudals. The earlier those operating contracts are visible, the faster teams can scale without eroding quality.
