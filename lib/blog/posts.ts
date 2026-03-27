@@ -90,11 +90,20 @@ async function directoryExists(targetPath: string) {
 async function getLocaleDirectory(locale: Locale) {
   const targetDirectory = path.join(BLOG_CONTENT_ROOT, locale);
   const exists = await directoryExists(targetDirectory);
-  return exists ? targetDirectory : path.join(BLOG_CONTENT_ROOT, defaultLocale);
+  if (exists) {
+    return targetDirectory;
+  }
+
+  const fallbackDirectory = path.join(BLOG_CONTENT_ROOT, defaultLocale);
+  return (await directoryExists(fallbackDirectory)) ? fallbackDirectory : null;
 }
 
 async function getSlugsForLocale(locale: Locale) {
   const directory = await getLocaleDirectory(locale);
+  if (!directory) {
+    return [];
+  }
+
   const entries = await fs.readdir(directory, { withFileTypes: true });
 
   return entries
