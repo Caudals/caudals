@@ -1,9 +1,9 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import Link from "next/link";
+import { blogMediaFrameClassName } from "@/components/blog/media-frame";
+import { YouTubeEmbed } from "@/components/blog/youtube-embed";
 import { slugifyHeading } from "@/lib/blog/shared";
 import { cn } from "@/lib/utils";
-
-const mediaFrameClassName = "my-12 w-full rounded-[24px] border border-gray-200";
 
 function extractText(children: ReactNode): string {
   if (typeof children === "string" || typeof children === "number") {
@@ -139,7 +139,7 @@ export const mdxComponents = {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className={cn(
-        `${mediaFrameClassName} object-cover grayscale-[50%] contrast-125`,
+        `${blogMediaFrameClassName} object-cover grayscale-[50%] contrast-125`,
         className,
       )}
       alt={alt}
@@ -148,13 +148,13 @@ export const mdxComponents = {
   ),
   video: ({ className, ...props }: ComponentPropsWithoutRef<"video">) => (
     <video
-      className={cn(`${mediaFrameClassName} object-cover`, className)}
+      className={cn(`${blogMediaFrameClassName} object-cover`, className)}
       controls
       {...props}
     />
   ),
   iframe: ({ className, ...props }: ComponentPropsWithoutRef<"iframe">) => (
-    <div className={cn(`${mediaFrameClassName} overflow-hidden`, className)}>
+    <div className={cn(`${blogMediaFrameClassName} overflow-hidden`, className)}>
       <iframe
         className="block aspect-video w-full"
         loading="lazy"
@@ -163,4 +163,5 @@ export const mdxComponents = {
       />
     </div>
   ),
-  };
+  YouTube: YouTubeEmbed,
+};
