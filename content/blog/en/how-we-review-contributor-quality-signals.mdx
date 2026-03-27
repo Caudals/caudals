@@ -1,0 +1,81 @@
+---
+title: How we review contributor quality signals without slowing delivery
+excerpt: The review model we use to separate risky submissions from routine ones, keep queues moving, and give contributors feedback they can act on.
+publishedAt: 2026-03-18
+author: The Caudals Team
+authorRole: Engineering and trust
+category: Engineering
+categoryKey: engineering
+tags:
+  - Engineering
+  - Review
+  - Trust
+featured: false
+coverVariant: grid
+---
+
+<Callout title="Core principle">
+Signals should focus reviewer attention. They should not silently make final quality decisions on behalf of the operation.
+</Callout>
+
+## Separate signals from decisions
+
+Teams get into trouble when they turn quality heuristics into invisible gatekeepers. We prefer a narrower contract:
+
+- automated signals flag likely issues,
+- reviewers make the final approval decision,
+- contributors get specific feedback instead of opaque denial.
+
+That division keeps the system explainable. It also gives operations teams a way to improve policy without rewriting the entire submission flow.
+
+## What a useful signal looks like
+
+A useful signal does one of three things:
+
+1. identifies a predictable technical failure such as a missing file or invalid format,
+2. raises the probability that a reviewer should look closer,
+3. helps route work to the right queue faster.
+
+Signals are less useful when they try to compress every nuance of “quality” into a single score. Review work is contextual, and contextual decisions need visible reasoning.
+
+## Queue design matters more than score obsession
+
+The best review system is usually the one that keeps the queue legible. We think about queue health in layers:
+
+- straightforward submissions move through fast lanes,
+- riskier submissions route into deeper review,
+- repeated failure patterns trigger instruction or policy changes upstream.
+
+That design keeps reviewer effort proportional to actual risk. It also helps avoid the common failure mode where every submission gets treated like an exception.
+
+## Feedback has to be operational
+
+Contributor feedback works only when it can change the next submission. That means rejection reasons should stay concrete.
+
+Useful examples:
+
+- “Background noise covered the spoken prompt.”
+- “Image framing cut off the required object.”
+- “Metadata field `device_model` was missing.”
+
+Weak feedback, by contrast, sounds like this:
+
+- “Did not meet quality standards.”
+- “Please improve submission quality.”
+
+Those messages protect the system from accountability while teaching the contributor nothing.
+
+<Callout title="What we optimize for">
+The goal is not to reject more precisely. The goal is to help good contributors recover quickly while keeping requester trust high.
+</Callout>
+
+## The operational loop we care about
+
+A review system is healthy when four things stay true at once:
+
+- requesters trust approval states,
+- contributors understand how to improve,
+- admins can see backlog and intervention points,
+- engineering can evolve signals without destabilizing policy.
+
+That is the pattern we keep building toward inside Caudals. Quality systems should reduce confusion, not manufacture more of it.

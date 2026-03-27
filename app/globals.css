@@ -140,6 +140,9 @@
 }
 
 @layer base {
+  html {
+    font-family: var(--font-family-sans);
+  }
   * {
     border-color: var(--border);
     border-style: solid;
@@ -151,6 +154,12 @@
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
   }
 }
 

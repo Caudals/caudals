@@ -21,6 +21,13 @@
 - `phase-16-market-readiness-polish-and-growth.md`
 - `phase-18-design-system-refactor.md`
 - `phase-19-dashboard-redesign-design-image-parity.md`
+- `phase-22-launch-video-remotion.md`
+- `phase-23-launch-video-spanish-polish.md`
+- `phase-24-launch-video-voiceover.md`
+- `phase-25-launch-video-castilian-copy-refinement.md`
+- `phase-26-launch-video-sequential-voiceover-assembly.md`
+- `phase-27-remotion-campaign-video-variants.md`
+- `phase-28-mdx-blog-launch.md`
 
 ## Legacy Full Tracker Snapshot
 
