@@ -13,18 +13,18 @@ import { ResourceStrip } from "@/components/landing/resource-strip";
 import { PricingSection } from "@/components/landing/pricing";
 import { FAQSection } from "@/components/landing/faq";
 import { CTASection } from "@/components/landing/cta";
-import { LandingGodRaysBackground } from "@/components/landing/god-rays-background";
+import { LandingVideoBackground } from "@/components/landing/video-background";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { FunnelVisitTracker } from "@/components/analytics/funnel-visit-tracker";
 
 export default function Home() {
-  const heroStackRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const [heroHeight, setHeroHeight] = useState(0);
 
   useEffect(() => {
     const updateHeroHeight = () => {
-      if (heroStackRef.current) {
-        setHeroHeight(heroStackRef.current.offsetHeight);
+      if (heroRef.current) {
+        setHeroHeight(heroRef.current.offsetHeight);
       }
     };
 
@@ -32,8 +32,8 @@ export default function Home() {
     window.addEventListener("resize", updateHeroHeight);
 
     const observer = new ResizeObserver(updateHeroHeight);
-    if (heroStackRef.current) {
-      observer.observe(heroStackRef.current);
+    if (heroRef.current) {
+      observer.observe(heroRef.current);
     }
 
     return () => {
@@ -46,23 +46,24 @@ export default function Home() {
     <div className="relative min-h-screen">
       <FunnelVisitTracker />
       <div className="relative">
-        <LandingGodRaysBackground contentHeight={heroHeight + 1000} />
+        <LandingVideoBackground contentHeight={heroHeight + 380} />
 
         <Header translucent />
 
         <main className="relative z-10 flex flex-col">
-          <div ref={heroStackRef}>
+          <div ref={heroRef}>
             <HeroSection />
-            <SocialProofSection />
-            <PlatformLayersSection />
+          </div>
 
-            <div id="features">
-              <FeaturesSection />
-            </div>
+          <SocialProofSection />
+          <PlatformLayersSection />
 
-            <div id="how-it-works">
-              <HowItWorksSection />
-            </div>
+          <div id="features">
+            <FeaturesSection />
+          </div>
+
+          <div id="how-it-works">
+            <HowItWorksSection />
           </div>
 
           <StatsSection />

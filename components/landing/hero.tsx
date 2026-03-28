@@ -39,7 +39,7 @@ export function HeroSection() {
         >
           <Badge
             variant="outline"
-            className="inline-flex items-center gap-2 border-border/60 bg-white/70 px-4 py-1.5 text-xs font-medium  text-foreground"
+            className="inline-flex items-center gap-2 border-border/60 bg-white/80 px-4 py-1.5 text-xs font-medium text-foreground backdrop-blur-md"
           >
             <Sparkles className="h-3.5 w-3.5" />
             {t("Supported by leading AI companies")}
@@ -80,7 +80,7 @@ export function HeroSection() {
           <Button
             size="lg"
             variant="ghost"
-            className="h-12 min-w-[200px] border-border/80 text-base bg-transparent"
+            className="h-12 min-w-[200px] border-border/80 bg-white/35 text-base backdrop-blur-sm"
             asChild
           >
             <Link href={isLandingMode ? "/blog" : "/browse"}>
@@ -167,7 +167,7 @@ function HeroPreview() {
   ];
 
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-border/40 bg-white p-3 shadow-xl sm:p-4 lg:flex-row">
+    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-white/70 bg-white/80 p-3 shadow-[0_24px_80px_rgba(94,119,145,0.18)] backdrop-blur-xl sm:p-4 lg:flex-row">
       
       <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-slate-500 lg:flex border-r border-border/40 mr-5">
         <div>

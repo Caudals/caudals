@@ -30,6 +30,7 @@
 - `phase-28-mdx-blog-launch.md`
 - `phase-29-blog-media-playback-polish.md`
 - `phase-30-landing-mode-public-surface-hardening.md`
+- `phase-31-landing-hero-mux-video.md`
 
 ## Legacy Full Tracker Snapshot
 
