@@ -52,8 +52,17 @@ export function SocialProofSection() {
   ];
 
   return (
-    <section className="py-16">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+    <section className="relative py-16">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[31rem] bg-[linear-gradient(180deg,rgba(249,250,251,0)_0%,rgba(249,250,251,0.03)_18%,rgba(249,250,251,0.1)_34%,rgba(249,250,251,0.24)_50%,rgba(249,250,251,0.52)_70%,rgba(249,250,251,0.86)_88%,rgba(249,250,251,1)_100%)] backdrop-blur-[1.5px]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-40 z-0 h-52 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.62)_0%,rgba(255,255,255,0.22)_40%,rgba(255,255,255,0)_74%)] blur-3xl"
+      />
+
+      <div className="relative z-10 mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase text-slate-500">
             {t("Ecosystem fit")}

@@ -22,9 +22,10 @@ const cspDirectives = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data: blob: https:",
+  "img-src 'self' data: blob: https: https://image.mux.com",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
+  "media-src 'self' blob: https://stream.mux.com https://image.mux.com",
   [
     "script-src 'self' 'unsafe-inline'",
     isDev ? "'unsafe-eval'" : "",
@@ -35,7 +36,7 @@ const cspDirectives = [
     .filter(Boolean)
     .join(" "),
   [
-    "connect-src 'self' https:",
+    "connect-src 'self' https: https://*.mux.com",
     isDev ? "http: ws: wss:" : "wss:",
   ].join(" "),
   [
