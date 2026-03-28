@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, SendHorizonal, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 import {
   collaborationFormSchema,
   type CollaborationFormValues,
@@ -21,22 +21,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
 const focusAreaLabels: Record<
   (typeof collaborationFocusAreas)[number],
@@ -58,6 +45,12 @@ const defaultValues: Partial<CollaborationFormValues> = {
   teamSize: undefined,
   message: "",
 };
+
+const minimalInputClass =
+  "border-0 border-b border-gray-300 rounded-md px-0 py-2 h-auto bg-transparent focus-visible:ring-0 focus-visible:border-black placeholder:text-gray-400 text-base shadow-none";
+
+const minimalSelectClass =
+  "w-full border-0 border-b border-gray-300 rounded-md px-0 py-2 bg-transparent focus-visible:ring-0 focus-visible:border-black text-base shadow-none appearance-none outline-none";
 
 export function ContactForm() {
   const [isComplete, setIsComplete] = useState(false);
@@ -109,7 +102,6 @@ export function ContactForm() {
       }
 
       setIsComplete(true);
-      toast.success(t("Thanks for reaching out. We'll respond within 48 hours."));
       form.reset(defaultValues);
     } catch (error) {
       console.error("Failed to submit contact form", error);
@@ -119,199 +111,225 @@ export function ContactForm() {
 
   if (isComplete) {
     return (
-      <Card className="border-0 bg-transparent shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-primary" />
-            {t("Message sent!")}
-          </CardTitle>
-          <CardDescription>
-            {t("We'll review your note and reply within 48 hours.")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-slate-500">
-            {t("If you want to add more context in the meantime, email us at")}
-            <Button variant="link" className="px-1 text-base" asChild>
-              <a href="mailto:contact@caudals.com">contact@caudals.com</a>
-            </Button>
+      <div className="py-8 text-center">
+        <h2 className="text-2xl font-normal tracking-tight text-black mb-4">
+          {t("Message sent")}
+        </h2>
+        <p className="text-base text-gray-600 leading-relaxed mb-8">
+          {t("We'll review your note and reply within 48 hours.")}
+        </p>
+        <div className="space-y-4 pt-8 border-t border-gray-200">
+          <p className="text-base text-gray-600">
+            {t("If you want to add more context in the meantime, email us at")}{" "}
+            <a
+              href="mailto:contact@caudals.com"
+              className="text-black hover:underline decoration-1 underline-offset-4"
+            >
+              contact@caudals.com
+            </a>
           </p>
-          <Button variant="outline" onClick={() => setIsComplete(false)}>
+          <button
+            type="button"
+            className="text-sm font-medium text-black hover:underline decoration-1 underline-offset-4"
+            onClick={() => setIsComplete(false)}
+          >
             {t("Send another message")}
-          </Button>
-        </CardContent>
-      </Card>
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="border-0 bg-transparent shadow-none">
-      <CardHeader>
-        <CardTitle className="text-2xl">
-          {t("Tell us what you're evaluating")}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("Full name")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t("Jane Smith")} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="workEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("Work email")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder={t("jane@company.com")}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+    <div className="bg-gray-50/50 p-8 sm:p-10 border border-gray-200 rounded-md">
+      <Form {...form}>
+        <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="grid gap-8 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="organization"
+              name="fullName"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("Company or organization")}</FormLabel>
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Full name")}
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder={t("Acme Corp")} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="organizationWebsite"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("Website (optional)")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid gap-4 md:grid-cols-2 md:items-start">
-              <FormField
-                control={form.control}
-                name="focusArea"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("Type of inquiry")}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("Select focus area")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {collaborationFocusAreas.map((area) => (
-                          <SelectItem key={area} value={area}>
-                            {t(focusAreaLabels[area])}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="teamSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("Team size (optional)")}</FormLabel>
-                    <Select
-                      value={field.value ?? "none"}
-                      onValueChange={(value) =>
-                        field.onChange(value === "none" ? undefined : value)
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("Select range")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">
-                          {t("Prefer not to say")}
-                        </SelectItem>
-                        {collaborationTeamSizes.map((size) => (
-                          <SelectItem key={size} value={size}>
-                            {t("{{range}} people", { range: size })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="message"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("Context and goals")}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={5}
-                      placeholder={t(
-                        "Tell us about your dataset goals, timeline, and what you'd like to discuss with Caudals.",
-                      )}
-                      className="resize-none"
+                    <Input
+                      placeholder={t("Jane Smith")}
+                      className={minimalInputClass}
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="workEmail"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Work email")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder={t("jane@company.com")}
+                      className={minimalInputClass}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="organization"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm font-medium text-black">
+                  {t("Company or organization")}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder={t("Acme Corp")}
+                    className={minimalInputClass}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="organizationWebsite"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm font-medium text-black">
+                  {t("Website (optional)")}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="https://example.com"
+                    className={minimalInputClass}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid gap-8 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="focusArea"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Type of inquiry")}
+                  </FormLabel>
+                  <FormControl>
+                    <select
+                      className={minimalSelectClass}
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
+                      <option value="" disabled hidden>
+                        {t("Select focus area")}
+                      </option>
+                      {collaborationFocusAreas.map((area) => (
+                        <option key={area} value={area}>
+                          {t(focusAreaLabels[area])}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("Sending...")}
-                </>
-              ) : (
-                <>
-                  {t("Send message")}
-                  <SendHorizonal className="ml-2 h-4 w-4" />
-                </>
+            <FormField
+              control={form.control}
+              name="teamSize"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Team size (optional)")}
+                  </FormLabel>
+                  <FormControl>
+                    <select
+                      className={minimalSelectClass}
+                      value={field.value ?? "none"}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === "none" ? undefined : e.target.value,
+                        )
+                      }
+                    >
+                      <option value="none">{t("Prefer not to say")}</option>
+                      {collaborationTeamSizes.map((size) => (
+                        <option key={size} value={size}>
+                          {t("{{range}} people", { range: size })}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
               )}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="message"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm font-medium text-black">
+                  {t("Context and goals")}
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    rows={4}
+                    placeholder={t(
+                      "Tell us about your dataset goals, timeline, and what you'd like to discuss.",
+                    )}
+                    className={cn(minimalInputClass, "resize-none")}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full h-14 rounded-md bg-black text-white hover:bg-gray-900 text-base font-medium mt-4"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t("Sending...")}
+              </>
+            ) : (
+              <>
+                {t("Send message")}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
+            )}
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 }

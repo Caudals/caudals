@@ -77,10 +77,13 @@ Geometry baseline:
 - Cards: pure white, `border border-gray-200`, `shadow-none` or `shadow-sm`, generous padding (`p-6`).
 - Tables: very clean, minimal borders, horizontal lines only.
 
-## Landing Page Contract
-- Hero: Centered text, large impactful typography, soft gradient or illustrated background (e.g., clouds/sky).
-- Nav: Glassmorphism/blur effect (`backdrop-blur-md bg-white/50`), items right-aligned, CTA button prominent.
-- Feature Cards: Soft borders, light green wireframe/line-art illustrations inside a subtle grid background.
+## Landing and Marketing Page Contract
+- **Overall Aesthetic**: Brutally minimal, editorial, high-contrast black and white.
+- **Typography**: Large, clean serif or sans-serif headings with tight tracking (`tracking-tight`). Generous line height on body copy.
+- **Layout**: Expansive white space (`bg-white`), strong horizontal and vertical dividers (`border-gray-200`), minimal use of containers/cards. Use centered, focused layouts where appropriate.
+- **Form Elements**: Clean and minimal. Slightly rounded borders (`rounded-md`), simple bottom borders (`border-b border-gray-300`), focus states use solid black borders. Backgrounds are transparent or very light gray (`bg-gray-50/50`).
+- **Buttons**: Blocky but with slight rounding (`rounded-md`), solid colors (`bg-black text-white hover:bg-gray-900`), standard sentence or title case.
+- **Shadows**: None. Completely flat interface.
 
 ## Acceptance Checklist
 A UI change is accepted only when:
