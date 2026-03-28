@@ -23,7 +23,7 @@ Global execution board for long-running autonomous delivery.
 - Phase 26 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 27 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 28 is completed and archived in `docs/exec-plans/completed/`.
-- Phase 29 is in progress in `docs/exec-plans/active/`.
+- Phase 29 is completed and archived in `docs/exec-plans/completed/`.
 - Active delivery focus returns to Phase 17.
 - Phase 20 remains queued for dashboard workflow gaps.
 
@@ -34,9 +34,8 @@ Global execution board for long-running autonomous delivery.
 4. Prefer tasks that unlock multiple downstream tasks.
 
 ## Active Phase Queue
-1. **Phase 29 – Blog Media Playback Polish** (`docs/exec-plans/active/phase-29-blog-media-playback-polish.md`) — IN_PROGRESS, P0
-2. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
-3. **Phase 20 – Dashboard Feature Gaps and Missing Workflows** (`docs/exec-plans/active/phase-20-dashboard-missing-features.md`) — QUEUED, P1
+1. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
+2. **Phase 20 – Dashboard Feature Gaps and Missing Workflows** (`docs/exec-plans/active/phase-20-dashboard-missing-features.md`) — QUEUED, P1
 
 ## Phase Lifecycle (Canonical)
 - Create one detailed phase file per initiative in `docs/exec-plans/active/` using `docs/exec-plans/phase-template.md`.

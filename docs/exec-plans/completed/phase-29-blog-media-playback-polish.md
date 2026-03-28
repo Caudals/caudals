@@ -1,6 +1,6 @@
 # Phase 29 - Blog Media Playback Polish
 
-- Status: IN_PROGRESS
+- Status: DONE
 - Priority: P0
 - Owner: agent
 - Last Updated: 2026-03-28
@@ -39,8 +39,8 @@
 - Mapped Tasks: `P29-T02`
 
 ## Tasks
-- [ ] `P29-T01` (P0, IN_PROGRESS, owner: agent) Replace the operational playbooks raw YouTube iframe with a custom full-width YouTube block, move it to the top of the article, and preserve the blog image-frame visual contract.
-- [ ] `P29-T02` (P0, QUEUED, owner: agent) Run validation, capture responsive QA evidence, update logs, and archive the phase.
+- [x] `P29-T01` (P0, DONE, owner: agent) Replace the operational playbooks raw YouTube iframe with a custom full-width YouTube block, move it to the top of the article, and preserve the blog image-frame visual contract.
+- [x] `P29-T02` (P0, DONE, owner: agent) Run validation, capture responsive QA evidence, update logs, and archive the phase.
 
 ## Validation Required
 - `npm run typecheck`

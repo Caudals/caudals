@@ -28,6 +28,7 @@
 - `phase-26-launch-video-sequential-voiceover-assembly.md`
 - `phase-27-remotion-campaign-video-variants.md`
 - `phase-28-mdx-blog-launch.md`
+- `phase-29-blog-media-playback-polish.md`
 
 ## Legacy Full Tracker Snapshot
 
