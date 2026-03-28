@@ -29,6 +29,7 @@
 - `phase-27-remotion-campaign-video-variants.md`
 - `phase-28-mdx-blog-launch.md`
 - `phase-29-blog-media-playback-polish.md`
+- `phase-30-landing-mode-public-surface-hardening.md`
 
 ## Legacy Full Tracker Snapshot
 

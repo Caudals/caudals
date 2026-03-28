@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { ArrowRight, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function CTASection() {
   const t = useTranslations();
+  const isLandingMode = landingModePublicEnabled;
 
   return (
     <section className="py-20">
@@ -18,17 +20,23 @@ export function CTASection() {
             {t("Next steps")}
           </p>
           <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
-            {t("Ready to co-build your dataset or partnerships program?")}
+            {isLandingMode
+              ? t("Ready to scope your first dataset conversation?")
+              : t("Ready to launch your next dataset program?")}
           </h2>
           <p className="mx-auto max-w-3xl text-base text-slate-500">
-            {t(
-              "Jump straight into the dashboard to post a blueprint or head to the Partnerships tab to co-design a custom engagement with Caudals Labs.",
-            )}
+            {isLandingMode
+              ? t(
+                  "Tell us what you need to collect, review, or validate and we will route you to the right next step.",
+                )
+              : t(
+                  "Start in the dashboard or contact the Caudals team to shape a tailored rollout for your operation.",
+                )}
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button size="lg" className="h-12 min-w-[220px]" asChild>
-              <Link href={REQUESTER_ONBOARDING_CTA}>
-                {t("Start collecting data")}
+              <Link href={isLandingMode ? "/contact" : REQUESTER_ONBOARDING_CTA}>
+                {isLandingMode ? t("Contact Caudals") : t("Start collecting data")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -38,7 +46,9 @@ export function CTASection() {
               className="h-12 min-w-[220px] border-border/80"
               asChild
             >
-              <Link href="/#partnerships">{t("Go to Partnerships")}</Link>
+              <Link href={isLandingMode ? "/blog" : "/contact"}>
+                {isLandingMode ? t("Read the blog") : t("Go to Contact")}
+              </Link>
             </Button>
           </div>
           <div className="flex flex-col items-center justify-center gap-2 text-sm text-slate-500 sm:flex-row sm:gap-6">

@@ -38,7 +38,7 @@ const faqs = [
   {
     question: "What is the typical time-to-launch?",
     answer:
-      "Teams on Launch plans typically go live within 10 business days. Partnerships customers often start collecting data within their first week.",
+      "Teams on Launch plans typically go live within 10 business days. Commercial pilots with tailored scoping often move even faster once the first conversation is aligned.",
   },
 ];
 
@@ -87,7 +87,6 @@ export function FAQSection() {
     </section>
   );
 }
-
 
 
 

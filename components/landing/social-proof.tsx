@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, BadgeCheck, FileCheck2, WalletCards } from "lucide-react";
+import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const REQUESTER_ONBOARDING_CTA =
@@ -10,6 +11,7 @@ const REQUESTER_ONBOARDING_CTA =
 
 export function SocialProofSection() {
   const t = useTranslations();
+  const isLandingMode = landingModePublicEnabled;
   const ecosystems = [
     { name: "NVIDIA", caption: t("Omniverse + GPU workflows") },
     { name: "PyTorch", caption: t("Model-ready tensors") },
@@ -110,27 +112,50 @@ export function SocialProofSection() {
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <Link
-                href="/trust"
-                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
-              >
-                {t("Trust center")}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-              <Link
-                href="/docs/security-baseline"
-                className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
-              >
-                {t("Security baseline")}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+              {isLandingMode ? (
+                <>
+                  <Link
+                    href="/contact"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+                  >
+                    {t("Contact Caudals")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                  <Link
+                    href="/blog"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+                  >
+                    {t("Read the blog")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/trust"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+                  >
+                    {t("Trust center")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                  <Link
+                    href="/docs/security-baseline"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/70 px-3 py-1 hover:bg-background"
+                  >
+                    {t("Security baseline")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </>
+              )}
             </div>
 
             <Link
-              href={REQUESTER_ONBOARDING_CTA}
+              href={isLandingMode ? "/contact" : REQUESTER_ONBOARDING_CTA}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background hover:bg-foreground/90"
             >
-              {t("Launch requester onboarding")}
+              {isLandingMode
+                ? t("Book the first conversation")
+                : t("Launch requester onboarding")}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

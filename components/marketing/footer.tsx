@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
-export function MarketingFooter() {
+interface MarketingFooterProps {
+  forceLandingMode?: boolean;
+}
+
+export function MarketingFooter({ forceLandingMode = false }: MarketingFooterProps) {
   const t = useTranslations();
   
   // Only use simplified footer when deploy is in landing mode (set at build time)
-  const isLandingMode = process.env.NEXT_PUBLIC_LANDING_MODE === "true";
+  const isLandingMode = landingModePublicEnabled || forceLandingMode;
 
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
-        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-1 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-2 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
           <div>
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
@@ -27,7 +32,25 @@ export function MarketingFooter() {
               contact@caudals.com
             </Link>
           </div>
-          {!isLandingMode && (
+          {isLandingMode ? (
+            <div>
+              <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                {t("Explore")}
+              </h4>
+              <ul className="space-y-2 text-sm text-slate-500">
+                <li>
+                  <Link href="/contact" className="hover:text-foreground">
+                    {t("Contact")}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/blog" className="hover:text-foreground">
+                    {t("Blog")}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          ) : (
             <>
               <div>
                 <h4 className="mb-4 text-sm font-semibold text-slate-900">
@@ -90,28 +113,30 @@ export function MarketingFooter() {
               </div>
             </>
           )}
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-slate-900">
-              {t("Legal")}
-            </h4>
-            <ul className="space-y-2 text-sm text-slate-500">
-              <li>
-                <Link href="/legal/privacy" className="hover:text-foreground">
-                  {t("Privacy Policy")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/terms" className="hover:text-foreground">
-                  {t("Terms of Service")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/cookies" className="hover:text-foreground">
-                  {t("Cookie Policy")}
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {!isLandingMode ? (
+            <div>
+              <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                {t("Legal")}
+              </h4>
+              <ul className="space-y-2 text-sm text-slate-500">
+                <li>
+                  <Link href="/legal/privacy" className="hover:text-foreground">
+                    {t("Privacy Policy")}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/terms" className="hover:text-foreground">
+                    {t("Terms of Service")}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/cookies" className="hover:text-foreground">
+                    {t("Cookie Policy")}
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row">
           <p className="text-sm text-slate-500">

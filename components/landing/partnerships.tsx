@@ -9,35 +9,35 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 const highlights = [
   {
     icon: Target,
-    title: "Blueprint sprints",
+    title: "Discovery calls",
     description:
-      "Co-design dataset specs, contributor personas, and QA protocols with Caudals Labs in ten focused days.",
+      "Talk directly with the team about scope, dataset modalities, review criteria, and rollout constraints before you commit.",
   },
   {
     icon: Globe2,
-    title: "Custom cohorts",
+    title: "Pilot scoping",
     description:
-      "Spin up regional contributor pods or university partnerships with live enablement and certification.",
+      "We can map an initial pilot, estimate operational shape, and suggest the right commercial next step for your first project.",
   },
   {
     icon: Flame,
-    title: "Signal amplification",
+    title: "Fast commercial follow-up",
     description:
-      "Feature your briefs, run paid campaigns, and place sponsored requests at the top of the browse feed.",
+      "If there is a fit, we move quickly from email to a focused working session so you can start validating demand and timing.",
   },
 ];
 
-const partnershipMetrics = [
-  { label: "Blueprint to launch", value: "10 days" },
-  { label: "Sponsored brief CTR", value: "↑ 2.8x" },
-  { label: "University pods", value: "36 campuses" },
+const contactMetrics = [
+  { label: "First reply", value: "48h" },
+  { label: "Working sessions", value: "Weekly" },
+  { label: "Pilot scoping", value: "Fast" },
 ];
 
-export function PartnershipsSection() {
+export function ContactSection() {
   const t = useTranslations();
 
   return (
-    <section id="partnerships" className="py-20">
+    <section id="contact" className="py-20">
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="grid gap-10 lg:grid-cols-[1.1fr_minmax(0,0.9fr)] lg:items-center">
           <motion.div
@@ -50,22 +50,22 @@ export function PartnershipsSection() {
             <div className="flex flex-col gap-6">
               <div className="space-y-3 text-left">
                 <p className="text-xs font-semibold uppercase text-accent">
-                  {t("Partnerships")}
+                  {t("Contact")}
                 </p>
                 <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
                   {t(
-                    "Partner with Caudals to co-design research programs, educational cohorts, or strategic distribution alliances",
+                    "Talk with Caudals about your next dataset program, pilot, or commercial rollout",
                   )}
                 </h2>
                 <p className="text-base leading-relaxed text-slate-500">
                   {t(
-                    "Unlock a dedicated Caudals Labs pod to architect bespoke datasets, energize your contributor community, or co-brand initiatives with universities and enterprises. We compress months of planning into a single aligned track.",
+                    "Use the public contact flow to start the conversation. We review fit, clarify scope, and move promising conversations into a focused working session fast.",
                   )}
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                {partnershipMetrics.map((metric) => (
+                {contactMetrics.map((metric) => (
                   <div
                     key={metric.label}
                     className="rounded-2xl border border-border/70 bg-white p-4 text-left"
@@ -78,8 +78,8 @@ export function PartnershipsSection() {
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <Button size="lg" asChild className="h-12 px-6">
-                  <Link href="/collaborate">
-                    {t("Explore partnerships")}
+                  <Link href="/contact">
+                    {t("Open contact form")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -111,7 +111,7 @@ export function PartnershipsSection() {
             <div className="rounded-2xl border border-dashed border-border/80 bg-card p-5 text-sm text-slate-500">
               <p>
                 {t(
-                  "Partnerships turn your briefs into sponsored placements, curriculum-aligned cohorts, and co-branded activations. Loop in universities, research labs, or internal communities and we'll run the playbook end-to-end.",
+                  "Need pricing context, a buyer conversation, or a tailored rollout? Start from one contact point and we will route the right next step without exposing unfinished product surfaces.",
                 )}
               </p>
             </div>
@@ -121,7 +121,6 @@ export function PartnershipsSection() {
     </section>
   );
 }
-
 
 
 

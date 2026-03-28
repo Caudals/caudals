@@ -21,7 +21,7 @@ Help ML teams procure high-quality datasets faster while giving contributors a t
 - Auditable operations for enterprise trust
 
 ## Product Surfaces
-- Marketing/public (`/`, `/browse`, `/collaborate`, `/landing-simple`)
+- Marketing/public (`/`, `/contact`, `/blog`)
 - Auth and account (`/auth/*`)
 - Role applications (`/requester/*`, `/contributor/*`, `/admin/*`)
 - Contributor PWA companion (`/pwa/*`)

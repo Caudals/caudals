@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { ArrowUpRight, FileText, ShieldCheck, Sparkles } from "lucide-react";
+import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
-const resources = [
+const docsResources = [
   {
     label: "Field guide: Designing multilingual dataset briefs",
     href: "/docs/designing-datasets",
@@ -22,8 +23,28 @@ const resources = [
   },
 ];
 
+const blogResources = [
+  {
+    label: "Launching Caudals: a clearer control plane for dataset operations",
+    href: "/blog/launching-caudals-clearer-dataset-operations",
+    icon: Sparkles,
+  },
+  {
+    label: "Operational playbooks for multimodal datasets",
+    href: "/blog/operational-playbooks-for-multimodal-datasets",
+    icon: ShieldCheck,
+  },
+  {
+    label: "How we review contributor quality signals",
+    href: "/blog/how-we-review-contributor-quality-signals",
+    icon: FileText,
+  },
+];
+
 export function ResourceStrip() {
   const t = useTranslations();
+  const isLandingMode = landingModePublicEnabled;
+  const resources = isLandingMode ? blogResources : docsResources;
 
   return (
     <section className="py-16">
@@ -34,12 +55,18 @@ export function ResourceStrip() {
               {t("Keep exploring")}
             </p>
             <h3 className="text-2xl font-semibold text-foreground">
-              {t("Resources to accelerate your next dataset sprint")}
+              {isLandingMode
+                ? t("Signal from the Caudals blog")
+                : t("Resources to accelerate your next dataset sprint")}
             </h3>
             <p className="text-sm text-slate-500">
-              {t(
-                "Save time with proven playbooks, security documentation, and planning templates used by teams already live on Caudals.",
-              )}
+              {isLandingMode
+                ? t(
+                    "Read how we think about dataset operations, contributor quality, and launch sequencing before the first call.",
+                  )
+                : t(
+                    "Save time with proven playbooks, security documentation, and planning templates used by teams already live on Caudals.",
+                  )}
             </p>
           </div>
           <ul className="grid gap-3 md:flex md:flex-1 md:flex-col">
@@ -63,7 +90,6 @@ export function ResourceStrip() {
     </section>
   );
 }
-
 
 
 

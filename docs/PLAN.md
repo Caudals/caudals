@@ -24,6 +24,7 @@ Global execution board for long-running autonomous delivery.
 - Phase 27 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 28 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 29 is completed and archived in `docs/exec-plans/completed/`.
+- Phase 30 is completed and archived in `docs/exec-plans/completed/`.
 - Active delivery focus returns to Phase 17.
 - Phase 20 remains queued for dashboard workflow gaps.
 

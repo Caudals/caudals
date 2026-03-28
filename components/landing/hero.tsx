@@ -14,12 +14,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function HeroSection() {
   const t = useTranslations();
+  const isLandingMode = landingModePublicEnabled;
   const heroHighlights = [
     t("No onboarding fees"),
     t("Pay only for approvals"),
@@ -71,7 +73,9 @@ export function HeroSection() {
           className="mt-10 flex flex-col gap-4 sm:flex-row"
         >
           <Button size="lg" className="h-12 min-w-[200px] px-8 text-base" asChild>
-            <Link href={REQUESTER_ONBOARDING_CTA}>{t("Start a project")}</Link>
+            <Link href={isLandingMode ? "/contact" : REQUESTER_ONBOARDING_CTA}>
+              {isLandingMode ? t("Talk to the team") : t("Start a project")}
+            </Link>
           </Button>
           <Button
             size="lg"
@@ -79,8 +83,8 @@ export function HeroSection() {
             className="h-12 min-w-[200px] border-border/80 text-base bg-transparent"
             asChild
           >
-            <Link href="/browse">
-              {t("Browse datasets")}
+            <Link href={isLandingMode ? "/blog" : "/browse"}>
+              {isLandingMode ? t("Read the blog") : t("Browse datasets")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
