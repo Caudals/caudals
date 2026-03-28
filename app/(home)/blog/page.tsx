@@ -43,7 +43,7 @@ export default async function BlogPage({
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       <Header links={[...landingModePublicNavigationLinks]} hideActions />
-      <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-24 sm:px-8 lg:px-12 lg:pt-32">
+      <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-16">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
             {t("Blog")}
