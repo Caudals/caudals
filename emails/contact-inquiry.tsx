@@ -2,20 +2,20 @@ import * as React from "react";
 import type { CollaborationFormValues } from "@/lib/validators/collaboration";
 
 const focusAreaLabels: Record<CollaborationFormValues["focusArea"], string> = {
-  "data-collection": "Data collection partnership",
-  "joint-research": "Joint research or experimentation",
-  "co-marketing": "Joint go-to-market or funding",
-  "public-sector": "Public sector or civic initiative",
+  "data-collection": "Dataset program or pilot",
+  "joint-research": "Research or experimentation",
+  "co-marketing": "Pricing, sales, or go-to-market",
+  "public-sector": "Public sector or regulated initiative",
   other: "Other",
 };
 
-type CollaborationInquiryEmailProps = CollaborationFormValues & {
+type ContactInquiryEmailProps = CollaborationFormValues & {
   submittedAt: string;
   userAgent?: string | null;
   referer?: string | null;
 };
 
-export function CollaborationInquiryEmail({
+export function ContactInquiryEmail({
   fullName,
   workEmail,
   organization,
@@ -26,7 +26,7 @@ export function CollaborationInquiryEmail({
   submittedAt,
   userAgent,
   referer,
-}: CollaborationInquiryEmailProps) {
+}: ContactInquiryEmailProps) {
   const submitted = new Date(submittedAt);
   const formattedDate = submitted.toLocaleString("en-US", {
     month: "short",
@@ -39,7 +39,8 @@ export function CollaborationInquiryEmail({
   return (
     <div
       style={{
-        fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         backgroundColor: "#f8fafc",
         padding: "32px 0",
       }}
@@ -62,7 +63,7 @@ export function CollaborationInquiryEmail({
           <tr>
             <td>
               <p style={{ fontSize: 14, color: "#64748b", marginBottom: 8 }}>
-                New collaboration inquiry
+                New contact inquiry
               </p>
               <h1 style={{ fontSize: 24, color: "#0f172a", marginBottom: 16 }}>
                 {organization} &middot; {fullName}
@@ -77,7 +78,7 @@ export function CollaborationInquiryEmail({
               >
                 <InfoRow label="Contact" value={`${fullName} — ${workEmail}`} />
                 <InfoRow label="Organization" value={organization} />
-                <InfoRow label="Focus" value={focusAreaLabels[focusArea]} />
+                <InfoRow label="Inquiry" value={focusAreaLabels[focusArea]} />
                 {teamSize ? <InfoRow label="Team size" value={teamSize} /> : null}
                 {organizationWebsite ? (
                   <InfoRow label="Website" value={organizationWebsite} />
@@ -102,7 +103,7 @@ export function CollaborationInquiryEmail({
                     marginBottom: 8,
                   }}
                 >
-                  Collaboration notes
+                  Inquiry notes
                 </p>
                 <p
                   style={{
@@ -138,8 +139,15 @@ export function CollaborationInquiryEmail({
           </tr>
         </tbody>
       </table>
-      <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginTop: 16 }}>
-        Caudals • Collaboration inbox
+      <p
+        style={{
+          fontSize: 12,
+          color: "#94a3b8",
+          textAlign: "center",
+          marginTop: 16,
+        }}
+      >
+        Caudals • Contact inbox
       </p>
     </div>
   );
@@ -153,7 +161,14 @@ type InfoRowProps = {
 function InfoRow({ label, value }: InfoRowProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 12, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>
+      <span
+        style={{
+          fontSize: 12,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: 0.6,
+        }}
+      >
         {label}
       </span>
       <span style={{ fontSize: 15, color: "#0f172a" }}>{value}</span>

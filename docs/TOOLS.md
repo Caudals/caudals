@@ -171,6 +171,12 @@ Operational env controls:
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Optional ops: platform fee percent and Stripe test business URL settings
 
+## LANDING_MODE Activation
+- `LANDING_MODE` affects both build-time and runtime behavior.
+- Build-time: set the GitHub Actions repository secret `LANDING_MODE=true` so `.github/workflows/deploy.yml` passes it into the Docker build. This bakes `NEXT_PUBLIC_LANDING_MODE` into the public bundle.
+- Runtime: keep `LANDING_MODE=true` in Dokploy environment variables as well, or ensure Dokploy does not override the image-level value. The server-side proxy reads runtime `LANDING_MODE`.
+- After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
+
 ## Troubleshooting Quick Hits
 - `Could not find table ... in schema cache`:
   - apply pending migrations,

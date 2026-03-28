@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, SendHorizonal, Sparkles } from "lucide-react";
-
 import {
   collaborationFormSchema,
   type CollaborationFormValues,
@@ -22,7 +21,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -33,11 +38,14 @@ import {
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
-const focusAreaLabels: Record<(typeof collaborationFocusAreas)[number], string> = {
-  "data-collection": "Data collection partnership",
-  "joint-research": "Joint research or experimentation",
-  "co-marketing": "Co-marketing or funding",
-  "public-sector": "Public sector or civic initiative",
+const focusAreaLabels: Record<
+  (typeof collaborationFocusAreas)[number],
+  string
+> = {
+  "data-collection": "Dataset program or pilot",
+  "joint-research": "Research or experimentation",
+  "co-marketing": "Pricing, sales, or go-to-market",
+  "public-sector": "Public sector or regulated initiative",
   other: "Other",
 };
 
@@ -51,7 +59,7 @@ const defaultValues: Partial<CollaborationFormValues> = {
   message: "",
 };
 
-export function CollaborateForm() {
+export function ContactForm() {
   const [isComplete, setIsComplete] = useState(false);
   const toast = useLocaleToast();
   const t = useTranslations();
@@ -65,7 +73,7 @@ export function CollaborateForm() {
 
   async function onSubmit(values: CollaborationFormValues) {
     try {
-      const response = await fetch("/api/collaborations", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -75,7 +83,9 @@ export function CollaborateForm() {
 
       if (!response.ok) {
         if (response.status === 422 && payload && typeof payload === "object") {
-          const detail = (payload as { details?: { fieldErrors?: Record<string, string[]> } }).details;
+          const detail = (
+            payload as { details?: { fieldErrors?: Record<string, string[]> } }
+          ).details;
           if (detail?.fieldErrors) {
             Object.entries(detail.fieldErrors).forEach(([field, messages]) => {
               if (messages?.length) {
@@ -102,7 +112,7 @@ export function CollaborateForm() {
       toast.success(t("Thanks for reaching out. We'll respond within 48 hours."));
       form.reset(defaultValues);
     } catch (error) {
-      console.error("Failed to submit collaboration form", error);
+      console.error("Failed to submit contact form", error);
       toast.error(t("We couldn't send your message. Please try again."));
     }
   }
@@ -116,12 +126,12 @@ export function CollaborateForm() {
             {t("Message sent!")}
           </CardTitle>
           <CardDescription>
-            {t("Our partnerships team will respond within 48 hours.")}
+            {t("We'll review your note and reply within 48 hours.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-500">
-            {t("If you'd like to share more details in the meantime, reach us directly at")}
+            {t("If you want to add more context in the meantime, email us at")}
             <Button variant="link" className="px-1 text-base" asChild>
               <a href="mailto:contact@caudals.com">contact@caudals.com</a>
             </Button>
@@ -135,14 +145,11 @@ export function CollaborateForm() {
   }
 
   return (
-    <Card className="border-0 bg-transparent shadow-none ">
+    <Card className="border-0 bg-transparent shadow-none">
       <CardHeader>
-        <CardTitle className="text-2xl">{t("Share your initiative")}</CardTitle>
-        {/* <CardDescription>
-          {t(
-            "Tell us what you're building so we can design a tailored collaboration plan.",
-          )}
-        </CardDescription> */}
+        <CardTitle className="text-2xl">
+          {t("Tell us what you're evaluating")}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -185,10 +192,10 @@ export function CollaborateForm() {
               name="organization"
               render={({ field }) => (
                 <FormItem>
-                    <FormLabel>{t("Company or organization")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t("Acme Corp")} {...field} />
-                    </FormControl>
+                  <FormLabel>{t("Company or organization")}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={t("Acme Corp")} {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -199,10 +206,10 @@ export function CollaborateForm() {
               name="organizationWebsite"
               render={({ field }) => (
                 <FormItem>
-                    <FormLabel>{t("Website (optional)")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com" {...field} />
-                    </FormControl>
+                  <FormLabel>{t("Website (optional)")}</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://example.com" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -214,7 +221,7 @@ export function CollaborateForm() {
                 name="focusArea"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("Type of collaboration")}</FormLabel>
+                    <FormLabel>{t("Type of inquiry")}</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
@@ -242,7 +249,9 @@ export function CollaborateForm() {
                     <FormLabel>{t("Team size (optional)")}</FormLabel>
                     <Select
                       value={field.value ?? "none"}
-                      onValueChange={(value) => field.onChange(value === "none" ? undefined : value)}
+                      onValueChange={(value) =>
+                        field.onChange(value === "none" ? undefined : value)
+                      }
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -250,7 +259,9 @@ export function CollaborateForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">{t("Prefer not to say")}</SelectItem>
+                        <SelectItem value="none">
+                          {t("Prefer not to say")}
+                        </SelectItem>
                         {collaborationTeamSizes.map((size) => (
                           <SelectItem key={size} value={size}>
                             {t("{{range}} people", { range: size })}
@@ -269,16 +280,16 @@ export function CollaborateForm() {
               name="message"
               render={({ field }) => (
                 <FormItem>
-                    <FormLabel>{t("Context and next steps")}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        placeholder={t(
-                          "Tell us about your initiative, goals, and how you'd like to collaborate with Caudals.",
-                        )}
-                        className="resize-none"
-                        {...field}
-                      />
+                  <FormLabel>{t("Context and goals")}</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={5}
+                      placeholder={t(
+                        "Tell us about your dataset goals, timeline, and what you'd like to discuss with Caudals.",
+                      )}
+                      className="resize-none"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

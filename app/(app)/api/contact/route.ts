@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
 import { collaborationFormSchema } from "@/lib/validators/collaboration";
-import { CollaborationInquiryEmail } from "@/emails/collaboration-inquiry";
+import { ContactInquiryEmail } from "@/emails/contact-inquiry";
 import {
   addContactEmailToSegment,
   ensureAudienceContact,
@@ -13,12 +13,12 @@ import {
 } from "@/lib/security/rate-limit";
 import { logError, logWarn } from "@/lib/security/structured-logger";
 
-const COLLAB_IP_RATE_LIMIT = {
+const CONTACT_IP_RATE_LIMIT = {
   limit: 6,
   windowMs: 15 * 60 * 1000,
 };
 
-const COLLAB_EMAIL_RATE_LIMIT = {
+const CONTACT_EMAIL_RATE_LIMIT = {
   limit: 3,
   windowMs: 60 * 60 * 1000,
 };
@@ -36,9 +36,9 @@ function withHeaders(
 export async function POST(request: NextRequest) {
   const clientIp = getClientIpFromHeaders(request.headers);
   const ipRateLimit = await consumeRateLimit({
-    key: `collaboration:ip:${clientIp}`,
-    limit: COLLAB_IP_RATE_LIMIT.limit,
-    windowMs: COLLAB_IP_RATE_LIMIT.windowMs,
+    key: `contact:ip:${clientIp}`,
+    limit: CONTACT_IP_RATE_LIMIT.limit,
+    windowMs: CONTACT_IP_RATE_LIMIT.windowMs,
   });
   const ipRateHeaders = buildRateLimitHeaders(ipRateLimit);
 
@@ -61,7 +61,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Bot trap field: real form submissions should leave this empty.
   if (typeof payload.website === "string" && payload.website.trim().length > 0) {
     return withHeaders(
       NextResponse.json({
@@ -90,9 +89,9 @@ export async function POST(request: NextRequest) {
   const data = parsed.data;
   const normalizedWorkEmail = data.workEmail.toLowerCase();
   const emailRateLimit = await consumeRateLimit({
-    key: `collaboration:email:${normalizedWorkEmail}`,
-    limit: COLLAB_EMAIL_RATE_LIMIT.limit,
-    windowMs: COLLAB_EMAIL_RATE_LIMIT.windowMs,
+    key: `contact:email:${normalizedWorkEmail}`,
+    limit: CONTACT_EMAIL_RATE_LIMIT.limit,
+    windowMs: CONTACT_EMAIL_RATE_LIMIT.windowMs,
   });
 
   if (!emailRateLimit.allowed) {
@@ -108,7 +107,7 @@ export async function POST(request: NextRequest) {
   const resendFrom = process.env.RESEND_FROM_EMAIL;
 
   if (!resendFrom) {
-    logError("collaboration.resend_from_missing");
+    logError("contact.resend_from_missing");
     return withHeaders(
       NextResponse.json(
         { error: "Email service is not configured" },
@@ -119,8 +118,8 @@ export async function POST(request: NextRequest) {
   }
 
   const notificationEmail =
-    process.env.COLLABORATION_NOTIFICATION_EMAIL ??
     process.env.CONTACT_NOTIFICATION_EMAIL ??
+    process.env.COLLABORATION_NOTIFICATION_EMAIL ??
     process.env.WAITLIST_NOTIFICATION_EMAIL ??
     "contact@caudals.com";
 
@@ -128,72 +127,72 @@ export async function POST(request: NextRequest) {
   const submittedAt = new Date().toISOString();
   const userAgent = request.headers.get("user-agent");
   const referer = request.headers.get("referer");
-  const partnershipsAudienceId =
+  const contactAudienceId =
     process.env.RESEND_PARTNERSHIPS_AUDIENCE_ID ??
     process.env.RESEND_GENERAL_AUDIENCE_ID;
-  const partnershipsSegmentId = process.env.RESEND_PARTNERSHIPS_SEGMENT_ID;
+  const contactSegmentId = process.env.RESEND_PARTNERSHIPS_SEGMENT_ID;
   const resendApiKey = process.env.RESEND_API_KEY;
   const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
   let audienceContactReady = false;
 
-  if (partnershipsAudienceId) {
+  if (contactAudienceId) {
     try {
       audienceContactReady = await ensureAudienceContact({
         resendClient: resend,
-        audienceId: partnershipsAudienceId,
+        audienceId: contactAudienceId,
         email: normalizedWorkEmail,
         fullName: data.fullName,
       });
     } catch (error) {
-      logError("collaboration.contact_upsert_failed", {
+      logError("contact.contact_upsert_failed", {
         error,
         email: normalizedWorkEmail,
-        audienceId: partnershipsAudienceId,
+        audienceId: contactAudienceId,
       });
     }
   } else {
-    logWarn("collaboration.partnerships_audience_missing");
+    logWarn("contact.audience_missing");
   }
 
-  if (partnershipsSegmentId) {
+  if (contactSegmentId) {
     if (!resendApiKey) {
-      logWarn("collaboration.resend_api_key_missing");
+      logWarn("contact.resend_api_key_missing");
     } else if (!audienceContactReady) {
-      logWarn("collaboration.segment_skipped_contact_not_ready", {
+      logWarn("contact.segment_skipped_contact_not_ready", {
         email: normalizedWorkEmail,
-        segmentId: partnershipsSegmentId,
+        segmentId: contactSegmentId,
       });
     } else {
       try {
         await addContactEmailToSegment({
           email: normalizedWorkEmail,
-          segmentId: partnershipsSegmentId,
+          segmentId: contactSegmentId,
           apiKey: resendApiKey,
         });
       } catch (error) {
-        logError("collaboration.segment_add_failed", {
+        logError("contact.segment_add_failed", {
           error,
           email: normalizedWorkEmail,
-          segmentId: partnershipsSegmentId,
+          segmentId: contactSegmentId,
         });
       }
     }
   } else {
-    logWarn("collaboration.partnerships_segment_missing");
+    logWarn("contact.segment_missing");
   }
 
   const baseEmailPayload = {
     to: notificationEmail,
     reply_to: normalizedWorkEmail,
-    subject: `New collaboration inquiry: ${data.organization}`,
-    react: CollaborationInquiryEmail({
+    subject: `New contact inquiry: ${data.organization}`,
+    react: ContactInquiryEmail({
       ...data,
       submittedAt,
       userAgent,
       referer,
     }),
-    tags: [{ name: "source", value: "partnerships-form" }],
+    tags: [{ name: "source", value: "contact-form" }],
   };
 
   const primaryResult = await resend.emails.send({
@@ -202,7 +201,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (primaryResult.error) {
-    logError("collaboration.notification_send_failed", {
+    logError("contact.notification_send_failed", {
       error: primaryResult.error,
       email: normalizedWorkEmail,
     });
@@ -214,7 +213,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (fallbackResult.error) {
-        logError("collaboration.notification_fallback_failed", {
+        logError("contact.notification_fallback_failed", {
           error: fallbackResult.error,
           email: normalizedWorkEmail,
         });
@@ -227,7 +226,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      logWarn("collaboration.notification_fallback_used", {
+      logWarn("contact.notification_fallback_used", {
         email: normalizedWorkEmail,
       });
     } else {

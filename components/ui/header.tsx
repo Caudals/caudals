@@ -14,6 +14,10 @@ import {
 import { useAuth } from "@/lib/auth/provider";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  landingModePublicEnabled,
+  landingModePublicNavigationLinks,
+} from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface HeaderProps {
@@ -24,7 +28,7 @@ interface HeaderProps {
 
 const DEFAULT_LINKS = [
   { href: "/browse", label: "Browse" },
-  { href: "/collaborate", label: "Partnerships" },
+  { href: "/contact", label: "Contact" },
   { href: "/blog", label: "Blog" },
   { href: "/trust", label: "Trust" },
 ];
@@ -36,11 +40,14 @@ export function Header({ links, translucent = false, hideActions = false }: Head
   const t = useTranslations();
   
   // Only hide nav/actions when deploy is in landing mode (NEXT_PUBLIC_* set at build time)
-  const isLandingMode =
-    process.env.NEXT_PUBLIC_LANDING_MODE === "true" || hideActions;
+  const isLandingMode = landingModePublicEnabled || hideActions;
   
   const navLinks =
-    links && links.length > 0 ? links : isLandingMode ? [] : DEFAULT_LINKS;
+    links && links.length > 0
+      ? links
+      : isLandingMode
+        ? [...landingModePublicNavigationLinks]
+        : DEFAULT_LINKS;
 
   const dashboardHref =
     userRole === "admin"

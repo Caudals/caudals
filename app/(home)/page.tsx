@@ -8,7 +8,7 @@ import { PlatformLayersSection } from "@/components/landing/platform-overview";
 import { FeaturesSection } from "@/components/landing/features";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { StatsSection } from "@/components/landing/stats";
-import { PartnershipsSection } from "@/components/landing/partnerships";
+import { ContactSection } from "@/components/landing/partnerships";
 import { ResourceStrip } from "@/components/landing/resource-strip";
 import { PricingSection } from "@/components/landing/pricing";
 import { FAQSection } from "@/components/landing/faq";
@@ -66,7 +66,7 @@ export default function Home() {
           </div>
 
           <StatsSection />
-          <PartnershipsSection />
+          <ContactSection />
           <ResourceStrip />
           <PricingSection />
           <FAQSection />

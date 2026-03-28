@@ -7,6 +7,7 @@ import { Header } from "@/components/ui/header";
 import { normalizeTopicKey } from "@/lib/blog/shared";
 import { getBlogPosts } from "@/lib/blog/posts";
 import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
+import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,7 +42,7 @@ export default async function BlogPage({
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header />
+      <Header links={[...landingModePublicNavigationLinks]} hideActions />
       <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-24 sm:px-8 lg:px-12 lg:pt-32">
         <header className="mb-16">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
@@ -82,7 +83,7 @@ export default async function BlogPage({
           )}
         </section>
       </main>
-      <MarketingFooter />
+      <MarketingFooter forceLandingMode />
     </div>
   );
 }

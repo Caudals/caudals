@@ -2,7 +2,7 @@
 
 ## System Overview
 Caudals is a multi-surface product for AI dataset operations:
-- Public marketing/discovery (`/`, `/browse`, `/collaborate`, `/landing-simple`)
+- Public marketing/discovery (`/`, `/contact`, `/blog`)
 - Authentication (`/auth/*`)
 - Role applications (`/requester/*`, `/contributor/*`, `/admin/*`)
 - Mobile-first contributor companion (`/pwa/*`, out of scope for major redesign)
@@ -39,7 +39,7 @@ Role enforcement is handled through middleware and server-side route guards.
 - `/dashboard/*` subroutes are deprecated and redirected back to `/dashboard` entrypoint behavior.
 - Legacy requester workspace routes under `/dashboard/*` are deprecated.
 - Canonical requester IA is `/requester/*`.
-- When `LANDING_MODE=true`, most non-asset routes redirect to `/landing-simple`.
+- When `LANDING_MODE=true`, the public allowlist is reduced to `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, and required metadata/assets. All other routes return `404`.
 
 ## Infrastructure and Deployment
 - Production runtime is self-hosted on DigitalOcean VPS.
@@ -100,7 +100,7 @@ Storage:
    - moderate requests/submissions -> monitor support/risk/payout queues -> resolve incidents
 4. Public intake lifecycle:
    - `/api/waitlist` persists/updates lead records and confirmation emails
-   - `/api/collaborations` validates partnership intake and sends internal notifications
+   - `/api/contact` validates public contact intake and sends internal notifications
 
 ## Maturity and Drift Watchlist
 Mature backend areas:
