@@ -29,43 +29,43 @@ export function StatsSection() {
   ];
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
-        <div className="rounded-[1.5rem] border border-border/80 bg-card p-6 sm:rounded-[2.4rem] sm:p-8 lg:p-10">
-          <div className="mb-8 text-center sm:mb-10">
-            <p className="text-xs font-semibold uppercase text-slate-500">
-              {t("Proof in numbers")}
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
-              {t("Scaling frontier AI responsibly")}
-            </h2>
-            <p className="mt-3 text-sm text-slate-500 sm:text-base">
-              {t(
-                "Every metric combines human expertise and automation so you can trust the workflow end to end.",
-              )}
-            </p>
-          </div>
+    <section className="py-24 sm:py-32 bg-white">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+        <div className="mb-20 text-center mx-auto max-w-3xl">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">
+            {t("Proof in numbers")}
+          </p>
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
+            {t("Scaling frontier AI responsibly")}
+          </h2>
+          <p className="text-base text-gray-500 mt-6 leading-relaxed">
+            {t(
+              "Every metric combines human expertise and automation so you can trust the workflow end to end.",
+            )}
+          </p>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                viewport={{ once: true, margin: "-60px" }}
-                className="rounded-2xl border border-border/70 bg-white p-5 text-left sm:rounded-3xl sm:p-6"
-              >
-                <div className="text-3xl font-semibold text-foreground sm:text-4xl">{stat.value}</div>
-                <p className="mt-2 text-xs font-semibold uppercase text-slate-500 sm:text-sm">
-                  {t(stat.label)}
-                </p>
-                <p className="mt-2 text-xs text-slate-500 sm:text-sm">
-                  {t(stat.description)}
-                </p>
-              </motion.div>
-            ))}
-          </div>
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true, margin: "-60px" }}
+              className="flex flex-col items-start"
+            >
+              <div className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-4 tabular-nums">
+                {stat.value}
+              </div>
+              <p className="text-sm font-bold text-black mb-2 uppercase tracking-wide">
+                {t(stat.label)}
+              </p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                {t(stat.description)}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>

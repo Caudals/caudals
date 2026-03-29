@@ -15,6 +15,8 @@ if (supabaseHostname && !imageDomains.includes(supabaseHostname)) {
 }
 
 const isDev = process.env.NODE_ENV !== "production";
+const landingModePublicFlag =
+  process.env.NEXT_PUBLIC_LANDING_MODE ?? process.env.LANDING_MODE ?? "false";
 
 const cspDirectives = [
   "default-src 'self'",
@@ -89,6 +91,7 @@ const securityHeaders = [
 const nextConfig = {
   env: {
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_LANDING_MODE: landingModePublicFlag,
   },
   images: {
     remotePatterns,

@@ -10,18 +10,21 @@ import {
   ListChecks,
   Wallet,
   Settings,
-  MoreHorizontal,
+  Search,
+  Bell,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
 const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
 
 export function HeroSection() {
   const t = useTranslations();
   const isLandingMode = landingModePublicEnabled;
+  
   const heroHighlights = [
     t("No onboarding fees"),
     t("Pay only for approvals"),
@@ -29,86 +32,81 @@ export function HeroSection() {
   ];
 
   return (
-    <section className="relative flex min-h-[calc(100vh-5rem)] items-center justify-center px-6 py-16 sm:px-8 lg:px-12">
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 pt-16 pb-12 sm:px-8 lg:px-12 lg:pt-24">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center sm:-mt-8 lg:-mt-16">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
           className="mb-6"
         >
-          <Badge
-            variant="outline"
-            className="inline-flex items-center gap-2 border-border/60 bg-white/80 px-4 py-1.5 text-xs font-medium text-foreground backdrop-blur-md"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            {t("Supported by leading AI companies")}
-          </Badge>
+          <div className="inline-flex items-center gap-2 rounded-md border border-teal-200/30 bg-white/40 backdrop-blur-md px-4 py-1.5 text-[13px] font-bold text-teal-900 shadow-sm">
+            <div className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />
+            <span>{t("Supported by leading AI companies")}</span>
+          </div>
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.05 }}
-          className="text-balance text-4xl font-extrabold leading-tight text-foreground sm:text-5xl lg:text-6xl"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+          className="text-balance text-5xl font-normal tracking-tight text-black sm:text-7xl lg:text-8xl"
         >
-          {t("Build production-grade datasets to train tailored AI models")}
+          {t("Professional datasets for AI")}{" "}
+          <span className="font-serif italic text-teal-700/90">{t("tailored")}</span>
         </motion.h1>
 
+
         <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-6 max-w-3xl text-lg text-slate-500 sm:text-xl"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl"
         >
           {t(
-            "Caudals links your ML team with certified contributors, reviewer pods, and automated payouts so every dataset sprint ships faster without compromising compliance or governance.",
+            "Caudals connects ML teams with certified contributors, reviewer pods, and automated payouts for faster, compliant dataset sprints.",
           )}
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.25 }}
-          className="mt-10 flex flex-col gap-4 sm:flex-row"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+          className="mt-8 flex flex-col items-center gap-4 sm:flex-row"
         >
-          <Button size="lg" className="h-12 min-w-[200px] px-8 text-base" asChild>
+          <Button size="lg" className="h-12 min-w-[200px] rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]" asChild>
             <Link href={isLandingMode ? "/contact" : REQUESTER_ONBOARDING_CTA}>
               {isLandingMode ? t("Talk to the team") : t("Start a project")}
             </Link>
           </Button>
-          <Button
-            size="lg"
-            variant="ghost"
-            className="h-12 min-w-[200px] border-border/80 bg-white/35 text-base backdrop-blur-sm"
-            asChild
+          <Link 
+            href={isLandingMode ? "/blog" : "/browse"}
+            className="group flex h-12 items-center gap-2 px-6 text-base font-medium text-black transition-colors hover:text-teal-700"
           >
-            <Link href={isLandingMode ? "/blog" : "/browse"}>
-              {isLandingMode ? t("Read the blog") : t("Browse datasets")}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+            {isLandingMode ? t("Read the blog") : t("Browse datasets")}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-slate-500"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+          className="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-medium text-gray-400"
         >
           {heroHighlights.map((highlight) => (
-            <div key={highlight} className="flex items-center gap-2 text-foreground/70">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-              {highlight}
+            <div key={highlight} className="flex items-center gap-2.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-teal-600/40" />
+              <span className="text-gray-900">{highlight}</span>
             </div>
           ))}
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.45 }}
-          className="mt-14 w-full"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+          className="mt-16 w-full"
         >
           <HeroPreview />
         </motion.div>
@@ -120,184 +118,131 @@ export function HeroSection() {
 function HeroPreview() {
   const t = useTranslations();
 
-  const statCards = [
-    { label: t("Total earnings"), value: "$12,640", note: t("From 84 approved submissions") },
-    { label: t("Pending"), value: "5", note: t("$420 if approved") },
-    { label: t("Approval rate"), value: "92%", note: t("77/84 approved") },
-    { label: t("Rejected"), value: "2", note: t("Review notes to improve") },
-  ];
-
-  const contributions = [
-    {
-      dataset: t("Industrial robot downtime logs"),
-      files: t("1 file"),
-      status: t("Approved"),
-      reward: "$0.69",
-      submitted: "10/06/2025",
-    },
-    {
-      dataset: t("Street images for autonomous driving"),
-      files: t("1 file"),
-      status: t("Pending"),
-      reward: "$2.50",
-      submitted: "10/06/2025",
-    },
-    {
-      dataset: t("Healthcare patient anonimized records"),
-      files: t("1 file"),
-      status: t("Approved"),
-      reward: "$0.69",
-      submitted: "10/06/2025",
-    },
-    {
-      dataset: t("Real estate images for property valuation"),
-      files: t("1 file"),
-      status: t("Approved"),
-      reward: "$0.69",
-      submitted: "10/06/2025",
-    },
-  ];
-
-  const navLinks = [
-    { label: t("Dashboard"), icon: LayoutDashboard },
-    { label: t("Browse datasets"), icon: Database },
-    { label: t("My contributions"), icon: ListChecks, active: true },
-    { label: t("Earnings & payouts"), icon: Wallet },
-    { label: t("Settings"), icon: Settings },
-  ];
-
   return (
-    <div className="relative mx-auto flex w-full max-w-5xl flex-col rounded-[1.2rem] border border-white/70 bg-white/80 p-3 shadow-[0_24px_80px_rgba(94,119,145,0.18)] backdrop-blur-xl sm:p-4 lg:flex-row">
+    <div className="group relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200/60 bg-white/72 p-1 shadow-[0_48px_120px_-56px_rgba(15,23,42,0.62)] backdrop-blur-2xl transition-all hover:shadow-[0_56px_132px_-60px_rgba(15,23,42,0.7)]">
+      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/30 px-6 py-4">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1.5">
+            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+          </div>
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Dataset Operations Control</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 rounded-md bg-teal-50 px-2 py-1">
+            <div className="h-1 w-1 rounded-full bg-teal-600 animate-pulse" />
+            <span className="text-[10px] font-bold text-teal-800 uppercase">Live Ops</span>
+          </div>
+          <div className="h-6 w-px bg-gray-100" />
+          <User className="h-4 w-4 text-gray-400" />
+        </div>
+      </div>
       
-      <aside className="hidden w-48 shrink-0 flex-col gap-4 pr-4 text-left text-sm text-slate-500 lg:flex border-r border-border/40 mr-5">
-        <div>
-          <p className="text-lg font-semibold text-foreground">{t("Dashboard")}</p>
-        </div>
-        <nav className="space-y-1 ">
-          {navLinks.map((link) => (
-            <button
-              key={link.label}
-              type="button"
-              className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-xs transition-colors ${
-                link.active
-                  ? "bg-accent/10 text-accent-foreground "
-                  : "border border-transparent text-slate-500 hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <link.icon className="h-3.5 w-3.5" />
-                {link.label}
-              </span>
-            </button>
-          ))}
-        </nav>
-
-      </aside>
-
-      <section className="flex-1 space-y-3 text-left sm:space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-foreground sm:text-lg">
-              {t("My contributions")}
-            </h3>
-          </div>
-          <button className="self-start rounded-full border border-border/40 px-3 py-1 text-xs text-slate-500 sm:self-auto sm:px-4 sm:py-1.5">
-            {t("All status")}
-          </button>
-        </div>
-
-        <div className="grid gap-2 grid-cols-2 sm:gap-3 lg:grid-cols-4">
-          {statCards.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border/40 bg-white px-3 py-3 text-left shadow-sm sm:rounded-2xl sm:px-4 sm:py-4"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 sm:text-xs">
-                {stat.label}
-              </p>
-              <p className="text-xl font-semibold text-foreground sm:text-2xl mt-1">{stat.value}</p>
-              <p className="text-[10px] text-slate-500 sm:text-xs mt-1">{stat.note}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-border/40 bg-white shadow-sm sm:rounded-2xl">
-          <div className="flex flex-col gap-2 border-b border-border/40 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3">
+      <div className="flex flex-col lg:flex-row">
+        <aside className="hidden w-56 border-r border-gray-100 p-6 lg:block text-left">
+          <div className="space-y-8">
             <div>
-              <p className="text-xs text-slate-500 sm:text-sm">
-                {t("Your submission history across all datasets")}
-              </p>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Workspace</div>
+              <div className="space-y-3">
+                <div className="h-8 w-full rounded-md bg-teal-50 text-teal-800 border border-teal-100 flex items-center px-3 gap-2">
+                  <LayoutDashboard className="h-3.5 w-3.5" />
+                  <span className="text-xs font-bold">Dashboard</span>
+                </div>
+                {[
+                  { icon: Database, label: "Datasets" },
+                  { icon: ListChecks, label: "Quality Lab" },
+                  { icon: Wallet, label: "Payouts" },
+                  { icon: Settings, label: "Settings" }
+                ].map((nav, i) => (
+                  <div key={i} className="h-8 w-full rounded-md flex items-center px-3 gap-2 group/nav hover:bg-gray-50/50 transition-colors text-gray-500 hover:text-black cursor-pointer">
+                    <nav.icon className="h-3.5 w-3.5" />
+                    <span className="text-xs font-bold">{nav.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <button className="self-start rounded-full border border-border/40 px-2.5 py-0.5 text-[10px] text-slate-500 sm:self-auto sm:px-3 sm:py-1 sm:text-xs">
-              {t("All status")}
-            </button>
+            
+            <div className="pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Storage</span>
+                <span className="text-[10px] font-bold text-teal-700">82%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-full w-[82%] bg-teal-600" />
+              </div>
+              <div className="mt-2 text-[10px] text-gray-400 font-medium">1.2 TB / 1.5 TB used</div>
+            </div>
           </div>
-          
-          {/* Desktop Table View */}
-          <div className="hidden lg:block">
-            <div className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/40 px-5 py-2 text-[11px] font-semibold uppercase text-slate-500">
-              <span>{t("Dataset")}</span>
-              <span>{t("Files")}</span>
-              <span>{t("Status")}</span>
-              <span>{t("Reward")}</span>
-              <span className="text-right">{t("Submitted")}</span>
-              <span className="text-right">{t("Actions")}</span>
-            </div>
-            {contributions.map((entry) => (
-              <div
-                key={entry.dataset}
-                className="grid grid-cols-[2.2fr_repeat(4,1fr)_0.6fr] items-center gap-2 border-b border-border/30 px-5 py-3 text-sm text-foreground last:border-b-0"
-              >
-                <span className="font-medium text-foreground/90">{entry.dataset}</span>
-                <span className="text-slate-500">{entry.files}</span>
-                <span>
-                  <span
-                    className={`rounded-full border border-slate-200 px-3 py-0.5 text-xs font-medium ${
-                      entry.status === t("Approved")
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {entry.status}
-                  </span>
-                </span>
-                <span className="text-slate-500">{entry.reward}</span>
-                <span className="text-right text-slate-500">{entry.submitted}</span>
-                <span className="flex justify-end text-slate-500">
-                  <MoreHorizontal className="h-4 w-4" />
-                </span>
+        </aside>
+
+        <main className="flex-1 p-8 sm:p-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 text-left">
+            {[
+              { label: "Active Contributors", value: "1,284", delta: "+12%", color: "text-black" },
+              { label: "QA Pass Rate", value: "98.2%", delta: "+0.4%", color: "text-teal-700" },
+              { label: "Weekly Throughput", value: "42.5k", delta: "+18%", color: "text-black" },
+            ].map((stat, i) => (
+              <div key={i} className="rounded-xl border border-gray-100 p-5 bg-gray-50/30 backdrop-blur-sm">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t(stat.label)}</div>
+                <div className="flex items-baseline gap-2">
+                  <div className={`text-2xl font-normal tracking-tight ${stat.color}`}>{stat.value}</div>
+                  <div className="text-[10px] font-bold text-teal-700">{stat.delta}</div>
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Mobile Card View */}
-          <div className="divide-y divide-border/30 lg:hidden">
-            {contributions.map((entry) => (
-              <div key={entry.dataset} className="space-y-2 px-3 py-3 sm:px-4 sm:py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-xs font-medium text-foreground/90 sm:text-sm">
-                    {entry.dataset}
-                  </h4>
-                  <span
-                    className={`shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium sm:px-2.5 sm:text-xs ${
-                      entry.status === t("Approved")
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-700"
-                    }`}
-                  >
-                    {entry.status}
-                  </span>
+          <div className="space-y-8 text-left">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-black uppercase tracking-widest">Active Sprints</h3>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                  <div className="h-8 w-40 rounded-md border border-gray-100 bg-white/50 pl-8 text-xs flex items-center text-gray-400">Search datasets...</div>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-500 sm:text-xs">
-                  <span>{entry.files}</span>
-                  <span className="font-medium text-foreground">{entry.reward}</span>
-                  <span>{entry.submitted}</span>
+                <div className="h-8 w-8 rounded-md bg-black flex items-center justify-center">
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="rounded-xl border border-gray-100 overflow-hidden bg-white/30 backdrop-blur-sm">
+              <div className="bg-gray-50/50 px-6 py-3 border-b border-gray-100 flex items-center">
+                <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] w-full gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                  <span>Dataset Name</span>
+                  <span className="text-center">Type</span>
+                  <span className="text-right">Volume</span>
+                  <span className="text-right">Status</span>
+                </div>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {[
+                  { name: "Medical Imaging Sprint", type: "Computer Vision", volume: "12.4k", quality: 99.4, status: "Active" },
+                  { name: "Multimodal Voice Pack", type: "Audio", volume: "8.2k", quality: 97.8, status: "Reviewing" },
+                  { name: "ADAS Sensor Calibration", type: "Lidar/Sensor", volume: "15.1k", quality: 98.1, status: "Active" },
+                ].map((row, i) => (
+                  <div key={i} className="px-6 py-4 hover:bg-white/50 transition-colors">
+                    <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] w-full gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-teal-500" />
+                        <span className="text-sm font-bold text-black truncate">{t(row.name)}</span>
+                      </div>
+                      <div className="text-[11px] font-medium text-gray-500 text-center">{row.type}</div>
+                      <div className="text-[11px] font-bold text-black text-right">{row.volume}</div>
+                      <div className="flex justify-end">
+                        <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'Active' ? 'bg-teal-50 text-teal-800' : 'bg-gray-100 text-gray-500'}`}>
+                          {t(row.status)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 import MuxVideo from "@mux/mux-video/react";
 import type MuxVideoElement from "@mux/mux-video";
 import { cn } from "@/lib/utils";
@@ -11,18 +17,28 @@ interface LandingVideoBackgroundProps {
 }
 
 const HERO_PLAYBACK_ID = "RhkbCujj1LUQdgvChPjq4BhttSiZFeHBoNQyCmAipMk";
+const HERO_MEDIA_POSITION = "center 34%";
 const HERO_POSTER_URL =
-  `https://image.mux.com/${HERO_PLAYBACK_ID}/thumbnail.webp?time=2`;
+  `https://image.mux.com/${HERO_PLAYBACK_ID}/thumbnail.webp`;
+
+function subscribeToClientRender() {
+  return () => {};
+}
 
 export function LandingVideoBackground({
   className,
   contentHeight,
 }: LandingVideoBackgroundProps) {
   const videoRef = useRef<MuxVideoElement>(null);
+  const hasMounted = useSyncExternalStore(
+    subscribeToClientRender,
+    () => true,
+    () => false
+  );
   const [isVideoReady, setIsVideoReady] = useState(false);
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    if (!hasMounted || !videoRef.current) return;
 
     const muxVideo = videoRef.current;
     let observer: MutationObserver | null = null;
@@ -34,7 +50,7 @@ export function LandingVideoBackground({
       muxVideo.style.width = "100%";
       muxVideo.style.height = "100%";
       muxVideo.style.objectFit = "cover";
-      muxVideo.style.objectPosition = "center center";
+      muxVideo.style.objectPosition = HERO_MEDIA_POSITION;
 
       const innerVideo = muxVideo.shadowRoot?.querySelector("video");
       if (!(innerVideo instanceof HTMLVideoElement)) {
@@ -47,7 +63,7 @@ export function LandingVideoBackground({
       innerVideo.style.height = "100%";
       innerVideo.style.display = "block";
       innerVideo.style.objectFit = "cover";
-      innerVideo.style.objectPosition = "center center";
+      innerVideo.style.objectPosition = HERO_MEDIA_POSITION;
       innerVideo.style.backgroundColor = "transparent";
       return true;
     };
@@ -84,68 +100,77 @@ export function LandingVideoBackground({
       muxVideo.removeEventListener("playing", markReady);
       observer?.disconnect();
     };
-  }, []);
+  }, [hasMounted]);
 
   const videoStyle: CSSProperties = {
     display: "block",
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    objectPosition: "center center",
+    objectPosition: HERO_MEDIA_POSITION,
   };
 
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 top-0 -z-10 overflow-hidden bg-[#f7f7f3]",
+        "pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden bg-[#ebf6ff]",
         className
       )}
       style={{ height: contentHeight || "100vh" }}
     >
       <div
         className={cn(
-          "absolute inset-0 bg-cover bg-center saturate-[0.92] transition-opacity duration-700 ease-out",
-          isVideoReady ? "opacity-0" : "opacity-95"
+          "absolute inset-0 bg-cover bg-center saturate-[0.98] transition-opacity duration-700 ease-out",
+          isVideoReady ? "opacity-0" : "opacity-100"
         )}
-        style={{ backgroundImage: `url(${HERO_POSTER_URL})` }}
+        style={{
+          backgroundImage: `url(${HERO_POSTER_URL})`,
+          backgroundPosition: HERO_MEDIA_POSITION,
+        }}
       />
 
       <div
         className={cn(
-          "absolute inset-0 h-full w-full scale-[1.04] overflow-hidden transition-opacity duration-700 ease-out",
-          isVideoReady ? "opacity-90" : "opacity-0"
+          "absolute inset-0 h-full w-full overflow-hidden transition-opacity duration-700 ease-out",
+          hasMounted && isVideoReady ? "opacity-100" : "opacity-0"
         )}
       >
-        <MuxVideo
-          ref={videoRef}
-          playbackId={HERO_PLAYBACK_ID}
-          streamType="on-demand"
-          autoplay="muted"
-          loop
-          muted
-          playsInline
-          disableTracking
-          disablePictureInPicture
-          disableRemotePlayback
-          preferPlayback="mse"
-          preload="auto"
-          className="block h-full w-full"
-          style={videoStyle}
-        />
+        {hasMounted ? (
+          <MuxVideo
+            ref={videoRef}
+            playbackId={HERO_PLAYBACK_ID}
+            streamType="on-demand"
+            autoplay="muted"
+            loop
+            muted
+            playsInline
+            disableTracking
+            disablePictureInPicture
+            disableRemotePlayback
+            preferPlayback="mse"
+            preload="auto"
+            className="block h-full w-full"
+            style={{
+              ...videoStyle,
+              filter: "saturate(1.08) contrast(1.02) brightness(1)",
+            }}
+          />
+        ) : null}
       </div>
 
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(247,247,243,0.94)_0%,rgba(247,247,243,0.7)_24%,rgba(247,247,243,0.2)_58%,rgba(247,247,243,0.46)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(136,190,224,0.24),transparent_36%),radial-gradient(circle_at_50%_72%,rgba(255,255,255,0.92),transparent_38%),linear-gradient(180deg,rgba(247,247,243,0.82)_0%,rgba(247,247,243,0.3)_24%,rgba(247,247,243,0.08)_52%,rgba(247,247,243,0.32)_72%,rgba(247,247,243,0.98)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.62)_0%,rgba(255,255,255,0.52)_22%,rgba(255,255,255,0.32)_48%,rgba(255,255,255,0.22)_72%,rgba(255,255,255,0.26)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(235,246,255,0.26)_0%,rgba(235,246,255,0.15)_24%,rgba(235,246,255,0.05)_54%,rgba(235,246,255,0.16)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.6)_0%,rgba(255,255,255,0.32)_34%,rgba(255,255,255,0)_64%),radial-gradient(circle_at_top_right,rgba(120,184,224,0.12),transparent_34%),radial-gradient(circle_at_50%_68%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(180deg,rgba(235,246,255,0.15)_0%,rgba(235,246,255,0.05)_22%,rgba(235,246,255,0)_50%,rgba(235,246,255,0.05)_72%,rgba(255,255,255,0.5)_100%)]" />
 
-      <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,#f7f7f3_0%,rgba(247,247,243,0.78)_54%,rgba(247,247,243,0)_100%)]" />
-      <div className="absolute inset-x-0 bottom-28 h-56 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.08)_58%,rgba(255,255,255,0)_78%)] blur-3xl" />
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-[linear-gradient(180deg,rgba(247,247,243,0)_0%,rgba(247,247,243,0.24)_38%,rgba(247,247,243,0.72)_72%,rgba(247,247,243,0.96)_100%)] blur-2xl" />
+      <div className="absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,#f6fbff_0%,rgba(246,251,255,0.52)_44%,rgba(246,251,255,0)_100%)]" />
+      <div className="absolute inset-x-0 bottom-32 h-64 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.3)_0%,rgba(255,255,255,0.1)_52%,rgba(255,255,255,0)_76%)] blur-3xl" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.12)_32%,rgba(255,255,255,0.32)_62%,rgba(255,255,255,0.72)_100%)] blur-2xl" />
 
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[42rem]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[64rem]"
         style={{
           background:
-            "linear-gradient(180deg, rgba(247,247,243,0) 0%, rgba(247,247,243,0.03) 10%, rgba(247,247,243,0.1) 20%, rgba(247,247,243,0.24) 34%, rgba(247,247,243,0.46) 50%, rgba(247,247,243,0.72) 68%, rgba(247,247,243,0.92) 86%, rgba(247,247,243,1) 100%)",
+            "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.01) 10%, rgba(255,255,255,0.03) 20%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.4) 60%, rgba(255,255,255,0.6) 70%, rgba(255,255,255,0.8) 85%, #ffffff 100%)",
         }}
       />
     </div>

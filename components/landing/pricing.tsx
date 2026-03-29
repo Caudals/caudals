@@ -1,21 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
 const plans = [
   {
     name: "Launch",
     description:
-      "For teams kicking off a single modality or pilot program with guided support and curated contributors.",
-    price: "$4,500/month",
+      "For teams kicking off a single modality or pilot program.",
+    price: "$4,500",
     perks: [
-      "Dataset blueprint + governance checklist",
-      "Curated contributor pod & training toolkits",
-      "Reviewer workspace with consensus scoring",
-      "Stripe Connect payouts & compliance",
+      "Dataset blueprint + governance",
+      "Curated contributor pods",
+      "Reviewer workspace",
+      "Stripe Connect payouts",
       "Email + async support",
     ],
     cta: "Book a blueprint call",
@@ -23,31 +25,31 @@ const plans = [
   {
     name: "Scale",
     description:
-      "Designed for companies running multiple modalities, custom tutorials, and regional contributor cohorts.",
-    price: "$9,900/month",
+      "For companies running multiple modalities and cohorts.",
+    price: "$9,900",
     perks: [
-      "Dedicated success manager & QA lead",
-      "Contributor certification & requalification",
-      "Custom tutorials + branded contributor portal",
-      "Slack support with 4-hour SLA",
-      "Insights reporting & quarterly roadmap reviews",
+      "Dedicated success manager",
+      "Contributor certification",
+      "Custom tutorials + portal",
+      "Slack support (4h SLA)",
+      "Insights reporting",
     ],
     cta: "Talk to our team",
+    featured: true,
   },
   {
     name: "Enterprise",
     description:
-      "Bespoke engagements with architecture co-design, promotional placement, and private deployments.",
+      "Bespoke engagements with private deployments.",
     price: "Custom",
-    custom: true,
     perks: [
-      "Embedded data ops pod & solution architects",
-      "Dataset design + AI architecture consulting",
-      "Private or regional deployments (VPC/on-prem)",
-      "Featured marketplace placement & ads",
-      "Executive reviews + procurement support",
+      "Embedded data ops pod",
+      "Dataset design consulting",
+      "VPC / On-prem deployments",
+      "Featured marketplace ads",
+      "Executive reviews",
     ],
-    cta: "Plan an executive session",
+    cta: "Plan a session",
   },
 ];
 
@@ -55,67 +57,69 @@ export function PricingSection() {
   const t = useTranslations();
 
   return (
-    <section id="pricing" className="py-12 sm:py-16 lg:py-20">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 sm:gap-10 sm:px-6 lg:gap-12 lg:px-12">
-        <div className="text-center">
-          <h2 className="mt-3 text-2xl font-semibold text-foreground sm:mt-6 sm:text-3xl lg:text-4xl">
-            {t("Custom plans for ML teams, research labs, and enterprise partners")}
-          </h2>
-          <p className="mx-auto mt-3 max-w-3xl text-sm text-slate-500 sm:text-base">
-            {t(
-              "Mix project-based briefs when you need a focused sprint or retain an embedded Caudals pod for managed operations. All plans bill only on approved submissions.",
-            )}
+    <section id="pricing" className="py-24 sm:py-32 bg-gray-50/50">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+        <div className="mb-20 text-center mx-auto max-w-3xl">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">
+            {t("Pricing")}
           </p>
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
+            {t("Plans for ML teams, research labs, and enterprise partners")}
+          </h2>
         </div>
 
-        <div className="grid gap-5 sm:gap-6 lg:grid-cols-3">
+        <div className="grid gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden lg:grid-cols-3 mb-12 shadow-sm">
           {plans.map((plan, index) => (
-            <motion.div
+            <div
               key={plan.name}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              className="flex h-full flex-col gap-5 rounded-[1.5rem] border border-border/80 bg-white p-6 sm:gap-6 sm:rounded-[1.8rem] sm:p-8"
+              className="flex flex-col bg-white p-8 sm:p-10"
             >
-              <div>
-                <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-black mb-2">
                   {t(plan.name)}
                 </h3>
-                <p className="mt-2 text-xs text-slate-500 sm:text-sm">
+                <p className="text-sm text-gray-500 leading-relaxed">
                   {t(plan.description)}
                 </p>
               </div>
-              <ul className="space-y-2.5 text-xs text-slate-500 sm:space-y-3 sm:text-sm">
+              
+              <div className="mb-8">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-normal tracking-tight text-black">{t(plan.price)}</span>
+                  {plan.price !== "Custom" && <span className="text-sm text-gray-400">/mo</span>}
+                </div>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1">
                 {plan.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2.5 sm:gap-3">
-                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/15 text-accent sm:mt-1 sm:h-5 sm:w-5 ">
-                      <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                    </span>
-                    <span className="min-w-0">{t(perk)}</span>
+                  <li key={perk} className="flex items-start gap-3">
+                    <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
+                    <span className="text-sm text-gray-600">{t(perk)}</span>
                   </li>
                 ))}
               </ul>
-              <div className="mt-auto space-y-3 sm:space-y-4">
-                <div>
-                  <p className="pb-3 text-2xl font-semibold text-foreground sm:pb-4 sm:text-3xl ">
-                    {t(plan.price)}
-                  </p>
-                </div>
-                <Button className="h-10 w-full text-sm sm:h-11 sm:text-base" size="lg">
+
+              <Button 
+                variant={plan.featured ? "default" : "outline"}
+                className={cn(
+                  "h-11 w-full rounded-md text-sm font-bold transition-all",
+                  plan.featured ? "bg-black text-white hover:bg-black/90" : "border-gray-200 text-black hover:bg-gray-50"
+                )}
+                asChild
+              >
+                <Link href="/contact">
                   {t(plan.cta)}
-                  <ArrowUpRight className="ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
-              </div>
-            </motion.div>
+                </Link>
+              </Button>
+            </div>
           ))}
         </div>
 
-        <div className="rounded-xl border border-dashed border-border/80 bg-card px-4 py-4 text-center text-xs text-slate-500 sm:rounded-[1.6rem] sm:px-6 sm:py-5 sm:text-sm">
+        <p className="text-center text-xs text-gray-400 max-w-2xl mx-auto leading-relaxed">
           {t(
-            "Add-ons: dataset bootcamps for your contributors, private Slack channels, or promotional placement for requests in the browse feed. Mention them during your intro call.",
+            "Add-ons: dataset bootcamps, private Slack channels, or promotional placement. Mention them during your intro call.",
           )}
-        </div>
+        </p>
       </div>
     </section>
   );
