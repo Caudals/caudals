@@ -54,39 +54,36 @@ export function FeaturesSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-12 text-center">
-          <p className="text-xs font-semibold uppercase text-slate-500">
-            {t("Why ML teams choose Caudals")}
+    <section className="py-24 sm:py-32 bg-white">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+        <div className="mb-20">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">
+            {t("Capabilities")}
           </p>
-          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl">
             {t("Operational excellence, delivered as a platform")}
           </h2>
-          <p className="mt-3 text-base text-slate-500">
-            {t(
-              "Layer human expertise with automation to keep your dataset programs measurable, compliant, and fast.",
-            )}
-          </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-x-12 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((capability, index) => (
             <motion.div
               key={capability.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
               viewport={{ once: true, margin: "-60px" }}
-              className="rounded-3xl border border-border/80 bg-card p-6 text-left"
+              className="group flex flex-col items-start"
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-                <capability.icon className="h-5 w-5" />
+              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-md bg-gray-50 text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-600 transition-colors">
+                <capability.icon className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-bold text-black mb-3">
                 {t(capability.title)}
               </h3>
-              <p className="mt-2 text-sm text-slate-500">{t(capability.description)}</p>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-[260px]">
+                {t(capability.description)}
+              </p>
             </motion.div>
           ))}
         </div>

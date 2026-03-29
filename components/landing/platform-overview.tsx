@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Network, PanelsTopLeft, ShieldCheck, Sparkles } from "lucide-react";
+import { Network, PanelsTopLeft, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
 type LayerId = "blueprint" | "contributors" | "quality" | "delivery";
 
@@ -75,73 +77,95 @@ export function PlatformLayersSection() {
   const layerEntries = Object.entries(layers) as [LayerId, (typeof layers)[LayerId]][];
 
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-slate-500">
-            {t("Caudals operating layers")}
+    <section className="py-24 sm:py-32 bg-gray-50/50">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+        <div className="mb-20 text-center mx-auto max-w-3xl">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">
+            {t("Platform architecture")}
           </p>
-          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
             {t("Interactive tooling for every stage of dataset ops")}
           </h2>
-          <p className="mt-3 text-base text-slate-500">
-            {t(
-              "Switch between the layers to see how briefs move from planning to contributor pods, quality loops, and delivery rails.",
-            )}
-          </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
-          <div className="space-y-3">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr] items-start">
+          <div className="flex flex-col gap-2">
             {layerEntries.map(([id, layer]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveLayer(id)}
-                className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition-colors ${
+                className={cn(
+                  "group relative flex flex-col items-start rounded-xl p-5 text-left transition-all",
                   activeLayer === id
-                    ? "border-border bg-muted/60 text-foreground"
-                    : "border-border bg-card text-slate-500 hover:text-foreground"
-                }`}
+                    ? "bg-white shadow-sm ring-1 ring-gray-200"
+                    : "hover:bg-white/50"
+                )}
               >
-                <div className="flex items-center gap-3 ">
-                  <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-md bg-muted/15 text-accent">
-                  <layer.icon className="h-5 w-5 " />
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+                    activeLayer === id ? "bg-teal-50 text-teal-600" : "bg-gray-100 text-gray-400 group-hover:bg-white group-hover:text-gray-600"
+                  )}>
+                    <layer.icon className="h-4 w-4" />
                   </div>
-                  <span className="text-base font-semibold">{t(layer.label)}</span>
+                  <span className={cn(
+                    "text-sm font-bold transition-colors",
+                    activeLayer === id ? "text-black" : "text-gray-400 group-hover:text-gray-600"
+                  )}>
+                    {t(layer.label)}
+                  </span>
                 </div>
-                <span className="text-xs uppercase">{t(layer.metric)}</span>
+                <span className={cn(
+                  "text-[11px] font-bold transition-colors",
+                  activeLayer === id ? "text-teal-600" : "text-gray-400 group-hover:text-gray-500"
+                )}>
+                  {t(layer.metric)}
+                </span>
+                {activeLayer === id && (
+                  <motion.div 
+                    layoutId="active-indicator"
+                    className="absolute left-0 top-1/4 h-1/2 w-1 bg-teal-500 rounded-sm"
+                  />
+                )}
               </button>
             ))}
           </div>
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-border/80 bg-card p-8">
+          <div className="relative min-h-[400px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeLayer}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35 }}
-                className="space-y-5"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="bg-white rounded-xl border border-gray-100 p-8 sm:p-12 shadow-sm"
               >
-                <p className="text-sm font-semibold uppercase text-slate-500">
+                <div className="inline-flex items-center gap-2 rounded-md bg-teal-50 px-3 py-1 text-[11px] font-bold text-teal-700 mb-8">
                   {t(layers[activeLayer].label)}
-                </p>
-                <h3 className="text-2xl font-semibold text-foreground">
+                </div>
+                <h3 className="text-3xl font-normal tracking-tight text-black mb-6 leading-tight">
                   {t(layers[activeLayer].title)}
                 </h3>
-                <p className="text-base text-slate-500">
+                <p className="text-lg text-gray-500 mb-10 leading-relaxed">
                   {t(layers[activeLayer].description)}
                 </p>
-                <ul className="grid gap-3 text-sm text-slate-500">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {layers[activeLayer].bullets.map((bullet) => (
-                    <li key={bullet} className="flex items-start gap-2">
-                      <span className="mt-1 inline-flex h-1.5 w-1.5 rounded-full bg-muted" />
-                      {t(bullet)}
-                    </li>
+                    <div key={bullet} className="flex items-center gap-3">
+                      <div className="h-1 w-1 rounded-sm bg-teal-500" />
+                      <span className="text-sm font-bold text-gray-700">{t(bullet)}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
+                
+                <div className="mt-12 pt-8 border-t border-gray-50">
+                  <Link href="/contact" className="inline-flex items-center gap-2 text-sm font-bold text-black group">
+                    {t("Deep dive into this layer")}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>

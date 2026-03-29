@@ -28,7 +28,7 @@ const faqs = [
   {
     question: "How are contributors vetted?",
     answer:
-      "Contributors complete ID verification, device checks, sample submissions, and scenario-based training before joining live programs. You can add your own vetting layers as well.",
+      "Contributors complete ID verification, device checks, sample submissions, and scenario-based training before joining live programs.",
   },
   {
     question: "Can we bring our own contributor community?",
@@ -38,7 +38,7 @@ const faqs = [
   {
     question: "What is the typical time-to-launch?",
     answer:
-      "Teams on Launch plans typically go live within 10 business days. Commercial pilots with tailored scoping often move even faster once the first conversation is aligned.",
+      "Teams on Launch plans typically go live within 10 business days. Commercial pilots often move even faster once the first conversation is aligned.",
   },
 ];
 
@@ -46,43 +46,39 @@ export function FAQSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-20">
+    <section className="py-24 sm:py-32 bg-white">
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-10 text-center">
-          <p className="text-xs font-semibold uppercase text-slate-500">{t("FAQ")}</p>
-          <h2 className="mt-3 text-3xl font-semibold text-foreground sm:text-4xl">
+        <div className="mb-16 text-center mx-auto max-w-3xl">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">{t("FAQ")}</p>
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
             {t("Answers before you schedule a walkthrough")}
           </h2>
-          <p className="mt-3 text-base text-slate-500">
+        </div>
+
+        <Accordion type="single" collapsible className="border-t border-gray-100">
+          {faqs.map((faq, index) => (
+            <AccordionItem
+              key={faq.question}
+              value={`faq-${index}`}
+              className="border-b border-gray-100 py-2"
+            >
+              <AccordionTrigger className="text-left text-lg font-bold text-black hover:text-teal-600 transition-colors py-6">
+                {t(faq.question)}
+              </AccordionTrigger>
+              <AccordionContent className="text-base leading-relaxed text-gray-500 pb-8">
+                {t(faq.answer)}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+        
+        <div className="mt-16 p-8 rounded-2xl bg-gray-50 text-center">
+          <p className="text-sm text-gray-500 leading-relaxed">
             {t(
               "Need more specifics? Book a call and we'll tailor the implementation plan to your governance, volume, and modality requirements.",
             )}
           </p>
         </div>
-
-        <Accordion type="single" collapsible className="space-y-4">
-          {faqs.map((faq, index) => (
-            <AccordionItem
-              key={faq.question}
-              value={`faq-${index}`}
-              className="overflow-hidden rounded-[1.5rem] border border-border/80 bg-card"
-            >
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: index * 0.05 }}
-                viewport={{ once: true, margin: "-60px" }}
-              >
-                <AccordionTrigger className="px-6 py-5 text-left text-base font-semibold text-foreground">
-                  {t(faq.question)}
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6 text-sm leading-relaxed text-slate-500">
-                  {t(faq.answer)}
-                </AccordionContent>
-              </motion.div>
-            </AccordionItem>
-          ))}
-        </Accordion>
       </div>
     </section>
   );

@@ -9,7 +9,6 @@ import { FeaturesSection } from "@/components/landing/features";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { StatsSection } from "@/components/landing/stats";
 import { ContactSection } from "@/components/landing/partnerships";
-import { ResourceStrip } from "@/components/landing/resource-strip";
 import { PricingSection } from "@/components/landing/pricing";
 import { FAQSection } from "@/components/landing/faq";
 import { CTASection } from "@/components/landing/cta";
@@ -43,10 +42,10 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen bg-white">
       <FunnelVisitTracker />
-      <div className="relative">
-        <LandingVideoBackground contentHeight={heroHeight + 380} />
+      <div className="relative isolate">
+        <LandingVideoBackground contentHeight={heroHeight + 400} />
 
         <Header translucent />
 
@@ -58,17 +57,16 @@ export default function Home() {
           <SocialProofSection />
           <PlatformLayersSection />
 
-          <div id="features">
+          <div id="features" className="bg-white">
             <FeaturesSection />
           </div>
 
-          <div id="how-it-works">
+          <div id="how-it-works" className="bg-white">
             <HowItWorksSection />
           </div>
 
           <StatsSection />
           <ContactSection />
-          <ResourceStrip />
           <PricingSection />
           <FAQSection />
           <CTASection />

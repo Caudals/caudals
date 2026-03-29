@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ClipboardList, Users, CheckCircle, CreditCard, Sparkles, Shield } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
 type Role = "organizations" | "contributors";
 
@@ -76,71 +77,72 @@ export function HowItWorksSection() {
   const [role, setRole] = useState<Role>("organizations");
 
   return (
-    <section className="py-12 sm:py-16 lg:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-12">
-        <div className="mb-6 text-center sm:mb-8">
-          <p className="text-xs font-semibold uppercase text-slate-500">
-            {t("How it works")}
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl lg:text-4xl">
-            {t("One platform, two seamless experiences")}
-          </h2>
-          <p className="mt-3 text-sm text-slate-500 sm:text-base">
-            {t(
-              "Toggle between organizations and contributors to see how each role moves through the Caudals loop.",
-            )}
-          </p>
-        </div>
-
-        <div className="mx-auto mb-6 flex max-w-md items-center gap-1 rounded-full border border-border/80 bg-card p-1 sm:mb-10 sm:gap-2">
-          {([
-            { id: "organizations", label: "Organizations" },
-            { id: "contributors", label: "Contributors" },
-          ] as { id: Role; label: string }[]).map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => setRole(option.id)}
-              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-                role === option.id
-                  ? "bg-foreground text-primary-foreground"
-                  : "text-slate-500 hover:text-foreground"
-              }`}
-            >
-              {t(option.label)}
-            </button>
-          ))}
-        </div>
-
-        <motion.div
-          key={role}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="rounded-[1.5rem] border border-border/80 bg-white/90 p-4 sm:rounded-[2rem] sm:p-6 lg:p-8"
-        >
-          <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
-            {t(flows[role].title)}
-          </h3>
-          <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-2">
-            {flows[role].steps.map((step, index) => (
-              <div key={step.label} className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 sm:gap-4 sm:rounded-2xl sm:p-5">
-                <div className="flex h-10 w-10 min-w-[2.5rem] items-center justify-center rounded-lg border border-border/70 bg-accent/15 text-accent sm:h-12 sm:w-12 sm:min-w-[3rem] sm:rounded-[0.8rem]">
-                  <step.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-slate-500 sm:text-sm">
-                    {t("Step {{index}}", { index: index + 1 })}
-                  </p>
-                  <h4 className="text-base font-semibold text-foreground sm:text-lg">
-                    {t(step.label)}
-                  </h4>
-                  <p className="text-xs text-slate-500 sm:text-sm">{t(step.description)}</p>
-                </div>
-              </div>
+    <section className="py-24 sm:py-32 bg-white overflow-hidden">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12 text-center">
+        <div className="flex flex-col items-center justify-center gap-8 mb-16 mx-auto max-w-3xl">
+          <div>
+            <p className="text-[13px] font-bold text-teal-600 mb-4">
+              {t("Operations")}
+            </p>
+            <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
+              {t("One platform, two seamless experiences")}
+            </h2>
+          </div>
+          
+          <div className="flex p-1 bg-gray-100 rounded-lg h-11 w-full max-w-[320px]">
+            {([
+              { id: "organizations", label: "Organizations" },
+              { id: "contributors", label: "Contributors" },
+            ] as { id: Role; label: string }[]).map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setRole(option.id)}
+                className={cn(
+                  "flex-1 rounded-md text-xs font-bold transition-all",
+                  role === option.id
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                {t(option.label)}
+              </button>
             ))}
           </div>
-        </motion.div>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={role}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <h3 className="text-2xl font-bold text-black mb-10 text-center">
+              {t(flows[role].title)}
+            </h3>
+            
+            <div className="grid gap-px bg-gray-100 border border-gray-100 rounded-xl overflow-hidden sm:grid-cols-2 lg:grid-cols-4 text-left">
+              {flows[role].steps.map((step, index) => (
+                <div key={step.label} className="bg-white p-8 flex flex-col items-start group hover:bg-gray-50/50 transition-colors">
+                  <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-md bg-teal-50 text-teal-600 transition-transform group-hover:scale-110">
+                    <step.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-[10px] font-bold text-teal-600 mb-2">
+                    {t("Phase 0{{index}}", { index: index + 1 })}
+                  </p>
+                  <h4 className="text-lg font-bold text-black mb-3">
+                    {t(step.label)}
+                  </h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {t(step.description)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
