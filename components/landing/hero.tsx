@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
   Sparkles,
   LayoutDashboard,
   Database,
@@ -11,19 +9,120 @@ import {
   Wallet,
   Settings,
   Search,
-  Bell,
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { landingModePublicEnabled } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { cn } from "@/lib/utils";
 
-const REQUESTER_ONBOARDING_CTA = "/auth/sign-up?role=requester&next=/requester/onboarding";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { waitlistFormSchema, type WaitlistFormValues } from "@/lib/validators/waitlist";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+function HeroWaitlistForm() {
+  const [result, setResult] = useState<{ success: boolean; alreadyRegistered?: boolean } | null>(null);
+  const toast = useLocaleToast();
+  const t = useTranslations();
+  const form = useForm<WaitlistFormValues>({
+    resolver: zodResolver(waitlistFormSchema),
+    defaultValues: {
+      email: "",
+    },
+    mode: "onBlur",
+  });
+
+  const isSubmitting = form.formState.isSubmitting;
+
+  async function onSubmit(values: WaitlistFormValues) {
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email }),
+      });
+
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        if (response.status === 422 && payload?.details?.fieldErrors?.email?.[0]) {
+          form.setError("email", { type: "server", message: payload.details.fieldErrors.email[0] });
+          toast.error(t("Please enter a valid email address."));
+          return;
+        }
+        throw new Error(payload?.error || payload?.message || "Something went wrong");
+      }
+
+      setResult(payload);
+      if (payload?.alreadyRegistered) {
+        toast.info(t("You're already on the waitlist!"));
+      } else {
+        toast.success(t("You're on the waitlist! We'll be in touch soon."));
+      }
+      form.reset();
+    } catch (error) {
+      console.error("Failed to submit waitlist form", error);
+      toast.error(t("We couldn't save your request. Please try again."));
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="relative flex items-center">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="w-full space-y-0">
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder={t("Enter your email")}
+                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-32 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
+                    {...field}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button 
+            type="submit" 
+            size="sm" 
+            disabled={isSubmitting}
+            className="absolute right-1 h-10 rounded-full bg-black px-5 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90 disabled:opacity-70"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Join Waitlist")}
+          </Button>
+        </form>
+      </Form>
+      {form.formState.errors.email && (
+        <p className="mt-2 text-sm text-red-500 font-medium text-center">
+          {form.formState.errors.email.message}
+        </p>
+      )}
+      {result && !form.formState.errors.email && (
+        <p className="mt-2 text-sm text-teal-700 font-medium text-center">
+          {result.alreadyRegistered 
+            ? t("You're already on the list—we'll keep the updates coming.") 
+            : t("Thanks for joining! We'll reach out soon with next steps.")}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function HeroSection() {
   const t = useTranslations();
-  const isLandingMode = landingModePublicEnabled;
   
   const heroHighlights = [
     t("No onboarding fees"),
@@ -72,20 +171,9 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="mt-8 flex flex-col items-center gap-4 sm:flex-row"
+          className="mt-10 w-full"
         >
-          <Button size="lg" className="h-12 min-w-[200px] rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]" asChild>
-            <Link href={isLandingMode ? "/contact" : REQUESTER_ONBOARDING_CTA}>
-              {isLandingMode ? t("Talk to the team") : t("Start a project")}
-            </Link>
-          </Button>
-          <Link 
-            href={isLandingMode ? "/blog" : "/browse"}
-            className="group flex h-12 items-center gap-2 px-6 text-base font-medium text-black transition-colors hover:text-teal-700"
-          >
-            {isLandingMode ? t("Read the blog") : t("Browse datasets")}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+          <HeroWaitlistForm />
         </motion.div>
 
         <motion.div
