@@ -38,6 +38,7 @@ Refactor the landing page to match the clean, minimalist, editorial design of th
 - [x] P32-T14: Final polish of `app/(home)/page.tsx` and header/footer consistency. `DONE`
 - [x] P32-T15: Rebalance `LandingVideoBackground` visibility after the design refactor and revalidate Mux playback/crop on desktop and mobile. `DONE`
 - [x] P32-T16: Restore a working Mux clouds playback in the landing hero after the refactor and auto-propagate `LANDING_MODE` into the public dev bundle. `DONE`
+- [x] P32-T17: Restore the landing hero waitlist submission flow in landing mode, allow the public `/api/waitlist` route, and align waitlist email delivery with the existing Resend fallback/error-handling pattern. `DONE`
 
 ## Validation
 - [x] Visual inspection of each section.

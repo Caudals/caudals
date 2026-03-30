@@ -28,6 +28,7 @@ describe("landing mode route allowlist", () => {
 
   it("allows only explicit public APIs", () => {
     expect(isLandingModeApiPathAllowed("/api/contact")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/analytics/track")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/collaborations")).toBe(false);
     expect(isLandingModeApiPathAllowed("/api/upload")).toBe(false);
@@ -42,6 +43,7 @@ describe("landing mode route allowlist", () => {
   it("evaluates full request allowlisting", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
+    expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-up")).toBe(false);
     expect(isLandingModeRequestAllowed("/api/internal/export-jobs")).toBe(false);
   });

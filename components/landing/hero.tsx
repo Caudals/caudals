@@ -29,8 +29,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
+interface WaitlistResponse {
+  success: boolean;
+  message?: string;
+  alreadyRegistered?: boolean;
+  emailSent?: boolean;
+}
+
 function HeroWaitlistForm() {
-  const [result, setResult] = useState<{ success: boolean; alreadyRegistered?: boolean } | null>(null);
+  const [result, setResult] = useState<WaitlistResponse | null>(null);
   const toast = useLocaleToast();
   const t = useTranslations();
   const form = useForm<WaitlistFormValues>({
@@ -45,6 +52,8 @@ function HeroWaitlistForm() {
 
   async function onSubmit(values: WaitlistFormValues) {
     try {
+      setResult(null);
+
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,11 +71,20 @@ function HeroWaitlistForm() {
         throw new Error(payload?.error || payload?.message || "Something went wrong");
       }
 
-      setResult(payload);
-      if (payload?.alreadyRegistered) {
-        toast.info(t("You're already on the waitlist!"));
+      const data = (payload ?? {}) as WaitlistResponse;
+      setResult(data);
+
+      if (data.alreadyRegistered) {
+        toast.info(t(data.message ?? "You're already on the waitlist!"));
       } else {
-        toast.success(t("You're on the waitlist! We'll be in touch soon."));
+        toast.success(
+          t(
+            data.message ??
+              (data.emailSent
+                ? "You're on the waitlist! Check your inbox for a confirmation email."
+                : "You're on the waitlist! We'll be in touch soon."),
+          ),
+        );
       }
       form.reset();
     } catch (error) {
@@ -112,9 +130,14 @@ function HeroWaitlistForm() {
       )}
       {result && !form.formState.errors.email && (
         <p className="mt-2 text-sm text-teal-700 font-medium text-center">
-          {result.alreadyRegistered 
-            ? t("You're already on the list—we'll keep the updates coming.") 
-            : t("Thanks for joining! We'll reach out soon with next steps.")}
+          {result.alreadyRegistered
+            ? t("You're already on the list—we'll keep the updates coming.")
+            : result.emailSent
+              ? t(
+                  result.message ??
+                    "You're on the waitlist! Check your inbox for a confirmation email.",
+                )
+              : t("Thanks for joining! We'll reach out soon with next steps.")}
         </p>
       )}
     </div>

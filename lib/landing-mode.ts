@@ -3,6 +3,7 @@ const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
+  "/api/waitlist",
 ]);
 const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest)$/i;
