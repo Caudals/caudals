@@ -4,13 +4,13 @@ import { getResendClient } from "@/lib/resend/client";
 import { WaitlistConfirmationEmail } from "@/emails/waitlist-confirmation";
 import type { Database, Json } from "@/types/database";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
-import { splitFullName } from "@/lib/utils/names";
+import { ensureAudienceContact } from "@/lib/resend/subscribers";
 import {
   buildRateLimitHeaders,
   consumeRateLimit,
   getClientIpFromHeaders,
 } from "@/lib/security/rate-limit";
-import { logError, logInfo, logWarn } from "@/lib/security/structured-logger";
+import { logError, logWarn } from "@/lib/security/structured-logger";
 
 const WAITLIST_IP_RATE_LIMIT = {
   limit: 10,
@@ -30,6 +30,59 @@ function withHeaders(
     response.headers.set(key, value);
   });
   return response;
+}
+
+type ResendEmailPayload = Parameters<
+  ReturnType<typeof getResendClient>["emails"]["send"]
+>[0];
+
+async function sendEmailWithFallback({
+  resend,
+  fallbackFrom,
+  payload,
+  primaryErrorEvent,
+  fallbackErrorEvent,
+  fallbackUsedEvent,
+  logContext,
+}: {
+  resend: ReturnType<typeof getResendClient>;
+  fallbackFrom?: string;
+  payload: ResendEmailPayload;
+  primaryErrorEvent: string;
+  fallbackErrorEvent: string;
+  fallbackUsedEvent: string;
+  logContext: Record<string, string | boolean | number | null | undefined>;
+}) {
+  const primaryResult = await resend.emails.send(payload);
+
+  if (!primaryResult.error) {
+    return true;
+  }
+
+  logError(primaryErrorEvent, {
+    ...logContext,
+    error: primaryResult.error,
+  });
+
+  if (!fallbackFrom || fallbackFrom === payload.from) {
+    return false;
+  }
+
+  const fallbackResult = await resend.emails.send({
+    ...payload,
+    from: fallbackFrom,
+  });
+
+  if (fallbackResult.error) {
+    logError(fallbackErrorEvent, {
+      ...logContext,
+      error: fallbackResult.error,
+    });
+    return false;
+  }
+
+  logWarn(fallbackUsedEvent, logContext);
+  return true;
 }
 
 export async function POST(request: NextRequest) {
@@ -219,6 +272,7 @@ export async function POST(request: NextRequest) {
   }
 
   const resendFrom = process.env.RESEND_FROM_EMAIL;
+  const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
   if (!resendFrom) {
     logWarn("waitlist.resend_from_missing", { email: emailLower });
@@ -235,68 +289,93 @@ export async function POST(request: NextRequest) {
     const resend = getResendClient();
 
     if (!generalAudienceId) {
-      console.warn(
-        "Waitlist submission saved but RESEND_GENERAL_AUDIENCE_ID is missing; skipping audience contact creation"
-      );
+      logWarn("waitlist.audience_missing", { email: emailLower });
     } else {
-      const { firstName, lastName } = splitFullName(fullName);
-
       try {
-        await resend.contacts.create({
+        await ensureAudienceContact({
+          resendClient: resend,
           audienceId: generalAudienceId,
           email: emailLower,
-          firstName,
-          lastName,
-          unsubscribed: false,
+          fullName,
         });
       } catch (error) {
-        const statusCode =
-          typeof error === "object" && error !== null && "statusCode" in error
-            ? (error as { statusCode?: number }).statusCode
-            : undefined;
-
-        if (statusCode === 409) {
-          logInfo("waitlist.contact_already_exists", {
-            email: emailLower,
-            audienceId: generalAudienceId,
-          });
-        } else {
-          logError("waitlist.contact_upsert_failed", {
-            error,
-            email: emailLower,
-            audienceId: generalAudienceId,
-          });
-        }
+        logError("waitlist.contact_upsert_failed", {
+          error,
+          email: emailLower,
+          audienceId: generalAudienceId,
+        });
       }
     }
 
-    await resend.emails.send({
-      from: resendFrom,
-      to: emailLower,
-      subject: "You're on the Caudals waitlist!",
-      react: WaitlistConfirmationEmail({
-        fullName,
-        company,
-        useCase,
-      }),
+    const confirmationSent = await sendEmailWithFallback({
+      resend,
+      fallbackFrom: resendFallbackFrom,
+      payload: {
+        from: resendFrom,
+        to: emailLower,
+        subject: "You're on the Caudals waitlist!",
+        react: WaitlistConfirmationEmail({
+          fullName,
+          company,
+          useCase,
+        }),
+      },
+      primaryErrorEvent: "waitlist.confirmation_send_failed",
+      fallbackErrorEvent: "waitlist.confirmation_fallback_failed",
+      fallbackUsedEvent: "waitlist.confirmation_fallback_used",
+      logContext: {
+        email: emailLower,
+      },
     });
 
-    const notificationEmail = process.env.WAITLIST_NOTIFICATION_EMAIL;
+    if (!confirmationSent) {
+      return withHeaders(
+        NextResponse.json({
+          success: true,
+          message: "You're on the waitlist! We'll be in touch soon.",
+          emailSent: false,
+        }),
+        ipRateHeaders
+      );
+    }
+
+    const notificationEmail =
+      process.env.WAITLIST_NOTIFICATION_EMAIL ??
+      process.env.CONTACT_NOTIFICATION_EMAIL ??
+      process.env.COLLABORATION_NOTIFICATION_EMAIL;
 
     if (notificationEmail) {
-      await resend.emails.send({
-        from: resendFrom,
-        to: notificationEmail,
-        subject: `New waitlist signup: ${fullName || emailLower}`,
-        html: `<p><strong>Email:</strong> ${emailLower}</p>
+      const notificationSent = await sendEmailWithFallback({
+        resend,
+        fallbackFrom: resendFallbackFrom,
+        payload: {
+          from: resendFrom,
+          to: notificationEmail,
+          subject: `New waitlist signup: ${fullName || emailLower}`,
+          html: `<p><strong>Email:</strong> ${emailLower}</p>
 <p><strong>Name:</strong> ${fullName}</p>
 ${company ? `<p><strong>Company:</strong> ${company}</p>` : ""}
 ${useCase ? `<p><strong>Use case:</strong> ${useCase}</p>` : ""}
 <p><strong>Submitted at:</strong> ${timestamp}</p>`,
+        },
+        primaryErrorEvent: "waitlist.notification_send_failed",
+        fallbackErrorEvent: "waitlist.notification_fallback_failed",
+        fallbackUsedEvent: "waitlist.notification_fallback_used",
+        logContext: {
+          email: emailLower,
+          notificationEmail,
+        },
       });
+
+      if (!notificationSent) {
+        logWarn("waitlist.notification_delivery_skipped", {
+          email: emailLower,
+          notificationEmail,
+        });
+      }
     }
   } catch (error) {
-    logError("waitlist.email_send_failed", { error, email: emailLower });
+    logError("waitlist.email_flow_failed", { error, email: emailLower });
     return withHeaders(
       NextResponse.json({
         success: true,
