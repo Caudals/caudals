@@ -38,7 +38,7 @@ function HeroWaitlistForm() {
     defaultValues: {
       email: "",
     },
-    mode: "onBlur",
+    mode: "onSubmit",
   });
 
   const isSubmitting = form.formState.isSubmitting;
@@ -107,7 +107,7 @@ function HeroWaitlistForm() {
       </Form>
       {form.formState.errors.email && (
         <p className="mt-2 text-sm text-red-500 font-medium text-center">
-          {form.formState.errors.email.message}
+          {form.formState.errors.email.message ? t(form.formState.errors.email.message) : ""}
         </p>
       )}
       {result && !form.formState.errors.email && (
