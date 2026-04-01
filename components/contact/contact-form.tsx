@@ -47,10 +47,10 @@ const defaultValues: Partial<CollaborationFormValues> = {
 };
 
 const minimalInputClass =
-  "border-0 border-b border-gray-300 rounded-md px-0 py-2 h-auto bg-transparent focus-visible:ring-0 focus-visible:border-black placeholder:text-gray-400 text-base shadow-none";
+  "border-0 border-b border-gray-300 rounded-none px-0 py-2 h-auto bg-transparent focus-visible:ring-0 focus-visible:border-black placeholder:text-gray-400 text-base shadow-none";
 
 const minimalSelectClass =
-  "w-full border-0 border-b border-gray-300 rounded-md px-0 py-2 bg-transparent focus-visible:ring-0 focus-visible:border-black text-base shadow-none appearance-none outline-none";
+  "w-full border-0 border-b border-gray-300 rounded-none px-0 py-2 bg-transparent focus-visible:ring-0 focus-visible:border-black text-base shadow-none appearance-none outline-none";
 
 export function ContactForm() {
   const [isComplete, setIsComplete] = useState(false);
