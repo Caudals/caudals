@@ -2,6 +2,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import Link from "next/link";
 import { blogMediaFrameClassName } from "@/components/blog/media-frame";
 import { YouTubeEmbed } from "@/components/blog/youtube-embed";
+import { DataBudgetCalculator } from "@/components/blog/dataset-budget-calculator";
 import { slugifyHeading } from "@/lib/blog/shared";
 import { cn } from "@/lib/utils";
 
@@ -164,4 +165,5 @@ export const mdxComponents = {
     </div>
   ),
   YouTube: YouTubeEmbed,
+  DataBudgetCalculator,
 };
