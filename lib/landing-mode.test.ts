@@ -37,6 +37,11 @@ describe("landing mode route allowlist", () => {
   it("allows required metadata and asset paths", () => {
     expect(isLandingModeStaticAssetPath("/manifest.webmanifest")).toBe(true);
     expect(isLandingModeStaticAssetPath("/favicon.ico")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/robots.txt")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/sitemap.xml")).toBe(true);
+    expect(
+      isLandingModeStaticAssetPath("/googlef901b912f9aefdea.html")
+    ).toBe(true);
     expect(isLandingModeStaticAssetPath("/_next/static/chunk.js")).toBe(true);
   });
 

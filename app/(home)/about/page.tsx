@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "About",
-  description: "Caudals builds dependable AI dataset operations with accountable human workflows.",
-};
+  description:
+    "Caudals builds dependable AI dataset operations with accountable human workflows.",
+  pathname: "/about",
+});
 
 export default function AboutPage() {
   return (

@@ -5,6 +5,7 @@ const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/contact",
   "/api/waitlist",
 ]);
+const SITE_VERIFICATION_HTML_PATTERN = /^\/google[a-z0-9]+\.html$/i;
 const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest)$/i;
 
@@ -41,6 +42,7 @@ export function isLandingModeStaticAssetPath(pathname: string) {
 
   return (
     normalizedPathname.startsWith("/_next") ||
+    SITE_VERIFICATION_HTML_PATTERN.test(normalizedPathname) ||
     STATIC_ASSET_PATH_PATTERN.test(normalizedPathname)
   );
 }

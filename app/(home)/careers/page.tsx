@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "Careers",
   description: "Careers and hiring information for Caudals.",
-};
+  pathname: "/careers",
+});
 
 export default function CareersPage() {
   return (
