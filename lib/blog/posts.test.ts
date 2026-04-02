@@ -10,9 +10,9 @@ describe("blog content loader", () => {
   it("returns localized posts ordered by publish date", async () => {
     const posts = await getBlogPosts("en");
 
-    expect(posts).toHaveLength(3);
-    expect(posts[0]?.slug).toBe("launching-caudals-clearer-dataset-operations");
-    expect(posts[0]?.featured).toBe(true);
+    expect(posts).toHaveLength(5);
+    expect(posts[0]?.slug).toBe("budgeting-a-dataset-collection-program");
+    expect(posts.some((post) => post.slug === "launching-caudals-clearer-dataset-operations" && post.featured)).toBe(true);
     expect(posts.every((post) => post.locale === "en")).toBe(true);
   });
 
@@ -37,9 +37,11 @@ describe("blog content loader", () => {
     );
 
     expect(slugs).toEqual([
+      "budgeting-a-dataset-collection-program",
       "how-we-review-contributor-quality-signals",
       "launching-caudals-clearer-dataset-operations",
       "operational-playbooks-for-multimodal-datasets",
+      "synthetic-vs-human-data",
     ]);
     expect(adjacent.next?.slug).toBe("launching-caudals-clearer-dataset-operations");
     expect(adjacent.previous?.slug).toBe(

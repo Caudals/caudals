@@ -4,11 +4,14 @@ import { CheckCircle2 } from "lucide-react";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Pricing",
-  description: "Simple plans for dataset operations, contributor programs, and enterprise governance.",
-};
+  description:
+    "Simple plans for dataset operations, contributor programs, and enterprise governance.",
+  pathname: "/pricing",
+});
 
 const plans = [
   {
