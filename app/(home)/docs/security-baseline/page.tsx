@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "Security Baseline",
-  description: "Caudals baseline controls for abuse prevention, upload security, and webhook safety.",
-};
+  description:
+    "Caudals baseline controls for abuse prevention, upload security, and webhook safety.",
+  pathname: "/docs/security-baseline",
+});
 
 export default function SecurityBaselineDocsPage() {
   return (

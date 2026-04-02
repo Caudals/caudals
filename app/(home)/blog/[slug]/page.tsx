@@ -8,6 +8,7 @@ import { getAdjacentBlogPosts, getAllBlogSlugs, getBlogPost } from "@/lib/blog/p
 import { formatBlogDate, formatReadTime } from "@/lib/blog/shared";
 import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
+import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 export async function generateStaticParams() {
   const slugs = await getAllBlogSlugs();
@@ -20,10 +21,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = await getBlogPost(slug, locale);
 
   if (!post) {
-    return { title: "Blog" };
+    return buildPublicMetadata({
+      title: "Blog",
+      description: "Dataset operations notes from Caudals.",
+      pathname: "/blog",
+      noIndex: true,
+    });
   }
 
-  return { title: post.title, description: post.excerpt };
+  return buildPublicMetadata({
+    title: post.title,
+    description: post.excerpt,
+    pathname: `/blog/${post.slug}`,
+    type: "article",
+    publishedTime: post.publishedAt,
+    modifiedTime: post.publishedAt,
+    authors: [post.author],
+    keywords: post.tags,
+    section: post.category,
+  });
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -40,13 +56,24 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    url: buildMarketingUrl(`/blog/${post.slug}`),
     author: { "@type": "Organization", name: post.author },
     datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
     description: post.excerpt,
     headline: post.title,
     inLanguage: locale,
-    mainEntityOfPage: `https://caudals.com/blog/${post.slug}`,
-    publisher: { "@type": "Organization", name: "Caudals" },
+    keywords: post.tags.join(", "),
+    articleSection: post.category,
+    mainEntityOfPage: buildMarketingUrl(`/blog/${post.slug}`),
+    publisher: {
+      "@type": "Organization",
+      name: "Caudals",
+      logo: {
+        "@type": "ImageObject",
+        url: buildMarketingUrl("/apple-touch-icon.png"),
+      },
+    },
   };
 
   return (

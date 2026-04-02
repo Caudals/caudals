@@ -158,7 +158,7 @@ export function DataSourceQuiz() {
         {isIntro && (
           <div className="max-w-lg">
             <p className="text-lg text-black leading-relaxed mb-6">
-              Answer five questions about your dataset requirements. You'll get a recommendation — synthetic-first, human-collected, or hybrid — with concrete next steps.
+              Answer five questions about your dataset requirements. You&apos;ll get a recommendation - synthetic-first, human-collected, or hybrid - with concrete next steps.
             </p>
             <button
               onClick={() => setStep(1)}

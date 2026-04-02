@@ -8,14 +8,58 @@ import { getServerTranslationBundle } from "@/lib/i18n/server";
 import { TranslationProvider } from "@/lib/i18n/translation-context";
 import { translateReactNode } from "@/lib/i18n/translate-node";
 import { ClientLocaleDetector } from "@/lib/i18n/client-locale-detector";
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  DEFAULT_SITE_TITLE,
+  getDefaultSocialImageUrl,
+  getMarketingSiteOrigin,
+  SITE_NAME,
+} from "@/lib/seo";
+
+const googleVerificationToken =
+  process.env.GOOGLE_SITE_VERIFICATION ??
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+const defaultSocialImage = getDefaultSocialImageUrl();
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getMarketingSiteOrigin()),
+  applicationName: SITE_NAME,
   title: {
-    default: "Caudals | AI Dataset Crowdsourcing Platform",
+    default: DEFAULT_SITE_TITLE,
     template: "%s | Caudals",
   },
-  description:
-    "Build production-grade AI datasets at scale. Caudals connects organizations with a global network of contributors to create rich, diverse datasets for machine learning.",
+  description: DEFAULT_SITE_DESCRIPTION,
+  keywords: [
+    "AI datasets",
+    "dataset operations",
+    "data collection platform",
+    "crowdsourcing",
+    "machine learning data",
+  ],
+  openGraph: {
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: defaultSocialImage,
+        alt: SITE_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_SITE_DESCRIPTION,
+    images: [defaultSocialImage],
+  },
+  ...(googleVerificationToken
+    ? {
+        verification: {
+          google: googleVerificationToken,
+        },
+      }
+    : {}),
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

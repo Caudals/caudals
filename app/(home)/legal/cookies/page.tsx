@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "Cookie Policy",
   description: "How Caudals uses cookies and similar technologies.",
-};
+  pathname: "/legal/cookies",
+});
 
 const sections = [
   {
