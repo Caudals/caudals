@@ -1,6 +1,6 @@
 ---
 title: Cómo revisamos señales de calidad de contributors sin frenar la entrega
-excerpt: El modelo de revisión que usamos para separar envíos arriesgados de los rutinarios, mantener el ritmo de las colas y dar feedback accionable a los contributors.
+excerpt: El modelo de revisión que usamos para separar los envíos arriesgados de los rutinarios, mantener el ritmo de las colas y dar a los contributors un feedback sobre el que puedan actuar.
 publishedAt: 2026-03-18
 author: El equipo de Caudals
 authorRole: Ingeniería y confianza
@@ -15,67 +15,67 @@ coverVariant: grid
 ---
 
 <Callout title="Principio central">
-Las señales deben concentrar la atención del revisor. No deberían tomar decisiones finales de calidad de forma silenciosa.
+Las señales deben concentrar la atención del revisor — no tomar decisiones finales de calidad en silencio en nombre de la operación.
 </Callout>
 
-## Separar señales de decisiones
+## Señales y decisiones son cosas distintas
 
-Los equipos se complican cuando convierten heurísticas de calidad en porteros invisibles. Nosotros preferimos un contrato más estrecho:
+Los equipos se meten en problemas cuando convierten heurísticas de calidad en filtros invisibles. Nosotros preferimos un contrato más acotado:
 
 - las señales automáticas marcan posibles incidencias,
 - los revisores toman la decisión final de aprobación,
-- los contributors reciben feedback específico en lugar de un rechazo opaco.
+- los contributors reciben feedback concreto en lugar de un rechazo opaco.
 
-Esa división mantiene el sistema explicable. También da a los equipos de operaciones una forma de mejorar la política sin reescribir todo el flujo de envíos.
+Esta separación mantiene el sistema explicable. También da a los equipos de operaciones una vía para mejorar la política sin tener que reescribir todo el flujo de envíos.
 
-## Cómo es una señal útil
+## Qué tiene que hacer una señal útil
 
-Una señal útil hace una de estas tres cosas:
+Una señal útil hace alguna de estas tres cosas:
 
-1. identifica un fallo técnico predecible como un archivo ausente o un formato inválido,
-2. aumenta la probabilidad de que un revisor tenga que mirar con más atención,
-3. ayuda a enrutar trabajo hacia la cola correcta más rápido.
+1. Identifica un fallo técnico predecible — un archivo que falta, un formato inválido.
+2. Aumenta la probabilidad de que un revisor necesite mirar con más atención.
+3. Ayuda a enrutar el trabajo hacia la cola correcta más rápido.
 
-Las señales son menos útiles cuando intentan comprimir todo el matiz de la “calidad” en una sola puntuación. El trabajo de revisión es contextual y las decisiones contextuales necesitan razonamiento visible.
+Las señales pierden utilidad cuando intentan comprimir todo el matiz de "calidad" en una puntuación única. El trabajo de revisión es contextual y las decisiones contextuales necesitan razonamiento visible, no un número.
 
-## El diseño de la cola importa más que obsesionarse con la puntuación
+## El diseño de la cola importa más que perseguir la puntuación perfecta
 
-El mejor sistema de revisión suele ser el que mantiene la cola legible. Pensamos en la salud de la cola por capas:
+El mejor sistema de revisión suele ser el que mantiene la cola legible. Nosotros pensamos en la salud de la cola por capas:
 
-- los envíos sencillos pasan por carriles rápidos,
-- los envíos más arriesgados se enrutan a revisión profunda,
+- los envíos sencillos avanzan por carriles rápidos,
+- los envíos más arriesgados se derivan a revisión en profundidad,
 - los patrones de fallo repetidos activan cambios de instrucciones o de política aguas arriba.
 
-Ese diseño mantiene el esfuerzo de revisión proporcionado al riesgo real. También evita el fallo típico de tratar cada envío como si fuera una excepción.
+Este diseño mantiene el esfuerzo de revisión proporcionado al riesgo real y evita el error habitual de tratar cada envío como si fuera un caso excepcional.
 
 ## El feedback tiene que ser operativo
 
-El feedback al contributor solo funciona cuando puede cambiar el siguiente envío. Eso significa que los motivos de rechazo deben mantenerse concretos.
+El feedback al contributor solo sirve si puede cambiar el siguiente envío. Eso significa que los motivos de rechazo tienen que ser concretos.
 
-Ejemplos útiles:
+Ejemplos que funcionan:
 
-- “El ruido de fondo tapó la locución del prompt.”
-- “El encuadre de la imagen cortó el objeto requerido.”
-- “Faltaba el campo de metadatos `device_model`.”
+- "El ruido de fondo tapó la locución del prompt."
+- "El encuadre de la imagen cortó el objeto requerido."
+- "Faltaba el campo de metadatos `device_model`."
 
-Feedback débil sería:
+Feedback que no funciona:
 
-- “No cumple los estándares de calidad.”
-- “Por favor, mejora la calidad del envío.”
+- "No cumple los estándares de calidad."
+- "Por favor, mejora la calidad del envío."
 
-Ese tipo de mensajes protege al sistema de la responsabilidad, pero no enseña nada al contributor.
+Ese tipo de mensajes protege al sistema de cualquier responsabilidad, pero no le enseña nada al contributor.
 
 <Callout title="Qué optimizamos">
-El objetivo no es rechazar con más precisión. El objetivo es que los buenos contributors puedan recuperarse rápido sin bajar la confianza del requester.
+El objetivo no es rechazar con más precisión. El objetivo es que los buenos contributors puedan recuperarse rápido sin que la confianza del requester se resienta.
 </Callout>
 
 ## El bucle operativo que nos importa
 
-Un sistema de revisión está sano cuando estas cuatro cosas siguen siendo ciertas al mismo tiempo:
+Un sistema de revisión está sano cuando estas cuatro condiciones se cumplen a la vez:
 
 - los requesters confían en los estados de aprobación,
-- los contributors entienden cómo mejorar,
+- los contributors entienden qué tienen que mejorar,
 - los admins pueden ver el atasco y los puntos de intervención,
-- ingeniería puede evolucionar las señales sin desestabilizar la política.
+- el equipo de ingeniería puede evolucionar las señales sin desestabilizar la política.
 
-Ese es el patrón hacia el que seguimos empujando dentro de Caudals. Los sistemas de calidad deberían reducir la confusión, no fabricar más.
+Hacia eso seguimos trabajando en Caudals. Los sistemas de calidad deberían reducir la confusión, no generar más.
