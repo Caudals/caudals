@@ -1,0 +1,74 @@
+---
+title: How to budget a dataset collection program
+excerpt: A practical framework for estimating the real cost of a dataset program before you commit — covering contributor payouts, reviewer overhead, rejection rates, and what most teams undercount.
+publishedAt: 2026-04-02
+author: The Caudals Team
+authorRole: Dataset operations
+category: Dataset Ops
+categoryKey: dataset-ops
+tags:
+  - Budgeting
+  - Requesters
+  - Operations
+featured: false
+coverVariant: signal
+---
+
+<Callout title="Common mistake">
+Most dataset budgets account for contributor payouts. Fewer account for reviewer labor, resubmission cycles, and the overhead that rejection rates add to gross collection volume.
+</Callout>
+
+## Why dataset budgets break
+
+A dataset program that targets 5,000 approved submissions is not a 5,000-submission program. If your rejection rate is 25%, you need to collect and review roughly 6,700 submissions to get 5,000 through. That gap — the difference between approved targets and gross collection volume — is where most budget surprises live.
+
+The same logic applies to reviewer time. Teams often estimate labor against approved submissions, not gross ones. But reviewers process every submission, including the ones they reject. A reviewer spending two minutes per submission on 6,700 submissions is a different line item than two minutes per 5,000.
+
+## The four budget components
+
+A reliable dataset budget has four parts.
+
+**1. Contributor payouts.** The most visible cost: price per submission multiplied by gross collection volume (not approved volume). The payout rate should reflect task complexity, required equipment, and the market rate for comparable work in your contributor pool.
+
+**2. Reviewer labor.** Review time per submission multiplied by gross submissions, converted to hours, multiplied by reviewer cost. This is often the second-largest line item and the most underestimated. If you use external reviewers, their hourly rate also needs to reflect specialization — audio review differs from image review.
+
+**3. Platform and tooling fees.** Marketplace platforms, annotation tools, storage, and export infrastructure all carry costs. These typically run 8–15% of contributor payout depending on the provider.
+
+**4. Resubmission cycles.** Some programs offer resubmission paths for rejected work. That adds a second round of review time and sometimes a second payout at a partial rate. Budget explicitly for this if your program design includes it.
+
+## Rejection rate is a multiplier, not a footnote
+
+Rejection rate is the most lever-like variable in a dataset budget. A 10-point increase in rejection rate can add 10–20% to total program cost through the combined effect of more gross submissions needed and more reviewer time consumed.
+
+Before launch, estimate your rejection rate conservatively. If you have data from a similar prior program, use it. If you do not, use 25–30% as a baseline for a new task type with a new contributor pool. You can refine the rate after the first collection sprint.
+
+Teams that treat rejection rate as a quality outcome only — and not also as a cost driver — consistently overbuild contributor supply while underbuilding reviewer capacity. That mismatch creates queue debt that compounds over the life of the program.
+
+## Use this estimator to pressure-test your plan
+
+The calculator below lets you adjust the five key variables and see how they interact. Run it at three rejection-rate scenarios — optimistic, expected, and conservative — before committing to a budget with a requester or finance team.
+
+<DataBudgetCalculator />
+
+The "per approved submission" figure at the bottom is often the most useful number to share with stakeholders. It normalizes across program sizes and makes the cost of quality improvements concrete: if you invest in better contributor instructions and cut your rejection rate from 30% to 20%, the per-unit cost drops in a way that is easy to explain.
+
+## What to do when the number is too high
+
+If the estimate exceeds your budget, adjust in this order:
+
+1. **Scope the collection volume.** A smaller program with a tighter task definition often produces better data than a larger loose one.
+2. **Raise the payout rate and tighten the contributor pool.** Higher rates tend to attract more reliable contributors, which reduces rejection rates and total gross volume needed.
+3. **Streamline the review rubric.** Simpler, clearer rejection criteria reduce per-submission review time and reduce the rate of borderline decisions that require escalation.
+4. **Phase the program.** Run a funded pilot at 10–15% of target volume before committing to the full budget. Use the pilot's actual rejection rate and review time to calibrate the full-program estimate.
+
+<Callout title="Budget principle">
+The goal is not to spend less. The goal is to know the real cost before you start, so you can make informed decisions about scope, quality standards, and delivery pace.
+</Callout>
+
+## Keep the budget live
+
+A dataset budget is not a one-time planning artifact. Rejection rates shift as contributor populations evolve and task instructions get refined. Review throughput changes as queue depth fluctuates. Track actual spend against estimated spend weekly and update your projection whenever a material variable changes.
+
+Programs that run budget reviews only at kickoff and at the final export tend to hit surprises in the middle. Programs that treat the budget as a live operating document can respond earlier — by tightening intake, adjusting payout rates, or flagging scope risk before it becomes a delivery problem.
+
+That is the operational posture Caudals is built around: dataset programs that stay legible from brief creation through to export, with the numbers visible at every stage.

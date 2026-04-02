@@ -1,0 +1,74 @@
+---
+title: Cómo presupuestar un programa de recolección de datos
+excerpt: Un marco práctico para estimar el coste real de un programa de dataset antes de comprometerse — cubriendo pagos a contribuidores, sobrecarga de revisión, tasas de rechazo, y lo que la mayoría de equipos subestima.
+publishedAt: 2026-04-02
+author: The Caudals Team
+authorRole: Operaciones de datasets
+category: Dataset Ops
+categoryKey: dataset-ops
+tags:
+  - Presupuesto
+  - Solicitantes
+  - Operaciones
+featured: false
+coverVariant: signal
+---
+
+<Callout title="Error habitual">
+La mayoría de los presupuestos de dataset contemplan los pagos a contribuidores. Pocos contemplan el trabajo de revisión, los ciclos de reenvío y la sobrecarga que las tasas de rechazo añaden al volumen bruto de recolección.
+</Callout>
+
+## Por qué fallan los presupuestos de datasets
+
+Un programa de dataset que tiene como objetivo 5.000 envíos aprobados no es un programa de 5.000 envíos. Si tu tasa de rechazo es del 25%, necesitas recopilar y revisar aproximadamente 6.700 envíos para que 5.000 pasen el filtro. Esa diferencia — entre los objetivos aprobados y el volumen bruto de recolección — es donde viven la mayoría de las sorpresas presupuestarias.
+
+La misma lógica se aplica al tiempo de revisión. Los equipos suelen estimar la carga de trabajo en función de los envíos aprobados, no de los brutos. Pero los revisores procesan cada envío, incluidos los que rechazan. Un revisor que invierte dos minutos por envío en 6.700 envíos representa una partida diferente a dos minutos por 5.000.
+
+## Los cuatro componentes del presupuesto
+
+Un presupuesto de dataset fiable tiene cuatro partes.
+
+**1. Pagos a contribuidores.** El coste más visible: precio por envío multiplicado por el volumen bruto de recolección (no el volumen aprobado). La tarifa de pago debe reflejar la complejidad de la tarea, el equipo necesario y el precio de mercado para trabajos comparables en tu comunidad de contribuidores.
+
+**2. Trabajo de revisión.** Tiempo de revisión por envío multiplicado por los envíos brutos, convertido a horas y multiplicado por el coste del revisor. Esta suele ser la segunda partida más grande y la más subestimada. Si utilizas revisores externos, su tarifa horaria también debe reflejar la especialización: la revisión de audio difiere de la de imagen.
+
+**3. Tarifas de plataforma y herramientas.** Las plataformas de marketplace, las herramientas de anotación, el almacenamiento y la infraestructura de exportación tienen costes. Por lo general, representan entre un 8 y un 15% del pago a los contribuidores, según el proveedor.
+
+**4. Ciclos de reenvío.** Algunos programas ofrecen la posibilidad de reenviar trabajos rechazados. Esto añade una segunda ronda de tiempo de revisión y, en ocasiones, un segundo pago a tarifa parcial. Presupuesta esto explícitamente si el diseño de tu programa lo contempla.
+
+## La tasa de rechazo es un multiplicador, no una nota al pie
+
+La tasa de rechazo es la variable con mayor influencia en un presupuesto de dataset. Un incremento de diez puntos puede añadir entre un 10 y un 20% al coste total del programa, por el efecto combinado de necesitar más envíos brutos y consumir más tiempo de revisión.
+
+Antes del lanzamiento, estima la tasa de rechazo de forma conservadora. Si tienes datos de un programa anterior similar, úsalos. Si no los tienes, utiliza entre un 25 y un 30% como línea base para un nuevo tipo de tarea con una nueva comunidad de contribuidores. Podrás ajustar la tasa tras el primer sprint de recolección.
+
+Los equipos que tratan la tasa de rechazo solo como un resultado de calidad — y no también como un factor de coste — construyen sistemáticamente una oferta excesiva de contribuidores y una capacidad de revisión insuficiente. Ese desajuste genera deuda de cola que se acumula durante toda la vida del programa.
+
+## Usa este estimador para validar tu plan
+
+La calculadora que aparece a continuación te permite ajustar las cinco variables clave y ver cómo interactúan. Ejecútala con tres escenarios de tasa de rechazo — optimista, esperado y conservador — antes de comprometerte con un presupuesto frente a un solicitante o equipo financiero.
+
+<DataBudgetCalculator />
+
+La cifra de "coste por envío aprobado" que aparece al final suele ser el dato más útil para compartir con los grupos de interés. Normaliza entre distintos tamaños de programa y hace concreto el coste de las mejoras de calidad: si inviertes en mejores instrucciones para contribuidores y reduces la tasa de rechazo del 30% al 20%, el coste unitario cae de una manera fácil de explicar.
+
+## Qué hacer cuando el número es demasiado alto
+
+Si el presupuesto estimado supera tu límite disponible, ajusta en este orden:
+
+1. **Reduce el volumen de recolección.** Un programa más pequeño con una definición de tarea más precisa suele producir mejores datos que uno más amplio y difuso.
+2. **Sube la tarifa de pago y selecciona mejor la comunidad de contribuidores.** Las tarifas más altas tienden a atraer contribuidores más fiables, lo que reduce las tasas de rechazo y el volumen bruto necesario.
+3. **Simplifica el criterio de revisión.** Criterios de rechazo más simples y claros reducen el tiempo de revisión por envío y la frecuencia de decisiones en zona gris que requieren escalado.
+4. **Planifica el programa por fases.** Ejecuta un piloto financiado con entre el 10 y el 15% del volumen objetivo antes de comprometerte con el presupuesto completo. Usa la tasa de rechazo real del piloto y el tiempo de revisión para calibrar la estimación del programa completo.
+
+<Callout title="Principio presupuestario">
+El objetivo no es gastar menos. El objetivo es conocer el coste real antes de empezar, para poder tomar decisiones informadas sobre alcance, estándares de calidad y ritmo de entrega.
+</Callout>
+
+## Mantén el presupuesto vivo
+
+Un presupuesto de dataset no es un artefacto de planificación puntual. Las tasas de rechazo cambian a medida que evolucionan las comunidades de contribuidores y se refinan las instrucciones de las tareas. El rendimiento de revisión varía según la profundidad de la cola. Compara el gasto real con el estimado semanalmente y actualiza tu proyección siempre que cambie una variable relevante.
+
+Los programas que solo revisan el presupuesto en el arranque y en la exportación final tienden a encontrar sorpresas a mitad del camino. Los programas que tratan el presupuesto como un documento operativo vivo pueden responder antes: ajustando la entrada, modificando las tarifas de pago o señalando el riesgo de alcance antes de que se convierta en un problema de entrega.
+
+Esa es la postura operativa en torno a la que está construido Caudals: programas de dataset que se mantienen legibles desde la creación del brief hasta la exportación, con los números visibles en cada etapa.
