@@ -1,14 +1,16 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "Documentation",
-  description: "Operational guides for launching, reviewing, and scaling datasets on Caudals.",
-};
+  description:
+    "Operational guides for launching, reviewing, and scaling datasets on Caudals.",
+  pathname: "/docs",
+});
 
 const guideCards = [
   {

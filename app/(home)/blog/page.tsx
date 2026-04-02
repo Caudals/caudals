@@ -8,13 +8,26 @@ import { normalizeTopicKey } from "@/lib/blog/shared";
 import { getBlogPosts } from "@/lib/blog/posts";
 import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
+import { buildPublicMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ topic?: string }>;
+}): Promise<Metadata> {
   const t = await getServerTranslator();
+  const { topic } = await searchParams;
+
   return {
-    title: t("Blog"),
-    description: t("Clear signal for dataset operations, product launches, and engineering notes from Caudals."),
+    ...buildPublicMetadata({
+      title: t("Blog"),
+      description: t(
+        "Clear signal for dataset operations, product launches, and engineering notes from Caudals."
+      ),
+      pathname: "/blog",
+      noIndex: Boolean(normalizeTopicKey(topic)),
+    }),
   };
 }
 

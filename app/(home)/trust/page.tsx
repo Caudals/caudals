@@ -1,16 +1,17 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Shield, Wallet, Workflow } from "lucide-react";
 import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { buildPublicMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPublicMetadata({
   title: "Trust Center",
   description:
     "Security controls, governance model, payout transparency, and support SLAs for Caudals.",
-};
+  pathname: "/trust",
+});
 
 const trustPillars = [
   {
