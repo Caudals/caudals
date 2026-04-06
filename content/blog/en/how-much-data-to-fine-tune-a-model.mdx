@@ -1,0 +1,84 @@
+---
+title: How much data do you actually need to fine-tune a model?
+excerpt: The honest answer is "it depends" — but it depends on specific, measurable variables. A practical breakdown of what drives fine-tuning data requirements and how to estimate them before you start collecting.
+publishedAt: 2026-04-06
+author: The Caudals Team
+authorRole: Dataset operations
+category: AI & ML
+categoryKey: ai-ml
+tags:
+  - Fine-tuning
+  - Dataset Planning
+  - Requesters
+  - AI Training
+featured: false
+coverVariant: ledger
+---
+
+<Callout title="The question every team asks">
+How much data do we need? The answer shapes your budget, your timeline, and whether the program is worth starting at all. Most estimates in the wild are either too vague to act on or too specific to generalize. This piece tries to split the difference.
+</Callout>
+
+## Why there is no universal number
+
+Fine-tuning is not a single operation. Depending on what you are trying to accomplish, the data requirements can differ by an order of magnitude — not by a factor of two or three.
+
+The teams that get burned tend to anchor on a number they heard ("we fine-tuned on a few hundred examples"), apply it to their own task without examining the variables, and then discover halfway through a collection program that their model is not converging. Or they over-collect, spend twice their budget, and still get mediocre results because volume was not the bottleneck.
+
+Four variables actually drive the number you need: what task you are training for, how large your base model is, what quality target you are aiming for, and how diverse your input distribution is. Each one independently shifts the floor and ceiling of a reasonable data budget.
+
+## Task type sets the floor
+
+Different tasks impose fundamentally different learning demands on a model, and those demands translate directly into data requirements.
+
+**Classification and structured labeling** are among the cheapest tasks to fine-tune. The label space is fixed, the decision boundary is learnable from a small number of examples, and the model can generalize quickly if your classes are well-defined. A few hundred carefully chosen examples can produce a reliable classifier for a narrow domain. The constraint is not volume — it is label consistency. Inconsistent annotation across the dataset teaches the model ambiguity rather than removing it.
+
+**Summarization and transformation tasks** sit in the middle range. The model needs to learn a style and a scope — how much to compress, what to preserve, what to cut. That requires seeing the target behavior across a variety of input types. Coverage matters here: a dataset that only samples from one document type will produce a model that struggles outside of it.
+
+**Instruction following and conversational tasks** have the highest floor. The model needs to learn a behavioral pattern, not just a decision rule. That pattern must generalize across topic, register, phrasing, and edge cases. You are not teaching the model facts — you are shaping how it behaves. That takes substantially more data, and the quality bar per example is higher.
+
+**Domain adaptation** sits in a separate category. You are not reshaping behavior so much as anchoring the model in a specialized vocabulary and context. The bottleneck is usually terminology and concept coverage, not volume in the abstract. A targeted audit of your domain vocabulary before you scope the collection program is worth more than a rough volume estimate.
+
+## Model size changes the equation
+
+Larger base models require less fine-tuning data to reach a given performance level. This is one of the most consistent empirical patterns across fine-tuning practice: the more capable the base model, the less it needs to be shown before it generalizes.
+
+A small model (under 3B parameters) has limited prior knowledge to build on. It needs to see more examples to internalize a behavior reliably because it has less representational capacity to generalize from few examples. A large model (13–70B) arrives with rich priors and needs only to be steered, not retrained. The fine-tuning data tells it what direction to move, not how to move at all.
+
+This has a practical implication: if you are budget-constrained on data collection, choosing a larger base model and collecting a smaller, higher-quality dataset is often a better trade than collecting large volumes of average-quality data for a smaller model. The base model absorbs more of the cost of generalization, and your dataset budget can go toward coverage and quality instead of raw count.
+
+## Quality versus quantity: where most programs make the wrong trade
+
+The most persistent mistake in fine-tuning data programs is treating quality and quantity as interchangeable. They are not. At low data volumes, quality dominates. At high data volumes, quality still dominates — but inconsistency also starts to compound.
+
+A dataset where 20% of examples are ambiguously labeled or stylistically inconsistent does not produce a model that is 80% as good as a clean one. It produces a model with confused decision boundaries that fails on a different set of inputs than you expect. The degradation is not linear and it is not always visible in top-line metrics.
+
+The implication is that the marginal return on adding more examples to an already inconsistent dataset is close to zero — and can be negative. Before expanding volume, verify that your annotation rubric is tight, your reviewer calibration is solid, and the examples you have already collected are internally consistent. Only then does adding more data pay off predictably.
+
+High-quality fine-tuning data typically costs 1.5–3x more per example than baseline-quality data, because it requires more rigorous review, clearer task specifications, and sometimes multiple rounds of annotation. That cost is almost always worth it. You can collect fewer examples and get better results.
+
+## The diminishing returns problem
+
+Every fine-tuning data program has a region where adding more examples stops producing meaningful improvement. Where that boundary sits depends on the task and the model, but it is a real phenomenon and it arrives earlier than most teams expect.
+
+The shape of the return curve is typically steep early and flat late. The first few hundred (or thousand) well-chosen examples move your model significantly. The next few thousand move it less. Beyond a certain point, you are mostly covering rare edge cases and reducing variance — not improving average performance.
+
+This matters for program design. If you are building a dataset program from scratch, a phased approach — collect a pilot batch, evaluate, then decide whether to expand — almost always produces better results than committing the full budget upfront. The pilot gives you an empirical return-on-data curve for your specific task. That curve tells you whether expanding is worth the cost, and it shifts your collection focus toward the examples that move the needle rather than the ones that just add volume.
+
+## Use this estimator as a starting point
+
+The estimator below gives you a data range based on your task type, base model size, and quality target. Treat the output as an order-of-magnitude anchor, not a precise specification.
+
+<FineTuningEstimator />
+
+The most useful thing the estimator surfaces is not the number itself but how sensitive that number is to your quality target. The gap between a baseline dataset and a high-quality one is often larger than the gap between task types. That sensitivity is worth discussing explicitly before you scope your collection program.
+
+## What this means operationally
+
+Estimating data requirements is not a one-time planning activity — it is the first step in a scoping loop. Once you have a rough number, you work backward: what does a dataset of that size cost to collect and review? What rejection rate should you plan for? What does that rejection rate imply about gross collection volume? What does that gross volume cost?
+
+That loop is where most teams discover their initial estimate needs revision — not because the estimate was wrong, but because the true cost of collecting and reviewing that data at the quality level required is higher than expected.
+
+The programs that run most efficiently are the ones that make this scoping loop explicit before they start, pilot at a fraction of the full budget, use the pilot data to calibrate their full-program estimate, and treat quality as a fixed constraint rather than a variable to trade off against cost.
+
+That is the discipline that turns a rough data estimate into a reliable delivery plan.

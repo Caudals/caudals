@@ -4,6 +4,7 @@ import { blogMediaFrameClassName } from "@/components/blog/media-frame";
 import { YouTubeEmbed } from "@/components/blog/youtube-embed";
 import { DataBudgetCalculator } from "@/components/blog/dataset-budget-calculator";
 import { DataSourceQuiz } from "@/components/blog/data-source-quiz";
+import { FineTuningEstimator } from "@/components/blog/fine-tuning-estimator";
 import { slugifyHeading } from "@/lib/blog/shared";
 import { cn } from "@/lib/utils";
 
@@ -168,4 +169,5 @@ export const mdxComponents = {
   YouTube: YouTubeEmbed,
   DataBudgetCalculator,
   DataSourceQuiz,
+  FineTuningEstimator,
 };

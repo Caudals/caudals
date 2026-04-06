@@ -1,0 +1,84 @@
+---
+title: ¿Cuántos datos necesitas realmente para hacer fine-tuning de un modelo?
+excerpt: La respuesta honesta es "depende", pero depende de variables concretas y medibles. Un desglose práctico de qué determina los requisitos de datos para fine-tuning y cómo estimarlos antes de empezar a recopilar.
+publishedAt: 2026-04-06
+author: The Caudals Team
+authorRole: Operaciones de datasets
+category: AI & ML
+categoryKey: ai-ml
+tags:
+  - Fine-tuning
+  - Planificación de Datasets
+  - Solicitantes
+  - Entrenamiento IA
+featured: false
+coverVariant: ledger
+---
+
+<Callout title="La pregunta que todos los equipos hacen">
+¿Cuántos datos necesitamos? La respuesta condiciona el presupuesto, el calendario y si el programa merece la pena empezarlo. La mayoría de las estimaciones que circulan son demasiado vagas para actuar sobre ellas o demasiado específicas para generalizar. Este artículo intenta encontrar el punto intermedio.
+</Callout>
+
+## Por qué no existe un número universal
+
+El fine-tuning no es una operación única. Según lo que se quiera conseguir, los requisitos de datos pueden diferir en un orden de magnitud, no en un factor de dos o tres.
+
+Los equipos que se llevan sorpresas suelen anclar en un número que escucharon en algún sitio ("hicimos fine-tuning con unos pocos cientos de ejemplos"), lo aplican a su tarea sin examinar las variables, y a mitad de un programa de recopilación descubren que el modelo no converge. O recopilan demasiado, gastan el doble del presupuesto, y aun así obtienen resultados mediocres porque el volumen no era el cuello de botella.
+
+Cuatro variables determinan realmente el número que necesitas: la tarea para la que entrenas, el tamaño del modelo base, el objetivo de calidad que persigues y la diversidad de la distribución de entradas. Cada una por separado desplaza el suelo y el techo de un presupuesto de datos razonable.
+
+## El tipo de tarea fija el mínimo
+
+Distintas tareas imponen exigencias de aprendizaje fundamentalmente diferentes a un modelo, y esas exigencias se traducen directamente en requisitos de datos.
+
+**La clasificación y el etiquetado estructurado** son de las tareas más baratas de ajustar. El espacio de etiquetas es fijo, la frontera de decisión es aprendible con un número pequeño de ejemplos, y el modelo puede generalizar rápidamente si las clases están bien definidas. Unos pocos cientos de ejemplos bien elegidos pueden producir un clasificador fiable para un dominio acotado. La restricción no es el volumen, sino la consistencia del etiquetado. Una anotación inconsistente le enseña al modelo ambigüedad en lugar de eliminarla.
+
+**Las tareas de resumen y transformación** se sitúan en un rango intermedio. El modelo necesita aprender un estilo y un alcance: cuánto comprimir, qué preservar, qué eliminar. Eso requiere ver el comportamiento objetivo en una variedad de tipos de entrada. La cobertura importa: un dataset que solo muestrea de un tipo de documento producirá un modelo que tendrá dificultades fuera de él.
+
+**Las tareas de seguimiento de instrucciones y conversacionales** tienen el mínimo más alto. El modelo necesita aprender un patrón de comportamiento, no solo una regla de decisión. Ese patrón debe generalizarse a través de temas, registros, formulaciones y casos extremos. No se le enseñan hechos al modelo, se moldea cómo se comporta. Eso requiere sustancialmente más datos, y el listón de calidad por ejemplo es más exigente.
+
+**La adaptación a un dominio** se sitúa en una categoría aparte. No se trata tanto de remodelar el comportamiento como de anclar el modelo en un vocabulario y un contexto especializados. El cuello de botella suele ser la cobertura terminológica y conceptual, no el volumen en abstracto. Una auditoría del vocabulario del dominio antes de definir el alcance del programa de recopilación vale más que una estimación de volumen aproximada.
+
+## El tamaño del modelo cambia la ecuación
+
+Los modelos base más grandes requieren menos datos de fine-tuning para alcanzar un nivel de rendimiento dado. Este es uno de los patrones empíricos más consistentes en la práctica del fine-tuning: cuanto más capaz es el modelo base, menos necesita que se le muestre para generalizar.
+
+Un modelo pequeño (menos de 3B de parámetros) tiene conocimiento previo limitado en el que apoyarse. Necesita ver más ejemplos para interiorizar un comportamiento de forma fiable, porque tiene menos capacidad de representación para generalizar a partir de pocos ejemplos. Un modelo grande (13–70B) llega con priors ricos y solo necesita que lo orienten, no que lo reentrenen desde cero. Los datos de fine-tuning le indican en qué dirección moverse, no cómo moverse en absoluto.
+
+Esto tiene una implicación práctica: si tienes un presupuesto ajustado para la recopilación de datos, elegir un modelo base más grande y recopilar un dataset más pequeño y de mayor calidad suele ser mejor que coleccionar grandes volúmenes de datos mediocres para un modelo más pequeño. El modelo base absorbe gran parte del coste de generalización, y el presupuesto del dataset puede destinarse a cobertura y calidad en lugar de al recuento bruto.
+
+## Calidad frente a cantidad: el error que cometen la mayoría de los programas
+
+El error más persistente en los programas de datos para fine-tuning es tratar la calidad y la cantidad como intercambiables. No lo son. Con volúmenes de datos bajos, la calidad domina. Con volúmenes altos, la calidad sigue dominando, pero la inconsistencia también empieza a acumularse.
+
+Un dataset donde el 20% de los ejemplos están etiquetados de forma ambigua o son estilísticamente inconsistentes no produce un modelo que sea un 80% tan bueno como uno limpio. Produce un modelo con fronteras de decisión confusas que falla en un conjunto de entradas distinto al esperado. La degradación no es lineal y no siempre es visible en las métricas principales.
+
+La implicación es que el retorno marginal de añadir más ejemplos a un dataset ya inconsistente es cercano a cero, y puede ser negativo. Antes de ampliar el volumen, hay que verificar que la rúbrica de anotación es clara, que la calibración de los revisores es sólida y que los ejemplos ya recopilados son internamente consistentes. Solo entonces añadir más datos tiene un retorno predecible.
+
+Los datos de fine-tuning de alta calidad suelen costar entre 1,5 y 3 veces más por ejemplo que los de calidad básica, porque requieren una revisión más rigurosa, especificaciones de tarea más claras y a veces varias rondas de anotación. Ese coste casi siempre merece la pena. Se pueden recopilar menos ejemplos y obtener mejores resultados.
+
+## El problema de los rendimientos decrecientes
+
+Todo programa de datos para fine-tuning tiene una región donde añadir más ejemplos deja de producir mejoras significativas. Dónde se sitúa ese límite depende de la tarea y del modelo, pero es un fenómeno real y llega antes de lo que la mayoría de los equipos espera.
+
+La forma de la curva de retorno suele ser pronunciada al principio y plana al final. Los primeros cientos (o miles) de ejemplos bien elegidos mueven el modelo de forma significativa. Los siguientes miles lo mueven menos. Más allá de cierto punto, básicamente se están cubriendo casos extremos poco frecuentes y reduciendo la varianza, no mejorando el rendimiento medio.
+
+Esto importa para el diseño del programa. Si se construye un programa de dataset desde cero, un enfoque por fases (recopilar un lote piloto, evaluar, y luego decidir si ampliar) casi siempre produce mejores resultados que comprometer todo el presupuesto desde el principio. El piloto proporciona una curva de retorno empírica de los datos para la tarea concreta. Esa curva indica si la ampliación merece el coste, y desplaza el foco de la recopilación hacia los ejemplos que marcan la diferencia, no hacia los que solo añaden volumen.
+
+## Usa este estimador como punto de partida
+
+El estimador de abajo ofrece un rango de datos según el tipo de tarea, el tamaño del modelo base y el objetivo de calidad. El resultado es una referencia de orden de magnitud, no una especificación precisa.
+
+<FineTuningEstimator />
+
+Lo más valioso que muestra el estimador no es el número en sí, sino lo sensible que es ese número al objetivo de calidad. La brecha entre un dataset de línea base y uno de alta calidad suele ser mayor que la brecha entre tipos de tarea. Vale la pena discutir esa sensibilidad de forma explícita antes de definir el alcance del programa de recopilación.
+
+## Qué implica esto operativamente
+
+Estimar los requisitos de datos no es una actividad puntual de planificación, es el primer paso de un ciclo de definición de alcance. Una vez que se tiene un número aproximado, se trabaja hacia atrás: ¿cuánto cuesta recopilar y revisar un dataset de ese tamaño? ¿Qué tasa de rechazo hay que prever? ¿Qué implica esa tasa de rechazo para el volumen bruto de recopilación? ¿Cuánto cuesta ese volumen bruto?
+
+Ese ciclo es donde la mayoría de los equipos descubre que su estimación inicial necesita revisión, no porque la estimación fuera incorrecta, sino porque el coste real de recopilar y revisar esos datos al nivel de calidad requerido es mayor de lo esperado.
+
+Los programas que funcionan con mayor eficiencia son los que hacen ese ciclo de definición explícito antes de empezar, ejecutan un piloto con una fracción del presupuesto total, utilizan los datos del piloto para calibrar la estimación del programa completo, y tratan la calidad como una restricción fija en lugar de una variable a intercambiar por coste.
+
+Esa es la disciplina que convierte una estimación aproximada de datos en un plan de entrega fiable.
