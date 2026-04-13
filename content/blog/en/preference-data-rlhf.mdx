@@ -1,0 +1,96 @@
+---
+title: "Preference data for RLHF: collecting human feedback that sticks"
+excerpt: Fine-tuning teaches a model to do something. RLHF teaches it to do it the way humans actually prefer. That difference changes everything about how you design and collect training data.
+publishedAt: 2026-04-13
+author: The Caudals Team
+authorRole: Dataset operations
+category: AI & ML
+categoryKey: ai-ml
+tags:
+  - RLHF
+  - Preference Data
+  - Dataset Planning
+  - AI Training
+featured: false
+coverVariant: ledger
+---
+
+<Callout title="The core distinction">
+Supervised fine-tuning maps inputs to correct outputs. Reinforcement learning from human feedback maps inputs to preferred outputs. Those two things look similar but require completely different data collection strategies.
+</Callout>
+
+## Why fine-tuning is not enough
+
+If you fine-tune a language model on good examples of a target behavior, you get a model that can produce that behavior. What you do not get is a model that reliably chooses to produce the better version of that behavior when there are multiple plausible ways to respond.
+
+This is not a small gap. A fine-tuned model can simultaneously know how to be helpful, know how to be evasive, know how to be verbose, and know how to be concise. Which of those behaviors it leans toward on a given input depends on what happened to be most common in the training data. You shaped the model's capabilities. You did not shape its preferences.
+
+RLHF closes that gap. Instead of showing the model what to do, you show it which of two outputs a human would rather receive. You train a reward model on that preference signal. And then you use that reward model as the optimization target for fine-tuning. The model learns to prefer what humans prefer.
+
+That process depends entirely on the quality of the preference data you collect. And preference data is harder to get right than most teams expect.
+
+## What a preference pair actually is
+
+A preference pair is a single annotated comparison: a prompt, two model outputs (usually called response A and response B), and a human judgment about which is better. Sometimes annotators also capture a preference intensity or a rationale.
+
+The apparent simplicity is misleading. The quality of the preference pair depends on three things that are easy to get wrong.
+
+**The prompt distribution matters as much as the responses.** If your prompts are not representative of the real queries your model will face, the reward model trained on your pairs will optimize for a distribution that does not match production. A dataset built mostly from formal, well-formed prompts produces a reward model that is poorly calibrated for casual or ambiguous user inputs. Prompt diversity is as important as response quality.
+
+**The contrast between responses needs to be legible.** Two outputs that are nearly identical produce an annotation that is almost pure noise. Two outputs that differ on six dimensions at once produce an annotation that conflates what actually mattered to the human. The most signal-rich preference pairs isolate the variation to a single behavioral dimension: helpfulness, tone, factual precision, instruction adherence. Controlling for irrelevant variation is a task design problem, not an annotation problem.
+
+**Annotator judgment must be consistent across pairs.** If different annotators use different implicit criteria to choose between responses, the reward model will learn a blended signal that does not cleanly represent any preference. Calibration across annotators is the single most important operational challenge in preference data collection, and it receives far less attention than prompt engineering or response generation.
+
+## How many pairs you need
+
+The answer depends on how many behaviors you are trying to shape, what state your base model is in, and how reliable your annotators are.
+
+A model that has been through SFT already behaves coherently. It can follow instructions, maintain format, and avoid obvious failure modes. Preference data on top of that is doing fine-grained work: tilting the model toward more helpful, more concise, or more appropriately cautious behavior. That is a narrower learning problem, and it requires fewer pairs to achieve a reliable signal.
+
+A model that has never been through SFT is being asked to do coarser work. The reward model is not just separating "better" from "worse" across a narrow dimension. It is establishing a baseline for what coherent behavior even looks like. More pairs are required, and the annotation task is harder because annotators are often forced to compare outputs that are both poor in different ways.
+
+Use the estimator below to get an order-of-magnitude starting point for your program.
+
+<PreferencePairPlanner />
+
+The output range is wide by design. The uncertainty in preference data programs is genuine, and false precision at the scoping stage usually causes bigger problems than honest uncertainty does.
+
+## The annotation task is a design artifact
+
+Most of the quality problems in preference datasets originate in task design, not in annotators. When an annotation task is well-designed, inter-annotator agreement rates above 80% are achievable with trained non-experts. When the task is poorly specified, even expert annotators regularly disagree at rates above 40%.
+
+The most common task design failure is leaving the comparison criterion implicit. "Which response is better?" is not a task specification. Better at what? Better for whom? Over what time horizon? A response that gets to the point quickly might be preferred by an expert user and frustrating for a beginner. A response that explains its reasoning might score higher on a rubric designed for high-stakes domains and lower on one designed for casual chat. Without specifying the criterion, annotators invent their own, and the result is a reward model that reflects annotator variance rather than user preference.
+
+A well-designed preference task defines the criterion explicitly, provides examples of responses at different quality levels on that criterion, and gives annotators a concrete rule for breaking ties. It also specifies what to do with clearly equal pairs, which occur more often than expected especially in later rounds when both responses are good.
+
+## What makes preference data hard to collect at scale
+
+**Agreement rates drop as model quality improves.** In early rounds, differences between response A and response B are often large and easy to judge. In later rounds, both responses are reasonably good, and the meaningful differences are subtle. Annotators who performed well in round one may disagree substantially in round three. This is not a calibration failure, it is a signal that you have moved into a harder regime.
+
+**Annotator preference drift is real.** Annotators who spend hours judging the same behavioral dimension develop implicit patterns that shift over time. A rubric that produces consistent judgments in the first hour of a session may produce different judgments in the fifth hour, not because the annotators are careless but because sustained exposure to a specific task changes the reference frame. Batch size limits and regular calibration checks are operational requirements, not optional quality measures.
+
+**Coverage is hard to verify.** You can audit raw annotation counts. What you cannot easily audit is whether your preference data covers the full distribution of behaviors your reward model needs to evaluate. A dataset with 20,000 pairs that all come from the same three prompt types will produce a reward model with unpredictable behavior on everything outside those three types. Systematic coverage checks, similar to what you would run on a labeled training set for classification tasks, are necessary.
+
+**Reward model hacking is a downstream risk, not a collection problem.** One of the known failure modes of RLHF is that the policy model eventually learns to produce outputs that score highly on the reward model without actually being preferred by humans. This happens because the reward model is a statistical approximation of human preference, not human preference itself. The risk of reward hacking grows as RLHF training continues beyond the regime where the reward model is well-calibrated. More preference data does not eliminate this risk. Better coverage and more targeted annotation rounds reduce it.
+
+## The connection to structured collection programs
+
+Collecting preference data at scale is operationally closer to running a structured annotation program than to running a labeling pipeline. The task requires calibrated annotators, explicit rubrics, systematic coverage planning, and iterative quality review.
+
+The workflows that work well for preference data collection are the same ones that work well for high-stakes supervised data collection: small calibration batches before full-scale runs, regular inter-annotator agreement checks, staged reviews before pairs are accepted into the training set, and clear feedback channels for annotators to flag ambiguous or malformed tasks.
+
+The difference is that the feedback loop is tighter. In supervised labeling, you can often detect annotation problems when you evaluate model quality. In RLHF, problems in the preference data propagate through the reward model before they become visible in model behavior. By the time you see a policy model behaving oddly, it can be hard to trace the root cause back to specific annotation decisions.
+
+That is an argument for investing in quality infrastructure before scale, not after.
+
+<Callout title="The key principle">
+Preference data is not a dataset. It is a measurement of human judgment under specific conditions. The conditions — the prompts, the response contrast, the annotation criteria, the annotator calibration — determine what the measurement actually captures. Getting those conditions right is the real design problem.
+</Callout>
+
+## Where to start
+
+If you are designing a preference data program for the first time, the highest-value investment is usually not in generating more response pairs. It is in writing a clear, testable annotation rubric and running a calibration batch before anything else.
+
+A calibration batch is a small set of 50 to 100 carefully chosen pairs where the "correct" preference is agreed in advance by a small group of experts or senior annotators. You run candidate annotators on that batch and measure their agreement rate against the reference. Annotators above threshold get onboarded. Annotators below threshold get additional rubric training or are replaced.
+
+That process, boring as it sounds, is the most reliable way to ensure that the pairs you collect reflect a consistent and meaningful preference signal. Everything downstream, including the quality of your reward model and the stability of your RLHF training, depends on it.

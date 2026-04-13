@@ -1,0 +1,96 @@
+---
+title: "Datos de preferencia para RLHF: recopilando feedback humano que funcione"
+excerpt: El fine-tuning enseña a un modelo a hacer algo. El RLHF le enseña a hacerlo como los humanos prefieren. Esa diferencia cambia por completo cómo se diseña y recopila el dataset de entrenamiento.
+publishedAt: 2026-04-13
+author: The Caudals Team
+authorRole: Operaciones de datasets
+category: AI & ML
+categoryKey: ai-ml
+tags:
+  - RLHF
+  - Datos de Preferencia
+  - Planificación de Datasets
+  - Entrenamiento IA
+featured: false
+coverVariant: ledger
+---
+
+<Callout title="La distinción fundamental">
+El fine-tuning supervisado asocia entradas con salidas correctas. El aprendizaje por refuerzo a partir de feedback humano asocia entradas con salidas preferidas. Se parecen, pero requieren estrategias de recopilación de datos completamente distintas.
+</Callout>
+
+## Por qué el fine-tuning no es suficiente
+
+Si haces fine-tuning de un modelo de lenguaje con buenos ejemplos de un comportamiento objetivo, obtienes un modelo capaz de producir ese comportamiento. Lo que no obtienes es un modelo que elija sistemáticamente la mejor versión de ese comportamiento cuando hay varias formas plausibles de responder.
+
+No es una brecha pequeña. Un modelo ajustado puede saber a la vez cómo ser útil, cómo ser evasivo, cómo ser extenso y cómo ser conciso. Qué comportamiento predomina ante una entrada concreta depende de qué patrón era más frecuente en los datos de entrenamiento. Has moldeado las capacidades del modelo, pero no sus preferencias.
+
+El RLHF cierra esa brecha. En lugar de mostrarle al modelo qué hacer, le muestras cuál de dos respuestas preferiría un humano. Entrenas un modelo de recompensa sobre esa señal de preferencia. Y luego usas ese modelo de recompensa como objetivo de optimización para el ajuste. El modelo aprende a preferir lo que prefieren los humanos.
+
+Todo ese proceso depende de la calidad de los datos de preferencia que recopiles. Y los datos de preferencia son más difíciles de hacer bien de lo que espera la mayoría de los equipos.
+
+## Qué es un par de preferencia
+
+Un par de preferencia es una comparación anotada: un prompt, dos respuestas del modelo (normalmente llamadas respuesta A y respuesta B) y un juicio humano sobre cuál es mejor. A veces los anotadores también registran la intensidad de la preferencia o una justificación.
+
+La aparente sencillez es engañosa. La calidad del par de preferencia depende de tres cosas que son fáciles de hacer mal.
+
+**La distribución de prompts importa tanto como las respuestas.** Si tus prompts no son representativos de las consultas reales que recibirá el modelo, el modelo de recompensa entrenado sobre esos pares optimizará para una distribución que no encaja con producción. Un dataset construido mayoritariamente con prompts formales y bien redactados produce un modelo de recompensa mal calibrado para entradas informales o ambiguas. La diversidad de prompts es tan importante como la calidad de las respuestas.
+
+**El contraste entre respuestas debe ser claro.** Dos respuestas casi idénticas generan una anotación que es prácticamente ruido puro. Dos respuestas que difieren en seis dimensiones a la vez generan una anotación que mezcla lo que realmente importó al anotador. Los pares más informativos aíslan la variación en una sola dimensión conductual: utilidad, tono, precisión factual, seguimiento de instrucciones. Controlar la variación irrelevante es un problema de diseño de tarea, no de anotación.
+
+**El criterio de los anotadores debe ser consistente entre pares.** Si distintos anotadores usan criterios implícitos diferentes para elegir entre respuestas, el modelo de recompensa aprenderá una señal mezclada que no representa ninguna preferencia real. La calibración entre anotadores es el principal reto operativo en la recopilación de datos de preferencia, y recibe mucha menos atención que la ingeniería de prompts o la generación de respuestas.
+
+## Cuántos pares necesitas
+
+La respuesta depende de cuántos comportamientos quieres moldear, en qué estado está tu modelo base y qué tan fiables son tus anotadores.
+
+Un modelo que ya ha pasado por SFT se comporta de forma coherente: sigue instrucciones, mantiene el formato y evita los errores más evidentes. Los datos de preferencia sobre esa base hacen un trabajo más fino: inclinar el modelo hacia respuestas más útiles, más concisas o más apropiadamente cautelosas. Es un problema de aprendizaje más estrecho y requiere menos pares para obtener una señal fiable.
+
+Un modelo que nunca ha pasado por SFT necesita hacer un trabajo más grueso. El modelo de recompensa no solo separa "mejor" de "peor" en una dimensión estrecha, sino que está estableciendo una línea base de lo que es un comportamiento coherente. Se necesitan más pares, y la tarea de anotación es más difícil porque los anotadores a menudo deben comparar respuestas que ambas son deficientes de maneras distintas.
+
+Usa el estimador a continuación para obtener un punto de partida de orden de magnitud para tu programa.
+
+<PreferencePairPlanner />
+
+El rango de salida es amplio a propósito. La incertidumbre en los programas de datos de preferencia es genuina, y la falsa precisión en la fase de planificación suele causar problemas mayores que la incertidumbre honesta.
+
+## La tarea de anotación es un artefacto de diseño
+
+La mayoría de los problemas de calidad en los datasets de preferencia tienen su origen en el diseño de la tarea, no en los anotadores. Cuando el diseño es bueno, las tasas de acuerdo entre anotadores superiores al 80% son alcanzables incluso con no expertos entrenados. Cuando la especificación es deficiente, hasta los expertos discrepan en más del 40% de los casos.
+
+El fallo de diseño más habitual es dejar implícito el criterio de comparación. "¿Qué respuesta es mejor?" no es una especificación de tarea. ¿Mejor en qué? ¿Mejor para quién? ¿En qué contexto? Una respuesta que va al grano puede gustar a un usuario experto y frustrar a un principiante. Una respuesta que explica su razonamiento puede puntuar alto en una rúbrica para dominios de alto riesgo y bajo en una para chat casual. Sin especificar el criterio, cada anotador inventa el suyo, y el resultado es un modelo de recompensa que refleja la varianza del anotador en lugar de la preferencia del usuario.
+
+Una tarea de preferencia bien diseñada define el criterio de forma explícita, proporciona ejemplos de respuestas en distintos niveles de calidad según ese criterio y da a los anotadores una regla concreta para desempatar. También especifica qué hacer con los pares claramente equivalentes, que aparecen con más frecuencia de la esperada, especialmente en rondas posteriores cuando ambas respuestas son buenas.
+
+## Qué hace que sea difícil recopilar datos de preferencia a escala
+
+**Las tasas de acuerdo caen a medida que mejora la calidad del modelo.** En rondas tempranas, las diferencias entre respuesta A y respuesta B suelen ser grandes y fáciles de juzgar. En rondas posteriores, ambas respuestas son razonablemente buenas y las diferencias significativas son sutiles. Los anotadores que rindieron bien en la ronda uno pueden discrepar sustancialmente en la ronda tres. No es un fallo de calibración; es la señal de que has entrado en un régimen más difícil.
+
+**La deriva de preferencia del anotador es real.** Los anotadores que pasan horas juzgando la misma dimensión conductual desarrollan patrones implícitos que cambian con el tiempo. Una rúbrica que produce juicios consistentes en la primera hora de sesión puede producir juicios distintos en la quinta, no porque los anotadores sean descuidados, sino porque la exposición sostenida a una tarea específica cambia el marco de referencia. Los límites en el tamaño de los lotes y las verificaciones periódicas de calibración son requisitos operativos, no medidas de calidad opcionales.
+
+**La cobertura es difícil de verificar.** Puedes auditar los recuentos brutos de anotaciones. Lo que no puedes auditar fácilmente es si tus datos de preferencia cubren la distribución completa de comportamientos que el modelo de recompensa necesita evaluar. Un dataset con 20.000 pares que provienen todos de los mismos tres tipos de prompts producirá un modelo de recompensa con comportamiento impredecible fuera de esos tres tipos. Las verificaciones sistemáticas de cobertura, similares a las que harías sobre un conjunto de entrenamiento etiquetado para tareas de clasificación, son necesarias.
+
+**El hacking del modelo de recompensa es un riesgo de entrenamiento, no un problema de recopilación.** Uno de los fallos conocidos del RLHF es que el modelo de política acaba aprendiendo a producir salidas que puntúan alto en el modelo de recompensa sin ser realmente preferidas por los humanos. Esto ocurre porque el modelo de recompensa es una aproximación estadística de la preferencia humana, no la preferencia humana en sí. El riesgo de hacking crece a medida que el entrenamiento RLHF continúa más allá del régimen donde el modelo de recompensa está bien calibrado. Más datos de preferencia no eliminan ese riesgo. Una mejor cobertura y rondas de anotación más específicas lo reducen.
+
+## La conexión con los programas de recopilación estructurada
+
+Recopilar datos de preferencia a escala es operativamente más parecido a ejecutar un programa de anotación estructurada que a gestionar un pipeline de etiquetado. La tarea requiere anotadores calibrados, rúbricas explícitas, planificación sistemática de cobertura y revisión iterativa de calidad.
+
+Los flujos de trabajo que funcionan bien para la recopilación de datos de preferencia son los mismos que funcionan bien para la recopilación supervisada de alto valor: lotes de calibración pequeños antes de las ejecuciones a escala completa, verificaciones regulares de acuerdo entre anotadores, revisiones por etapas antes de que los pares se acepten en el conjunto de entrenamiento y canales claros para que los anotadores señalen tareas ambiguas o mal formuladas.
+
+La diferencia es que el bucle de retroalimentación es más ajustado. En el etiquetado supervisado, los problemas de anotación suelen detectarse al evaluar la calidad del modelo. En RLHF, los problemas en los datos de preferencia se propagan a través del modelo de recompensa antes de hacerse visibles en el comportamiento del modelo. Cuando ves que un modelo de política se comporta de forma extraña, puede ser difícil rastrear la causa hasta decisiones de anotación concretas.
+
+Eso es un argumento para invertir en infraestructura de calidad antes de escalar, no después.
+
+<Callout title="El principio clave">
+Los datos de preferencia no son un dataset. Son una medición del juicio humano bajo condiciones específicas. Las condiciones, los prompts, el contraste entre respuestas, los criterios de anotación, la calibración de los anotadores, determinan qué mide realmente esa medición. Lograr que esas condiciones estén bien diseñadas es el verdadero problema de diseño.
+</Callout>
+
+## Por dónde empezar
+
+Si estás diseñando un programa de datos de preferencia por primera vez, la inversión de mayor valor suele no estar en generar más pares de respuestas, sino en escribir una rúbrica de anotación clara y comprobable, y ejecutar un lote de calibración antes de cualquier otra cosa.
+
+Un lote de calibración es un conjunto pequeño de 50 a 100 pares cuidadosamente elegidos donde la preferencia "correcta" ha sido acordada de antemano por un grupo reducido de expertos o anotadores senior. Haces que los anotadores candidatos trabajen con ese lote y mides su tasa de acuerdo respecto a la referencia. Los que superan el umbral se incorporan. Los que no, reciben formación adicional sobre la rúbrica o se sustituyen.
+
+Ese proceso, tan poco glamuroso como suena, es la forma más fiable de garantizar que los pares que recopiles reflejan una señal de preferencia consistente y significativa. Todo lo que viene después, incluida la calidad del modelo de recompensa y la estabilidad del entrenamiento RLHF, depende de él.
