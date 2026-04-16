@@ -61,5 +61,13 @@ export const placeholderTranslations: PlaceholderMap = {
       key: "• Max {{size}}MB",
       translation: "• Máx {{size}} MB",
     },
+    {
+      key: "Step 0{{index}}",
+      translation: "Paso 0{{index}}",
+    },
+    {
+      key: "{{range}} employees",
+      translation: "{{range}} empleados",
+    },
   ],
 };

@@ -3,77 +3,77 @@
 import Link from "next/link";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Network, PanelsTopLeft, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
+import { Upload, Search, ShieldCheck, Package, ArrowRight } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { cn } from "@/lib/utils";
 
-type LayerId = "blueprint" | "contributors" | "quality" | "delivery";
+type LayerId = "intake" | "sourcing" | "processing" | "delivery";
 
 const layers: Record<LayerId, {
   label: string;
   title: string;
   description: string;
   metric: string;
-  icon: typeof PanelsTopLeft;
+  icon: typeof Upload;
   bullets: string[];
 }> = {
-  blueprint: {
-    label: "Blueprint Studio",
-    title: "Guided briefs keep governance and incentives aligned",
+  intake: {
+    label: "Data Intake",
+    title: "Companies upload their raw data to Caudals",
     description:
-      "Version-controlled templates capture modalities, consent rules, target personas, and payout ladders in minutes.",
-    metric: "37% faster time-to-approval",
-    icon: PanelsTopLeft,
+      "Supplier companies connect their data sources or upload files directly. We handle schema detection, initial validation, and secure storage.",
+    metric: "Onboard in under 24 hours",
+    icon: Upload,
     bullets: [
-      "Region-aware consent + compliance packs",
-      "Pricing models + reviewer SLAs in one doc",
-      "Auto handoff to contributor ops",
+      "Drag-and-drop or API-based ingestion",
+      "Automatic schema detection + validation",
+      "Secure encrypted storage on upload",
     ],
   },
-  contributors: {
-    label: "Contributor Pods",
-    title: "Certified cohorts with device checks and training",
+  sourcing: {
+    label: "Data Sourcing",
+    title: "We find and aggregate data from multiple sources",
     description:
-      "Spin up regional pods, universities, or your own community. Training flows and device verification keep submissions trustworthy.",
-    metric: "52k+ vetted contributors",
-    icon: Sparkles,
+      "When a buyer needs a specific dataset, our team contacts relevant companies, negotiates access, and combines data from multiple suppliers with publicly available sources.",
+    metric: "Cross-industry sourcing network",
+    icon: Search,
     bullets: [
-      "Role-based enablement + certification",
-      "Device + environment attestation",
-      "Live ops room for escalations",
+      "Multi-supplier aggregation for richer datasets",
+      "Public data enrichment from open sources",
+      "Licensing negotiation handled by us",
     ],
   },
-  quality: {
-    label: "Quality Lab",
-    title: "Multi-reviewer QA, consensus scoring, and re-requests",
+  processing: {
+    label: "Processing & QA",
+    title: "Automated cleaning, anonymization, and quality scoring",
     description:
-      "Reviewer pods apply checklists, auto flag anomalies, and kick off re-requests before briefs move forward.",
-    metric: "95% average acceptance",
+      "Every dataset passes through our processing pipeline: PII removal, format standardization, deduplication, and quality scoring before reaching the catalog.",
+    metric: "98%+ quality scores on delivered data",
     icon: ShieldCheck,
     bullets: [
-      "Consensus scoring + rubrics",
-      "Adaptive routing for escalations",
-      "Slack + email nudges for blockers",
+      "PII detection and anonymization",
+      "Format conversion to Parquet / JSON-Lines",
+      "Automated + manual quality validation",
     ],
   },
   delivery: {
-    label: "Delivery Rails",
-    title: "Instant exports, analytics, and payouts",
+    label: "Delivery & Billing",
+    title: "Buyers access datasets through the catalog or API",
     description:
-      "Once approved, batches sync to Snowflake, Hugging Face, or your lakehouse while Stripe Connect settles payouts automatically.",
-    metric: "<48h to first approved batch",
-    icon: Network,
+      "Processed datasets are published in our catalog with full metadata, sample previews, and quality scores. Buyers purchase access and download via signed URLs or API.",
+    metric: "API access + bulk downloads",
+    icon: Package,
     bullets: [
-      "Exports to S3 / GCS / Azure / HF",
-      "Spend, quality, and throughput telemetry",
-      "Ledger + payout audit trail",
+      "Dataset cards with schema, samples, and scores",
+      "Signed download URLs or S3-compatible API",
+      "Revenue share auto-settled to suppliers",
     ],
   },
 };
 
 export function PlatformLayersSection() {
   const t = useTranslations();
-  const [activeLayer, setActiveLayer] = useState<LayerId>("blueprint");
+  const [activeLayer, setActiveLayer] = useState<LayerId>("intake");
   const layerEntries = Object.entries(layers) as [LayerId, (typeof layers)[LayerId]][];
 
   return (
@@ -81,10 +81,10 @@ export function PlatformLayersSection() {
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Platform architecture")}
+            {t("How it works")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Interactive tooling for every stage of dataset ops")}
+            {t("From raw company data to ML-ready datasets")}
           </h2>
         </div>
 
@@ -123,7 +123,7 @@ export function PlatformLayersSection() {
                   {t(layer.metric)}
                 </span>
                 {activeLayer === id && (
-                  <motion.div 
+                  <motion.div
                     layoutId="active-indicator"
                     className="absolute left-0 top-1/4 h-1/2 w-1 bg-teal-500 rounded-sm"
                   />
@@ -159,10 +159,10 @@ export function PlatformLayersSection() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-12 pt-8 border-t border-gray-50">
                   <Link href="/contact" className="inline-flex items-center gap-2 text-sm font-bold text-black group">
-                    {t("Deep dive into this layer")}
+                    {t("Learn more about this step")}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>
@@ -174,7 +174,3 @@ export function PlatformLayersSection() {
     </section>
   );
 }
-
-
-
-

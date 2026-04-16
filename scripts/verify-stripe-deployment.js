@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Script para verificar la configuración de Stripe en producción
+ * Script para verificar la superficie pública de Stripe en producción
  * Uso: node scripts/verify-stripe-deployment.js [URL_DEL_SITIO]
  */
 const https = require('https');
@@ -95,62 +95,23 @@ async function verifyStripeDeployment(siteUrl) {
       return;
     }
 
-    // Test 2: Verificar endpoint de diagnóstico de Stripe
-    logSection('2. Verificando configuración de Stripe');
+    // Test 2: Verificar que el endpoint de diagnóstico NO esté expuesto
+    logSection('2. Verificando que no exista diagnóstico público de Stripe');
     
     try {
       const debugUrl = `${siteUrl}/api/debug/stripe`;
       const debugResponse = await makeRequest(debugUrl);
       
-      if (debugResponse.status === 200) {
-        logSuccess('Endpoint de diagnóstico de Stripe está funcionando');
-        
-        const diagnostics = debugResponse.data;
-        
-        // Verificar variables de entorno
-        logInfo('Variables de entorno:');
-        
-        const publishableKey = diagnostics.variables.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-        if (publishableKey.exists && publishableKey.format === 'valid') {
-          logSuccess(`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${publishableKey.preview}`);
-        } else {
-          logError(`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${publishableKey.exists ? 'Formato inválido' : 'No encontrada'}`);
-        }
-
-        const secretKey = diagnostics.variables.STRIPE_SECRET_KEY;
-        if (secretKey.exists && secretKey.format === 'valid') {
-          logSuccess(`STRIPE_SECRET_KEY: ${secretKey.preview}`);
-        } else {
-          logError(`STRIPE_SECRET_KEY: ${secretKey.exists ? 'Formato inválido' : 'No encontrada'}`);
-        }
-
-        const webhookSecret = diagnostics.variables.STRIPE_WEBHOOK_SECRET;
-        if (webhookSecret.exists && webhookSecret.format === 'valid') {
-          logSuccess(`STRIPE_WEBHOOK_SECRET: ${webhookSecret.preview}`);
-        } else {
-          logError(`STRIPE_WEBHOOK_SECRET: ${webhookSecret.exists ? 'Formato inválido' : 'No encontrada'}`);
-        }
-
-        // Mostrar recomendaciones
-        if (diagnostics.recommendations.length > 0) {
-          logSection('3. Recomendaciones');
-          diagnostics.recommendations.forEach(rec => {
-            logWarning(rec);
-          });
-        } else {
-          logSuccess('Configuración de Stripe parece correcta');
-        }
-
-      } else if (debugResponse.status === 401) {
-        logWarning('Endpoint de diagnóstico requiere autenticación');
-        logInfo('Esto es normal en producción. Verifica manualmente las variables de entorno.');
+      if (debugResponse.status === 404) {
+        logSuccess('El endpoint público /api/debug/stripe no está expuesto');
+      } else if (debugResponse.status === 401 || debugResponse.status === 403) {
+        logSuccess(`El endpoint público /api/debug/stripe está bloqueado (${debugResponse.status})`);
       } else {
-        logError(`Endpoint de diagnóstico no disponible: ${debugResponse.status}`);
+        logError(`El endpoint /api/debug/stripe sigue expuesto: ${debugResponse.status}`);
       }
 
     } catch (error) {
-      logWarning(`No se pudo acceder al endpoint de diagnóstico: ${error.message}`);
-      logInfo('Esto puede ser normal si el endpoint está protegido en producción');
+      logSuccess(`El endpoint /api/debug/stripe no respondió públicamente: ${error.message}`);
     }
 
     // Test 3: Verificar que Stripe JS se carga correctamente
@@ -167,10 +128,10 @@ async function verifyStripeDeployment(siteUrl) {
           logWarning('Stripe JS no se encontró en la página principal');
         }
 
-        if (html.includes('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY')) {
-          logWarning('Variable de entorno visible en el HTML (esto no debería pasar)');
+        if (html.includes('STRIPE_SECRET_KEY') || html.includes('STRIPE_WEBHOOK_SECRET')) {
+          logError('Se detectó referencia a secretos de Stripe en el HTML');
         } else {
-          logSuccess('Variables de entorno no están expuestas en el HTML');
+          logSuccess('No hay referencias a secretos de Stripe en el HTML');
         }
       }
     } catch (error) {
@@ -180,8 +141,8 @@ async function verifyStripeDeployment(siteUrl) {
     // Resumen final
     logSection('RESUMEN');
     logSuccess('Verificación completada');
-    logInfo('Si todos los tests pasaron, tu configuración de Stripe debería funcionar correctamente.');
-    logInfo('Si hay problemas, revisa las recomendaciones anteriores.');
+    logInfo('La validación pública confirma que no existe una superficie de diagnóstico de Stripe expuesta.');
+    logInfo('La configuración secreta de Stripe debe validarse sólo desde logs privados, paneles internos o pruebas controladas.');
 
   } catch (error) {
     logError(`Error durante la verificación: ${error.message}`);

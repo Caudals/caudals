@@ -2,54 +2,57 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { cn } from "@/lib/utils";
 
 const plans = [
   {
-    name: "Launch",
+    name: "Catalog",
     description:
-      "For teams kicking off a single modality or pilot program.",
-    price: "$4,500",
+      "Access pre-processed datasets from our growing catalog.",
+    price: "From $500",
+    unit: "/dataset",
     perks: [
-      "Dataset blueprint + governance",
-      "Curated contributor pods",
-      "Reviewer workspace",
-      "Stripe Connect payouts",
-      "Email + async support",
+      "Browse available datasets",
+      "Quality scores and previews",
+      "Standard ML-ready formats",
+      "Signed download URLs",
+      "Email support",
     ],
-    cta: "Book a blueprint call",
+    cta: "Browse catalog",
   },
   {
-    name: "Scale",
+    name: "Custom",
     description:
-      "For companies running multiple modalities and cohorts.",
-    price: "$9,900",
+      "We source and build the exact dataset your team needs.",
+    price: "From $2,000",
+    unit: "/project",
     perks: [
-      "Dedicated success manager",
-      "Contributor certification",
-      "Custom tutorials + portal",
-      "Slack support (4h SLA)",
-      "Insights reporting",
+      "Multi-source data aggregation",
+      "Custom cleaning and formatting",
+      "Dedicated project manager",
+      "Delivery in under 2 weeks",
+      "Priority support",
     ],
-    cta: "Talk to our team",
+    cta: "Request a dataset",
     featured: true,
   },
   {
     name: "Enterprise",
     description:
-      "Bespoke engagements with private deployments.",
+      "Ongoing data supply for teams with recurring needs.",
     price: "Custom",
+    unit: "",
     perks: [
-      "Embedded data ops pod",
-      "Dataset design consulting",
-      "VPC / On-prem deployments",
-      "Featured marketplace ads",
-      "Executive reviews",
+      "API access to full catalog",
+      "Recurring data feeds",
+      "Exclusive sourcing agreements",
+      "SLA-backed delivery",
+      "Dedicated account team",
     ],
-    cta: "Plan a session",
+    cta: "Talk to sales",
   },
 ];
 
@@ -64,12 +67,15 @@ export function PricingSection() {
             {t("Pricing")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
-            {t("Plans for ML teams, research labs, and enterprise partners")}
+            {t("Simple pricing for data buyers and suppliers")}
           </h2>
+          <p className="text-base text-gray-500 mt-6 leading-relaxed">
+            {t("Data suppliers list for free and earn revenue share on every sale.")}
+          </p>
         </div>
 
         <div className="grid gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden lg:grid-cols-3 mb-12 shadow-sm">
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <div
               key={plan.name}
               className="flex flex-col bg-white p-8 sm:p-10"
@@ -82,11 +88,11 @@ export function PricingSection() {
                   {t(plan.description)}
                 </p>
               </div>
-              
+
               <div className="mb-8">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-normal tracking-tight text-black">{t(plan.price)}</span>
-                  {plan.price !== "Custom" && <span className="text-sm text-gray-400">/mo</span>}
+                  {plan.unit && <span className="text-sm text-gray-400">{t(plan.unit)}</span>}
                 </div>
               </div>
 
@@ -99,7 +105,7 @@ export function PricingSection() {
                 ))}
               </ul>
 
-              <Button 
+              <Button
                 variant={plan.featured ? "default" : "outline"}
                 className={cn(
                   "h-11 w-full rounded-md text-sm font-bold transition-all",
@@ -117,7 +123,7 @@ export function PricingSection() {
 
         <p className="text-center text-xs text-gray-400 max-w-2xl mx-auto leading-relaxed">
           {t(
-            "Add-ons: dataset bootcamps, private Slack channels, or promotional placement. Mention them during your intro call.",
+            "Want to sell your company's data? Suppliers list for free. We handle processing, licensing, and buyer acquisition. You earn 60-70% revenue share on every sale.",
           )}
         </p>
       </div>

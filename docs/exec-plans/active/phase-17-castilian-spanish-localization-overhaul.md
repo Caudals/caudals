@@ -3,7 +3,7 @@
 - Status: IN_PROGRESS
 - Priority: P0
 - Owner: autonomous-agent
-- Last Updated: 2026-03-03
+- Last Updated: 2026-04-16
 
 ## Goal
 
@@ -148,6 +148,7 @@ dataset(s), dashboard, email, feedback, brief, blueprint, login, backend, fronte
 - [x] `P17-T13` (P1, DONE) **Visual QA – Landing page in Spanish**: Navigated all landing sections with `NEXT_LOCALE=es`. Hero, nav, dashboard mockup, ecosystem, features, how-it-works, pricing, FAQ, CTA, and footer all render in Castilian Spanish. 1 missing key fixed (`Partnerships turn your briefs...`). Screenshots: `p17-landing-hero-es.png`, `p17-landing-ecosystem-es.png`, `p17-landing-tooling-es.png`, `p17-landing-footer-es.png`.
 - [x] `P17-T14` (P1, DONE) **Visual QA – App in Spanish**: Signed in as fixture admin, verified admin dashboard. Discovered server components don't benefit from `translateReactNode` (only layout-level). Refactored admin page and `OperationalHealthStrip` to use `getServerTranslator()`. Fixed auth pages (sign-in, sign-up, reset-password) with ~50 missing keys. Total keys: 2,380.
 - [x] `P17-T23` (P0, DONE) **Server-side i18n for admin dashboard**: Added `getServerTranslator()` to `app/(app)/admin/page.tsx` and `components/admin/operational-health-strip.tsx`, wrapping all static strings in `t()`. Dashboard header, stats, activity, SLA queues, anomaly detection, and escalation shortcuts now render in Spanish.
+- [x] `P17-T24` (P1, DONE) **Landing hero and sector visual polish**: Restored the landing hero title pattern with `a medida` highlighted, shortened the hero subtitle, and added decorative sector icons while preserving the existing sector copy/translations.
 
 ## Validation Required
 
@@ -160,6 +161,8 @@ dataset(s), dashboard, email, feedback, brief, blueprint, login, backend, fronte
 
 - Changelog: `docs/logs/changelog/2026-03-03-phase-17-castilian-localization.md`
 - Validation: `docs/logs/validations/2026-03-03-phase-17-castilian-localization-validation.md`
+- Changelog: `docs/logs/changelog/2026-04-16-landing-hero-sector-visual-polish.md`
+- Validation: `docs/logs/validations/2026-04-16-landing-hero-sector-visual-polish-validation.md`
 
 ## Mid-Execution Steering Notes
 

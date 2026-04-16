@@ -10,28 +10,28 @@ import { cn } from "@/lib/utils";
 const highlights = [
   {
     icon: Target,
-    title: "Discovery calls",
+    title: "Discovery call",
     description:
-      "Talk directly with the team about scope, dataset modalities, and rollout constraints.",
+      "Tell us what data you want to sell, what dataset you need, or how AI can transform your business. We'll map the opportunity in 30 minutes.",
   },
   {
     icon: Globe2,
-    title: "Pilot scoping",
+    title: "Pilot project",
     description:
-      "We map an initial pilot, estimate operational shape, and suggest the right commercial path.",
+      "Start with a single dataset purchase, a data listing, or a consulting engagement. No long-term commitment until you see results.",
   },
   {
     icon: Flame,
-    title: "Fast follow-up",
+    title: "Fast execution",
     description:
-      "We move quickly from email to a focused working session to start validating demand.",
+      "From first call to delivered dataset in under two weeks. We move fast because your models can't wait.",
   },
 ];
 
 const contactMetrics = [
-  { label: "First reply", value: "48h" },
-  { label: "Working sessions", value: "Weekly" },
-  { label: "Pilot scoping", value: "Fast" },
+  { label: "First reply", value: "24h" },
+  { label: "Pilot delivery", value: "<2 weeks" },
+  { label: "Commitment", value: "Zero" },
 ];
 
 export function ContactSection() {
@@ -52,12 +52,12 @@ export function ContactSection() {
             </p>
             <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-8 leading-tight">
               {t(
-                "Talk with Caudals about your next dataset program",
+                "Sell your data, get the dataset you need, or let us build your AI",
               )}
             </h2>
             <p className="text-lg text-gray-500 mb-12 leading-relaxed">
               {t(
-                "Use the public contact flow to start the conversation. We review fit, clarify scope, and move promising conversations into a focused working session fast.",
+                "Whether you want to monetize your company's data, acquire training datasets, or need end-to-end AI consulting, start with a quick conversation. We'll scope the opportunity and move fast.",
               )}
             </p>
 
@@ -72,7 +72,7 @@ export function ContactSection() {
 
             <Button size="lg" asChild className="h-12 rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]">
               <Link href="/contact">
-                {t("Open contact form")}
+                {t("Start the conversation")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -99,8 +99,8 @@ export function ContactSection() {
                 </div>
               </motion.div>
             ))}
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.4 }}
@@ -108,7 +108,7 @@ export function ContactSection() {
             >
               <p>
                 {t(
-                  "Need pricing context, a buyer conversation, or a tailored rollout? Start from one contact point and we will route the right next step fast.",
+                  "Looking for a specific dataset? Want to sell your company's data? Need AI consulting? Just reach out — we'll route you to the right person.",
                 )}
               </p>
             </motion.div>
@@ -118,6 +118,3 @@ export function ContactSection() {
     </section>
   );
 }
-
-
-

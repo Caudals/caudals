@@ -11,34 +11,34 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 
 const faqs = [
   {
-    question: "How do payouts and approvals work?",
+    question: "What kind of data can I buy through Caudals?",
     answer:
-      "You pay only for submissions you approve. Stripe Connect handles multi-currency payouts, tax forms, and ledger exports so finance teams stay in control.",
+      "Any structured or unstructured data useful for training AI models: transaction records, GPS routes, sensor data, medical records, satellite imagery, text corpora, and more. We source from companies across logistics, retail, healthcare, agriculture, fintech, and other verticals.",
   },
   {
-    question: "Can we keep sensitive data private?",
+    question: "How do you ensure data quality?",
     answer:
-      "Yes. We offer regional storage controls, VPC or on-prem deployments, encryption at rest, and configurable consent templates for HIPAA/GDPR compliance.",
+      "Every dataset passes through our automated QA pipeline: schema validation, deduplication, PII detection, format standardization, and completeness scoring. We also do manual review for custom-sourced datasets. Quality scores are published per dataset.",
   },
   {
-    question: "What modalities and devices do you support?",
+    question: "Is the data GDPR compliant?",
     answer:
-      "Vision, audio, text, sensor, robotics, and multimodal experiments across desktop, mobile, wearables, and custom hardware.",
+      "Yes. We handle PII detection and anonymization as part of processing. Every transaction includes a data processing agreement (DPA) and clear licensing terms. Supplier agreements cover ownership warranties and compliance responsibilities.",
   },
   {
-    question: "How are contributors vetted?",
+    question: "How does it work for data suppliers?",
     answer:
-      "Contributors complete ID verification, device checks, sample submissions, and scenario-based training before joining live programs.",
+      "Upload your data or connect your sources. We preprocess, anonymize, and list it in our catalog. When a buyer purchases access, you earn 60-70% revenue share. You control licensing terms and can set exclusivity preferences.",
   },
   {
-    question: "Can we bring our own contributor community?",
+    question: "How long does custom dataset sourcing take?",
     answer:
-      "Absolutely. Invite your existing workforce, apply the same QA + payout tooling, and mix them with Caudals-managed cohorts when you need more capacity.",
+      "Catalog datasets are available immediately. For custom requests, we typically deliver within 1-3 weeks depending on scope, number of suppliers involved, and data volume.",
   },
   {
-    question: "What is the typical time-to-launch?",
+    question: "What formats do you deliver in?",
     answer:
-      "Teams on Launch plans typically go live within 10 business days. Commercial pilots often move even faster once the first conversation is aligned.",
+      "We standardize all data to ML-ready formats: Parquet, JSON-Lines, CSV, or TFRecords. Buyers can also access data through our S3-compatible API for programmatic integration.",
   },
 ];
 
@@ -51,7 +51,7 @@ export function FAQSection() {
         <div className="mb-16 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">{t("FAQ")}</p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
-            {t("Answers before you schedule a walkthrough")}
+            {t("Common questions about our data marketplace")}
           </h2>
         </div>
 
@@ -71,11 +71,11 @@ export function FAQSection() {
             </AccordionItem>
           ))}
         </Accordion>
-        
+
         <div className="mt-16 p-8 rounded-2xl bg-gray-50 text-center">
           <p className="text-sm text-gray-500 leading-relaxed">
             {t(
-              "Need more specifics? Book a call and we'll tailor the implementation plan to your governance, volume, and modality requirements.",
+              "Have a different question? Contact us and we'll get back to you within 24 hours.",
             )}
           </p>
         </div>
@@ -83,10 +83,3 @@ export function FAQSection() {
     </section>
   );
 }
-
-
-
-
-
-
-

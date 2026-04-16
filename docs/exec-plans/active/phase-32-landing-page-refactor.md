@@ -7,7 +7,7 @@ Refactor the landing page to match the clean, minimalist, editorial design of th
 - Startup: Caudals (AI dataset operations)
 - Design Goal: High-end tech, minimalist, professional, unique.
 - Tech Stack: Next.js App Router, Tailwind v4, Framer Motion.
-- Constraints: Do not modify hero video background, but smooth the transition.
+- Constraints: Preserve the existing dashboard mock in the hero. User request on 2026-04-16 superseded the earlier hero video constraint and replaced the Mux video/gradient background with a Spline ribbon.
 
 ## Stages
 
@@ -40,7 +40,11 @@ Refactor the landing page to match the clean, minimalist, editorial design of th
 - [x] P32-T16: Restore a working Mux clouds playback in the landing hero after the refactor and auto-propagate `LANDING_MODE` into the public dev bundle. `DONE`
 - [x] P32-T17: Restore the landing hero waitlist submission flow in landing mode, allow the public `/api/waitlist` route, and align waitlist email delivery with the existing Resend fallback/error-handling pattern. `DONE`
 
+### S7: User-Requested Hero Media Update
+- [x] P32-T18: P0 `DONE` owner: agent — Replace the former hero Mux video/gradient background with the requested Spline ribbon, preserve the dashboard mock, and revalidate text visibility/responsive framing.
+
 ## Validation
 - [x] Visual inspection of each section.
 - [x] `npm run typecheck`
 - [x] Responsive check.
+- [x] Chrome DevTools MCP and Playwright responsive QA for the Spline hero ribbon.

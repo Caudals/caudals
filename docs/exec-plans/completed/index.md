@@ -32,6 +32,9 @@
 - `phase-30-landing-mode-public-surface-hardening.md`
 - `phase-31-landing-hero-mux-video.md`
 - `phase-33-search-indexability-and-technical-seo.md`
+- `phase-34-vps-platform-security-hardening.md`
+- `phase-35-private-dashboard-and-admin-surface-hardening.md`
+- `phase-36-direct-tailscale-dashboard-access.md`
 
 ## Legacy Full Tracker Snapshot
 
