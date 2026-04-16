@@ -156,10 +156,13 @@ export function HeroSection() {
   const heroTitleHighlight = t("tailored");
 
   return (
-    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-white px-6 pt-16 pb-12 sm:px-8 lg:px-12 lg:pt-24">
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-85">
+    <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center bg-white px-6 pt-16 pb-24 sm:px-8 lg:px-12 lg:pt-24 lg:pb-32">
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-85 overflow-hidden">
         <HeroSplineScene />
       </div>
+      
+      {/* Bottom gradient fade for smooth transition to the next section */}
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-48 bg-gradient-to-t from-white to-transparent" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center sm:-mt-8 lg:-mt-16">
         <motion.div
