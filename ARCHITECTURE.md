@@ -50,13 +50,18 @@ Role enforcement is handled through middleware and server-side route guards.
 
 ## Self-Hosted Supabase Runtime (Authoritative)
 Internal operations context (do not expose outside trusted internal docs):
-- VPS SSH endpoint: `root@161.35.200.8`
+- VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - Supabase stack path on host: `/supabase/supabase/docker`
 - Core containers observed: `supabase-db`, `supabase-kong`, `supabase-rest`, `supabase-auth`, `supabase-storage`, `supabase-studio`, `supabase-pooler`
-- Common exposed ports:
+- Internal-only host ports (bound to localhost after the 2026-04-03 hardening pass):
   - Studio: `3001`
   - Kong gateway: `8000` (`8443` TLS)
   - Supavisor/pooler: `5432`, `6543`
+- Public routing contract after the 2026-04-03 hardening pass:
+  - `https://supabase.caudals.com/` no longer exposes Studio.
+  - Public traffic is limited to the required Supabase API path prefixes routed through Traefik to Kong.
+  - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
+  - Raw host ports for Studio, Kong, analytics, and pooler are not intended to be reachable from the public internet.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 

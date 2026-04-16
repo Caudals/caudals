@@ -12,7 +12,6 @@ export const SERVICE_ROLE_SCOPES = [
   "abuse_controls",
   "retention_jobs",
   "export_jobs",
-  "debug_tools",
 ] as const;
 
 export type ServiceRoleScope = (typeof SERVICE_ROLE_SCOPES)[number];

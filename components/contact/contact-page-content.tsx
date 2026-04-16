@@ -19,7 +19,7 @@ export function ContactPageContent() {
           </h1>
           <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed">
             {t(
-              "Use this contact flow to start a commercial conversation about dataset collection, review operations, or a first pilot with the Caudals team.",
+              "Tell us what data your company needs or what data you can offer. We'll get back to you within 24 hours.",
             )}
           </p>
         </header>

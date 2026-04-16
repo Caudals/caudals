@@ -2,10 +2,23 @@ import * as React from "react";
 import type { CollaborationFormValues } from "@/lib/validators/collaboration";
 
 const focusAreaLabels: Record<CollaborationFormValues["focusArea"], string> = {
-  "data-collection": "Dataset program or pilot",
-  "joint-research": "Research or experimentation",
-  "co-marketing": "Pricing, sales, or go-to-market",
-  "public-sector": "Public sector or regulated initiative",
+  "sell-data": "Wants to sell company data",
+  "buy-dataset": "Wants to acquire a pre-made dataset",
+  "custom-dataset": "Needs a custom dataset built",
+  "ai-consulting": "AI consulting & model training",
+};
+
+const industryLabels: Record<string, string> = {
+  logistics: "Logistics & Transportation",
+  retail: "Retail & E-commerce",
+  healthcare: "Healthcare & Life Sciences",
+  agriculture: "Agriculture & Agritech",
+  fintech: "Fintech & Banking",
+  energy: "Energy & Utilities",
+  manufacturing: "Manufacturing & IoT",
+  "real-estate": "Real Estate & PropTech",
+  telecom: "Telecom & Networks",
+  insurance: "Insurance",
   other: "Other",
 };
 
@@ -22,6 +35,7 @@ export function ContactInquiryEmail({
   organizationWebsite,
   message,
   focusArea,
+  industry,
   teamSize,
   submittedAt,
   userAgent,
@@ -77,9 +91,10 @@ export function ContactInquiryEmail({
                 }}
               >
                 <InfoRow label="Contact" value={`${fullName} — ${workEmail}`} />
-                <InfoRow label="Organization" value={organization} />
-                <InfoRow label="Inquiry" value={focusAreaLabels[focusArea]} />
-                {teamSize ? <InfoRow label="Team size" value={teamSize} /> : null}
+                <InfoRow label="Company" value={organization} />
+                <InfoRow label="Interest" value={focusAreaLabels[focusArea]} />
+                {industry ? <InfoRow label="Industry" value={industryLabels[industry] ?? industry} /> : null}
+                {teamSize ? <InfoRow label="Company size" value={teamSize} /> : null}
                 {organizationWebsite ? (
                   <InfoRow label="Website" value={organizationWebsite} />
                 ) : null}

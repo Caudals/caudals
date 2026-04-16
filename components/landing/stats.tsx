@@ -7,24 +7,24 @@ export function StatsSection() {
   const t = useTranslations();
   const stats = [
     {
-      value: "12M+",
-      label: "Approved data points",
-      description: "Image, text, sensor, and multimodal submissions cleared through QA.",
+      value: "50+",
+      label: "Datasets available",
+      description: "Preprocessed, validated datasets across logistics, retail, healthcare, agriculture, and more.",
     },
     {
-      value: "52K",
-      label: "Certified contributors",
-      description: "120+ countries, 40+ languages, every major device category.",
+      value: "10+",
+      label: "Industries covered",
+      description: "Cross-sector sourcing from companies across Europe and Latin America.",
     },
     {
-      value: "95%",
-      label: "Acceptance score",
-      description: "Average consensus score across reviewer pods.",
+      value: "98%",
+      label: "Quality score",
+      description: "Average completeness and consistency score across our processed catalog.",
     },
     {
-      value: "<48h",
-      label: "Time to first batch",
-      description: "From blueprint approval to first accepted submission.",
+      value: "<2w",
+      label: "Custom delivery",
+      description: "From dataset brief to validated, ML-ready delivery for custom sourcing requests.",
     },
   ];
 
@@ -33,14 +33,14 @@ export function StatsSection() {
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Proof in numbers")}
+            {t("Platform numbers")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Scaling frontier AI responsibly")}
+            {t("Trusted by companies building the next generation of AI")}
           </h2>
           <p className="text-base text-gray-500 mt-6 leading-relaxed">
             {t(
-              "Every metric combines human expertise and automation so you can trust the workflow end to end.",
+              "Every dataset is processed through automated QA pipelines and manual validation before reaching our catalog.",
             )}
           </p>
         </div>

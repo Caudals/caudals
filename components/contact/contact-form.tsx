@@ -9,6 +9,7 @@ import {
   type CollaborationFormValues,
   collaborationFocusAreas,
   collaborationTeamSizes,
+  collaborationIndustries,
 } from "@/lib/validators/collaboration";
 import {
   Form,
@@ -29,10 +30,26 @@ const focusAreaLabels: Record<
   (typeof collaborationFocusAreas)[number],
   string
 > = {
-  "data-collection": "Dataset program or pilot",
-  "joint-research": "Research or experimentation",
-  "co-marketing": "Pricing, sales, or go-to-market",
-  "public-sector": "Public sector or regulated initiative",
+  "sell-data": "I want to sell my company's data",
+  "buy-dataset": "I want to acquire a pre-made dataset",
+  "custom-dataset": "I need a custom dataset built for my team",
+  "ai-consulting": "AI consulting & model training",
+};
+
+const industryLabels: Record<
+  (typeof collaborationIndustries)[number],
+  string
+> = {
+  logistics: "Logistics & Transportation",
+  retail: "Retail & E-commerce",
+  healthcare: "Healthcare & Life Sciences",
+  agriculture: "Agriculture & Agritech",
+  fintech: "Fintech & Banking",
+  energy: "Energy & Utilities",
+  manufacturing: "Manufacturing & IoT",
+  "real-estate": "Real Estate & PropTech",
+  telecom: "Telecom & Networks",
+  insurance: "Insurance",
   other: "Other",
 };
 
@@ -42,6 +59,7 @@ const defaultValues: Partial<CollaborationFormValues> = {
   organization: "",
   organizationWebsite: "",
   focusArea: undefined,
+  industry: undefined,
   teamSize: undefined,
   message: "",
 };
@@ -116,7 +134,7 @@ export function ContactForm() {
           {t("Message sent")}
         </h2>
         <p className="text-base text-gray-600 leading-relaxed mb-8">
-          {t("We'll review your note and reply within 48 hours.")}
+          {t("We'll review your inquiry and reply within 24 hours.")}
         </p>
         <div className="space-y-4 pt-8 border-t border-gray-200">
           <p className="text-base text-gray-600">
@@ -186,40 +204,70 @@ export function ContactForm() {
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="organization"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-sm font-medium text-black">
-                  {t("Company or organization")}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={t("Acme Corp")}
-                    className={minimalInputClass}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
+          <div className="grid gap-8 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="organization"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Company")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t("Acme Corp")}
+                      className={minimalInputClass}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="organizationWebsite"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Website (optional)")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://company.com"
+                      className={minimalInputClass}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
-            name="organizationWebsite"
+            name="focusArea"
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm font-medium text-black">
-                  {t("Website (optional)")}
+                  {t("What are you looking for?")}
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="https://example.com"
-                    className={minimalInputClass}
-                    {...field}
-                  />
+                  <select
+                    className={minimalSelectClass}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    <option value="" disabled hidden>
+                      {t("Select an option")}
+                    </option>
+                    {collaborationFocusAreas.map((area) => (
+                      <option key={area} value={area}>
+                        {t(focusAreaLabels[area])}
+                      </option>
+                    ))}
+                  </select>
                 </FormControl>
                 <FormMessage className="text-xs" />
               </FormItem>
@@ -229,24 +277,26 @@ export function ContactForm() {
           <div className="grid gap-8 md:grid-cols-2">
             <FormField
               control={form.control}
-              name="focusArea"
+              name="industry"
               render={({ field }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm font-medium text-black">
-                    {t("Type of inquiry")}
+                    {t("Industry (optional)")}
                   </FormLabel>
                   <FormControl>
                     <select
                       className={minimalSelectClass}
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      value={field.value ?? "none"}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === "none" ? undefined : e.target.value,
+                        )
+                      }
                     >
-                      <option value="" disabled hidden>
-                        {t("Select focus area")}
-                      </option>
-                      {collaborationFocusAreas.map((area) => (
-                        <option key={area} value={area}>
-                          {t(focusAreaLabels[area])}
+                      <option value="none">{t("Select industry")}</option>
+                      {collaborationIndustries.map((ind) => (
+                        <option key={ind} value={ind}>
+                          {t(industryLabels[ind])}
                         </option>
                       ))}
                     </select>
@@ -262,7 +312,7 @@ export function ContactForm() {
               render={({ field }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm font-medium text-black">
-                    {t("Team size (optional)")}
+                    {t("Company size (optional)")}
                   </FormLabel>
                   <FormControl>
                     <select
@@ -274,10 +324,10 @@ export function ContactForm() {
                         )
                       }
                     >
-                      <option value="none">{t("Prefer not to say")}</option>
+                      <option value="none">{t("Select size")}</option>
                       {collaborationTeamSizes.map((size) => (
                         <option key={size} value={size}>
-                          {t("{{range}} people", { range: size })}
+                          {t("{{range}} employees", { range: size })}
                         </option>
                       ))}
                     </select>
@@ -294,13 +344,13 @@ export function ContactForm() {
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm font-medium text-black">
-                  {t("Context and goals")}
+                  {t("Tell us about your project")}
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     rows={4}
                     placeholder={t(
-                      "Tell us about your dataset goals, timeline, and what you'd like to discuss.",
+                      "Describe what you need: the data you want to sell, the dataset you're looking for, or the AI project you want to build. Include details like data type, industry, volume, and timeline.",
                     )}
                     className={cn(minimalInputClass, "resize-none")}
                     {...field}

@@ -3,50 +3,50 @@
 import { motion } from "framer-motion";
 import {
   Database,
-  Users,
   ShieldCheck,
   Zap,
   Activity,
   BarChart3,
+  Globe2,
 } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const capabilities = [
   {
     icon: Database,
-    title: "Any modality, any device",
+    title: "Any data type, any format",
     description:
-      "Image, text, audio, video, robotics, or sensor data. Desktop, mobile, wearables, and custom rigs all supported.",
+      "Tabular, image, text, audio, sensor, and geospatial data. We convert everything to ML-ready formats like Parquet, JSON-Lines, and TFRecords.",
   },
   {
-    icon: Users,
-    title: "Verified contributor workforce",
+    icon: Globe2,
+    title: "Cross-industry sourcing",
     description:
-      "Layered vetting, ID verification, and device checks keep submissions authentic and diverse across 120+ countries.",
+      "Need data from logistics, healthcare, retail, or agriculture? We source from companies across verticals and combine it with public datasets.",
   },
   {
     icon: ShieldCheck,
-    title: "Compliance & governance",
+    title: "GDPR and compliance built-in",
     description:
-      "Consent templates, audit trails, SOC2-ready exports, and regional storage controls keep legal teams comfortable.",
+      "PII detection, automated anonymization, data processing agreements, and full audit trails keep your legal team confident.",
   },
   {
     icon: Zap,
-    title: "Launch in days",
+    title: "Delivery in days, not months",
     description:
-      "Blueprint wizard, training flows, and pre-built reviewer pods unlock first approvals in under 48 hours.",
+      "Catalog datasets available immediately. Custom sourced datasets delivered in 1-3 weeks with quality validation included.",
   },
   {
     icon: Activity,
-    title: "Live telemetry",
+    title: "Quality scores on every dataset",
     description:
-      "Track spend, throughput, and quality in one dashboard with alerts to Slack or email when thresholds slip.",
+      "Completeness, consistency, freshness, and accuracy metrics published per dataset. Preview samples before buying.",
   },
   {
     icon: BarChart3,
-    title: "Flexible economics",
+    title: "Transparent pricing",
     description:
-      "Pay per approved submission or embed an operations pod on retainer. No hidden fees or tooling tax.",
+      "Pay per dataset or subscribe for ongoing access. Suppliers earn revenue share on every sale. No hidden fees.",
   },
 ];
 
@@ -61,7 +61,7 @@ export function FeaturesSection() {
             {t("Capabilities")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl">
-            {t("Operational excellence, delivered as a platform")}
+            {t("Everything your AI team needs to get training data")}
           </h2>
         </div>
 

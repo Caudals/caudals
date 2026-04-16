@@ -1,11 +1,10 @@
 import { z } from "zod";
 
 export const collaborationFocusAreas = [
-  "data-collection",
-  "joint-research",
-  "co-marketing",
-  "public-sector",
-  "other",
+  "sell-data",
+  "buy-dataset",
+  "custom-dataset",
+  "ai-consulting",
 ] as const;
 
 export const collaborationTeamSizes = [
@@ -14,6 +13,20 @@ export const collaborationTeamSizes = [
   "51-200",
   "201-500",
   "500+",
+] as const;
+
+export const collaborationIndustries = [
+  "logistics",
+  "retail",
+  "healthcare",
+  "agriculture",
+  "fintech",
+  "energy",
+  "manufacturing",
+  "real-estate",
+  "telecom",
+  "insurance",
+  "other",
 ] as const;
 
 const websiteSchema = z
@@ -59,13 +72,16 @@ export const collaborationFormSchema = z.object({
     .max(160, { message: "Organization name is too long" }),
   organizationWebsite: websiteSchema.optional(),
   focusArea: z.enum(collaborationFocusAreas, {
-    message: "Select the collaboration focus",
+    message: "Please select what you're looking for",
   }),
+  industry: z.enum(collaborationIndustries, {
+    message: "Please select your industry",
+  }).optional(),
   teamSize: z.enum(collaborationTeamSizes).optional(),
   message: z
     .string()
     .trim()
-    .min(20, { message: "Tell us more about how we can collaborate" })
+    .min(20, { message: "Tell us more about the data you need or have" })
     .max(2000, { message: "Message is too long" }),
 });
 

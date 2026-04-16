@@ -31,13 +31,25 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 ## Self-Hosted Supabase Operational Context (Authoritative)
 Internal-only runtime context:
-- VPS SSH endpoint: `root@161.35.200.8`
+- VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - Supabase host path: `/supabase/supabase/docker`
 - Common services: db, kong, rest, auth, storage, studio, pooler
-- Common exposed ports: `3001`, `8000`, `8443`, `5432`, `6543`
+- Internal-only localhost ports after the 2026-04-03 hardening pass: `3001`, `4000`, `5432`, `6543`, `8000`, `8443`
+- `https://supabase.caudals.com/` is intentionally not a public Studio surface anymore; only API path prefixes are routed publicly.
+- Public `22/tcp` is closed; SSH administration is available only through `tailscale0`.
 
 Direct SSH runtime inspection is allowed when MCP context is stale:
-- `ssh root@161.35.200.8`
+- `ssh root@ubuntu-caudals`
+
+## Private Dashboard Access
+- Dokploy and Umami dashboards are not public anymore.
+- Direct Tailscale-only URLs:
+  - `http://ubuntu-caudals:7443` for Dokploy
+  - `http://ubuntu-caudals:7444` for Umami
+- IP fallback:
+  - `http://100.92.160.68:7443`
+  - `http://100.92.160.68:7444`
+- Access details are documented in `docs/private-dashboard-access.md`.
 
 ## Supabase CLI Usage Pattern (Self-Hosted)
 1. Keep credentials in local secret file (never commit):
@@ -45,7 +57,7 @@ Direct SSH runtime inspection is allowed when MCP context is stale:
 2. Start tunnel(s):
    - `./scripts/supabase-selfhosted-tunnel.sh start db`
    - `./scripts/supabase-selfhosted-tunnel.sh start all`
-   - fallback raw tunnel: `ssh -L 55432:127.0.0.1:5432 root@161.35.200.8 -N`
+   - fallback raw tunnel: `ssh -L 55432:127.0.0.1:5432 root@ubuntu-caudals -N`
 3. Use explicit DB URL (do not rely on `--linked`):
    - `./scripts/supabase-cli-selfhosted.sh migration list`
    - `./scripts/supabase-cli-selfhosted.sh db push --dry-run`
@@ -60,6 +72,7 @@ Hard rules:
 - Prefer `db push --dry-run` before write operations.
 - Keep schema changes in `supabase/migrations/*`.
 - Never expose DB credentials in docs/logs/screenshots.
+- Do not rely on raw public host ports for Supabase access; use SSH tunnels or Tailscale/private access paths only.
 
 ## Supabase MCP Usage Pattern (Self-Hosted)
 1. Start MCP tunnel:
