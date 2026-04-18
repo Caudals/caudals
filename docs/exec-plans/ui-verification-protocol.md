@@ -1,6 +1,6 @@
 # UI Verification Protocol
 
-Mandatory for frontend tasks across requester, contributor, and admin surfaces.
+Mandatory for frontend tasks across public landing/contact/blog surfaces, internal admin surfaces, and future B2B marketplace surfaces.
 
 ## Tooling Requirement
 
@@ -21,13 +21,13 @@ Mandatory for frontend tasks across requester, contributor, and admin surfaces.
 
 Use:
 
-`YYYY-MM-DD-<role>-<surface>-<state>.png`
+`YYYY-MM-DD-<surface>-<state>.png`
 
 Examples:
 
-- `2026-03-03-requester-dashboard-refactor.png`
-- `2026-03-03-admin-dashboard-collapsed-refactor.png`
-- `2026-03-03-contributor-dashboard-mobile-refactor.png`
+- `2026-04-18-landing-hero-desktop.png`
+- `2026-04-18-contact-form-mobile.png`
+- `2026-04-18-admin-leads-empty.png`
 
 ## Evidence Storage
 

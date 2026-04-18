@@ -1,18 +1,19 @@
 # Caudals Design Governance
 
 ## Objective
-Guarantee a coherent, production-grade experience across marketing, auth, requester, contributor, and admin surfaces.
+Guarantee a coherent, production-grade experience across the current public funnel and future B2B marketplace/admin surfaces.
 
 ## Canonical Design Sources
 1. `docs/design-docs/ui-ux-design-system.md`
-2. `docs/design-docs/dashboard-role-blueprints.md`
+2. `docs/design-docs/admin-dashboard.md`
 
 ## Design Contracts
 - Light mode only in current delivery scope.
-- Canonical requester IA is `/requester/*`.
-- Role shells must share structure, not look interchangeable.
-- Every workflow must expose explicit loading/empty/error/success states.
-- Trust signals (status, review state, payout state, risk cues) must stay visible.
+- Current public pages must match the live landing page: editorial white space, black typography, teal accents, subtle gray structure, and minimal shadows.
+- The marketplace must remain hidden until it is redesigned for B2B buyer/supplier workflows.
+- Future internal admin screens must prioritize operational clarity over decorative density.
+- Every workflow must expose explicit loading, empty, error, and success states.
+- Trust signals such as rights, provenance, PII status, QA score, licensing state, buyer status, and delivery state must stay visible.
 
 ## UI Skill Requirement
 For frontend UI tasks, use the local `frontend-design` skill and preserve existing Caudals visual language.

@@ -1,19 +1,31 @@
 # Caudals Autonomous Agent Harness
 
 ## Mission
-Agents in this repository must drive Caudals toward a polished, market-ready product with minimal supervision.
+Agents in this repository must drive Caudals toward a polished, market-ready B2B AI data product with minimal supervision.
 
 ## Product Context
-Caudals is an AI dataset operations platform with three role surfaces:
-- Requester: creates/funds dataset requests, reviews submissions, exports approved data.
-- Contributor: finds opportunities, submits data, tracks payouts.
-- Admin: moderates requests/submissions, manages risk, operations, and payouts.
+Caudals is pivoting into a B2B marketplace and managed services layer for AI training datasets.
+
+The product connects:
+- companies that want to monetize proprietary or hard-to-access data,
+- companies that want to buy ML-ready datasets to train or evaluate AI models,
+- Caudals operators who source, license, preprocess, clean, curate, label, package, and publish datasets.
+
+Individual user sample uploads are no longer part of the product direction. Company data intake, dataset build operations, and the internal admin dashboard are the only non-public workflow surfaces to preserve or extend.
+
+Current deployment scope is intentionally narrow:
+- public landing page,
+- public contact form,
+- public blog,
+- private/internal admin dashboard.
+
+Marketplace browse, buyer workspaces, supplier portals, payments, and self-serve authenticated surfaces must remain hidden until they are redesigned for the B2B model.
 
 ## Read Order Before Any Non-Trivial Work
 1. `AGENTS.md`
 2. `docs/index.md`
 3. `docs/PLAN.md`
-4. `ARCHITECTURE.md`
+4. `docs/ARCHITECTURE.md`
 5. `docs/DESIGN.md`, `docs/FRONTEND.md`, `docs/SECURITY.md`
 6. `docs/exec-plans/active/index.md` and selected active phase file
 7. `docs/product-specs/index.md` and relevant spec
@@ -55,10 +67,11 @@ Caudals is an AI dataset operations platform with three role surfaces:
 - When a phase is complete, move it to `docs/exec-plans/completed/` and update `docs/PLAN.md` plus `docs/exec-plans/completed/index.md`.
 
 ## Product Prioritization Heuristics
-1. Unblock core requester/contributor/admin marketplace loops first.
-2. Prioritize work with direct KPI lift (activation, throughput, retention).
-3. De-risk payments, moderation, and data integrity early.
-4. Run polish passes after core behavior is reliable.
+1. Keep the public funnel fast, credible, and easy to contact.
+2. Build admin/operator workflows before exposing marketplace self-service.
+3. De-risk data rights, provenance, PII handling, licensing, and buyer trust early.
+4. Prioritize supplier onboarding and buyer demand capture that can produce sellable datasets.
+5. Run polish passes after core operational behavior is reliable.
 
 ## Tooling and Skills
 - Supabase MCP/CLI: schema checks, migrations, runtime data validation.
@@ -69,8 +82,10 @@ Caudals is an AI dataset operations platform with three role surfaces:
 - UI work must follow `docs/DESIGN.md` and the local `frontend-design` skill.
 
 ## Non-Negotiables
-- Preserve role isolation (`requester`, `contributor`, `admin`).
-- Preserve payment/webhook consistency and idempotency.
+- Preserve strict separation between public pages, internal admin operations, future supplier intake, and future buyer access.
+- Do not revive individual user sample-upload workflows.
+- Preserve payment/webhook consistency and idempotency when payment code is touched.
+- Preserve dataset provenance, licensing, consent, PII redaction, and auditability.
 - Never leak secrets in code, logs, docs, or screenshots.
 - Avoid destructive operations unless explicitly required and documented.
 - Keep plans and logs current.

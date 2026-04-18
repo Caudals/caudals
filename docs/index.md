@@ -3,22 +3,23 @@
 This directory is the persistent operating memory for long-horizon autonomous delivery.
 
 ## Structure
+- `../OVERVIEW.md`: portable, complete startup briefing for humans, ChatGPT, Claude, coding agents, and collaborators.
 - `PLAN.md`: active queue, phase lifecycle, exec-plans directory contract, execution priorities.
+- `docs/ARCHITECTURE.md`: technical system contract and deployment/runtime model.
 - `DESIGN.md`: design governance and quality bar.
 - `FRONTEND.md`: frontend implementation + i18n + UI validation contract.
 - `SECURITY.md`: security and compliance non-negotiables.
 - `TOOLS.md`: operational tooling, MCP usage, setup commands, and troubleshooting.
 - `exec-plans/`: active/completed phases, templates, and execution protocols.
-- `product-specs/`: startup context, product contracts, and role workflows.
+- `product-specs/`: B2B marketplace context, operations contracts, and service tiers.
 - `generated/`: generated snapshots (schema inventory).
-- `references/`: supporting harness references.
 - `logs/`: changelog and validation evidence.
 
 ## Read/Write Matrix
 | Path | Purpose | Update Trigger |
 | --- | --- | --- |
 | `AGENTS.md` | global autonomous operating contract | only when harness protocol changes |
-| `ARCHITECTURE.md` | technical system contract and deployment/runtime model | architecture/runtime changes |
+| `docs/ARCHITECTURE.md` | technical system contract and deployment/runtime model | architecture/runtime changes |
 | `docs/PLAN.md` | global queue and planning lifecycle | active queue/status/lifecycle updates |
 | `docs/DESIGN.md`, `docs/FRONTEND.md` | UX/front-end constraints and validation expectations | design/frontend contract changes |
 | `docs/SECURITY.md` | security/compliance baseline | security controls or policy changes |

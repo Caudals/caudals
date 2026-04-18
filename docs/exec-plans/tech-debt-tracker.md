@@ -18,6 +18,7 @@
 | TD-008 | Payout lifecycle resilience | Transfer/webhook variance handling and payout failure states need deeper hardening | payout inconsistency risk | P0 | Phase 15 | RESOLVED |
 | TD-009 | Payment operations risk tooling | Admin anomaly correlation and reconciliation ergonomics are incomplete | slower incident containment | P1 | Phase 15 | RESOLVED |
 | TD-010 | Migration drift guardrails | Self-hosted DB lacks `023_stripe_webhook_events` despite code expecting it; add migration-drift detection + repair runbook | webhook dedupe disabled fallback, reduced replay protection | P0 | Phase 15 | RESOLVED |
+| TD-011 | B2B marketplace replatforming | Legacy app routes, tests, schema, and payment flows still reflect the retired individual-upload marketplace | hidden product drift and unsafe reuse risk | P0 | Future B2B replatforming phase | OPEN |
 
 ## Update Rules
 - Add debt when tradeoffs are intentional and unresolved.

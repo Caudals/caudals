@@ -24,13 +24,13 @@ Enable agents to continuously plan, build, validate, and document product improv
 - debt captured if unresolved tradeoffs remain.
 
 ## Autonomous Roadmap Heuristics (When User Queue Is Empty)
-1. Implement missing DB-backed requester/admin action flows before UI polish.
-2. Prioritize payout/funding/webhook resilience and ledger consistency checks.
-3. Eliminate placeholder-heavy operational workflows (support, analytics, moderation sidecars).
-4. Expand integration tests for critical lifecycle transitions (approval, funding, payout, export).
-5. Harden export orchestration and recovery behavior using durable queue semantics.
-6. Unify wallet/ledger contract assumptions and remove stale legacy behavior paths.
-7. Close route/link dead-ends that break trust on public and app surfaces.
+1. Keep landing, contact, and blog fast, accurate, localized, and aligned with the B2B data-marketplace message.
+2. Remove or quarantine legacy individual-upload, old app, and retired marketplace assumptions before adding new product behavior.
+3. Design the internal admin dashboard around leads, supplier assets, dataset builds, QA, rights, catalog listings, and commercial operations.
+4. Define new schema contracts before relaunching marketplace, buyer, or supplier self-service.
+5. Expand tests around public funnel integrity, landing-mode restrictions, contact/waitlist intake, and future admin operations.
+6. De-risk rights, provenance, PII, licensing, and dataset quality before payments or catalog publication.
+7. Close route/link dead-ends that break trust on public surfaces.
 
 ## Stop Conditions
 Pause only for missing access, unresolvable requirement conflicts, or irreversible high-risk actions.
