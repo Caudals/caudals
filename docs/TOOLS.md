@@ -14,8 +14,8 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Terminal: build/test/lint/file ops/repo diagnostics
 - Supabase CLI: migrations, schema checks, policy verification
 - Supabase MCP: runtime DB inspection and operational queries
-- Stripe CLI: webhook forwarding and deterministic event simulation
-- Stripe MCP: Stripe object inspection and controlled support operations
+- Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
+- Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
 - GitHub MCP: issue/PR/review workflows
 - GitHub CLI (`gh`): CI run and failed-job log triage
 - Chrome DevTools MCP: interaction checks and screenshots
@@ -149,7 +149,7 @@ Bootstrap:
 - `npm run lint`: ESLint
 - `npm test -- --run`: Vitest suite
 - `npm run e2e`: Playwright suite
-- `npm run e2e:auth-smoke`: authenticated role smoke checks
+- `npm run e2e:auth-smoke`: legacy authenticated smoke checks; do not use as a product acceptance signal for the B2B pivot unless explicitly updating legacy app code
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
@@ -168,8 +168,8 @@ Minimum merge gate:
 
 Recommended route-level smoke checks:
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/smoke.spec.ts --project=chromium`
-- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium`
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/public-routes.spec.ts --project=chromium`
+- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for legacy authenticated-route changes
 
 Operational env controls:
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
@@ -185,6 +185,7 @@ Operational env controls:
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
+- `LANDING_MODE=true` is the current public deployment posture.
 - `LANDING_MODE` affects both build-time and runtime behavior.
 - Build-time: set the GitHub Actions repository secret `LANDING_MODE=true` so `.github/workflows/deploy.yml` passes it into the Docker build. This bakes `NEXT_PUBLIC_LANDING_MODE` into the public bundle.
 - Runtime: keep `LANDING_MODE=true` in Dokploy environment variables as well, or ensure Dokploy does not override the image-level value. The server-side proxy reads runtime `LANDING_MODE`.

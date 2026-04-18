@@ -1,9 +1,9 @@
 # Phase 17 – Castilian Spanish Localization Overhaul
 
-- Status: IN_PROGRESS
+- Status: DONE
 - Priority: P0
 - Owner: autonomous-agent
-- Last Updated: 2026-04-16
+- Last Updated: 2026-04-18
 
 ## Goal
 

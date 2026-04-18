@@ -1,62 +1,71 @@
 # Platform Overview Spec
 
 ## Startup Context
-Caudals is an AI dataset operations platform connecting:
-- ML organizations that need high-quality training datasets,
-- contributors who submit data,
-- admins who moderate quality, trust, risk, and payouts.
+Caudals is a B2B marketplace and managed operations platform for AI training datasets.
+
+Caudals connects:
+- companies that can sell or license proprietary data,
+- companies that need AI-ready datasets to train or evaluate models,
+- Caudals operators who source, license, clean, curate, label, package, and publish datasets.
 
 ## North Star
-Help ML teams procure high-quality datasets faster while giving contributors a trustworthy earning workflow.
+Make it dramatically easier for companies to turn raw, underused data into compliant AI datasets, and for AI teams to acquire trustworthy datasets without building the entire sourcing and preprocessing operation themselves.
 
 ## Product Value Axes
-- Speed: shorten request-to-approved-dataset cycle time.
-- Trust: improve quality, compliance, and payout confidence.
-- Control: make requester/admin operations predictable and auditable.
+- Speed: shorten dataset discovery, feasibility, sourcing, and build timelines.
+- Trust: verify provenance, licensing, privacy, quality, and AI-training rights.
+- Utility: deliver datasets in ML-ready schemas and formats with clear quality reports.
+- Monetization: give supplier companies a managed path to earn from data without operating a marketplace themselves.
 
 ## Primary Outcomes
-- Faster dataset throughput
-- Higher data quality through review loops
-- Reliable contributor payout lifecycle
-- Auditable operations for enterprise trust
+- More qualified buyer and supplier conversations through the public funnel
+- Faster feasibility decisions for custom dataset opportunities
+- Higher-quality datasets through Caudals-operated preprocessing, curation, and labeling
+- Auditable supplier rights and buyer delivery records
+- Future repeat revenue through catalog listings, private offers, subscriptions, and revenue share
 
 ## Product Surfaces
 - Marketing/public (`/`, `/contact`, `/blog`)
-- Auth and account (`/auth/*`)
-- Role applications (`/requester/*`, `/contributor/*`, `/admin/*`)
-- Contributor PWA companion (`/pwa/*`)
+- Internal admin dashboard (private)
+- Future supplier intake and buyer marketplace surfaces (hidden until redesigned)
 
 ## Scope (Current)
-- Market-ready web app and public funnel
-- Auth and role onboarding
-- Payments, exports, moderation, and support operations
+- Landing page
+- Contact form
+- Blog
+- Landing-mode route restriction
+- Private operational admin access
 
 ## Non-Goals (Current)
-- Major PWA redesign
+- Public marketplace relaunch
+- Buyer self-serve checkout
+- Supplier self-serve portal
+- Individual sample uploads
 - Dark mode rollout
-- New data model contracts without explicit phase scope
 
 ## KPI Set
-- Requester activation: signup -> first request -> funded request
-- Contributor throughput: accepted submissions per active contributor
-- Operational health: moderation backlog, payout failure rate, support SLA
+- Funnel: qualified contact submissions, waitlist signups, reply time, discovery-call conversion
+- Buyer demand: dataset briefs received, feasibility pass rate, pilot conversion rate
+- Supplier supply: qualified supplier leads, data rights pass rate, pilot-listing conversion rate
+- Operations: study delivery time, pilot delivery time, QA pass rate, rework rate
 - Reliability: incident count, failed deploy rate, rollback frequency
 
 ## Maturity Map
 Mature/production-grade domains:
-- dataset CRUD and browse retrieval
-- submission review primitives
-- admin moderation and role operations
-- Stripe funding/payout/webhook flows
-- DO Spaces upload/delete pipeline
+- public landing/contact/blog route set
+- landing-mode route restriction
+- contact/waitlist intake APIs
+- VPS and private dashboard access hardening
 
 Partial or risk-prone domains to monitor:
-- areas where schema evolution may outpace TS/action contracts
-- any remaining mock-heavy analytics/support UX islands
-- legacy path assumptions (`/dashboard/*`) reintroduced by new work
+- legacy authenticated app and schema from the retired product model
+- old payments, upload, and dashboard assumptions
+- SEO/copy drift back toward retired consumer-platform language
+- missing future data model for supplier assets, buyer briefs, dataset builds, and catalog listings
 
 ## Product Prioritization Heuristics
-1. Unblock core marketplace loops first.
-2. Prioritize direct KPI lift.
-3. De-risk payments, moderation, and data integrity early.
-4. Do polish passes after behavior is reliable.
+1. Keep the public funnel credible and high-converting.
+2. Build internal admin operations before public marketplace self-service.
+3. De-risk data rights, provenance, privacy, licensing, and quality before payments.
+4. Prioritize pilots that can become reusable catalog listings.
+5. Do polish passes after operational behavior is reliable.

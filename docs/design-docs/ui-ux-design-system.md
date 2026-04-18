@@ -1,31 +1,31 @@
-# Caudals UI/UX Design System (Mintlify-Inspired)
+# Caudals UI/UX Design System
 
 ## Purpose
-Single source of truth for visual/system behavior across landing, auth, requester, contributor, and admin web surfaces. This document provides strict instructions for LLMs and AI agents to follow autonomously when generating or refactoring UI components.
+Single source of truth for visual/system behavior across the current landing/contact/blog surface and future internal admin/B2B marketplace surfaces. This document provides strict instructions for LLMs and AI agents to follow autonomously when generating or refactoring UI components.
 
 ## AI Agent Instructions (CRITICAL)
 When building or refactoring components, AI agents MUST adhere to this design system.
-1. **Always use the design system.** The design shuold replicate the reference images, components and screenshots in `docs/design-docs/design-images/`.
-2. **Never use heavy shadows.** Default to `shadow-none` or `shadow-sm` for cards, and `shadow-md` only for floating popovers/dialogs.
-3. **Use subtle borders.** Use `border border-gray-200` (or `border-border` if using Shadcn) for structural elements. Do not use high-contrast borders unless it's a specific form state.
-4. **Typography hierarchy is paramount.** Use clean sans-serif (Inter, Geist, or system-ui). Primary text is `text-gray-900`, secondary is `text-gray-500`. Headers must be crisp, with tighter letter spacing for large display text.
-5. **Active States:** Sidebar and navigation active states use a soft green pill background (`bg-emerald-50` or `bg-green-50`) with green text (`text-emerald-700`).
-6. **Main Canvas vs Sidebar:** The main content area is pure white (`bg-white`), while sidebars or backgrounds behind cards are a very light gray (`bg-gray-50/50` or `#f9fafb`).
-7. **No zebra-striping in tables.** Tables must be extremely clean with only horizontal dividers (`border-b border-gray-100`). Header rows should use `text-xs font-medium text-gray-500 uppercase tracking-wider`.
-8. **Buttons:** Primary buttons are solid (either black `bg-gray-900 text-white` or brand green `bg-emerald-600 text-white`). Secondary buttons are outlined or ghost.
+1. Always match the live landing page before introducing new aesthetics.
+2. Use a white editorial base with black type, gray structure, and teal accents.
+3. Never use heavy generic shadows. The only large shadow pattern currently accepted is the soft browser-preview shadow in the hero mockup.
+4. Use subtle borders: `border-gray-100`, `border-gray-200`, or translucent variants.
+5. Typography hierarchy is paramount: large, tracking-tight display type; calm body text; tiny bold uppercase labels where the landing uses them.
+6. Buttons are black or outline by default. Teal is an accent, not the default button fill.
+7. Do not reintroduce old individual-upload or multi-surface consumer-app visual metaphors.
 
 ## Scope
-- In scope: web app + marketing + auth surfaces
+- In scope: landing, contact, blog, internal admin, future buyer/supplier marketplace UI
 - In scope: responsive behavior (mobile/tablet/desktop)
-- Out of scope: major PWA redesign
+- Out of scope: legacy individual-upload and old authenticated surfaces unless explicitly being removed or migrated
 - Out of scope: dark mode rollout (this design system is strictly Light Mode first)
 - Out of scope: schema/domain contract changes
 
 ## Experience Principles
-1. Operational clarity over decorative complexity.
-2. Content breathes: use generous padding (e.g., `p-6` or `p-8` for cards/sections).
-3. Dense operational screens must remain readable under time pressure.
-4. Trust signals (review state, payout state, severity) stay visible using minimal chips (e.g., green dot + text, no heavy solid backgrounds for status chips unless critical).
+1. Editorial calm: high-value enterprise data should feel precise, quiet, and serious.
+2. Content breathes: public sections use generous vertical rhythm (`py-24`, `sm:py-32`) and `max-w-5xl`.
+3. Trust is operational: rights, provenance, PII, QA, freshness, and license state must be visible in admin/marketplace UI.
+4. Dense admin screens must remain readable under time pressure.
+5. Motion should feel deliberate and light; use Framer Motion reveal patterns already present in landing sections.
 
 ## Foundation Tokens (Tailwind mapping)
 Use tokenized values only (no ad-hoc drift).
@@ -56,39 +56,45 @@ Use tokenized values only (no ad-hoc drift).
 ```
 
 Typography baseline:
-- Sans stack: `"Geist", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif`
-- Use a consistent scale for display/headings/body/labels/captions.
+- Sans stack follows `app/globals.css`: `-apple-system`, `BlinkMacSystemFont`, `SF Pro Text`, `SF Pro Display`, `Segoe UI`, `Roboto`, `Helvetica`, `Arial`, sans-serif.
+- Serif accent stack follows `app/globals.css`: `"New York"`, `"Iowa"`, `"Georgia"`, serif.
+- Display headings: `text-4xl sm:text-5xl` for sections; `text-5xl sm:text-7xl lg:text-8xl` for the landing hero.
+- Hero highlight: serif italic teal (`font-serif italic text-teal-700/90`).
+- Labels: `text-[13px] font-bold text-teal-600` or tiny uppercase labels where used in mockups.
 
 Geometry baseline:
-- Radius scale: `md`, `lg`, `xl`. Cards and dialogs should use `rounded-xl` or `rounded-2xl` for a modern, soft feel. Buttons use `rounded-md` or `rounded-lg`.
+- Radius scale: buttons and form controls use `rounded-md`; content panels use `rounded-xl`; pills use `rounded-full`.
 - Motion: `150ms-200ms`, ease-out transitions for hover states.
 
 ## Layout System
-- Canvas: light gray background (`bg-gray-50`).
-- Sidebar: fixed on desktop, clean with no right border or very faint border, soft green active items.
-- Topbar: integrates breadcrumbs and a prominent, wide Command-K search bar (gray background, minimal border).
-- Main panel: pure white surface with soft border, or content directly on the canvas with white cards.
-- Popovers/dialogs: solid white surfaces with soft border and `shadow-lg`.
+- Public canvas: white (`bg-white`) with alternating very light gray bands (`bg-gray-50/50`).
+- Section container: `mx-auto max-w-5xl px-6 sm:px-8 lg:px-12`.
+- Section rhythm: `py-24 sm:py-32`.
+- Header: sticky, transparent at top, translucent white with backdrop blur and subtle bottom border on scroll.
+- Hero: Spline ribbon background, centered copy, black/teal badge, huge display title, waitlist form, browser-style marketplace console preview.
+- Contact form: `bg-gray-50/50`, subtle border, `rounded-md`, minimalist bottom-border fields.
+- Admin canvas: light gray background with white panels, subtle borders, compact trust/status chips.
+- Popovers/dialogs: solid white surfaces with soft border and restrained shadow.
 
 ## Core Component Contracts
-- Buttons: primary (black or green), secondary (outline), ghost (transparent with gray hover). Full state set required.
-- Inputs/selects: `bg-white` or `bg-gray-50`, soft border `border-gray-200`, focus ring `ring-emerald-500`.
-- Badges/chips: subtle backgrounds (e.g., `bg-emerald-50 text-emerald-700`) or just a dot indicator with text. No heavy, dark badge backgrounds.
-- Cards: pure white, `border border-gray-200`, `shadow-none` or `shadow-sm`, generous padding (`p-6`).
+- Buttons: primary black (`bg-black text-white hover:bg-black/90`), secondary outline (`border-gray-200 text-black hover:bg-gray-50`), ghost for navigation.
+- Inputs/selects: public contact forms use transparent backgrounds and bottom borders; compact forms may use white/gray backgrounds with soft borders.
+- Badges/chips: subtle teal or gray backgrounds; use dots for live/processing states.
+- Cards/panels: pure white, `border border-gray-100/200`, `shadow-none` or `shadow-sm`, generous padding.
 - Tables: very clean, minimal borders, horizontal lines only.
 
 ## Landing and Marketing Page Contract
-- **Overall Aesthetic**: Brutally minimal, editorial, high-contrast black and white.
-- **Typography**: Large, clean serif or sans-serif headings with tight tracking (`tracking-tight`). Generous line height on body copy.
-- **Layout**: Expansive white space (`bg-white`), strong horizontal and vertical dividers (`border-gray-200`), minimal use of containers/cards. Use centered, focused layouts where appropriate.
-- **Form Elements**: Clean and minimal. Slightly rounded borders (`rounded-md`), simple bottom borders (`border-b border-gray-300`), focus states use solid black borders. Backgrounds are transparent or very light gray (`bg-gray-50/50`).
-- **Buttons**: Blocky but with slight rounding (`rounded-md`), solid colors (`bg-black text-white hover:bg-gray-900`), standard sentence or title case.
-- **Shadows**: None. Completely flat interface.
+- Overall aesthetic: editorial, high-contrast, sparse, serious, with a refined AI-data feel.
+- Palette: white, black, gray-50/100/200/400/500/600, teal-50/500/600/700/800/900.
+- Layout: expansive white space, alternating white and gray-50/50 bands, centered max-width content, minimal card nesting.
+- Copy tone: direct B2B data operations language. Avoid explaining UI mechanics or using generic AI hype.
+- Forms: simple, slightly rounded shell or bottom-border inputs, black focus, no noisy decoration.
+- Shadows: none or subtle, except hero console preview.
 
 ## Acceptance Checklist
 A UI change is accepted only when:
 1. token contract is preserved (clean, light, minimal borders),
-2. shell/sidebar contract is preserved,
+2. public landing design remains consistent with the current live page,
 3. loading/empty/error/success states are explicit but visually subtle,
 4. responsive checks pass on mobile/tablet/desktop,
 5. no heavy shadows or harsh borders are introduced,

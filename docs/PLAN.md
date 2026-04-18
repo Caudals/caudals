@@ -15,7 +15,6 @@ Global execution board for long-running autonomous delivery.
 
 ## Program State
 - Phases 00-19 are completed and archived in `docs/exec-plans/completed/`.
-- Phase 21 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 22 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 23 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 24 is completed and archived in `docs/exec-plans/completed/`.
@@ -30,8 +29,11 @@ Global execution board for long-running autonomous delivery.
 - Phase 34 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 35 is completed and archived in `docs/exec-plans/completed/`.
 - Phase 36 is completed and archived in `docs/exec-plans/completed/`.
-- Active delivery focus returns to Phase 17.
-- Phase 20 remains queued for dashboard workflow gaps.
+- Phase 37 completed the documentation pivot to the B2B AI dataset marketplace model.
+- No implementation phase is currently active.
+
+## Product Direction
+Caudals is now a B2B AI dataset marketplace and managed dataset build service. The public deployment is limited to the landing page, contact form, and blog. The marketplace remains hidden until buyer/supplier workflows, internal admin operations, data rights, and dataset build pipelines are redesigned for company-level data transactions.
 
 ## Queueing Rules
 1. Work explicit user-requested items first.
@@ -40,8 +42,12 @@ Global execution board for long-running autonomous delivery.
 4. Prefer tasks that unlock multiple downstream tasks.
 
 ## Active Phase Queue
-1. **Phase 17 – Castilian Spanish Localization Overhaul** (`docs/exec-plans/active/phase-17-castilian-spanish-localization-overhaul.md`) — IN_PROGRESS, P0
-2. **Phase 20 – Dashboard Feature Gaps and Missing Workflows** (`docs/exec-plans/active/phase-20-dashboard-missing-features.md`) — QUEUED, P1
+No active implementation phase is open.
+
+When implementation resumes, create a new active phase from `docs/exec-plans/phase-template.md`. The next likely phase is the B2B marketplace replatforming plan:
+- remove or replace legacy company-facing app routes,
+- design the private admin dashboard around leads, supplier assets, dataset builds, QA, licensing, and catalog publication,
+- define the new database model before exposing marketplace self-service.
 
 ## Phase Lifecycle (Canonical)
 - Create one detailed phase file per initiative in `docs/exec-plans/active/` using `docs/exec-plans/phase-template.md`.

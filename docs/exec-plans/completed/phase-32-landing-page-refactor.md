@@ -1,5 +1,10 @@
 # Phase 32 – Landing Page Aesthetic Refactor
 
+- Status: DONE
+- Priority: P0
+- Owner: agent
+- Last Updated: 2026-04-18
+
 ## Objective
 Refactor the landing page to match the clean, minimalist, editorial design of the `/blog` section, extending it with color accents and personality.
 

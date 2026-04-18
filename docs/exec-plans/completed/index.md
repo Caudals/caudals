@@ -19,6 +19,7 @@
 - `phase-14-export-queue-reliability-and-debt-closure.md`
 - `phase-15-payments-and-payouts-market-readiness.md`
 - `phase-16-market-readiness-polish-and-growth.md`
+- `phase-17-castilian-spanish-localization-overhaul.md`
 - `phase-18-design-system-refactor.md`
 - `phase-19-dashboard-redesign-design-image-parity.md`
 - `phase-22-launch-video-remotion.md`
@@ -31,10 +32,12 @@
 - `phase-29-blog-media-playback-polish.md`
 - `phase-30-landing-mode-public-surface-hardening.md`
 - `phase-31-landing-hero-mux-video.md`
+- `phase-32-landing-page-refactor.md`
 - `phase-33-search-indexability-and-technical-seo.md`
 - `phase-34-vps-platform-security-hardening.md`
 - `phase-35-private-dashboard-and-admin-surface-hardening.md`
 - `phase-36-direct-tailscale-dashboard-access.md`
+- `phase-37-b2b-marketplace-pivot-docs.md`
 
 ## Legacy Full Tracker Snapshot
 
