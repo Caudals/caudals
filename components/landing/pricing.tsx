@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
@@ -9,50 +8,52 @@ import { cn } from "@/lib/utils";
 
 const plans = [
   {
-    name: "Catalog",
+    name: "Feasibility Study",
     description:
-      "Access pre-processed datasets from our growing catalog.",
-    price: "From $500",
-    unit: "/dataset",
+      "Determine whether a dataset can be sourced, built, licensed, and delivered with acceptable risk and expected value before any commitment.",
+    price: "$1,000",
+    unit: "fixed fee",
     perks: [
-      "Browse available datasets",
-      "Quality scores and previews",
-      "Standard ML-ready formats",
-      "Signed download URLs",
-      "Email support",
+      "Feasibility memo and go/no-go recommendation",
+      "Source and supplier map",
+      "Risk register and rights review",
+      "Target schema and quality criteria",
+      "Rough build plan with cost range and timeline",
     ],
-    cta: "Browse catalog",
+    cta: "Get started",
+    featured: false,
   },
   {
-    name: "Custom",
+    name: "Pilot Dataset Build",
     description:
-      "We source and build the exact dataset your team needs.",
-    price: "From $2,000",
-    unit: "/project",
+      "Build a constrained dataset sample that proves quality, feasibility, and commercial value before a larger commitment.",
+    price: "A medida",
+    unit: "",
     perks: [
-      "Multi-source data aggregation",
-      "Custom cleaning and formatting",
-      "Dedicated project manager",
-      "Delivery in under 2 weeks",
-      "Priority support",
+      "5,000–50,000 records in ML-ready format",
+      "Schema profiling, cleaning, and deduplication",
+      "PII screening and anonymization",
+      "Lightweight enrichment or labeling",
+      "Recommendation for complete build or stop",
     ],
-    cta: "Request a dataset",
+    cta: "Contact us",
     featured: true,
   },
   {
-    name: "Enterprise",
+    name: "Complete Dataset Build",
     description:
-      "Ongoing data supply for teams with recurring needs.",
-    price: "Custom",
+      "Deliver a production-grade dataset for buyer use, private offer, catalog listing, or recurring data supply.",
+    price: "A medida",
     unit: "",
     perks: [
-      "API access to full catalog",
-      "Recurring data feeds",
-      "Exclusive sourcing agreements",
-      "SLA-backed delivery",
-      "Dedicated account team",
+      "Multi-source sourcing and supplier coordination",
+      "Contract, licensing, and rights workflow",
+      "Cleaning, anonymization, enrichment, and labeling",
+      "Train/validation/test split strategy",
+      "Delivery via download, S3, API, or warehouse share",
     ],
-    cta: "Talk to sales",
+    cta: "Contact us",
+    featured: false,
   },
 ];
 
@@ -67,14 +68,11 @@ export function PricingSection() {
             {t("Pricing")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
-            {t("Simple pricing for data buyers and suppliers")}
+            {t("Three ways to work with Caudals")}
           </h2>
-          <p className="text-base text-gray-500 mt-6 leading-relaxed">
-            {t("Data suppliers list for free and earn revenue share on every sale.")}
-          </p>
         </div>
 
-        <div className="grid gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden lg:grid-cols-3 mb-12 shadow-sm">
+        <div className="grid gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden lg:grid-cols-3 shadow-sm">
           {plans.map((plan) => (
             <div
               key={plan.name}
@@ -84,15 +82,19 @@ export function PricingSection() {
                 <h3 className="text-xl font-bold text-black mb-2">
                   {t(plan.name)}
                 </h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <p className="min-h-[6.25rem] text-sm leading-relaxed text-gray-500 lg:min-h-[7rem]">
                   {t(plan.description)}
                 </p>
               </div>
 
-              <div className="mb-8">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-normal tracking-tight text-black">{t(plan.price)}</span>
-                  {plan.unit && <span className="text-sm text-gray-400">{t(plan.unit)}</span>}
+              <div className="mb-8 min-h-[3.5rem]">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-normal tracking-tight text-black">
+                    {t(plan.price)}
+                  </span>
+                  {plan.unit && (
+                    <span className="text-sm text-gray-400">{t(plan.unit)}</span>
+                  )}
                 </div>
               </div>
 
@@ -109,23 +111,17 @@ export function PricingSection() {
                 variant={plan.featured ? "default" : "outline"}
                 className={cn(
                   "h-11 w-full rounded-md text-sm font-bold transition-all",
-                  plan.featured ? "bg-black text-white hover:bg-black/90" : "border-gray-200 text-black hover:bg-gray-50"
+                  plan.featured
+                    ? "bg-black text-white hover:bg-black/90"
+                    : "border-gray-200 text-black hover:bg-gray-50"
                 )}
                 asChild
               >
-                <Link href="/contact">
-                  {t(plan.cta)}
-                </Link>
+                <Link href="/contact">{t(plan.cta)}</Link>
               </Button>
             </div>
           ))}
         </div>
-
-        <p className="text-center text-xs text-gray-400 max-w-2xl mx-auto leading-relaxed">
-          {t(
-            "Want to sell your company's data? Suppliers list for free. We handle processing, licensing, and buyer acquisition. You earn 60-70% revenue share on every sale.",
-          )}
-        </p>
       </div>
     </section>
   );

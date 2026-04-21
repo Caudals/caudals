@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Flame, Globe2, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { cn } from "@/lib/utils";
 
 const highlights = [
   {
