@@ -7,7 +7,6 @@ import { FAQSection } from "@/components/landing/faq";
 import { HeroSection } from "@/components/landing/hero";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { ContactSection } from "@/components/landing/partnerships";
-import { PlatformLayersSection } from "@/components/landing/platform-overview";
 import { PricingSection } from "@/components/landing/pricing";
 import { SocialProofSection } from "@/components/landing/social-proof";
 import { StatsSection } from "@/components/landing/stats";
@@ -25,14 +24,13 @@ export function HomePageClient() {
           <HeroSection />
 
           <SocialProofSection />
-          <PlatformLayersSection />
-
-          <div id="features" className="bg-white">
-            <FeaturesSection />
-          </div>
 
           <div id="how-it-works" className="bg-white">
             <HowItWorksSection />
+          </div>
+
+          <div id="features" className="bg-white">
+            <FeaturesSection />
           </div>
 
           <StatsSection />

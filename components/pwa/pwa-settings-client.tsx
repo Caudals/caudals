@@ -6,13 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth/provider";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Home } from "lucide-react";
@@ -28,7 +21,6 @@ export function PwaSettingsClient() {
 
   const [offlineSync, setOfflineSync] = useState(true);
   const [cellularUploads, setCellularUploads] = useState(false);
-  const [installDialogOpen, setInstallDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -84,7 +76,7 @@ export function PwaSettingsClient() {
         : "/requester";
 
   return (
-    <>
+    <div className="space-y-4">
       <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
@@ -150,60 +142,6 @@ export function PwaSettingsClient() {
           />
         </div>
       </section>
-
-      <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-            {t("Install")}
-          </p>
-          <h3 className="text-lg font-semibold">{t("Add to home screen")}</h3>
-          <p className="text-sm text-white/70">
-            {t("Keep Caudals Companion one tap away. Works offline and syncs when you return.")}
-          </p>
-        </div>
-        <Button
-          className="w-full rounded-2xl bg-white text-slate-900"
-          onClick={() => setInstallDialogOpen(true)}
-        >
-          {t("View instructions")}
-        </Button>
-      </section>
-
-      <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
-        <DialogContent className="rounded-3xl bg-slate-950 text-white sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("Install Caudals Companion")}</DialogTitle>
-            <DialogDescription className="text-white/60">
-              {t("Follow the quick steps for your device.")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 text-sm text-white/80">
-            <div>
-              <p className="font-semibold">{t("iOS (Safari)")}</p>
-              <ol className="ml-4 mt-1 list-decimal space-y-1">
-                <li>{t("Tap the Share icon in Safari.")}</li>
-                <li>{t('Select "Add to Home Screen."')}</li>
-                <li>{t("Confirm the name and tap Add.")}</li>
-              </ol>
-            </div>
-            <div>
-              <p className="font-semibold">{t("Android (Chrome)")}</p>
-              <ol className="ml-4 mt-1 list-decimal space-y-1">
-                <li>{t("Open the browser menu.")}</li>
-                <li>{t('Tap "Install app" or "Add to Home screen."')}</li>
-                <li>{t("Confirm when prompted.")}</li>
-              </ol>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            className="mt-4 w-full rounded-2xl border border-white/10 text-white"
-            onClick={() => setInstallDialogOpen(false)}
-          >
-            {t("Done")}
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
+    </div>
   );
 }

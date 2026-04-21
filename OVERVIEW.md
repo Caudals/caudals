@@ -233,7 +233,7 @@ Best for:
 - projects where scope, rights, or data availability is unclear.
 
 Planning price:
-- $3,000-$7,500 fixed fee
+- $1000 fixed fee
 - optionally credited toward a pilot if signed within 30 days
 
 Duration:

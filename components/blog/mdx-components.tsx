@@ -7,6 +7,7 @@ import { DataSourceQuiz } from "@/components/blog/data-source-quiz";
 import { FineTuningEstimator } from "@/components/blog/fine-tuning-estimator";
 import { ActiveLearningLoop } from "@/components/blog/active-learning-loop";
 import { PreferencePairPlanner } from "@/components/blog/preference-pair-planner";
+import { EvalDatasetPlanner } from "@/components/blog/eval-dataset-planner";
 import { slugifyHeading } from "@/lib/blog/shared";
 import { cn } from "@/lib/utils";
 
@@ -174,4 +175,5 @@ export const mdxComponents = {
   FineTuningEstimator,
   ActiveLearningLoop,
   PreferencePairPlanner,
+  EvalDatasetPlanner,
 };
