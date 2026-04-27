@@ -3,7 +3,6 @@
 ## Summary
 - Updated the autonomous agent harness, architecture, product specs, frontend, design, security, tooling, and schema docs for the new B2B AI dataset marketplace direction.
 - Moved architecture guidance from root `ARCHITECTURE.md` to `docs/ARCHITECTURE.md`.
-- Replaced old workflow docs with `docs/product-specs/marketplace-operations.md`, `docs/product-specs/service-tiers.md`, and `docs/design-docs/admin-dashboard.md`.
 - Removed obsolete active planning for retired dashboard workflow gaps and archived completed active phase files.
 - Added `TD-011` to track the remaining legacy code/schema replatforming work before marketplace relaunch.
 

@@ -5,7 +5,6 @@ Guarantee a coherent, production-grade experience across the current public funn
 
 ## Canonical Design Sources
 1. `docs/design-docs/ui-ux-design-system.md`
-2. `docs/design-docs/admin-dashboard.md`
 
 ## Design Contracts
 - Light mode only in current delivery scope.
