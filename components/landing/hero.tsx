@@ -105,7 +105,7 @@ function HeroWaitlistForm() {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder={t("Enter your work email")}
+                    placeholder={t("Enter your email")}
                     className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-36 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
                     {...field}
                   />
