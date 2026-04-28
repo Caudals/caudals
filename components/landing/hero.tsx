@@ -2,14 +2,14 @@
 
 import { motion } from "framer-motion";
 import {
+  ArrowUpRight,
   Database,
   LayoutDashboard,
-  ListChecks,
   Search,
   Settings,
-  Sparkles,
-  User,
+  SlidersHorizontal,
   Wallet,
+  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSplineScene } from "@/components/landing/hero-spline-scene";
@@ -239,127 +239,220 @@ export function HeroSection() {
 function HeroPreview() {
   const t = useTranslations();
 
+  const navItems = [
+    { icon: LayoutDashboard, label: "Dashboard", active: true },
+    { icon: Database, label: "Catalog" },
+    { icon: Workflow, label: "Pipelines" },
+    { icon: Wallet, label: "Billing" },
+    { icon: Settings, label: "Settings" },
+  ];
+
+  const stats = [
+    { label: "Supplier Companies", value: "142", delta: "+18", accent: false },
+    { label: "Quality score", value: "98.4", unit: "%", delta: "+0.6", accent: true },
+    { label: "Datasets Delivered", value: "1,284", delta: "+24", accent: false },
+  ];
+
+  const datasets = [
+    {
+      name: "Retail Transaction Patterns",
+      sector: "E-commerce",
+      records: "2.4M",
+      status: "available" as const,
+    },
+    {
+      name: "Fleet GPS Routes — Spain",
+      sector: "Logistics",
+      records: "840K",
+      status: "in_progress" as const,
+    },
+    {
+      name: "Crop Yield Records 2020-25",
+      sector: "Agriculture",
+      records: "1.1M",
+      status: "available" as const,
+    },
+  ];
+
   return (
-    <div className="group relative mx-auto w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200/60 bg-white/72 p-1 shadow-[0_48px_120px_-56px_rgba(15,23,42,0.62)] backdrop-blur-2xl transition-all hover:shadow-[0_56px_132px_-60px_rgba(15,23,42,0.7)]">
-      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/30 px-6 py-4">
+    <div className="group relative mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-gray-200/70 bg-white/85 shadow-[0_48px_120px_-56px_rgba(15,23,42,0.55)] backdrop-blur-2xl">
+      <div className="flex items-center justify-between border-b border-gray-100 bg-white/40 px-5 py-3.5">
         <div className="flex items-center gap-4">
           <div className="flex gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
-            <div className="h-2.5 w-2.5 rounded-full bg-gray-300" />
+            <div className="h-2 w-2 rounded-full bg-gray-200" />
+            <div className="h-2 w-2 rounded-full bg-gray-200" />
+            <div className="h-2 w-2 rounded-full bg-gray-200" />
           </div>
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Data Marketplace Console</span>
+          <div className="hidden h-3.5 w-px bg-gray-200/80 sm:block" />
+          <div className="hidden items-baseline gap-2 sm:flex">
+            <span className="text-xs text-gray-400">{t("Operational overview")}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 rounded-md bg-teal-50 px-2 py-1">
-            <div className="h-1 w-1 rounded-full bg-teal-600 animate-pulse" />
-            <span className="text-[10px] font-bold text-teal-800 uppercase">Live</span>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-[11px] text-gray-400 sm:inline">
+            {t("Synced 2 min ago")}
+          </span>
+          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium tracking-tight text-gray-500">
+            MM
           </div>
-          <div className="h-6 w-px bg-gray-100" />
-          <User className="h-4 w-4 text-gray-400" />
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row">
-        <aside className="hidden w-56 border-r border-gray-100 p-6 lg:block text-left">
-          <div className="space-y-8">
-            <div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Workspace</div>
-              <div className="space-y-3">
-                <div className="h-8 w-full rounded-md bg-teal-50 text-teal-800 border border-teal-100 flex items-center px-3 gap-2">
-                  <LayoutDashboard className="h-3.5 w-3.5" />
-                  <span className="text-xs font-bold">Dashboard</span>
-                </div>
-                {[
-                  { icon: Database, label: "Catalog" },
-                  { icon: ListChecks, label: "Processing" },
-                  { icon: Wallet, label: "Billing" },
-                  { icon: Settings, label: "Settings" }
-                ].map((nav, i) => (
-                  <div key={i} className="h-8 w-full rounded-md flex items-center px-3 gap-2 group/nav hover:bg-gray-50/50 transition-colors text-gray-500 hover:text-black cursor-pointer">
-                    <nav.icon className="h-3.5 w-3.5" />
-                    <span className="text-xs font-bold">{nav.label}</span>
-                  </div>
-                ))}
+      <div className="grid lg:grid-cols-[14rem_1fr]">
+        <aside className="hidden border-r border-gray-100 bg-white/30 px-3 py-6 text-left lg:block">
+          <div className="px-3 text-[11px] font-medium text-gray-400">{t("Workspace")}</div>
+          <nav className="mt-3 space-y-0.5">
+            {navItems.map((item) => (
+              <div
+                key={item.label}
+                className={`flex h-9 items-center gap-3 rounded-md px-3 text-[13px] transition-colors ${
+                  item.active
+                    ? "bg-teal-50/70 text-teal-900"
+                    : "text-gray-500 hover:bg-gray-50/70 hover:text-gray-900"
+                }`}
+              >
+                <item.icon
+                  className={`h-4 w-4 ${
+                    item.active ? "text-teal-700" : "text-gray-400"
+                  }`}
+                />
+                <span className="font-medium">{t(item.label)}</span>
+                {item.active && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-teal-600/80" />
+                )}
               </div>
-            </div>
+            ))}
+          </nav>
 
-            <div className="pt-6 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Datasets</span>
-                <span className="text-[10px] font-bold text-teal-700">24</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full w-[68%] bg-teal-600" />
-              </div>
-              <div className="mt-2 text-[10px] text-gray-400 font-medium">17 delivered / 7 processing</div>
+          <div className="mx-1 mt-8 rounded-lg border border-gray-100 bg-gray-50/40 p-4">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[11px] font-medium text-gray-500">
+                {t("Datasets")}
+              </span>
+              <span className="text-base font-normal tracking-tight text-gray-900">24</span>
+            </div>
+            <div className="mt-3 flex h-1 overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full w-[71%] bg-teal-600/85" />
+              <div className="h-full w-[29%] bg-gray-200" />
+            </div>
+            <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+                {t("17 delivered")}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+                {t("7 in progress")}
+              </span>
             </div>
           </div>
         </aside>
 
-        <main className="flex-1 p-8 sm:p-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 text-left">
-            {[
-              { label: "Supplier Companies", value: "142", delta: "+18%", color: "text-black" },
-              { label: "Data Quality Score", value: "98.4%", delta: "+0.6%", color: "text-teal-700" },
-              { label: "Datasets Delivered", value: "1,284", delta: "+24%", color: "text-black" },
-            ].map((stat, i) => (
-              <div key={i} className="rounded-xl border border-gray-100 p-5 bg-gray-50/30 backdrop-blur-sm">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t(stat.label)}</div>
-                <div className="flex items-baseline gap-2">
-                  <div className={`text-2xl font-normal tracking-tight ${stat.color}`}>{stat.value}</div>
-                  <div className="text-[10px] font-bold text-teal-700">{stat.delta}</div>
+        <main className="p-6 sm:p-8 ">
+          <div className="flex flex-col items-start gap-1">
+            <h3 className="text-base font-medium tracking-tight text-gray-900 text-left">
+              {t("Operational overview")}
+            </h3>
+            <p className="mt-0.5 text-xs text-gray-500 text-left">{t("Last 30 days")}</p>
+          </div>
+     
+
+          <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className={`rounded-xl border p-5 text-left ${
+                  stat.accent
+                    ? "border-teal-100 bg-teal-50/40"
+                    : "border-gray-100 bg-white/60"
+                }`}
+              >
+                <div className="text-xs font-medium text-gray-500">{t(stat.label)}</div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span
+                    className={`text-[26px] font-normal leading-none tracking-tight ${
+                      stat.accent ? "text-teal-800" : "text-gray-900"
+                    }`}
+                  >
+                    {stat.value}
+                  </span>
+                  {stat.unit && (
+                    <span className="text-base font-normal text-gray-500">{stat.unit}</span>
+                  )}
+                </div>
+                <div className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-teal-700">
+                  <ArrowUpRight className="h-3 w-3" strokeWidth={2.25} />
+                  {stat.delta}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="space-y-8 text-left">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-black uppercase tracking-widest">Available Datasets</h3>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                  <div className="h-8 w-40 rounded-md border border-gray-100 bg-white/50 pl-8 text-xs flex items-center text-gray-400">Search catalog...</div>
+          <div className="mt-8">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-sm font-medium tracking-tight text-gray-900">
+                {t("Catalog")}
+              </h4>
+              <div className="flex items-center gap-2">
+                <div className="relative hidden sm:block">
+                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <div className="flex h-7 w-44 items-center rounded-md border border-gray-200/80 bg-white pl-8 pr-3 text-[12px] text-gray-400">
+                    {t("Search datasets")}
+                  </div>
                 </div>
-                <div className="h-8 w-8 rounded-md bg-black flex items-center justify-center">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-7 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-[12px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  {t("Filters")}
+                </button>
               </div>
             </div>
 
-            <div className="rounded-xl border border-gray-100 overflow-hidden bg-white/30 backdrop-blur-sm">
-              <div className="bg-gray-50/50 px-6 py-3 border-b border-gray-100 flex items-center">
-                <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] w-full gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                  <span>Dataset</span>
-                  <span className="text-center">Industry</span>
-                  <span className="text-right">Records</span>
-                  <span className="text-right">Status</span>
-                </div>
+            <div className="mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white/50">
+              <div className="grid grid-cols-[2fr_1.1fr_0.8fr_0.9fr] gap-4 border-b border-gray-100 px-5 py-2.5 text-[11px] font-medium text-gray-500 bg-gray-50/40">
+                <span className="text-left">{t("Dataset")}</span>
+                <span className="text-left">{t("Sector")}</span>
+                <span className="text-left">{t("Records")}</span>
+                <span className="text-left">{t("Status")}</span>
               </div>
-              <div className="divide-y divide-gray-100">
-                {[
-                  { name: "Retail Transaction Patterns", type: "E-commerce", volume: "2.4M", status: "Available" },
-                  { name: "Fleet GPS Routes — Spain", type: "Logistics", volume: "840K", status: "Processing" },
-                  { name: "Crop Yield Records 2020-25", type: "Agriculture", volume: "1.1M", status: "Available" },
-                ].map((row, i) => (
-                  <div key={i} className="px-6 py-4 hover:bg-white/50 transition-colors">
-                    <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] w-full gap-4 items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-teal-500" />
-                        <span className="text-sm font-bold text-black truncate">{t(row.name)}</span>
+              <ul className="divide-y divide-gray-100">
+                {datasets.map((row) => {
+                  const isAvailable = row.status === "available";
+                  return (
+                    <li
+                      key={row.name}
+                      className="grid grid-cols-[2fr_1.1fr_0.8fr_0.9fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/40"
+                    >
+                      <span className="truncate text-[13px] font-medium text-gray-900 text-left">
+                        {t(row.name)}
+                      </span>
+                      <span className="truncate text-[12px] text-gray-500 text-left">
+                        {t(row.sector)}
+                      </span>
+                      <span className="text-[12px] font-medium tabular-nums text-gray-700 text-left">
+                        {row.records}
+                      </span>
+                      <div className="flex items-center justify-start gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isAvailable ? "bg-teal-600" : "bg-amber-500"
+                          }`}
+                        />
+                        <span
+                          className={`text-[11px] font-medium ${
+                            isAvailable ? "text-teal-700" : "text-amber-700"
+                          }`}
+                        >
+                          {isAvailable ? t("Available") : t("In progress")}
+                        </span>
                       </div>
-                      <div className="text-[11px] font-medium text-gray-500 text-center">{t(row.type)}</div>
-                      <div className="text-[11px] font-bold text-black text-right">{row.volume}</div>
-                      <div className="flex justify-end">
-                        <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'Available' ? 'bg-teal-50 text-teal-800' : 'bg-gray-100 text-gray-500'}`}>
-                          {t(row.status)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </li>
+                  );
+                })}
+              </ul>
+        
             </div>
           </div>
         </main>
