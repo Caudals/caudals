@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Caudals — Pitch Deck</title>
+<link rel="stylesheet" href="deck.css?v=4" />
+<script src="deck-stage.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="application/json" id="speaker-notes">
+[
+  "Hola. Os presento Caudals. Una idea sencilla. La inteligencia artificial aprende mirando ejemplos, igual que un niño aprende a reconocer un perro después de ver muchos perros. Esos ejemplos son los datos. Sin datos buenos, no hay buena inteligencia artificial. Nosotros conseguimos esos datos para los equipos que construyen modelos, y ayudamos a las empresas que ya los tienen guardados a venderlos. Os cuento el problema, la solución, el mercado y lo que pedimos.",
+  "Antes de seguir, una idea muy simple que sostiene todo lo demás. La inteligencia artificial no es magia. Aprende mirando muchos ejemplos. Si quieres que reconozca facturas, le enseñas miles de facturas. Si quieres que detecte plagas en cultivos, le enseñas miles de fotos de plagas. Esos ejemplos se llaman datos de entrenamiento. Cuanto mejores son esos datos, mejor funciona el modelo. Nosotros no construimos modelos. Construimos los datos con los que se entrenan.",
+  "Cinco capítulos. El problema, lo que hacemos, a quién servimos, dónde encajamos en el mercado y la petición final. Unos diez minutos.",
+  "Lo que escuchamos en cada conversación con un equipo de inteligencia artificial es siempre lo mismo. Sus modelos están atascados por falta de datos. No por falta de potencia de cálculo, no por falta de acceso a modelos. Lo que necesitan son datos específicos de su sector, y conseguirlos es muy difícil.",
+  "Los datos públicos no sirven para un trabajo serio. Son genéricos, están anticuados, los han usado todos sus competidores y los permisos legales son ambiguos. No puedes construir una ventaja real con datos que cualquiera puede descargar.",
+  "En el otro lado del mercado pasa algo parecido. Miles de empresas tienen datos muy valiosos guardados en sus servidores y no saben cómo venderlos. Vender datos exige equipo comercial, abogados, privacidad, formato técnico, entrega, red de compradores. Casi ninguna empresa monta todo eso. Por eso los datos se quedan en un cajón.",
+  "Aquí entra Caudals. Nos colocamos en el medio. Buscamos los datos, comprobamos los permisos, los limpiamos, anonimizamos lo sensible, los etiquetamos, los revisamos y los entregamos en el formato que un equipo de inteligencia artificial puede usar directamente. El comprador recibe datos listos. El proveedor recibe un porcentaje sobre cada venta. Nosotros nos encargamos del lío del medio.",
+  "Hay dos flujos de trabajo. El comprador nos cuenta qué necesita, le pasamos una propuesta, una muestra y entregamos el conjunto final. El proveedor nos enseña sus datos, valoramos si encajan, hacemos un piloto y preparamos una oferta privada o una ficha de catálogo.",
+  "Detrás de los dos flujos hay una cadena de diez pasos. Es el corazón de lo que hacemos. Nadie más en el mercado ofrece la cadena completa de principio a fin.",
+  "En la práctica somos una plataforma con dos lados. Proveedores a un lado, compradores al otro y Caudals en medio. Nos hacemos cargo de las partes que normalmente hacen fracasar los acuerdos de datos.",
+  "Quién compra. Empresas que están entrenando modelos de inteligencia artificial. Startups que necesitan datos de un sector concreto. Equipos grandes con sus propios modelos internos. Equipos de producto que afinan modelos de lenguaje. Equipos de visión por ordenador. Sectores como logística, retail, salud, agricultura o finanzas.",
+  "Quién vende. Empresas que no se ven a sí mismas como vendedoras de datos. Tienen transacciones, rutas, sensores, comportamiento de clientes, archivos operativos. Esos datos están parados porque venderlos es demasiado trabajo. Ese trabajo lo hacemos nosotros.",
+  "En el mercado actual hay cuatro tipos de empresas y cada una resuelve solo una parte. Los marketplaces son directorios donde se listan datos pero nadie los prepara. Los etiquetadores anotan datos que ya tienes pero no los buscan ni gestionan permisos. Las consultoras montan proyectos a medida pero no traen demanda. Las plataformas de monetización empaquetan pero no operan.",
+  "Nuestra posición combina las cuatro. Atraemos demanda, monetizamos a los proveedores, hacemos la ingeniería del dato, gestionamos derechos y procedencia, hacemos proyectos a medida, listamos en catálogo y compartimos ingresos. Somos la capa que ejecuta y transacciona.",
+  "Tres formas de empezar. Un estudio de viabilidad de mil euros para validar una idea. Un piloto entre doce mil y treinta y cinco mil euros para demostrar calidad sobre una muestra. Y un proyecto completo desde cincuenta mil hasta más de doscientos cincuenta mil. Cada nivel descuenta sobre el siguiente.",
+  "El modelo de negocio es simple. Cobramos por construir el conjunto de datos en proyectos de comprador. Compartimos ingresos con los proveedores en cada venta. Cuanto más entregamos, más fichas hay en el catálogo. Y cada ficha se puede revender muchas veces. Ahí está el efecto multiplicador.",
+  "Hoy ya estamos en marcha. Tenemos web pública con captación de leads, blog, lista de espera y un panel de administración privado que opera el día a día. Ya entran compradores y proveedores por el embudo.",
+  "El equipo fundador combina los dos lados que hacen falta para esto. Una cofundadora al frente del negocio, llevando la estrategia, la captación a dos lados y la relación con compradores y proveedores. Un cofundador al frente de la tecnología, llevando la cadena de preparación del dato, la plataforma y la privacidad. Negocio y tecnología, juntos desde el primer día.",
+  "La hoja de ruta lleva del servicio gestionado al marketplace. A corto plazo, captación de briefs, alta de proveedores y panel de seguimiento. A medio plazo, catálogo público, ofertas privadas y suministros recurrentes. A largo plazo, la capa de confianza para transacciones de datos B2B preparados para inteligencia artificial.",
+  "Esto es lo que pedimos y para qué. Equipo de operaciones. Captación a dos lados. Infraestructura de catálogo. Buscamos socios que entiendan que la inteligencia artificial está atascada por los datos. Quien controle el medio gana.",
+  "Gracias. Hablemos."
+]
+</script>
+<style>
+  html, body { margin: 0; background: #000; }
+
+  /* ===== Tweak: Voice ===== */
+  body[data-voice="off"] .serif-it {
+    font-family: var(--font-sans); font-style: normal; color: inherit; opacity: 1;
+  }
+  body[data-voice="bold"] .serif-it {
+    font-size: 1.04em;
+    padding: 0 0.04em;
+    background: linear-gradient(180deg, transparent 74%, rgba(15,118,110,0.18) 74%, rgba(15,118,110,0.18) 94%, transparent 94%);
+  }
+
+  /* ===== Tweak: Density ===== */
+  body[data-density="boardroom"] .frame { padding: 130px 130px 110px 130px; }
+  body[data-density="boardroom"] .title { font-size: 108px; }
+  body[data-density="boardroom"] .title-md { font-size: 76px; }
+  body[data-density="boardroom"] .lede { font-size: 60px; }
+
+  body[data-density="briefing"] .frame { padding: 72px 88px 70px 88px; }
+  body[data-density="briefing"] .title { font-size: 72px; }
+  body[data-density="briefing"] .title-md { font-size: 52px; }
+  body[data-density="briefing"] .lede { font-size: 38px; }
+  body[data-density="briefing"] .subtitle { font-size: 24px; }
+  body[data-density="briefing"] .bignum { font-size: 150px; }
+  body[data-density="briefing"] .brand-corner { top: 32px; left: 60px; }
+  body[data-density="briefing"] .slide-foot { bottom: 32px; left: 60px; right: 60px; }
+
+  /* Chapter slide: subtle grey to differentiate from white content slides */
+  section.slide.chapter-light {
+    background: #ececec;
+    color: var(--fg-1);
+  }
+  section.slide.chapter-light::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 8px; background: var(--accent);
+  }
+
+  /* All non-chapter slides: white */
+  section.slide.soft { background: #ffffff; }
+</style>
+</head>
+<body>
+
+<deck-stage width="1920" height="1080">
+
+  <!-- ============ 01 TITLE ============ -->
+  <section class="slide white" data-label="01 Title">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="padding: 140px 120px 120px 120px; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <div class="mark-mini" style="color: var(--fg-1); height: 28px; width: 0px"><span></span><span></span><span></span></div>
+        <span class="overline" style="color: var(--fg-2);">Pitch deck · Seed · 2026</span>
+      </div>
+
+      <div class="stack gap-10" style="max-width: 1500px;">
+        <h1 class="title" style="font-size: 128px;">
+          Datos para entrenar IA<br /><span class="serif-it">a medida</span>.
+        </h1>
+        <p class="subtitle" style="font-size: 36px; max-width: 1200px;">
+          La inteligencia artificial necesita datos para aprender. Nosotros los buscamos, los preparamos y los entregamos listos para usar.</p><p class="subtitle" style="font-size: 28px; max-width: 1100px; color: var(--fg-3); margin-top: 16px;">Así tu equipo construye modelos antes y mejor.
+        </p>
+      </div>
+
+      <div class="row between" style="align-items: flex-end;">
+        <div class="stack gap-4">
+          <span class="overline">Caudals</span>
+          <span class="body-dk" style="font-size: 22px;">Marketplace de datos B2B para equipos de IA</span>
+        </div>
+        <div class="overline" style="text-align: right;">Confidencial</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============ 02 SIMPLE EXPLAINER ============ -->
+  <section class="slide white" data-label="02 La idea base">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center; align-items: center; text-align: center;">
+      <div class="eyebrow" style="justify-content: center;">La idea base</div>
+
+      <h2 class="title" style="font-size: 108px; max-width: 1500px; margin-top: 24px;">
+        La IA es <span class="serif-it">el cocinero</span>.<br/>
+        Los datos son los ingredientes.
+      </h2>
+
+      <p class="subtitle mt-16" style="font-size: 32px; max-width: 1100px; text-align: center;">
+        Sin buenos ingredientes, ni el mejor cocinero hace un buen plato.
+      </p>
+
+      <div class="mt-20" style="display: flex; align-items: center; justify-content: center; gap: 80px; padding-top: 64px; border-top: 1px solid var(--border-strong); width: 70%;">
+        <div style="text-align: center;">
+          <div class="overline">Otros</div>
+          <div class="mt-4" style="font: 400 36px/1.2 var(--font-sans); letter-spacing: -0.02em;">Construyen el cocinero</div>
+        </div>
+        <div style="font: 400 56px/1 var(--font-sans); color: var(--fg-3);">·</div>
+        <div style="text-align: center;">
+          <div class="overline" style="color: var(--accent-text);">Caudals</div>
+          <div class="mt-4" style="font: 400 36px/1.2 var(--font-sans); letter-spacing: -0.02em; color: var(--accent-text);">Trae los ingredientes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Idea base</span><span class="num">02 / 20</span></div>
+  </section>
+
+
+  <!-- ============ 03 AGENDA ============ -->
+  <section class="slide" data-label="03 Indice">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Índice</div>
+      <h2 class="title-md" style="max-width: 1200px;">Cinco capítulos.</h2>
+
+      <div class="agenda mt-16" style="max-width: 1400px;">
+        <div class="line"><div class="k">01</div><div class="t">El problema, en los dos lados</div><div class="c">Mercado</div></div>
+        <div class="line"><div class="k">02</div><div class="t">Qué hacemos y cómo funciona</div><div class="c">Producto</div></div>
+        <div class="line"><div class="k">03</div><div class="t">Quién compra y quién vende</div><div class="c">Clientes</div></div>
+        <div class="line"><div class="k">04</div><div class="t">Posición en el mercado y modelo</div><div class="c">Negocio</div></div>
+        <div class="line"><div class="k">05</div><div class="t">Tracción, hoja de ruta y petición</div><div class="c">Cierre</div></div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Presentación</span><span class="num">03 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 04 CHAPTER 01 ============ -->
+  <section class="slide chapter-light" data-label="04 Capitulo 1">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center; padding-left: 140px;">
+      <div class="chapter-mark"><span>Capítulo</span><span class="chapter-n">01</span><span style="flex: 1; height: 1px; background: currentColor; opacity: .3;"></span></div>
+
+      <h2 class="title mt-10" style="font-size: 152px; max-width: 1500px;">El problema,<br/>en los dos lados.</h2>
+
+      <p class="subtitle mt-8" style="max-width: 1100px;">
+        Los equipos de IA no encuentran los datos que necesitan.
+        Las empresas que los tienen no pueden venderlos.
+      </p>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Cap. 01</span><span class="num">04 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 05 BUYER PROBLEM ============ -->
+  <section class="slide" data-label="05 Lado del comprador">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">El lado del comprador</div>
+
+      <div class="row gap-16" style="align-items: flex-start;">
+        <div style="flex: 1.1;">
+          <h2 class="lede" style="font-size: 56px;">
+            La IA aprende mirando ejemplos. Sin buenos ejemplos, no hay buena IA. Y los buenos ejemplos no se encuentran.
+          </h2>
+          <p class="subtitle mt-8" style="max-width: 620px;">
+            La pregunta ya no es qué modelo entrenamos. La pregunta es con qué lo entrenamos.
+          </p>
+        </div>
+
+        <div style="flex: 1;" class="stack gap-10">
+          <div class="stack gap-4">
+            <div class="overline">Demasiado genéricos</div>
+            <div class="body-dk" style="font-size: 28px;">Los datos públicos no encajan con el sector, la geografía o el formato que el comprador necesita de verdad.</div>
+          </div>
+          <div class="hr"></div>
+          <div class="stack gap-4">
+            <div class="overline">Demasiado ambiguos</div>
+            <div class="body-dk" style="font-size: 28px;">Los permisos de uso no están claros. El equipo legal no autoriza entrenar con ellos.</div>
+          </div>
+          <div class="hr"></div>
+          <div class="stack gap-4">
+            <div class="overline">Demasiado lentos</div>
+            <div class="body-dk" style="font-size: 28px;">Los equipos internos y los etiquetadores no pueden buscar, licenciar y entregar de principio a fin.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Problema</span><span class="num">05 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 06 STATS ============ -->
+  <section class="slide white" data-label="06 Por que los datos publicos no bastan">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: space-between;">
+      <div>
+        <div class="eyebrow">Por qué los datos públicos no bastan</div>
+        <h2 class="title-md" style="max-width: 1500px;">
+          No puedes construir una ventaja real con datos que tus competidores también han descargado.
+        </h2>
+      </div>
+
+      <div class="row gap-16" style="align-items: flex-end;">
+        <div style="flex: 1;">
+          <div class="bignum">4<span style="font-size: 130px; color: var(--accent); letter-spacing: -0.02em;">×</span></div>
+          <div class="hr mt-6"></div>
+          <div class="small mt-6" style="font-size: 22px; color: var(--fg-1); max-width: 420px;">más rendimiento del modelo, de media, con datos específicos del sector frente a datos públicos.</div>
+        </div>
+        <div style="flex: 1;">
+          <div class="bignum">72<span style="font-size: 90px; color: rgb(7, 150, 105)">%</span></div>
+          <div class="hr mt-6"></div>
+          <div class="small mt-6" style="font-size: 22px; color: var(--fg-1); max-width: 420px;">de los equipos de IA dicen que su mayor obstáculo es encontrar datos propios y con permisos en regla.</div>
+        </div>
+        <div style="flex: 1;">
+          <div class="bignum">6<span style="font-size: 90px; color: rgb(9, 150, 105)"> sem</span></div>
+          <div class="hr mt-6"></div>
+          <div class="small mt-6" style="font-size: 22px; color: var(--fg-1); max-width: 420px;">tiempo medio que tarda un comprador en encontrar datos utilizables antes de empezar a entrenar.</div>
+        </div>
+      </div>
+
+      <div class="small" style="font-size: 16px; color: var(--fg-3);">Datos orientativos basados en entrevistas con compradores de logística, retail, salud y finanzas.</div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Problema</span><span class="num">06 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 07 SUPPLIER SIDE ============ -->
+  <section class="slide soft" data-label="07 Lado del proveedor">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">El lado del proveedor</div>
+      <h2 class="lede" style="font-size: 60px; max-width: 1600px;">
+        Miles de empresas tienen datos muy valiosos guardados, y no saben cómo venderlos.
+      </h2>
+
+      <div class="row-list mt-16" style="max-width: 1600px;">
+        <div class="item">
+          <div class="n">A</div>
+          <div>
+            <div class="label">Tienen lo que la IA quiere</div>
+            <div class="desc">Transacciones, rutas, lecturas de sensores, registros de operaciones, informes de inspección, transcripciones de soporte, archivos del negocio.</div>
+          </div>
+          <div class="aside">Lo que existe</div>
+        </div>
+        <div class="item">
+          <div class="n">B</div>
+          <div>
+            <div class="label">Venderlos es montar otra empresa</div>
+            <div class="desc">Equipo comercial, revisión legal, privacidad, formatos técnicos, documentación, control de calidad, red de compradores y contratos.</div>
+          </div>
+          <div class="aside">Lo que hace falta</div>
+        </div>
+        <div class="item">
+          <div class="n">C</div>
+          <div>
+            <div class="label">Así que los datos se quedan en el cajón</div>
+            <div class="desc">Se acumula el coste de oportunidad. Algunas empresas lo intentan una vez y lo dejan. La mayoría no lo intenta.</div>
+          </div>
+          <div class="aside">Lo que pasa</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Problema</span><span class="num">07 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 08 CHAPTER 02 ============ -->
+  <section class="slide chapter-light" data-label="08 Capitulo 2">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center; padding-left: 140px;">
+      <div class="chapter-mark"><span>Capítulo</span><span class="chapter-n">02</span><span style="flex: 1; height: 1px; background: currentColor; opacity: .3;"></span></div>
+      <h2 class="title mt-10" style="font-size: 152px;">Qué hacemos.</h2>
+      <p class="subtitle mt-8" style="max-width: 1100px;">
+        Caudals está en <span class="serif-it">el medio</span>. Entre las empresas que tienen los datos y los equipos que los necesitan.
+      </p>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Cap. 02</span><span class="num">08 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 09 THREE PILLARS ============ -->
+  <section class="slide" data-label="09 Tres capacidades">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Tres capacidades</div>
+      <h2 class="title-md" style="max-width: 1500px;">Búsqueda de proveedores, preparación del dato y comercialización.</h2>
+
+      <div class="row-list mt-16" style="max-width: 1700px;">
+        <div class="item">
+          <div class="n">01</div>
+          <div>
+            <div class="label">Búsqueda de proveedores</div>
+            <div class="desc">Identificamos empresas con datos propios que merecen entrar en un modelo. Validamos derechos, negociamos el acceso y acotamos la oportunidad.</div>
+          </div>
+          <div class="aside">Origen</div>
+        </div>
+        <div class="item">
+          <div class="n">02</div>
+          <div>
+            <div class="label">Preparación del dato</div>
+            <div class="desc">Convertimos archivos en bruto en un conjunto de datos legal, limpio y listo para entrenar. Ingesta, limpieza, anonimización, enriquecimiento, etiquetado, control de calidad y empaquetado.</div>
+          </div>
+          <div class="aside">Ingeniería</div>
+        </div>
+        <div class="item">
+          <div class="n">03</div>
+          <div>
+            <div class="label">Comercialización</div>
+            <div class="desc">Empaquetamos, listamos, licenciamos y entregamos. Negociamos con el comprador. Compartimos ingresos con el proveedor en cada venta.</div>
+          </div>
+          <div class="aside">Transacción</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Solución</span><span class="num">09 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 10 PIPELINE ============ -->
+  <section class="slide white" data-label="10 Pipeline">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">La cadena de preparación del dato</div>
+      <h2 class="title-md" style="max-width: 1500px;">Diez pasos. Entra archivo en bruto, sale dato listo para IA.</h2>
+
+      <div class="mt-16" style="position: relative;">
+        <svg viewBox="0 0 1720 460" width="100%" style="display: block;" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 40 360 C 200 360, 240 120, 420 120 S 680 360, 860 360 S 1240 120, 1420 120 S 1640 360, 1700 360"
+                stroke="#e5e7eb" stroke-width="1.5" fill="none" stroke-dasharray="4 6" />
+          <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" letter-spacing=".14em">
+            <g transform="translate(60, 360)"><circle r="7" fill="#059669"/><text x="0" y="34" text-anchor="middle" font-weight="600" fill="#6b7280">01 · INGESTA</text><text x="0" y="58" text-anchor="middle" fill="#9ca3af" font-size="11">archivos, APIs</text></g>
+            <g transform="translate(260, 240)"><circle r="7" fill="#059669"/><text x="0" y="-18" text-anchor="middle" font-weight="600" fill="#6b7280">02 · DERECHOS</text><text x="0" y="-38" text-anchor="middle" fill="#9ca3af" font-size="11">propiedad, permisos</text></g>
+            <g transform="translate(460, 120)"><circle r="7" fill="#059669"/><text x="0" y="-18" text-anchor="middle" font-weight="600" fill="#6b7280">03 · PERFILADO</text><text x="0" y="-38" text-anchor="middle" fill="#9ca3af" font-size="11">esquema, calidad</text></g>
+            <g transform="translate(660, 240)"><circle r="7" fill="#059669"/><text x="0" y="34" text-anchor="middle" font-weight="600" fill="#6b7280">04 · LIMPIEZA</text><text x="0" y="58" text-anchor="middle" fill="#9ca3af" font-size="11">normalizar, deduplicar</text></g>
+            <g transform="translate(860, 360)"><circle r="7" fill="#059669"/><text x="0" y="34" text-anchor="middle" font-weight="600" fill="#6b7280">05 · PRIVACIDAD</text><text x="0" y="58" text-anchor="middle" fill="#9ca3af" font-size="11">PII, anonimizar</text></g>
+            <g transform="translate(1060, 240)"><circle r="7" fill="#059669"/><text x="0" y="-18" text-anchor="middle" font-weight="600" fill="#6b7280">06 · ENRIQUECIMIENTO</text><text x="0" y="-38" text-anchor="middle" fill="#9ca3af" font-size="11">atributos, taxonomía</text></g>
+            <g transform="translate(1260, 120)"><circle r="7" fill="#059669"/><text x="0" y="-18" text-anchor="middle" font-weight="600" fill="#6b7280">07 · ETIQUETADO</text><text x="0" y="-38" text-anchor="middle" fill="#9ca3af" font-size="11">ontología, curación</text></g>
+            <g transform="translate(1460, 240)"><circle r="7" fill="#059669"/><text x="0" y="34" text-anchor="middle" font-weight="600" fill="#6b7280">08 · EMPAQUETADO</text><text x="0" y="58" text-anchor="middle" fill="#9ca3af" font-size="11">Parquet, JSONL</text></g>
+            <g transform="translate(1600, 320)"><circle r="7" fill="#059669"/><text x="0" y="34" text-anchor="middle" font-weight="600" fill="#6b7280">09 · CALIDAD</text><text x="0" y="58" text-anchor="middle" fill="#9ca3af" font-size="11">informe</text></g>
+            <g transform="translate(1690, 360)"><circle r="10" fill="#111827"/><text x="0" y="34" text-anchor="middle" font-weight="700" fill="#111827">10 · ENTREGA</text><text x="0" y="58" text-anchor="middle" fill="#059669" font-size="11">al comprador</text></g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="mt-12 subtitle" style="font-size: 26px; max-width: 1600px;">
+        Cada conjunto que entregamos pasa por aquí. Es lo que nadie en el mercado está empaquetando de principio a fin.
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Solución</span><span class="num">10 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 11 TWO SIDED FLOW ============ -->
+  <section class="slide" data-label="11 Dos lados">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Dos lados, una plataforma</div>
+      <h2 class="title-md" style="max-width: 1500px;">Proveedores a un lado. Compradores al otro. Nosotros operamos el medio.</h2>
+
+      <div class="flow mt-16">
+        <div class="node">
+          <div class="head">Proveedores · Empresas con datos</div>
+          <div class="title-n">Lo que tienen</div>
+          <div class="items">
+            <div class="bul"><span>Transacciones, facturas, recibos</span></div>
+            <div class="bul"><span>Sensores y dispositivos IoT</span></div>
+            <div class="bul"><span>Logística y rutas</span></div>
+            <div class="bul"><span>Comportamiento de retail y comercio</span></div>
+            <div class="bul"><span>Operaciones y registros de inspección</span></div>
+          </div>
+          <div class="overline mt-6">Ingreso · Reparto de ventas</div>
+        </div>
+
+        <div class="mid">
+          <svg width="100%" height="12" viewBox="0 0 300 12"><line x1="0" y1="6" x2="280" y2="6" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="3 4"/><polygon points="280,0 300,6 280,12" fill="#111827"/></svg>
+          <div class="badge" style="background-color: rgba(17, 24, 39, 0.9)">
+            <span class="mark-mini" style="color:#fff"><span></span><span></span><span></span></span>
+            <span>Caudals</span>
+          </div>
+          <div class="small" style="text-align: center; font-size: 16px; font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;">
+            buscar · limpiar · anonimizar<br/>curar · etiquetar · QA · entregar
+          </div>
+          <svg width="100%" height="12" viewBox="0 0 300 12"><line x1="20" y1="6" x2="300" y2="6" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="3 4"/><polygon points="0,0 20,6 0,12" fill="#111827"/></svg>
+        </div>
+
+        <div class="node" style="text-align: right;">
+          <div class="head" style="justify-content: flex-end;">Compradores · Equipos de IA</div>
+          <div class="title-n">Lo que necesitan</div>
+          <div class="items" style="align-items: flex-end;">
+            <div class="bul" style="flex-direction: row-reverse;"><span>Datos para entrenar y afinar</span></div>
+            <div class="bul" style="flex-direction: row-reverse;"><span>Conjuntos de evaluación</span></div>
+            <div class="bul" style="flex-direction: row-reverse;"><span>Casos límite y adversariales</span></div>
+            <div class="bul" style="flex-direction: row-reverse;"><span>Suministros de datos recurrentes</span></div>
+            <div class="bul" style="flex-direction: row-reverse;"><span>Corpus específicos del dominio</span></div>
+          </div>
+          <div class="overline mt-6">Reciben · Formatos listos para IA</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot"><span>Caudals · Solución</span><span class="num">11 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 12 CHAPTER 03 ============ -->
+  <section class="slide chapter-light" data-label="12 Capitulo 3">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center; padding-left: 140px;">
+      <div class="chapter-mark"><span>Capítulo</span><span class="chapter-n">03</span><span style="flex: 1; height: 1px; background: currentColor; opacity: .3;"></span></div>
+      <h2 class="title mt-10" style="font-size: 152px;">A quién servimos.</h2>
+      <p class="subtitle mt-8" style="max-width: 1100px;">
+        Compradores cuyo próximo modelo está atascado por los datos.
+        Proveedores cuyos datos están atascados sin un camino al mercado.
+      </p>
+    </div>
+    <div class="slide-foot"><span>Caudals · Cap. 03</span><span class="num">12 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 13 WHO BUYS ============ -->
+  <section class="slide" data-label="13 Quien compra">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Quién compra</div>
+      <h2 class="title-md" style="max-width: 1500px;">Equipos de IA cuyo próximo modelo está atascado por los datos.</h2>
+
+      <div class="row gap-16 mt-16" style="align-items: flex-start;">
+        <div style="flex: 1;" class="stack gap-6">
+          <div class="overline">Perfiles habituales</div>
+          <div class="stack gap-5 mt-4">
+            <div class="body-dk">Startups de IA que entrenan en un sector concreto</div>
+            <div class="body-dk">Equipos de aprendizaje automático en empresas grandes</div>
+            <div class="body-dk">Equipos de producto que afinan modelos de lenguaje</div>
+            <div class="body-dk">Equipos de visión por ordenador que necesitan imagen y vídeo</div>
+            <div class="body-dk">Equipos en logística, retail, salud, agricultura y finanzas</div>
+          </div>
+        </div>
+        <div style="width: 1px; background: var(--border-strong); align-self: stretch;"></div>
+        <div style="flex: 1;" class="stack gap-6">
+          <div class="overline">Lo que dicen</div>
+          <blockquote class="lede mt-4" style="font-size: 38px; font-style: italic; letter-spacing: -0.015em; border-left: 2px solid var(--accent); padding-left: 28px; color: var(--fg-1); max-width: 640px;">
+            "El modelo está listo. Llevamos cuatro meses buscando los datos adecuados para entrenarlo."
+          </blockquote>
+          <div class="small mt-6">Responsable de IA, fintech en serie B</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-foot"><span>Caudals · Clientes</span><span class="num">13 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 14 WHO SELLS ============ -->
+  <section class="slide soft" data-label="14 Quien vende">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Quién vende</div>
+      <h2 class="title-md" style="max-width: 1600px;">Empresas que no se ven a sí mismas como vendedoras de datos.</h2>
+
+      <div class="row gap-16 mt-16" style="align-items: flex-start;">
+        <div style="flex: 1.1;" class="stack gap-6">
+          <div class="overline">Sectores típicos</div>
+          <div class="mt-4" style="display: grid; grid-template-columns: repeat(2, 1fr); row-gap: 28px; column-gap: 48px; max-width: 900px;">
+            <div><div class="overline" style="color: var(--accent-text);">Logística</div><div class="mt-4 body-dk" style="font-size: 22px;">Rutas, ETAs, telemetría de flota.</div></div>
+            <div><div class="overline" style="color: var(--accent-text);">Retail y comercio</div><div class="mt-4 body-dk" style="font-size: 22px;">Transacciones, cestas, devoluciones.</div></div>
+            <div><div class="overline" style="color: var(--accent-text);">Industria e IoT</div><div class="mt-4 body-dk" style="font-size: 22px;">Sensores y mantenimiento.</div></div>
+            <div><div class="overline" style="color: var(--accent-text);">Agricultura</div><div class="mt-4 body-dk" style="font-size: 22px;">Cosechas, satélite, ambiental.</div></div>
+            <div><div class="overline" style="color: var(--accent-text);">Salud</div><div class="mt-4 body-dk" style="font-size: 22px;">Registros disociados e imagen.</div></div>
+            <div><div class="overline" style="color: var(--accent-text);">Soporte y documentos</div><div class="mt-4 body-dk" style="font-size: 22px;">Tickets, transcripciones, KBs.</div></div>
+          </div>
+        </div>
+
+        <div style="width: 1px; background: var(--border-strong); align-self: stretch;"></div>
+
+        <div style="flex: 1;" class="stack gap-6">
+          <div class="overline">Lo que dicen</div>
+          <blockquote class="lede mt-4" style="font-size: 36px; font-style: italic; letter-spacing: -0.015em; border-left: 2px solid var(--accent); padding-left: 28px; color: var(--fg-1); max-width: 640px;">
+            "Tenemos quince años de datos operativos guardados. Sabemos que valen dinero. No sabemos cómo venderlos sin montar otro equipo entero para hacerlo."
+          </blockquote>
+          <div class="small mt-6">Directora de Datos, operador logístico nacional</div>
+        </div>
+      </div>
+
+      <div class="mt-16" style="font: 400 32px/1.25 var(--font-sans); letter-spacing: -0.02em; color: var(--fg-1); max-width: 1500px;">
+        Los datos existen. El camino al mercado no.
+        <span style="color: var(--accent-text);">Nosotros somos ese camino.</span>
+      </div>
+    </div>
+    <div class="slide-foot"><span>Caudals · Clientes</span><span class="num">14 / 20</span></div>
+  </section>
+
+
+  <!-- ============ 15 CHAPTER 04 ============ -->
+  <section class="slide chapter-light" data-label="15 Capitulo 4">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center; padding-left: 140px;">
+      <div class="chapter-mark"><span>Capítulo</span><span class="chapter-n">04</span><span style="flex: 1; height: 1px; background: currentColor; opacity: .3;"></span></div>
+      <h2 class="title mt-10" style="font-size: 152px;">Dónde encajamos.</h2>
+      <p class="subtitle mt-8" style="max-width: 1100px;">
+        Cuatro categorías cercanas resuelven cada una un trozo del problema.
+        Nosotros las combinamos y añadimos lo que ninguna hace.
+      </p>
+    </div>
+    <div class="slide-foot"><span>Caudals · Cap. 04</span><span class="num">15 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 16 LANDSCAPE TABLE ============ -->
+  <section class="slide" data-label="16 Mapa del mercado">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Mapa del mercado</div>
+      <h2 class="title-md" style="max-width: 1500px;">Cuatro categorías. Cada una resuelve solo un trozo.</h2>
+
+      <table class="ltable mt-12" style="max-width: 1720px;">
+        <thead><tr>
+          <th style="width: 36%;">Categoría</th>
+          <th>Demanda</th><th>Búsqueda</th><th>Licencias</th><th>Operaciones</th><th>Reparto</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="cat">Marketplaces de datos<span class="sub">AWS Data Exchange · Snowflake · Databricks · Datarade</span></td>
+            <td class="check">✓</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">parcial</td>
+          </tr>
+          <tr>
+            <td class="cat">Etiquetado y anotación<span class="sub">Scale AI · Appen · SageMaker Ground Truth</span></td>
+            <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="dash">—</td>
+          </tr>
+          <tr>
+            <td class="cat">Consultoras de datos e IA<span class="sub">Pipelines y proyectos a medida</span></td>
+            <td class="dash">—</td><td class="check">✓</td><td class="dash">parcial</td><td class="check">✓</td><td class="dash">—</td>
+          </tr>
+          <tr>
+            <td class="cat">Plataformas de monetización<span class="sub">Empaquetado para proveedores</span></td>
+            <td class="dash">parcial</td><td class="dash">—</td><td class="dash">parcial</td><td class="dash">parcial</td><td class="check">✓</td>
+          </tr>
+          <tr class="us">
+            <td class="cat"><strong style="font-weight: 600;">Caudals</strong><span class="sub">Marketplace y operaciones gestionadas</span></td>
+            <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="slide-foot"><span>Caudals · Mercado</span><span class="num">16 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 17 SERVICE TIERS ============ -->
+  <section class="slide white" data-label="17 Niveles de servicio">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Niveles de servicio</div>
+      <h2 class="title-md" style="max-width: 1500px;">Tres formas de empezar. Cada una descuenta sobre la siguiente.</h2>
+
+      <div class="mt-16" style="display: grid; grid-template-columns: 1fr 1fr 1fr; column-gap: 64px;">
+        <div style="border-top: 2px solid var(--fg-1); padding-top: 32px;">
+          <div class="overline">Nivel 01</div>
+          <div class="mt-4" style="font: 400 40px/1.05 var(--font-sans); letter-spacing: -0.02em;">Estudio de viabilidad</div>
+          <div style="font: 400 82px/1 var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; margin-top: 24px;">1.000 €</div>
+          <div class="overline mt-4">5 a 10 días laborables</div>
+          <div class="body mt-8" style="font-size: 22px; max-width: 480px;">Memo de viabilidad, mapa de riesgos, esquema objetivo y recomendación de seguir o parar.</div>
+          <div class="overline mt-12" style="color: var(--accent-text);">Descuenta sobre el piloto</div>
+        </div>
+
+        <div style="border-top: 2px solid var(--fg-1); padding-top: 32px;">
+          <div class="overline">Nivel 02</div>
+          <div class="mt-4" style="font: 400 40px/1.05 var(--font-sans); letter-spacing: -0.02em;">Piloto de dataset</div>
+          <div style="font: 400 82px/1 var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; margin-top: 24px;">12 a 35.000 €</div>
+          <div class="overline mt-4">2 a 4 semanas, 5.000 a 50.000 registros</div>
+          <div class="body mt-8" style="font-size: 22px; max-width: 480px;">Esquema, limpieza, anonimización, etiquetado ligero, control de calidad y muestra.</div>
+          <div class="overline mt-12" style="color: var(--accent-text);">Descuenta entre el 30 y el 50 por ciento sobre el proyecto</div>
+        </div>
+
+        <div style="border-top: 2px solid var(--accent); padding-top: 32px;">
+          <div class="overline" style="color: var(--accent);">Nivel 03</div>
+          <div class="mt-4" style="font: 400 40px/1.05 var(--font-sans); letter-spacing: -0.02em;">Proyecto completo</div>
+          <div style="font: 400 82px/1 var(--font-sans); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; margin-top: 24px; color: var(--accent-text);">50 a 250.000 €+</div>
+          <div class="overline mt-4">6 a 20+ semanas, calidad de producción</div>
+          <div class="body mt-8" style="font-size: 22px; max-width: 480px;">Origen multi fuente, cadena completa, empaquetado para catálogo y entrega final.</div>
+          <div class="overline mt-12" style="color: var(--accent-text);">Opción de listar en catálogo</div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-foot"><span>Caudals · Negocio</span><span class="num">17 / 19</span></div>
+  </section>
+
+
+  <!-- ============ 18 MODEL + TRACTION ============ -->
+  <section class="slide" data-label="18 Modelo y traccion">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Modelo de negocio y tracción</div>
+      <h2 class="title-md" style="max-width: 1500px;">Honorarios hoy. Efecto multiplicador del catálogo mañana.</h2>
+
+      <div class="row gap-16 mt-16" style="align-items: flex-start;">
+        <div style="flex: 1.15;" class="stack gap-8">
+          <div class="overline">Ingresos</div>
+          <div class="stack gap-6">
+            <div>
+              <div class="body-dk" style="font-size: 32px;">Servicios</div>
+              <div class="body" style="font-size: 22px; max-width: 580px;">Honorarios fijos y por hitos en estudios de viabilidad, pilotos y proyectos completos.</div>
+            </div>
+            <div class="hr"></div>
+            <div>
+              <div class="body-dk" style="font-size: 32px;">Transacciones</div>
+              <div class="body" style="font-size: 22px; max-width: 580px;">Reparto de ingresos con el proveedor en ofertas privadas y fichas de catálogo.</div>
+            </div>
+            <div class="hr"></div>
+            <div>
+              <div class="body-dk" style="font-size: 32px; color: var(--accent-text);">El catálogo compone</div>
+              <div class="body" style="font-size: 22px; max-width: 580px;">Cada proyecto completado se convierte en una ficha revendible. Un dataset entregado una vez puede venderse diez veces.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1;" class="stack gap-6">
+          <div class="overline">En marcha hoy</div>
+          <div class="stack gap-4 mt-2">
+            <div class="body-dk" style="font-size: 26px;">Web pública, contacto, blog y lista de espera</div>
+            <div class="body-dk" style="font-size: 26px;">Panel de administración con leads, derechos, builds y operaciones</div>
+            <div class="body-dk" style="font-size: 26px;">Stripe y Stripe Connect integrados</div>
+            <div class="body-dk" style="font-size: 26px;">Cadena conforme con la normativa de protección de datos</div>
+            <div class="body-dk" style="font-size: 26px;">Disponible en español e inglés</div>
+          </div>
+          <div class="row gap-4 mt-8">
+            <div class="pill"><span class="dot"></span>Captando compradores</div>
+            <div class="pill"><span class="dot"></span>Captando proveedores</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-foot"><span>Caudals · Negocio</span><span class="num">18 / 20</span></div>
+  </section>
+
+
+  <!-- ============ 19 TEAM ============ -->
+  <section class="slide white" data-label="19 Equipo fundador">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+    <div class="frame" style="justify-content: center;">
+      <div class="eyebrow">Equipo fundador</div>
+      <h2 class="title-md" style="max-width: 1500px;">Dos perfiles complementarios. Negocio y tecnología.</h2>
+
+      <div class="row gap-16 mt-16" style="align-items: flex-start; max-width: 1700px;">
+        <div style="flex: 1;" class="stack gap-6">
+          <div style="width: 220px; height: 220px; border-radius: 999px; background: #ececec; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong);">
+            <span class="overline" style="color: var(--fg-3);">Foto</span>
+          </div>
+          <div class="stack gap-4">
+            <div class="overline" style="color: var(--accent-text);">Cofundadora · CEO</div>
+            <div style="font: 400 56px/1.05 var(--font-sans); letter-spacing: -0.025em;">Nombre Apellido</div>
+            <div class="body-dk" style="font-size: 24px; max-width: 600px;">Lidera estrategia, captación a dos lados, alianzas con proveedores de datos y relación con compradores. Responsable comercial y financiera.</div>
+            <div class="hr"></div>
+            <div class="small" style="font-size: 20px;">Trayectoria previa en ventas B2B, marketplaces y operaciones de datos.</div>
+          </div>
+        </div>
+
+        <div style="flex: 1;" class="stack gap-6">
+          <div style="width: 220px; height: 220px; border-radius: 999px; background: #ececec; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-strong);">
+            <span class="overline" style="color: var(--fg-3);">Foto</span>
+          </div>
+          <div class="stack gap-4">
+            <div class="overline" style="color: var(--accent-text);">Cofundador · CTO</div>
+            <div style="font: 400 56px/1.05 var(--font-sans); letter-spacing: -0.025em;">Nombre Apellido</div>
+            <div class="body-dk" style="font-size: 24px; max-width: 600px;">Lidera la cadena de preparación del dato. Ingesta, limpieza, anonimización, etiquetado, control de calidad y entrega. Responsable de plataforma y privacidad.</div>
+            <div class="hr"></div>
+            <div class="small" style="font-size: 20px;">Trayectoria previa en ingeniería de datos, plataformas en la nube y modelos de IA.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-foot"><span>Caudals · Equipo</span><span class="num">19 / 20</span></div>
+  </section>
+
+
+  <!-- ============ 20 CLOSE + ASK ============ -->
+  <section class="slide chapter-light" data-label="20 La peticion">
+    <div class="brand-corner"><img src="assets/caudals_logo_black.svg" /><span class="word">Caudals</span></div>
+
+    <div class="frame" style="padding: 140px 120px 120px 140px; justify-content: space-between;">
+      <div class="chapter-mark"><span>Capítulo</span><span class="chapter-n">05</span><span style="flex: 1; height: 1px; background: currentColor; opacity: .3;"></span></div>
+
+      <div class="stack gap-10" style="max-width: 1600px;">
+        <h2 class="title" style="font-size: 128px;">
+          <span class="serif-it">Hablemos</span>.
+        </h2>
+        <p class="subtitle" style="font-size: 34px; max-width: 1300px;">
+          La IA está atascada por los datos. Quien controle el medio gana.
+          Lo estamos construyendo. Equipo de operaciones, cadena a dos lados, infraestructura de catálogo.
+          Ven a construirlo con nosotros.
+        </p>
+
+        <div class="mt-10" style="display: grid; grid-template-columns: 1fr 1fr 1fr; column-gap: 64px; padding-top: 48px; border-top: 1px solid var(--border-strong);">
+          <div>
+            <div class="overline" style="color: var(--accent-text);">Hoy a 6 meses</div>
+            <div class="mt-4" style="font: 400 30px/1.2 var(--font-sans); letter-spacing: -0.015em; color: var(--fg-1);">Operativizar el medio</div>
+            <div class="small mt-4" style="font-size: 18px;">Captación, alta de proveedores, panel de seguimiento, ritmo de pilotos</div>
+          </div>
+          <div>
+            <div class="overline" style="color: var(--accent-text);">6 a 18 meses</div>
+            <div class="mt-4" style="font: 400 30px/1.2 var(--font-sans); letter-spacing: -0.015em; color: var(--fg-1);">Catálogo público</div>
+            <div class="small mt-4" style="font-size: 18px;">Fichas, ofertas privadas, suministros recurrentes, autoservicio</div>
+          </div>
+          <div>
+            <div class="overline" style="color: var(--accent-text);">A partir de 18 meses</div>
+            <div class="mt-4" style="font: 400 30px/1.2 var(--font-sans); letter-spacing: -0.015em; color: var(--fg-1);">Capa de transacción</div>
+            <div class="small mt-4" style="font-size: 18px;">La capa de confianza para datos B2B preparados para IA en cualquier sector</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row between" style="align-items: flex-end;">
+        <div class="stack gap-4">
+          <div class="overline">Contacto</div>
+          <div class="body-dk" style="font-size: 26px;">hello@caudals.com · caudals.com</div>
+        </div>
+        <div class="overline">Confidencial · 2026</div>
+      </div>
+    </div>
+  </section>
+
+</deck-stage>
+<!-- end deck -->
+
+<script>
+  window.addEventListener('load', () => {
+    try { window.postMessage({ slideIndexChanged: 0 }, '*'); } catch (e) {}
+  });
+</script>
+
+<div id="tweaks-root"></div>
+<script type="text/babel" data-presets="react">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "voice": "subtle",
+    "density": "airy"
+  }/*EDITMODE-END*/;
+
+  function applyTweaks(t) {
+    document.body.setAttribute('data-voice',   t.voice);
+    document.body.setAttribute('data-density', t.density);
+  }
+
+  function TweaksApp() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    React.useEffect(() => { applyTweaks(t); }, [t.voice, t.density]);
+    return (
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Voz tipográfica" />
+        <TweakRadio label="Acento serif" value={t.voice}
+          options={['subtle','bold','off']}
+          onChange={(v) => setTweak('voice', v)} />
+        <TweakSection label="Ritmo" />
+        <TweakRadio label="Densidad" value={t.density}
+          options={['airy','boardroom','briefing']}
+          onChange={(v) => setTweak('density', v)} />
+      </TweaksPanel>
+    );
+  }
+
+  applyTweaks(TWEAK_DEFAULTS);
+  ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<TweaksApp />);
+</script>
+
+</body>
+</html>

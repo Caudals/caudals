@@ -15,7 +15,7 @@ const homePageStructuredData = {
       name: SITE_NAME,
       url: buildMarketingUrl("/"),
       description: DEFAULT_SITE_DESCRIPTION,
-      email: "contact@caudals.com",
+      email: "hello@caudals.com",
       logo: {
         "@type": "ImageObject",
         url: buildMarketingUrl("/apple-touch-icon.png"),
@@ -24,7 +24,7 @@ const homePageStructuredData = {
         {
           "@type": "ContactPoint",
           contactType: "sales",
-          email: "contact@caudals.com",
+          email: "hello@caudals.com",
           url: buildMarketingUrl("/contact"),
         },
       ],

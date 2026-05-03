@@ -140,10 +140,10 @@ export function ContactForm() {
           <p className="text-base text-gray-600">
             {t("If you want to add more context in the meantime, email us at")}{" "}
             <a
-              href="mailto:contact@caudals.com"
+              href="mailto:hello@caudals.com"
               className="text-black hover:underline decoration-1 underline-offset-4"
             >
-              contact@caudals.com
+              hello@caudals.com
             </a>
           </p>
           <button

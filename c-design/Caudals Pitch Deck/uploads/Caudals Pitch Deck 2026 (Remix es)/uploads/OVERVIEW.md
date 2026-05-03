@@ -363,7 +363,7 @@ On the supplier side, many companies have valuable operational data but no pract
 Caudals is not just a marketplace directory and not just a labeling vendor. It is the operational layer that makes B2B AI data transactions possible.
 
 ## Useful One-Sentence Variants
-- Caudals is a B2B marketplace for AI-ready custom datasets.
+- Caudals is a B2B marketplace for AI-ready company datasets.
 - Caudals helps companies monetize proprietary data and helps AI teams buy datasets they can actually train on.
 - Caudals turns raw company data into compliant, ML-ready datasets for AI builders.
 - Caudals intermediates B2B data transactions and handles sourcing, licensing, cleaning, curation, labeling, QA, and delivery.

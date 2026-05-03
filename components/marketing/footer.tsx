@@ -26,10 +26,10 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
               {t("Build production-grade datasets to train tailored AI models")}
             </p>
             <Link
-              href="mailto:contact@caudals.com"
+              href="mailto:hello@caudals.com"
               className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-foreground"
             >
-              contact@caudals.com
+              hello@caudals.com
             </Link>
           </div>
           {isLandingMode ? (
