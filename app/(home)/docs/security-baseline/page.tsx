@@ -34,8 +34,8 @@ export default function SecurityBaselineDocsPage() {
           </p>
           <p>
             For enterprise security reviews and compliance documentation, contact{" "}
-            <Link href="mailto:contact@caudals.com" className="text-foreground underline-offset-4 hover:underline">
-              contact@caudals.com
+            <Link href="mailto:hello@caudals.com" className="text-foreground underline-offset-4 hover:underline">
+              hello@caudals.com
             </Link>
             .
           </p>

@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     process.env.CONTACT_NOTIFICATION_EMAIL ??
     process.env.COLLABORATION_NOTIFICATION_EMAIL ??
     process.env.WAITLIST_NOTIFICATION_EMAIL ??
-    "contact@caudals.com";
+    "hello@caudals.com";
 
   const resend = getResendClient();
   const submittedAt = new Date().toISOString();

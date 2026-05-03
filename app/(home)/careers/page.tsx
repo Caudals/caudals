@@ -20,8 +20,8 @@ export default function CareersPage() {
           <p>Open roles are published periodically as we scale product and operations.</p>
           <p>
             For general hiring interest, email{" "}
-            <Link href="mailto:contact@caudals.com" className="text-foreground underline-offset-4 hover:underline">
-              contact@caudals.com
+            <Link href="mailto:hello@caudals.com" className="text-foreground underline-offset-4 hover:underline">
+              hello@caudals.com
             </Link>
             .
           </p>
