@@ -1,0 +1,2012 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caudals Dataset Operations Platform Blueprint</title>
+    <style>
+      :root {
+        --canvas: #ffffff;
+        --soft: #f9fafb;
+        --line: #e5e7eb;
+        --line-soft: #f3f4f6;
+        --ink: #111827;
+        --muted: #6b7280;
+        --faint: #9ca3af;
+        --accent: #059669;
+        --accent-deep: #047857;
+        --accent-soft: #ecfdf5;
+        --warn: #d97706;
+        --danger: #dc2626;
+        --info: #2563eb;
+        --code: #0f172a;
+      }
+
+      @page {
+        size: A4;
+        margin: 14mm 13mm 15mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: var(--soft);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.42;
+        letter-spacing: 0;
+      }
+
+      body {
+        font-size: 10.25pt;
+      }
+
+      a {
+        color: var(--accent-deep);
+        text-decoration: none;
+      }
+
+      .report {
+        max-width: 980px;
+        margin: 0 auto;
+        background: var(--canvas);
+      }
+
+      .page {
+        padding: 30px 34px;
+        background: var(--canvas);
+        break-after: page;
+        min-height: 1050px;
+      }
+
+      .page:last-child {
+        break-after: auto;
+      }
+
+      .cover {
+        min-height: 1110px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: 40px 42px;
+      }
+
+      .logo-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+
+      .logo {
+        height: 24px;
+        width: auto;
+      }
+
+      .doc-label {
+        font-size: 9pt;
+        color: var(--muted);
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+
+      .cover-main {
+        align-self: center;
+        display: grid;
+        gap: 26px;
+      }
+
+      .kicker {
+        color: var(--accent-deep);
+        font-size: 9pt;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 820px;
+        font-size: 48pt;
+        line-height: 0.98;
+        font-weight: 780;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        color: #374151;
+        font-size: 15pt;
+        line-height: 1.34;
+      }
+
+      .cover-meta {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+      }
+
+      .meta-item {
+        border-left: 2px solid var(--accent);
+        padding-left: 10px;
+      }
+
+      .meta-item strong {
+        display: block;
+        font-size: 8pt;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      .meta-item span {
+        display: block;
+        margin-top: 4px;
+        font-weight: 650;
+      }
+
+      .section {
+        margin-top: 24px;
+      }
+
+      .section:first-child {
+        margin-top: 0;
+      }
+
+      .section-header {
+        display: grid;
+        grid-template-columns: 52px 1fr;
+        gap: 16px;
+        align-items: start;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+      }
+
+      .section-number {
+        color: var(--accent-deep);
+        font-weight: 800;
+        font-size: 12pt;
+      }
+
+      h2 {
+        font-size: 23pt;
+        line-height: 1.08;
+        font-weight: 760;
+      }
+
+      h3 {
+        font-size: 13pt;
+        line-height: 1.2;
+        font-weight: 760;
+        margin: 18px 0 8px;
+      }
+
+      h4 {
+        font-size: 10pt;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 800;
+        margin: 16px 0 6px;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      ul,
+      ol {
+        margin: 8px 0 10px 18px;
+        padding: 0;
+      }
+
+      li {
+        margin: 4px 0;
+      }
+
+      .lead {
+        font-size: 12.5pt;
+        line-height: 1.42;
+        color: #374151;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 13px;
+        background: #fff;
+        break-inside: avoid;
+      }
+
+      .panel.green {
+        background: var(--accent-soft);
+        border-color: #a7f3d0;
+      }
+
+      .panel.gray {
+        background: #f9fafb;
+      }
+
+      .panel h3,
+      .panel h4 {
+        margin-top: 0;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 8px;
+        color: #374151;
+        font-size: 8.5pt;
+        background: #fff;
+      }
+
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+        display: inline-block;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 16px;
+        break-inside: avoid;
+      }
+
+      th {
+        text-align: left;
+        color: var(--muted);
+        font-size: 8pt;
+        text-transform: uppercase;
+        font-weight: 800;
+        border-bottom: 1px solid var(--line);
+        padding: 7px 8px;
+      }
+
+      td {
+        vertical-align: top;
+        border-bottom: 1px solid var(--line-soft);
+        padding: 8px;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+
+      code {
+        color: var(--code);
+        background: #f3f4f6;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+
+      pre {
+        margin: 10px 0 14px;
+        padding: 12px;
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: 8px;
+        font-size: 8.25pt;
+        overflow-wrap: break-word;
+        white-space: pre-wrap;
+        break-inside: avoid;
+      }
+
+      .callout {
+        border-left: 3px solid var(--accent);
+        background: #f9fafb;
+        padding: 11px 12px;
+        margin: 12px 0;
+        break-inside: avoid;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .architecture {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+        background: #fff;
+        break-inside: avoid;
+      }
+
+      .arch-row {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .arch-label {
+        color: var(--muted);
+        font-size: 8pt;
+        text-transform: uppercase;
+        font-weight: 800;
+        padding-top: 8px;
+      }
+
+      .arch-cells {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .arch-cell {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 9px;
+        min-height: 54px;
+        background: #f9fafb;
+      }
+
+      .arch-cell strong {
+        display: block;
+        font-size: 9.25pt;
+      }
+
+      .arch-cell span {
+        color: var(--muted);
+        display: block;
+        margin-top: 3px;
+        font-size: 8.3pt;
+      }
+
+      .pipeline {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin: 12px 0;
+        break-inside: avoid;
+      }
+
+      .step {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        min-height: 110px;
+        background: #fff;
+      }
+
+      .step .num {
+        color: var(--accent-deep);
+        font-weight: 800;
+        font-size: 8pt;
+      }
+
+      .step strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 9.5pt;
+      }
+
+      .step span {
+        display: block;
+        color: var(--muted);
+        font-size: 8.4pt;
+        margin-top: 4px;
+      }
+
+      .scorebar {
+        height: 7px;
+        background: #e5e7eb;
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 6px 0 4px;
+      }
+
+      .scorebar > span {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+      }
+
+      .small {
+        font-size: 8.5pt;
+        color: var(--muted);
+      }
+
+      .toc {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 24px;
+        margin-top: 20px;
+      }
+
+      .toc a {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line-soft);
+        color: var(--ink);
+      }
+
+      .toc span {
+        color: var(--accent-deep);
+        font-weight: 800;
+      }
+
+      .source-list li {
+        overflow-wrap: anywhere;
+      }
+
+      .source-list {
+        list-style-position: inside;
+        margin-left: 0;
+        padding-left: 0;
+      }
+
+      .avoid-break {
+        break-inside: avoid;
+      }
+
+      @media print {
+        html,
+        body {
+          background: #fff;
+        }
+
+        .report {
+          max-width: none;
+          margin: 0;
+        }
+
+        .page {
+          min-height: auto;
+          padding: 0;
+        }
+
+        .cover {
+          min-height: 260mm;
+          padding: 0;
+        }
+
+        a {
+          color: var(--accent-deep);
+        }
+
+        * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="report">
+      <section class="page cover">
+        <div class="logo-row">
+          <img class="logo" src="../../public/caudals_logo_black.svg" alt="Caudals" />
+          <div class="doc-label">Confidential Platform Blueprint</div>
+        </div>
+        <div class="cover-main">
+          <div class="kicker">Dataset acquisition, build, QA, packaging, and delivery</div>
+          <h1>Dataset Operations Platform Blueprint</h1>
+          <p class="subtitle">
+            A technically detailed operating and software architecture plan for Caudals to manage proprietary data supply, build ML-ready datasets, and deliver trustworthy data products for early B2B clients.
+          </p>
+          <div class="pill-row">
+            <span class="pill"><span class="dot"></span>Private admin first</span>
+            <span class="pill"><span class="dot"></span>Rights and provenance by design</span>
+            <span class="pill"><span class="dot"></span>Multimodal dataset build system</span>
+            <span class="pill"><span class="dot"></span>Marketplace-ready, not marketplace-exposed</span>
+          </div>
+        </div>
+        <div class="cover-meta">
+          <div class="meta-item">
+            <strong>Company</strong>
+            <span>Caudals</span>
+          </div>
+          <div class="meta-item">
+            <strong>Date</strong>
+            <span>2026-05-08</span>
+          </div>
+          <div class="meta-item">
+            <strong>Scope</strong>
+            <span>Internal operations platform</span>
+          </div>
+          <div class="meta-item">
+            <strong>Audience</strong>
+            <span>Founders, operators, engineers</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">00</div>
+            <div>
+              <h2>How To Read This Blueprint</h2>
+              <p class="lead">
+                This document translates the Caudals B2B pivot into a concrete platform design. It assumes the near-term product is a high-touch managed dataset operations service with a public landing page, contact form, blog, and private admin dashboard. It does not recommend exposing public marketplace browse, buyer self-service, supplier portals, checkout, or individual sample uploads in the current phase.
+              </p>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="panel green">
+              <h3>Primary Answer</h3>
+              <p>
+                Build Caudals as a Dataset Operations OS: a private control plane that turns buyer demand and supplier data assets into versioned, documented, legally cleared, QA-scored, ML-ready dataset releases.
+              </p>
+            </div>
+            <div class="panel">
+              <h3>Key Product Rule</h3>
+              <p>
+                Treat every dataset as a product release, not a file export. A release is only complete when data artifacts, rights evidence, privacy assessment, lineage, schema, quality score, documentation, pricing, and delivery evidence exist together.
+              </p>
+            </div>
+          </div>
+
+          <h3>Table Of Contents</h3>
+          <div class="toc">
+            <a href="#executive"><span>01</span>Executive Blueprint</a>
+            <a href="#principles"><span>02</span>Platform Principles</a>
+            <a href="#architecture"><span>03</span>Reference Architecture</a>
+            <a href="#stack"><span>04</span>Technology Stack</a>
+            <a href="#domain-model"><span>05</span>Domain Model</a>
+            <a href="#operations"><span>06</span>Dataset Operations Pipeline</a>
+            <a href="#modalities"><span>07</span>Modality Playbooks</a>
+            <a href="#dashboards"><span>08</span>Dashboards And Internal Tools</a>
+            <a href="#security"><span>09</span>Security, Privacy, And Trust</a>
+            <a href="#implementation"><span>10</span>Implementation Roadmap</a>
+            <a href="#metrics"><span>11</span>Metrics And Operating Model</a>
+            <a href="#appendix"><span>12</span>Appendices And Sources</a>
+          </div>
+
+          <div class="callout">
+            <strong>Legal note</strong>
+            This is an engineering and product blueprint, not legal advice. Rights, consent, data protection, and AI-training use permissions should be reviewed by qualified counsel before publication or buyer delivery.
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="executive">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">01</div>
+            <div>
+              <h2>Executive Blueprint</h2>
+              <p class="lead">
+                Caudals should prioritize the internal system that makes high-trust dataset delivery repeatable. Marketplace exposure can wait; the operational control plane is the current product.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="panel">
+              <h3>What Buyers Need</h3>
+              <p>Custom or hard-to-access data that is usable for model training, fine-tuning, evaluation, benchmarking, enrichment, or RAG.</p>
+              <ul>
+                <li>Clear permitted use and AI-training rights.</li>
+                <li>Fast feasibility decisions and samples.</li>
+                <li>ML-ready packaging and documentation.</li>
+                <li>Quality, limitations, and lineage evidence.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>What Suppliers Need</h3>
+              <p>A managed path to monetize proprietary data without building sales, privacy, packaging, delivery, and buyer-support operations.</p>
+              <ul>
+                <li>Safe rights and sensitivity review.</li>
+                <li>Low-friction data-room intake.</li>
+                <li>Revenue share and listing readiness.</li>
+                <li>Controls over what is exposed or sold.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>What Caudals Needs</h3>
+              <p>An operator-grade platform for sourcing, rights review, ingestion, profiling, cleaning, anonymization, labeling, QA, packaging, and delivery.</p>
+              <ul>
+                <li>Auditable state transitions.</li>
+                <li>Reusable build pipelines.</li>
+                <li>Dataset-level unit economics.</li>
+                <li>Visible blockers and acceptance gates.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Strategic Architecture Decision</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Decision</th>
+                <th>Recommendation</th>
+                <th>Rationale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Product surface</td>
+                <td>Private admin dashboard first.</td>
+                <td>Early revenue depends on managed delivery quality, not self-service marketplace breadth.</td>
+              </tr>
+              <tr>
+                <td>Data plane</td>
+                <td>Object storage with staged zones: raw, profiled, cleaned, labeled, packaged, delivered.</td>
+                <td>Supports large files, multimodal assets, immutable raw preservation, and buyer-specific package outputs.</td>
+              </tr>
+              <tr>
+                <td>Control plane</td>
+                <td>Supabase Postgres metadata, RLS, audit log, and server actions/API routes.</td>
+                <td>Fits current stack while enforcing scoped access and operational traceability.</td>
+              </tr>
+              <tr>
+                <td>Workflow engine</td>
+                <td>Start with job tables and workers, then move core builds into Dagster asset orchestration.</td>
+                <td>Dagster's asset model fits dataset products and makes lineage, observability, and re-materialization first-class.</td>
+              </tr>
+              <tr>
+                <td>Dataset standards</td>
+                <td>Ship Dataset Cards, Croissant JSON-LD manifests, SPDX license identifiers, and W3C PROV-inspired lineage.</td>
+                <td>Improves buyer trust, ML tool compatibility, search/catalog readiness, and reproducibility.</td>
+              </tr>
+              <tr>
+                <td>Quality gates</td>
+                <td>No release without rights, privacy, schema, quality, label, packaging, and delivery approvals.</td>
+                <td>Prevents the platform's highest-risk failure modes: illegal listing, PII leakage, low-quality delivery, and unclear buyer use rights.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="grid-2">
+            <div class="panel gray">
+              <h3>Near-Term Product</h3>
+              <ul>
+                <li>Lead triage for buyer demand and supplier monetization interest.</li>
+                <li>Structured buyer briefs and supplier asset records.</li>
+                <li>Dataset build board with stages, owners, blockers, and gates.</li>
+                <li>Pipeline run registry for ingestion, profiling, cleaning, PII, labeling, QA, and packaging.</li>
+                <li>Release package generator with manifests, quality report, dataset card, and delivery evidence.</li>
+              </ul>
+            </div>
+            <div class="panel gray">
+              <h3>Explicit Non-Goals</h3>
+              <ul>
+                <li>No individual sample-upload workflow.</li>
+                <li>No public buyer workspace until requirements, pricing, and fulfillment are redesigned.</li>
+                <li>No supplier portal until rights capture and source access flows are safe.</li>
+                <li>No public marketplace catalog until every listing has rights, privacy, provenance, sample, QA, and refresh evidence.</li>
+                <li>No payment relaunch until offer, license, delivery, and supplier-share records are reliable.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="principles">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">02</div>
+            <div>
+              <h2>Platform Principles</h2>
+              <p class="lead">
+                The platform should be designed around trust, repeatability, and operational throughput. The first clients will judge Caudals by whether datasets arrive usable, documented, licensed, and on time.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Dataset Product Contract</h3>
+              <p>Every sellable dataset version must have:</p>
+              <ul>
+                <li>Commercial purpose and buyer use case.</li>
+                <li>Supplier/source provenance and permitted-use evidence.</li>
+                <li>Privacy classification, PII handling decision, and residual risk.</li>
+                <li>Data dictionary, schema, modality profile, and format profile.</li>
+                <li>Quality scorecard with method, sample size, checks, failures, and known limits.</li>
+                <li>Release manifest with checksums, row/object counts, splits, packaging formats, and artifact paths.</li>
+                <li>Dataset card and buyer-facing delivery note.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Operational Invariants</h3>
+              <ul>
+                <li>Raw supplier data is immutable after ingestion; later transformations create new artifacts.</li>
+                <li>Every stage emits metadata, not just files.</li>
+                <li>Every human decision affecting rights, PII, pricing, publication, or delivery is audit logged.</li>
+                <li>Pipeline runs are idempotent where possible and restartable where not.</li>
+                <li>Buyer-visible materials never imply permissions that are not explicitly cleared.</li>
+                <li>Internal admin remains the control room; public marketplace surfaces stay hidden until redesigned.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Required Stage Gates</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Gate</th>
+                <th>Required Before</th>
+                <th>Evidence</th>
+                <th>Owner</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Rights Gate</td>
+                <td>Any external sample, listing, or delivery.</td>
+                <td>Source owner, contract, permitted AI use, redistribution limits, prohibited uses.</td>
+                <td>Operator + legal reviewer</td>
+              </tr>
+              <tr>
+                <td>Privacy Gate</td>
+                <td>Cleaning, labeling vendor export, buyer sample, or buyer release.</td>
+                <td>PII scan, sensitivity class, minimization decision, anonymization/pseudonymization method, residual risk.</td>
+                <td>Data engineer + privacy reviewer</td>
+              </tr>
+              <tr>
+                <td>Quality Gate</td>
+                <td>Package release approval.</td>
+                <td>Expectations, profile deltas, duplicate rate, missingness, label quality, split leakage checks.</td>
+                <td>Data science lead</td>
+              </tr>
+              <tr>
+                <td>Documentation Gate</td>
+                <td>Buyer handoff or catalog-ready status.</td>
+                <td>Dataset card, data dictionary, release manifest, limitations, usage notes.</td>
+                <td>Dataset operator</td>
+              </tr>
+              <tr>
+                <td>Delivery Gate</td>
+                <td>Signed download, S3 share, API, warehouse share, or private transfer.</td>
+                <td>License, invoice/quote state if applicable, checksum, delivery log, acceptance criteria.</td>
+                <td>Commercial ops + operator</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout">
+            <strong>Blueprint posture</strong>
+            The platform should make the unsafe path hard. Operators can move quickly, but the UI and backend should refuse publication or buyer delivery when required rights, PII, QA, documentation, or license records are missing.
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="architecture">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">03</div>
+            <div>
+              <h2>Reference Architecture</h2>
+              <p class="lead">
+                Caudals should separate metadata control from heavy data processing. The Next.js/Supabase app is the operational control plane; object storage and worker services are the data plane.
+              </p>
+            </div>
+          </div>
+
+          <div class="architecture">
+            <div class="arch-row">
+              <div class="arch-label">User surfaces</div>
+              <div class="arch-cells">
+                <div class="arch-cell"><strong>Public funnel</strong><span>Landing, contact, blog</span></div>
+                <div class="arch-cell"><strong>Internal admin</strong><span>Leads, assets, builds, QA, delivery</span></div>
+                <div class="arch-cell"><strong>Future supplier</strong><span>Hidden until redesigned</span></div>
+                <div class="arch-cell"><strong>Future buyer</strong><span>Hidden until redesigned</span></div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-label">Application layer</div>
+              <div class="arch-cells">
+                <div class="arch-cell"><strong>Next.js App Router</strong><span>Server actions, route handlers</span></div>
+                <div class="arch-cell"><strong>Admin RBAC</strong><span>Operator roles, RLS policies</span></div>
+                <div class="arch-cell"><strong>Ops API</strong><span>Build actions, job creation, reports</span></div>
+                <div class="arch-cell"><strong>Audit service</strong><span>Immutable high-risk events</span></div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-label">Control plane</div>
+              <div class="arch-cells">
+                <div class="arch-cell"><strong>Supabase Postgres</strong><span>Metadata, state machines, approvals</span></div>
+                <div class="arch-cell"><strong>Job registry</strong><span>Runs, retries, logs, outputs</span></div>
+                <div class="arch-cell"><strong>Quality registry</strong><span>Profiles, expectations, scorecards</span></div>
+                <div class="arch-cell"><strong>Lineage registry</strong><span>Sources, artifacts, transforms</span></div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-label">Data plane</div>
+              <div class="arch-cells">
+                <div class="arch-cell"><strong>S3-compatible lake</strong><span>DigitalOcean Spaces zones</span></div>
+                <div class="arch-cell"><strong>Python workers</strong><span>Polars, Arrow, DuckDB, Spark later</span></div>
+                <div class="arch-cell"><strong>Orchestrator</strong><span>Dagster assets for build pipelines</span></div>
+                <div class="arch-cell"><strong>Labeling service</strong><span>Label Studio + review workflows</span></div>
+              </div>
+            </div>
+            <div class="arch-row">
+              <div class="arch-label">Release outputs</div>
+              <div class="arch-cells">
+                <div class="arch-cell"><strong>Dataset package</strong><span>Parquet, JSONL, CSV, media, labels</span></div>
+                <div class="arch-cell"><strong>Documentation</strong><span>Dataset card, dictionary, limitations</span></div>
+                <div class="arch-cell"><strong>Trust evidence</strong><span>Rights, privacy, provenance, QA</span></div>
+                <div class="arch-cell"><strong>Delivery</strong><span>Signed URL, S3 share, API, warehouse</span></div>
+              </div>
+            </div>
+          </div>
+
+          <h3>Service Boundaries</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Owns</th>
+                <th>Does Not Own</th>
+                <th>Implementation Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Next.js admin app</td>
+                <td>Human workflows, metadata CRUD, approvals, reports, job launch, delivery records.</td>
+                <td>Large file processing, long-running transformations, heavy profiling.</td>
+                <td>Keep it TypeScript-first, RLS-aware, and route-restricted under landing mode.</td>
+              </tr>
+              <tr>
+                <td>Postgres control plane</td>
+                <td>Canonical state, users, organizations, assets, build runs, lineage summaries, audit logs.</td>
+                <td>Large raw data, high-volume media, full transformation outputs.</td>
+                <td>Use strict RLS and service-role wrappers; keep metadata queryable.</td>
+              </tr>
+              <tr>
+                <td>Object data lake</td>
+                <td>Raw files, transformed artifacts, manifests, logs, previews, release packages.</td>
+                <td>Authorization decisions, business state, approvals.</td>
+                <td>Use path allowlists, checksums, retention classes, and short-lived signed URLs.</td>
+              </tr>
+              <tr>
+                <td>Dataset worker service</td>
+                <td>Ingestion, profiling, cleaning, PII scans, dedup, enrichment, labeling sync, packaging.</td>
+                <td>Direct UI, direct customer access.</td>
+                <td>Containerized Python service with idempotent jobs and structured result metadata.</td>
+              </tr>
+              <tr>
+                <td>Orchestrator</td>
+                <td>Pipeline graph, scheduling, dependencies, retries, materializations, lineage events.</td>
+                <td>Product-facing state without synchronization.</td>
+                <td>Start simple; adopt Dagster for repeatable build assets once MVP job tables are stable.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Storage Zones</h3>
+          <pre>s3://caudals-data/{env}/
+  suppliers/{supplier_id}/assets/{asset_id}/raw/{ingestion_id}/
+  builds/{build_id}/bronze/{artifact_id}/
+  builds/{build_id}/silver/{artifact_id}/
+  builds/{build_id}/gold/{dataset_version_id}/
+  builds/{build_id}/labeling/{label_batch_id}/
+  releases/{dataset_version_id}/{package_release_id}/
+  deliveries/{delivery_id}/
+  quarantine/{risk_case_id}/</pre>
+          <p>
+            Raw supplier data is written once and never edited in place. Every derivative artifact carries a content hash, code version, input artifact IDs, and transformation run ID. Buyer-specific packages are separate from canonical gold dataset versions so commercial terms and permitted fields can differ by buyer.
+          </p>
+        </div>
+      </section>
+
+      <section class="page" id="stack">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">04</div>
+            <div>
+              <h2>Technology Stack</h2>
+              <p class="lead">
+                Keep the existing web stack, add a Python data operations plane, and delay heavyweight lakehouse complexity until data volume, concurrency, and client requirements justify it.
+              </p>
+            </div>
+          </div>
+
+          <h3>Recommended Stack By Layer</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>MVP Choice</th>
+                <th>Scale Choice</th>
+                <th>Why</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Web/admin</td>
+                <td>Existing Next.js 16, React 19, TypeScript, Tailwind v4, Radix/shadcn primitives.</td>
+                <td>Same, with deeper RBAC, audit components, and admin workflow primitives.</td>
+                <td>Matches repo architecture and avoids rebuilding foundations.</td>
+              </tr>
+              <tr>
+                <td>Metadata</td>
+                <td>Supabase Postgres with RLS, migrations, audit tables.</td>
+                <td>Read replicas, partitioned audit/event tables, optional warehouse mirror.</td>
+                <td>Postgres is the right control plane for operational state and trust evidence.</td>
+              </tr>
+              <tr>
+                <td>Object storage</td>
+                <td>DigitalOcean Spaces with private buckets, signed URLs, path validation, checksums.</td>
+                <td>S3-compatible multi-bucket topology, lifecycle tiers, cross-region backup.</td>
+                <td>Large datasets belong in object storage, not Postgres.</td>
+              </tr>
+              <tr>
+                <td>Data processing</td>
+                <td>Python 3.12 workers using Polars, PyArrow, DuckDB, Pandas where needed.</td>
+                <td>Spark/Ray only for workloads that exceed single-node or DuckDB/Polars limits.</td>
+                <td>Most pilots can be fast and cheap on columnar local compute before distributed processing.</td>
+              </tr>
+              <tr>
+                <td>File/table formats</td>
+                <td>Parquet for tabular, JSONL for LLM/text, media objects plus metadata indexes.</td>
+                <td>Delta Lake or Apache Iceberg for large mutable analytic tables after storage semantics are tested.</td>
+                <td>Parquet/Arrow are universal; open table formats add ACID/time travel at higher operational cost.</td>
+              </tr>
+              <tr>
+                <td>Orchestration</td>
+                <td>Postgres job registry plus worker queues for first implementation.</td>
+                <td>Dagster assets with OpenLineage events and external worker execution.</td>
+                <td>Start low-friction, then move repeatable dataset builds into an asset graph.</td>
+              </tr>
+              <tr>
+                <td>Data quality</td>
+                <td>Custom scorecards plus Great Expectations/Pandera validation suites.</td>
+                <td>Quality registry with trend dashboards, anomaly detection, and release blocking.</td>
+                <td>Validation needs to become a release gate, not an ad hoc notebook.</td>
+              </tr>
+              <tr>
+                <td>PII/privacy</td>
+                <td>Microsoft Presidio for text PII detection/anonymization, plus modality-specific scanners.</td>
+                <td>Policy-driven DLP with reviewer queues, residual-risk scoring, and re-identification testing.</td>
+                <td>PII detection must be built into ingestion and release gates.</td>
+              </tr>
+              <tr>
+                <td>Labeling</td>
+                <td>Label Studio for task configuration, labeling, review, and annotation export.</td>
+                <td>Integrated label ops with active learning, consensus scoring, and vendor management.</td>
+                <td>Supports multiple modalities and avoids building a labeling UI from scratch.</td>
+              </tr>
+              <tr>
+                <td>Metadata standards</td>
+                <td>Dataset Card, Croissant JSON-LD, SPDX license identifiers, release manifest.</td>
+                <td>DCAT catalog mappings and W3C PROV/OpenLineage export.</td>
+                <td>Improves portability, buyer review, catalog readiness, and auditability.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Recommended Repository Shape</h3>
+          <pre>app/
+  (app)/admin/dataset-ops/...        # private internal modules
+lib/actions/dataset-ops/...          # server actions and service wrappers
+lib/dataset-ops/...                  # TypeScript domain validation, state machines
+supabase/migrations/...              # new B2B metadata model
+services/
+  dataset-worker/                    # Python worker service
+    caudals_ops/
+      jobs/                          # ingestion, profiling, pii, labeling, packaging
+      quality/
+      manifests/
+      connectors/
+      privacy/
+    tests/
+docs/blueprints/                     # report artifacts and platform blueprints</pre>
+
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Why Not Put Data Processing In Next.js?</h3>
+              <p>
+                The web app should stay responsive and secure. Large file transforms, PII scans, labeling export imports, and package generation need isolated workers with explicit resource limits, resumable execution, structured logs, and no browser-exposed secrets.
+              </p>
+            </div>
+            <div class="panel">
+              <h3>Why Not Build A Marketplace First?</h3>
+              <p>
+                A marketplace without operational guarantees creates risk: unclear rights, inconsistent quality, stale listings, and buyer disappointment. The marketplace should be a projection of verified dataset products, not the source of truth.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="domain-model">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">05</div>
+            <div>
+              <h2>Domain Model</h2>
+              <p class="lead">
+                The current schema is legacy from the pre-pivot product. The B2B operations platform needs a new metadata model around organizations, supplier assets, buyer briefs, dataset builds, artifacts, rights, privacy, QA, releases, and delivery.
+              </p>
+            </div>
+          </div>
+
+          <h3>Core Entities</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Entity</th>
+                <th>Purpose</th>
+                <th>Critical Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>organizations</code></td>
+                <td>Buyer, supplier, partner, vendor, internal organization records.</td>
+                <td><code>type</code>, <code>legal_name</code>, <code>country</code>, <code>industry</code>, <code>risk_tier</code>, <code>status</code>.</td>
+              </tr>
+              <tr>
+                <td><code>contacts</code></td>
+                <td>People attached to organizations and workflows.</td>
+                <td><code>role</code>, <code>email</code>, <code>authority_level</code>, <code>communication_preferences</code>.</td>
+              </tr>
+              <tr>
+                <td><code>buyer_briefs</code></td>
+                <td>Structured buyer dataset needs.</td>
+                <td><code>use_case</code>, <code>modality</code>, <code>domain</code>, <code>geography</code>, <code>freshness</code>, <code>volume</code>, <code>budget</code>, <code>deadline</code>, <code>sensitivity_constraints</code>.</td>
+              </tr>
+              <tr>
+                <td><code>supplier_assets</code></td>
+                <td>Potential or approved supplier-owned data assets.</td>
+                <td><code>supplier_id</code>, <code>asset_type</code>, <code>access_method</code>, <code>rights_status</code>, <code>pii_status</code>, <code>freshness</code>, <code>update_cadence</code>, <code>commercial_fit_score</code>.</td>
+              </tr>
+              <tr>
+                <td><code>data_sources</code></td>
+                <td>Specific source systems, files, APIs, shares, or exports within an asset.</td>
+                <td><code>source_kind</code>, <code>location_ref</code>, <code>credential_ref</code>, <code>schema_hint</code>, <code>source_owner</code>, <code>ingestion_policy</code>.</td>
+              </tr>
+              <tr>
+                <td><code>rights_reviews</code></td>
+                <td>Rights, consent, license, redistribution, and AI-use review.</td>
+                <td><code>permitted_ai_use</code>, <code>redistribution_allowed</code>, <code>territory</code>, <code>field_restrictions</code>, <code>reviewer_id</code>, <code>expires_at</code>.</td>
+              </tr>
+              <tr>
+                <td><code>privacy_assessments</code></td>
+                <td>PII, sensitive category, minimization, anonymization, and residual-risk state.</td>
+                <td><code>pii_classes</code>, <code>sensitivity_tier</code>, <code>method</code>, <code>residual_risk</code>, <code>approved_for_labeling</code>, <code>approved_for_delivery</code>.</td>
+              </tr>
+              <tr>
+                <td><code>dataset_projects</code></td>
+                <td>Commercial and operational project container.</td>
+                <td><code>tier</code>, <code>buyer_brief_id</code>, <code>primary_supplier_id</code>, <code>owner_id</code>, <code>status</code>, <code>target_release_date</code>.</td>
+              </tr>
+              <tr>
+                <td><code>dataset_builds</code></td>
+                <td>Build attempt or version track under a project.</td>
+                <td><code>stage</code>, <code>stage_status</code>, <code>blocked_reason</code>, <code>target_schema_id</code>, <code>acceptance_criteria</code>.</td>
+              </tr>
+              <tr>
+                <td><code>data_artifacts</code></td>
+                <td>Raw and derived files, tables, media sets, reports, and packages.</td>
+                <td><code>artifact_kind</code>, <code>zone</code>, <code>storage_uri</code>, <code>checksum</code>, <code>record_count</code>, <code>byte_size</code>, <code>parent_artifact_ids</code>.</td>
+              </tr>
+              <tr>
+                <td><code>pipeline_runs</code></td>
+                <td>Job execution state for ingestion, profiling, cleaning, PII, labeling, packaging.</td>
+                <td><code>job_type</code>, <code>status</code>, <code>input_artifacts</code>, <code>output_artifacts</code>, <code>code_version</code>, <code>started_at</code>, <code>finished_at</code>, <code>error_summary</code>.</td>
+              </tr>
+              <tr>
+                <td><code>quality_reports</code></td>
+                <td>Profile, validation, score, and release-blocking quality evidence.</td>
+                <td><code>score</code>, <code>dimensions</code>, <code>checks_passed</code>, <code>checks_failed</code>, <code>sample_method</code>, <code>known_limitations</code>.</td>
+              </tr>
+              <tr>
+                <td><code>labeling_projects</code></td>
+                <td>Ontology, labeling task, annotator, review, and consensus state.</td>
+                <td><code>ontology_version</code>, <code>tool_project_ref</code>, <code>task_count</code>, <code>consensus_method</code>, <code>review_status</code>.</td>
+              </tr>
+              <tr>
+                <td><code>dataset_versions</code></td>
+                <td>Canonical build output before buyer-specific packaging.</td>
+                <td><code>semantic_version</code>, <code>content_hash</code>, <code>schema_version</code>, <code>split_strategy</code>, <code>release_candidate_status</code>.</td>
+              </tr>
+              <tr>
+                <td><code>package_releases</code></td>
+                <td>Deliverable dataset package with documentation and manifest.</td>
+                <td><code>format_profile</code>, <code>manifest_uri</code>, <code>dataset_card_uri</code>, <code>license_summary_uri</code>, <code>approval_status</code>.</td>
+              </tr>
+              <tr>
+                <td><code>deliveries</code></td>
+                <td>Buyer delivery events and acceptance evidence.</td>
+                <td><code>buyer_id</code>, <code>delivery_method</code>, <code>access_expires_at</code>, <code>checksum_verified</code>, <code>accepted_at</code>, <code>revoked_at</code>.</td>
+              </tr>
+              <tr>
+                <td><code>audit_events</code></td>
+                <td>Immutable high-risk activity record.</td>
+                <td><code>actor_id</code>, <code>entity_type</code>, <code>entity_id</code>, <code>event_type</code>, <code>before</code>, <code>after</code>, <code>reason</code>, <code>ip_hash</code>.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>State Machines</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Dataset Build Stages</h3>
+              <p><code>scoped</code> -> <code>rights_pending</code> -> <code>ingesting</code> -> <code>profiling</code> -> <code>cleaning</code> -> <code>pii_review</code> -> <code>labeling</code> -> <code>qa</code> -> <code>packaging</code> -> <code>delivery_ready</code> -> <code>delivered</code> -> <code>accepted</code></p>
+            </div>
+            <div class="panel">
+              <h3>Release Approval States</h3>
+              <p><code>draft</code> -> <code>qa_pending</code> -> <code>rights_pending</code> -> <code>privacy_pending</code> -> <code>approved</code> -> <code>delivered</code> -> <code>deprecated</code></p>
+            </div>
+          </div>
+
+          <h3>Relational Design Rules</h3>
+          <ul>
+            <li>Use explicit status enums or constrained text values; do not infer status from missing fields.</li>
+            <li>Every high-risk approval needs <code>approved_by</code>, <code>approved_at</code>, <code>approval_basis</code>, and <code>evidence_uri</code>.</li>
+            <li>Every storage object referenced in metadata needs a checksum, byte size, content type, and retention policy.</li>
+            <li>Every worker-produced artifact links to the pipeline run, code version, input artifacts, and environment.</li>
+            <li>Use append-only audit events for rights, privacy, publication, pricing, delivery, and access changes.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="page" id="operations">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">06</div>
+            <div>
+              <h2>Dataset Operations Pipeline</h2>
+              <p class="lead">
+                The pipeline should be modality-agnostic at the control-plane level and modality-specific in worker plugins. A tabular data build, image detection build, text corpus build, and multimodal build should all move through the same gates while using different processors.
+              </p>
+            </div>
+          </div>
+
+          <div class="pipeline">
+            <div class="step"><div class="num">01</div><strong>Demand And Supply</strong><span>Capture buyer briefs, supplier assets, commercial hypotheses, and fit scores.</span></div>
+            <div class="step"><div class="num">02</div><strong>Rights And Risk</strong><span>Record ownership, consent, AI-use terms, privacy class, and blockers.</span></div>
+            <div class="step"><div class="num">03</div><strong>Ingest And Profile</strong><span>Land raw data, fingerprint files, infer schemas, profile distributions.</span></div>
+            <div class="step"><div class="num">04</div><strong>Transform And Label</strong><span>Clean, normalize, enrich, anonymize, label, review, and split.</span></div>
+            <div class="step"><div class="num">05</div><strong>QA And Deliver</strong><span>Score, document, package, approve, transfer, and record acceptance.</span></div>
+          </div>
+
+          <h3>Detailed Workflow</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Stage</th>
+                <th>Operator Actions</th>
+                <th>System Outputs</th>
+                <th>Release Gate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1. Qualification</td>
+                <td>Score buyer need or supplier asset by use case, urgency, data scarcity, rights feasibility, budget, and build complexity.</td>
+                <td>Structured brief or supplier asset, initial risk tier, project proposal, next action.</td>
+                <td>Qualified owner and commercial hypothesis.</td>
+              </tr>
+              <tr>
+                <td>2. Feasibility</td>
+                <td>Assess source availability, permitted uses, sample quality, volume, modality, processing cost, legal blockers, and delivery options.</td>
+                <td>Feasibility memo, risk register, target schema, acceptance criteria, estimated timeline and cost.</td>
+                <td>Go, pilot, pause, or reject decision.</td>
+              </tr>
+              <tr>
+                <td>3. Secure Intake</td>
+                <td>Create data-room path, collect files/API credentials/share access, verify checksums, quarantine suspicious files.</td>
+                <td>Ingestion run, raw artifacts, checksums, storage paths, source manifest.</td>
+                <td>Raw data locked and source owner confirmed.</td>
+              </tr>
+              <tr>
+                <td>4. Profiling</td>
+                <td>Run schema inference, type detection, missingness, duplicates, distributions, media metadata extraction, language detection, and volume checks.</td>
+                <td>Schema profile, data profile, anomaly notes, recommended cleaning plan.</td>
+                <td>Profile reviewed and target transformations approved.</td>
+              </tr>
+              <tr>
+                <td>5. Rights And PII Review</td>
+                <td>Verify contracts, consent basis, field-level restrictions, PII classes, minimization opportunities, and labeling/export constraints.</td>
+                <td>Rights review, privacy assessment, field policy map, redaction plan.</td>
+                <td>Rights and privacy gates clear for the next stage.</td>
+              </tr>
+              <tr>
+                <td>6. Cleaning And Normalization</td>
+                <td>Fix encoding, normalize units, standardize categories, deduplicate, remove corrupt items, align timestamps, repair malformed records.</td>
+                <td>Silver artifacts, cleaning run logs, data diffs, rejected-record table.</td>
+                <td>Validation checks pass or exceptions are approved.</td>
+              </tr>
+              <tr>
+                <td>7. Enrichment</td>
+                <td>Add public signals, derived features, geocodes, taxonomy mappings, embeddings, weak labels, or entity normalization where useful.</td>
+                <td>Enriched artifacts, enrichment provenance, source citations, confidence fields.</td>
+                <td>Enrichment rights and quality reviewed.</td>
+              </tr>
+              <tr>
+                <td>8. Ontology And Labeling</td>
+                <td>Define labels/classes, write labeling guidelines, create tasks, import pre-labels, assign annotators, review consensus and edge cases.</td>
+                <td>Ontology version, label batches, annotation exports, reviewer decisions, label quality report.</td>
+                <td>Label quality threshold met and guideline version frozen.</td>
+              </tr>
+              <tr>
+                <td>9. Split And Leakage Review</td>
+                <td>Define train/validation/test split by entity/time/geography/source as appropriate; block duplicate or related entities across splits.</td>
+                <td>Split manifest, leakage checks, class balance report, reproducible random seed.</td>
+                <td>Split strategy approved for buyer use case.</td>
+              </tr>
+              <tr>
+                <td>10. Packaging</td>
+                <td>Generate buyer-specific package, manifests, docs, previews, checksums, examples, and delivery notes.</td>
+                <td>Release package, dataset card, Croissant JSON-LD, data dictionary, QA scorecard.</td>
+                <td>Release approved by rights, privacy, QA, and commercial owners.</td>
+              </tr>
+              <tr>
+                <td>11. Delivery And Acceptance</td>
+                <td>Provision signed URL/S3 share/API/warehouse delivery, verify checksum, track buyer download and acceptance.</td>
+                <td>Delivery event, access log, acceptance evidence, support ticket link if needed.</td>
+                <td>Accepted, remediated, or rejected with evidence.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Dataset Quality Score</h3>
+          <p>
+            Use a 100-point internal score that is visible in admin but buyer-facing only after review. Weighting should be configurable by modality and buyer use case.
+          </p>
+          <div class="grid-2">
+            <div class="panel avoid-break">
+              <h3>Default Weighting</h3>
+              <table>
+                <tbody>
+                  <tr><td>Completeness</td><td><div class="scorebar"><span style="width: 15%"></span></div>15%</td></tr>
+                  <tr><td>Validity and schema conformance</td><td><div class="scorebar"><span style="width: 15%"></span></div>15%</td></tr>
+                  <tr><td>Uniqueness and deduplication</td><td><div class="scorebar"><span style="width: 10%"></span></div>10%</td></tr>
+                  <tr><td>Representativeness and balance</td><td><div class="scorebar"><span style="width: 15%"></span></div>15%</td></tr>
+                  <tr><td>Freshness and temporal coverage</td><td><div class="scorebar"><span style="width: 10%"></span></div>10%</td></tr>
+                  <tr><td>Label accuracy and reviewer agreement</td><td><div class="scorebar"><span style="width: 15%"></span></div>15%</td></tr>
+                  <tr><td>Privacy and rights readiness</td><td><div class="scorebar"><span style="width: 10%"></span></div>10%</td></tr>
+                  <tr><td>Documentation and reproducibility</td><td><div class="scorebar"><span style="width: 10%"></span></div>10%</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel avoid-break">
+              <h3>Hard Release Blocks</h3>
+              <ul>
+                <li>Unknown or uncleared AI-training rights.</li>
+                <li>Unknown PII status or unapproved sensitive fields.</li>
+                <li>No release manifest or checksum coverage.</li>
+                <li>No data dictionary for tabular/text fields or no label ontology for supervised datasets.</li>
+                <li>Critical Great Expectations/Pandera checks failing without documented exception.</li>
+                <li>Unreviewed label batches below consensus threshold.</li>
+                <li>Buyer-specific restrictions not reflected in package contents.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="modalities">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">07</div>
+            <div>
+              <h2>Modality Playbooks</h2>
+              <p class="lead">
+                The control plane should stay consistent while processing plugins vary by data type. The platform must support tabular, text, image, video, audio, geospatial, time-series, and multimodal builds.
+              </p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Modality</th>
+                <th>Common Inputs</th>
+                <th>Processing Focus</th>
+                <th>Delivery Formats</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Tabular / transactional</td>
+                <td>CSV, Excel, database exports, warehouse shares, APIs.</td>
+                <td>Schema inference, unit normalization, type repair, duplicate detection, joins, missingness, outliers, temporal leakage.</td>
+                <td>Parquet, CSV, Arrow, DuckDB, SQL dump, warehouse share, JSONL for row-level ML tasks.</td>
+              </tr>
+              <tr>
+                <td>Text / documents</td>
+                <td>Support tickets, PDFs, emails, knowledge bases, contracts, articles.</td>
+                <td>OCR, encoding, language detection, document chunking, dedup, PII redaction, taxonomy labels, prompt/eval pairs.</td>
+                <td>JSONL, Parquet, Markdown, TXT, prompt-completion JSONL, RAG corpus manifest.</td>
+              </tr>
+              <tr>
+                <td>Images</td>
+                <td>Inspection photos, product images, satellite tiles, medical or industrial imagery.</td>
+                <td>EXIF stripping/review, perceptual dedup, resolution normalization, bounding boxes, segmentation masks, class balance.</td>
+                <td>COCO, YOLO, Pascal VOC, WebDataset shards, Parquet metadata plus object paths.</td>
+              </tr>
+              <tr>
+                <td>Video</td>
+                <td>Dashcam, inspection, security, sports, manufacturing, field operations.</td>
+                <td>Scene/clip extraction, frame sampling, temporal labels, blur/quality scoring, privacy masking, large-object packaging.</td>
+                <td>MP4 clips plus JSONL/Parquet annotations, WebDataset, COCO-style frame annotations.</td>
+              </tr>
+              <tr>
+                <td>Audio / speech</td>
+                <td>Calls, field recordings, voice notes, acoustic sensors.</td>
+                <td>Transcription, diarization, language/accent metadata, PII redaction in transcripts, audio quality, speaker split leakage.</td>
+                <td>WAV/FLAC/MP3 plus JSONL transcripts, timestamps, labels, speaker metadata.</td>
+              </tr>
+              <tr>
+                <td>Time-series / IoT</td>
+                <td>Sensor logs, telemetry, energy, industrial machines, GPS traces.</td>
+                <td>Sampling rate, missing intervals, clock drift, unit normalization, anomaly labels, windowing, train/test split by time/entity.</td>
+                <td>Parquet, Arrow, Timescale/Postgres export, HDF5 where required, JSONL windows.</td>
+              </tr>
+              <tr>
+                <td>Geospatial</td>
+                <td>Coordinates, shapes, tiles, routes, parcels, environmental layers.</td>
+                <td>CRS normalization, geocoding, spatial joins, privacy aggregation, tile generation, temporal coverage.</td>
+                <td>GeoParquet, GeoJSON, Shapefile where required, COG for raster, vector tiles.</td>
+              </tr>
+              <tr>
+                <td>Multimodal</td>
+                <td>Text + images, product records + images, audio + transcripts, video + sensor events.</td>
+                <td>Stable entity IDs, cross-modal alignment, synchronized splits, modality-specific PII, missing modality handling.</td>
+                <td>Manifest-first package with per-modality artifacts, JSONL examples, Parquet metadata, media object paths.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Shared Manifest Pattern</h3>
+          <pre>{
+  "dataset_id": "ds_...",
+  "dataset_version": "1.0.0",
+  "release_id": "rel_...",
+  "modality": ["tabular", "image"],
+  "license_summary": "Private commercial license; AI training allowed for named buyer use case.",
+  "rights_review_id": "rr_...",
+  "privacy_assessment_id": "pa_...",
+  "quality_report_id": "qr_...",
+  "artifacts": [
+    {
+      "role": "train_metadata",
+      "format": "parquet",
+      "uri": "s3://.../train.parquet",
+      "sha256": "...",
+      "records": 48000
+    },
+    {
+      "role": "images",
+      "format": "webdataset",
+      "uri": "s3://.../images-000.tar",
+      "sha256": "...",
+      "objects": 12000
+    }
+  ],
+  "splits": {"train": 0.8, "validation": 0.1, "test": 0.1},
+  "created_at": "2026-05-08T00:00:00Z"
+}</pre>
+        </div>
+      </section>
+
+      <section class="page" id="dashboards">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">08</div>
+            <div>
+              <h2>Dashboards And Internal Tools</h2>
+              <p class="lead">
+                The admin dashboard should become the operational control room. It should be dense, calm, and trust-oriented: every screen should expose owner, next action, stage, blockers, rights, PII, QA, and delivery state.
+              </p>
+            </div>
+          </div>
+
+          <h3>Required Admin Modules</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Module</th>
+                <th>Primary Users</th>
+                <th>Key Views</th>
+                <th>Critical Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Command Center</td>
+                <td>Founders, operators</td>
+                <td>Active projects, stage counts, blockers, upcoming due dates, QA risk, delivery readiness.</td>
+                <td>Assign owner, escalate blocker, open build, approve stage transition.</td>
+              </tr>
+              <tr>
+                <td>Leads And Briefs</td>
+                <td>Sales, operators</td>
+                <td>Buyer briefs, supplier leads, qualification score, next action, conversion stage.</td>
+                <td>Create feasibility study, convert to project, reject, request missing info.</td>
+              </tr>
+              <tr>
+                <td>Organizations</td>
+                <td>Sales, operations, legal</td>
+                <td>Buyer/supplier profiles, contacts, contracts, risk, communication timeline.</td>
+                <td>Add contact, link contract, set risk tier, attach notes.</td>
+              </tr>
+              <tr>
+                <td>Supplier Assets</td>
+                <td>Data ops, legal, privacy</td>
+                <td>Available data assets, source systems, rights, PII, freshness, update cadence, commercial fit.</td>
+                <td>Create source, request sample, run profile, start rights review, approve for pilot.</td>
+              </tr>
+              <tr>
+                <td>Dataset Builds</td>
+                <td>Operators, engineers, data scientists</td>
+                <td>Stage board, timeline, blockers, artifacts, runs, acceptance criteria, build notes.</td>
+                <td>Start pipeline job, mark stage review, attach artifact, add blocker, create release candidate.</td>
+              </tr>
+              <tr>
+                <td>Pipeline Runs</td>
+                <td>Engineers, operators</td>
+                <td>Job status, logs, retries, input/output artifacts, duration, failure summary.</td>
+                <td>Retry, cancel, inspect artifacts, promote outputs, quarantine outputs.</td>
+              </tr>
+              <tr>
+                <td>Quality And Profiling</td>
+                <td>Data scientists, QA reviewers</td>
+                <td>Schema profile, quality score, failed checks, distribution deltas, label quality, leakage checks.</td>
+                <td>Approve exception, require rework, publish scorecard, compare versions.</td>
+              </tr>
+              <tr>
+                <td>Label Operations</td>
+                <td>Label managers, reviewers</td>
+                <td>Ontology versions, labeling batches, annotator progress, consensus, gold samples, edge cases.</td>
+                <td>Create batch, export tasks, import annotations, assign review, approve labels.</td>
+              </tr>
+              <tr>
+                <td>Rights And Privacy</td>
+                <td>Legal/privacy reviewers, operators</td>
+                <td>Pending reviews, field restrictions, PII classes, redaction outcomes, expiration dates.</td>
+                <td>Approve, block, request counsel, expire review, require minimization.</td>
+              </tr>
+              <tr>
+                <td>Releases And Delivery</td>
+                <td>Commercial ops, operators</td>
+                <td>Release candidates, package formats, docs, checksums, delivery method, buyer acceptance.</td>
+                <td>Generate package, approve release, create signed delivery, revoke access, record acceptance.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Dataset Build Detail Screen</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Top Rail</h3>
+              <ul>
+                <li>Project name, buyer/supplier, owner, due date, tier, stage.</li>
+                <li>Status chips: rights, PII, QA, labeling, package, delivery.</li>
+                <li>Primary next action and blocker summary.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Tabs</h3>
+              <ul>
+                <li>Overview, Requirements, Sources, Pipeline, Artifacts, QA, Labels, Rights, Privacy, Release, Activity.</li>
+                <li>Each tab should have empty, loading, error, and success states.</li>
+                <li>Danger actions require reason capture and audit event.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Design Guidance</h3>
+          <ul>
+            <li>Light mode, white panels, subtle borders, black typography, gray structure, teal status accents.</li>
+            <li>No marketing hero patterns inside admin. Prioritize scan speed, tables, filters, status chips, and compact forms.</li>
+            <li>Use stable dimensions for status columns, pipeline step controls, and score widgets to avoid layout shift.</li>
+            <li>Every critical state should be visible without opening a modal: rights, provenance, PII, QA, license, package, delivery.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="page" id="security">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">09</div>
+            <div>
+              <h2>Security, Privacy, And Trust</h2>
+              <p class="lead">
+                Caudals is selling trust in addition to data. Security and privacy controls must be visible in product state, enforced by backend gates, and backed by immutable evidence.
+              </p>
+            </div>
+          </div>
+
+          <h3>Access Model</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Allowed</th>
+                <th>Restricted</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Admin</td>
+                <td>Manage users, roles, settings, high-risk approvals.</td>
+                <td>Direct raw data download without purpose and audit record.</td>
+              </tr>
+              <tr>
+                <td>Operator</td>
+                <td>Manage leads, projects, assets, stage state, comments, delivery coordination.</td>
+                <td>Rights/privacy approvals unless assigned reviewer permission.</td>
+              </tr>
+              <tr>
+                <td>Data engineer</td>
+                <td>Run pipelines, inspect profiles, promote artifacts, view technical logs.</td>
+                <td>Commercial pricing, contracts, unrelated supplier data.</td>
+              </tr>
+              <tr>
+                <td>Data scientist / QA</td>
+                <td>Review quality, labels, splits, metrics, known limitations.</td>
+                <td>Raw PII fields unless approved for the project.</td>
+              </tr>
+              <tr>
+                <td>Legal/privacy reviewer</td>
+                <td>Approve or block rights and privacy assessments.</td>
+                <td>Mutating pipeline artifacts or delivery packages.</td>
+              </tr>
+              <tr>
+                <td>Commercial ops</td>
+                <td>Quotes, contracts, licenses, invoices, delivery acceptance, supplier share.</td>
+                <td>Changing quality or privacy evidence.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Control Requirements</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Data Access</h3>
+              <ul>
+                <li>RLS on all exposed metadata tables.</li>
+                <li>Service-role access only through scoped server wrappers.</li>
+                <li>Signed URLs with short TTLs and project-scoped authorization checks.</li>
+                <li>Object paths validated against known artifact records.</li>
+                <li>Raw and PII-bearing data access requires reason capture.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Privacy And PII</h3>
+              <ul>
+                <li>Run PII scans during ingestion and before labeling/export/release.</li>
+                <li>Separate anonymization, pseudonymization, redaction, encryption, and minimization decisions.</li>
+                <li>Treat pseudonymized data as still sensitive unless counsel determines otherwise.</li>
+                <li>Store salts/keys outside the repo and outside dataset packages.</li>
+                <li>Maintain field-level delivery policy for every package.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Provenance And Lineage</h3>
+              <ul>
+                <li>Track source, activity, agent, artifact, and derivation relationships.</li>
+                <li>Capture pipeline code version, environment, input checksums, output checksums.</li>
+                <li>Export OpenLineage-compatible run metadata when orchestration matures.</li>
+                <li>Use W3C PROV concepts for buyer-facing lineage summaries.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Release Assurance</h3>
+              <ul>
+                <li>Release packages require rights, privacy, QA, documentation, and commercial approval.</li>
+                <li>Every buyer delivery includes checksum verification and license summary.</li>
+                <li>Releases can be deprecated, revoked, or superseded with explicit reason.</li>
+                <li>Access logs and acceptance evidence remain linked to package version.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Risk Register Template</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Risk</th>
+                <th>Example Trigger</th>
+                <th>Mitigation</th>
+                <th>Release Decision</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Unclear AI-training rights</td>
+                <td>Supplier contract permits analytics but not model training.</td>
+                <td>Block delivery until contract addendum or field removal.</td>
+                <td>Hard block.</td>
+              </tr>
+              <tr>
+                <td>PII or sensitive data leakage</td>
+                <td>Emails, faces, plates, GPS trails, identifiers remain in package.</td>
+                <td>Minimize fields, redact/mask, aggregate, anonymize, or reject use case.</td>
+                <td>Hard block unless approved residual risk exists.</td>
+              </tr>
+              <tr>
+                <td>Label noise</td>
+                <td>Low reviewer agreement or Cleanlab-like issue detection flags many labels.</td>
+                <td>Rework ontology, add gold set, increase consensus review.</td>
+                <td>Block supervised training release above threshold.</td>
+              </tr>
+              <tr>
+                <td>Data leakage across splits</td>
+                <td>Same entity, media sequence, or document family appears in train and test.</td>
+                <td>Group-aware split, time-aware split, duplicate cluster split.</td>
+                <td>Block model-eval package.</td>
+              </tr>
+              <tr>
+                <td>Supplier reputation risk</td>
+                <td>Buyer-visible data reveals sensitive commercial behavior.</td>
+                <td>Aggregate, delay, redact, segment package, or use private offer only.</td>
+                <td>Reviewer decision required.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="implementation">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">10</div>
+            <div>
+              <h2>Implementation Roadmap</h2>
+              <p class="lead">
+                The next implementation phases should build the internal platform in thin vertical slices. Each phase must produce usable operator functionality and reduce risk for the first client dataset builds.
+              </p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Phase</th>
+                <th>Duration</th>
+                <th>Deliverables</th>
+                <th>Exit Criteria</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Phase 39: B2B control-plane schema</td>
+                <td>1-2 weeks</td>
+                <td>New migrations for organizations, contacts, buyer briefs, supplier assets, rights reviews, privacy assessments, projects, builds, artifacts, runs, QA, releases, deliveries, audit events.</td>
+                <td>Migration tests pass; RLS policy tests cover admin/operator roles; legacy tables are not extended for new behavior.</td>
+              </tr>
+              <tr>
+                <td>Phase 40: Admin command center</td>
+                <td>2 weeks</td>
+                <td>Private admin IA for leads, briefs, supplier assets, dataset build board, blockers, stage state, and audit activity.</td>
+                <td>Operators can create and move a project from lead to scoped build with visible rights/PII/QA placeholders.</td>
+              </tr>
+              <tr>
+                <td>Phase 41: Secure ingestion and profiling</td>
+                <td>2-3 weeks</td>
+                <td>Worker service, object storage layout, ingestion jobs, checksum manifests, schema/data profiling, preview generation, source manifests.</td>
+                <td>A real pilot sample can be ingested, profiled, and reviewed without manual spreadsheet tracking.</td>
+              </tr>
+              <tr>
+                <td>Phase 42: Rights, privacy, and quality gates</td>
+                <td>2-3 weeks</td>
+                <td>Rights review workflow, PII scan workflow, field policy map, quality expectations, scorecard, hard release blockers.</td>
+                <td>No release candidate can be approved without rights, privacy, and quality evidence.</td>
+              </tr>
+              <tr>
+                <td>Phase 43: Labeling and curation ops</td>
+                <td>2-4 weeks</td>
+                <td>Label Studio integration, ontology records, task export/import, reviewer queues, consensus metrics, label quality report.</td>
+                <td>Image/text/tabular supervised pilot can complete labeling with review evidence.</td>
+              </tr>
+              <tr>
+                <td>Phase 44: Packaging and delivery</td>
+                <td>2-3 weeks</td>
+                <td>Package generator, Dataset Card, Croissant JSON-LD, release manifest, data dictionary, signed delivery, buyer acceptance records.</td>
+                <td>One production-ready package can be delivered with manifest, checksums, docs, license summary, and acceptance evidence.</td>
+              </tr>
+              <tr>
+                <td>Phase 45: Catalog/private offer readiness</td>
+                <td>3-5 weeks</td>
+                <td>Private listing records, sample previews, pricing fields, refresh cadence, supplier revenue share, listing visibility gates.</td>
+                <td>Internal team can prepare catalog-ready listings without exposing marketplace browse publicly.</td>
+              </tr>
+              <tr>
+                <td>Phase 46: Portal pilots</td>
+                <td>Later</td>
+                <td>Supplier intake and buyer request surfaces after internal workflows are proven.</td>
+                <td>Public/self-serve surfaces only expose workflows that the internal platform can fulfill reliably.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>MVP Backlog</h3>
+          <div class="grid-2">
+            <div class="panel">
+              <h3>Must Build Before First Production Delivery</h3>
+              <ul>
+                <li>New metadata schema and audit log.</li>
+                <li>Admin dataset build board.</li>
+                <li>Source/artifact storage registry with checksums.</li>
+                <li>Ingestion and profiling worker.</li>
+                <li>Rights and PII review records with release blockers.</li>
+                <li>Quality scorecard and release manifest.</li>
+                <li>Delivery event and buyer acceptance evidence.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Can Be Manual Initially</h3>
+              <ul>
+                <li>Legal document review, as long as the result is recorded.</li>
+                <li>Some cleaning/enrichment scripts, as long as outputs are registered as pipeline runs.</li>
+                <li>Specialist annotation vendor coordination, as long as batches and QA are tracked.</li>
+                <li>Commercial quotes, as long as package/license/delivery state is linked.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Engineering Acceptance Bar</h3>
+          <ul>
+            <li>Every phase includes migration tests, RLS/access tests, targeted unit tests, and admin UI checks.</li>
+            <li>Dataset-impacting changes include synthetic fixtures covering rights-approved, rights-blocked, PII-clear, and PII-blocked cases.</li>
+            <li>Worker jobs must be idempotent or safely retryable; failed jobs must leave recoverable metadata.</li>
+            <li>Every admin workflow must have explicit loading, empty, error, success, and blocked states.</li>
+            <li>Validation logs must include commands, screenshots for UI phases, and sample artifact metadata.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="page" id="metrics">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">11</div>
+            <div>
+              <h2>Metrics And Operating Model</h2>
+              <p class="lead">
+                The platform should make operational throughput and trust visible. Metrics should answer whether Caudals can deliver better datasets faster, with lower risk, and with repeatable margin.
+              </p>
+            </div>
+          </div>
+
+          <h3>Company Metrics</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Metrics</th>
+                <th>Why It Matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Funnel</td>
+                <td>Qualified buyer briefs, qualified supplier assets, reply time, discovery conversion, feasibility close rate.</td>
+                <td>Shows demand/supply health and whether the public funnel is producing sellable opportunities.</td>
+              </tr>
+              <tr>
+                <td>Operations</td>
+                <td>Cycle time by stage, blocker age, rework rate, on-time delivery, active projects per operator.</td>
+                <td>Shows whether managed service work is becoming repeatable.</td>
+              </tr>
+              <tr>
+                <td>Quality</td>
+                <td>QA pass rate, critical validation failures, duplicate rate, label agreement, data leakage incidents.</td>
+                <td>Shows whether packages are trustworthy enough for buyer model work.</td>
+              </tr>
+              <tr>
+                <td>Trust</td>
+                <td>Rights pass rate, PII block rate, unresolved privacy risk, release approvals without exceptions.</td>
+                <td>Shows if Caudals is de-risking supply and protecting buyers/suppliers.</td>
+              </tr>
+              <tr>
+                <td>Commercial</td>
+                <td>Feasibility-to-pilot conversion, pilot-to-complete conversion, gross margin by build, supplier revenue share, repeat/refreshed revenue.</td>
+                <td>Shows whether operations create profitable reusable data products.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Operating Cadence</h3>
+          <div class="grid-3">
+            <div class="panel">
+              <h3>Daily Ops</h3>
+              <ul>
+                <li>Review active blockers and stage transitions.</li>
+                <li>Check failed pipeline runs.</li>
+                <li>Assign next actions for leads and builds.</li>
+                <li>Escalate rights or PII blockers.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Weekly Release Board</h3>
+              <ul>
+                <li>Review release candidates.</li>
+                <li>Compare quality score trends.</li>
+                <li>Approve or reject exceptions.</li>
+                <li>Update delivery forecasts.</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>Monthly Portfolio Review</h3>
+              <ul>
+                <li>Analyze buyer demand patterns.</li>
+                <li>Rank supplier assets by sellability.</li>
+                <li>Identify reusable catalog candidates.</li>
+                <li>Review margins and rework drivers.</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3>Roles And Responsibilities</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Owns</th>
+                <th>Accountable For</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Dataset Operator</td>
+                <td>Project state, next action, supplier/buyer coordination, documentation completeness.</td>
+                <td>Build does not stall and release package is complete.</td>
+              </tr>
+              <tr>
+                <td>Data Engineer</td>
+                <td>Ingestion, profiling, cleaning, transforms, artifact registry, worker reliability.</td>
+                <td>Artifacts are reproducible, validated, and traceable.</td>
+              </tr>
+              <tr>
+                <td>Data Scientist / ML QA</td>
+                <td>Quality methodology, split strategy, label QA, model-use suitability.</td>
+                <td>Dataset is fit for intended ML use and limitations are clear.</td>
+              </tr>
+              <tr>
+                <td>Label Ops Lead</td>
+                <td>Ontology, annotation guidelines, annotator throughput, review, consensus.</td>
+                <td>Labels meet acceptance criteria and edge cases are resolved.</td>
+              </tr>
+              <tr>
+                <td>Legal / Privacy Reviewer</td>
+                <td>Rights, permitted use, PII, redaction/anonymization decisions, residual risk.</td>
+                <td>Dataset is not released beyond documented permissions.</td>
+              </tr>
+              <tr>
+                <td>Commercial Owner</td>
+                <td>Buyer scope, quote, contract, license, supplier revenue share, acceptance.</td>
+                <td>Delivery terms match what was built and what rights allow.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="appendix">
+        <div class="section">
+          <div class="section-header">
+            <div class="section-number">12</div>
+            <div>
+              <h2>Appendices And Sources</h2>
+              <p class="lead">
+                The blueprint is based on the Caudals repository context plus current standards and official documentation for provenance, catalog metadata, AI/privacy risk, object storage, data quality, lineage, labeling, PII handling, and ML dataset documentation.
+              </p>
+            </div>
+          </div>
+
+          <h3>Immediate Build Checklist</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Checklist Item</th>
+                <th>Definition Of Done</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Schema design approved</td>
+                <td>New B2B tables, RLS policies, status enums, audit events, and indexes are reviewed before migrations land.</td>
+              </tr>
+              <tr>
+                <td>Storage paths reserved</td>
+                <td>Spaces bucket layout, naming conventions, retention, signed URL policy, and checksum requirements are documented.</td>
+              </tr>
+              <tr>
+                <td>Worker skeleton created</td>
+                <td>Containerized Python worker can run one ingestion/profile job locally and register output artifacts.</td>
+              </tr>
+              <tr>
+                <td>Admin IA implemented</td>
+                <td>Operators can create buyer brief, supplier asset, dataset project, build, and stage transitions.</td>
+              </tr>
+              <tr>
+                <td>Release gate enforced</td>
+                <td>Backend refuses package approval without rights, privacy, QA, docs, and artifact checksums.</td>
+              </tr>
+              <tr>
+                <td>First pilot dry-run</td>
+                <td>A synthetic multimodal sample moves from ingestion to package release with all evidence generated.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>Recommended Source References</h3>
+          <ol class="source-list">
+            <li>Caudals repository: <code>OVERVIEW.md</code>, <code>AGENTS.md</code>, <code>docs/ARCHITECTURE.md</code>, <code>docs/DESIGN.md</code>, <code>docs/FRONTEND.md</code>, <code>docs/SECURITY.md</code>, <code>docs/product-specs/*</code>.</li>
+            <li>W3C PROV Overview: <a href="https://www.w3.org/TR/prov-overview/">https://www.w3.org/TR/prov-overview/</a></li>
+            <li>W3C Data Catalog Vocabulary DCAT 3: <a href="https://www.w3.org/TR/vocab-dcat-3/">https://www.w3.org/TR/vocab-dcat-3/</a></li>
+            <li>NIST AI Risk Management Framework: <a href="https://www.nist.gov/itl/ai-risk-management-framework">https://www.nist.gov/itl/ai-risk-management-framework</a></li>
+            <li>NIST Privacy Framework: <a href="https://www.nist.gov/privacy-framework">https://www.nist.gov/privacy-framework</a></li>
+            <li>GDPR official text, EUR-Lex: <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32016R0679">https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32016R0679</a></li>
+            <li>ISO/IEC 42001 AI management systems overview: <a href="https://www.iso.org/standard/42001">https://www.iso.org/standard/42001</a></li>
+            <li>Apache Parquet overview: <a href="https://parquet.apache.org/docs/overview/">https://parquet.apache.org/docs/overview/</a></li>
+            <li>Apache Arrow overview: <a href="https://arrow.apache.org/overview/">https://arrow.apache.org/overview/</a></li>
+            <li>Delta Lake documentation: <a href="https://docs.delta.io/">https://docs.delta.io/</a></li>
+            <li>Apache Iceberg specification: <a href="https://iceberg.apache.org/spec/">https://iceberg.apache.org/spec/</a></li>
+            <li>Dagster documentation: <a href="https://docs.dagster.io/">https://docs.dagster.io/</a></li>
+            <li>OpenLineage documentation: <a href="https://openlineage.io/docs/">https://openlineage.io/docs/</a></li>
+            <li>Great Expectations Core documentation: <a href="https://docs.greatexpectations.io/docs/core/introduction/try_gx/">https://docs.greatexpectations.io/docs/core/introduction/try_gx/</a></li>
+            <li>Label Studio documentation: <a href="https://labelstud.io/guide/">https://labelstud.io/guide/</a></li>
+            <li>Microsoft Presidio documentation: <a href="https://microsoft.github.io/presidio/">https://microsoft.github.io/presidio/</a></li>
+            <li>cleanlab documentation: <a href="https://docs.cleanlab.ai/stable/">https://docs.cleanlab.ai/stable/</a></li>
+            <li>Hugging Face Dataset Cards: <a href="https://huggingface.co/docs/datasets/dataset_card">https://huggingface.co/docs/datasets/dataset_card</a></li>
+            <li>MLflow Dataset Tracking: <a href="https://mlflow.org/docs/latest/ml/dataset/">https://mlflow.org/docs/latest/ml/dataset/</a></li>
+            <li>MLCommons Croissant specification: <a href="https://docs.mlcommons.org/croissant/docs/croissant-spec.html">https://docs.mlcommons.org/croissant/docs/croissant-spec.html</a></li>
+            <li>SPDX License List: <a href="https://spdx.org/licenses/">https://spdx.org/licenses/</a></li>
+            <li>Schema.org Dataset type: <a href="https://schema.org/Dataset">https://schema.org/Dataset</a></li>
+            <li>DigitalOcean Spaces object storage: <a href="https://www.digitalocean.com/products/object-storage">https://www.digitalocean.com/products/object-storage</a></li>
+            <li>Supabase Row Level Security docs: <a href="https://supabase.com/docs/guides/database/postgres/row-level-security">https://supabase.com/docs/guides/database/postgres/row-level-security</a></li>
+            <li>Next.js App Router docs: <a href="https://nextjs.org/docs/app">https://nextjs.org/docs/app</a></li>
+          </ol>
+
+          <div class="callout">
+            <strong>Final recommendation</strong>
+            The first implementation objective should be a full synthetic dataset dry-run inside the private admin platform: create a buyer brief, create a supplier asset, ingest a sample, profile it, run rights and PII gates, clean it, label a subset, generate QA, package a release, and record delivery evidence. That dry-run will expose the exact schema, UI, worker, and audit details needed before real client data is handled.
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

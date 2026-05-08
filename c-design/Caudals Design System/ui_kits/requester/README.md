@@ -1,6 +1,6 @@
-# Caudals — Requester App UI kit
+# Caudals — Buyer Workspace UI kit
 
-The buyer-facing authenticated product: catalog browsing, request intake, delivery tracking. Source: `app/(dashboard)/*` + `components/dashboard/*` in Caudals/caudals (sparse scaffolding in repo; extended to a realistic console using the system's visual foundations).
+Historical buyer-facing authenticated prototype: catalog browsing, dataset-brief intake, and delivery tracking. Treat this as visual reference only until the B2B buyer workspace is redesigned.
 
 Open `index.html`. Tabs across the top switch between: **Dashboard**, **Catalog**, **Requests**, **Billing**.
 

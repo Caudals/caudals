@@ -1,21 +1,21 @@
 # Frontend Delivery Contract
 
 ## Scope
-Defines implementation and validation rules for frontend work across the public funnel, internal admin dashboard, and future B2B marketplace surfaces.
+Defines implementation rules for frontend work across the public funnel, internal admin dashboard, and future B2B marketplace surfaces.
 
 ## Stack and Constraints
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
 - Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
-- Keep marketplace, buyer, supplier, and legacy authenticated routes hidden until explicitly relaunched
+- Keep marketplace, buyer, supplier, and hidden authenticated routes unavailable until explicitly relaunched
 
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.
 - Public navigation should expose only Contact and Blog unless the user explicitly requests another public route.
-- Do not add new company-facing workflows under legacy app routes.
+- Do not add new company-facing workflows under hidden app routes.
 - The internal admin dashboard is the only authenticated surface that should be preserved in the near term.
-- Future buyer/supplier workspaces require a new IA and schema plan before implementation.
+- Future buyer/supplier workspaces require a new IA and schema direction before implementation.
 
 ## Localization Contract
 - Supported locales: `en` and `es`.
@@ -32,15 +32,11 @@ Defines implementation and validation rules for frontend work across the public 
 3. Prefer incremental, verifiable UI changes.
 4. Avoid parallel component systems.
 5. Preserve keyboard/focus behavior while restyling.
-6. Do not reuse retired individual upload or old request/review assumptions in new B2B flows.
+6. Keep new B2B workflows centered on buyer demand capture, supplier data monetization, dataset operations, and internal admin control.
 
-## Validation Rules
-For each frontend task:
-1. Run `npm run typecheck`.
-2. Run targeted lint/tests for touched files.
-3. Use Chrome DevTools MCP to verify:
-   - no new console errors,
-   - no new failed network requests,
-   - critical interaction path works end-to-end,
-   - screenshots for required viewports.
-4. Record evidence in `docs/logs/validations/`.
+## Runtime Review
+For frontend changes, use the level of inspection appropriate to the risk of the change:
+- local type and lint checks for code edits,
+- browser/devtools inspection for changed routes,
+- console and network review for changed interaction paths,
+- viewport review when layout or responsive behavior changes.

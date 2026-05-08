@@ -15,19 +15,20 @@ Tagline (from the marketing site): *"Professional datasets for AI, **tailored**.
   - `components/marketing/footer.tsx` — site footer.
   - `components/browse/dataset-card-improved.tsx` — the canonical product card.
   - `app/(home)/browse/browse-client.tsx` — public catalog page.
-  - `docs/DESIGN.md`, `docs/FRONTEND.md`, `AGENTS.md`, `ARCHITECTURE.md` — written governance.
+  - `docs/DESIGN.md`, `docs/FRONTEND.md`, `AGENTS.md`, `docs/ARCHITECTURE.md` — written governance.
 
-## Three role surfaces
+## Product Surfaces
 
-The platform splits cleanly into three role applications. They share one design language but have distinct IA and primary actions.
+The current product exposes a narrow public funnel plus private internal operations. Future buyer and supplier workspaces must use the same design language but stay hidden until the B2B marketplace model is redesigned end-to-end.
 
-| Role | Path | Primary actions |
+| Surface | Path | Primary actions |
 |---|---|---|
-| **Requester** (buyer) | `/requester/*` | Create dataset brief → fund (Stripe) → review submissions → export |
-| **Contributor** (supplier) | `/contributor/*` | Browse opportunities → submit data → track payouts (Stripe Connect) |
-| **Admin** | `/admin/*` | Moderate requests/submissions, payments, risk |
+| **Public funnel** | `/`, `/contact`, `/blog` | Explain the offer, capture buyer demand, capture supplier monetization interest |
+| **Internal admin** | `/admin/*` | Triage leads, track rights/provenance/PII, manage dataset builds, QA, pricing, contracts, and delivery |
+| **Future buyer workspace** | hidden | Submit dataset briefs, review previews/QA, manage delivery |
+| **Future supplier workspace** | hidden | Offer data assets, review rights status, track listing/commercial state |
 
-Plus a public marketing surface (`/`, `/browse`, `/blog`, `/contact`, `/pricing`, `/trust`).
+Marketplace browsing, buyer workspaces, supplier portals, payments, and self-serve authenticated surfaces remain hidden until redesigned for the B2B model.
 
 ---
 
@@ -42,7 +43,7 @@ Plus a public marketing surface (`/`, `/browse`, `/blog`, `/contact`, `/pricing`
   - `brand_mark.png` — original user-supplied mark.
 - `preview/` — small HTML cards that populate the Design System tab (colors, type, components, brand).
 - `ui_kits/marketing/` — high-fidelity recreation of the public site (hero, features, how-it-works, footer).
-- `ui_kits/requester/` — high-fidelity recreation of the requester app shell (sidebar, dashboard, dataset detail).
+- `ui_kits/requester/` — historical buyer-workspace prototype asset; use only as visual reference until the B2B buyer IA is redesigned.
 
 ---
 
@@ -50,7 +51,7 @@ Plus a public marketing surface (`/`, `/browse`, `/blog`, `/contact`, `/pricing`
 
 **Voice:** confident, plain, business-class. Caudals talks like a competent operations team, not like a consumer app and not like an enterprise sales deck. No hype words ("revolutionary", "supercharge"), no exclamation marks in product copy, no jargon for jargon's sake.
 
-**Person:** Default to **plural we** for Caudals ("We source, process, and deliver…", "Our team contacts supplier companies…"). Address the reader as **you / your team** when calling them to act ("Tell us what data you need", "Your dataset gets a public listing"). Never "users" in user-facing copy — say "buyers"/"requesters", "suppliers"/"contributors".
+**Person:** Default to **plural we** for Caudals ("We source, process, and deliver…", "Our team contacts supplier companies…"). Address the reader as **you / your team** when calling them to act ("Tell us what data you need", "Your dataset gets a public listing"). Never "users" in user-facing copy; say "buyers", "supplier companies", "operators", or "admins".
 
 **Casing:**
 - Sentence case for buttons, labels, nav, headings ("Request access", "How it works", "Browse requests"). Never Title Case.
@@ -188,7 +189,7 @@ Root:
 
 UI kits:
 - `ui_kits/marketing/index.html` — landing page (header · hero · features · how-it-works · CTA · footer).
-- `ui_kits/requester/index.html` — authenticated buyer app (Dashboard · Catalog · Requests · Billing), tab state persisted to localStorage.
+- `ui_kits/requester/index.html` — historical authenticated buyer-workspace prototype (Dashboard · Catalog · Requests · Billing), tab state persisted to localStorage.
 
 ---
 
