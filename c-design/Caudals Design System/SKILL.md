@@ -18,7 +18,7 @@ If the user invokes this skill without any other guidance, ask them what they wa
 - `fonts/` — empty on purpose. Caudals uses the system SF Pro stack (`-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", ...`). Inter is the safest cross-platform substitute if needed.
 - `preview/` — small HTML specimen cards (one concept per file).
 - `ui_kits/marketing/` — React + Babel recreation of the landing page.
-- `ui_kits/requester/` — React + Babel recreation of the authenticated buyer app (dashboard, catalog, requests, billing).
+- `ui_kits/requester/` — React + Babel historical buyer-workspace prototype (dashboard, catalog, requests, billing).
 
 ## Quick visual rules
 

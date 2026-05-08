@@ -19,6 +19,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4567", "--directory", "c-design/Caudals Pitch Deck/export/src"],
       "port": 4567
+    },
+    {
+      "name": "Pitch Deck EN",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4569", "--directory", "c-design/Docs EN/export/src"],
+      "port": 4569
     }
   ]
 }

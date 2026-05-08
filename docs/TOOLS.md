@@ -3,22 +3,22 @@
 ## Agent Access Model
 Agents can assume access to:
 - local repository source code,
-- planning context in `docs/PLAN.md` and `docs/exec-plans/`,
-- Supabase via self-hosted operational path and MCP (when available),
-- browser/devtools tooling for runtime UI validation,
+- product and technical context in `docs/product-specs/overview.md` and `docs/`,
+- Supabase via self-hosted operational path and MCP when available,
+- browser/devtools tooling for runtime UI inspection,
 - GitHub tooling for CI and review context.
 
 When interacting with production-like resources, use read-first diagnostics and minimal-risk mutations.
 
 ## Primary Tooling
-- Terminal: build/test/lint/file ops/repo diagnostics
-- Supabase CLI: migrations, schema checks, policy verification
+- Terminal: build/lint/file ops/repo diagnostics
+- Supabase CLI: migrations, schema checks, policy inspection
 - Supabase MCP: runtime DB inspection and operational queries
 - Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
 - Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
 - GitHub MCP: issue/PR/review workflows
-- GitHub CLI (`gh`): CI run and failed-job log triage
-- Chrome DevTools MCP: interaction checks and screenshots
+- GitHub CLI (`gh`): CI run and failed-job triage
+- Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
 ## Tool Selection Matrix
 - Schema migrations and drift checks: Supabase CLI
@@ -27,38 +27,37 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Stripe object lookup/limited write operations: Stripe MCP
 - PR/issues/review actions: GitHub MCP
 - CI/CD run diagnostics: `gh`
-- Frontend QA evidence: Chrome DevTools MCP
+- Frontend runtime inspection: browser/devtools tooling
 
-## Self-Hosted Supabase Operational Context (Authoritative)
+## Self-Hosted Supabase Operational Context
 Internal-only runtime context:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - Supabase host path: `/supabase/supabase/docker`
 - Common services: db, kong, rest, auth, storage, studio, pooler
-- Internal-only localhost ports after the 2026-04-03 hardening pass: `3001`, `4000`, `5432`, `6543`, `8000`, `8443`
-- `https://supabase.caudals.com/` is intentionally not a public Studio surface anymore; only API path prefixes are routed publicly.
+- Internal-only localhost ports: `3001`, `4000`, `5432`, `6543`, `8000`, `8443`
+- `https://supabase.caudals.com/` is intentionally not a public Studio surface; only API path prefixes are routed publicly.
 - Public `22/tcp` is closed; SSH administration is available only through `tailscale0`.
 
 Direct SSH runtime inspection is allowed when MCP context is stale:
 - `ssh root@ubuntu-caudals`
 
 ## Private Dashboard Access
-- Dokploy and Umami dashboards are not public anymore.
+- Dokploy and Umami dashboards are not public.
 - Direct Tailscale-only URLs:
   - `http://ubuntu-caudals:7443` for Dokploy
   - `http://ubuntu-caudals:7444` for Umami
 - IP fallback:
   - `http://100.92.160.68:7443`
   - `http://100.92.160.68:7444`
-- Access details are documented in `docs/private-dashboard-access.md`.
 
-## Supabase CLI Usage Pattern (Self-Hosted)
-1. Keep credentials in local secret file (never commit):
+## Supabase CLI Usage Pattern
+1. Keep credentials in local secret file:
    - `~/.config/caudals/supabase-selfhosted.env`
 2. Start tunnel(s):
    - `./scripts/supabase-selfhosted-tunnel.sh start db`
    - `./scripts/supabase-selfhosted-tunnel.sh start all`
    - fallback raw tunnel: `ssh -L 55432:127.0.0.1:5432 root@ubuntu-caudals -N`
-3. Use explicit DB URL (do not rely on `--linked`):
+3. Use explicit DB URL:
    - `./scripts/supabase-cli-selfhosted.sh migration list`
    - `./scripts/supabase-cli-selfhosted.sh db push --dry-run`
    - `./scripts/supabase-cli-selfhosted.sh db pull`
@@ -71,10 +70,10 @@ Hard rules:
 - For self-hosted targets, `--db-url` is mandatory.
 - Prefer `db push --dry-run` before write operations.
 - Keep schema changes in `supabase/migrations/*`.
-- Never expose DB credentials in docs/logs/screenshots.
+- Never expose DB credentials in docs, command output, or captured media.
 - Do not rely on raw public host ports for Supabase access; use SSH tunnels or Tailscale/private access paths only.
 
-## Supabase MCP Usage Pattern (Self-Hosted)
+## Supabase MCP Usage Pattern
 1. Start MCP tunnel:
    - `./scripts/supabase-selfhosted-tunnel.sh start mcp`
 2. Verify endpoint:
@@ -82,7 +81,7 @@ Hard rules:
    - expected: `http://127.0.0.1:18100/mcp`
 3. Use MCP for read-first diagnostics.
 4. Use migration files + CLI for schema-changing work.
-5. If MCP context is stale/broken, fallback to SSH + CLI/psql and log fallback evidence.
+5. If MCP context is stale/broken, fallback to SSH + CLI/psql.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -97,21 +96,19 @@ Hard rules:
 
 Hard rules:
 - Never commit Stripe secrets.
-- Avoid live-mode side effects during local validation.
-- Preserve webhook idempotency checks in replay/testing.
+- Avoid live-mode side effects during local review.
+- Preserve webhook idempotency checks in replay/debugging.
 
 ## Stripe MCP Usage Pattern
 1. Prefer `list_*`/search tools before ID-specific fetches.
 2. Treat write operations (`create_refund`, `cancel_subscription`, `update_subscription`) as high-risk.
-3. Log scope and evidence for payment-impacting writes.
-4. Redact customer financial data in docs/logs.
+3. Redact customer financial data from docs and user-facing output.
 
-## Chrome DevTools MCP Usage Pattern
-1. Navigate to changed route.
-2. Validate render and critical interactions.
+## Browser/Devtools Usage Pattern
+1. Navigate to the changed route.
+2. Inspect render and critical interactions.
 3. Check console and failed network requests.
-4. Capture desktop/tablet/mobile screenshots.
-5. Store evidence in `docs/logs/validations/`.
+4. Review responsive behavior when layout changed.
 
 ## GitHub CLI (`gh`) Usage Pattern
 1. `gh run list`
@@ -119,7 +116,7 @@ Hard rules:
 3. `gh run view <run-id> --log-failed`
 4. `gh run watch <run-id>`
 
-For failed runs, log run ID, failing job, and key error excerpt in validation/changelog notes.
+For failed runs, capture the run ID, failing job, and key error excerpt in the user-facing summary when relevant.
 
 ## Localization Guardrail
 For translation-impacting work run:
@@ -127,13 +124,13 @@ For translation-impacting work run:
 - optional strict sweep: `npm run i18n:check-parity -- --strict-orphans`
 
 ## Sensitive Data Rule
-Never include secrets, tokens, private keys, webhook signing secrets, or unredacted financial data in repository docs/logs.
+Never include secrets, tokens, private keys, webhook signing secrets, or unredacted financial data in repository docs or user-facing output.
 
 ## Local Setup Baseline
 Prerequisites:
 - Node.js `20+`
 - npm `10+`
-- Supabase CLI (for migration workflows)
+- Supabase CLI for migration workflows
 
 Bootstrap:
 1. `npm install`
@@ -149,7 +146,7 @@ Bootstrap:
 - `npm run lint`: ESLint
 - `npm test -- --run`: Vitest suite
 - `npm run e2e`: Playwright suite
-- `npm run e2e:auth-smoke`: legacy authenticated smoke checks; do not use as a product acceptance signal for the B2B pivot unless explicitly updating legacy app code
+- `npm run e2e:auth-smoke`: hidden authenticated-route smoke checks; do not use as a product acceptance signal for the B2B pivot unless explicitly updating hidden app code
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
@@ -160,16 +157,10 @@ Bootstrap:
 - `npm run payments:check-compliance-policies`: payment policy/RLS checks
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
-## Validation Command Baseline
-Minimum merge gate:
-- `npm run typecheck`
-- `npm test -- --run`
-- `npm run lint`
-
-Recommended route-level smoke checks:
+## Useful Route-Level Checks
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/smoke.spec.ts --project=chromium`
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/public-routes.spec.ts --project=chromium`
-- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for legacy authenticated-route changes
+- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for hidden authenticated-route changes
 
 Operational env controls:
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
@@ -201,7 +192,7 @@ Operational env controls:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
-  - inspect `stripe_webhook_events` and transaction logs.
+  - inspect `stripe_webhook_events` and transaction state.
 - Export jobs stuck in `pending`:
   - verify `EXPORT_JOBS_TOKEN` and scheduler wiring for `/api/internal/export-jobs`,
   - run `npm run jobs:process-exports`.

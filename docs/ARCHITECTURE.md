@@ -14,7 +14,7 @@ Future marketplace scope:
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-Former individual sample-upload workflows are legacy implementation artifacts. Do not extend them. While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable from the public web.
+While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable from the public web.
 
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
@@ -28,7 +28,7 @@ Former individual sample-upload workflows are legacy implementation artifacts. D
 ## Code Topology
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/up/callback/reset flows
-- `app/(app)/*`: legacy authenticated app, admin dashboard, and APIs
+- `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/supabase/*`: client/session/admin access wrappers
@@ -39,7 +39,7 @@ Former individual sample-upload workflows are legacy implementation artifacts. D
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
 - In landing mode, the public allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, and required metadata/assets. All other routes return `404`.
-- Legacy app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators.
+- Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators.
 
 ## Infrastructure and Deployment
 - Production runtime is self-hosted on DigitalOcean VPS.
@@ -48,17 +48,17 @@ Former individual sample-upload workflows are legacy implementation artifacts. D
 - Deployment pipeline supports push-to-`main` and manual dispatch execution.
 - `Dockerfile` uses multi-stage build (`deps` -> `build` -> `runtime`).
 
-## Self-Hosted Supabase Runtime (Authoritative)
-Internal operations context (do not expose outside trusted internal docs):
+## Self-Hosted Supabase Runtime
+Internal operations context:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - Supabase stack path on host: `/supabase/supabase/docker`
 - Core containers observed: `supabase-db`, `supabase-kong`, `supabase-rest`, `supabase-auth`, `supabase-storage`, `supabase-studio`, `supabase-pooler`
-- Internal-only host ports (bound to localhost after the 2026-04-03 hardening pass):
+- Internal-only host ports:
   - Studio: `3001`
   - Kong gateway: `8000` (`8443` TLS)
   - Supavisor/pooler: `5432`, `6543`
-- Public routing contract after the 2026-04-03 hardening pass:
-  - `https://supabase.caudals.com/` no longer exposes Studio.
+- Public routing contract:
+  - `https://supabase.caudals.com/` does not expose Studio.
   - Public traffic is limited to the required Supabase API path prefixes routed through Traefik to Kong.
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
   - Raw host ports for Studio, Kong, analytics, and pooler are not intended to be reachable from the public internet.
@@ -75,10 +75,8 @@ Future marketplace data domains:
 - organizations: supplier companies, buyer companies, contacts, contracts
 - supplier assets: raw data source metadata, rights, consent, provenance, schema profiles
 - dataset build operations: ingestion jobs, cleaning runs, labeling batches, QA reports, acceptance criteria
-- catalog: listing metadata, samples, schemas, quality scores, pricing, delivery artifacts
+- catalog: listing metadata, previews, schemas, quality scores, pricing, delivery artifacts
 - commercial operations: buyer inquiries, quotes, subscriptions/licenses, invoices, supplier revenue share
-
-Legacy tables from the previous product are documented in `docs/generated/db-schema.md`. Do not add new behavior to those tables unless the task is explicitly a migration/deprecation step.
 
 ## Security and Reliability Anchors
 - RLS-first access model with scoped service-role usage
@@ -86,7 +84,7 @@ Legacy tables from the previous product are documented in `docs/generated/db-sch
 - Webhook replay/idempotency protections when payment code is active
 - Upload/path validation guardrails
 - Dataset rights, provenance, PII handling, and licensing auditability
-- CI quality gates and validation evidence for release confidence
+- CI quality gates for release confidence
 
 ## Core Lifecycle Flows
 1. Public demand capture:
@@ -94,7 +92,7 @@ Legacy tables from the previous product are documented in `docs/generated/db-sch
 2. Supplier data monetization:
    - company offers data -> Caudals validates rights and feasibility -> Caudals ingests/processes/curates -> dataset is listed or matched privately.
 3. Buyer dataset acquisition:
-   - company describes dataset need -> Caudals finds or builds dataset -> buyer reviews sample/QA report -> license and delivery complete.
+   - company describes dataset need -> Caudals finds or builds dataset -> buyer reviews preview/QA report -> license and delivery complete.
 4. Internal operations:
    - Caudals tracks leads, supplier assets, build status, QA, compliance, pricing, and delivery from a private admin dashboard.
 
@@ -106,14 +104,10 @@ Mature current areas:
 - private infrastructure access hardening
 
 Active drift risks:
-- legacy app, schema, copy, tests, and payments still reflect the retired product model
-- marketplace relaunch requires a schema and IA rebuild, not small copy edits on old routes
+- hidden app, schema, copy, and payments still reflect pre-pivot assumptions
+- marketplace relaunch requires a schema and IA rebuild, not small copy edits on hidden routes
 - public SEO metadata and blog content must stay aligned with B2B dataset operations
 
 ## Linked References
-- `docs/PLAN.md`
-- `docs/generated/db-schema.md`
-- `docs/product-specs/platform-overview.md`
-- `docs/product-specs/marketplace-operations.md`
-- `docs/product-specs/service-tiers.md`
-- `docs/TOOLS.md`
+- `product-specs/overview.md`
+- `TOOLS.md`
