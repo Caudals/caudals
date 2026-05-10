@@ -37,6 +37,7 @@
 - Removed the legacy Supabase-backed notification bell/actions from the Operator Console shell.
 - Deleted unreferenced legacy requester/contributor action files and the unused duplicate route guard.
 - Switched the visible operator auth shell to Better Auth: sign-in, reset-password, sign-out menus, `/api/user/role`, `/auth/callback`, and proxy session handling no longer use Supabase Auth.
+- Switched `/api/analytics/track` optional user attribution from Supabase Auth/profile lookups to the Better Auth operator session helper.
 
 ## Deviations
 
@@ -45,7 +46,7 @@
 
 ## Known Gaps
 
-- Supabase is still present in legacy admin/payment/upload/analytics data paths. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
+- Supabase is still present in legacy admin/payment/upload data paths and analytics event storage. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
@@ -128,3 +129,4 @@
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching the visible auth shell; lint still reports the existing 28 warnings.
 - `translations-source.json`, `translations-es.json`, and `lib/i18n/es.json` parsed successfully after adding the Better Auth sign-in and password-reset strings.
 - `rg -n "createClient|supabase\\.auth|signInWith|resetPasswordForEmail|exchangeCodeForSession|onAuthStateChange" app/\(auth\) components/app components/ui/header.tsx lib/auth lib/middleware proxy.ts app/\(app\)/api/user -g '*.ts' -g '*.tsx'` found no remaining Supabase Auth usage in the active auth shell; only the command palette still imports the Supabase client for legacy search data.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `npx vitest run lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/analytics/track` user attribution to Better Auth; lint still reports the existing 28 warnings.
