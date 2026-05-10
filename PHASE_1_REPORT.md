@@ -12,6 +12,8 @@
 - License-composition logic that intersects permitted uses, geography, terms, exclusivity, and share-alike constraints before build planning.
 - Operator console v0 on `/admin` with all 13 Phase 1 modules, a build-detail reference view, G-1..G-7 gate visualization, simulated five-build queue, license planner result, lineage feed, audit overlay, and state-machine coverage.
 - Server action contract for validating operator state transitions and producing audit payloads.
+- Self-hosted PostgreSQL operator-core schema baseline and rollback under `db/`.
+- Initial Supabase-to-Postgres migration report at `docs/migrations/supabase-to-postgres.md`.
 
 ## Deviations
 
@@ -26,6 +28,7 @@
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
 - Better Auth, mandatory MFA, JIT elevation, and operator-account migration are not implemented yet.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
+- The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
 
 ## Verification
 
@@ -35,3 +38,4 @@
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
+- `db/migrations/001_operator_core.sql` and `db/rollbacks/001_operator_core_down.sql` applied cleanly against a temporary `supabase/postgres:15.8.1.085` container with pgvector available.
