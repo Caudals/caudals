@@ -41,6 +41,7 @@
 - Switched `/api/upload` authentication from Supabase Auth/profile checks to active Better Auth operator sessions and narrowed uploads/deletes to operator-owned Spaces paths outside admin role override.
 - Removed the command palette's legacy Supabase-backed dataset/support-ticket search; it now exposes operator module navigation and actions without browser Supabase clients.
 - Deleted unused Supabase browser auth helper files; only legacy server/admin Supabase wrappers remain during data migration.
+- Deleted the unused pre-pivot admin component/action island, including legacy admin tables, dialogs, analytics widgets, requester/contributor validators, admin action tests, and the Supabase-backed `admin-actions` module.
 
 ## Deviations
 
@@ -49,7 +50,7 @@
 
 ## Known Gaps
 
-- Supabase is still present in legacy admin/payment data paths and analytics event storage. `/api/upload` now writes files to DO Spaces with Better Auth operator sessions, but legacy dataset edit actions still use Supabase data reads/writes until the Postgres account/data migration lands.
+- Supabase is still present in legacy payment actions, Stripe webhook support helpers, rate limiting, export jobs, waitlist ingestion, and analytics event storage while those data paths are migrated.
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
@@ -136,3 +137,4 @@
 - `npm run typecheck`, `npx vitest run lib/storage/client-upload.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/upload` to Better Auth operator sessions; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the command palette Supabase browser-client search; lint still reports the existing 28 warnings.
 - `rg -n "@/lib/supabase/client|client-implicit|enforce-implicit-flow|createBrowserClient" app components lib -g '*.ts' -g '*.tsx'`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting unused Supabase browser auth helpers; lint still reports the existing 28 warnings.
+- `npm run typecheck`, `npx vitest run lib/operator/console-repository.test.ts lib/operator/workflows.test.ts lib/operator/license-composition.test.ts lib/actions/operator-console-actions.test.ts lib/phase-one-surface-gates.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting the unused legacy admin component/action island; lint now reports the remaining 23 payment-action warnings.
