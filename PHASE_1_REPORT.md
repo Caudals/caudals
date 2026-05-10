@@ -35,6 +35,7 @@
 - Added the Better Auth PostgreSQL scaffold at `/api/auth/[...all]` with organization/team, TOTP, passkey, hardened cookie, disabled self-serve sign-up, and future client wrapper wiring.
 - Added prefixed Better Auth identity tables in `db/migrations/003_better_auth_identity.sql` with rollback and DB-side prefixed-ID checks.
 - Removed the legacy Supabase-backed notification bell/actions from the Operator Console shell.
+- Deleted unreferenced legacy requester/contributor action files and the unused duplicate route guard.
 
 ## Deviations
 
@@ -121,3 +122,4 @@
 - Better Auth migration introspection reported no pending `toBeCreated` or `toBeAdded` tables after applying `003_better_auth_identity.sql`.
 - `npx vitest run lib/auth/better-auth-options.test.ts lib/landing-mode.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the prefixed identity migration; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the legacy notification bell/actions; lint still reports the existing 28 warnings.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting unreferenced legacy action files; lint still reports the existing 28 warnings.
