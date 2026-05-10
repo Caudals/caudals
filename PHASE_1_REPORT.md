@@ -2,8 +2,8 @@
 
 ## Current Slice Plan
 
-- Remove the final live Supabase admin data path from the Stripe webhook stack.
-- Preserve Stripe webhook replay safety through the self-hosted PostgreSQL migration path while leaving pre-pivot payment side effects hidden/decommissioned.
+- Restore deterministic Better Auth/Postgres fixtures so authenticated Operator Console smoke can run against the Phase 1 schema.
+- Replace stale Supabase-auth Playwright assumptions with a shared Better Auth session helper.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -49,6 +49,8 @@
 - Moved analytics event ingestion from Supabase admin writes to the self-hosted PostgreSQL client with `db/migrations/006_product_analytics_event.sql`.
 - Deleted the stale legacy requester dataset-export job route/module and removed its broken package script and operational docs references.
 - Replaced the legacy Stripe wallet/payment side-effect webhook path with replay-safe webhook intake on self-hosted PostgreSQL via `db/migrations/007_stripe_webhook_event.sql`.
+- Added deterministic Operator Console fixture scripts that seed a Better Auth fixture admin, operator row, five demo builds, G-1..G-7 gate events, rights/privacy/commercial records, lineage, and audit rows into the Phase 1 Postgres schema.
+- Updated authenticated Playwright smoke specs to use a shared Better Auth session-cookie helper instead of duplicated Supabase-era cookie checks.
 
 ## Deviations
 
@@ -60,10 +62,10 @@
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
-- The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
+- The five concurrent builds are seeded for disposable/local test fixtures but have not been loaded into the live migrated database.
 - Better Auth now owns the visible operator auth shell, but mandatory MFA UI/enforcement, JIT elevation, and operator-account migration are not implemented yet.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
-- Operator Console Playwright smoke is authored, but it is skipped unless `PLAYWRIGHT_AUTH_E2E=true` fixture auth is available.
+- Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
 - The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
 
@@ -162,3 +164,6 @@
 - `db/migrations/001_operator_core.sql` through `db/migrations/007_stripe_webhook_event.sql`, a webhook replay insert/retry probe, and the `007` rollback passed against a temporary `pgvector/pgvector:pg16` container; the full `001`-`007` rollback sequence also passed on that image. The heavier `supabase/postgres:15.8.1.085` image hit a Supabase GraphQL event-trigger/OID issue during full rollback cleanup on this VPS, so the verification used the lighter pgvector runtime with the same required extensions.
 - `rg -n "@supabase/supabase-js|createAdminClient|@/lib/supabase/admin|from \"@/lib/payments/ledger\"|from '@/lib/payments/ledger'|lib/jobs/payment-ledger-consistency|payments:check-ledger|payments:repair-ledger|payments:check-compliance-policies" app components lib scripts package.json package-lock.json docs/TOOLS.md docs/ARCHITECTURE.md docs/migrations/supabase-to-postgres.md -g '*.ts' -g '*.tsx' -g '*.json' -g '*.md'` found no remaining active app/docs/package references to the deleted Supabase admin wrapper, payment ledger module, or removed payment scripts.
 - `npm ls @supabase/supabase-js --depth=0` returns an empty tree after pruning local extraneous packages.
+- `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55435/postgres npm run seed:test-fixtures` and `npm run fixtures:ensure` passed against a temporary `pgvector/pgvector:pg16` database after migrations `001`-`007`; fixture counts showed 1 Better Auth user, 1 operator, 5 builds, 35 gate events, and 5 audit events.
+- `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55436/postgres ... npm run e2e:auth-smoke` passed against `next start` on `127.0.0.1:3100` with `OPERATOR_CONSOLE_DATA_SOURCE=postgres` and the seeded Better Auth fixture admin.
+- `npm run typecheck`, `npx vitest run lib/auth/better-auth-options.test.ts lib/operator/console-repository.test.ts lib/landing-mode.test.ts`, and `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after restoring fixture scripts and updating authenticated Playwright helpers.

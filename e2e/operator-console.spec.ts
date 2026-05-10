@@ -1,8 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import {
+  FIXTURE_OPERATOR_EMAIL,
+  signInAsFixtureOperator,
+} from "./helpers/auth";
 
 const AUTH_E2E_ENABLED = process.env.PLAYWRIGHT_AUTH_E2E === "true";
-const FIXTURE_PASSWORD =
-  process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
 
 const moduleTitles = [
   "Pipeline / Home",
@@ -28,26 +30,6 @@ const demoBuilds = [
   "Spanish support-ticket safety corpus",
 ];
 
-async function signIn(page: Page, email: string) {
-  await page.goto("/auth/sign-in");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(FIXTURE_PASSWORD);
-  await page.getByRole("button", { name: /sign in|iniciar sesión/i }).click();
-
-  await expect
-    .poll(
-      async () => {
-        const cookies = await page.context().cookies();
-        return cookies.some((cookie) => cookie.name.includes("-auth-token"));
-      },
-      {
-        timeout: 15_000,
-        message: `Expected auth cookie after signing in as ${email}`,
-      }
-    )
-    .toBe(true);
-}
-
 test.describe("operator console smoke", () => {
   test.skip(
     !AUTH_E2E_ENABLED,
@@ -55,7 +37,7 @@ test.describe("operator console smoke", () => {
   );
 
   test("admin can inspect the Phase 1 console surface", async ({ page }) => {
-    await signIn(page, "fixture.admin@caudals.local");
+    await signInAsFixtureOperator(page, FIXTURE_OPERATOR_EMAIL);
     await page.goto("/admin");
 
     await expect(
