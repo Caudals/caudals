@@ -20,10 +20,13 @@ import type {
   DemoBuild,
   OperatorConsoleSnapshot,
   OperatorModuleSummary,
+  OperatorModuleKey,
+  OperatorWorkItem,
 } from "@/lib/operator/console-snapshot";
 import { cn } from "@/lib/utils";
 
 type OperatorConsoleProps = {
+  activeModuleKey: OperatorModuleKey;
   snapshot: OperatorConsoleSnapshot;
   t: Translator;
 };
@@ -46,6 +49,16 @@ function statusLabel(state: BuildGate["state"], t: Translator) {
   if (state === "review") return t("Review");
   if (state === "blocked") return t("Blocked");
   return t("Pending");
+}
+
+function severityClassName(severity: OperatorWorkItem["severity"]) {
+  if (severity === "critical") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (severity === "warning") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
 function formatCurrency(value: number) {
@@ -156,8 +169,55 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
   );
 }
 
-export function OperatorConsole({ snapshot, t }: OperatorConsoleProps) {
+function WorkItemRow({ item, t }: { item: OperatorWorkItem; t: Translator }) {
+  return (
+    <div className="grid gap-3 border-t border-gray-100 py-4 first:border-t-0 lg:grid-cols-[0.8fr_1.3fr_0.75fr_0.9fr] lg:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className="rounded-full border-gray-200 bg-gray-50 font-mono text-[10px] text-gray-600"
+          >
+            {item.recordType}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn("rounded-full text-[10px]", severityClassName(item.severity))}
+          >
+            {t(item.severity)}
+          </Badge>
+        </div>
+        <p className="mt-2 truncate font-mono text-xs text-gray-500">{item.id}</p>
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-950">{item.title}</p>
+        <p className="mt-1 truncate text-xs text-gray-500">{item.detail}</p>
+      </div>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{t("State")}</p>
+        <p className="mt-1 font-mono text-xs font-semibold text-gray-950">{item.state}</p>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            {t("Next action")}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-gray-950">{t(item.nextAction)}</p>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 text-gray-300" />
+      </div>
+    </div>
+  );
+}
+
+export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsoleProps) {
   const featuredBuild = snapshot.featuredBuild;
+  const activeModule =
+    snapshot.modules.find((module) => module.key === activeModuleKey) ??
+    snapshot.modules[0];
+  const activeWorkItems = activeModule
+    ? snapshot.workItems[activeModule.key] ?? []
+    : [];
   const composed = snapshot.licensePreview.composed;
   const qaDimensions = [
     ["Completeness", "0.99"],
@@ -232,12 +292,49 @@ export function OperatorConsole({ snapshot, t }: OperatorConsoleProps) {
             <ModuleCard
               key={module.key}
               module={module}
-              active={module.key === "builds"}
+              active={module.key === activeModule?.key}
               t={t}
             />
           ))}
         </div>
       </section>
+
+      {activeModule ? (
+        <section className="rounded-xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-100 p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-950">
+                  {t(activeModule.title)} / {t("Work queue")}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">{t(activeModule.description)}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeModule.savedViews.map((view) => (
+                  <Badge
+                    key={view}
+                    variant="outline"
+                    className="rounded-full border-gray-200 bg-gray-50"
+                  >
+                    {t(view)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            {activeWorkItems.length > 0 ? (
+              activeWorkItems.map((item) => (
+                <WorkItemRow key={`${item.moduleKey}-${item.recordType}-${item.id}`} item={item} t={t} />
+              ))
+            ) : (
+              <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+                {t("No records need operator attention in this module.")}
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <div className="rounded-xl border border-gray-200 bg-white">

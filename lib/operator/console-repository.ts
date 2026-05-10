@@ -7,12 +7,14 @@ import {
 import {
   createBuildGates,
   getOperatorConsoleSnapshot,
+  groupWorkItems,
   operatorModuleSummaries,
   type BuildGate,
   type DemoBuild,
   type GateKey,
   type OperatorConsoleSnapshot,
   type OperatorModuleKey,
+  type OperatorWorkItem,
 } from "@/lib/operator/console-snapshot";
 import { createPrefixedId } from "@/lib/operator/ids";
 import {
@@ -77,6 +79,18 @@ type LicenseClauseRow = {
   term_starts_at: string | Date | null;
   term_ends_at: string | Date | null;
   share_alike: boolean;
+};
+
+type WorkItemRow = {
+  module_key: OperatorModuleKey;
+  record_type: string;
+  id: string;
+  title: string;
+  state: string;
+  detail: string | null;
+  updated_at: string | Date;
+  severity: OperatorWorkItem["severity"];
+  next_action: string | null;
 };
 
 type PersistTransitionRow = {
@@ -199,13 +213,14 @@ async function getOperatorConsoleSnapshotFromPostgres(
   session: OperatorDbSession,
   query: QueryRows
 ): Promise<OperatorConsoleSnapshot> {
-  const [moduleRows, buildRows, auditRows, lineageRows, licenseRows] =
+  const [moduleRows, buildRows, auditRows, lineageRows, licenseRows, workItemRows] =
     await Promise.all([
       query<ModuleCountRow>(moduleCountsSql, [], session),
       query<BuildRow>(buildsSql, [], session),
       query<AuditEventRow>(auditRowsSql, [], session),
       query<LineageRow>(lineageRowsSql, [], session),
       query<LicenseClauseRow>(licenseRowsSql, [], session),
+      query<WorkItemRow>(moduleWorkItemsSql, [], session),
     ]);
 
   const modules = mergeModuleCounts(moduleRows);
@@ -246,6 +261,7 @@ async function getOperatorConsoleSnapshotFromPostgres(
         [...definition.states],
       ])
     ) as Record<WorkflowName, string[]>,
+    workItems: groupWorkItems(workItemRows.map(mapWorkItemRow)),
     lineageEvents: lineageRows.map((row) => ({
       id: row.id,
       namespace: row.namespace,
@@ -260,6 +276,20 @@ async function getOperatorConsoleSnapshotFromPostgres(
       target: row.target,
       createdAt: normalizeDate(row.created_at),
     })),
+  };
+}
+
+function mapWorkItemRow(row: WorkItemRow): OperatorWorkItem {
+  return {
+    moduleKey: row.module_key,
+    recordType: row.record_type,
+    id: row.id,
+    title: row.title,
+    state: row.state,
+    detail: row.detail ?? "",
+    updatedAt: normalizeDate(row.updated_at),
+    severity: row.severity,
+    nextAction: row.next_action ?? "Review",
   };
 }
 
@@ -590,4 +620,333 @@ const licenseRowsSql = `
   WHERE state = 'active' AND deleted_at IS NULL
   ORDER BY created_at DESC
   LIMIT 20
+`;
+
+const moduleWorkItemsSql = `
+  WITH work_items AS (
+    SELECT
+      'pipeline'::text AS module_key,
+      'build'::text AS record_type,
+      b.id,
+      b.title,
+      b.state,
+      COALESCE('ETA ' || to_char(b.eta_at, 'DD Mon'), 'No ETA') AS detail,
+      b.updated_at,
+      CASE WHEN b.state = 'rework' THEN 'critical' ELSE 'warning' END AS severity,
+      CASE WHEN b.state = 'rework' THEN 'Assign rework owner' ELSE 'Review next gate' END AS next_action
+    FROM build b
+    WHERE b.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'pipeline',
+      'alert',
+      al.id,
+      al.title,
+      al.state,
+      COALESCE(al.target_type || '/' || al.target_id, al.severity),
+      al.updated_at,
+      CASE WHEN al.severity = 'critical' THEN 'critical' ELSE 'warning' END,
+      'Acknowledge alert'
+    FROM alert al
+    WHERE al.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'leads',
+      'buyer_opportunity',
+      bo.id,
+      bo.title,
+      bo.state,
+      COALESCE(bo.modality, bo.timeline, 'Buyer opportunity'),
+      bo.updated_at,
+      CASE WHEN bo.state = 'closed_lost' THEN 'critical' ELSE 'info' END,
+      'Advance buyer stage'
+    FROM buyer_opportunity bo
+    WHERE bo.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'leads',
+      'supplier_opportunity',
+      so.id,
+      so.title,
+      so.state,
+      so.asset_summary,
+      so.updated_at,
+      CASE WHEN so.state = 'terminated' THEN 'critical' ELSE 'info' END,
+      'Advance supplier stage'
+    FROM supplier_opportunity so
+    WHERE so.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'suppliers',
+      'supplier_asset',
+      sa.id,
+      sa.name,
+      sa.state,
+      sa.modality || ' / ' || sa.sensitivity,
+      sa.updated_at,
+      CASE WHEN sa.state = 'blocked' THEN 'critical' WHEN sa.state = 'rights_review' THEN 'warning' ELSE 'info' END,
+      'Review asset rights'
+    FROM supplier_asset sa
+    WHERE sa.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'suppliers',
+      'contract',
+      ct.id,
+      ct.contract_type || ' contract',
+      ct.state,
+      COALESCE(ct.document_uri, 'Document pending'),
+      ct.updated_at,
+      CASE WHEN ct.state IN ('drafting','awaiting_buyer','awaiting_supplier') THEN 'warning' ELSE 'info' END,
+      'Review contract'
+    FROM contract ct
+    WHERE ct.deleted_at IS NULL AND ct.contract_type IN ('supplier','nda','dpa')
+    UNION ALL
+    SELECT
+      'buyers',
+      'dataset_brief',
+      db.id,
+      db.title,
+      db.state,
+      COALESCE(array_to_string(db.target_formats, ', '), 'No target formats'),
+      db.updated_at,
+      CASE WHEN db.state IN ('new','scoped','quoted') THEN 'warning' ELSE 'info' END,
+      'Review buyer brief'
+    FROM dataset_brief db
+    WHERE db.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'buyers',
+      'delivery',
+      dl.id,
+      'Delivery ' || dl.channel,
+      dl.state,
+      COALESCE(dl.dataset_version_id, 'No dataset version'),
+      dl.updated_at,
+      CASE WHEN dl.state = 'disputed' THEN 'critical' ELSE 'info' END,
+      'Review delivery'
+    FROM delivery dl
+    WHERE dl.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'builds',
+      'build',
+      b.id,
+      b.title,
+      b.state,
+      COALESCE('Q-score ' || b.q_score::text, 'No QA score'),
+      b.updated_at,
+      CASE WHEN b.state = 'rework' THEN 'critical' WHEN b.state IN ('qa','packaging') THEN 'warning' ELSE 'info' END,
+      'Open build detail'
+    FROM build b
+    WHERE b.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
+      'dataset_version',
+      dv.id,
+      d.name || ' ' || dv.version_label,
+      dv.state,
+      COALESCE(dv.record_count::text || ' records', dv.manifest_uri),
+      dv.updated_at,
+      CASE WHEN dv.state = 'draft' THEN 'warning' ELSE 'info' END,
+      'Review dataset version'
+    FROM dataset_version dv
+    JOIN dataset d ON d.id = dv.dataset_id
+    WHERE dv.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'quality',
+      'qa_report',
+      qr.id,
+      COALESCE(b.title, 'QA report'),
+      qr.verdict,
+      COALESCE('Composite ' || qr.composite_score::text, 'No composite score'),
+      qr.updated_at,
+      CASE WHEN qr.verdict = 'fail' THEN 'critical' WHEN qr.verdict = 'review' THEN 'warning' ELSE 'info' END,
+      'Review QA report'
+    FROM qa_report qr
+    LEFT JOIN build b ON b.id = qr.build_id
+    WHERE qr.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'quality',
+      'label_batch',
+      lb.id,
+      COALESCE(b.title, 'Label batch'),
+      lb.state,
+      'Queue depth ' || lb.queue_depth::text,
+      lb.updated_at,
+      CASE WHEN lb.state = 'in_adjudication' THEN 'warning' ELSE 'info' END,
+      'Review label batch'
+    FROM label_batch lb
+    LEFT JOIN build b ON b.id = lb.build_id
+    WHERE lb.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'privacy',
+      'dsar_request',
+      ds.id,
+      ds.request_type || ' request',
+      ds.state,
+      'SLA ' || to_char(ds.sla_due_at, 'DD Mon'),
+      ds.updated_at,
+      CASE WHEN ds.state <> 'completed' AND ds.sla_due_at < now() + interval '7 days' THEN 'warning' ELSE 'info' END,
+      'Review DSAR'
+    FROM dsar_request ds
+    WHERE ds.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'privacy',
+      'pii_map',
+      pm.id,
+      COALESCE(pm.dataset_version_id, 'PII map'),
+      pm.state,
+      'PII treatment review',
+      pm.updated_at,
+      CASE WHEN pm.state = 'blocked' THEN 'critical' WHEN pm.state = 'review' THEN 'warning' ELSE 'info' END,
+      'Review PII map'
+    FROM pii_map pm
+    WHERE pm.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'catalogue',
+      'catalogue_listing',
+      cl.id,
+      cl.title,
+      cl.state,
+      COALESCE(cl.dataset_id, 'No dataset'),
+      cl.updated_at,
+      CASE WHEN cl.state = 'review' THEN 'warning' ELSE 'info' END,
+      'Review listing'
+    FROM catalogue_listing cl
+    WHERE cl.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'catalogue',
+      'private_offer',
+      po.id,
+      'Private offer',
+      po.state,
+      po.buyer_org_id,
+      po.updated_at,
+      CASE WHEN po.state = 'draft' THEN 'warning' ELSE 'info' END,
+      'Review private offer'
+    FROM private_offer po
+    WHERE po.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'commercials',
+      'quote',
+      qt.id,
+      'Quote ' || qt.currency || ' ' || round(qt.amount_cents / 100.0)::text,
+      qt.state,
+      COALESCE(qt.buyer_opportunity_id, 'No buyer opportunity'),
+      qt.updated_at,
+      CASE WHEN qt.state = 'draft' THEN 'warning' ELSE 'info' END,
+      'Review quote'
+    FROM quote qt
+    WHERE qt.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'commercials',
+      'payout',
+      py.id,
+      'Payout ' || py.currency || ' ' || round(py.amount_cents / 100.0)::text,
+      py.state,
+      py.supplier_org_id,
+      py.updated_at,
+      CASE WHEN py.state IN ('failed','held') THEN 'critical' ELSE 'info' END,
+      'Review payout'
+    FROM payout py
+    WHERE py.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'operations',
+      'run',
+      rn.id,
+      COALESCE(rn.external_run_id, rn.id),
+      rn.state,
+      'Retry ' || rn.retry_count::text,
+      rn.updated_at,
+      CASE WHEN rn.state = 'failed' THEN 'critical' WHEN rn.state = 'queued' THEN 'warning' ELSE 'info' END,
+      'Review run'
+    FROM run rn
+    WHERE rn.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'operations',
+      'cost_entry',
+      ce.id,
+      ce.category || ' cost',
+      ce.currency,
+      round(ce.amount_cents / 100.0)::text,
+      ce.created_at,
+      'info',
+      'Review cost entry'
+    FROM cost_entry ce
+    UNION ALL
+    SELECT
+      'audit',
+      'audit_event',
+      ae.id,
+      ae.action,
+      ae.target_type,
+      ae.target_type || '/' || ae.target_id,
+      ae.created_at,
+      'info',
+      'Open audit event'
+    FROM audit_event ae
+    UNION ALL
+    SELECT
+      'settings',
+      'integration',
+      i.id,
+      i.provider,
+      i.state,
+      'Encrypted integration config',
+      i.updated_at,
+      CASE WHEN i.state = 'revoked' THEN 'critical' WHEN i.state = 'paused' THEN 'warning' ELSE 'info' END,
+      'Review integration'
+    FROM integration i
+    WHERE i.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'settings',
+      'signing_key',
+      sk.id,
+      sk.algorithm || ' signing key',
+      sk.state,
+      sk.public_key,
+      sk.updated_at,
+      CASE WHEN sk.state = 'revoked' THEN 'critical' WHEN sk.state = 'retired' THEN 'warning' ELSE 'info' END,
+      'Review signing key'
+    FROM signing_key sk
+    WHERE sk.deleted_at IS NULL
+  ),
+  ranked AS (
+    SELECT
+      *,
+      row_number() OVER (
+        PARTITION BY module_key
+        ORDER BY
+          CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+          updated_at DESC,
+          id
+      ) AS work_rank
+    FROM work_items
+  )
+  SELECT
+    module_key,
+    record_type,
+    id,
+    title,
+    state,
+    detail,
+    updated_at,
+    severity,
+    next_action
+  FROM ranked
+  WHERE work_rank <= 4
+  ORDER BY module_key, work_rank
 `;
