@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Supabase remains live and must not be decommissioned until the new self-hosted PostgreSQL stack has run against migrated internal data for at least 48 hours and a final encrypted backup has been taken.
+In progress. Supabase remains live and must not be decommissioned until the migration report records the dump, transform, load, sampled diff verification, final encrypted backup, and explicit decommission approval.
 
 ## Current Slice
 
@@ -18,9 +18,10 @@ In progress. Supabase remains live and must not be decommissioned until the new 
 - Added `db/migrations/005_waitlist_signup.sql` and rollback for public waitlist persistence on self-hosted PostgreSQL.
 - Added `db/migrations/006_product_analytics_event.sql` and rollback for first-party analytics event ingestion on self-hosted PostgreSQL.
 - Added `db/migrations/007_stripe_webhook_event.sql` and rollback for replay-safe Stripe webhook intake on self-hosted PostgreSQL.
+- Added `db/migrations/008_operator_elevation.sql` and rollback for time-bounded operator JIT production-DB elevation grants with audit rows.
 
 ## Not Done Yet
 
 - Supabase data dump, transform, load, row-count verification, and sampled diff.
 - Better Auth account migration and first-login password reset flow.
-- 48-hour internal-use gate and final Supabase backup/decommission.
+- Final Supabase backup and explicit decommission approval.

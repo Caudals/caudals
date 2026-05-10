@@ -42,7 +42,7 @@ Target Phase 1 runtime:
 Direct SSH runtime inspection is allowed when local context is stale:
 - `ssh root@ubuntu-caudals`
 
-Legacy Supabase containers may still exist during migration. Do not stop or delete them until the migration report records a successful final encrypted backup and the required 48-hour internal-use gate.
+Legacy Supabase containers may still exist during migration. Do not stop or delete them until the migration report records a successful final encrypted backup and explicit decommission approval.
 
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
@@ -83,6 +83,8 @@ Current scaffold:
 - Client wrapper for future UI migration: `lib/auth/better-auth-client.ts`
 - Next.js endpoint: `app/(app)/api/auth/[...all]/route.ts`
 - Identity schema migration: `db/migrations/003_better_auth_identity.sql`
+- JIT production-DB elevation: `db/migrations/008_operator_elevation.sql`,
+  `lib/auth/operator-elevation.ts`, and `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
 
 Install caveat:
 - Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.

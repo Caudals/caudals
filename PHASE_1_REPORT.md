@@ -2,8 +2,9 @@
 
 ## Current Slice Plan
 
-- Restore deterministic Better Auth/Postgres fixtures so authenticated Operator Console smoke can run against the Phase 1 schema.
-- Replace stale Supabase-auth Playwright assumptions with a shared Better Auth session helper.
+- Add the Phase 1 JIT elevation database contract for audited production DB access.
+- Wire service-role DB sessions so Operator Console can require an active time-bounded elevation grant.
+- Keep deterministic fixtures compatible with the stricter JIT mode.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -51,6 +52,8 @@
 - Replaced the legacy Stripe wallet/payment side-effect webhook path with replay-safe webhook intake on self-hosted PostgreSQL via `db/migrations/007_stripe_webhook_event.sql`.
 - Added deterministic Operator Console fixture scripts that seed a Better Auth fixture admin, operator row, five demo builds, G-1..G-7 gate events, rights/privacy/commercial records, lineage, and audit rows into the Phase 1 Postgres schema.
 - Updated authenticated Playwright smoke specs to use a shared Better Auth session-cookie helper instead of duplicated Supabase-era cookie checks.
+- Added the `operator_elevation` migration/rollback and server helpers for time-bounded production DB JIT elevation grants, revocation, active-grant checks, and audit-event writes.
+- Added the DB-session hook so service-role Operator Console queries can opt into `production_db` elevation enforcement with `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`.
 
 ## Deviations
 
@@ -63,10 +66,10 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are seeded for disposable/local test fixtures but have not been loaded into the live migrated database.
-- Better Auth now owns the visible operator auth shell, but mandatory MFA UI/enforcement, JIT elevation, and operator-account migration are not implemented yet.
+- Better Auth now owns the visible operator auth shell, but mandatory MFA UI/enforcement and operator-account migration are not implemented yet. JIT elevation has a DB contract and server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
-- Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
+- Supabase decommissioning is blocked by live dump/load verification, final-backup confirmation, and explicit decommission approval.
 - The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
 
 ## Verification
@@ -167,3 +170,6 @@
 - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55435/postgres npm run seed:test-fixtures` and `npm run fixtures:ensure` passed against a temporary `pgvector/pgvector:pg16` database after migrations `001`-`007`; fixture counts showed 1 Better Auth user, 1 operator, 5 builds, 35 gate events, and 5 audit events.
 - `DATABASE_URL=postgres://postgres:postgres@127.0.0.1:55436/postgres ... npm run e2e:auth-smoke` passed against `next start` on `127.0.0.1:3100` with `OPERATOR_CONSOLE_DATA_SOURCE=postgres` and the seeded Better Auth fixture admin.
 - `npm run typecheck`, `npx vitest run lib/auth/better-auth-options.test.ts lib/operator/console-repository.test.ts lib/landing-mode.test.ts`, and `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after restoring fixture scripts and updating authenticated Playwright helpers.
+- `npx vitest run lib/db/operator-elevation.test.ts lib/operator/console-repository.test.ts lib/auth/better-auth-options.test.ts` passed with 16 tests after adding the JIT elevation hook.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the JIT elevation hook.
+- `db/migrations/001_operator_core.sql` through `db/migrations/008_operator_elevation.sql`, fixture seeding, active elevation/audit probes, and `db/rollbacks/008_operator_elevation_down.sql` passed against a temporary `pgvector/pgvector:pg16` database.

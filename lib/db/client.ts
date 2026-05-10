@@ -1,6 +1,10 @@
 import "server-only";
 
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
+import {
+  assertActiveOperatorElevation,
+  type OperatorDbElevationScope,
+} from "@/lib/db/operator-elevation";
 
 export type QueryValue =
   | string
@@ -15,6 +19,7 @@ export type OperatorDbSession = {
   orgId: string;
   operatorId?: string | null;
   serviceRole?: boolean;
+  elevationScope?: OperatorDbElevationScope | null;
 };
 
 export type DbQueryClient = {
@@ -71,6 +76,7 @@ export async function withOperatorDbSession<T>(
         session.serviceRole ? "true" : "false",
       ]
     );
+    await assertActiveOperatorElevation(client, session);
 
     const result = await callback(client);
     await client.query("COMMIT");

@@ -38,6 +38,21 @@ describe("operator console repository", () => {
     );
   });
 
+  it("adds the production DB elevation scope when JIT is required", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_DATA_SOURCE", "postgres");
+    vi.stubEnv("OPERATOR_CONSOLE_ORG_ID", "or_01J2INTERNAL");
+    vi.stubEnv("OPERATOR_CONSOLE_OPERATOR_ID", "op_01J2OPS");
+    vi.stubEnv("OPERATOR_CONSOLE_SERVICE_ROLE", "true");
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION", "true");
+
+    expect(getOperatorConsolePostgresSessionFromEnv()).toEqual({
+      orgId: "or_01J2INTERNAL",
+      operatorId: "op_01J2OPS",
+      serviceRole: true,
+      elevationScope: "production_db",
+    });
+  });
+
   it("maps postgres rows into the console snapshot shape", async () => {
     const query = vi.fn(async (sql: string) => {
       if (sql.includes("module_counts")) {

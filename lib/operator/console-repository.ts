@@ -22,6 +22,7 @@ import {
   type WorkflowName,
 } from "@/lib/operator/workflows";
 import { queryRows, type OperatorDbSession, type QueryValue } from "@/lib/db/client";
+import { PRODUCTION_DB_ELEVATION_SCOPE } from "@/lib/db/operator-elevation";
 
 export type QueryRows = <T extends Record<string, unknown>>(
   sql: string,
@@ -175,6 +176,10 @@ export function getOperatorConsolePostgresSessionFromEnv(): OperatorDbSession {
     orgId,
     operatorId: process.env.OPERATOR_CONSOLE_OPERATOR_ID ?? null,
     serviceRole: process.env.OPERATOR_CONSOLE_SERVICE_ROLE === "true",
+    elevationScope:
+      process.env.OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION === "true"
+        ? PRODUCTION_DB_ELEVATION_SCOPE
+        : null,
   };
 }
 
