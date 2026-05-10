@@ -63,6 +63,7 @@
 - Kept landing mode narrow while allowing `/auth`, `/api/auth`, and `/admin` so the current production surface is public funnel plus private admin.
 - Added and applied `npm run migrate:public-funnel` for legacy public-funnel waitlist, analytics, Stripe webhook replay, and rate-limit rows.
 - Sent Better Auth password-reset requests for the 4 migrated operator accounts through the deployed app.
+- Created and verified a local encrypted Supabase database backup under `/root/.caudals/backups`.
 
 ## Deviations
 
@@ -78,7 +79,7 @@
 - Better Auth now owns the visible operator auth shell. Operator-account migration and reset-password requests have been applied to `caudals-postgres`; JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
-- Supabase decommissioning is blocked by final-backup confirmation and explicit decommission approval.
+- Supabase decommissioning is blocked by missing Spaces credentials for off-host backup upload and explicit decommission approval.
 
 ## Verification
 
@@ -204,3 +205,4 @@
 - Target public-funnel counts after apply: 9 waitlist signups, 1,331 analytics events including live smoke traffic, 19 Stripe webhook events, and 251 rate-limit rows including live smoke keys.
 - Migrated subset verification matched deterministic target keys and sampled status/timestamp fields for waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, and abuse 249/249.
 - `npm run migrate:supabase-auth -- --apply --send-resets` passed from a short-lived container; target verification showed 4 auth users, 4 operators, 4 migration audit events, and 4 recent Better Auth verification records.
+- `pg_dump -Fc` of the legacy Supabase database was encrypted locally with OpenSSL AES-256-CBC/PBKDF2; decrypt + `pg_restore -l` verified 943 archive entries.
