@@ -34,7 +34,6 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
-- `lib/supabase/admin.ts`: legacy Supabase service-role wrapper during remaining data-path migration
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 
