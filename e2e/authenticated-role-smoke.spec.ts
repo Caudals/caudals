@@ -58,34 +58,6 @@ test.describe("authenticated role journeys", () => {
     ).toBeVisible();
   });
 
-  test("contributor can access role home and contributions workspace", async ({
-    page,
-  }) => {
-    await signIn(page, "fixture.contributor@caudals.local");
-    await page.goto("/contributor");
-    await expect(
-      page.getByText(
-        /contributor dashboard|contribution command center|panel de colaborador/i,
-      ),
-    ).toBeVisible();
-
-    await page.goto("/contributor/contributions");
-    await expect(page).toHaveURL(/\/contributor\/contributions/);
-    await expect(
-      page.getByRole("heading", {
-        name: /my contributions|mis contribuciones/i,
-      }),
-    ).toBeVisible();
-
-    await page.goto("/contributor/earnings");
-    await expect(page).toHaveURL(/\/contributor\/earnings/);
-    await expect(
-      page.getByRole("heading", {
-        name: /earnings and payouts|ganancias/i,
-      }),
-    ).toBeVisible();
-  });
-
   test("admin can access the operator console", async ({ page }) => {
     await signIn(page, "fixture.admin@caudals.local");
     await page.goto("/admin");

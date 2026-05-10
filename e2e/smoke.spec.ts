@@ -29,7 +29,7 @@ test.describe("core role smoke", () => {
   });
 
   test("pre-pivot self-serve routes are hidden by default", async ({ page }) => {
-    const routes = ["/requester", "/contributor"];
+    const routes = ["/requester"];
 
     for (const route of routes) {
       const response = await page.goto(route);
@@ -43,6 +43,9 @@ test.describe("core role smoke", () => {
 
     const browseResponse = await page.goto("/browse");
     expect(browseResponse?.status()).toBe(404);
+
+    const contributorResponse = await page.goto("/contributor");
+    expect(contributorResponse?.status()).toBe(404);
 
     const response = await page.goto("/admin/requests");
     expect(response?.status()).toBe(404);

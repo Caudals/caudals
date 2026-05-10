@@ -2209,8 +2209,6 @@ export async function deleteStripeConnectAccount() {
       syncError
     );
   }
-  revalidatePath("/contributor");
-  revalidatePath("/contributor/earnings");
 
   return { data: { deleted: true } };
 }

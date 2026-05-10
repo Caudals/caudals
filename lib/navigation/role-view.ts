@@ -1,11 +1,8 @@
-export type ViewKey = "requester" | "contributor" | "admin";
+export type ViewKey = "requester" | "admin";
 
 export function resolveViewKey(pathname: string, userRole?: string | null): ViewKey {
   if (pathname.startsWith("/admin")) {
     return "admin";
-  }
-  if (pathname.startsWith("/contributor")) {
-    return "contributor";
   }
   if (pathname.startsWith("/requester")) {
     return "requester";
@@ -13,9 +10,6 @@ export function resolveViewKey(pathname: string, userRole?: string | null): View
 
   if (userRole === "admin") {
     return "admin";
-  }
-  if (userRole === "contributor") {
-    return "contributor";
   }
   return "requester";
 }
@@ -25,9 +19,6 @@ export function resolveSettingsHref(pathname: string, userRole?: string | null):
 
   if (viewKey === "admin") {
     return "/admin?module=settings";
-  }
-  if (viewKey === "contributor") {
-    return "/contributor/settings";
   }
   return "/requester/settings";
 }

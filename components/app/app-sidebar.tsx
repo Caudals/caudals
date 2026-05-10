@@ -21,7 +21,6 @@ import {
   Shield,
   UserPlus,
   Users,
-  Wallet,
   LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
@@ -101,24 +100,6 @@ const requesterNav: NavGroup[] = [
     items: [
       { title: "Billing & payouts", icon: CreditCard, href: "/requester/billing" },
     ],
-  },
-];
-
-const contributorNav: NavGroup[] = [
-  {
-    group: "Overview",
-    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/contributor", exact: true }],
-  },
-  {
-    group: "Work queue",
-    items: [
-      { title: "My contributions", icon: FileUp, href: "/contributor/contributions" },
-      { title: "Browse opportunities", icon: Database, href: "/contributor/browse" },
-    ],
-  },
-  {
-    group: "Finance & earnings",
-    items: [{ title: "Earnings & payouts", icon: Wallet, href: "/contributor/earnings" }],
   },
 ];
 
@@ -275,10 +256,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     navGroups = adminNav;
     viewLabel = "Admin";
     homeHref = "/admin";
-  } else if (viewKey === "contributor") {
-    navGroups = contributorNav;
-    viewLabel = "Contributor";
-    homeHref = "/contributor";
   }
 
   const footerLinks = baseFooterLinks.map(item => {

@@ -906,8 +906,6 @@ export async function approveSubmission(submissionId: string, notes?: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/contributor");
-  revalidatePath("/contributor/contributions");
 
   return { data };
 }

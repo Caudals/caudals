@@ -13,7 +13,7 @@ import {
 
 interface RoleSwitcherProps {
   userRole: string;
-  currentView: string; // "admin", "requester", or "contributor"
+  currentView: string;
   isCollapsed?: boolean;
 }
 
@@ -29,12 +29,6 @@ const roleOptions = [
     label: "Requester View",
     description: "Dataset operations, funding, and exports",
     href: "/requester",
-  },
-  {
-    value: "contributor",
-    label: "Contributor View",
-    description: "Contribution pipeline and payout progress",
-    href: "/contributor",
   },
 ] as const;
 

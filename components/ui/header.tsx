@@ -60,9 +60,9 @@ export function Header({ links, translucent = false, hideActions = false }: Head
   const dashboardHref =
     userRole === "admin"
       ? "/admin"
-      : userRole === "contributor"
-        ? "/contributor"
-        : "/requester";
+      : userRole === "requester"
+        ? "/requester"
+        : "/";
 
   const renderDesktopActions = () => {
     if (isLandingMode) {

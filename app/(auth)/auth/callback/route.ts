@@ -47,8 +47,6 @@ export async function GET(request: Request) {
         redirectPath = "/requester";
       } else if (userRole === "admin") {
         redirectPath = "/admin";
-      } else if (userRole === "contributor") {
-        redirectPath = "/contributor";
       } else {
         redirectPath = "/requester";
       }
