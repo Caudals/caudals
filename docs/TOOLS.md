@@ -176,12 +176,13 @@ Operational env controls:
 - `DATABASE_URL`
 - `DATABASE_URL_FILE` (Docker secret-file fallback; `DATABASE_URL` wins when both are set)
 - `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
 ## Environment Variable Categories
-- PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
 - Legacy migration-only auth/data: legacy variables remain until the migration report authorizes removal
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
