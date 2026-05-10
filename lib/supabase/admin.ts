@@ -4,13 +4,6 @@ import type { Database } from "@/types/database";
 export const SERVICE_ROLE_SCOPES = [
   "payments_ledger",
   "stripe_webhooks",
-  "admin_operations",
-  "notifications",
-  "file_uploads",
-  "waitlist_intake",
-  "abuse_controls",
-  "retention_jobs",
-  "export_jobs",
 ] as const;
 
 export type ServiceRoleScope = (typeof SERVICE_ROLE_SCOPES)[number];
