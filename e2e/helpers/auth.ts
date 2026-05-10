@@ -30,7 +30,7 @@ export async function signInAsFixtureOperator(
         return cookies.some((cookie) => isBetterAuthSessionCookie(cookie.name));
       },
       {
-        timeout: 15_000,
+        timeout: 45_000,
         message: `Expected Better Auth session cookie after signing in as ${email}`,
       }
     )

@@ -67,6 +67,7 @@
 - Added module-specific Operator Console work queues backed by live Postgres records across all 13 Phase 1 modules, with `/admin?module=` selection and fixture parity.
 - Added inline work-queue state transitions that call the validated server action, update optimistically, and surface conflict/audit-write feedback.
 - Restored the `npm run i18n:check-parity` guardrail and brought the Spanish dictionaries back to source-key parity.
+- Hardened authenticated Playwright smoke coverage for cold local Next compilation by extending admin-smoke timeouts and scoping console locators.
 
 ## Deviations
 
@@ -83,7 +84,6 @@
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Supabase decommissioning is blocked by missing Spaces credentials for off-host backup upload and explicit decommission approval.
-- Local disposable-Postgres Playwright auth smoke currently stalls at fixture Better Auth sign-in before reaching `/admin`; the inline transition UI is covered by type/lint/build/unit checks until that harness is repaired.
 
 ## Verification
 
@@ -212,4 +212,5 @@
 - `pg_dump -Fc` of the legacy Supabase database was encrypted locally with OpenSSL AES-256-CBC/PBKDF2; decrypt + `pg_restore -l` verified 943 archive entries.
 - Live Operator Console repository verification against `caudals-postgres` returned 13 modules, 5 builds, and populated module work queues for pipeline/builds/settings.
 - `npx vitest run lib/operator/workflows.test.ts lib/operator/console-repository.test.ts lib/actions/operator-console-actions.test.ts lib/landing-mode.test.ts`, `npm run typecheck`, `npm run i18n:check-parity`, JSON parsing for translation files, and `git diff --check` passed after adding inline work-queue transitions.
-- `PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/operator-console.spec.ts --project=chromium` and `npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` were attempted against disposable local Postgres but failed before console assertions because the fixture sign-in did not issue a Better Auth session cookie.
+- `npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed against disposable local Postgres with Better Auth fixture sign-in and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.
+- `npx playwright test e2e/operator-console.spec.ts --project=chromium` passed against disposable local Postgres with Better Auth fixture sign-in, Postgres-backed console data, and inline transition UI assertions.
