@@ -29,6 +29,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
+- `app/(app)/api/auth/[...all]`: Better Auth endpoint scaffold for the PostgreSQL auth migration;
+  the visible sign-in flow still uses legacy Supabase until account migration lands
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
@@ -48,6 +50,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
+- `/api/auth/*` is the Better Auth migration endpoint outside landing mode. It remains unavailable when `LANDING_MODE=true` because only explicit public funnel APIs are allowed.
 - Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators.
 
 ## Infrastructure and Deployment

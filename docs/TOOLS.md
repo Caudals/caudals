@@ -77,6 +77,15 @@ Hard rules:
 5. Force password reset on first login after migration.
 6. Record JIT-elevation events into `audit_event`.
 
+Current scaffold:
+- Server config: `lib/auth/better-auth.ts`
+- Client wrapper for future UI migration: `lib/auth/better-auth-client.ts`
+- Next.js endpoint: `app/(app)/api/auth/[...all]/route.ts`
+
+Install caveat:
+- Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.
+  Use `npm install --legacy-peer-deps` when adding or refreshing Better Auth packages until the Vite peer range is reconciled.
+
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
 2. Forward webhooks:
