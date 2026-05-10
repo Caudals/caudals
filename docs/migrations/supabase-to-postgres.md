@@ -11,11 +11,12 @@ In progress. Supabase remains live and must not be decommissioned until the new 
 - Added `db/migrations/002_audit_event_default_partition.sql` and rollback so audit writes do not fail outside pre-created quarter partitions.
 - The schema uses ULID-prefixed text IDs, plain PostgreSQL RLS via session settings, core §28 records, state constraints from §23, audit partitioning, and Marquez-shaped lineage rows.
 - Verified the migrations and rollbacks against a temporary `supabase/postgres:15.8.1.085` container with pgvector available.
+- Removed the remaining Supabase Storage helper path. Browser uploads now delegate to `/api/upload`, active writes/deletes use DigitalOcean Spaces, and `lib/storage/get-public-url.ts` is CDN-first while still recognizing legacy absolute object URLs already stored in records.
 
 ## Not Done Yet
 
 - Supabase data dump, transform, load, row-count verification, and sampled diff.
 - Better Auth account migration.
 - Application DB client migration from Supabase to PostgreSQL.
-- DO Spaces cutover verification for every storage call site.
+- `/api/upload` still uses Supabase auth, profile, and dataset access lookups even though object storage writes are on DigitalOcean Spaces.
 - 48-hour internal-use gate and final Supabase backup/decommission.
