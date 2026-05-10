@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Supabase remains live and must not be decommissioned until the migration report records the dump, transform, load, sampled diff verification, final encrypted backup, and explicit decommission approval.
+In progress. The private `caudals-postgres` target is live on the VPS. Supabase remains live until app cutover, sampled verification, final encrypted backup, and explicit decommission approval.
 
 ## Current Slice
 
@@ -21,9 +21,15 @@ In progress. Supabase remains live and must not be decommissioned until the migr
 - Added `db/migrations/008_operator_elevation.sql` and rollback for time-bounded operator JIT production-DB elevation grants with audit rows.
 - Added `npm run migrate:supabase-auth` for apply-gated legacy Supabase admin-account migration into Better Auth/operator tables.
 - Live Supabase Auth dry-run found 4 operator accounts to migrate and 25 non-operator legacy accounts to skip.
+- Added `infra/postgres/Dockerfile` and `db/migrations/009_postgres_runtime_extensions.sql` for the Postgres 16 + pgvector + pg_cron runtime.
+- Created the private `caudals-postgres` swarm service on `dokploy-network` with a persistent volume and Docker secret-backed password.
+- Applied migrations `001` through `009` to `caudals-postgres`; verified `citext`, `pg_cron`, `pg_stat_statements`, `pg_trgm`, `pgcrypto`, and `vector`.
+- Seeded the Phase 1 fixture set into `caudals-postgres`: 5 builds and 35 gate events.
+- Applied the Supabase Auth migration to `caudals-postgres`: 4 operator accounts, 4 migration audit events, and 25 skipped non-operator accounts.
 
 ## Not Done Yet
 
-- Supabase data dump, transform, load, row-count verification, and sampled diff.
-- Run the Better Auth account migration against the live Supabase database and issue reset-password emails.
+- Public funnel data dump/transform/load row-count verification and sampled diff.
+- Point the app service at `caudals-postgres` and run the authenticated smoke against the deployed service.
+- Issue reset-password emails for migrated operators.
 - Final Supabase backup and explicit decommission approval.

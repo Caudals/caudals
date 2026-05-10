@@ -2,9 +2,9 @@
 
 ## Current Slice Plan
 
-- Enforce operator security requirements before `/admin` renders.
-- Add a Better Auth TOTP/passkey setup surface for operators who still need required factors.
-- Keep authenticated smoke fixtures compatible with the new security gate.
+- Stand up the dedicated private Postgres 16 target on the VPS.
+- Apply the Phase 1 migration chain and runtime extension migration to the live target.
+- Seed the live target with demo builds and migrate legacy operator accounts.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -56,6 +56,8 @@
 - Added the DB-session hook so service-role Operator Console queries can opt into `production_db` elevation enforcement with `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`.
 - Added `npm run migrate:supabase-auth`, an apply-gated Postgres-to-Postgres migration script that maps legacy Supabase admin accounts into Better Auth users/accounts, operator rows, org membership, and audit events.
 - Added `/auth/security`, operator security-status checks, `/admin` MFA/passkey enforcement, TOTP challenge handling on sign-in, and passkey registration for production-role operators.
+- Added `infra/postgres/Dockerfile` and `db/migrations/009_postgres_runtime_extensions.sql` for the Postgres 16 + pgvector + pg_cron runtime.
+- Created the private `caudals-postgres` swarm service on the VPS, applied migrations `001` through `009`, seeded the five-build fixture set, and applied the legacy operator-account migration.
 
 ## Deviations
 
@@ -67,12 +69,11 @@
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
-- The five concurrent builds are seeded for disposable/local test fixtures but have not been loaded into the live migrated database.
-- Better Auth now owns the visible operator auth shell. Operator-account migration has an apply-gated script and live dry-run evidence, but it has not been applied to the live target database yet. JIT elevation has a DB contract/server hook but not a full operator UI.
+- The five concurrent builds are loaded into `caudals-postgres`; the app service still needs to be pointed at this target.
+- Better Auth now owns the visible operator auth shell. Operator-account migration has been applied to `caudals-postgres`; reset-password emails for migrated operators have not been sent yet. JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
-- Supabase decommissioning is blocked by live dump/load verification, final-backup confirmation, and explicit decommission approval.
-- The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
+- Supabase decommissioning is blocked by public funnel data verification, app service cutover, final-backup confirmation, and explicit decommission approval.
 
 ## Verification
 
@@ -182,3 +183,7 @@
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after the source-only live dry-run fix.
 - `npx vitest run lib/auth/operator-security.test.ts lib/auth/supabase-auth-migration.test.ts lib/db/operator-elevation.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after adding the operator security setup gate.
 - `npm run e2e:auth-smoke` passed against `next start` on `127.0.0.1:3102` with a disposable Postgres database, seeded Better Auth fixture admin, and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.
+- `docker build -t caudals-postgres:16-pgvector-cron infra/postgres` passed and installed `postgresql-16-cron` on the pgvector Postgres 16 base image.
+- `db/migrations/001_operator_core.sql` through `db/migrations/009_postgres_runtime_extensions.sql` applied against the custom Postgres runtime; extension verification returned `citext`, `pg_cron`, `pg_stat_statements`, `pg_trgm`, `pgcrypto`, and `vector`; rollback `009` passed.
+- Live `caudals-postgres` service was created on `dokploy-network`; migrations `001` through `009` applied successfully.
+- Live `caudals-postgres` fixture/auth counts after seeding and auth migration: 4 auth users, 4 operators, 5 builds, 35 gate events, 4 account-migration audit events.
