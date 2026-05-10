@@ -60,6 +60,8 @@ test.describe("operator console smoke", () => {
 
     await expect(page.getByText(/license composition/i)).toBeVisible();
     await expect(page.getByText(/planner result/i)).toBeVisible();
+    await expect(page.getByText(/inline state transition/i).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /apply transition/i }).first()).toBeVisible();
     await expect(page.getByText(/audit overlay/i)).toBeVisible();
     await expect(page.getByText(/marquez-shaped lineage feed/i)).toBeVisible();
     await expect(page.getByText(/state-machine coverage/i)).toBeVisible();

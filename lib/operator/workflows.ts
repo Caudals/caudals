@@ -42,6 +42,18 @@ export type TransitionAuditEvent = {
   };
 };
 
+export const workflowRecordTypeMap = {
+  buyer_opportunity: "buyer_opportunity",
+  supplier_opportunity: "supplier_opportunity",
+  build: "build",
+  run: "run",
+  label_batch: "label_batch",
+  contract: "contract",
+  delivery: "delivery",
+  dsar: "dsar",
+  dsar_request: "dsar",
+} as const satisfies Record<string, WorkflowName>;
+
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
   return states.slice(0, -1).map((from, index) => ({
     from,
@@ -256,6 +268,23 @@ export function isTerminalWorkflowState(
   state: string
 ): boolean {
   return workflowDefinitions[workflow].terminalStates.includes(state);
+}
+
+export function getWorkflowNameForRecordType(
+  recordType: string
+): WorkflowName | null {
+  return workflowRecordTypeMap[
+    recordType as keyof typeof workflowRecordTypeMap
+  ] ?? null;
+}
+
+export function getNextWorkflowTransitions(
+  workflow: WorkflowName,
+  fromState: string
+): WorkflowTransition[] {
+  return workflowDefinitions[workflow].transitions.filter(
+    (transition) => transition.from === fromState
+  );
 }
 
 export function checkTransition(
