@@ -4,6 +4,7 @@ import {
   isLandingModeEnabledServer,
   isLandingModeRequestAllowed,
 } from "@/lib/landing-mode";
+import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -167,6 +168,15 @@ export async function proxy(request: NextRequest) {
       return NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
 
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+    });
+  }
+
+  if (shouldBlockPhaseOneHiddenSurface(pathname)) {
     return new NextResponse("Not Found", {
       status: 404,
       headers: {

@@ -173,7 +173,7 @@ Operational env controls:
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
-- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
+- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`, `ENABLE_LEGACY_SELF_SERVE`
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
@@ -183,6 +183,10 @@ Operational env controls:
 - Runtime: keep `LANDING_MODE=true` in Dokploy environment variables as well, or ensure Dokploy does not override the image-level value. The server-side proxy reads runtime `LANDING_MODE`.
 - Local/dev convenience: `next.config.js` mirrors `LANDING_MODE` into `NEXT_PUBLIC_LANDING_MODE` when the public flag is unset, so `.env.local` can activate the landing surface with just `LANDING_MODE=true`.
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
+
+## Phase 1 Surface Gate
+- `ENABLE_LEGACY_SELF_SERVE` defaults to off. With the default, `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` return `404` even outside landing mode.
+- Set `ENABLE_LEGACY_SELF_SERVE=true` only for controlled legacy fixture checks while the old Supabase-backed surfaces are being removed.
 
 ## Troubleshooting Quick Hits
 - `permission denied for table ...`:
@@ -194,6 +198,9 @@ Operational env controls:
   - verify `CREATE EXTENSION vector;` on a disposable database before applying migrations.
 - `Unable to acquire lock at .next/dev/lock` during Playwright:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
+- `browserType.launch: Executable doesn't exist` during Playwright:
+  - run `npx playwright install chromium`,
+  - on a fresh VPS, run `npx playwright install-deps chromium` if host libraries are missing.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
   - inspect webhook replay/idempotency tables.
