@@ -6,12 +6,8 @@ describe("resolveViewKey", () => {
     expect(resolveViewKey("/admin", "admin")).toBe("admin");
   });
 
-  it("uses current pathname view for admins browsing contributor routes", () => {
-    expect(resolveViewKey("/contributor/settings", "admin")).toBe("contributor");
-  });
-
   it("falls back to role when pathname is outside app surfaces", () => {
-    expect(resolveViewKey("/reports", "contributor")).toBe("contributor");
+    expect(resolveViewKey("/reports", "requester")).toBe("requester");
   });
 });
 
@@ -19,12 +15,6 @@ describe("resolveSettingsHref", () => {
   it("keeps admin in admin settings while on admin routes", () => {
     expect(resolveSettingsHref("/admin/requests", "admin")).toBe(
       "/admin?module=settings",
-    );
-  });
-
-  it("sends admins to contributor settings while browsing contributor view", () => {
-    expect(resolveSettingsHref("/contributor/earnings", "admin")).toBe(
-      "/contributor/settings",
     );
   });
 

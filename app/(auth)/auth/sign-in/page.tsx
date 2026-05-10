@@ -57,8 +57,6 @@ export default function SignInPage() {
 
         if (userRole === "admin") {
           redirectPath = "/admin";
-        } else if (userRole === "contributor") {
-          redirectPath = "/contributor";
         } else if (userRole === "requester") {
           redirectPath = "/requester";
         }

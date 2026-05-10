@@ -185,9 +185,10 @@ Operational env controls:
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
 
 ## Phase 1 Surface Gate
-- `ENABLE_LEGACY_SELF_SERVE` defaults to off. With the default, `/requester` and `/contributor` return `404` even outside landing mode.
+- `ENABLE_LEGACY_SELF_SERVE` defaults to off. With the default, `/requester` returns `404` even outside landing mode.
 - Set `ENABLE_LEGACY_SELF_SERVE=true` only for controlled legacy fixture checks while the old Supabase-backed surfaces are being removed.
 - `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
+- `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
 - `/dashboard` is removed and blocked during Phase 1; it is not controlled by `ENABLE_LEGACY_SELF_SERVE`.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/admin/*` legacy subroutes are removed and blocked during Phase 1; `/admin` remains the Operator Console.

@@ -25,7 +25,7 @@ async function signIn(page: Page, email: string) {
 
 test.describe("dashboard access failure states", () => {
   test("unauthenticated users are redirected from role dashboards", async ({ page }) => {
-    const protectedRoutes = ["/requester", "/contributor", "/admin"];
+    const protectedRoutes = ["/requester", "/admin"];
 
     for (const route of protectedRoutes) {
       await page.goto(route);
@@ -50,16 +50,10 @@ test.describe("multi-role dashboard QA pass", () => {
       heading: /control center|centro de control|requester workspace|espacio de solicitante/i,
     },
     {
-      name: "contributor",
-      email: "fixture.contributor@caudals.local",
-      route: "/contributor",
-      heading: /contributor dashboard|panel de colaborador/i,
-    },
-    {
       name: "admin",
       email: "fixture.admin@caudals.local",
       route: "/admin",
-      heading: /admin dashboard|panel de administración|good .*admin/i,
+      heading: /operator console/i,
     },
   ];
 

@@ -29,6 +29,7 @@
 - Deleted the legacy `/dashboard` smart-entry route, its unused dashboard component helpers, and the unused Supabase-backed dashboard actions.
 - Deleted the legacy `/pwa` companion route group and PWA-only components; the manifest now points to public landing surfaces.
 - Deleted the public `/browse` marketplace route group and browse-only submission/detail components; remaining contributor browse code no longer links to public browse detail routes.
+- Deleted the legacy `/contributor` route group, contributor-only components, and contributor-specific Supabase actions.
 
 ## Deviations
 
@@ -38,7 +39,7 @@
 ## Known Gaps
 
 - Supabase is still the current app data/auth dependency. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
-- Remaining pre-pivot self-serve route files for `/requester` and `/contributor` still exist in the codebase, but the proxy hides them by default during Phase 1.
+- Remaining pre-pivot self-serve route files for `/requester` still exist in the codebase, but the proxy hides them by default during Phase 1.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
@@ -87,6 +88,11 @@
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after deleting `/browse`; lint still reports the existing 30 warnings.
 - `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after deleting `/browse`.
 - `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after deleting `/browse`; the generated route table no longer lists `/browse` routes.
+- `npx vitest run lib/phase-one-surface-gates.test.ts lib/navigation/role-view.test.ts` passed with 10 tests after deleting `/contributor`.
+- `npm run typecheck` passed after deleting `/contributor`.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after deleting `/contributor`; lint now reports the existing 28 warnings.
+- `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after deleting `/contributor`.
+- `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after deleting `/contributor`; the generated route table no longer lists `/contributor` routes.
 - `npx vitest run lib/storage/client-upload.test.ts` passed with 3 tests after the storage helper cleanup.
 - `npm run typecheck` passed after the storage helper cleanup.
 - `npx eslint lib/storage/client-upload.ts lib/storage/client-upload.test.ts lib/storage/get-public-url.ts` passed after the storage helper cleanup.

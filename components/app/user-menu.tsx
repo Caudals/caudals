@@ -41,7 +41,7 @@ export function UserMenu() {
     .toUpperCase() || "U";
 
   const billingHref =
-    userRole === "requester" ? "/requester/billing" : "/contributor/earnings";
+    userRole === "admin" ? "/admin?module=commercials" : "/requester/billing";
   const settingsHref = resolveSettingsHref(pathname, userRole);
 
   return (

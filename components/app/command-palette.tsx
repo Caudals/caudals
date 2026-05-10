@@ -24,7 +24,6 @@ import {
   FileText,
   FileUp,
   FolderArchive,
-  Search,
   Settings,
   Shield,
   Users,
@@ -46,25 +45,11 @@ type SupportTicketResult = {
   updated_at: string | null;
 };
 
-type SubmissionResult = {
-  id: string;
-  status: string | null;
-  updated_at: string | null;
-  dataset_requests: { title: string | null } | Array<{ title: string | null }> | null;
-};
-
-function extractDatasetTitle(record: SubmissionResult["dataset_requests"]) {
-  if (!record) return "Untitled dataset";
-  if (Array.isArray(record)) return record[0]?.title ?? "Untitled dataset";
-  return record.title ?? "Untitled dataset";
-}
-
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [datasets, setDatasets] = useState<DatasetResult[]>([]);
   const [tickets, setTickets] = useState<SupportTicketResult[]>([]);
-  const [submissions, setSubmissions] = useState<SubmissionResult[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const { userRole, user } = useAuth();
   const router = useRouter();
@@ -100,7 +85,6 @@ export function CommandPalette() {
       if (!active) return;
       setDatasets([]);
       setTickets([]);
-      setSubmissions([]);
       setLoadingSearch(false);
     };
 
@@ -146,49 +130,6 @@ export function CommandPalette() {
           setTickets(ticketsRes.data ?? []);
         }
 
-        setSubmissions([]);
-        setLoadingSearch(false);
-        return;
-      }
-
-      if (userRole === "contributor") {
-        const [datasetsRes, submissionsRes] = await Promise.all([
-          supabase
-            .from("dataset_requests")
-            .select("id,title,approval_status,status,updated_at")
-            .eq("approval_status", "approved")
-            .ilike("title", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(10),
-          supabase
-            .from("submissions")
-            .select("id,status,updated_at,dataset_requests(title)")
-            .eq("contributor_id", user.id)
-            .order("updated_at", { ascending: false })
-            .limit(20),
-        ]);
-
-        if (!active) return;
-        if (datasetsRes.error) {
-          console.error("Command palette contributor dataset search error", datasetsRes.error);
-          setDatasets([]);
-        } else {
-          setDatasets(datasetsRes.data ?? []);
-        }
-
-        if (submissionsRes.error) {
-          console.error("Command palette contributor submissions search error", submissionsRes.error);
-          setSubmissions([]);
-        } else {
-          const filtered = (submissionsRes.data ?? []).filter((row) =>
-            extractDatasetTitle(row.dataset_requests)
-              .toLowerCase()
-              .includes(term.toLowerCase())
-          );
-          setSubmissions(filtered.slice(0, 8));
-        }
-
-        setTickets([]);
         setLoadingSearch(false);
         return;
       }
@@ -222,7 +163,6 @@ export function CommandPalette() {
       } else {
         setTickets(ticketsRes.data ?? []);
       }
-      setSubmissions([]);
       setLoadingSearch(false);
     };
 
@@ -252,16 +192,6 @@ export function CommandPalette() {
         { label: t("Operations"), href: "/admin?module=operations", icon: FolderArchive },
         { label: t("Audit"), href: "/admin?module=audit", icon: Activity },
         { label: t("Settings"), href: "/admin?module=settings", icon: Settings },
-      ];
-    }
-
-    if (userRole === "contributor") {
-      return [
-        { label: t("Dashboard"), href: "/contributor", icon: FileText },
-        { label: t("Browse opportunities"), href: "/contributor/browse", icon: Search },
-        { label: t("My contributions"), href: "/contributor/contributions", icon: FileUp },
-        { label: t("Earnings & payouts"), href: "/contributor/earnings", icon: CreditCard },
-        { label: t("Settings"), href: "/contributor/settings", icon: Settings },
       ];
     }
 
@@ -347,9 +277,7 @@ export function CommandPalette() {
                 const href =
                   userRole === "admin"
                     ? "/admin?module=datasets"
-                    : userRole === "contributor"
-                      ? "/contributor/browse"
-                      : `/requester/datasets/${dataset.id}`;
+                    : `/requester/datasets/${dataset.id}`;
 
                 return (
                   <CommandItem
@@ -400,30 +328,6 @@ export function CommandPalette() {
           </>
         )}
 
-        {submissions.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={t("My submissions")}>
-              {submissions.map((submission) => (
-                <CommandItem
-                  key={submission.id}
-                  value="/contributor/contributions"
-                  onSelect={handleSelect}
-                >
-                  <FileText className="h-4 w-4" />
-                  <div className="flex flex-col">
-                    <span className="line-clamp-1">
-                      {extractDatasetTitle(submission.dataset_requests)}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {submission.status}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
       </CommandList>
     </CommandDialog>
   );
