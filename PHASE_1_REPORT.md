@@ -40,6 +40,7 @@
 - Switched `/api/analytics/track` optional user attribution from Supabase Auth/profile lookups to the Better Auth operator session helper.
 - Switched `/api/upload` authentication from Supabase Auth/profile checks to active Better Auth operator sessions and narrowed uploads/deletes to operator-owned Spaces paths outside admin role override.
 - Removed the command palette's legacy Supabase-backed dataset/support-ticket search; it now exposes operator module navigation and actions without browser Supabase clients.
+- Deleted unused Supabase browser auth helper files; only legacy server/admin Supabase wrappers remain during data migration.
 
 ## Deviations
 
@@ -134,3 +135,4 @@
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `npx vitest run lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/analytics/track` user attribution to Better Auth; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `npx vitest run lib/storage/client-upload.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/upload` to Better Auth operator sessions; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the command palette Supabase browser-client search; lint still reports the existing 28 warnings.
+- `rg -n "@/lib/supabase/client|client-implicit|enforce-implicit-flow|createBrowserClient" app components lib -g '*.ts' -g '*.tsx'`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting unused Supabase browser auth helpers; lint still reports the existing 28 warnings.
