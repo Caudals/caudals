@@ -39,6 +39,7 @@
 - Switched the visible operator auth shell to Better Auth: sign-in, reset-password, sign-out menus, `/api/user/role`, `/auth/callback`, and proxy session handling no longer use Supabase Auth.
 - Switched `/api/analytics/track` optional user attribution from Supabase Auth/profile lookups to the Better Auth operator session helper.
 - Switched `/api/upload` authentication from Supabase Auth/profile checks to active Better Auth operator sessions and narrowed uploads/deletes to operator-owned Spaces paths outside admin role override.
+- Removed the command palette's legacy Supabase-backed dataset/support-ticket search; it now exposes operator module navigation and actions without browser Supabase clients.
 
 ## Deviations
 
@@ -132,3 +133,4 @@
 - `rg -n "createClient|supabase\\.auth|signInWith|resetPasswordForEmail|exchangeCodeForSession|onAuthStateChange" app/\(auth\) components/app components/ui/header.tsx lib/auth lib/middleware proxy.ts app/\(app\)/api/user -g '*.ts' -g '*.tsx'` found no remaining Supabase Auth usage in the active auth shell; only the command palette still imports the Supabase client for legacy search data.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `npx vitest run lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/analytics/track` user attribution to Better Auth; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `npx vitest run lib/storage/client-upload.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching `/api/upload` to Better Auth operator sessions; lint still reports the existing 28 warnings.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the command palette Supabase browser-client search; lint still reports the existing 28 warnings.
