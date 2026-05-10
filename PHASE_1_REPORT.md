@@ -1,0 +1,37 @@
+# Phase 1 Report
+
+## Current Slice Plan
+
+- Establish the operator-domain core for Phase 1: state machines, transition validation, audit-event payloads, and license composition.
+- Keep the slice independent of the Supabase to Postgres migration so it can be unit-tested now and wired to Postgres server actions next.
+- Use this report as the local review trail because no pull request exists yet.
+
+## Shipped
+
+- Operator-domain workflow state machines for `buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, and `dsar`.
+- License-composition logic that intersects permitted uses, geography, terms, exclusivity, and share-alike constraints before build planning.
+- Operator console v0 on `/admin` with all 13 Phase 1 modules, a build-detail reference view, G-1..G-7 gate visualization, simulated five-build queue, license planner result, lineage feed, audit overlay, and state-machine coverage.
+- Server action contract for validating operator state transitions and producing audit payloads.
+
+## Deviations
+
+- The slice uses deterministic Phase 1 seed data in code for the console snapshot while the Postgres and Better Auth migration is still pending. This is not final acceptance for "real data" wiring.
+
+## Known Gaps
+
+- Supabase is still the current app data/auth dependency.
+- The operator console has replaced the `/admin` home, but old pre-pivot admin subroutes still exist and need deletion/adaptation.
+- The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
+- Operator console mutations validate transitions but do not persist to Postgres or write durable `audit_event` rows yet.
+- The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
+- Better Auth, mandatory MFA, JIT elevation, and operator-account migration are not implemented yet.
+- Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
+
+## Verification
+
+- `npx vitest run lib/operator/workflows.test.ts lib/operator/license-composition.test.ts lib/actions/operator-console-actions.test.ts` passed with 11 tests.
+- `npm run typecheck` passed.
+- `npm run lint` passed with the existing 30 warnings and no errors.
+- `npm run build` passed.
+- `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
+- New operator-console translation JSON was updated manually and parsed successfully.

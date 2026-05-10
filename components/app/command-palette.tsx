@@ -239,16 +239,19 @@ export function CommandPalette() {
   const navigationItems = useMemo(() => {
     if (userRole === "admin") {
       return [
-        { label: t("Control center"), href: "/admin", icon: Shield },
-        { label: t("Requests"), href: "/admin/requests", icon: FileText },
-        { label: t("Submissions"), href: "/admin/submissions", icon: FileUp },
-        { label: t("Datasets"), href: "/admin/datasets", icon: Database },
-        { label: t("Payments"), href: "/admin/payments", icon: CreditCard },
-        { label: t("Support queue"), href: "/admin/support", icon: AlertCircle },
-        { label: t("Activity"), href: "/admin/activity", icon: Activity },
-        { label: t("Analytics"), href: "/admin/analytics", icon: BarChart3 },
-        { label: t("Users"), href: "/admin/users", icon: Users },
-        { label: t("Settings"), href: "/admin/settings", icon: Settings },
+        { label: t("Pipeline / Home"), href: "/admin", icon: Shield },
+        { label: t("Leads & Opportunities"), href: "/admin?module=leads", icon: FileText },
+        { label: t("Suppliers"), href: "/admin?module=suppliers", icon: Users },
+        { label: t("Buyers"), href: "/admin?module=buyers", icon: AlertCircle },
+        { label: t("Builds"), href: "/admin?module=builds", icon: Activity },
+        { label: t("Datasets"), href: "/admin?module=datasets", icon: Database },
+        { label: t("Quality"), href: "/admin?module=quality", icon: BarChart3 },
+        { label: t("Privacy & Rights"), href: "/admin?module=privacy", icon: Shield },
+        { label: t("Catalogue & Offers"), href: "/admin?module=catalogue", icon: FileUp },
+        { label: t("Commercials"), href: "/admin?module=commercials", icon: CreditCard },
+        { label: t("Operations"), href: "/admin?module=operations", icon: FolderArchive },
+        { label: t("Audit"), href: "/admin?module=audit", icon: Activity },
+        { label: t("Settings"), href: "/admin?module=settings", icon: Settings },
       ];
     }
 
@@ -277,10 +280,10 @@ export function CommandPalette() {
   const adminActions = useMemo(() => {
     if (userRole !== "admin") return [];
     return [
-      { label: t("Approve next pending request"), href: "/admin/requests" },
-      { label: t("Open payout queue"), href: "/admin/payments" },
-      { label: t("Open activity log"), href: "/admin/activity" },
-      { label: t("Open analytics"), href: "/admin/analytics" },
+      { label: t("Review active blockers"), href: "/admin" },
+      { label: t("Open QA pending builds"), href: "/admin?module=builds" },
+      { label: t("Open license vault"), href: "/admin?module=privacy" },
+      { label: t("Open audit overlay"), href: "/admin?module=audit" },
     ];
   }, [t, userRole]);
 
