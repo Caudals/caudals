@@ -173,7 +173,7 @@ Operational env controls:
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
-- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`, `ENABLE_LEGACY_SELF_SERVE`
+- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`, `ENABLE_LEGACY_SELF_SERVE`, `ENABLE_LEGACY_ADMIN_SUBROUTES`
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
@@ -187,6 +187,7 @@ Operational env controls:
 ## Phase 1 Surface Gate
 - `ENABLE_LEGACY_SELF_SERVE` defaults to off. With the default, `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` return `404` even outside landing mode.
 - Set `ENABLE_LEGACY_SELF_SERVE=true` only for controlled legacy fixture checks while the old Supabase-backed surfaces are being removed.
+- `ENABLE_LEGACY_ADMIN_SUBROUTES` defaults to off. With the default, `/admin/*` legacy subroutes return `404`; `/admin` remains the Operator Console.
 
 ## Troubleshooting Quick Hits
 - `permission denied for table ...`:
@@ -201,6 +202,8 @@ Operational env controls:
 - `browserType.launch: Executable doesn't exist` during Playwright:
   - run `npx playwright install chromium`,
   - on a fresh VPS, run `npx playwright install-deps chromium` if host libraries are missing.
+- `next build` exits through the PTY without diagnostics on the small VPS:
+  - rerun as `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` and capture output to a temp log if needed.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
   - inspect webhook replay/idempotency tables.

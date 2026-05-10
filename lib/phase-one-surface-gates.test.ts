@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  isPhaseOneHiddenAdminPath,
   isPhaseOneHiddenSurfacePath,
   shouldBlockPhaseOneHiddenSurface,
 } from "@/lib/phase-one-surface-gates";
@@ -27,13 +28,29 @@ describe("Phase 1 surface gates", () => {
     expect(isPhaseOneHiddenSurfacePath("/auth/sign-in")).toBe(false);
   });
 
+  it("identifies legacy admin subroutes without blocking the console root", () => {
+    expect(isPhaseOneHiddenAdminPath("/admin")).toBe(false);
+    expect(isPhaseOneHiddenAdminPath("/admin/")).toBe(false);
+    expect(isPhaseOneHiddenAdminPath("/admin/requests")).toBe(true);
+    expect(isPhaseOneHiddenAdminPath("/admin/payments")).toBe(true);
+  });
+
   it("blocks hidden surfaces by default", () => {
     expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(true);
   });
 
   it("allows explicit legacy self-serve mode for fixture checks", () => {
     vi.stubEnv("ENABLE_LEGACY_SELF_SERVE", "true");
 
     expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(false);
+    expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(true);
+  });
+
+  it("allows explicit legacy admin subroute mode for fixture checks", () => {
+    vi.stubEnv("ENABLE_LEGACY_ADMIN_SUBROUTES", "true");
+
+    expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(false);
+    expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(true);
   });
 });
