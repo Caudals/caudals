@@ -25,6 +25,7 @@
     "seed": "tsx scripts/seed-database.ts",
     "seed:test-fixtures": "tsx scripts/seed-test-fixtures.ts",
     "fixtures:ensure": "tsx scripts/ensure-test-fixtures.ts",
+    "migrate:supabase-auth": "tsx scripts/migrate-supabase-auth.ts",
     "analytics:check-surface": "tsx scripts/check-product-analytics-surface.ts",
     "i18n:check-parity": "tsx scripts/check-i18n-parity.ts",
     "cleanup:expired": "tsx scripts/cleanup-expired-artifacts.ts",

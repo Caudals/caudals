@@ -19,9 +19,10 @@ In progress. Supabase remains live and must not be decommissioned until the migr
 - Added `db/migrations/006_product_analytics_event.sql` and rollback for first-party analytics event ingestion on self-hosted PostgreSQL.
 - Added `db/migrations/007_stripe_webhook_event.sql` and rollback for replay-safe Stripe webhook intake on self-hosted PostgreSQL.
 - Added `db/migrations/008_operator_elevation.sql` and rollback for time-bounded operator JIT production-DB elevation grants with audit rows.
+- Added `npm run migrate:supabase-auth` for apply-gated legacy Supabase admin-account migration into Better Auth/operator tables.
 
 ## Not Done Yet
 
 - Supabase data dump, transform, load, row-count verification, and sampled diff.
-- Better Auth account migration and first-login password reset flow.
+- Run the Better Auth account migration against the live Supabase database and issue reset-password emails.
 - Final Supabase backup and explicit decommission approval.
