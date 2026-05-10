@@ -3,7 +3,6 @@
 import {
   User,
   Settings,
-  CreditCard,
   LogOut,
   Moon,
   Sun,
@@ -40,8 +39,6 @@ export function UserMenu() {
     .join("")
     .toUpperCase() || "U";
 
-  const billingHref =
-    userRole === "admin" ? "/admin?module=commercials" : "/requester/billing";
   const settingsHref = resolveSettingsHref(pathname, userRole);
 
   return (
@@ -78,14 +75,6 @@ export function UserMenu() {
             <Settings className="mr-2 h-4 w-4" />
             <span>{t("Settings")}</span>
           </DropdownMenuItem>
-          {userRole !== "admin" && (
-            <DropdownMenuItem onClick={() => router.push(billingHref)}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>
-                {userRole === "requester" ? t("Billing") : t("Earnings")}
-              </span>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

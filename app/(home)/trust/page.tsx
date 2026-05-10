@@ -30,9 +30,9 @@ const trustPillars = [
     title: "Governance Model",
     icon: Workflow,
     description:
-      "Role-segmented workspaces and auditable moderation actions keep data operations traceable.",
+      "Admin-operated workflows and auditable moderation actions keep data operations traceable.",
     checkpoints: [
-      "Requester, contributor, and admin isolation",
+      "Public funnel and private admin isolation",
       "Admin activity log for moderation actions",
       "Approval workflow with explicit status transitions",
       "Support triage and queue ownership workflows",

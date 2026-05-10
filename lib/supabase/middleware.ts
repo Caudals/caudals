@@ -58,7 +58,7 @@ export async function updateSession(
     userProfile = profile;
   }
 
-  const protectedPrefixes = ["/requester", "/admin"];
+  const protectedPrefixes = ["/admin"];
 
   // Protected routes - require authentication
   if (!user && protectedPrefixes.some((prefix) => pathname.startsWith(prefix))) {
@@ -70,20 +70,9 @@ export async function updateSession(
   // Role-based route protection
   if (user && userProfile) {
     const userRole = userProfile.role as "requester" | "contributor" | "admin";
-    const roleHome =
-      userRole === "admin"
-        ? "/admin"
-        : userRole === "requester"
-          ? "/requester"
-          : "/";
+    const roleHome = userRole === "admin" ? "/admin" : "/";
 
     // Role fences for canonical workspaces
-    if (pathname.startsWith("/requester") && userRole === "contributor") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
-    }
-
     if (pathname.startsWith("/admin") && userRole !== "admin") {
       const url = request.nextUrl.clone();
       url.pathname = roleHome;
@@ -92,14 +81,9 @@ export async function updateSession(
   }
 
   // Auth routes - redirect if already logged in
-  if (
-    (pathname.startsWith("/auth/sign-in") ||
-      pathname.startsWith("/auth/sign-up")) &&
-    user
-  ) {
+  if (pathname.startsWith("/auth/sign-in") && user) {
     const role = userProfile?.role as "requester" | "contributor" | "admin" | undefined;
-    const roleHome =
-      role === "admin" ? "/admin" : role === "requester" ? "/requester" : "/";
+    const roleHome = role === "admin" ? "/admin" : "/";
     const url = request.nextUrl.clone();
     url.pathname = roleHome;
     return NextResponse.redirect(url);

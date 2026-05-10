@@ -1,12 +1,11 @@
-const PHASE_ONE_HIDDEN_SURFACE_PREFIXES = [
-  "/requester",
-];
+const PHASE_ONE_HIDDEN_SURFACE_PREFIXES: string[] = [];
 
 const PHASE_ONE_REMOVED_SURFACE_PREFIXES = [
   "/browse",
   "/contributor",
   "/dashboard",
   "/pwa",
+  "/requester",
 ];
 const PHASE_ONE_HIDDEN_ADMIN_PREFIXES = ["/admin/"];
 
@@ -20,10 +19,6 @@ function normalizePathname(pathname: string) {
   }
 
   return pathname;
-}
-
-export function isLegacySelfServeEnabled() {
-  return process.env.ENABLE_LEGACY_SELF_SERVE === "true";
 }
 
 export function isPhaseOneHiddenSurfacePath(pathname: string) {
@@ -57,7 +52,6 @@ export function isPhaseOneHiddenAdminPath(pathname: string) {
 export function shouldBlockPhaseOneHiddenSurface(pathname: string) {
   return (
     isPhaseOneRemovedSurfacePath(pathname) ||
-    (!isLegacySelfServeEnabled() && isPhaseOneHiddenSurfacePath(pathname)) ||
     isPhaseOneHiddenAdminPath(pathname)
   );
 }

@@ -6,8 +6,8 @@ describe("resolveViewKey", () => {
     expect(resolveViewKey("/admin", "admin")).toBe("admin");
   });
 
-  it("falls back to role when pathname is outside app surfaces", () => {
-    expect(resolveViewKey("/reports", "requester")).toBe("requester");
+  it("falls back to the operator console outside removed app surfaces", () => {
+    expect(resolveViewKey("/reports", "requester")).toBe("admin");
   });
 });
 
@@ -18,9 +18,9 @@ describe("resolveSettingsHref", () => {
     );
   });
 
-  it("sends admins to requester settings while browsing requester view", () => {
+  it("keeps settings anchored to the operator console for removed requester paths", () => {
     expect(resolveSettingsHref("/requester/datasets", "admin")).toBe(
-      "/requester/settings",
+      "/admin?module=settings",
     );
   });
 });

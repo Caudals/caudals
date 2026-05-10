@@ -32,32 +32,6 @@ test.describe("authenticated role journeys", () => {
     "Set PLAYWRIGHT_AUTH_E2E=true to run authenticated fixture-user smoke checks.",
   );
 
-  test("requester can access role home and datasets workspace", async ({
-    page,
-  }) => {
-    await signIn(page, "fixture.requester@caudals.local");
-    await page.goto("/requester");
-    await expect(
-      page.getByText(/requester workspace|espacio de solicitante/i),
-    ).toBeVisible();
-
-    await page.goto("/requester/datasets");
-    await expect(page).toHaveURL(/\/requester\/datasets/);
-    await expect(
-      page.getByRole("heading", {
-        name: /manage dataset briefs|manage briefs|gestionar/i,
-      }),
-    ).toBeVisible();
-
-    await page.goto("/requester/billing");
-    await expect(page).toHaveURL(/\/requester\/billing/);
-    await expect(
-      page.getByRole("heading", {
-        name: /funding and ledger|financiación|ledger/i,
-      }),
-    ).toBeVisible();
-  });
-
   test("admin can access the operator console", async ({ page }) => {
     await signIn(page, "fixture.admin@caudals.local");
     await page.goto("/admin");
@@ -66,34 +40,5 @@ test.describe("authenticated role journeys", () => {
         name: /operator console/i,
       }),
     ).toBeVisible();
-  });
-
-  test("requester dashboard layout remains functional across breakpoints", async ({
-    page,
-  }) => {
-    await signIn(page, "fixture.requester@caudals.local");
-    await page.goto("/requester");
-
-    const breakpoints = [
-      { name: "mobile", width: 390, height: 844 },
-      { name: "tablet", width: 834, height: 1112 },
-      { name: "desktop", width: 1440, height: 900 },
-    ];
-
-    for (const viewport of breakpoints) {
-      await page.setViewportSize({
-        width: viewport.width,
-        height: viewport.height,
-      });
-      await page.goto("/requester");
-
-      await expect(
-        page.getByText(/requester workspace|espacio de solicitante/i),
-        `${viewport.name} viewport should render requester header`,
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /new dataset|nuevo dataset/i }),
-      ).toBeVisible();
-    }
   });
 });
