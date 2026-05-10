@@ -39,7 +39,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "@/components/app/nav-user";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
-import { NotificationBell } from "@/components/app/notification-bell";
 
 type NavItem = {
   title: string;
@@ -251,7 +250,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
              <NavUser />
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {!isCollapsed && <NotificationBell />}
             <SidebarTrigger className="h-8 w-8 text-slate-500 hover:text-foreground shrink-0 flex items-center justify-center" />
           </div>
         </div>
