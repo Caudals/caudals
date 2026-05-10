@@ -5,6 +5,7 @@ import { organization, twoFactor } from "better-auth/plugins";
 
 import { createBetterAuthId } from "@/lib/auth/better-auth-ids";
 import { betterAuthBasePath } from "@/lib/auth/better-auth-shared";
+import { getSecretEnvValue } from "@/lib/env/secrets";
 import { getResendClient } from "@/lib/resend/client";
 
 const APP_NAME = "Caudals";
@@ -82,7 +83,7 @@ export function createBetterAuthOptions(
     baseURL,
     basePath: betterAuthBasePath,
     database,
-    secret: process.env.BETTER_AUTH_SECRET,
+    secret: getSecretEnvValue("BETTER_AUTH_SECRET"),
     trustedOrigins,
     user: {
       modelName: "auth_user",

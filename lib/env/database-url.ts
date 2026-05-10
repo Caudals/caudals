@@ -1,9 +1,7 @@
-import { readFileSync } from "node:fs";
-
-type DatabaseUrlEnv = Record<string, string | undefined>;
+import { getSecretEnvValue } from "@/lib/env/secrets";
 
 type DatabaseUrlOptions = {
-  env?: DatabaseUrlEnv;
+  env?: Record<string, string | undefined>;
   missingMessage?: string;
 };
 
@@ -14,27 +12,15 @@ export function getDatabaseUrlFromEnv({
   env = process.env,
   missingMessage = DEFAULT_MISSING_MESSAGE,
 }: DatabaseUrlOptions = {}) {
-  const directValue = env.DATABASE_URL?.trim();
-  if (directValue) {
-    return directValue;
-  }
+  const databaseUrl = getSecretEnvValue("DATABASE_URL", {
+    emptyFileMessage: "DATABASE_URL_FILE did not contain a database URL",
+    env,
+    missingMessage,
+  });
 
-  const filePath = env.DATABASE_URL_FILE?.trim();
-  if (!filePath) {
+  if (!databaseUrl) {
     throw new Error(missingMessage);
   }
 
-  let fileValue: string;
-  try {
-    fileValue = readFileSync(filePath, "utf8").trim();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown error";
-    throw new Error(`Unable to read DATABASE_URL_FILE: ${message}`);
-  }
-
-  if (!fileValue) {
-    throw new Error("DATABASE_URL_FILE did not contain a database URL");
-  }
-
-  return fileValue;
+  return databaseUrl;
 }
