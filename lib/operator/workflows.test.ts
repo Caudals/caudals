@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildTransitionAuditEvent,
   checkTransition,
+  getNextWorkflowTransitions,
+  getWorkflowNameForRecordType,
   isTerminalWorkflowState,
   workflowDefinitions,
 } from "@/lib/operator/workflows";
@@ -81,5 +83,19 @@ describe("operator workflow state machines", () => {
         reason: "Sample profile passed rights intake",
       },
     });
+  });
+
+  it("maps queue record types to transition workflows", () => {
+    expect(getWorkflowNameForRecordType("build")).toBe("build");
+    expect(getWorkflowNameForRecordType("dsar_request")).toBe("dsar");
+    expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
+  });
+
+  it("returns next valid transitions for inline work queue controls", () => {
+    expect(getNextWorkflowTransitions("build", "qa")).toEqual([
+      { from: "qa", to: "packaging" },
+      { from: "qa", to: "rework", label: "qa_failed" },
+    ]);
+    expect(getNextWorkflowTransitions("delivery", "accepted")).toEqual([]);
   });
 });
