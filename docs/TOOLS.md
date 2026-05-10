@@ -33,8 +33,9 @@ When interacting with production-like resources, use read-first diagnostics and 
 ## PostgreSQL Operational Context
 Target Phase 1 runtime:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
-- PostgreSQL target: Dokploy-managed Postgres 16
-- Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`
+- PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
+- Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
+- Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Schema migrations: `db/migrations/*`
 - Rollbacks: `db/rollbacks/*`
 - Migration report: `docs/migrations/supabase-to-postgres.md`
@@ -60,7 +61,7 @@ Legacy Supabase containers may still exist during migration. Do not stop or dele
    - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/rollbacks/<file>_down.sql`
    - `docker rm -f caudals-sqlcheck`
 2. Apply to integration/production only after review:
-   - `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
+   - `docker exec -i $(docker ps --filter label=com.docker.swarm.service.name=caudals-postgres --format '{{.Names}}' | head -n 1) psql -U caudals_app -d caudals -v ON_ERROR_STOP=1 < db/migrations/<file>.sql`
 3. Record verification in `docs/migrations/supabase-to-postgres.md`.
 
 Hard rules:

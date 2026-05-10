@@ -62,7 +62,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 ## PostgreSQL Runtime
 Target Phase 1 operations context:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
-- PostgreSQL runtime target: Dokploy-managed Postgres 16 with `pgcrypto`, `citext`, `pg_stat_statements`, and `vector`
+- PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
+- Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
+- Required extensions: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
