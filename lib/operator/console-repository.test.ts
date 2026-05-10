@@ -4,6 +4,7 @@ import {
   createOperatorConsoleRepository,
   createPostgresOperatorConsoleRepository,
   getOperatorConsolePostgresSessionFromEnv,
+  isOperatorTransitionConflictError,
   resolveOperatorConsoleDataSource,
   type QueryRows,
 } from "@/lib/operator/console-repository";
@@ -135,5 +136,122 @@ describe("operator console repository", () => {
 
     expect(snapshot.builds).toHaveLength(5);
     expect(snapshot.modules).toHaveLength(13);
+  });
+
+  it("returns non-durable audit payloads in fixture mode", async () => {
+    const repository = createFixtureOperatorConsoleRepository();
+
+    await expect(
+      repository.persistTransition({
+        workflow: "build",
+        targetId: "bd_01J2RECEIPTS",
+        fromState: "qa",
+        toState: "packaging",
+        reason: "QA scorecard approved",
+      })
+    ).resolves.toEqual({
+      auditEvent: {
+        action: "state_transition",
+        target_type: "build",
+        target_id: "bd_01J2RECEIPTS",
+        metadata: {
+          from_state: "qa",
+          to_state: "packaging",
+          reason: "QA scorecard approved",
+        },
+      },
+      persisted: false,
+    });
+  });
+
+  it("persists postgres transitions with optimistic state checks and audit rows", async () => {
+    const session = { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" };
+    const query = vi.fn(async (_sql: string, values = []) => {
+      expect(_sql).toContain('UPDATE "build"');
+      expect(values[0]).toBe("packaging");
+      expect(values[1]).toBe("bd_01J2RECEIPTS");
+      expect(values[2]).toBe("qa");
+      expect(values[3]).toMatch(/^ae_[0-9A-HJKMNP-TV-Z]{26}$/);
+      expect(values[4]).toBe("op_01J2OPS");
+      expect(values[5]).toBe("build");
+      expect(values[6]).toBe("bd_01J2RECEIPTS");
+      expect(JSON.parse(values[7] as string)).toEqual({
+        from_state: "qa",
+        to_state: "packaging",
+        reason: "QA scorecard approved",
+      });
+
+      return [
+        {
+          id: "ae_01J2AUDIT000000000000000",
+          action: "state_transition",
+          target_type: "build",
+          target_id: "bd_01J2RECEIPTS",
+          metadata: {
+            from_state: "qa",
+            to_state: "packaging",
+            reason: "QA scorecard approved",
+          },
+          created_at: new Date("2026-05-10T13:20:00.000Z"),
+        },
+      ];
+    });
+
+    const repository = createPostgresOperatorConsoleRepository(
+      session,
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "build",
+        targetId: "bd_01J2RECEIPTS",
+        fromState: "qa",
+        toState: "packaging",
+        reason: "QA scorecard approved",
+      })
+    ).resolves.toEqual({
+      auditEvent: {
+        action: "state_transition",
+        target_type: "build",
+        target_id: "bd_01J2RECEIPTS",
+        metadata: {
+          from_state: "qa",
+          to_state: "packaging",
+          reason: "QA scorecard approved",
+        },
+      },
+      auditEventId: "ae_01J2AUDIT000000000000000",
+      createdAt: "2026-05-10T13:20:00.000Z",
+      persisted: true,
+    });
+    expect(query).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Array),
+      session
+    );
+  });
+
+  it("surfaces postgres optimistic transition conflicts", async () => {
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      vi.fn(async () => []) as unknown as QueryRows
+    );
+
+    try {
+      await repository.persistTransition({
+        workflow: "delivery",
+        targetId: "dl_01J2SHIP",
+        fromState: "downloaded",
+        toState: "accepted",
+      });
+      throw new Error("Expected transition conflict");
+    } catch (error) {
+      expect(isOperatorTransitionConflictError(error)).toBe(true);
+      expect(error).toMatchObject({
+        message:
+          "delivery/dl_01J2SHIP was not in expected state downloaded",
+      });
+    }
   });
 });

@@ -8,8 +8,9 @@ In progress. Supabase remains live and must not be decommissioned until the new 
 
 - Added `db/migrations/001_operator_core.sql` as the Phase 1 self-hosted PostgreSQL schema baseline for the Operator Console.
 - Added `db/rollbacks/001_operator_core_down.sql` for reversible local/integration testing.
+- Added `db/migrations/002_audit_event_default_partition.sql` and rollback so audit writes do not fail outside pre-created quarter partitions.
 - The schema uses ULID-prefixed text IDs, plain PostgreSQL RLS via session settings, core §28 records, state constraints from §23, audit partitioning, and Marquez-shaped lineage rows.
-- Verified the migration and rollback against a temporary `supabase/postgres:15.8.1.085` container with pgvector available.
+- Verified the migrations and rollbacks against a temporary `supabase/postgres:15.8.1.085` container with pgvector available.
 
 ## Not Done Yet
 

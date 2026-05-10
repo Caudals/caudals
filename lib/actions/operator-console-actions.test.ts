@@ -36,6 +36,7 @@ describe("operator console actions", () => {
           reason: "QA scorecard approved",
         },
       },
+      persisted: false,
     });
     expect(revalidatePathMock).toHaveBeenCalledWith("/admin");
   });
