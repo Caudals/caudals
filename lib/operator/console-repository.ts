@@ -14,7 +14,13 @@ import {
   type OperatorConsoleSnapshot,
   type OperatorModuleKey,
 } from "@/lib/operator/console-snapshot";
-import { workflowDefinitions, type WorkflowName } from "@/lib/operator/workflows";
+import { createPrefixedId } from "@/lib/operator/ids";
+import {
+  buildTransitionAuditEvent,
+  workflowDefinitions,
+  type TransitionAuditEvent,
+  type WorkflowName,
+} from "@/lib/operator/workflows";
 import { queryRows, type OperatorDbSession, type QueryValue } from "@/lib/db/client";
 
 export type QueryRows = <T extends Record<string, unknown>>(
@@ -72,14 +78,60 @@ type LicenseClauseRow = {
   share_alike: boolean;
 };
 
+type PersistTransitionRow = {
+  id: string;
+  action: "state_transition";
+  target_type: WorkflowName;
+  target_id: string;
+  metadata: TransitionAuditEvent["metadata"] | string;
+  created_at: string | Date;
+};
+
+export type PersistOperatorTransitionInput = {
+  workflow: WorkflowName;
+  targetId: string;
+  fromState: string;
+  toState: string;
+  reason?: string;
+};
+
+export type PersistOperatorTransitionResult = {
+  auditEvent: TransitionAuditEvent;
+  auditEventId?: string;
+  createdAt?: string;
+  persisted: boolean;
+};
+
 export type OperatorConsoleRepository = {
   getSnapshot(): Promise<OperatorConsoleSnapshot>;
+  persistTransition(
+    input: PersistOperatorTransitionInput
+  ): Promise<PersistOperatorTransitionResult>;
 };
+
+export class OperatorTransitionConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OperatorTransitionConflictError";
+  }
+}
+
+export function isOperatorTransitionConflictError(
+  error: unknown
+): error is OperatorTransitionConflictError {
+  return error instanceof OperatorTransitionConflictError;
+}
 
 export function createFixtureOperatorConsoleRepository(): OperatorConsoleRepository {
   return {
     async getSnapshot() {
       return getOperatorConsoleSnapshot();
+    },
+    async persistTransition(input) {
+      return {
+        auditEvent: buildTransitionAuditEvent(input),
+        persisted: false,
+      };
     },
   };
 }
@@ -91,6 +143,9 @@ export function createPostgresOperatorConsoleRepository(
   return {
     async getSnapshot() {
       return getOperatorConsoleSnapshotFromPostgres(session, query);
+    },
+    async persistTransition(input) {
+      return persistOperatorTransitionToPostgres(input, session, query);
     },
   };
 }
@@ -203,6 +258,57 @@ async function getOperatorConsoleSnapshotFromPostgres(
   };
 }
 
+async function persistOperatorTransitionToPostgres(
+  input: PersistOperatorTransitionInput,
+  session: OperatorDbSession,
+  query: QueryRows
+): Promise<PersistOperatorTransitionResult> {
+  const auditEvent = buildTransitionAuditEvent(input);
+  const tableName = transitionWorkflowTables[input.workflow];
+  const rows = await query<PersistTransitionRow>(
+    buildPersistTransitionSql(tableName),
+    [
+      input.toState,
+      input.targetId,
+      input.fromState,
+      createPrefixedId("ae"),
+      session.operatorId ?? null,
+      auditEvent.target_type,
+      auditEvent.target_id,
+      JSON.stringify(auditEvent.metadata),
+    ],
+    session
+  );
+
+  const row = rows[0];
+
+  if (!row) {
+    throw new OperatorTransitionConflictError(
+      `${input.workflow}/${input.targetId} was not in expected state ${input.fromState}`
+    );
+  }
+
+  return {
+    auditEvent: {
+      action: row.action,
+      target_type: row.target_type,
+      target_id: row.target_id,
+      metadata: normalizeAuditMetadata(row.metadata),
+    },
+    auditEventId: row.id,
+    createdAt: normalizeDate(row.created_at),
+    persisted: true,
+  };
+}
+
+function normalizeAuditMetadata(
+  metadata: PersistTransitionRow["metadata"]
+): TransitionAuditEvent["metadata"] {
+  return typeof metadata === "string"
+    ? (JSON.parse(metadata) as TransitionAuditEvent["metadata"])
+    : metadata;
+}
+
 function mergeModuleCounts(rows: ModuleCountRow[]) {
   const counts = new Map(
     rows.map((row) => [
@@ -308,6 +414,53 @@ function mapLicenseRow(row: LicenseClauseRow): LicenseGrant {
 
 function normalizeDate(value: string | Date) {
   return value instanceof Date ? value.toISOString() : value;
+}
+
+const transitionWorkflowTables = {
+  buyer_opportunity: '"buyer_opportunity"',
+  supplier_opportunity: '"supplier_opportunity"',
+  build: '"build"',
+  run: '"run"',
+  label_batch: '"label_batch"',
+  contract: '"contract"',
+  delivery: '"delivery"',
+  dsar: '"dsar_request"',
+} satisfies Record<WorkflowName, string>;
+
+function buildPersistTransitionSql(tableName: string) {
+  return `
+    WITH updated AS (
+      UPDATE ${tableName}
+      SET state = $1
+      WHERE id = $2
+        AND state = $3
+        AND deleted_at IS NULL
+      RETURNING id, org_id
+    ),
+    inserted AS (
+      INSERT INTO audit_event (
+        id,
+        org_id,
+        actor_id,
+        action,
+        target_type,
+        target_id,
+        metadata
+      )
+      SELECT
+        $4,
+        org_id,
+        $5,
+        'state_transition',
+        $6,
+        $7,
+        $8::jsonb
+      FROM updated
+      RETURNING id, action, target_type, target_id, metadata, created_at
+    )
+    SELECT id, action, target_type, target_id, metadata, created_at
+    FROM inserted
+  `;
 }
 
 const moduleCountsSql = `

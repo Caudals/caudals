@@ -2,9 +2,12 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { createOperatorConsoleRepository } from "@/lib/operator/console-repository";
 import {
-  buildTransitionAuditEvent,
+  createOperatorConsoleRepository,
+  isOperatorTransitionConflictError,
+  type PersistOperatorTransitionResult,
+} from "@/lib/operator/console-repository";
+import {
   checkTransition,
   type WorkflowName,
 } from "@/lib/operator/workflows";
@@ -38,15 +41,13 @@ export async function getOperatorConsoleOverview() {
   return { data: await repository.getSnapshot() };
 }
 
-export async function validateOperatorTransition(
+type OperatorTransitionActionResult =
+  | ({ ok: true } & PersistOperatorTransitionResult)
+  | ActionError;
+
+export async function transitionOperatorWorkflow(
   input: unknown
-): Promise<
-  | {
-      ok: true;
-      auditEvent: ReturnType<typeof buildTransitionAuditEvent>;
-    }
-  | ActionError
-> {
+): Promise<OperatorTransitionActionResult> {
   const parsed = parseInput(transitionSchema, input);
   if (!parsed.success) {
     return parsed.error;
@@ -62,18 +63,34 @@ export async function validateOperatorTransition(
     return actionError("CONFLICT", transition.reason);
   }
 
-  const auditEvent = buildTransitionAuditEvent({
-    workflow: parsed.data.workflow as WorkflowName,
-    targetId: parsed.data.targetId,
-    fromState: parsed.data.fromState,
-    toState: parsed.data.toState,
-    reason: parsed.data.reason,
-  });
+  const repository = createOperatorConsoleRepository();
 
-  revalidatePath("/admin");
+  try {
+    const result = await repository.persistTransition({
+      workflow: parsed.data.workflow as WorkflowName,
+      targetId: parsed.data.targetId,
+      fromState: parsed.data.fromState,
+      toState: parsed.data.toState,
+      reason: parsed.data.reason,
+    });
 
-  return {
-    ok: true,
-    auditEvent,
-  };
+    revalidatePath("/admin");
+
+    return {
+      ok: true,
+      ...result,
+    };
+  } catch (error) {
+    if (isOperatorTransitionConflictError(error)) {
+      return actionError("CONFLICT", error.message);
+    }
+
+    throw error;
+  }
+}
+
+export async function validateOperatorTransition(
+  input: unknown
+): Promise<OperatorTransitionActionResult> {
+  return transitionOperatorWorkflow(input);
 }
