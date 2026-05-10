@@ -21,6 +21,7 @@
 - tRPC scaffold added at `/api/trpc/[trpc]` for future buyer/supplier surfaces; landing mode still blocks it from the public deployment.
 - Postgres-backed operator transitions now perform optimistic state updates and insert `audit_event` rows through the typed repository.
 - Added `db/migrations/002_audit_event_default_partition.sql` so audit writes remain durable outside pre-created calendar partitions.
+- Added authenticated Playwright smoke coverage for the Operator Console module grid, build detail, license planner, audit overlay, lineage feed, and state-machine panel.
 
 ## Deviations
 
@@ -36,6 +37,7 @@
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
 - Better Auth, mandatory MFA, JIT elevation, and operator-account migration are not implemented yet.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
+- Operator Console Playwright smoke is authored, but it is skipped unless `PLAYWRIGHT_AUTH_E2E=true` fixture auth is available.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
 - The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
 
@@ -50,6 +52,8 @@
 - `npx vitest run lib/operator/console-repository.test.ts lib/actions/operator-console-actions.test.ts` passed with 10 tests after transition persistence.
 - `npm run typecheck`, `npm run lint`, and `npm run build` passed after the tRPC scaffold; lint still reports the existing 30 warnings.
 - `npm run typecheck`, `npm run lint`, and `npm run build` passed after transition persistence; lint still reports the existing 30 warnings.
+- `npx playwright test e2e/operator-console.spec.ts --project=chromium` ran with 1 skipped because `PLAYWRIGHT_AUTH_E2E` is not enabled in the current shell.
+- `npm run typecheck` and `npm run lint` passed after adding the Operator Console smoke; lint still reports the existing 30 warnings.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
