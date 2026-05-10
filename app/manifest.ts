@@ -2,12 +2,12 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Caudals Companion",
-    short_name: "Caudals Go",
+    name: "Caudals",
+    short_name: "Caudals",
     description:
-      "Mobile companion experience for Caudals contributors to discover dataset requests and upload samples on the go.",
-    start_url: "/pwa",
-    scope: "/pwa",
+      "B2B marketplace and managed services layer for AI-ready training datasets.",
+    start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#FFFFFF",
     theme_color: "#050914",
@@ -36,19 +36,14 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Browse Requests",
-        url: "/pwa",
-        description: "Jump straight into the dataset marketplace",
+        name: "Contact Caudals",
+        url: "/contact",
+        description: "Start a buyer or supplier conversation",
       },
       {
-        name: "Upload Center",
-        url: "/pwa/upload",
-        description: "Review your pending and approved submissions",
-      },
-      {
-        name: "Settings",
-        url: "/pwa/settings",
-        description: "Manage account, sync, and install tips",
+        name: "Read the Blog",
+        url: "/blog",
+        description: "Read Caudals updates and operating notes",
       },
     ],
   };

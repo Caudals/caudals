@@ -17,7 +17,6 @@ const routeLabels: Record<string, string> = {
   submissions: "Submissions",
   users: "Users",
   new: "New",
-  pwa: "PWA",
   upload: "Upload",
 };
 

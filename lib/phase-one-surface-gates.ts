@@ -1,11 +1,10 @@
 const PHASE_ONE_HIDDEN_SURFACE_PREFIXES = [
   "/browse",
   "/contributor",
-  "/pwa",
   "/requester",
 ];
 
-const PHASE_ONE_REMOVED_SURFACE_PREFIXES = ["/dashboard"];
+const PHASE_ONE_REMOVED_SURFACE_PREFIXES = ["/dashboard", "/pwa"];
 const PHASE_ONE_HIDDEN_ADMIN_PREFIXES = ["/admin/"];
 
 function normalizePathname(pathname: string) {
