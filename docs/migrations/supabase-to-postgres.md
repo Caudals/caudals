@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The private `caudals-postgres` target is live on the VPS and the app service is cut over to it. Supabase remains live until public-funnel data verification, final encrypted backup, and explicit decommission approval.
+In progress. The private `caudals-postgres` target is live on the VPS, the app service is cut over to it, and public-funnel rows have been migrated. Supabase remains live until final encrypted backup and explicit decommission approval.
 
 ## Current Slice
 
@@ -29,9 +29,11 @@ In progress. The private `caudals-postgres` target is live on the VPS and the ap
 - Added Docker secret-file fallback support for app database and Better Auth secrets ahead of service cutover.
 - Cut over `caudalsdep-caudals-vgbvxp` to image `mariomedpar/caudals:phase1-ed46abd` with `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET_FILE`, and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.
 - Deployed smoke passed against `https://app.caudals.com`: public landing/auth route smoke and authenticated fixture-operator console smoke.
+- Added `npm run migrate:public-funnel`, an apply-gated migration for legacy waitlist, product analytics, Stripe webhook replay, and rate-limit rows.
+- Applied the public-funnel migration to `caudals-postgres`: 9 waitlist signups, 1,328 analytics events, 19 Stripe webhook events, and 249 abuse rate-limit rows.
+- Verified migrated subsets by deterministic target keys and selected status/timestamp fields: waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, abuse 249/249.
 
 ## Not Done Yet
 
-- Public funnel data dump/transform/load row-count verification and sampled diff.
 - Issue reset-password emails for migrated operators.
 - Final Supabase backup and explicit decommission approval.

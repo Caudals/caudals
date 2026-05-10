@@ -61,6 +61,7 @@
 - Added Docker secret-file fallback support for app database and Better Auth secrets so the app service can consume mounted secrets during cutover.
 - Cut over the deployed app service to `caudals-postgres` with Postgres-backed Operator Console data and Better Auth secret-file config.
 - Kept landing mode narrow while allowing `/auth`, `/api/auth`, and `/admin` so the current production surface is public funnel plus private admin.
+- Added and applied `npm run migrate:public-funnel` for legacy public-funnel waitlist, analytics, Stripe webhook replay, and rate-limit rows.
 
 ## Deviations
 
@@ -76,7 +77,7 @@
 - Better Auth now owns the visible operator auth shell. Operator-account migration has been applied to `caudals-postgres`; reset-password emails for migrated operators have not been sent yet. JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
-- Supabase decommissioning is blocked by public funnel data verification, final-backup confirmation, and explicit decommission approval.
+- Supabase decommissioning is blocked by final-backup confirmation and explicit decommission approval.
 
 ## Verification
 
@@ -197,3 +198,7 @@
 - Deployed route smoke against `https://app.caudals.com` returned 200 for `/`, `/contact`, `/blog`, and `/auth/sign-in`; 404 for `/pricing` and `/admin/requests`; and 307 for anonymous `/admin`.
 - `LANDING_MODE=true PLAYWRIGHT_BASE_URL=https://app.caudals.com npx playwright test e2e/smoke.spec.ts --project=chromium` passed.
 - `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed.
+- `npx vitest run lib/migrations/public-funnel-data.test.ts`, `npm run typecheck`, and `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after adding the public-funnel migration script.
+- `npm run migrate:public-funnel` dry-run and `npm run migrate:public-funnel -- --apply` passed from a short-lived container attached to `supabase_default` and `dokploy-network`.
+- Target public-funnel counts after apply: 9 waitlist signups, 1,331 analytics events including live smoke traffic, 19 Stripe webhook events, and 251 rate-limit rows including live smoke keys.
+- Migrated subset verification matched deterministic target keys and sampled status/timestamp fields for waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, and abuse 249/249.
