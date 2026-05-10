@@ -40,10 +40,11 @@
 - Switched `/api/analytics/track` optional user attribution from Supabase Auth/profile lookups to the Better Auth operator session helper.
 - Switched `/api/upload` authentication from Supabase Auth/profile checks to active Better Auth operator sessions and narrowed uploads/deletes to operator-owned Spaces paths outside admin role override.
 - Removed the command palette's legacy Supabase-backed dataset/support-ticket search; it now exposes operator module navigation and actions without browser Supabase clients.
-- Deleted unused Supabase browser auth helper files; only legacy server/admin Supabase wrappers remain during data migration.
+- Deleted unused Supabase browser auth helper files; only the legacy Supabase admin wrapper remains during data migration.
 - Deleted the unused pre-pivot admin component/action island, including legacy admin tables, dialogs, analytics widgets, requester/contributor validators, admin action tests, and the Supabase-backed `admin-actions` module.
 - Deleted the legacy self-serve payment action surface and moved the remaining Stripe webhook wallet/budget helpers into a server-only payment ledger module.
 - Moved the shared contact/waitlist rate limiter from the Supabase abuse RPC to the self-hosted PostgreSQL client with `db/migrations/004_abuse_rate_limit.sql`.
+- Deleted the unused Supabase SSR server wrapper and removed the unused `@supabase/ssr` dependency.
 
 ## Deviations
 
@@ -144,3 +145,4 @@
 - `npm run typecheck`, `npx vitest run app/'(app)'/api/webhooks/stripe/route.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after moving the Stripe webhook helpers to the server-only payment ledger module.
 - `db/migrations/001_operator_core.sql` through `db/migrations/004_abuse_rate_limit.sql` and their rollbacks applied cleanly against a temporary `supabase/postgres:15.8.1.085` container; the rate-limit table accepted an insert/upsert probe.
 - `npm run typecheck`, `npx vitest run lib/security/rate-limit.test.ts app/'(app)'/api/waitlist/route.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after moving rate limiting to PostgreSQL.
+- `rg -n "@supabase/ssr|createServerClient|@/lib/supabase/server" app components lib package.json package-lock.json -g '*.ts' -g '*.tsx' -g 'package*.json'` found no remaining Supabase SSR wrapper or dependency references.
