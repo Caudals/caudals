@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   isPhaseOneHiddenAdminPath,
+  isPhaseOneRemovedSurfacePath,
   isPhaseOneHiddenSurfacePath,
   shouldBlockPhaseOneHiddenSurface,
 } from "@/lib/phase-one-surface-gates";
@@ -16,7 +17,6 @@ describe("Phase 1 surface gates", () => {
     expect(isPhaseOneHiddenSurfacePath("/requester")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/requester/datasets/new")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/contributor/earnings")).toBe(true);
-    expect(isPhaseOneHiddenSurfacePath("/dashboard")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/pwa/settings")).toBe(true);
   });
 
@@ -35,8 +35,17 @@ describe("Phase 1 surface gates", () => {
     expect(isPhaseOneHiddenAdminPath("/admin/payments")).toBe(true);
   });
 
+  it("keeps removed dashboard routes blocked regardless of fixture flags", () => {
+    vi.stubEnv("ENABLE_LEGACY_SELF_SERVE", "true");
+
+    expect(isPhaseOneRemovedSurfacePath("/dashboard")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/dashboard/requests/123")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/dashboard")).toBe(true);
+  });
+
   it("blocks hidden surfaces by default", () => {
     expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/dashboard")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(true);
   });
 

@@ -1843,8 +1843,6 @@ export async function payWithWallet(datasetId: string, amount: number) {
     source: "wallet",
     referenceId: walletReferenceId,
   });
-
-  revalidatePath("/dashboard");
   revalidatePath("/requester/datasets");
 
   return {
@@ -2211,8 +2209,6 @@ export async function deleteStripeConnectAccount() {
       syncError
     );
   }
-
-  revalidatePath("/dashboard");
   revalidatePath("/contributor");
   revalidatePath("/contributor/earnings");
 

@@ -16,7 +16,6 @@ import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
 const APP_ONLY_PATH_PREFIXES = [
-  "/dashboard",
   "/requester",
   "/contributor",
   "/admin",
@@ -192,11 +191,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const treatAppRootAsDashboard = !landingMode && isAppHost && pathname === "/";
+  const treatAppRootAsAdmin = !landingMode && isAppHost && pathname === "/";
 
   const response = await updateSession(
     request,
-    treatAppRootAsDashboard ? { pathnameOverride: "/dashboard" } : undefined
+    treatAppRootAsAdmin ? { pathnameOverride: "/admin" } : undefined
   );
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   
@@ -250,8 +249,8 @@ export async function proxy(request: NextRequest) {
     console.log(`[i18n] Cookie set to: ${localeToSet}`);
   }
 
-  if (treatAppRootAsDashboard && !isRedirectResponse(response)) {
-    return rewriteWithState(request, response, "/dashboard");
+  if (treatAppRootAsAdmin && !isRedirectResponse(response)) {
+    return rewriteWithState(request, response, "/admin");
   }
 
   return response;

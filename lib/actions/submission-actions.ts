@@ -105,7 +105,6 @@ export async function createSubmission(formData: {
   }
 
   revalidatePath("/browse");
-  revalidatePath("/dashboard");
 
   return { data };
 }
@@ -194,8 +193,6 @@ export async function updateSubmissionStatus(
     console.error("Error updating submission status:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/dashboard");
   revalidatePath("/requester/datasets");
 
   return { data };
@@ -215,7 +212,6 @@ export async function deleteSubmission(submissionId: string) {
   }
 
   revalidatePath("/browse");
-  revalidatePath("/dashboard");
 
   return { success: true };
 }
