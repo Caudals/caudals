@@ -14,10 +14,13 @@
 - Server action contract for validating operator state transitions and producing audit payloads.
 - Self-hosted PostgreSQL operator-core schema baseline and rollback under `db/`.
 - Initial Supabase-to-Postgres migration report at `docs/migrations/supabase-to-postgres.md`.
+- Blueprint, architecture, and tools docs now describe the Phase 1 target as self-hosted PostgreSQL + Better Auth.
+- `docs/blueprints/deviations.md` records the temporary migration and seed-data deviations.
 
 ## Deviations
 
 - The slice uses deterministic Phase 1 seed data in code for the console snapshot while the Postgres and Better Auth migration is still pending. This is not final acceptance for "real data" wiring.
+- New schema work lands in `db/migrations/*` with matching rollbacks because the goal replaces the legacy Supabase migration path.
 
 ## Known Gaps
 

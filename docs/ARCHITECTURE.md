@@ -19,7 +19,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
 - UI: Tailwind CSS v4, Radix UI, custom primitives, shadcn/ui
-- Data/Auth: Supabase (Postgres + Auth + RLS)
+- Data/Auth target: self-hosted PostgreSQL + Better Auth + Postgres RLS
 - Payments: Stripe is present in the codebase but not part of the current public deployment
 - Storage: DigitalOcean Spaces (S3-compatible)
 - Email: Resend
@@ -31,8 +31,10 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
-- `lib/supabase/*`: client/session/admin access wrappers
-- `supabase/migrations/*`: schema history and policies
+- `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
+- `lib/supabase/*`: legacy client/session/admin access wrappers during migration only
+- `db/migrations/*`: target self-hosted PostgreSQL schema history
+- `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 
 ## Runtime Routing and Hostname Behavior
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
@@ -48,20 +50,20 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - Deployment pipeline supports push-to-`main` and manual dispatch execution.
 - `Dockerfile` uses multi-stage build (`deps` -> `build` -> `runtime`).
 
-## Self-Hosted Supabase Runtime
-Internal operations context:
+## PostgreSQL Runtime
+Target Phase 1 operations context:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
-- Supabase stack path on host: `/supabase/supabase/docker`
-- Core containers observed: `supabase-db`, `supabase-kong`, `supabase-rest`, `supabase-auth`, `supabase-storage`, `supabase-studio`, `supabase-pooler`
-- Internal-only host ports:
-  - Studio: `3001`
-  - Kong gateway: `8000` (`8443` TLS)
-  - Supavisor/pooler: `5432`, `6543`
+- PostgreSQL runtime target: Dokploy-managed Postgres 16 with `pgcrypto`, `citext`, `pg_stat_statements`, and `vector`
+- Migration files: `db/migrations/*`
+- Rollback files: `db/rollbacks/*`
+- Legacy migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
-  - `https://supabase.caudals.com/` does not expose Studio.
-  - Public traffic is limited to the required Supabase API path prefixes routed through Traefik to Kong.
+  - PostgreSQL has no public ingress.
+  - Application access goes through server-side typed DB clients and operator-scoped RLS settings.
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
-  - Raw host ports for Studio, Kong, analytics, and pooler are not intended to be reachable from the public internet.
+  - Raw database ports are not intended to be reachable from the public internet.
+
+Legacy Supabase containers remain live until the migration report records dump, transform, load, sampled diff verification, 48 hours of internal use, final encrypted backup, and explicit decommission approval.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 

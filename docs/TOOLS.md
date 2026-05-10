@@ -4,7 +4,7 @@
 Agents can assume access to:
 - local repository source code,
 - product and technical context in `docs/product-specs/overview.md` and `docs/`,
-- Supabase via self-hosted operational path and MCP when available,
+- self-hosted PostgreSQL through local Docker, Tailscale, SSH, or Dokploy when credentials are available,
 - browser/devtools tooling for runtime UI inspection,
 - GitHub tooling for CI and review context.
 
@@ -12,8 +12,9 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 ## Primary Tooling
 - Terminal: build/lint/file ops/repo diagnostics
-- Supabase CLI: migrations, schema checks, policy inspection
-- Supabase MCP: runtime DB inspection and operational queries
+- `psql`: SQL migration, rollback, RLS, and schema inspection
+- Docker: local integration checks for PostgreSQL and runtime dependencies
+- Dokploy: VPS service lifecycle and deployment diagnostics
 - Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
 - Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
 - GitHub MCP: issue/PR/review workflows
@@ -21,25 +22,27 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
 ## Tool Selection Matrix
-- Schema migrations and drift checks: Supabase CLI
-- Ad hoc DB inspection/read queries: Supabase MCP
+- Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database
+- Ad hoc DB inspection/read queries: `psql` over Tailscale/SSH tunnel
 - Local webhook event simulation: Stripe CLI
 - Stripe object lookup/limited write operations: Stripe MCP
 - PR/issues/review actions: GitHub MCP
 - CI/CD run diagnostics: `gh`
 - Frontend runtime inspection: browser/devtools tooling
 
-## Self-Hosted Supabase Operational Context
-Internal-only runtime context:
+## PostgreSQL Operational Context
+Target Phase 1 runtime:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
-- Supabase host path: `/supabase/supabase/docker`
-- Common services: db, kong, rest, auth, storage, studio, pooler
-- Internal-only localhost ports: `3001`, `4000`, `5432`, `6543`, `8000`, `8443`
-- `https://supabase.caudals.com/` is intentionally not a public Studio surface; only API path prefixes are routed publicly.
-- Public `22/tcp` is closed; SSH administration is available only through `tailscale0`.
+- PostgreSQL target: Dokploy-managed Postgres 16
+- Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`
+- Schema migrations: `db/migrations/*`
+- Rollbacks: `db/rollbacks/*`
+- Migration report: `docs/migrations/supabase-to-postgres.md`
 
-Direct SSH runtime inspection is allowed when MCP context is stale:
+Direct SSH runtime inspection is allowed when local context is stale:
 - `ssh root@ubuntu-caudals`
+
+Legacy Supabase containers may still exist during migration. Do not stop or delete them until the migration report records a successful final encrypted backup and the required 48-hour internal-use gate.
 
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
@@ -50,38 +53,29 @@ Direct SSH runtime inspection is allowed when MCP context is stale:
   - `http://100.92.160.68:7443`
   - `http://100.92.160.68:7444`
 
-## Supabase CLI Usage Pattern
-1. Keep credentials in local secret file:
-   - `~/.config/caudals/supabase-selfhosted.env`
-2. Start tunnel(s):
-   - `./scripts/supabase-selfhosted-tunnel.sh start db`
-   - `./scripts/supabase-selfhosted-tunnel.sh start all`
-   - fallback raw tunnel: `ssh -L 55432:127.0.0.1:5432 root@ubuntu-caudals -N`
-3. Use explicit DB URL:
-   - `./scripts/supabase-cli-selfhosted.sh migration list`
-   - `./scripts/supabase-cli-selfhosted.sh db push --dry-run`
-   - `./scripts/supabase-cli-selfhosted.sh db pull`
-   - direct CLI fallback:
-     - `supabase migration list --db-url \"$SUPABASE_DB_URL\"`
-     - `supabase db push --db-url \"$SUPABASE_DB_URL\"`
-     - `supabase db pull --db-url \"$SUPABASE_DB_URL\"`
+## PostgreSQL Migration Usage Pattern
+1. Validate SQL on a disposable database before touching a shared database:
+   - `docker run --rm --name caudals-sqlcheck -e POSTGRES_PASSWORD=postgres -p 55433:5432 -d supabase/postgres:15.8.1.085`
+   - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
+   - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/rollbacks/<file>_down.sql`
+   - `docker rm -f caudals-sqlcheck`
+2. Apply to integration/production only after review:
+   - `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
+3. Record verification in `docs/migrations/supabase-to-postgres.md`.
 
 Hard rules:
-- For self-hosted targets, `--db-url` is mandatory.
-- Prefer `db push --dry-run` before write operations.
-- Keep schema changes in `supabase/migrations/*`.
+- Keep schema changes in `db/migrations/*` with matching rollback files in `db/rollbacks/*`.
 - Never expose DB credentials in docs, command output, or captured media.
-- Do not rely on raw public host ports for Supabase access; use SSH tunnels or Tailscale/private access paths only.
+- Do not rely on raw public database ports; use SSH tunnels or Tailscale/private access paths only.
+- Do not decommission legacy Supabase services without final-backup evidence and explicit confirmation.
 
-## Supabase MCP Usage Pattern
-1. Start MCP tunnel:
-   - `./scripts/supabase-selfhosted-tunnel.sh start mcp`
-2. Verify endpoint:
-   - `codex mcp get supabase`
-   - expected: `http://127.0.0.1:18100/mcp`
-3. Use MCP for read-first diagnostics.
-4. Use migration files + CLI for schema-changing work.
-5. If MCP context is stale/broken, fallback to SSH + CLI/psql.
+## Better Auth Migration Pattern
+1. Use PostgreSQL as the Better Auth adapter target.
+2. Keep operator sessions cookie-based, httpOnly, SameSite=Lax, rotating, and refresh-on-use.
+3. Enforce TOTP for all operator accounts and WebAuthn for production roles.
+4. Preserve emails and roles when mapping legacy auth users into operator identity records.
+5. Force password reset on first login after migration.
+6. Record JIT-elevation events into `audit_event`.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -123,6 +117,8 @@ For translation-impacting work run:
 - `npm run i18n:check-parity`
 - optional strict sweep: `npm run i18n:check-parity -- --strict-orphans`
 
+If the parity script is missing, update `lib/i18n/es.json`, `translations-es.json`, and `translations-source.json` manually and verify the JSON parses.
+
 ## Sensitive Data Rule
 Never include secrets, tokens, private keys, webhook signing secrets, or unredacted financial data in repository docs or user-facing output.
 
@@ -130,12 +126,13 @@ Never include secrets, tokens, private keys, webhook signing secrets, or unredac
 Prerequisites:
 - Node.js `20+`
 - npm `10+`
-- Supabase CLI for migration workflows
+- PostgreSQL client tools (`psql`)
+- Docker for disposable migration checks
 
 Bootstrap:
 1. `npm install`
 2. `cp .env.example .env.local`
-3. Populate required secrets in `.env.local` (Supabase, Stripe, DO Spaces, Resend).
+3. Populate required secrets in `.env.local` (PostgreSQL/Better Auth during migration, Stripe, DO Spaces, Resend).
 4. `npm run dev`
 
 ## Core Script Catalog
@@ -163,12 +160,16 @@ Bootstrap:
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for hidden authenticated-route changes
 
 Operational env controls:
+- `DATABASE_URL`
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_URL`
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 - `EXPORT_JOBS_TOKEN` (required for `/api/internal/export-jobs`)
 
 ## Environment Variable Categories
-- Supabase: URL, anon key, service-role key, JWT settings
+- PostgreSQL/Better Auth: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- Legacy migration-only auth/data: legacy variables remain until the migration report authorizes removal
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
@@ -184,15 +185,18 @@ Operational env controls:
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
 
 ## Troubleshooting Quick Hits
-- `Could not find table ... in schema cache`:
-  - apply pending migrations,
-  - reload PostgREST schema cache,
-  - restart API service if needed.
+- `permission denied for table ...`:
+  - confirm `app.current_org_id` and service-role session settings,
+  - inspect the table's RLS policy,
+  - retry with a read-only query before any mutation.
+- `extension "vector" is not available`:
+  - use a Postgres image/runtime with pgvector installed,
+  - verify `CREATE EXTENSION vector;` on a disposable database before applying migrations.
 - `Unable to acquire lock at .next/dev/lock` during Playwright:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
-  - inspect `stripe_webhook_events` and transaction state.
+  - inspect webhook replay/idempotency tables.
 - Export jobs stuck in `pending`:
   - verify `EXPORT_JOBS_TOKEN` and scheduler wiring for `/api/internal/export-jobs`,
   - run `npm run jobs:process-exports`.
