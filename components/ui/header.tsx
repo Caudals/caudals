@@ -28,7 +28,6 @@ interface HeaderProps {
 }
 
 const DEFAULT_LINKS = [
-  { href: "/browse", label: "Browse" },
   { href: "/contact", label: "Contact" },
   { href: "/blog", label: "Blog" },
   { href: "/trust", label: "Trust" },

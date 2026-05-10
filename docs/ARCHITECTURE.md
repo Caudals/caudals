@@ -41,7 +41,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
 - In landing mode, the public allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, and required metadata/assets. All other routes return `404`.
-- Outside landing mode, Phase 1 still returns `404` for pre-pivot self-serve routes (`/browse`, `/requester`, `/contributor`) unless `ENABLE_LEGACY_SELF_SERVE=true` is set for controlled fixture checks.
+- Outside landing mode, Phase 1 still returns `404` for pre-pivot self-serve routes (`/requester`, `/contributor`) unless `ENABLE_LEGACY_SELF_SERVE=true` is set for controlled fixture checks.
+- `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
