@@ -346,7 +346,7 @@ export function CommandPalette() {
               {datasets.map((dataset) => {
                 const href =
                   userRole === "admin"
-                    ? `/admin/datasets?search=${encodeURIComponent(dataset.title)}`
+                    ? "/admin?module=datasets"
                     : userRole === "contributor"
                       ? `/browse/${dataset.id}`
                       : `/requester/datasets/${dataset.id}`;
@@ -380,7 +380,7 @@ export function CommandPalette() {
                   key={ticket.id}
                   value={
                     userRole === "admin"
-                      ? "/admin/support"
+                      ? "/admin?module=operations"
                       : `/requester/support/${ticket.id}`
                   }
                   onSelect={handleSelect}

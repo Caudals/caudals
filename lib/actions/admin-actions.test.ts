@@ -177,7 +177,7 @@ describe("admin actions", () => {
         target_id: WAITLIST_ID,
       })
     );
-    expect(revalidatePathMock).toHaveBeenCalledWith("/admin/support");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/admin");
   });
 
   it("returns FORBIDDEN when non-admin attempts waitlist updates", async () => {

@@ -308,8 +308,6 @@ export async function adminUpdateDatasetRequest(
   revalidatePath("/browse");
   revalidatePath(`/browse/${id}`);
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
-  revalidatePath("/admin/requests");
 
   return { data };
 }
@@ -363,8 +361,6 @@ export async function adminUpdateDatasetApproval(
   revalidatePath("/browse");
   revalidatePath(`/browse/${id}`);
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
-  revalidatePath("/admin/requests");
 
   return { data };
 }
@@ -404,8 +400,6 @@ export async function adminDeleteDatasetRequest(id: string) {
 
   revalidatePath("/browse");
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
-  revalidatePath("/admin/requests");
 
   return { success: true };
 }
@@ -473,8 +467,6 @@ export async function adminBulkUpdateDatasetApproval(
 
   revalidatePath("/browse");
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
-  revalidatePath("/admin/requests");
   uniqueIds.forEach((id) => {
     revalidatePath(`/browse/${id}`);
   });
@@ -545,7 +537,6 @@ export async function adminBulkUpdateDatasetStatus(
 
   revalidatePath("/browse");
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
   uniqueIds.forEach((id) => {
     revalidatePath(`/browse/${id}`);
   });
@@ -626,7 +617,6 @@ export async function adminBulkUpdateDatasetRequests(
 
   revalidatePath("/browse");
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
   uniqueIds.forEach((id) => {
     revalidatePath(`/browse/${id}`);
   });
@@ -692,8 +682,6 @@ export async function adminBulkDeleteDatasetRequests(ids: string[]) {
 
   revalidatePath("/browse");
   revalidatePath("/admin");
-  revalidatePath("/admin/datasets");
-  revalidatePath("/admin/requests");
   uniqueIds.forEach((id) => {
     revalidatePath(`/browse/${id}`);
   });
@@ -776,7 +764,6 @@ export async function approveDatasetRequest(requestId: string, notes?: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/admin/requests");
   revalidatePath("/browse");
 
   return { data };
@@ -823,7 +810,6 @@ export async function rejectDatasetRequest(requestId: string, notes: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/admin/requests");
 
   return { data };
 }
@@ -941,7 +927,6 @@ export async function approveSubmission(submissionId: string, notes?: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/admin/submissions");
   revalidatePath("/dashboard");
   revalidatePath("/contributor");
   revalidatePath("/contributor/contributions");
@@ -988,7 +973,6 @@ export async function rejectSubmission(submissionId: string, notes: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/admin/submissions");
 
   return { data };
 }
@@ -1106,7 +1090,7 @@ export async function upsertPlatformSetting(
     return { error: error.message };
   }
 
-  revalidatePath("/admin/settings");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -1358,7 +1342,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         status: "healthy",
         summary: "Product analytics surface is available.",
         detail: "Events can be written and queried from product_analytics_events.",
-        href: "/admin/analytics",
+        href: "/admin?module=pipeline",
       });
     } else if (isMissingTableError(analyticsError, "product_analytics_events")) {
       signals.push({
@@ -1368,7 +1352,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         summary: "Analytics table is missing in this environment.",
         detail:
           "Ingestion is fail-open, but funnel and dashboard telemetry are degraded until migration 024 is applied.",
-        href: "/admin/analytics",
+        href: "/admin?module=pipeline",
       });
     } else {
       signals.push({
@@ -1377,7 +1361,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         status: "critical",
         summary: "Analytics probe returned an unexpected error.",
         detail: analyticsError.message || "Unknown analytics probe failure.",
-        href: "/admin/analytics",
+        href: "/admin?module=pipeline",
       });
     }
   } else {
@@ -1390,7 +1374,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         analyticsProbe.reason instanceof Error
           ? analyticsProbe.reason.message
           : "Unknown analytics probe failure.",
-      href: "/admin/analytics",
+      href: "/admin?module=pipeline",
     });
   }
 
@@ -1406,7 +1390,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         status: "critical",
         summary: `${highSeverityCount} high-severity ledger drift issue(s) detected.`,
         detail: `${issueCount} total issue(s) across wallets, dataset funding, and payout transactions.`,
-        href: "/admin/payments",
+        href: "/admin?module=commercials",
       });
     } else if (issueCount > 0) {
       signals.push({
@@ -1416,7 +1400,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         summary: `${issueCount} non-critical ledger drift issue(s) detected.`,
         detail:
           "Run payments consistency repair for missing wallets or balance/data alignment before payout volume increases.",
-        href: "/admin/payments",
+        href: "/admin?module=commercials",
       });
     } else {
       signals.push({
@@ -1425,7 +1409,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         status: "healthy",
         summary: "No ledger drift detected.",
         detail: `${report.totals.transactionsChecked} transaction rows scanned.`,
-        href: "/admin/payments",
+        href: "/admin?module=commercials",
       });
     }
   } else {
@@ -1438,7 +1422,7 @@ export async function getAdminOperationalHealthStatus(): Promise<
         ledgerProbe.reason instanceof Error
           ? ledgerProbe.reason.message
           : "Unknown ledger check failure.",
-      href: "/admin/payments",
+      href: "/admin?module=commercials",
     });
   }
 
@@ -1746,7 +1730,7 @@ export async function updateUserRole(
     return activityResult;
   }
 
-  revalidatePath("/admin/users");
+  revalidatePath("/admin");
 
   return { data };
 }
@@ -2171,7 +2155,7 @@ export async function updateWaitlistStatus(
     return activityResult;
   }
 
-  revalidatePath("/admin/support");
+  revalidatePath("/admin");
   return { ok: true };
 }
 
@@ -2442,7 +2426,7 @@ export async function updateAdminSupportTicket(
     return activityResult;
   }
 
-  revalidatePath("/admin/support");
+  revalidatePath("/admin");
   revalidatePath(`/requester/support/${validated.ticketId}`);
   return { ok: true };
 }
@@ -2894,7 +2878,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
         contributor_email: profile?.mail ?? null,
         dataset_title: dataset?.title ?? null,
         dataset_request_id: row.dataset_request_id,
-        quick_link: "/admin/payments?pending=stale&anomaly=payout",
+        quick_link: "/admin?module=commercials&pending=stale&anomaly=payout",
       });
     }
 
@@ -2913,7 +2897,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
         contributor_email: profile?.mail ?? null,
         dataset_title: dataset?.title ?? null,
         dataset_request_id: row.dataset_request_id,
-        quick_link: "/admin/payments?failed=all&anomaly=payout",
+        quick_link: "/admin?module=commercials&failed=all&anomaly=payout",
       });
 
       const failureCount = payoutFailuresByContributor.get(row.user_id) ?? 0;
@@ -2932,7 +2916,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
           contributor_email: profile?.mail ?? null,
           dataset_title: dataset?.title ?? null,
           dataset_request_id: row.dataset_request_id,
-          quick_link: "/admin/payments?failed=repeated&anomaly=payout",
+          quick_link: "/admin?module=commercials&failed=repeated&anomaly=payout",
         });
       }
     }
@@ -2953,7 +2937,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
         contributor_email: profile?.mail ?? null,
         dataset_title: dataset?.title ?? null,
         dataset_request_id: row.dataset_request_id,
-        quick_link: "/admin/payments?anomaly=transfer",
+        quick_link: "/admin?module=commercials&anomaly=transfer",
       });
     }
 
@@ -2976,7 +2960,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
         contributor_email: profile?.mail ?? null,
         dataset_title: dataset?.title ?? null,
         dataset_request_id: row.dataset_request_id,
-        quick_link: "/admin/payments?anomaly=transfer",
+        quick_link: "/admin?module=commercials&anomaly=transfer",
       });
     }
   }
@@ -3014,7 +2998,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
         contributor_email: null,
         dataset_title: null,
         dataset_request_id: null,
-        quick_link: "/admin/payments?anomaly=webhook",
+        quick_link: "/admin?module=commercials&anomaly=webhook",
       });
     } else {
       return actionError("DB_ERROR", webhookError.message);
@@ -3050,7 +3034,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
           contributor_email: null,
           dataset_title: null,
           dataset_request_id: null,
-          quick_link: "/admin/payments?anomaly=webhook",
+          quick_link: "/admin?module=commercials&anomaly=webhook",
         });
       }
 
@@ -3076,7 +3060,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
             contributor_email: null,
             dataset_title: null,
             dataset_request_id: null,
-            quick_link: "/admin/payments?anomaly=webhook",
+            quick_link: "/admin?module=commercials&anomaly=webhook",
           });
         }
       }
@@ -3101,7 +3085,7 @@ export async function getAdminPaymentAnomalies(limit = 150): Promise<
             contributor_email: null,
             dataset_title: null,
             dataset_request_id: null,
-            quick_link: "/admin/payments?anomaly=transfer",
+            quick_link: "/admin?module=commercials&anomaly=transfer",
           });
         }
       }
@@ -3465,7 +3449,7 @@ export async function upsertAdminPaymentComplianceRecord(
     return activityResult;
   }
 
-  revalidatePath("/admin/payments");
+  revalidatePath("/admin");
   return { ok: true };
 }
 
@@ -3557,6 +3541,6 @@ export async function reconcilePayoutTransaction(
     return activityResult;
   }
 
-  revalidatePath("/admin/payments");
+  revalidatePath("/admin");
   return { ok: true };
 }

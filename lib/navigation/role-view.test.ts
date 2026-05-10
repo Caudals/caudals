@@ -17,7 +17,9 @@ describe("resolveViewKey", () => {
 
 describe("resolveSettingsHref", () => {
   it("keeps admin in admin settings while on admin routes", () => {
-    expect(resolveSettingsHref("/admin/requests", "admin")).toBe("/admin/settings");
+    expect(resolveSettingsHref("/admin/requests", "admin")).toBe(
+      "/admin?module=settings",
+    );
   });
 
   it("sends admins to contributor settings while browsing contributor view", () => {
