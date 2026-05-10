@@ -79,8 +79,10 @@ Hard rules:
 
 Current scaffold:
 - Server config: `lib/auth/better-auth.ts`
+- Shared auth options/table mapping: `lib/auth/better-auth-options.ts`
 - Client wrapper for future UI migration: `lib/auth/better-auth-client.ts`
 - Next.js endpoint: `app/(app)/api/auth/[...all]/route.ts`
+- Identity schema migration: `db/migrations/003_better_auth_identity.sql`
 
 Install caveat:
 - Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.

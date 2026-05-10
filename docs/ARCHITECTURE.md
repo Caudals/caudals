@@ -66,6 +66,7 @@ Target Phase 1 operations context:
 - PostgreSQL runtime target: Dokploy-managed Postgres 16 with `pgcrypto`, `citext`, `pg_stat_statements`, and `vector`
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
+- Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
 - Legacy migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.

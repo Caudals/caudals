@@ -32,7 +32,8 @@
 - Deleted the legacy `/contributor` route group, contributor-only components, and contributor-specific Supabase actions.
 - Deleted the legacy `/requester` route group, requester-only components, requester-specific Supabase actions, and requester fixture tests.
 - Deleted the legacy self-serve `/auth/sign-up` page; account access CTAs now route to `/contact`.
-- Added the Better Auth PostgreSQL scaffold at `/api/auth/[...all]` with organization, TOTP, passkey, hardened cookie, disabled self-serve sign-up, and future client wrapper wiring.
+- Added the Better Auth PostgreSQL scaffold at `/api/auth/[...all]` with organization/team, TOTP, passkey, hardened cookie, disabled self-serve sign-up, and future client wrapper wiring.
+- Added prefixed Better Auth identity tables in `db/migrations/003_better_auth_identity.sql` with rollback and DB-side prefixed-ID checks.
 
 ## Deviations
 
@@ -46,7 +47,7 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
-- Better Auth is scaffolded, but mandatory MFA UI/enforcement, JIT elevation, generated schema migration, and operator-account migration are not implemented yet.
+- Better Auth is scaffolded with schema tables, but mandatory MFA UI/enforcement, JIT elevation, and operator-account migration are not implemented yet.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke is authored, but it is skipped unless `PLAYWRIGHT_AUTH_E2E=true` fixture auth is available.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
@@ -115,3 +116,6 @@
 - `db/migrations/001_operator_core.sql`, `db/migrations/002_audit_event_default_partition.sql`, and their rollbacks applied cleanly against a temporary `supabase/postgres:15.8.1.085` container.
 - `npx vitest run lib/landing-mode.test.ts` passed with 5 tests after the Better Auth scaffold, including the landing-mode block for `/api/auth/*`.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the Better Auth scaffold; lint still reports the existing 28 warnings.
+- `db/migrations/003_better_auth_identity.sql` and `db/rollbacks/003_better_auth_identity_down.sql` applied cleanly against a temporary `supabase/postgres:15.8.1.085` container after migrations 001 and 002.
+- Better Auth migration introspection reported no pending `toBeCreated` or `toBeAdded` tables after applying `003_better_auth_identity.sql`.
+- `npx vitest run lib/auth/better-auth-options.test.ts lib/landing-mode.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the prefixed identity migration; lint still reports the existing 28 warnings.
