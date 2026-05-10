@@ -86,28 +86,12 @@ test.describe("authenticated role journeys", () => {
     ).toBeVisible();
   });
 
-  test("admin can access role home and moderation queue", async ({ page }) => {
+  test("admin can access the operator console", async ({ page }) => {
     await signIn(page, "fixture.admin@caudals.local");
     await page.goto("/admin");
     await expect(
       page.getByRole("heading", {
-        name: /admin dashboard|panel de administración|good .*admin/i,
-      }),
-    ).toBeVisible();
-
-    await page.goto("/admin/requests");
-    await expect(page).toHaveURL(/\/admin\/requests/);
-    await expect(
-      page.getByRole("heading", {
-        name: /pending dataset requests|solicitudes de dataset pendientes/i,
-      }),
-    ).toBeVisible();
-
-    await page.goto("/admin/payments");
-    await expect(page).toHaveURL(/\/admin\/payments/);
-    await expect(
-      page.getByRole("heading", {
-        name: /payment overview|resumen de pagos/i,
+        name: /operator console/i,
       }),
     ).toBeVisible();
   });

@@ -24,7 +24,7 @@ export function resolveSettingsHref(pathname: string, userRole?: string | null):
   const viewKey = resolveViewKey(pathname, userRole);
 
   if (viewKey === "admin") {
-    return "/admin/settings";
+    return "/admin?module=settings";
   }
   if (viewKey === "contributor") {
     return "/contributor/settings";

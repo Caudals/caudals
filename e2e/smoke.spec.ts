@@ -4,8 +4,6 @@ const landingModeEnabled =
   process.env.LANDING_MODE === "true" ||
   process.env.NEXT_PUBLIC_LANDING_MODE === "true";
 const legacySelfServeEnabled = process.env.ENABLE_LEGACY_SELF_SERVE === "true";
-const legacyAdminSubroutesEnabled =
-  process.env.ENABLE_LEGACY_ADMIN_SUBROUTES === "true";
 
 test.describe("core role smoke", () => {
   test("public landing loads", async ({ page }) => {
@@ -32,7 +30,6 @@ test.describe("core role smoke", () => {
 
   test("pre-pivot self-serve routes are hidden by default", async ({ page }) => {
     const routes = ["/browse", "/requester", "/contributor", "/dashboard", "/pwa"];
-    const legacyAdminRoutes = ["/admin/requests"];
 
     for (const route of routes) {
       const response = await page.goto(route);
@@ -48,15 +45,8 @@ test.describe("core role smoke", () => {
       }
     }
 
-    for (const route of legacyAdminRoutes) {
-      const response = await page.goto(route);
-
-      if (legacyAdminSubroutesEnabled) {
-        await expect(page).toHaveURL(/\/auth\/sign-in/);
-      } else {
-        expect(response?.status()).toBe(404);
-      }
-    }
+    const response = await page.goto("/admin/requests");
+    expect(response?.status()).toBe(404);
   });
 
   test("admin route redirects anonymous users to sign-in", async ({ page }) => {

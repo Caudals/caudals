@@ -272,7 +272,7 @@ export async function getNotificationFeed(
         id: `admin-request-${request.id}`,
         title: "New dataset request pending",
         body: request.title || "A dataset request requires approval.",
-        href: "/admin/requests",
+        href: "/admin?module=leads",
         severity: "info",
         created_at: normalizeIso(request.created_at),
       });
@@ -283,7 +283,7 @@ export async function getNotificationFeed(
         id: `admin-submission-${submission.id}`,
         title: "Submission awaiting review",
         body: "Contributor submission is pending moderation.",
-        href: "/admin/submissions",
+        href: "/admin?module=quality",
         severity: "warning",
         created_at: normalizeIso(submission.created_at),
       });
@@ -294,7 +294,7 @@ export async function getNotificationFeed(
         id: `admin-payout-${payout.id}`,
         title: "Failed payout detected",
         body: "A payout transaction failed and should be reconciled.",
-        href: "/admin/payments",
+        href: "/admin?module=commercials",
         severity: "critical",
         created_at: normalizeIso(payout.created_at),
       });
@@ -305,7 +305,7 @@ export async function getNotificationFeed(
         id: `admin-ticket-${ticket.id}`,
         title: "Support ticket needs triage",
         body: `${ticket.status} / ${ticket.priority}`,
-        href: "/admin/support",
+        href: "/admin?module=operations",
         severity: ticket.priority === "urgent" ? "critical" : "warning",
         created_at: normalizeIso(ticket.updated_at),
       });

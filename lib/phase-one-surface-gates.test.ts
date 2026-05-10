@@ -46,11 +46,4 @@ describe("Phase 1 surface gates", () => {
     expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(false);
     expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(true);
   });
-
-  it("allows explicit legacy admin subroute mode for fixture checks", () => {
-    vi.stubEnv("ENABLE_LEGACY_ADMIN_SUBROUTES", "true");
-
-    expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(false);
-    expect(shouldBlockPhaseOneHiddenSurface("/requester")).toBe(true);
-  });
 });

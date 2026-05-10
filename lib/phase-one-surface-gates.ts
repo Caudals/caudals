@@ -24,10 +24,6 @@ export function isLegacySelfServeEnabled() {
   return process.env.ENABLE_LEGACY_SELF_SERVE === "true";
 }
 
-export function isLegacyAdminSubroutesEnabled() {
-  return process.env.ENABLE_LEGACY_ADMIN_SUBROUTES === "true";
-}
-
 export function isPhaseOneHiddenSurfacePath(pathname: string) {
   const normalizedPathname = normalizePathname(pathname);
 
@@ -49,6 +45,6 @@ export function isPhaseOneHiddenAdminPath(pathname: string) {
 export function shouldBlockPhaseOneHiddenSurface(pathname: string) {
   return (
     (!isLegacySelfServeEnabled() && isPhaseOneHiddenSurfacePath(pathname)) ||
-    (!isLegacyAdminSubroutesEnabled() && isPhaseOneHiddenAdminPath(pathname))
+    isPhaseOneHiddenAdminPath(pathname)
   );
 }

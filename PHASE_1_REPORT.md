@@ -25,6 +25,7 @@
 - Added a default Phase 1 proxy gate that returns `404` for pre-pivot `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` routes unless `ENABLE_LEGACY_SELF_SERVE=true`.
 - Extended the Phase 1 proxy gate so legacy `/admin/*` subroutes return `404` by default while `/admin` remains the Operator Console.
 - Removed the remaining Supabase Storage helper path: browser uploads now delegate directly to `/api/upload`, the unused legacy server upload helper was deleted, and active storage URL helpers are DO Spaces/CDN-first with legacy absolute URL compatibility only for stored records.
+- Deleted the legacy `/admin/*` route files so `/admin` is the only implemented admin route surface in Phase 1.
 
 ## Deviations
 
@@ -34,9 +35,7 @@
 ## Known Gaps
 
 - Supabase is still the current app data/auth dependency. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
-- The operator console has replaced the `/admin` home, but old pre-pivot admin subroutes still exist and need deletion/adaptation.
 - Pre-pivot self-serve route files still exist in the codebase, but the proxy hides them by default during Phase 1.
-- Legacy admin subroute files still exist in the codebase, but the proxy hides them by default during Phase 1.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
@@ -65,6 +64,11 @@
 - `npx vitest run lib/phase-one-surface-gates.test.ts lib/landing-mode.test.ts` passed with 11 tests after the legacy admin subroute gate.
 - `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after the legacy admin subroute gate.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the legacy admin subroute gate; lint still reports the existing 30 warnings.
+- `npx vitest run lib/phase-one-surface-gates.test.ts lib/navigation/role-view.test.ts lib/actions/admin-actions.test.ts` passed with 13 tests after deleting legacy admin subroutes.
+- `npm run typecheck` passed after deleting stale `.next` route validators from the previous build output.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after deleting legacy admin subroutes; lint still reports the existing 30 warnings.
+- `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after deleting legacy admin subroutes.
+- `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after deleting legacy admin subroutes; the generated route table lists `/admin` with no `/admin/*` subroutes.
 - `npx vitest run lib/storage/client-upload.test.ts` passed with 3 tests after the storage helper cleanup.
 - `npm run typecheck` passed after the storage helper cleanup.
 - `npx eslint lib/storage/client-upload.ts lib/storage/client-upload.test.ts lib/storage/get-public-url.ts` passed after the storage helper cleanup.
