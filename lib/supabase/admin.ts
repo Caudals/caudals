@@ -6,7 +6,6 @@ export const SERVICE_ROLE_SCOPES = [
   "stripe_webhooks",
   "admin_operations",
   "notifications",
-  "analytics_ingest",
   "file_uploads",
   "waitlist_intake",
   "abuse_controls",
