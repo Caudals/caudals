@@ -69,6 +69,7 @@
 - Restored the `npm run i18n:check-parity` guardrail and brought the Spanish dictionaries back to source-key parity.
 - Hardened authenticated Playwright smoke coverage for cold local Next compilation by extending admin-smoke timeouts and scoping console locators.
 - Deployed the latest Operator Console image `mariomedpar/caudals:phase1-7730dbb` to the VPS app service after pruning disposable Docker build cache for disk headroom.
+- Added work-queue bulk selection and bulk workflow transitions with explicit row-count confirmation, compatibility checks, optimistic updates, and the existing audited server action.
 
 ## Deviations
 
@@ -221,3 +222,4 @@
 - `LANDING_MODE=true PLAYWRIGHT_BASE_URL=https://app.caudals.com npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 deployed tests.
 - `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed against the deployed service after restoring the fixture-only MFA/WebAuthn exemption.
 - `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/operator-console.spec.ts --project=chromium` passed against the deployed service with Postgres-backed console data and inline transition UI assertions.
+- `npm run typecheck`, `npm run i18n:check-parity`, `npx vitest run lib/operator/workflows.test.ts lib/operator/console-repository.test.ts lib/actions/operator-console-actions.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding work-queue bulk transitions.
