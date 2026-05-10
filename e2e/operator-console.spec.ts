@@ -66,6 +66,20 @@ test.describe("operator console smoke", () => {
 
     await expect(page.getByText(/license composition/i)).toBeVisible();
     await expect(page.getByText(/planner result/i)).toBeVisible();
+    await expect(page.getByText(/bulk transition/i)).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", {
+        name: /select all transitionable records/i,
+      })
+    ).toBeVisible();
+    await page
+      .getByRole("checkbox", { name: /select work item/i })
+      .first()
+      .click();
+    await expect(page.getByText(/1 selected/i)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /apply bulk transition/i })
+    ).toBeEnabled();
     await expect(page.getByText(/inline state transition/i).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /apply transition/i }).first()).toBeVisible();
     await expect(page.getByText(/audit overlay/i)).toBeVisible();
