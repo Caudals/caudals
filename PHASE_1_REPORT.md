@@ -2,9 +2,9 @@
 
 ## Current Slice Plan
 
-- Add the Phase 1 JIT elevation database contract for audited production DB access.
-- Wire service-role DB sessions so Operator Console can require an active time-bounded elevation grant.
-- Keep deterministic fixtures compatible with the stricter JIT mode.
+- Add a safe Supabase Auth to Better Auth operator-account migration script.
+- Keep the migration admin-only by default so legacy requester/contributor accounts do not gain operator-console access.
+- Preserve legacy role evidence in operator metadata and force reset-password onboarding with unknown random credentials.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -54,6 +54,7 @@
 - Updated authenticated Playwright smoke specs to use a shared Better Auth session-cookie helper instead of duplicated Supabase-era cookie checks.
 - Added the `operator_elevation` migration/rollback and server helpers for time-bounded production DB JIT elevation grants, revocation, active-grant checks, and audit-event writes.
 - Added the DB-session hook so service-role Operator Console queries can opt into `production_db` elevation enforcement with `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`.
+- Added `npm run migrate:supabase-auth`, an apply-gated Postgres-to-Postgres migration script that maps legacy Supabase admin accounts into Better Auth users/accounts, operator rows, org membership, and audit events.
 
 ## Deviations
 
@@ -66,7 +67,7 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are seeded for disposable/local test fixtures but have not been loaded into the live migrated database.
-- Better Auth now owns the visible operator auth shell, but mandatory MFA UI/enforcement and operator-account migration are not implemented yet. JIT elevation has a DB contract and server hook but not a full operator UI.
+- Better Auth now owns the visible operator auth shell. Operator-account migration has an apply-gated script, but it has not been run against the live Supabase database yet. Mandatory MFA UI/enforcement remains incomplete, and JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Supabase decommissioning is blocked by live dump/load verification, final-backup confirmation, and explicit decommission approval.
@@ -173,3 +174,6 @@
 - `npx vitest run lib/db/operator-elevation.test.ts lib/operator/console-repository.test.ts lib/auth/better-auth-options.test.ts` passed with 16 tests after adding the JIT elevation hook.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the JIT elevation hook.
 - `db/migrations/001_operator_core.sql` through `db/migrations/008_operator_elevation.sql`, fixture seeding, active elevation/audit probes, and `db/rollbacks/008_operator_elevation_down.sql` passed against a temporary `pgvector/pgvector:pg16` database.
+- `npx vitest run lib/auth/supabase-auth-migration.test.ts` and `npm run typecheck` passed after adding the Supabase Auth migration script.
+- `npm run migrate:supabase-auth` dry-run and `npm run migrate:supabase-auth -- --apply` passed against disposable legacy-source and target PostgreSQL databases; the probe migrated one admin, skipped one non-admin, created Better Auth/operator/account rows, set MFA/WebAuthn flags, and wrote one migration audit event.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the Supabase Auth migration script.

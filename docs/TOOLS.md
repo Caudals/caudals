@@ -85,6 +85,7 @@ Current scaffold:
 - Identity schema migration: `db/migrations/003_better_auth_identity.sql`
 - JIT production-DB elevation: `db/migrations/008_operator_elevation.sql`,
   `lib/auth/operator-elevation.ts`, and `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
+- Legacy account migration: `npm run migrate:supabase-auth -- --apply`
 
 Install caveat:
 - Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.
@@ -160,6 +161,8 @@ Bootstrap:
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
+- `npm run migrate:supabase-auth`: dry-run legacy Supabase Auth to Better Auth
+  operator-account migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
