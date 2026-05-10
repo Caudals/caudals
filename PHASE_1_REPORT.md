@@ -59,6 +59,8 @@
 - Added `infra/postgres/Dockerfile` and `db/migrations/009_postgres_runtime_extensions.sql` for the Postgres 16 + pgvector + pg_cron runtime.
 - Created the private `caudals-postgres` swarm service on the VPS, applied migrations `001` through `009`, seeded the five-build fixture set, and applied the legacy operator-account migration.
 - Added Docker secret-file fallback support for app database and Better Auth secrets so the app service can consume mounted secrets during cutover.
+- Cut over the deployed app service to `caudals-postgres` with Postgres-backed Operator Console data and Better Auth secret-file config.
+- Kept landing mode narrow while allowing `/auth`, `/api/auth`, and `/admin` so the current production surface is public funnel plus private admin.
 
 ## Deviations
 
@@ -70,11 +72,11 @@
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
-- The five concurrent builds are loaded into `caudals-postgres`; the app service still needs to be pointed at this target.
+- The five concurrent builds are loaded into `caudals-postgres`; the deployed app service now reads them through the Postgres-backed Operator Console repository.
 - Better Auth now owns the visible operator auth shell. Operator-account migration has been applied to `caudals-postgres`; reset-password emails for migrated operators have not been sent yet. JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
-- Supabase decommissioning is blocked by public funnel data verification, app service cutover, final-backup confirmation, and explicit decommission approval.
+- Supabase decommissioning is blocked by public funnel data verification, final-backup confirmation, and explicit decommission approval.
 
 ## Verification
 
@@ -190,3 +192,8 @@
 - Live `caudals-postgres` fixture/auth counts after seeding and auth migration: 4 auth users, 4 operators, 5 builds, 35 gate events, 4 account-migration audit events.
 - `npx vitest run lib/env/database-url.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after adding `DATABASE_URL_FILE` support.
 - `npx vitest run lib/env/secrets.test.ts lib/env/database-url.test.ts lib/auth/better-auth-options.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after adding Better Auth secret-file support.
+- `npx vitest run lib/landing-mode.test.ts lib/phase-one-surface-gates.test.ts`, `npm run typecheck`, and `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after allowing auth/admin through landing mode.
+- `docker build -t mariomedpar/caudals:phase1-ed46abd ... .` passed, and `docker service update --image mariomedpar/caudals:phase1-ed46abd caudalsdep-caudals-vgbvxp` converged.
+- Deployed route smoke against `https://app.caudals.com` returned 200 for `/`, `/contact`, `/blog`, and `/auth/sign-in`; 404 for `/pricing` and `/admin/requests`; and 307 for anonymous `/admin`.
+- `LANDING_MODE=true PLAYWRIGHT_BASE_URL=https://app.caudals.com npx playwright test e2e/smoke.spec.ts --project=chromium` passed.
+- `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed.

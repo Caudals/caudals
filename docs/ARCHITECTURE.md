@@ -64,6 +64,7 @@ Target Phase 1 operations context:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
+- App runtime: `caudalsdep-caudals-vgbvxp` on `dokploy-network`, using Docker secret-file envs for Postgres and Better Auth secrets
 - Required extensions: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
@@ -75,7 +76,7 @@ Target Phase 1 operations context:
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
   - Raw database ports are not intended to be reachable from the public internet.
 
-Legacy Supabase containers remain live until the migration report records dump, transform, load, sampled diff verification, final encrypted backup, and explicit decommission approval.
+Legacy Supabase containers remain live until the migration report records public-funnel data verification, final encrypted backup, and explicit decommission approval.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 
