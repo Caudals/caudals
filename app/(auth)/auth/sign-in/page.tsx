@@ -23,6 +23,8 @@ import { CheckCircle2, Shield, Sparkles } from "lucide-react";
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const toast = useLocaleToast();
@@ -40,13 +42,46 @@ export default function SignInPage() {
         rememberMe: true,
       });
 
+      const signInData = data as
+        | { user?: unknown; url?: string; twoFactorRedirect?: boolean }
+        | null
+        | undefined;
+
       if (error) {
         toast.error(error.message ?? t("Unable to sign in"));
-      } else if (data?.user) {
+      } else if (signInData?.twoFactorRedirect) {
+        setTwoFactorRequired(true);
+        toast.success(t("Enter your authenticator code"));
+      } else if (signInData?.user) {
         toast.success(t("Signed in successfully!"));
-        router.push(data.url ?? "/admin");
+        router.push(signInData.url ?? "/admin");
         router.refresh();
       }
+    } catch {
+      toast.error(t("An unexpected error occurred"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTotpVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await betterAuthClient.twoFactor.verifyTotp({
+        code: totpCode,
+        trustDevice: true,
+      });
+
+      if (error) {
+        toast.error(error.message ?? t("Invalid authentication code"));
+        return;
+      }
+
+      toast.success(t("Signed in successfully!"));
+      router.push("/admin");
+      router.refresh();
     } catch {
       toast.error(t("An unexpected error occurred"));
     } finally {
@@ -114,43 +149,62 @@ export default function SignInPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleEmailSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t("Email")}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={t("you@example.com")}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t("Password")}</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder={t("••••••••")}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                  <div className="text-right text-sm">
-                    <Link
-                      href="/auth/reset-password"
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {t("Forgot your password?")}
-                    </Link>
+              {twoFactorRequired ? (
+                <form onSubmit={handleTotpVerification} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="totp-code">{t("Authenticator code")}</Label>
+                    <Input
+                      id="totp-code"
+                      inputMode="numeric"
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
                   </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? t("Signing in...") : t("Sign in")}
-                </Button>
-              </form>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? t("Verifying...") : t("Verify code")}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleEmailSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">{t("Email")}</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder={t("you@example.com")}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">{t("Password")}</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder={t("••••••••")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <div className="text-right text-sm">
+                      <Link
+                        href="/auth/reset-password"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {t("Forgot your password?")}
+                      </Link>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? t("Signing in...") : t("Sign in")}
+                  </Button>
+                </form>
+              )}
             </CardContent>
             <CardFooter className="flex justify-center">
               <p className="text-sm text-slate-500">

@@ -263,7 +263,7 @@ async function seedOrganizationsAndOperator(client: PoolClient) {
       VALUES (
         $1, $2, 'Fixture Admin', 'admin',
         '{"focus":"operator-console-e2e"}'::jsonb,
-        true, false, 'active', $3, $3, $4
+        false, false, 'active', $3, $3, $4
       )
       ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
