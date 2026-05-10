@@ -20,7 +20,6 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
   { pathname: "/about", changeFrequency: "monthly", priority: 0.7 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
-  { pathname: "/browse", changeFrequency: "daily", priority: 0.8 },
   { pathname: "/careers", changeFrequency: "monthly", priority: 0.5 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/docs", changeFrequency: "monthly", priority: 0.65 },

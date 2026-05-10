@@ -21,7 +21,7 @@ const guideCards = [
   {
     title: "Contributor Workflow",
     description: "Find dataset opportunities, submit work, and track review + payout statuses.",
-    href: "/browse",
+    href: "/contact",
   },
   {
     title: "Admin Operations",

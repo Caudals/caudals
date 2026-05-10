@@ -104,8 +104,6 @@ export async function createSubmission(formData: {
     return { error: error.message };
   }
 
-  revalidatePath("/browse");
-
   return { data };
 }
 
@@ -210,8 +208,6 @@ export async function deleteSubmission(submissionId: string) {
     console.error("Error deleting submission:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/browse");
 
   return { success: true };
 }

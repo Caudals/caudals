@@ -12,8 +12,6 @@ describe("Phase 1 surface gates", () => {
   });
 
   it("identifies pre-pivot self-serve surfaces", () => {
-    expect(isPhaseOneHiddenSurfacePath("/browse")).toBe(true);
-    expect(isPhaseOneHiddenSurfacePath("/browse/dt_01")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/requester")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/requester/datasets/new")).toBe(true);
     expect(isPhaseOneHiddenSurfacePath("/contributor/earnings")).toBe(true);
@@ -39,9 +37,12 @@ describe("Phase 1 surface gates", () => {
 
     expect(isPhaseOneRemovedSurfacePath("/dashboard")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/dashboard/requests/123")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/browse")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/browse/dt_01")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/pwa")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/pwa/upload")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/dashboard")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/browse")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/pwa")).toBe(true);
   });
 

@@ -229,8 +229,6 @@ export async function createDatasetRequest(formData: {
     console.error("Error creating dataset request:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/browse");
   revalidatePath("/requester/datasets");
 
   return { data };
@@ -276,8 +274,6 @@ export async function updateDatasetRequest(
     console.error("Error updating dataset request:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/browse");
   revalidatePath("/requester/datasets");
 
   return { data };
@@ -295,8 +291,6 @@ export async function deleteDatasetRequest(id: string) {
     console.error("Error deleting dataset request:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/browse");
   revalidatePath("/requester/datasets");
 
   return { success: true };

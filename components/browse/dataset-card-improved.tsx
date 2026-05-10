@@ -46,7 +46,7 @@ export function DatasetCardImproved({ dataset }: DatasetCardProps) {
 
   return (
     <Link
-      href={`/browse/${dataset.id}`}
+      href={`/contributor/browse?dataset=${encodeURIComponent(dataset.id)}`}
       className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
       aria-label={dataset.title}
     >

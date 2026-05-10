@@ -348,7 +348,7 @@ export function CommandPalette() {
                   userRole === "admin"
                     ? "/admin?module=datasets"
                     : userRole === "contributor"
-                      ? `/browse/${dataset.id}`
+                      ? "/contributor/browse"
                       : `/requester/datasets/${dataset.id}`;
 
                 return (

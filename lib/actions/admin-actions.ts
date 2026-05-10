@@ -304,9 +304,6 @@ export async function adminUpdateDatasetRequest(
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
-  revalidatePath(`/browse/${id}`);
   revalidatePath("/admin");
 
   return { data };
@@ -357,9 +354,6 @@ export async function adminUpdateDatasetApproval(
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
-  revalidatePath(`/browse/${id}`);
   revalidatePath("/admin");
 
   return { data };
@@ -397,8 +391,6 @@ export async function adminDeleteDatasetRequest(id: string) {
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
   revalidatePath("/admin");
 
   return { success: true };
@@ -464,11 +456,8 @@ export async function adminBulkUpdateDatasetApproval(
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
   revalidatePath("/admin");
   uniqueIds.forEach((id) => {
-    revalidatePath(`/browse/${id}`);
   });
 
   return { success: true, requested: uniqueIds.length, updated: uniqueIds.length };
@@ -534,11 +523,8 @@ export async function adminBulkUpdateDatasetStatus(
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
   revalidatePath("/admin");
   uniqueIds.forEach((id) => {
-    revalidatePath(`/browse/${id}`);
   });
 
   return { success: true, requested: uniqueIds.length, updated: uniqueIds.length };
@@ -614,11 +600,8 @@ export async function adminBulkUpdateDatasetRequests(
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
   revalidatePath("/admin");
   uniqueIds.forEach((id) => {
-    revalidatePath(`/browse/${id}`);
   });
 
   return { success: true, requested: uniqueIds.length, updated: uniqueIds.length };
@@ -679,11 +662,8 @@ export async function adminBulkDeleteDatasetRequests(ids: string[]) {
   if (activityResult) {
     return activityResult;
   }
-
-  revalidatePath("/browse");
   revalidatePath("/admin");
   uniqueIds.forEach((id) => {
-    revalidatePath(`/browse/${id}`);
   });
 
   return { success: true, requested: uniqueIds.length, deleted: uniqueIds.length };
@@ -764,7 +744,6 @@ export async function approveDatasetRequest(requestId: string, notes?: string) {
   }
 
   revalidatePath("/admin");
-  revalidatePath("/browse");
 
   return { data };
 }
