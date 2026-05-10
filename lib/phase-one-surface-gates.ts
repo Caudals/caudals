@@ -6,6 +6,8 @@ const PHASE_ONE_HIDDEN_SURFACE_PREFIXES = [
   "/requester",
 ];
 
+const PHASE_ONE_HIDDEN_ADMIN_PREFIXES = ["/admin/"];
+
 function normalizePathname(pathname: string) {
   if (!pathname) {
     return "/";
@@ -22,6 +24,10 @@ export function isLegacySelfServeEnabled() {
   return process.env.ENABLE_LEGACY_SELF_SERVE === "true";
 }
 
+export function isLegacyAdminSubroutesEnabled() {
+  return process.env.ENABLE_LEGACY_ADMIN_SUBROUTES === "true";
+}
+
 export function isPhaseOneHiddenSurfacePath(pathname: string) {
   const normalizedPathname = normalizePathname(pathname);
 
@@ -32,6 +38,17 @@ export function isPhaseOneHiddenSurfacePath(pathname: string) {
   );
 }
 
+export function isPhaseOneHiddenAdminPath(pathname: string) {
+  const normalizedPathname = normalizePathname(pathname);
+
+  return PHASE_ONE_HIDDEN_ADMIN_PREFIXES.some((prefix) =>
+    normalizedPathname.startsWith(prefix)
+  );
+}
+
 export function shouldBlockPhaseOneHiddenSurface(pathname: string) {
-  return !isLegacySelfServeEnabled() && isPhaseOneHiddenSurfacePath(pathname);
+  return (
+    (!isLegacySelfServeEnabled() && isPhaseOneHiddenSurfacePath(pathname)) ||
+    (!isLegacyAdminSubroutesEnabled() && isPhaseOneHiddenAdminPath(pathname))
+  );
 }

@@ -23,6 +23,7 @@
 - Added `db/migrations/002_audit_event_default_partition.sql` so audit writes remain durable outside pre-created calendar partitions.
 - Added authenticated Playwright smoke coverage for the Operator Console module grid, build detail, license planner, audit overlay, lineage feed, and state-machine panel.
 - Added a default Phase 1 proxy gate that returns `404` for pre-pivot `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` routes unless `ENABLE_LEGACY_SELF_SERVE=true`.
+- Extended the Phase 1 proxy gate so legacy `/admin/*` subroutes return `404` by default while `/admin` remains the Operator Console.
 
 ## Deviations
 
@@ -34,6 +35,7 @@
 - Supabase is still the current app data/auth dependency.
 - The operator console has replaced the `/admin` home, but old pre-pivot admin subroutes still exist and need deletion/adaptation.
 - Pre-pivot self-serve route files still exist in the codebase, but the proxy hides them by default during Phase 1.
+- Legacy admin subroute files still exist in the codebase, but the proxy hides them by default during Phase 1.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
@@ -59,6 +61,9 @@
 - `npx vitest run lib/phase-one-surface-gates.test.ts lib/landing-mode.test.ts` passed with 9 tests.
 - `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after installing the missing Playwright Chromium browser and host dependencies on the VPS.
 - `npm run typecheck`, `npm run lint`, and `npm run build` passed after the Phase 1 surface gate; lint still reports the existing 30 warnings.
+- `npx vitest run lib/phase-one-surface-gates.test.ts lib/landing-mode.test.ts` passed with 11 tests after the legacy admin subroute gate.
+- `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after the legacy admin subroute gate.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the legacy admin subroute gate; lint still reports the existing 30 warnings.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
