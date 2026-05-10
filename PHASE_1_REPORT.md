@@ -62,6 +62,7 @@
 - Cut over the deployed app service to `caudals-postgres` with Postgres-backed Operator Console data and Better Auth secret-file config.
 - Kept landing mode narrow while allowing `/auth`, `/api/auth`, and `/admin` so the current production surface is public funnel plus private admin.
 - Added and applied `npm run migrate:public-funnel` for legacy public-funnel waitlist, analytics, Stripe webhook replay, and rate-limit rows.
+- Sent Better Auth password-reset requests for the 4 migrated operator accounts through the deployed app.
 
 ## Deviations
 
@@ -74,7 +75,7 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are loaded into `caudals-postgres`; the deployed app service now reads them through the Postgres-backed Operator Console repository.
-- Better Auth now owns the visible operator auth shell. Operator-account migration has been applied to `caudals-postgres`; reset-password emails for migrated operators have not been sent yet. JIT elevation has a DB contract/server hook but not a full operator UI.
+- Better Auth now owns the visible operator auth shell. Operator-account migration and reset-password requests have been applied to `caudals-postgres`; JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Supabase decommissioning is blocked by final-backup confirmation and explicit decommission approval.
@@ -202,3 +203,4 @@
 - `npm run migrate:public-funnel` dry-run and `npm run migrate:public-funnel -- --apply` passed from a short-lived container attached to `supabase_default` and `dokploy-network`.
 - Target public-funnel counts after apply: 9 waitlist signups, 1,331 analytics events including live smoke traffic, 19 Stripe webhook events, and 251 rate-limit rows including live smoke keys.
 - Migrated subset verification matched deterministic target keys and sampled status/timestamp fields for waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, and abuse 249/249.
+- `npm run migrate:supabase-auth -- --apply --send-resets` passed from a short-lived container; target verification showed 4 auth users, 4 operators, 4 migration audit events, and 4 recent Better Auth verification records.
