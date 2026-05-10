@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
 import {
   isLandingModeEnabledServer,
   isLandingModeRequestAllowed,
@@ -193,10 +192,7 @@ export async function proxy(request: NextRequest) {
 
   const treatAppRootAsAdmin = !landingMode && isAppHost && pathname === "/";
 
-  const response = await updateSession(
-    request,
-    treatAppRootAsAdmin ? { pathnameOverride: "/admin" } : undefined
-  );
+  const response = NextResponse.next({ request });
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   
   // Get country code and language header

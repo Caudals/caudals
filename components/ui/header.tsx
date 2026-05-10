@@ -56,10 +56,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
         ? [...landingModePublicNavigationLinks]
         : DEFAULT_LINKS;
 
-  const dashboardHref =
-    userRole === "admin"
-      ? "/admin"
-      : "/";
+  const dashboardHref = user && userRole ? "/admin" : "/";
 
   const renderDesktopActions = () => {
     if (isLandingMode) {

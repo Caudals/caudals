@@ -89,7 +89,7 @@ export function CommandPalette() {
     };
 
     const loadSearchResults = async () => {
-      if (userRole !== "admin" || term.length < 2) {
+      if (!userRole || term.length < 2) {
         clear();
         return;
       }
@@ -140,7 +140,7 @@ export function CommandPalette() {
   }, [query, supabase, userRole]);
 
   const navigationItems = useMemo(() => {
-    if (userRole === "admin") {
+    if (userRole) {
       return [
         { label: t("Pipeline / Home"), href: "/admin", icon: Shield },
         { label: t("Leads & Opportunities"), href: "/admin?module=leads", icon: FileText },
@@ -162,7 +162,7 @@ export function CommandPalette() {
   }, [t, userRole]);
 
   const adminActions = useMemo(() => {
-    if (userRole !== "admin") return [];
+    if (!userRole) return [];
     return [
       { label: t("Review active blockers"), href: "/admin" },
       { label: t("Open QA pending builds"), href: "/admin?module=builds" },
