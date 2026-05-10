@@ -18,6 +18,7 @@
 - `docs/blueprints/deviations.md` records the temporary migration and seed-data deviations.
 - Typed PostgreSQL client boundary in `lib/db/client.ts` with operator RLS session settings.
 - Operator console repository now has explicit `fixture` and `postgres` data sources selected by `OPERATOR_CONSOLE_DATA_SOURCE`.
+- tRPC scaffold added at `/api/trpc/[trpc]` for future buyer/supplier surfaces; landing mode still blocks it from the public deployment.
 
 ## Deviations
 
@@ -32,6 +33,7 @@
 - Operator console transition mutations validate transitions but do not persist to Postgres or write durable `audit_event` rows yet.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
 - Better Auth, mandatory MFA, JIT elevation, and operator-account migration are not implemented yet.
+- tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
 - The Postgres schema baseline has not yet been applied to a live database or verified with migrated row counts.
 
@@ -42,6 +44,8 @@
 - `npm run typecheck` passed.
 - `npm run lint` passed with the existing 30 warnings and no errors.
 - `npm run lint` passed again after the PostgreSQL client slice with the existing 30 warnings and no errors.
+- `npx vitest run lib/trpc/router.test.ts lib/landing-mode.test.ts` passed with 6 tests.
+- `npm run typecheck`, `npm run lint`, and `npm run build` passed after the tRPC scaffold; lint still reports the existing 30 warnings.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
