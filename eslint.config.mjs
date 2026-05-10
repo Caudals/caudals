@@ -6,6 +6,7 @@ const config = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      "c-design/**",
       "out/**",
       "build/**",
       "next-env.d.ts",
