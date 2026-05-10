@@ -32,8 +32,8 @@ In progress. The private `caudals-postgres` target is live on the VPS, the app s
 - Added `npm run migrate:public-funnel`, an apply-gated migration for legacy waitlist, product analytics, Stripe webhook replay, and rate-limit rows.
 - Applied the public-funnel migration to `caudals-postgres`: 9 waitlist signups, 1,328 analytics events, 19 Stripe webhook events, and 249 abuse rate-limit rows.
 - Verified migrated subsets by deterministic target keys and selected status/timestamp fields: waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, abuse 249/249.
+- Re-ran the Supabase Auth migration with `--send-resets`; 4 migrated operator accounts received Better Auth password-reset requests.
 
 ## Not Done Yet
 
-- Issue reset-password emails for migrated operators.
 - Final Supabase backup and explicit decommission approval.
