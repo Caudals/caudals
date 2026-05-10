@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-const landingModeEnabled =
-  process.env.LANDING_MODE === "true" ||
-  process.env.NEXT_PUBLIC_LANDING_MODE === "true";
-
 test.describe("core role smoke", () => {
   test("public landing loads", async ({ page }) => {
     await page.goto("/");
@@ -14,12 +10,7 @@ test.describe("core role smoke", () => {
   });
 
   test("auth sign-in loads", async ({ page }) => {
-    const response = await page.goto("/auth/sign-in");
-
-    if (landingModeEnabled || response?.status() === 404) {
-      expect(response?.status()).toBe(404);
-      return;
-    }
+    await page.goto("/auth/sign-in");
 
     await expect(page.locator("form")).toBeVisible();
     await expect(
@@ -40,12 +31,7 @@ test.describe("core role smoke", () => {
   });
 
   test("admin route redirects anonymous users to sign-in", async ({ page }) => {
-    const response = await page.goto("/admin");
-
-    if (landingModeEnabled || response?.status() === 404) {
-      expect(response?.status()).toBe(404);
-      return;
-    }
+    await page.goto("/admin");
 
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });
