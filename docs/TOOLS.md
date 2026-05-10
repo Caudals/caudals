@@ -35,6 +35,7 @@ Target Phase 1 runtime:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
+- App service: `caudalsdep-caudals-vgbvxp`; database/auth secrets are mounted through `DATABASE_URL_FILE` and `BETTER_AUTH_SECRET_FILE`
 - Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Schema migrations: `db/migrations/*`
 - Rollbacks: `db/rollbacks/*`

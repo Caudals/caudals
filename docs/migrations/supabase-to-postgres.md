@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The private `caudals-postgres` target is live on the VPS. Supabase remains live until app cutover, sampled verification, final encrypted backup, and explicit decommission approval.
+In progress. The private `caudals-postgres` target is live on the VPS and the app service is cut over to it. Supabase remains live until public-funnel data verification, final encrypted backup, and explicit decommission approval.
 
 ## Current Slice
 
@@ -27,10 +27,11 @@ In progress. The private `caudals-postgres` target is live on the VPS. Supabase 
 - Seeded the Phase 1 fixture set into `caudals-postgres`: 5 builds and 35 gate events.
 - Applied the Supabase Auth migration to `caudals-postgres`: 4 operator accounts, 4 migration audit events, and 25 skipped non-operator accounts.
 - Added Docker secret-file fallback support for app database and Better Auth secrets ahead of service cutover.
+- Cut over `caudalsdep-caudals-vgbvxp` to image `mariomedpar/caudals:phase1-ed46abd` with `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET_FILE`, and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.
+- Deployed smoke passed against `https://app.caudals.com`: public landing/auth route smoke and authenticated fixture-operator console smoke.
 
 ## Not Done Yet
 
 - Public funnel data dump/transform/load row-count verification and sampled diff.
-- Point the app service at `caudals-postgres` and run the authenticated smoke against the deployed service.
 - Issue reset-password emails for migrated operators.
 - Final Supabase backup and explicit decommission approval.
