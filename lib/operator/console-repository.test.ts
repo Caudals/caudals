@@ -1,0 +1,139 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  createFixtureOperatorConsoleRepository,
+  createOperatorConsoleRepository,
+  createPostgresOperatorConsoleRepository,
+  getOperatorConsolePostgresSessionFromEnv,
+  resolveOperatorConsoleDataSource,
+  type QueryRows,
+} from "@/lib/operator/console-repository";
+
+describe("operator console repository", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("uses fixture data source by default", () => {
+    expect(resolveOperatorConsoleDataSource()).toBe("fixture");
+    expect(createOperatorConsoleRepository()).toEqual(
+      expect.objectContaining({ getSnapshot: expect.any(Function) })
+    );
+  });
+
+  it("rejects unsupported data source values", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_DATA_SOURCE", "magic");
+
+    expect(() => resolveOperatorConsoleDataSource()).toThrow(
+      'Unsupported OPERATOR_CONSOLE_DATA_SOURCE "magic". Use "fixture" or "postgres".'
+    );
+  });
+
+  it("requires an org id for postgres-backed snapshots", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_DATA_SOURCE", "postgres");
+    vi.stubEnv("OPERATOR_CONSOLE_ORG_ID", "");
+
+    expect(() => getOperatorConsolePostgresSessionFromEnv()).toThrow(
+      "OPERATOR_CONSOLE_ORG_ID is required when OPERATOR_CONSOLE_DATA_SOURCE=postgres"
+    );
+  });
+
+  it("maps postgres rows into the console snapshot shape", async () => {
+    const query = vi.fn(async (sql: string) => {
+      if (sql.includes("module_counts")) {
+        return [
+          { key: "builds", total_records: 2, blocked_records: 1 },
+          { key: "audit", total_records: 4, blocked_records: 0 },
+        ];
+      }
+
+      if (sql.includes("FROM build b")) {
+        return [
+          {
+            id: "bd_01J2RECEIPTS",
+            title: "Iberian retail receipts v3",
+            buyer_brief_id: "br_01J2BUYEU",
+            supplier_org_id: "so_77RETAIL",
+            state: "qa",
+            eta: "21 May",
+            q_score: 0.91,
+            cost_used_usd: 1840,
+            budget_usd: 2500,
+            gates: [
+              { key: "G-1", state: "pass" },
+              { key: "G-7", state: "review" },
+            ],
+          },
+        ];
+      }
+
+      if (sql.includes("FROM audit_event")) {
+        return [
+          {
+            id: "ae_01STATE",
+            actor: "ops@caudals.com",
+            action: "state_transition",
+            target: "build/bd_01J2RECEIPTS",
+            created_at: "2026-05-10T13:08:00.000Z",
+          },
+        ];
+      }
+
+      if (sql.includes("FROM lineage_event")) {
+        return [
+          {
+            id: "le_01",
+            namespace: "marquez/caudals",
+            job_name: "qa.scorecard.v2",
+            dataset_version_id: "dv_01",
+            emitted_at: "2026-05-10T13:05:00.000Z",
+          },
+        ];
+      }
+
+      if (sql.includes("FROM license_clause")) {
+        return [
+          {
+            id: "lc_01",
+            permits_train: true,
+            permits_finetune: true,
+            permits_eval: true,
+            permits_inference_commercial: false,
+            permits_redistribute: false,
+            exclusivity: "none",
+            geo: ["EU"],
+            term_starts_at: null,
+            term_ends_at: null,
+            share_alike: false,
+          },
+        ];
+      }
+
+      return [];
+    });
+
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+    const snapshot = await repository.getSnapshot();
+
+    expect(snapshot.builds).toHaveLength(1);
+    expect(snapshot.featuredBuild.id).toBe("bd_01J2RECEIPTS");
+    expect(snapshot.featuredBuild.gates.find((gate) => gate.key === "G-7")).toMatchObject({
+      state: "review",
+    });
+    expect(snapshot.modules.find((module) => module.key === "builds")).toMatchObject({
+      totalRecords: 2,
+      blockedRecords: 1,
+    });
+    expect(snapshot.licensePreview.requestedUseAllowed).toBe(false);
+    expect(query).toHaveBeenCalledTimes(5);
+  });
+
+  it("keeps fixture repository available for explicit migration mode", async () => {
+    const snapshot = await createFixtureOperatorConsoleRepository().getSnapshot();
+
+    expect(snapshot.builds).toHaveLength(5);
+    expect(snapshot.modules).toHaveLength(13);
+  });
+});

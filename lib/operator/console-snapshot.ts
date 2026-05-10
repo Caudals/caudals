@@ -89,7 +89,7 @@ export type OperatorConsoleSnapshot = {
   auditRows: AuditRow[];
 };
 
-const gateLabels: Record<GateKey, string> = {
+export const gateLabels: Record<GateKey, string> = {
   "G-1": "Intake",
   "G-2": "Profile",
   "G-3": "Clean",
@@ -99,7 +99,7 @@ const gateLabels: Record<GateKey, string> = {
   "G-7": "QA",
 };
 
-const moduleSummaries: OperatorModuleSummary[] = [
+export const operatorModuleSummaries: OperatorModuleSummary[] = [
   {
     key: "pipeline",
     title: "Pipeline / Home",
@@ -219,7 +219,7 @@ const moduleSummaries: OperatorModuleSummary[] = [
   },
 ];
 
-function gates(states: BuildGate["state"][]): BuildGate[] {
+export function createBuildGates(states: BuildGate["state"][]): BuildGate[] {
   return (Object.keys(gateLabels) as GateKey[]).map((key, index) => ({
     key,
     label: gateLabels[key],
@@ -238,7 +238,7 @@ const demoBuilds: DemoBuild[] = [
     qScore: 0.91,
     costUsedUsd: 1840,
     budgetUsd: 2500,
-    gates: gates(["pass", "pass", "pass", "pass", "pass", "pass", "review"]),
+    gates: createBuildGates(["pass", "pass", "pass", "pass", "pass", "pass", "review"]),
   },
   {
     id: "bd_01J2ROUTES",
@@ -250,7 +250,7 @@ const demoBuilds: DemoBuild[] = [
     qScore: 0.84,
     costUsedUsd: 960,
     budgetUsd: 1800,
-    gates: gates(["pass", "pass", "pass", "review", "pending", "pending", "pending"]),
+    gates: createBuildGates(["pass", "pass", "pass", "review", "pending", "pending", "pending"]),
   },
   {
     id: "bd_01J2DOCS",
@@ -262,7 +262,7 @@ const demoBuilds: DemoBuild[] = [
     qScore: 0.88,
     costUsedUsd: 1320,
     budgetUsd: 2100,
-    gates: gates(["pass", "pass", "pass", "pass", "pass", "review", "pending"]),
+    gates: createBuildGates(["pass", "pass", "pass", "pass", "pass", "review", "pending"]),
   },
   {
     id: "bd_01J2AGRI",
@@ -274,7 +274,7 @@ const demoBuilds: DemoBuild[] = [
     qScore: 0.79,
     costUsedUsd: 2210,
     budgetUsd: 2600,
-    gates: gates(["pass", "pass", "pass", "pass", "review", "pending", "pending"]),
+    gates: createBuildGates(["pass", "pass", "pass", "pass", "review", "pending", "pending"]),
   },
   {
     id: "bd_01J2SUPPORT",
@@ -286,7 +286,7 @@ const demoBuilds: DemoBuild[] = [
     qScore: 0.73,
     costUsedUsd: 1780,
     budgetUsd: 1900,
-    gates: gates(["pass", "pass", "blocked", "pass", "pending", "pending", "pending"]),
+    gates: createBuildGates(["pass", "pass", "blocked", "pass", "pending", "pending", "pending"]),
   },
 ];
 
@@ -326,7 +326,7 @@ export function getOperatorConsoleSnapshot(): OperatorConsoleSnapshot {
 
   return {
     generatedAt: "2026-05-10T14:45:00.000Z",
-    modules: moduleSummaries,
+    modules: operatorModuleSummaries,
     triage: {
       blockers: 6,
       overdueGates: 3,
