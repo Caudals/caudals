@@ -68,11 +68,13 @@
 - Added inline work-queue state transitions that call the validated server action, update optimistically, and surface conflict/audit-write feedback.
 - Restored the `npm run i18n:check-parity` guardrail and brought the Spanish dictionaries back to source-key parity.
 - Hardened authenticated Playwright smoke coverage for cold local Next compilation by extending admin-smoke timeouts and scoping console locators.
+- Deployed the latest Operator Console image `mariomedpar/caudals:phase1-7730dbb` to the VPS app service after pruning disposable Docker build cache for disk headroom.
 
 ## Deviations
 
 - Earlier slices used deterministic Phase 1 seed data in code while the Postgres and Better Auth migration was pending; the deployed app now reads `caudals-postgres`, but remaining console modules still need full CRUD/action surfaces.
 - New schema work lands in `db/migrations/*` with matching rollbacks because the goal replaces the legacy Supabase migration path.
+- The production smoke fixture account remains MFA/WebAuthn-exempt so Playwright can verify the private console; the three real migrated operator accounts still require both controls.
 
 ## Known Gaps
 
@@ -214,3 +216,8 @@
 - `npx vitest run lib/operator/workflows.test.ts lib/operator/console-repository.test.ts lib/actions/operator-console-actions.test.ts lib/landing-mode.test.ts`, `npm run typecheck`, `npm run i18n:check-parity`, JSON parsing for translation files, and `git diff --check` passed after adding inline work-queue transitions.
 - `npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed against disposable local Postgres with Better Auth fixture sign-in and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.
 - `npx playwright test e2e/operator-console.spec.ts --project=chromium` passed against disposable local Postgres with Better Auth fixture sign-in, Postgres-backed console data, and inline transition UI assertions.
+- `docker build --build-arg LANDING_MODE=true --build-arg NEXT_PUBLIC_APP_URL=https://app.caudals.com -t mariomedpar/caudals:phase1-7730dbb .` passed after pruning BuildKit cache and an unused generic Node base image for disk headroom.
+- `docker service update --image mariomedpar/caudals:phase1-7730dbb caudalsdep-caudals-vgbvxp` converged, and `docker service ls` showed the app service running `phase1-7730dbb`.
+- `LANDING_MODE=true PLAYWRIGHT_BASE_URL=https://app.caudals.com npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 deployed tests.
+- `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` passed against the deployed service after restoring the fixture-only MFA/WebAuthn exemption.
+- `PLAYWRIGHT_BASE_URL=https://app.caudals.com PLAYWRIGHT_AUTH_E2E=true npx playwright test e2e/operator-console.spec.ts --project=chromium` passed against the deployed service with Postgres-backed console data and inline transition UI assertions.
