@@ -58,19 +58,12 @@ export async function updateSession(
     userProfile = profile;
   }
 
-  const protectedPrefixes = ["/dashboard", "/requester", "/contributor", "/admin"];
+  const protectedPrefixes = ["/requester", "/contributor", "/admin"];
 
   // Protected routes - require authentication
   if (!user && protectedPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
-    return NextResponse.redirect(url);
-  }
-
-  // Legacy dashboard subroutes are deprecated: /dashboard remains the only entrypoint
-  if (pathname.startsWith("/dashboard/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
@@ -83,13 +76,6 @@ export async function updateSession(
         : userRole === "contributor"
           ? "/contributor"
           : "/requester";
-
-    // Dashboard is only a smart entrypoint
-    if (pathname === "/dashboard") {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHome;
-      return NextResponse.redirect(url);
-    }
 
     // Role fences for canonical workspaces
     if (pathname.startsWith("/requester") && userRole === "contributor") {

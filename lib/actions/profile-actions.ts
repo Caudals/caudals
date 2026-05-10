@@ -60,8 +60,6 @@ export async function updateProfile(updates: {
     console.error("Error updating profile:", error);
     return { error: error.message };
   }
-
-  revalidatePath("/dashboard");
   revalidatePath("/requester/settings");
 
   return { data };

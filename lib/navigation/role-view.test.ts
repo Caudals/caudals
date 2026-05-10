@@ -11,7 +11,7 @@ describe("resolveViewKey", () => {
   });
 
   it("falls back to role when pathname is outside app surfaces", () => {
-    expect(resolveViewKey("/dashboard", "contributor")).toBe("contributor");
+    expect(resolveViewKey("/reports", "contributor")).toBe("contributor");
   });
 });
 
