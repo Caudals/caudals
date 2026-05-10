@@ -1,24 +1,11 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-
 export async function uploadFileClient(
   file: File,
   bucket: string,
   datasetId?: string
 ): Promise<{ url: string | null; path: string | null; error: string | null }> {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { url: null, path: null, error: "Not authenticated" };
-  }
-
   try {
-    // Use API route to upload to DigitalOcean Spaces
     const formData = new FormData();
     formData.append("file", file);
     formData.append("bucket", bucket);
@@ -46,43 +33,6 @@ export async function uploadFileClient(
       error: error instanceof Error ? error.message : "Upload failed",
     };
   }
-
-  /* ORIGINAL SUPABASE CODE - KEPT FOR REFERENCE
-  // Organize files by dataset and user
-  const fileExt = file.name.split(".").pop();
-  const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(7);
-
-  // Structure: {dataset_id}/{user_id}/{timestamp}_{filename}
-  const filePath = datasetId
-    ? `${datasetId}/${user.id}/${timestamp}_${randomId}.${fileExt}`
-    : `${user.id}/${timestamp}_${randomId}.${fileExt}`;
-
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-  if (error) {
-    console.error("Error uploading file:", error);
-    return { url: null, path: null, error: error.message };
-  }
-
-  // Get public URL - ensure it's properly formatted
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(data.path);
-
-  // Ensure the URL is absolute and properly formatted
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const fullUrl = publicUrl.startsWith('http')
-    ? publicUrl
-    : `${baseUrl}/storage/v1/object/public/${bucket}/${data.path}`;
-
-  return { url: fullUrl, path: data.path, error: null };
-  */
 }
 
 export async function uploadMultipleFilesClient(
@@ -142,17 +92,4 @@ export async function deleteFileClient(
       error: error instanceof Error ? error.message : "Delete failed",
     };
   }
-
-  /* ORIGINAL SUPABASE CODE - KEPT FOR REFERENCE
-  const supabase = createClient();
-
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-
-  if (error) {
-    console.error("Error deleting file:", error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true, error: null };
-  */
 }

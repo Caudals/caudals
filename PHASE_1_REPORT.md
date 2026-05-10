@@ -24,6 +24,7 @@
 - Added authenticated Playwright smoke coverage for the Operator Console module grid, build detail, license planner, audit overlay, lineage feed, and state-machine panel.
 - Added a default Phase 1 proxy gate that returns `404` for pre-pivot `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` routes unless `ENABLE_LEGACY_SELF_SERVE=true`.
 - Extended the Phase 1 proxy gate so legacy `/admin/*` subroutes return `404` by default while `/admin` remains the Operator Console.
+- Removed the remaining Supabase Storage helper path: browser uploads now delegate directly to `/api/upload`, the unused legacy server upload helper was deleted, and active storage URL helpers are DO Spaces/CDN-first with legacy absolute URL compatibility only for stored records.
 
 ## Deviations
 
@@ -32,7 +33,7 @@
 
 ## Known Gaps
 
-- Supabase is still the current app data/auth dependency.
+- Supabase is still the current app data/auth dependency. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
 - The operator console has replaced the `/admin` home, but old pre-pivot admin subroutes still exist and need deletion/adaptation.
 - Pre-pivot self-serve route files still exist in the codebase, but the proxy hides them by default during Phase 1.
 - Legacy admin subroute files still exist in the codebase, but the proxy hides them by default during Phase 1.
@@ -64,6 +65,12 @@
 - `npx vitest run lib/phase-one-surface-gates.test.ts lib/landing-mode.test.ts` passed with 11 tests after the legacy admin subroute gate.
 - `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after the legacy admin subroute gate.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the legacy admin subroute gate; lint still reports the existing 30 warnings.
+- `npx vitest run lib/storage/client-upload.test.ts` passed with 3 tests after the storage helper cleanup.
+- `npm run typecheck` passed after the storage helper cleanup.
+- `npx eslint lib/storage/client-upload.ts lib/storage/client-upload.test.ts lib/storage/get-public-url.ts` passed after the storage helper cleanup.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after the storage helper cleanup; lint still reports the existing 30 warnings.
+- `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the storage helper cleanup.
+- `rg -n "\.storage|ORIGINAL SUPABASE CODE|Supabase Storage|@/lib/storage/upload|from \"@/lib/supabase/client\"" lib/storage app components lib -g '*.ts' -g '*.tsx'` found no Supabase Storage helper usage; remaining Supabase client imports are non-storage auth/data call sites.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
