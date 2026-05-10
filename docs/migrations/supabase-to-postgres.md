@@ -15,10 +15,11 @@ In progress. Supabase remains live and must not be decommissioned until the new 
 - Added the Better Auth server/client scaffold and `/api/auth/[...all]` endpoint, configured for the existing PostgreSQL pool, organization membership, TOTP, passkeys, and disabled self-serve sign-up.
 - Added `db/migrations/003_better_auth_identity.sql` and rollback for the prefixed Better Auth identity tables.
 - Added `db/migrations/004_abuse_rate_limit.sql` and rollback for durable contact/waitlist rate limiting on self-hosted PostgreSQL.
+- Added `db/migrations/005_waitlist_signup.sql` and rollback for public waitlist persistence on self-hosted PostgreSQL.
 
 ## Not Done Yet
 
 - Supabase data dump, transform, load, row-count verification, and sampled diff.
 - Better Auth account migration and first-login password reset flow.
-- Application DB client migration from Supabase to PostgreSQL for waitlist ingestion, analytics event storage, export jobs, and Stripe ledger helpers.
+- Application DB client migration from Supabase to PostgreSQL for analytics event storage, export jobs, and Stripe ledger helpers.
 - 48-hour internal-use gate and final Supabase backup/decommission.

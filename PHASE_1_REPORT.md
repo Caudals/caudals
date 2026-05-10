@@ -45,6 +45,7 @@
 - Deleted the legacy self-serve payment action surface and moved the remaining Stripe webhook wallet/budget helpers into a server-only payment ledger module.
 - Moved the shared contact/waitlist rate limiter from the Supabase abuse RPC to the self-hosted PostgreSQL client with `db/migrations/004_abuse_rate_limit.sql`.
 - Deleted the unused Supabase SSR server wrapper and removed the unused `@supabase/ssr` dependency.
+- Moved `/api/waitlist` persistence from Supabase admin writes to the self-hosted PostgreSQL client with `db/migrations/005_waitlist_signup.sql`.
 
 ## Deviations
 
@@ -53,7 +54,7 @@
 
 ## Known Gaps
 
-- Supabase is still present in Stripe webhook ledger helpers, export jobs, waitlist ingestion, and analytics event storage while those data paths are migrated.
+- Supabase is still present in Stripe webhook ledger helpers, export jobs, and analytics event storage while those data paths are migrated.
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
@@ -146,3 +147,6 @@
 - `db/migrations/001_operator_core.sql` through `db/migrations/004_abuse_rate_limit.sql` and their rollbacks applied cleanly against a temporary `supabase/postgres:15.8.1.085` container; the rate-limit table accepted an insert/upsert probe.
 - `npm run typecheck`, `npx vitest run lib/security/rate-limit.test.ts app/'(app)'/api/waitlist/route.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after moving rate limiting to PostgreSQL.
 - `rg -n "@supabase/ssr|createServerClient|@/lib/supabase/server" app components lib package.json package-lock.json -g '*.ts' -g '*.tsx' -g 'package*.json'` found no remaining Supabase SSR wrapper or dependency references.
+- `db/migrations/001_operator_core.sql` through `db/migrations/005_waitlist_signup.sql` and their rollbacks applied cleanly against a temporary `supabase/postgres:15.8.1.085` container; the waitlist table accepted an insert/upsert probe.
+- `npm run typecheck`, `npx vitest run app/'(app)'/api/waitlist/route.test.ts lib/db/ids.test.ts lib/security/rate-limit.test.ts lib/landing-mode.test.ts`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after moving waitlist persistence to PostgreSQL.
+- `rg -n "@/lib/supabase/admin|createAdminClient|supabase" app/'(app)'/api/waitlist lib/db -g '*.ts' -g '*.tsx'` found no remaining Supabase references in waitlist persistence or DB ID helpers.
