@@ -9,7 +9,7 @@ import { buildPublicMetadata } from "@/lib/seo";
 export const metadata = buildPublicMetadata({
   title: "Trust Center",
   description:
-    "Security controls, governance model, payout transparency, and support SLAs for Caudals.",
+    "Security controls, governance model, commercial controls, and support SLAs for Caudals.",
   pathname: "/trust",
 });
 
@@ -39,15 +39,15 @@ const trustPillars = [
     ],
   },
   {
-    title: "Payout Transparency",
+    title: "Commercial Controls",
     icon: Wallet,
     description:
-      "Funding and payout flows are ledger-backed so finance and ops can reconcile every movement.",
+      "Pricing, licensing, and supplier revenue-share decisions stay operator-reviewed before any marketplace self-service returns.",
     checkpoints: [
-      "Canonical cents-based transaction accounting",
-      "Dataset funding lifecycle status tracking",
-      "Payout status timeline for contributor earnings",
-      "Failed payout reconciliation queue for admins",
+      "Operator review before funding or payout automation",
+      "License terms tied to each commercial approval",
+      "Supplier revenue-share decisions captured for audit",
+      "Webhook replay protection retained for payment integrations",
     ],
   },
 ];

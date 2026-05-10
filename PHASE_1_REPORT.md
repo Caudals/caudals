@@ -2,8 +2,8 @@
 
 ## Current Slice Plan
 
-- Move the visible operator auth shell from Supabase Auth to Better Auth while keeping public landing-mode gates intact.
-- Preserve the broader legacy admin/payment/upload data paths for later Postgres migration slices instead of leaving dual auth flows in the active shell.
+- Remove the final live Supabase admin data path from the Stripe webhook stack.
+- Preserve Stripe webhook replay safety through the self-hosted PostgreSQL migration path while leaving pre-pivot payment side effects hidden/decommissioned.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -48,6 +48,7 @@
 - Moved `/api/waitlist` persistence from Supabase admin writes to the self-hosted PostgreSQL client with `db/migrations/005_waitlist_signup.sql`.
 - Moved analytics event ingestion from Supabase admin writes to the self-hosted PostgreSQL client with `db/migrations/006_product_analytics_event.sql`.
 - Deleted the stale legacy requester dataset-export job route/module and removed its broken package script and operational docs references.
+- Replaced the legacy Stripe wallet/payment side-effect webhook path with replay-safe webhook intake on self-hosted PostgreSQL via `db/migrations/007_stripe_webhook_event.sql`.
 
 ## Deviations
 
@@ -56,7 +57,6 @@
 
 ## Known Gaps
 
-- Supabase is still present in Stripe webhook ledger helpers while those data paths are migrated.
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
@@ -157,3 +157,8 @@
 - `rg -n "@/lib/supabase/admin|createAdminClient|supabase" lib/analytics app/'(app)'/api/analytics lib/supabase/admin.ts -g '*.ts' -g '*.tsx'` found no analytics Supabase references outside the remaining admin wrapper definition.
 - `npx vitest run lib/landing-mode.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting the stale legacy export-job surface; the generated route table now lists 38 app routes and no `/api/internal/export-jobs`.
 - `rg -n "api/internal/export-jobs|jobs:process-exports|EXPORT_JOBS_TOKEN|export jobs|dataset_exports|export_jobs|processPendingDatasetExportJobs|Download and monitor export jobs" docs/TOOLS.md package.json lib app translations-source.json translations-es.json -g '*.ts' -g '*.tsx' -g '*.md' -g '*.json'` found no remaining app/docs/script references to the deleted legacy export-job surface.
+- `npx vitest run app/'(app)'/api/webhooks/stripe/route.test.ts lib/landing-mode.test.ts` passed with 13 tests after narrowing Stripe webhook handling to replay-safe Postgres intake.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the legacy Stripe payment ledger helpers and Supabase admin wrapper.
+- `db/migrations/001_operator_core.sql` through `db/migrations/007_stripe_webhook_event.sql`, a webhook replay insert/retry probe, and the `007` rollback passed against a temporary `pgvector/pgvector:pg16` container; the full `001`-`007` rollback sequence also passed on that image. The heavier `supabase/postgres:15.8.1.085` image hit a Supabase GraphQL event-trigger/OID issue during full rollback cleanup on this VPS, so the verification used the lighter pgvector runtime with the same required extensions.
+- `rg -n "@supabase/supabase-js|createAdminClient|@/lib/supabase/admin|from \"@/lib/payments/ledger\"|from '@/lib/payments/ledger'|lib/jobs/payment-ledger-consistency|payments:check-ledger|payments:repair-ledger|payments:check-compliance-policies" app components lib scripts package.json package-lock.json docs/TOOLS.md docs/ARCHITECTURE.md docs/migrations/supabase-to-postgres.md -g '*.ts' -g '*.tsx' -g '*.json' -g '*.md'` found no remaining active app/docs/package references to the deleted Supabase admin wrapper, payment ledger module, or removed payment scripts.
+- `npm ls @supabase/supabase-js --depth=0` returns an empty tree after pruning local extraneous packages.

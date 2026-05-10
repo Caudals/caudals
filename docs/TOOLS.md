@@ -159,9 +159,6 @@ Bootstrap:
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
-- `npm run payments:check-ledger`: ledger invariant checks
-- `npm run payments:repair-ledger`: dry-run/apply ledger repair
-- `npm run payments:check-compliance-policies`: payment policy/RLS checks
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
 ## Useful Route-Level Checks
@@ -218,4 +215,4 @@ Operational env controls:
   - rerun as `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` and capture output to a temp log if needed.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
-  - inspect webhook replay/idempotency tables.
+  - inspect the `stripe_webhook_event` replay/idempotency table.
