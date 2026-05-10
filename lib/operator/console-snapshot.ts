@@ -6,20 +6,23 @@ import {
 } from "@/lib/operator/license-composition";
 import { workflowDefinitions, type WorkflowName } from "@/lib/operator/workflows";
 
-export type OperatorModuleKey =
-  | "pipeline"
-  | "leads"
-  | "suppliers"
-  | "buyers"
-  | "builds"
-  | "datasets"
-  | "quality"
-  | "privacy"
-  | "catalogue"
-  | "commercials"
-  | "operations"
-  | "audit"
-  | "settings";
+export const operatorModuleKeys = [
+  "pipeline",
+  "leads",
+  "suppliers",
+  "buyers",
+  "builds",
+  "datasets",
+  "quality",
+  "privacy",
+  "catalogue",
+  "commercials",
+  "operations",
+  "audit",
+  "settings",
+] as const;
+
+export type OperatorModuleKey = (typeof operatorModuleKeys)[number];
 
 export type OperatorModuleSummary = {
   key: OperatorModuleKey;
@@ -68,6 +71,18 @@ export type LineageEventRow = {
   emittedAt: string;
 };
 
+export type OperatorWorkItem = {
+  moduleKey: OperatorModuleKey;
+  recordType: string;
+  id: string;
+  title: string;
+  state: string;
+  detail: string;
+  updatedAt: string;
+  severity: "info" | "warning" | "critical";
+  nextAction: string;
+};
+
 export type OperatorConsoleSnapshot = {
   generatedAt: string;
   modules: OperatorModuleSummary[];
@@ -85,6 +100,7 @@ export type OperatorConsoleSnapshot = {
     requestedUseReasons: string[];
   };
   workflowCoverage: Record<WorkflowName, string[]>;
+  workItems: Record<OperatorModuleKey, OperatorWorkItem[]>;
   lineageEvents: LineageEventRow[];
   auditRows: AuditRow[];
 };
@@ -98,6 +114,12 @@ export const gateLabels: Record<GateKey, string> = {
   "G-6": "Label",
   "G-7": "QA",
 };
+
+export function isOperatorModuleKey(
+  value: string | null | undefined
+): value is OperatorModuleKey {
+  return operatorModuleKeys.includes(value as OperatorModuleKey);
+}
 
 export const operatorModuleSummaries: OperatorModuleSummary[] = [
   {
@@ -316,6 +338,163 @@ const licenseGrants: LicenseGrant[] = [
   },
 ];
 
+const fixtureWorkItems: OperatorWorkItem[] = [
+  {
+    moduleKey: "pipeline",
+    recordType: "build",
+    id: "bd_01J2SUPPORT",
+    title: "Spanish support-ticket safety corpus",
+    state: "rework",
+    detail: "Blocked at G-3 cleaning",
+    updatedAt: "2026-05-10T14:05:00.000Z",
+    severity: "critical",
+    nextAction: "Assign rework owner",
+  },
+  {
+    moduleKey: "leads",
+    recordType: "buyer_opportunity",
+    id: "bo_01J2BUYEU",
+    title: "Retail receipts buyer pilot",
+    state: "pilot_active",
+    detail: "Sample review pending",
+    updatedAt: "2026-05-10T13:50:00.000Z",
+    severity: "warning",
+    nextAction: "Prepare pilot scorecard",
+  },
+  {
+    moduleKey: "suppliers",
+    recordType: "supplier_asset",
+    id: "sa_01J2RETAIL",
+    title: "Retail receipt archive",
+    state: "rights_review",
+    detail: "Contract clauses attached",
+    updatedAt: "2026-05-10T13:40:00.000Z",
+    severity: "warning",
+    nextAction: "Review permitted uses",
+  },
+  {
+    moduleKey: "buyers",
+    recordType: "dataset_brief",
+    id: "br_01J2BUYEU",
+    title: "EU receipt OCR training set",
+    state: "active",
+    detail: "Parquet and JSONL requested",
+    updatedAt: "2026-05-10T13:30:00.000Z",
+    severity: "info",
+    nextAction: "Confirm delivery format",
+  },
+  {
+    moduleKey: "builds",
+    recordType: "build",
+    id: "bd_01J2RECEIPTS",
+    title: "Iberian retail receipts v3",
+    state: "qa",
+    detail: "QA pending, ETA 21 May",
+    updatedAt: "2026-05-10T13:20:00.000Z",
+    severity: "warning",
+    nextAction: "Approve G-7",
+  },
+  {
+    moduleKey: "datasets",
+    recordType: "dataset_version",
+    id: "dv_01RECEIPTSV3",
+    title: "Retail receipts v3",
+    state: "draft",
+    detail: "Manifest ready, release signature pending",
+    updatedAt: "2026-05-10T13:10:00.000Z",
+    severity: "warning",
+    nextAction: "Sign release artefact",
+  },
+  {
+    moduleKey: "quality",
+    recordType: "qa_report",
+    id: "qr_01J2RECEIPTS",
+    title: "Receipt OCR QA scorecard",
+    state: "review",
+    detail: "Composite score 0.91",
+    updatedAt: "2026-05-10T13:00:00.000Z",
+    severity: "warning",
+    nextAction: "Resolve duplicate cluster",
+  },
+  {
+    moduleKey: "privacy",
+    recordType: "dsar_request",
+    id: "ds_01J2PRIV",
+    title: "Receipt subject export",
+    state: "impact_assessed",
+    detail: "SLA due this week",
+    updatedAt: "2026-05-10T12:50:00.000Z",
+    severity: "warning",
+    nextAction: "Start propagation",
+  },
+  {
+    moduleKey: "catalogue",
+    recordType: "catalogue_listing",
+    id: "cl_01J2LIST",
+    title: "Retail receipts private listing",
+    state: "review",
+    detail: "Sample preview gated",
+    updatedAt: "2026-05-10T12:40:00.000Z",
+    severity: "warning",
+    nextAction: "Approve listing copy",
+  },
+  {
+    moduleKey: "commercials",
+    recordType: "payout",
+    id: "py_01J2SUPPLIER",
+    title: "Supplier revenue-share payout",
+    state: "held",
+    detail: "Stripe test transfer hold",
+    updatedAt: "2026-05-10T12:30:00.000Z",
+    severity: "warning",
+    nextAction: "Review payout hold",
+  },
+  {
+    moduleKey: "operations",
+    recordType: "run",
+    id: "rn_01J2QA",
+    title: "qa.scorecard.v2",
+    state: "queued",
+    detail: "Retry count 0",
+    updatedAt: "2026-05-10T12:20:00.000Z",
+    severity: "warning",
+    nextAction: "Check worker queue",
+  },
+  {
+    moduleKey: "audit",
+    recordType: "audit_event",
+    id: "ae_01STATE",
+    title: "build state transition",
+    state: "state_transition",
+    detail: "build/bd_01J2RECEIPTS",
+    updatedAt: "2026-05-10T12:10:00.000Z",
+    severity: "info",
+    nextAction: "Open audit overlay",
+  },
+  {
+    moduleKey: "settings",
+    recordType: "signing_key",
+    id: "sk_01J2ACTIVE",
+    title: "Delivery signing key",
+    state: "active",
+    detail: "Ed25519",
+    updatedAt: "2026-05-10T12:00:00.000Z",
+    severity: "info",
+    nextAction: "Schedule rotation",
+  },
+];
+
+export function groupWorkItems(
+  rows: OperatorWorkItem[]
+): Record<OperatorModuleKey, OperatorWorkItem[]> {
+  return Object.fromEntries(
+    operatorModuleKeys.map((key) => [
+      key,
+      rows.filter((row) => row.moduleKey === key),
+    ])
+  ) as Record<OperatorModuleKey, OperatorWorkItem[]>;
+}
+
 export function getOperatorConsoleSnapshot(): OperatorConsoleSnapshot {
   const composed = composeLicenseGrants(licenseGrants);
   const requestedUse = evaluateRequestedUse(composed, {
@@ -346,6 +525,7 @@ export function getOperatorConsoleSnapshot(): OperatorConsoleSnapshot {
         [...definition.states],
       ])
     ) as Record<WorkflowName, string[]>,
+    workItems: groupWorkItems(fixtureWorkItems),
     lineageEvents: [
       {
         id: "le_01INTAKE",

@@ -62,6 +62,22 @@ describe("operator console repository", () => {
         ];
       }
 
+      if (sql.includes("work_items")) {
+        return [
+          {
+            module_key: "builds",
+            record_type: "build",
+            id: "bd_01J2RECEIPTS",
+            title: "Iberian retail receipts v3",
+            state: "qa",
+            detail: "Q-score 0.91",
+            updated_at: "2026-05-10T13:20:00.000Z",
+            severity: "warning",
+            next_action: "Open build detail",
+          },
+        ];
+      }
+
       if (sql.includes("FROM build b")) {
         return [
           {
@@ -142,8 +158,21 @@ describe("operator console repository", () => {
       totalRecords: 2,
       blockedRecords: 1,
     });
+    expect(snapshot.workItems.builds).toEqual([
+      {
+        moduleKey: "builds",
+        recordType: "build",
+        id: "bd_01J2RECEIPTS",
+        title: "Iberian retail receipts v3",
+        state: "qa",
+        detail: "Q-score 0.91",
+        updatedAt: "2026-05-10T13:20:00.000Z",
+        severity: "warning",
+        nextAction: "Open build detail",
+      },
+    ]);
     expect(snapshot.licensePreview.requestedUseAllowed).toBe(false);
-    expect(query).toHaveBeenCalledTimes(5);
+    expect(query).toHaveBeenCalledTimes(6);
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
@@ -151,6 +180,7 @@ describe("operator console repository", () => {
 
     expect(snapshot.builds).toHaveLength(5);
     expect(snapshot.modules).toHaveLength(13);
+    expect(snapshot.workItems.builds).toHaveLength(1);
   });
 
   it("returns non-durable audit payloads in fixture mode", async () => {

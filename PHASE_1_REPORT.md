@@ -64,10 +64,11 @@
 - Added and applied `npm run migrate:public-funnel` for legacy public-funnel waitlist, analytics, Stripe webhook replay, and rate-limit rows.
 - Sent Better Auth password-reset requests for the 4 migrated operator accounts through the deployed app.
 - Created and verified a local encrypted Supabase database backup under `/root/.caudals/backups`.
+- Added module-specific Operator Console work queues backed by live Postgres records across all 13 Phase 1 modules, with `/admin?module=` selection and fixture parity.
 
 ## Deviations
 
-- The slice uses deterministic Phase 1 seed data in code for the console snapshot while the Postgres and Better Auth migration is still pending. This is not final acceptance for "real data" wiring.
+- Earlier slices used deterministic Phase 1 seed data in code while the Postgres and Better Auth migration was pending; the deployed app now reads `caudals-postgres`, but remaining console modules still need full CRUD/action surfaces.
 - New schema work lands in `db/migrations/*` with matching rollbacks because the goal replaces the legacy Supabase migration path.
 
 ## Known Gaps
@@ -206,3 +207,4 @@
 - Migrated subset verification matched deterministic target keys and sampled status/timestamp fields for waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, and abuse 249/249.
 - `npm run migrate:supabase-auth -- --apply --send-resets` passed from a short-lived container; target verification showed 4 auth users, 4 operators, 4 migration audit events, and 4 recent Better Auth verification records.
 - `pg_dump -Fc` of the legacy Supabase database was encrypted locally with OpenSSL AES-256-CBC/PBKDF2; decrypt + `pg_restore -l` verified 943 archive entries.
+- Live Operator Console repository verification against `caudals-postgres` returned 13 modules, 5 builds, and populated module work queues for pipeline/builds/settings.
