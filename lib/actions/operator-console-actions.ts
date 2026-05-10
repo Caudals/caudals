@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { getOperatorConsoleSnapshot } from "@/lib/operator/console-snapshot";
+import { createOperatorConsoleRepository } from "@/lib/operator/console-repository";
 import {
   buildTransitionAuditEvent,
   checkTransition,
@@ -34,7 +34,8 @@ const transitionSchema = z.object({
 });
 
 export async function getOperatorConsoleOverview() {
-  return { data: getOperatorConsoleSnapshot() };
+  const repository = createOperatorConsoleRepository();
+  return { data: await repository.getSnapshot() };
 }
 
 export async function validateOperatorTransition(

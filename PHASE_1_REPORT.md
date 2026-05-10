@@ -16,6 +16,8 @@
 - Initial Supabase-to-Postgres migration report at `docs/migrations/supabase-to-postgres.md`.
 - Blueprint, architecture, and tools docs now describe the Phase 1 target as self-hosted PostgreSQL + Better Auth.
 - `docs/blueprints/deviations.md` records the temporary migration and seed-data deviations.
+- Typed PostgreSQL client boundary in `lib/db/client.ts` with operator RLS session settings.
+- Operator console repository now has explicit `fixture` and `postgres` data sources selected by `OPERATOR_CONSOLE_DATA_SOURCE`.
 
 ## Deviations
 
@@ -27,7 +29,7 @@
 - Supabase is still the current app data/auth dependency.
 - The operator console has replaced the `/admin` home, but old pre-pivot admin subroutes still exist and need deletion/adaptation.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
-- Operator console mutations validate transitions but do not persist to Postgres or write durable `audit_event` rows yet.
+- Operator console transition mutations validate transitions but do not persist to Postgres or write durable `audit_event` rows yet.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
 - Better Auth, mandatory MFA, JIT elevation, and operator-account migration are not implemented yet.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
@@ -36,8 +38,10 @@
 ## Verification
 
 - `npx vitest run lib/operator/workflows.test.ts lib/operator/license-composition.test.ts lib/actions/operator-console-actions.test.ts` passed with 11 tests.
+- `npx vitest run lib/operator/console-repository.test.ts lib/operator/workflows.test.ts lib/operator/license-composition.test.ts lib/actions/operator-console-actions.test.ts` passed with 16 tests.
 - `npm run typecheck` passed.
 - `npm run lint` passed with the existing 30 warnings and no errors.
+- `npm run lint` passed again after the PostgreSQL client slice with the existing 30 warnings and no errors.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.
 - New operator-console translation JSON was updated manually and parsed successfully.
