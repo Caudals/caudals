@@ -124,27 +124,97 @@ const contributorNav: NavGroup[] = [
 
 const adminNav: NavGroup[] = [
   {
-    group: "Overview",
+    group: "Operator console",
     items: [
-      { title: "Control center", icon: Shield, href: "/admin", exact: true },
-      { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-      { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
+      {
+        title: "Pipeline / Home",
+        icon: Shield,
+        href: "/admin",
+        exact: true,
+        clearQueryKeys: ["module"],
+      },
+      {
+        title: "Leads & Opportunities",
+        icon: FileText,
+        href: "/admin?module=leads",
+        query: { module: "leads" },
+      },
+      {
+        title: "Suppliers",
+        icon: Users,
+        href: "/admin?module=suppliers",
+        query: { module: "suppliers" },
+      },
+      {
+        title: "Buyers",
+        icon: UserPlus,
+        href: "/admin?module=buyers",
+        query: { module: "buyers" },
+      },
     ],
   },
   {
-    group: "Operations",
+    group: "Dataset operations",
     items: [
-      { title: "Requests", icon: FileText, href: "/admin/requests" },
-      { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
-      { title: "Datasets", icon: Database, href: "/admin/datasets" },
-      { title: "Users", icon: Users, href: "/admin/users" },
-      { title: "Featured", icon: Megaphone, href: "/admin/featured" },
+      {
+        title: "Builds",
+        icon: CheckCircle,
+        href: "/admin?module=builds",
+        query: { module: "builds" },
+      },
+      {
+        title: "Datasets",
+        icon: Database,
+        href: "/admin?module=datasets",
+        query: { module: "datasets" },
+      },
+      {
+        title: "Quality",
+        icon: BarChart3,
+        href: "/admin?module=quality",
+        query: { module: "quality" },
+      },
+      {
+        title: "Privacy & Rights",
+        icon: Shield,
+        href: "/admin?module=privacy",
+        query: { module: "privacy" },
+      },
     ],
   },
   {
-    group: "Finance & risk",
+    group: "Business operations",
     items: [
-      { title: "Payments", icon: CreditCard, href: "/admin/payments" },
+      {
+        title: "Catalogue & Offers",
+        icon: Megaphone,
+        href: "/admin?module=catalogue",
+        query: { module: "catalogue" },
+      },
+      {
+        title: "Commercials",
+        icon: CreditCard,
+        href: "/admin?module=commercials",
+        query: { module: "commercials" },
+      },
+      {
+        title: "Operations",
+        icon: FileUp,
+        href: "/admin?module=operations",
+        query: { module: "operations" },
+      },
+      {
+        title: "Audit",
+        icon: CheckCircle,
+        href: "/admin?module=audit",
+        query: { module: "audit" },
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        href: "/admin?module=settings",
+        query: { module: "settings" },
+      },
     ],
   },
 ];
