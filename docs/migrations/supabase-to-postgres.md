@@ -26,6 +26,7 @@ In progress. The private `caudals-postgres` target is live on the VPS. Supabase 
 - Applied migrations `001` through `009` to `caudals-postgres`; verified `citext`, `pg_cron`, `pg_stat_statements`, `pg_trgm`, `pgcrypto`, and `vector`.
 - Seeded the Phase 1 fixture set into `caudals-postgres`: 5 builds and 35 gate events.
 - Applied the Supabase Auth migration to `caudals-postgres`: 4 operator accounts, 4 migration audit events, and 25 skipped non-operator accounts.
+- Added `DATABASE_URL_FILE` support for app, fixture, and migration database connections ahead of service cutover.
 
 ## Not Done Yet
 

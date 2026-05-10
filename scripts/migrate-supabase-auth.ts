@@ -9,6 +9,7 @@ import {
   type LegacySupabaseAuthRow,
   type MigratedOperatorIdentity,
 } from "@/lib/auth/supabase-auth-migration";
+import { getDatabaseUrlFromEnv } from "@/lib/env/database-url";
 
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ quiet: true });
@@ -45,13 +46,10 @@ function getSourceDatabaseUrl() {
 }
 
 function getTargetDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL;
-
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required for the target PostgreSQL database");
-  }
-
-  return databaseUrl;
+  return getDatabaseUrlFromEnv({
+    missingMessage:
+      "DATABASE_URL or DATABASE_URL_FILE is required for the target PostgreSQL database",
+  });
 }
 
 async function main() {

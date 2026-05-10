@@ -58,6 +58,7 @@
 - Added `/auth/security`, operator security-status checks, `/admin` MFA/passkey enforcement, TOTP challenge handling on sign-in, and passkey registration for production-role operators.
 - Added `infra/postgres/Dockerfile` and `db/migrations/009_postgres_runtime_extensions.sql` for the Postgres 16 + pgvector + pg_cron runtime.
 - Created the private `caudals-postgres` swarm service on the VPS, applied migrations `001` through `009`, seeded the five-build fixture set, and applied the legacy operator-account migration.
+- Added `DATABASE_URL_FILE` support for the app database client and fixture/auth migration scripts so the app service can consume a Docker secret file during cutover.
 
 ## Deviations
 
@@ -187,3 +188,4 @@
 - `db/migrations/001_operator_core.sql` through `db/migrations/009_postgres_runtime_extensions.sql` applied against the custom Postgres runtime; extension verification returned `citext`, `pg_cron`, `pg_stat_statements`, `pg_trgm`, `pgcrypto`, and `vector`; rollback `009` passed.
 - Live `caudals-postgres` service was created on `dokploy-network`; migrations `001` through `009` applied successfully.
 - Live `caudals-postgres` fixture/auth counts after seeding and auth migration: 4 auth users, 4 operators, 5 builds, 35 gate events, 4 account-migration audit events.
+- `npx vitest run lib/env/database-url.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after adding `DATABASE_URL_FILE` support.

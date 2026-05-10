@@ -3,6 +3,8 @@ import { config as loadEnv } from "dotenv";
 import { hashPassword } from "better-auth/crypto";
 import { Pool, type PoolClient } from "pg";
 
+import { getDatabaseUrlFromEnv } from "@/lib/env/database-url";
+
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ quiet: true });
 
@@ -109,11 +111,10 @@ function fixtureId(prefix: string, index: number) {
 }
 
 function getDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required to seed Operator Console fixtures");
-  }
-  return databaseUrl;
+  return getDatabaseUrlFromEnv({
+    missingMessage:
+      "DATABASE_URL or DATABASE_URL_FILE is required to seed Operator Console fixtures",
+  });
 }
 
 async function query(client: PoolClient, sql: string, values: unknown[] = []) {

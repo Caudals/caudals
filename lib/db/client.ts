@@ -5,6 +5,7 @@ import {
   assertActiveOperatorElevation,
   type OperatorDbElevationScope,
 } from "@/lib/db/operator-elevation";
+import { getDatabaseUrlFromEnv } from "@/lib/env/database-url";
 
 export type QueryValue =
   | string
@@ -32,13 +33,7 @@ export type DbQueryClient = {
 let pool: Pool | null = null;
 
 export function getDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL;
-
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required for PostgreSQL access");
-  }
-
-  return databaseUrl;
+  return getDatabaseUrlFromEnv();
 }
 
 export function getPostgresPool() {
