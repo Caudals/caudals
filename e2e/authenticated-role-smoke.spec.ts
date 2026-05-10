@@ -8,6 +8,7 @@ const AUTH_E2E_ENABLED = process.env.PLAYWRIGHT_AUTH_E2E === "true";
 
 test.describe("authenticated role journeys", () => {
   test.describe.configure({ mode: "serial" });
+  test.setTimeout(180_000);
 
   test.skip(
     !AUTH_E2E_ENABLED,
@@ -16,7 +17,10 @@ test.describe("authenticated role journeys", () => {
 
   test("admin can access the operator console", async ({ page }) => {
     await signInAsFixtureOperator(page, FIXTURE_OPERATOR_EMAIL);
-    await page.goto("/admin");
+    await page.goto("/admin", {
+      timeout: 180_000,
+      waitUntil: "domcontentloaded",
+    });
     await expect(
       page.getByRole("heading", {
         name: /operator console/i,

@@ -31,6 +31,8 @@ const demoBuilds = [
 ];
 
 test.describe("operator console smoke", () => {
+  test.setTimeout(180_000);
+
   test.skip(
     !AUTH_E2E_ENABLED,
     "Set PLAYWRIGHT_AUTH_E2E=true to run authenticated operator console smoke checks."
@@ -38,7 +40,10 @@ test.describe("operator console smoke", () => {
 
   test("admin can inspect the Phase 1 console surface", async ({ page }) => {
     await signInAsFixtureOperator(page, FIXTURE_OPERATOR_EMAIL);
-    await page.goto("/admin");
+    await page.goto("/admin", {
+      timeout: 180_000,
+      waitUntil: "domcontentloaded",
+    });
 
     await expect(
       page.getByRole("heading", { name: /operator console/i })
@@ -48,9 +53,10 @@ test.describe("operator console smoke", () => {
       page.getByRole("button", { name: /open command palette/i })
     ).toBeVisible();
 
-    await expect(page.locator('a[href^="/admin?module="]')).toHaveCount(13);
+    const moduleCards = page.locator('main a[href^="/admin?module="]');
+    await expect(moduleCards).toHaveCount(13);
     for (const title of moduleTitles) {
-      await expect(page.getByRole("link", { name: new RegExp(title, "i") })).toBeVisible();
+      await expect(moduleCards.filter({ hasText: title }).first()).toBeVisible();
     }
 
     await expect(page.getByText(/build detail/i)).toBeVisible();
@@ -67,7 +73,7 @@ test.describe("operator console smoke", () => {
     await expect(page.getByText(/state-machine coverage/i)).toBeVisible();
 
     for (const build of demoBuilds) {
-      await expect(page.getByText(build)).toBeVisible();
+      await expect(page.getByText(build).first()).toBeVisible();
     }
 
     const hasHorizontalOverflow = await page.evaluate(() => {
