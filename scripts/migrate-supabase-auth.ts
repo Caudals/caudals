@@ -59,10 +59,7 @@ async function main() {
     connectionString: getSourceDatabaseUrl(),
     max: 1,
   });
-  const targetPool = new Pool({
-    connectionString: getTargetDatabaseUrl(),
-    max: 1,
-  });
+  let targetPool: Pool | null = null;
 
   try {
     const legacyRows = await fetchLegacyAuthRows(sourcePool);
@@ -80,6 +77,10 @@ async function main() {
       return;
     }
 
+    targetPool = new Pool({
+      connectionString: getTargetDatabaseUrl(),
+      max: 1,
+    });
     const targetClient = await targetPool.connect();
     try {
       await targetClient.query("BEGIN");
@@ -115,7 +116,8 @@ async function main() {
       `Migrated ${identities.length} operator accounts into Better Auth/PostgreSQL.`
     );
   } finally {
-    await Promise.all([sourcePool.end(), targetPool.end()]);
+    await sourcePool.end();
+    await targetPool?.end();
   }
 }
 

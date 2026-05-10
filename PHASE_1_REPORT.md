@@ -177,3 +177,5 @@
 - `npx vitest run lib/auth/supabase-auth-migration.test.ts` and `npm run typecheck` passed after adding the Supabase Auth migration script.
 - `npm run migrate:supabase-auth` dry-run and `npm run migrate:supabase-auth -- --apply` passed against disposable legacy-source and target PostgreSQL databases; the probe migrated one admin, skipped one non-admin, created Better Auth/operator/account rows, set MFA/WebAuthn flags, and wrote one migration audit event.
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the Supabase Auth migration script.
+- Live Supabase Auth dry-run succeeded against the local `supabase-db` container over its private Docker IP: 4 operator accounts prepared, 25 non-operator legacy accounts skipped, no target writes performed.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after the source-only live dry-run fix.

@@ -20,6 +20,7 @@ In progress. Supabase remains live and must not be decommissioned until the migr
 - Added `db/migrations/007_stripe_webhook_event.sql` and rollback for replay-safe Stripe webhook intake on self-hosted PostgreSQL.
 - Added `db/migrations/008_operator_elevation.sql` and rollback for time-bounded operator JIT production-DB elevation grants with audit rows.
 - Added `npm run migrate:supabase-auth` for apply-gated legacy Supabase admin-account migration into Better Auth/operator tables.
+- Live Supabase Auth dry-run found 4 operator accounts to migrate and 25 non-operator legacy accounts to skip.
 
 ## Not Done Yet
 
