@@ -24,13 +24,16 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe("dashboard access failure states", () => {
-  test("unauthenticated users are redirected from role dashboards", async ({ page }) => {
-    const protectedRoutes = ["/requester", "/admin"];
+  test("unauthenticated users are redirected from the admin dashboard", async ({ page }) => {
+    const protectedRoutes = ["/admin"];
 
     for (const route of protectedRoutes) {
       await page.goto(route);
       await expect(page).toHaveURL(/\/auth\/sign-in/);
     }
+
+    const requesterResponse = await page.goto("/requester");
+    expect(requesterResponse?.status()).toBe(404);
   });
 });
 
@@ -43,12 +46,6 @@ test.describe("multi-role dashboard QA pass", () => {
   );
 
   const roles = [
-    {
-      name: "requester",
-      email: "fixture.requester@caudals.local",
-      route: "/requester",
-      heading: /control center|centro de control|requester workspace|espacio de solicitante/i,
-    },
     {
       name: "admin",
       email: "fixture.admin@caudals.local",

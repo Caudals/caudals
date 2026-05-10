@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -10,11 +9,9 @@ import {
   CheckCircle,
   CreditCard,
   Database,
-  FilePlus2,
   FileText,
   FileUp,
   FolderArchive,
-  LayoutDashboard,
   LifeBuoy,
   Megaphone,
   Settings,
@@ -25,7 +22,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { resolveViewKey, type ViewKey } from "@/lib/navigation/role-view";
 import {
   Sidebar,
   SidebarContent,
@@ -41,9 +37,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { NavUser } from "@/components/app/nav-user";
-import { RoleSwitcher } from "@/components/app/role-switcher";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
 import { NotificationBell } from "@/components/app/notification-bell";
 
@@ -61,47 +55,6 @@ type NavGroup = {
   group: string;
   items: NavItem[];
 };
-
-const requesterNav: NavGroup[] = [
-  {
-    group: "Overview",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true },
-      { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
-    ],
-  },
-  {
-    group: "Execution queues",
-    items: [
-      {
-        title: "Review queue",
-        icon: CheckCircle,
-        href: "/requester/datasets?filter=pending_review",
-        query: { filter: "pending_review" },
-      },
-    ],
-  },
-  {
-    group: "Dataset ops",
-    items: [
-      {
-        title: "All datasets",
-        icon: FileText,
-        href: "/requester/datasets",
-        exact: true,
-        clearQueryKeys: ["status", "filter"],
-      },
-      { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
-      { title: "Files & exports", icon: FolderArchive, href: "/requester/files" },
-    ],
-  },
-  {
-    group: "Finance & billing",
-    items: [
-      { title: "Billing & payouts", icon: CreditCard, href: "/requester/billing" },
-    ],
-  },
-];
 
 const adminNav: NavGroup[] = [
   {
@@ -212,14 +165,12 @@ function parseHref(href: string): { path: string; params: URLSearchParams } {
 }
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  const { user, userRole, loading } = useAuth();
+  const { userRole, loading } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { state } = useSidebar();
   const t = useTranslations();
   const isCollapsed = state === "collapsed";
-
-  const workspaceTitle = user?.user_metadata?.workspace || "Caudals";
 
   if (loading || !userRole) {
     return (
@@ -246,29 +197,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  const viewKey = resolveViewKey(pathname, userRole);
-
-  let navGroups: NavGroup[] = requesterNav;
-  let viewLabel = "Requester";
-  let homeHref = "/requester";
-
-  if (viewKey === "admin") {
-    navGroups = adminNav;
-    viewLabel = "Admin";
-    homeHref = "/admin";
-  }
+  const homeHref = "/admin";
 
   const footerLinks = baseFooterLinks.map(item => {
     if (item.title === "Support") {
-      return { ...item, href: `/${viewKey}/support` };
+      return { ...item, href: "/admin?module=operations" };
     }
     if (item.title === "Settings") {
-      return { ...item, href: `/${viewKey}/settings` };
+      return { ...item, href: "/admin?module=settings" };
     }
     return item;
   });
 
-  const sidebarGroups: NavGroup[] = [...navGroups, { group: "Workspace", items: footerLinks }];
+  const sidebarGroups: NavGroup[] = [...adminNav, { group: "Workspace", items: footerLinks }];
 
   const isItemActive = (item: NavItem) => {
     const { path: itemPath, params } = parseHref(item.href);
@@ -320,11 +261,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             compact={isCollapsed}
             className={isCollapsed ? "mx-auto flex justify-center w-8 h-8 p-0" : "w-full justify-between rounded-lg"}
           />
-          {userRole === "admin" ? (
-            <div className="flex justify-center">
-              <RoleSwitcher userRole={userRole} currentView={viewKey} isCollapsed={isCollapsed} />
-            </div>
-          ) : null}
         </div>
       </SidebarHeader>
 

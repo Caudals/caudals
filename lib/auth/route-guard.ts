@@ -29,9 +29,7 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
     // If user role is not in allowed roles, redirect to appropriate dashboard
     if (!allowedRoles.includes(userRole)) {
       console.log('User role not allowed, redirecting...');
-      if (userRole === 'requester') {
-        redirect('/requester');
-      } else if (userRole === 'admin') {
+      if (userRole === 'admin') {
         redirect('/admin');
       } else {
         redirect(redirectPath || '/');
@@ -44,11 +42,6 @@ export async function requireRole(allowedRoles: string[], redirectPath?: string)
     console.error('Error in route guard:', error);
     redirect('/auth/sign-in');
   }
-}
-
-// Helper functions for specific role checks
-export async function requireRequester() {
-  return await requireRole(['requester']);
 }
 
 export async function requireAdmin() {

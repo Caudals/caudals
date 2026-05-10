@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
+import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next");
-  const role = searchParams.get("role"); // Role from OAuth signup
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") && !shouldBlockPhaseOneHiddenSurface(next)
+      ? next
+      : null;
 
   if (code) {
     const supabase = await createClient();
@@ -13,45 +17,20 @@ export async function GET(request: Request) {
     
     if (!error && data.user) {
       // Get user profile
-      let { data: profile } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role, mail')
         .eq('id', data.user.id)
         .single();
       
-      // If this is an OAuth signup and we have a role parameter, update the profile
-      if (role && !profile?.role && ["contributor", "requester"].includes(role)) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            role: role as "contributor" | "requester",
-            mail: data.user.email
-          })
-          .eq('id', data.user.id);
-        
-        if (!updateError) {
-          // Refresh profile data
-          const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .select('role, mail')
-            .eq('id', data.user.id)
-            .single();
-          profile = updatedProfile;
-        }
-      }
-      
       const userRole = profile?.role;
-      let redirectPath = "/requester";
+      let redirectPath = "/";
 
-      if (!userRole) {
-        redirectPath = "/requester";
-      } else if (userRole === "admin") {
+      if (userRole === "admin") {
         redirectPath = "/admin";
-      } else {
-        redirectPath = "/requester";
       }
       
-      const finalPath = next || redirectPath;
+      const finalPath = safeNext || redirectPath;
 
       // Build the correct redirect URL for production
       const forwardedHost = request.headers.get("x-forwarded-host");

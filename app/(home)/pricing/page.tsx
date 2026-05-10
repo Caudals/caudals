@@ -55,7 +55,7 @@ export default function PricingPage() {
       title="Plans built for production dataset delivery"
       description="Choose a plan aligned with your current operation stage and upgrade as your contributor workflows and governance requirements grow."
       ctaLabel="Start a project"
-      ctaHref="/auth/sign-up"
+      ctaHref="/contact"
     >
       <div className="grid gap-5 lg:grid-cols-3">
         {plans.map((plan) => (

@@ -22,7 +22,7 @@
 - Postgres-backed operator transitions now perform optimistic state updates and insert `audit_event` rows through the typed repository.
 - Added `db/migrations/002_audit_event_default_partition.sql` so audit writes remain durable outside pre-created calendar partitions.
 - Added authenticated Playwright smoke coverage for the Operator Console module grid, build detail, license planner, audit overlay, lineage feed, and state-machine panel.
-- Added a default Phase 1 proxy gate that returns `404` for pre-pivot `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` routes unless `ENABLE_LEGACY_SELF_SERVE=true`.
+- Added a default Phase 1 proxy gate that returns `404` for pre-pivot `/browse`, `/requester`, `/contributor`, `/dashboard`, and `/pwa` routes.
 - Extended the Phase 1 proxy gate so legacy `/admin/*` subroutes return `404` by default while `/admin` remains the Operator Console.
 - Removed the remaining Supabase Storage helper path: browser uploads now delegate directly to `/api/upload`, the unused legacy server upload helper was deleted, and active storage URL helpers are DO Spaces/CDN-first with legacy absolute URL compatibility only for stored records.
 - Deleted the legacy `/admin/*` route files so `/admin` is the only implemented admin route surface in Phase 1.
@@ -30,6 +30,8 @@
 - Deleted the legacy `/pwa` companion route group and PWA-only components; the manifest now points to public landing surfaces.
 - Deleted the public `/browse` marketplace route group and browse-only submission/detail components; remaining contributor browse code no longer links to public browse detail routes.
 - Deleted the legacy `/contributor` route group, contributor-only components, and contributor-specific Supabase actions.
+- Deleted the legacy `/requester` route group, requester-only components, requester-specific Supabase actions, and requester fixture tests.
+- Deleted the legacy self-serve `/auth/sign-up` page; account access CTAs now route to `/contact`.
 
 ## Deviations
 
@@ -39,7 +41,7 @@
 ## Known Gaps
 
 - Supabase is still the current app data/auth dependency. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
-- Remaining pre-pivot self-serve route files for `/requester` still exist in the codebase, but the proxy hides them by default during Phase 1.
+- Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
@@ -98,6 +100,12 @@
 - `npx eslint lib/storage/client-upload.ts lib/storage/client-upload.test.ts lib/storage/get-public-url.ts` passed after the storage helper cleanup.
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after the storage helper cleanup; lint still reports the existing 30 warnings.
 - `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the storage helper cleanup.
+- `npx vitest run lib/phase-one-surface-gates.test.ts lib/navigation/role-view.test.ts lib/landing-mode.test.ts` passed with 14 tests after deleting `/requester` and `/auth/sign-up`.
+- `npm run typecheck` passed after deleting `/requester` and `/auth/sign-up`.
+- `NODE_OPTIONS=--max-old-space-size=2048 npm run lint` passed after deleting `/requester` and `/auth/sign-up`; lint still reports the existing 28 warnings.
+- `npx playwright test e2e/smoke.spec.ts --project=chromium` passed with 4 tests after deleting `/requester` and `/auth/sign-up`.
+- `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after deleting `/requester` and `/auth/sign-up`; the generated route table lists 39 app routes and no `/requester`, `/auth/sign-up`, `/browse`, `/contributor`, `/dashboard`, `/pwa`, or `/admin/*` routes.
+- `git diff --check` passed after deleting `/requester` and `/auth/sign-up`.
 - `rg -n "\.storage|ORIGINAL SUPABASE CODE|Supabase Storage|@/lib/storage/upload|from \"@/lib/supabase/client\"" lib/storage app components lib -g '*.ts' -g '*.tsx'` found no Supabase Storage helper usage; remaining Supabase client imports are non-storage auth/data call sites.
 - `npm run build` passed.
 - `npm run i18n:check-parity` could not run because `scripts/check-i18n-parity.ts` is missing from the repo.

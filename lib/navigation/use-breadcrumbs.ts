@@ -2,16 +2,11 @@ import { useMemo } from "react";
 import type { BreadcrumbItem } from "@/types/navigation";
 
 const routeLabels: Record<string, string> = {
-  dashboard: "Dashboard",
-  requester: "Requester",
-  contributor: "Contributor",
   admin: "Admin",
   requests: "Requests",
-  contributors: "Contributors",
   analytics: "Analytics",
   billing: "Billing",
   settings: "Settings",
-  contributions: "Contributions",
   earnings: "Earnings",
   datasets: "Datasets",
   submissions: "Submissions",

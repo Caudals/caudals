@@ -32,8 +32,7 @@ const DEFAULT_LINKS = [
   { href: "/blog", label: "Blog" },
   { href: "/trust", label: "Trust" },
 ];
-const REQUESTER_SIGN_UP_CTA =
-  "/auth/sign-up?role=requester&next=/requester/onboarding";
+const REQUEST_ACCESS_CTA = "/contact";
 
 export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
   const { user, loading, userRole } = useAuth();
@@ -60,9 +59,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
   const dashboardHref =
     userRole === "admin"
       ? "/admin"
-      : userRole === "requester"
-        ? "/requester"
-        : "/";
+      : "/";
 
   const renderDesktopActions = () => {
     if (isLandingMode) {
@@ -88,7 +85,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
               <Link href="/auth/sign-in">{t("Sign in")}</Link>
             </Button>
             <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-              <Link href={REQUESTER_SIGN_UP_CTA}>{t("Sign up")}</Link>
+              <Link href={REQUEST_ACCESS_CTA}>{t("Request access")}</Link>
             </Button>
           </>
         );
@@ -123,7 +120,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
         </SheetClose>
         <SheetClose asChild>
           <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
-            <Link href={REQUESTER_SIGN_UP_CTA}>{t("Sign up")}</Link>
+            <Link href={REQUEST_ACCESS_CTA}>{t("Request access")}</Link>
           </Button>
         </SheetClose>
       </>

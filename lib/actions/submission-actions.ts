@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// Get detailed submissions for a dataset (for requester view)
+// Get detailed submissions for a dataset.
 export async function getDatasetSubmissionsDetailed(datasetId: string) {
   const supabase = await createClient();
 
@@ -67,7 +67,7 @@ export async function bulkApproveSubmissions(
     return { error: error.message };
   }
 
-  revalidatePath("/requester/datasets");
+  revalidatePath("/admin");
   return { data };
 }
 
@@ -191,7 +191,7 @@ export async function updateSubmissionStatus(
     console.error("Error updating submission status:", error);
     return { error: error.message };
   }
-  revalidatePath("/requester/datasets");
+  revalidatePath("/admin");
 
   return { data };
 }

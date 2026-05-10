@@ -51,7 +51,7 @@ export function CommandPalette() {
   const [datasets, setDatasets] = useState<DatasetResult[]>([]);
   const [tickets, setTickets] = useState<SupportTicketResult[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
-  const { userRole, user } = useAuth();
+  const { userRole } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const t = useTranslations();
@@ -89,50 +89,13 @@ export function CommandPalette() {
     };
 
     const loadSearchResults = async () => {
-      if (!userRole || !user || term.length < 2) {
+      if (userRole !== "admin" || term.length < 2) {
         clear();
         return;
       }
 
       setLoadingSearch(true);
       const ilikeTerm = `%${term}%`;
-
-      if (userRole === "requester") {
-        const [datasetsRes, ticketsRes] = await Promise.all([
-          supabase
-            .from("dataset_requests")
-            .select("id,title,approval_status,status,updated_at")
-            .eq("created_by", user.id)
-            .ilike("title", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(10),
-          supabase
-            .from("support_tickets")
-            .select("id,subject,status,priority,updated_at")
-            .eq("requester_id", user.id)
-            .ilike("subject", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(8),
-        ]);
-
-        if (!active) return;
-        if (datasetsRes.error) {
-          console.error("Command palette requester dataset search error", datasetsRes.error);
-          setDatasets([]);
-        } else {
-          setDatasets(datasetsRes.data ?? []);
-        }
-
-        if (ticketsRes.error) {
-          console.error("Command palette requester ticket search error", ticketsRes.error);
-          setTickets([]);
-        } else {
-          setTickets(ticketsRes.data ?? []);
-        }
-
-        setLoadingSearch(false);
-        return;
-      }
 
       const [datasetsRes, ticketsRes] = await Promise.all([
         supabase
@@ -174,7 +137,7 @@ export function CommandPalette() {
       active = false;
       clearTimeout(timer);
     };
-  }, [query, supabase, userRole, user]);
+  }, [query, supabase, userRole]);
 
   const navigationItems = useMemo(() => {
     if (userRole === "admin") {
@@ -195,16 +158,7 @@ export function CommandPalette() {
       ];
     }
 
-    return [
-      { label: t("Dashboard"), href: "/requester", icon: FileText },
-      { label: t("Datasets"), href: "/requester/datasets", icon: FileText },
-      { label: t("Review queue"), href: "/requester/datasets?filter=pending_review", icon: AlertCircle },
-      { label: t("Funding needed"), href: "/requester/datasets?filter=needs_funding", icon: CreditCard },
-      { label: t("Files & exports"), href: "/requester/files", icon: FolderArchive },
-      { label: t("Support"), href: "/requester/support", icon: AlertCircle },
-      { label: t("Analytics"), href: "/requester/analytics", icon: BarChart3 },
-      { label: t("Settings"), href: "/requester/settings", icon: Settings },
-    ];
+    return [];
   }, [t, userRole]);
 
   const adminActions = useMemo(() => {
@@ -274,15 +228,10 @@ export function CommandPalette() {
             <CommandSeparator />
             <CommandGroup heading={t("Datasets")}>
               {datasets.map((dataset) => {
-                const href =
-                  userRole === "admin"
-                    ? "/admin?module=datasets"
-                    : `/requester/datasets/${dataset.id}`;
-
                 return (
                   <CommandItem
                     key={dataset.id}
-                    value={href}
+                    value="/admin?module=datasets"
                     onSelect={handleSelect}
                   >
                     <FileText className="h-4 w-4" />
@@ -306,11 +255,7 @@ export function CommandPalette() {
               {tickets.map((ticket) => (
                 <CommandItem
                   key={ticket.id}
-                  value={
-                    userRole === "admin"
-                      ? "/admin?module=operations"
-                      : `/requester/support/${ticket.id}`
-                  }
+                  value="/admin?module=operations"
                   onSelect={handleSelect}
                 >
                   <AlertCircle className="h-4 w-4" />

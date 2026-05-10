@@ -173,7 +173,7 @@ Operational env controls:
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
-- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`, `ENABLE_LEGACY_SELF_SERVE`
+- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
@@ -185,12 +185,11 @@ Operational env controls:
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
 
 ## Phase 1 Surface Gate
-- `ENABLE_LEGACY_SELF_SERVE` defaults to off. With the default, `/requester` returns `404` even outside landing mode.
-- Set `ENABLE_LEGACY_SELF_SERVE=true` only for controlled legacy fixture checks while the old Supabase-backed surfaces are being removed.
 - `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
-- `/dashboard` is removed and blocked during Phase 1; it is not controlled by `ENABLE_LEGACY_SELF_SERVE`.
+- `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
+- `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.
 - `/admin/*` legacy subroutes are removed and blocked during Phase 1; `/admin` remains the Operator Console.
 
 ## Troubleshooting Quick Hits

@@ -45,7 +45,7 @@ export default function SignInPage() {
       } else if (data.user) {
         toast.success(t("Signed in successfully!"));
 
-        // Get user profile to determine role-based redirection
+        // Get user profile to determine the private operator redirect.
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -53,12 +53,10 @@ export default function SignInPage() {
           .single();
 
         const userRole = profile?.role;
-        let redirectPath = "/requester";
+        let redirectPath = "/";
 
         if (userRole === "admin") {
           redirectPath = "/admin";
-        } else if (userRole === "requester") {
-          redirectPath = "/requester";
         }
 
         router.push(redirectPath);
@@ -112,7 +110,7 @@ export default function SignInPage() {
             <div className="mt-8 space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-[var(--ds-accent)]" />
-                {t("Role-based workspaces for requester, contributor, and admin")}
+                {t("Private operator console for dataset operations")}
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <CheckCircle2 className="h-4 w-4 text-[var(--ds-accent)]" />
@@ -249,12 +247,12 @@ export default function SignInPage() {
             </CardContent>
             <CardFooter className="flex justify-center">
               <p className="text-sm text-slate-500">
-                {t("Don't have an account?")}{" "}
+                {t("Need access?")}{" "}
                 <Link
-                  href="/auth/sign-up"
+                  href="/contact"
                   className="font-medium text-primary hover:underline"
                 >
-                  {t("Sign up")}
+                  {t("Contact Caudals")}
                 </Link>
               </p>
             </CardFooter>

@@ -2403,7 +2403,7 @@ export async function updateAdminSupportTicket(
   }
 
   revalidatePath("/admin");
-  revalidatePath(`/requester/support/${validated.ticketId}`);
+  revalidatePath("/admin");
   return { ok: true };
 }
 

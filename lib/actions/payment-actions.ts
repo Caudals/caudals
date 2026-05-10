@@ -1201,8 +1201,8 @@ export async function createWalletFundingCheckoutSession(
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
-      success_url: `${appOrigin}/requester/billing?funding=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appOrigin}/requester/billing?funding=cancelled`,
+      success_url: `${appOrigin}/admin?module=commercials&funding=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appOrigin}/admin?module=commercials&funding=cancelled`,
       line_items: [
         {
           quantity: 1,
@@ -1343,12 +1343,12 @@ export async function createDatasetFundingCheckoutSession(
 
   try {
     const appOrigin = await resolveAppOrigin();
-    const successPath = `/requester/datasets/${datasetId}`;
+    const successPath = "/admin?module=builds";
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,
-      success_url: `${appOrigin}${successPath}?funding=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appOrigin}${successPath}?funding=cancelled`,
+      success_url: `${appOrigin}${successPath}&funding=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appOrigin}${successPath}&funding=cancelled`,
       line_items: [
         {
           quantity: 1,
@@ -1402,7 +1402,7 @@ export async function createDatasetFundingCheckoutSession(
 }
 
 export async function createRequesterBillingPortalSession(
-  returnPath = "/requester/billing"
+  returnPath = "/admin?module=commercials"
 ): Promise<{ data: { url: string } } | { error: string }> {
   assertStripeConfigured();
 
@@ -1444,7 +1444,7 @@ export async function createRequesterBillingPortalSession(
   const normalizedReturnPath =
     returnPath.startsWith("/") && !returnPath.startsWith("//")
       ? returnPath
-      : "/requester/billing";
+      : "/admin?module=commercials";
 
   try {
     const appOrigin = await resolveAppOrigin();
@@ -1542,9 +1542,9 @@ export async function getFundingCheckoutSessionStatus(sessionId: string): Promis
         return { error: confirmation.error ?? "Failed to confirm payment." };
       }
 
-      revalidatePath("/requester/billing");
+      revalidatePath("/admin");
       if (datasetId) {
-        revalidatePath(`/requester/datasets/${datasetId}`);
+        revalidatePath("/admin");
       }
     }
 
@@ -1843,7 +1843,7 @@ export async function payWithWallet(datasetId: string, amount: number) {
     source: "wallet",
     referenceId: walletReferenceId,
   });
-  revalidatePath("/requester/datasets");
+  revalidatePath("/admin");
 
   return {
     data: {
