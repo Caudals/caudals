@@ -1,22 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  const supabase = await createClient();
+import { getCurrentOperatorSession } from "@/lib/auth/operator-session";
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function GET(request: Request) {
+  const session = await getCurrentOperatorSession(request.headers);
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ role: null }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return NextResponse.json({ role: profile?.role || "contributor" });
+  return NextResponse.json({
+    role: session.operator.role,
+    operatorId: session.operator.id,
+  });
 }

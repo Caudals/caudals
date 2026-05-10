@@ -29,8 +29,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
-- `app/(app)/api/auth/[...all]`: Better Auth endpoint scaffold for the PostgreSQL auth migration;
-  the visible sign-in flow still uses legacy Supabase until account migration lands
+- `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password,
+  reset-password, organization/team, TOTP, and passkey flows during the PostgreSQL auth migration
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures

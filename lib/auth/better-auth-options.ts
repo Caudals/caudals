@@ -5,6 +5,7 @@ import { organization, twoFactor } from "better-auth/plugins";
 
 import { createBetterAuthId } from "@/lib/auth/better-auth-ids";
 import { betterAuthBasePath } from "@/lib/auth/better-auth-shared";
+import { getResendClient } from "@/lib/resend/client";
 
 const APP_NAME = "Caudals";
 const LOCAL_AUTH_URL = "http://localhost:3000";
@@ -109,6 +110,21 @@ export function createBetterAuthOptions(
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: 60 * 30,
       revokeSessionsOnPasswordReset: true,
+      async sendResetPassword({ user, url }) {
+        const from = process.env.RESEND_FROM_EMAIL;
+
+        if (!from) {
+          throw new Error("RESEND_FROM_EMAIL is required for password reset");
+        }
+
+        await getResendClient().emails.send({
+          from,
+          to: user.email,
+          subject: "Reset your Caudals password",
+          text: `Use this link to reset your Caudals password: ${url}`,
+          html: `<p>Use this link to reset your Caudals password:</p><p><a href="${url}">Reset password</a></p>`,
+        });
+      },
     },
     advanced: {
       cookiePrefix: "caudals",

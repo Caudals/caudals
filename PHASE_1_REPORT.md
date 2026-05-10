@@ -2,8 +2,8 @@
 
 ## Current Slice Plan
 
-- Establish the operator-domain core for Phase 1: state machines, transition validation, audit-event payloads, and license composition.
-- Keep the slice independent of the Supabase to Postgres migration so it can be unit-tested now and wired to Postgres server actions next.
+- Move the visible operator auth shell from Supabase Auth to Better Auth while keeping public landing-mode gates intact.
+- Preserve the broader legacy admin/payment/upload data paths for later Postgres migration slices instead of leaving dual auth flows in the active shell.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -36,6 +36,7 @@
 - Added prefixed Better Auth identity tables in `db/migrations/003_better_auth_identity.sql` with rollback and DB-side prefixed-ID checks.
 - Removed the legacy Supabase-backed notification bell/actions from the Operator Console shell.
 - Deleted unreferenced legacy requester/contributor action files and the unused duplicate route guard.
+- Switched the visible operator auth shell to Better Auth: sign-in, reset-password, sign-out menus, `/api/user/role`, `/auth/callback`, and proxy session handling no longer use Supabase Auth.
 
 ## Deviations
 
@@ -44,12 +45,12 @@
 
 ## Known Gaps
 
-- Supabase is still the current app data/auth dependency. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
+- Supabase is still present in legacy admin/payment/upload/analytics data paths. `/api/upload` writes files to DO Spaces, but still uses Supabase auth/profile and dataset access lookups until Better Auth and Postgres account/data migration lands.
 - Pre-pivot self-serve route groups have been removed from the implemented route tree and remain blocked by the Phase 1 proxy.
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are simulated in the app layer, not seeded in the Phase 1 Postgres schema.
-- Better Auth is scaffolded with schema tables, but mandatory MFA UI/enforcement, JIT elevation, and operator-account migration are not implemented yet.
+- Better Auth now owns the visible operator auth shell, but mandatory MFA UI/enforcement, JIT elevation, and operator-account migration are not implemented yet.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke is authored, but it is skipped unless `PLAYWRIGHT_AUTH_E2E=true` fixture auth is available.
 - Supabase decommissioning is blocked by the required 48-hour post-migration internal-use gate and final-backup confirmation.
@@ -123,3 +124,7 @@
 - `npx vitest run lib/auth/better-auth-options.test.ts lib/landing-mode.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after the prefixed identity migration; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after removing the legacy notification bell/actions; lint still reports the existing 28 warnings.
 - `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after deleting unreferenced legacy action files; lint still reports the existing 28 warnings.
+- `npx vitest run lib/auth/better-auth-options.test.ts lib/landing-mode.test.ts` passed with 7 tests after switching the visible auth shell to Better Auth.
+- `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after switching the visible auth shell; lint still reports the existing 28 warnings.
+- `translations-source.json`, `translations-es.json`, and `lib/i18n/es.json` parsed successfully after adding the Better Auth sign-in and password-reset strings.
+- `rg -n "createClient|supabase\\.auth|signInWith|resetPasswordForEmail|exchangeCodeForSession|onAuthStateChange" app/\(auth\) components/app components/ui/header.tsx lib/auth lib/middleware proxy.ts app/\(app\)/api/user -g '*.ts' -g '*.tsx'` found no remaining Supabase Auth usage in the active auth shell; only the command palette still imports the Supabase client for legacy search data.
