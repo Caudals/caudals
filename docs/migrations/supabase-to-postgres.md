@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The private `caudals-postgres` target is live on the VPS, the app service is cut over to it, and public-funnel rows have been migrated. Supabase remains live until final encrypted backup and explicit decommission approval.
+In progress. The private `caudals-postgres` target is live on the VPS, the app service is cut over to it, and public-funnel rows have been migrated. A local encrypted Supabase backup is staged under `/root/.caudals/backups`; off-host Spaces upload is blocked by missing Spaces credentials, and decommission still requires explicit approval.
 
 ## Current Slice
 
@@ -33,7 +33,9 @@ In progress. The private `caudals-postgres` target is live on the VPS, the app s
 - Applied the public-funnel migration to `caudals-postgres`: 9 waitlist signups, 1,328 analytics events, 19 Stripe webhook events, and 249 abuse rate-limit rows.
 - Verified migrated subsets by deterministic target keys and selected status/timestamp fields: waitlist 9/9, analytics 1,328/1,328, Stripe 19/19, abuse 249/249.
 - Re-ran the Supabase Auth migration with `--send-resets`; 4 migrated operator accounts received Better Auth password-reset requests.
+- Created a local encrypted Supabase database backup under `/root/.caudals/backups` with a root-only key file; decryption and `pg_restore -l` listing verified 943 archive entries.
 
 ## Not Done Yet
 
-- Final Supabase backup and explicit decommission approval.
+- Upload the encrypted Supabase backup to Spaces once Spaces credentials are available.
+- Explicit decommission approval before stopping or deleting Supabase containers, images, or volumes.
