@@ -31,6 +31,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeApiPathAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/analytics/track")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/collaborations")).toBe(false);
+    expect(isLandingModeApiPathAllowed("/api/trpc/health")).toBe(false);
     expect(isLandingModeApiPathAllowed("/api/upload")).toBe(false);
   });
 
@@ -51,5 +52,6 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-up")).toBe(false);
     expect(isLandingModeRequestAllowed("/api/internal/export-jobs")).toBe(false);
+    expect(isLandingModeRequestAllowed("/api/trpc/health")).toBe(false);
   });
 });
