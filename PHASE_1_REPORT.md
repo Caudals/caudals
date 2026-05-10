@@ -2,9 +2,9 @@
 
 ## Current Slice Plan
 
-- Add a safe Supabase Auth to Better Auth operator-account migration script.
-- Keep the migration admin-only by default so legacy requester/contributor accounts do not gain operator-console access.
-- Preserve legacy role evidence in operator metadata and force reset-password onboarding with unknown random credentials.
+- Enforce operator security requirements before `/admin` renders.
+- Add a Better Auth TOTP/passkey setup surface for operators who still need required factors.
+- Keep authenticated smoke fixtures compatible with the new security gate.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -55,6 +55,7 @@
 - Added the `operator_elevation` migration/rollback and server helpers for time-bounded production DB JIT elevation grants, revocation, active-grant checks, and audit-event writes.
 - Added the DB-session hook so service-role Operator Console queries can opt into `production_db` elevation enforcement with `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`.
 - Added `npm run migrate:supabase-auth`, an apply-gated Postgres-to-Postgres migration script that maps legacy Supabase admin accounts into Better Auth users/accounts, operator rows, org membership, and audit events.
+- Added `/auth/security`, operator security-status checks, `/admin` MFA/passkey enforcement, TOTP challenge handling on sign-in, and passkey registration for production-role operators.
 
 ## Deviations
 
@@ -67,7 +68,7 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; the default fixture mode still returns non-durable audit payloads during migration.
 - The five concurrent builds are seeded for disposable/local test fixtures but have not been loaded into the live migrated database.
-- Better Auth now owns the visible operator auth shell. Operator-account migration has an apply-gated script, but it has not been run against the live Supabase database yet. Mandatory MFA UI/enforcement remains incomplete, and JIT elevation has a DB contract/server hook but not a full operator UI.
+- Better Auth now owns the visible operator auth shell. Operator-account migration has an apply-gated script and live dry-run evidence, but it has not been applied to the live target database yet. JIT elevation has a DB contract/server hook but not a full operator UI.
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Supabase decommissioning is blocked by live dump/load verification, final-backup confirmation, and explicit decommission approval.
@@ -179,3 +180,5 @@
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the Supabase Auth migration script.
 - Live Supabase Auth dry-run succeeded against the local `supabase-db` container over its private Docker IP: 4 operator accounts prepared, 25 non-operator legacy accounts skipped, no target writes performed.
 - `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after the source-only live dry-run fix.
+- `npx vitest run lib/auth/operator-security.test.ts lib/auth/supabase-auth-migration.test.ts lib/db/operator-elevation.test.ts`, `npm run typecheck`, `NODE_OPTIONS=--max-old-space-size=2048 npm run lint`, and `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` passed after adding the operator security setup gate.
+- `npm run e2e:auth-smoke` passed against `next start` on `127.0.0.1:3102` with a disposable Postgres database, seeded Better Auth fixture admin, and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`.

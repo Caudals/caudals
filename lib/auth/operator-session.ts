@@ -30,6 +30,8 @@ export type CurrentOperatorSession = {
     email: string;
     name: string;
     image?: string | null;
+    twoFactorEnabled: boolean;
+    passkeyCount: number;
   };
   operator: CurrentOperator;
 };
@@ -42,6 +44,8 @@ type OperatorRow = {
   orgId: string | null;
   mfaRequired: boolean;
   webauthnRequired: boolean;
+  twoFactorEnabled: boolean | null;
+  passkeyCount: number | string;
 };
 
 export async function getCurrentOperatorSession(
@@ -64,14 +68,25 @@ export async function getCurrentOperatorSession(
         role,
         org_id AS "orgId",
         mfa_required AS "mfaRequired",
-        webauthn_required AS "webauthnRequired"
+        webauthn_required AS "webauthnRequired",
+        (
+          SELECT "twoFactorEnabled"
+          FROM "auth_user"
+          WHERE "id" = $2
+          LIMIT 1
+        ) AS "twoFactorEnabled",
+        (
+          SELECT count(*)::int
+          FROM "auth_passkey"
+          WHERE "userId" = $2
+        ) AS "passkeyCount"
       FROM "operator"
       WHERE email = $1::citext
         AND state = 'active'
         AND deleted_at IS NULL
       LIMIT 1
     `,
-    [session.user.email]
+    [session.user.email, session.user.id]
   );
 
   if (!operator) {
@@ -84,6 +99,8 @@ export async function getCurrentOperatorSession(
       email: session.user.email,
       name: session.user.name,
       image: session.user.image,
+      twoFactorEnabled: operator.twoFactorEnabled === true,
+      passkeyCount: Number(operator.passkeyCount),
     },
     operator,
   };
