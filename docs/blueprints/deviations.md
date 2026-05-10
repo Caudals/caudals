@@ -5,7 +5,7 @@
 - **Blueprint section:** §05, §28
 - **Decision:** New Phase 1 schema work lands in `db/migrations/*` with matching `db/rollbacks/*`.
 - **Reason:** The Phase 1 goal replaces Supabase-as-OLTP with self-hosted PostgreSQL. Keeping new platform schema in the legacy `supabase/migrations/*` path would preserve the wrong source of truth.
-- **Status:** Accepted for the migration branch; remove this deviation once legacy Supabase files are deleted after the 48-hour decommission gate.
+- **Status:** Accepted for the migration branch; remove this deviation once legacy Supabase files are deleted after final backup and explicit decommission approval.
 
 ## D-002 · Operator Console v0 data source
 

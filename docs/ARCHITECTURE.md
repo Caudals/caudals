@@ -73,7 +73,7 @@ Target Phase 1 operations context:
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
   - Raw database ports are not intended to be reachable from the public internet.
 
-Legacy Supabase containers remain live until the migration report records dump, transform, load, sampled diff verification, 48 hours of internal use, final encrypted backup, and explicit decommission approval.
+Legacy Supabase containers remain live until the migration report records dump, transform, load, sampled diff verification, final encrypted backup, and explicit decommission approval.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 

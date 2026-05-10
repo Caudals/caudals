@@ -46,6 +46,7 @@ const ids = {
   alert: fixtureId("al", 1),
   integration: fixtureId("in", 1),
   signingKey: fixtureId("sk", 1),
+  operatorElevation: fixtureId("oe", 1),
 };
 
 const fixtureBuilds = [
@@ -144,6 +145,7 @@ export async function seedOperatorConsoleFixtures() {
     await seedOpportunitiesAndRights(client);
     await seedBuilds(client);
     await seedDatasetAndCommercials(client);
+    await seedOperatorElevation(client);
     await seedAudit(client);
 
     await client.query("COMMIT");
@@ -976,6 +978,35 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   );
 }
 
+async function seedOperatorElevation(client: PoolClient) {
+  await query(
+    client,
+    `
+      INSERT INTO operator_elevation (
+        id, org_id, operator_id, scope, reason, state, expires_at,
+        metadata, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'production_db',
+        'Fixture JIT elevation for authenticated Operator Console smoke tests',
+        'active',
+        now() + interval '2 hours',
+        '{"fixture":true}'::jsonb,
+        now(), now(), $3
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        scope = EXCLUDED.scope,
+        reason = EXCLUDED.reason,
+        state = 'active',
+        expires_at = EXCLUDED.expires_at,
+        metadata = EXCLUDED.metadata,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [ids.operatorElevation, ids.tenantOrg, ids.operator]
+  );
+}
+
 async function seedAudit(client: PoolClient) {
   const auditEvents = [
     [fixtureId("ae", 1), "build", fixtureBuilds[0].id, "state_transition", { from_state: "labeling", to_state: "qa" }],
@@ -983,6 +1014,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 3), "dataset_version", ids.datasetVersion, "delivery_signed", { signer: ids.signingKey }],
     [fixtureId("ae", 4), "dsar", ids.dsarRequest, "state_transition", { from_state: "received", to_state: "identity_verified" }],
     [fixtureId("ae", 5), "payout", ids.payout, "payout_hold_review", { reason: "fixture commercial control" }],
+    [fixtureId("ae", 6), "operator_elevation", ids.operatorElevation, "operator_elevation.granted", { scope: "production_db", reason: "fixture JIT elevation" }],
   ] as const;
 
   for (const [index, event] of auditEvents.entries()) {
