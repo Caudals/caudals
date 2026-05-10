@@ -25,7 +25,6 @@
     "seed": "tsx scripts/seed-database.ts",
     "seed:test-fixtures": "tsx scripts/seed-test-fixtures.ts",
     "fixtures:ensure": "tsx scripts/ensure-test-fixtures.ts",
-    "jobs:process-exports": "tsx scripts/process-export-jobs.ts",
     "payments:check-ledger": "tsx scripts/check-payment-ledger-consistency.ts",
     "payments:repair-ledger": "tsx scripts/backfill-payment-ledger-consistency.ts",
     "payments:check-compliance-policies": "tsx scripts/check-payment-compliance-policies.ts",

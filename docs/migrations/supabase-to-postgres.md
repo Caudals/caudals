@@ -22,5 +22,5 @@ In progress. Supabase remains live and must not be decommissioned until the new 
 
 - Supabase data dump, transform, load, row-count verification, and sampled diff.
 - Better Auth account migration and first-login password reset flow.
-- Application DB client migration from Supabase to PostgreSQL for export jobs and Stripe ledger helpers.
+- Application DB client migration from Supabase to PostgreSQL for Stripe ledger helpers.
 - 48-hour internal-use gate and final Supabase backup/decommission.

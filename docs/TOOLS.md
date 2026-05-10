@@ -159,7 +159,6 @@ Bootstrap:
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
-- `npm run jobs:process-exports`: drain pending export jobs
 - `npm run payments:check-ledger`: ledger invariant checks
 - `npm run payments:repair-ledger`: dry-run/apply ledger repair
 - `npm run payments:check-compliance-policies`: payment policy/RLS checks
@@ -176,7 +175,6 @@ Operational env controls:
 - `BETTER_AUTH_URL`
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
-- `EXPORT_JOBS_TOKEN` (required for `/api/internal/export-jobs`)
 
 ## Environment Variable Categories
 - PostgreSQL/Better Auth: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
@@ -221,6 +219,3 @@ Operational env controls:
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
   - inspect webhook replay/idempotency tables.
-- Export jobs stuck in `pending`:
-  - verify `EXPORT_JOBS_TOKEN` and scheduler wiring for `/api/internal/export-jobs`,
-  - run `npm run jobs:process-exports`.

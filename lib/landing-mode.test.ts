@@ -53,7 +53,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-up")).toBe(false);
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(false);
-    expect(isLandingModeRequestAllowed("/api/internal/export-jobs")).toBe(false);
+    expect(isLandingModeRequestAllowed("/api/internal/jobs")).toBe(false);
     expect(isLandingModeRequestAllowed("/api/trpc/health")).toBe(false);
   });
 });
