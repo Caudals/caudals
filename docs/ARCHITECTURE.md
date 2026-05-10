@@ -6,7 +6,7 @@ Caudals is a B2B AI dataset marketplace and managed data operations platform. Th
 Current production scope is deliberately limited:
 - Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
-- Internal admin dashboard and operational tooling, kept private
+- Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
 
 Future marketplace scope:
 - Supplier company intake for raw data sources and licensing metadata
@@ -14,7 +14,7 @@ Future marketplace scope:
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable from the public web.
+While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the private operator auth/admin surface.
 
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
@@ -41,7 +41,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the public allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, and required metadata/assets. All other routes return `404`.
+- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
@@ -49,7 +49,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
-- `/api/auth/*` is the Better Auth migration endpoint outside landing mode. It remains unavailable when `LANDING_MODE=true` because only explicit public funnel APIs are allowed.
+- `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
 - Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators.
 
 ## Infrastructure and Deployment
@@ -76,7 +76,7 @@ Target Phase 1 operations context:
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
   - Raw database ports are not intended to be reachable from the public internet.
 
-Legacy Supabase containers remain live until the migration report records public-funnel data verification, final encrypted backup, and explicit decommission approval.
+Legacy Supabase containers remain live until the migration report records the final encrypted backup and explicit decommission approval.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 

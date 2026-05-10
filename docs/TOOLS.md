@@ -165,6 +165,7 @@ Bootstrap:
 - `npm run seed:test-fixtures`: deterministic fixture seed
 - `npm run migrate:supabase-auth`: dry-run legacy Supabase Auth to Better Auth
   operator-account migration; pass `-- --apply` to write rows
+- `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
