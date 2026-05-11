@@ -91,6 +91,7 @@
 - Refreshed the blog content loader unit expectations for the current eight localized posts so the full unit suite covers the public blog surface without stale five-post assumptions.
 - Added Sentry for Next.js server/client/edge error capture plus an opt-in OpenTelemetry stdout trace provider gated by `OTEL_STDOUT_ENABLED=true`.
 - Added the Settings module operator security-enrollment roster so admins can see which migrated operators have completed the Better Auth MFA/passkey production-role gate.
+- Added a proxy-level anonymous `/admin` redirect that detects Better Auth session-cookie variants before any database-backed auth lookup, so CI smoke can verify the admin redirect path without a configured Postgres database.
 - Removed the legacy Supabase runtime from the VPS: compose containers, network, named volumes, service images, stale app-service env keys, and `/supabase` host tree.
 - Created verified encrypted final backups for both the Supabase database dump and `/supabase` filesystem tree under `/root/.caudals/backups`.
 - Removed the legacy repo `supabase/` migration tree and Supabase CLI dev dependency.
@@ -116,6 +117,7 @@
 - Deployed the Buyer/Dataset field-specific CRUD image `mariomedpar/caudals:phase1-202605110425` to the VPS app service.
 - Deployed the Privacy/Catalogue field-specific CRUD image `mariomedpar/caudals:phase1-202605110712` to the VPS app service.
 - Deployed the field-parity CRUD image `mariomedpar/caudals:phase1-202605110747` to the VPS app service.
+- Deployed the anonymous-admin proxy redirect image `mariomedpar/caudals:phase1-392a19a` to the VPS app service.
 - Committed the verified Phase 1 work as `5b6edac` and pushed branch `phase-1-operator-console` to `origin`; GitHub returned the PR creation URL `https://github.com/Caudals/caudals/pull/new/phase-1-operator-console`.
 - Backfilled deterministic `build_gate_summary` audit events for all five demo builds and updated the fixture seed so every seeded build has a build-target audit trail alongside G-1..G-7 gate rows.
 
@@ -404,3 +406,9 @@ Prompt-to-artifact checklist:
 - Live operator-security recheck returned `operator_security|4|3|3` and `auth_factors|0|0`: three real migrated admins still require MFA/WebAuthn, while the fixture admin remains exempt for smoke tests.
 - Post-push checks after adding the branch CI trigger still cannot observe the private GitHub run from this VPS: `gh run list --branch phase-1-operator-console --limit 5` requires login, and unauthenticated commit-status/actions API calls return `404`.
 - Fresh Better Auth password-reset requests were sent through the deployed app for the three required non-fixture operators still missing MFA/passkey enrollment; verification rows created in the last 10 minutes returned `recent_reset_verifications|3`. Live factor counts remain `auth_factors|0|0` until those operators complete `/auth/security` with their own authenticator/passkey devices.
+- A clean CI-equivalent checkout of `a250bf6` reproduced the GitHub smoke weakness: `CI=true npx playwright test e2e/smoke.spec.ts --project=chromium` failed on anonymous `/admin` because the server component reached `DATABASE_URL` before redirecting.
+- `npm test -- --run lib/auth/session-cookie.test.ts lib/landing-mode.test.ts lib/phase-one-surface-gates.test.ts`, touched-file ESLint, `npm run typecheck`, `npm run lint`, `npm test -- --run`, `npm run i18n:check-parity`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after adding the proxy-level anonymous `/admin` redirect.
+- A clean CI-equivalent checkout of `392a19a` passed the workflow commands: `npm ci --ignore-scripts`, `npm run lint`, `npm run typecheck`, `npm test -- --run` with 32 files and 138 tests, `npx playwright install --with-deps chromium`, and `CI=true npx playwright test e2e/smoke.spec.ts --project=chromium` with 4 tests.
+- Docker image `mariomedpar/caudals:phase1-392a19a` was created and verified with `docker run --rm --entrypoint node ... -e "console.log('image-ok')"`. The first BuildKit invocation returned a final layer-unpack no-space error after producing the image, so stale stopped service containers, old non-running phase images, and build cache were pruned before deploying.
+- `docker service update --image mariomedpar/caudals:phase1-392a19a caudalsdep-caudals-vgbvxp` converged; deployed route probes returned 200 for `/`, `/contact`, `/blog`, 307 for anonymous `/admin`, and 404 for `/browse`, `/requester`, `/contributor`, `/dashboard`, `/pwa`, and `/admin/requests`.
+- Deployed smokes against `https://app.caudals.com` passed on `phase1-392a19a`: `LANDING_MODE=true ... e2e/smoke.spec.ts --project=chromium --reporter=line` with 4 tests and `PLAYWRIGHT_AUTH_E2E=true ... e2e/authenticated-role-smoke.spec.ts e2e/operator-console.spec.ts --project=chromium --reporter=line` with 2 tests.
