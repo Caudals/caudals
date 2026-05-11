@@ -2,9 +2,9 @@
 
 ## Current Slice Plan
 
-- Close Operator Console field-parity gaps for typed work-queue records whose create/edit forms already expose operational metadata.
-- Persist and read back structured fields for contracts, license clauses, deliveries, builds, build plans, runs, and cost-ledger entries.
-- Add focused unit coverage for the new metadata descriptors and audited update SQL.
+- Publish the verified Phase 1 branch so GitHub CI can be run from a PR or main push.
+- Audit which completion criteria are now satisfied by code/deploy evidence versus blocked by missing external credentials or human enrollment.
+- Record remaining non-code gates precisely instead of treating local/deployed checks as a proxy for final completion.
 - Use this report as the local review trail because no pull request exists yet.
 
 ## Shipped
@@ -114,6 +114,7 @@
 - Deployed the Buyer/Dataset field-specific CRUD image `mariomedpar/caudals:phase1-202605110425` to the VPS app service.
 - Deployed the Privacy/Catalogue field-specific CRUD image `mariomedpar/caudals:phase1-202605110712` to the VPS app service.
 - Deployed the field-parity CRUD image `mariomedpar/caudals:phase1-202605110747` to the VPS app service.
+- Committed the verified Phase 1 work as `5b6edac` and pushed branch `phase-1-operator-console` to `origin`; GitHub returned the PR creation URL `https://github.com/Caudals/caudals/pull/new/phase-1-operator-console`.
 - Backfilled deterministic `build_gate_summary` audit events for all five demo builds and updated the fixture seed so every seeded build has a build-target audit trail alongside G-1..G-7 gate rows.
 
 ## Deviations
@@ -135,6 +136,7 @@
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Off-host backup upload remains optional because Spaces credentials are not present on the VPS; local encrypted backups are verified under `/root/.caudals/backups`.
+- GitHub CI is not yet observed for this branch because `gh` is not logged in on the VPS, `GITHUB_TOKEN`/`GH_TOKEN`/`GITHUB_APP_TOKEN` are absent, unauthenticated GitHub API requests return `404` for the private repository, and `.github/workflows/ci.yml` runs on pull requests or pushes to `main`, not ordinary branch pushes.
 
 ## Completion Audit
 
@@ -154,7 +156,7 @@ Prompt-to-artifact checklist:
 - **Power-user behaviours:** command palette, saved views, bulk actions, optimistic inline editing with conflict checks, keyboard row navigation/shortcuts, and audit overlays are implemented in the Operator Console and covered by smoke/unit checks.
 - **Observability:** Sentry wiring and opt-in OpenTelemetry stdout traces are implemented; Sentry remains disabled until `SENTRY_DSN` is configured.
 - **Public/admin separation:** deployed probes return 200 for `/`, `/contact`, `/blog`; 307 for anonymous `/admin` to `/auth/sign-in`; and 404 for `/browse`, `/requester`, `/contributor`, `/dashboard`, `/pwa`, and `/admin/requests`.
-- **Checks/build/deploy:** local `typecheck`, `lint`, `i18n:check-parity`, targeted Vitest suites, Docker build, Docker service convergence, route probes, deployed Playwright smokes, and deployed Settings screenshot verification passed; the currently deployed image is `mariomedpar/caudals:phase1-202605110747`. External GitHub CI has not been observed for the uncommitted working tree.
+- **Checks/build/deploy:** local `typecheck`, `lint`, `i18n:check-parity`, targeted Vitest suites, Docker build, Docker service convergence, route probes, deployed Playwright smokes, and deployed Settings screenshot verification passed; the currently deployed image is `mariomedpar/caudals:phase1-202605110747`. Branch `phase-1-operator-console` is pushed at `5b6edac`, but external GitHub CI has not been observed because PR creation/check inspection requires GitHub auth that is not present on the VPS.
 - **Docs:** updated `docs/ARCHITECTURE.md`, `docs/TOOLS.md`, `docs/blueprints/caudals-platform-blueprint.md`, `docs/migrations/supabase-to-postgres.md`, `docs/blueprints/deviations.md`, and this report.
 - **Frontend design delegation:** partially covered by fallback. The repo has no local `frontend-design` skill, and Claude Code fallback with Opus/xhigh returns `401 Invalid authentication credentials`; a manual design-system review inspected live desktop/mobile screenshots and shipped the work-queue control-card polish in `phase1-202605110330`.
 
@@ -391,3 +393,5 @@ Prompt-to-artifact checklist:
 - BuildKit Docker build `docker build --progress=plain --build-arg LANDING_MODE=true --build-arg NEXT_PUBLIC_APP_URL=https://app.caudals.com -t mariomedpar/caudals:phase1-202605110747 .` succeeded; `docker service update --image mariomedpar/caudals:phase1-202605110747 caudalsdep-caudals-vgbvxp` converged.
 - Production route probes on `phase1-202605110747` returned 200 for `/`, `/contact`, and `/blog`; 307 from anonymous `/admin` to `/auth/sign-in`; and 404 for `/browse`, `/requester`, `/contributor`, `/dashboard`, `/pwa`, and `/admin/requests`.
 - Deployed smokes against `https://app.caudals.com` passed on `phase1-202605110747`: `LANDING_MODE=true ... e2e/smoke.spec.ts --project=chromium --reporter=line` with 4 tests and `PLAYWRIGHT_AUTH_E2E=true ... e2e/authenticated-role-smoke.spec.ts e2e/operator-console.spec.ts --project=chromium --reporter=line` with 2 tests.
+- `git push -u origin phase-1-operator-console` succeeded for commit `5b6edac`; `git status --short --branch` showed the local branch tracking `origin/phase-1-operator-console` with no uncommitted code changes before this report update.
+- CI observation remains blocked from this VPS: `gh auth status` reports no logged-in GitHub hosts, token-presence checks returned absent for `GITHUB_TOKEN`, `GH_TOKEN`, and `GITHUB_APP_TOKEN`, unauthenticated GitHub API calls for commit status/actions returned `404`, and `.github/workflows/ci.yml` only triggers on pull requests or pushes to `main`.
