@@ -11,6 +11,9 @@ import { getResendClient } from "@/lib/resend/client";
 const APP_NAME = "Caudals";
 const LOCAL_AUTH_URL = "http://localhost:3000";
 const PRODUCTION_AUTH_URL = "https://app.caudals.com";
+const DEFAULT_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 30;
+const MIN_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 5;
+const MAX_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24;
 
 type BetterAuthDatabase = NonNullable<BetterAuthOptions["database"]>;
 
@@ -72,6 +75,33 @@ function getPasskeyRpId(baseUrl: string) {
   }
 }
 
+export function getResetPasswordTokenExpiresInSeconds() {
+  const raw = process.env.BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS;
+
+  if (!raw) {
+    return DEFAULT_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS;
+  }
+
+  const value = Number(raw);
+
+  if (!Number.isInteger(value)) {
+    throw new Error(
+      "BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS must be an integer number of seconds"
+    );
+  }
+
+  if (
+    value < MIN_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS ||
+    value > MAX_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS
+  ) {
+    throw new Error(
+      "BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS must be between 300 and 86400 seconds"
+    );
+  }
+
+  return value;
+}
+
 export function createBetterAuthOptions(
   database: BetterAuthDatabase
 ): BetterAuthOptions {
@@ -109,7 +139,7 @@ export function createBetterAuthOptions(
       disableSignUp: true,
       minPasswordLength: 12,
       requireEmailVerification: true,
-      resetPasswordTokenExpiresIn: 60 * 30,
+      resetPasswordTokenExpiresIn: getResetPasswordTokenExpiresInSeconds(),
       revokeSessionsOnPasswordReset: true,
       async sendResetPassword({ user, url }) {
         const from = process.env.RESEND_FROM_EMAIL;
