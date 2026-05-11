@@ -1,14 +1,29 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import { createContext, useContext, useEffect, useState } from "react";
+
+import { useSession } from "@/lib/auth/better-auth-client";
+
+type AuthUser = {
+  id: string;
+  email: string | null;
+  user_metadata: {
+    full_name?: string | null;
+    avatar_url?: string | null;
+    role?: string | null;
+  };
+};
 
 type AuthContextType = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: unknown | null;
   userRole: string | null;
   loading: boolean;
+};
+
+type RoleState = {
+  userId: string | null;
+  role: string | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,79 +34,71 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = useMemo(() => createClient(), []);
+  const { data, isPending } = useSession();
+  const [roleState, setRoleState] = useState<RoleState>({
+    userId: null,
+    role: null,
+  });
+  const authUser = data?.user ?? null;
+
+  const user: AuthUser | null = authUser
+    ? {
+        id: authUser.id,
+        email: authUser.email,
+        user_metadata: {
+          full_name: authUser.name,
+          avatar_url: authUser.image,
+        },
+      }
+    : null;
+
+  const userRole = roleState.userId === user?.id ? roleState.role : null;
+  const roleLoading = Boolean(user?.id && roleState.userId !== user.id);
 
   useEffect(() => {
-    const fetchRole = async (): Promise<string | null> => {
-      try {
-        const response = await fetch("/api/user/role", { cache: "no-store" });
+    let active = true;
+
+    if (!authUser?.id) {
+      return;
+    }
+
+    const userId = authUser.id;
+
+    fetch("/api/user/role", { cache: "no-store" })
+      .then(async (response) => {
         if (!response.ok) {
           return null;
         }
-        const data = (await response.json()) as { role?: string };
-        return typeof data.role === "string" ? data.role : null;
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-        return null;
-      }
+
+        const body = (await response.json()) as { role?: string | null };
+        return typeof body.role === "string" ? body.role : null;
+      })
+      .then((role) => {
+        if (active) {
+          setRoleState({ userId, role });
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching operator role:", error);
+        if (active) {
+          setRoleState({ userId, role: null });
+        }
+      });
+
+    return () => {
+      active = false;
     };
-
-    // Get initial session and user role
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      // Fetch user role if user exists
-      if (session?.user) {
-        const resolvedRole = await fetchRole();
-        setUserRole(
-          resolvedRole ??
-            (typeof session.user.user_metadata?.role === "string"
-              ? session.user.user_metadata.role
-              : null),
-        );
-      } else {
-        setUserRole(null);
-      }
-
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      // Fetch user role if user exists
-      if (session?.user) {
-        const resolvedRole = await fetchRole();
-        setUserRole((prev) => {
-          if (resolvedRole) {
-            return resolvedRole;
-          }
-          if (typeof session.user.user_metadata?.role === "string") {
-            return session.user.user_metadata.role;
-          }
-          return prev;
-        });
-      } else {
-        setUserRole(null);
-      }
-
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  }, [authUser?.id]);
 
   return (
-    <AuthContext.Provider value={{ user, session, userRole, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session: data?.session ?? null,
+        userRole,
+        loading: isPending || roleLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

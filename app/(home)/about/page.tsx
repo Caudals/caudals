@@ -13,7 +13,7 @@ export default function AboutPage() {
   return (
     <MarketingPageLayout
       title="A dataset platform designed for operational trust"
-      description="Caudals helps teams ship high-quality datasets through structured requester workflows, contributor programs, and auditable admin controls."
+      description="Caudals helps teams ship high-quality datasets through managed buyer intake, supplier data operations, and auditable admin controls."
     >
       <div className="grid gap-5 md:grid-cols-3">
         <Card className="border-border/70">
@@ -29,7 +29,7 @@ export default function AboutPage() {
             <CardTitle>Approach</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-slate-500">
-            Combine role-focused product surfaces with review discipline, payout rails, and operational visibility.
+            Combine managed service intake with review discipline, rights tracking, and operational visibility.
           </CardContent>
         </Card>
         <Card className="border-border/70">

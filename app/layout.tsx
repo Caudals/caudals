@@ -3,7 +3,6 @@ import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
-import { PwaInstallPromptBlocker } from "@/components/pwa/pwa-install-prompt-blocker";
 import { getServerTranslationBundle } from "@/lib/i18n/server";
 import { TranslationProvider } from "@/lib/i18n/translation-context";
 import { translateReactNode } from "@/lib/i18n/translate-node";
@@ -92,7 +91,6 @@ export default async function RootLayout({
   const content = (
     <AuthProvider>
       {children}
-      <PwaInstallPromptBlocker />
       <Toaster richColors position="top-right" closeButton={false} />
     </AuthProvider>
   );

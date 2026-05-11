@@ -33,13 +33,12 @@ These are one-time platform changes that retire pre-pivot infrastructure. The bl
 - Migrate existing data: dump → transform → load; verify row counts and a sampled diff; preserve `created_at`/`updated_at`. Produce a written migration report at `docs/migrations/supabase-to-postgres.md`.
 - Replace Supabase Storage usage with DO Spaces via the S3 SDK directly.
 - Replace Supabase Realtime (if used) with `LISTEN`/`NOTIFY` plus a thin SSE gateway, or remove if unused.
-- **Decommission gate:** only after the new stack runs against the migrated DB for ≥48 hours of internal use, stop the Supabase containers, take one final encrypted backup to Spaces, then remove containers, images, volumes, `@supabase/*` dependencies, `SUPABASE_*` env vars, and the legacy `supabase/migrations/` directory.
 
 ### M-B · Replace Supabase Auth with Better Auth
 
 - Adopt Better Auth with the Postgres adapter and an org/team plugin; scaffold SSO but keep it off until Phase 3.
 - Sessions cookie-based, httpOnly, SameSite=Lax, rotating, refresh-on-use.
-- TOTP enabled for all operator accounts; WebAuthn wired and enforced for production roles per §25.
+- TOTP and WebAuthn wired as optional operator hardening. Password-only Better Auth login is allowed for Phase 1 operators unless `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is explicitly enabled later.
 - Migrate existing accounts: map `auth.users` → `operator` + identity tables, preserve emails, force password reset on first login (email via Resend), preserve roles.
 - Replace every Supabase auth call site with the Better Auth equivalent and delete the old auth helpers — no dual code paths.
 - Wire the JIT-elevation hook for production DB access required by §25 (audit-logged, time-bounded).
@@ -104,7 +103,7 @@ Read the returned diff before applying it. Do not delegate trivial styling.
 ## Acceptance Criteria — Phase 1 done = all of these
 
 1. Postgres is the only OLTP. Supabase containers/images/volumes are gone from the VPS; `@supabase/*` is absent from `package.json`.
-2. Better Auth is the only auth. All operator accounts log in via the new flow; MFA is enabled; sessions, password reset and JIT elevation work end-to-end.
+2. Better Auth is the only auth. All operator accounts log in via the new flow with password-only access allowed; optional MFA/passkey setup, sessions, password reset and JIT elevation work end-to-end.
 3. The console renders all 13 §19 modules wired to real (not mocked) data on the new schema, with RLS enforced.
 4. The §23 state machines for `buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, `dsar` are persisted, validated server-side and emit `audit_event` on every transition.
 5. Five concurrent demo builds progress through G-1..G-7 with seed data and full audit trail (the §30 M1 north-star milestone, simulated).
@@ -122,6 +121,7 @@ Read the returned diff before applying it. Do not delegate trivial styling.
 - Run typecheck + lint + unit tests after every slice; do not move on with red CI.
 - If a tool / MCP / CLI is missing, install it, record it in `docs/TOOLS.md`, continue.
 - Keep docs concise, brief and short. Do not spend time and tokens writing extensive documentation.
+- You can skip the 48 hours of db use requisite we had previously set and migrate directly. When migrated, delete all Supabase containers, images, instances etc to clear disk space.
 
 ## Stop and Ask Only If
 
@@ -135,4 +135,3 @@ Otherwise proceed autonomously. Do not stop for routine implementation choices, 
 ## Out of Scope for This Goal
 
 Buyer workspace, supplier portal, public catalogue, public `/v1` REST surface, real Dagster/Temporal pipeline workers, lakeFS, Iceberg / Lance, GPU pool, SOC 2 controls implementation, HF mirror, Stripe live keys, real DSAR propagation engine, marketing-site rework. These come in later `/goal` sessions and depend on the operator console being load-bearing first.
-
