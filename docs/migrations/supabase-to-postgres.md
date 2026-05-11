@@ -22,6 +22,7 @@ Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, 
 - Added the Operator Console Settings workflow for audited JIT production-DB elevation grants/revokes, active-grant status, and runtime enforcement visibility.
 - Added the Operator Console Settings workflow for Ed25519 delivery signing-key generation with encrypted private-key storage in PostgreSQL.
 - Added and applied `db/migrations/010_operator_record_note.sql` for cross-module audited operator notes with org-scoped RLS.
+- Added and applied `db/migrations/011_optional_operator_security_factors.sql` so migrated operators can log in with password-only Better Auth sessions while TOTP/passkeys remain optional hardening.
 - Added expanded audited Operator Console record CRUD for module create targets and mutable anchor work-queue rows, with append-only audit/cost exceptions and type-diverse queue selection so low-priority anchor records stay visible.
 - Added Sentry/Next.js instrumentation and opt-in OpenTelemetry stdout traces for the Postgres-backed app runtime.
 - Added `npm run migrate:supabase-auth` for apply-gated legacy Supabase admin-account migration into Better Auth/operator tables.
@@ -52,4 +53,4 @@ Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, 
 ## Not Done Yet
 
 - Optional: upload encrypted backups to Spaces when Spaces credentials are available.
-- Migrated real operators still need to complete the Better Auth password-reset, TOTP, and passkey enrollment flow. The app enforces the setup gate; live enrollment tables are still empty.
+- Migrated real operators still need to complete the Better Auth password-reset flow before first login. TOTP/passkey enrollment is optional unless `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is explicitly enabled.

@@ -304,15 +304,15 @@ async function upsertOperator(
         state, created_at, updated_at, org_id
       )
       VALUES (
-        $1, $2, $3, $4, $5::jsonb, true, $6,
-        'active', $7, $8, $9
+        $1, $2, $3, $4, $5::jsonb, false, false,
+        'active', $6, $7, $8
       )
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
         role = EXCLUDED.role,
         skill_profile = "operator".skill_profile || EXCLUDED.skill_profile,
-        mfa_required = true,
-        webauthn_required = EXCLUDED.webauthn_required,
+        mfa_required = false,
+        webauthn_required = false,
         state = 'active',
         updated_at = EXCLUDED.updated_at,
         org_id = EXCLUDED.org_id,
@@ -325,7 +325,6 @@ async function upsertOperator(
       identity.name,
       identity.operatorRole,
       JSON.stringify(skillProfile),
-      identity.operatorRole === "admin",
       identity.createdAt,
       identity.updatedAt,
       internalOrgId,

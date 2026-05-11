@@ -31,7 +31,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password,
-  reset-password, organization/team, TOTP, and passkey flows during the PostgreSQL auth migration
+  reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
@@ -70,6 +70,9 @@ Target Phase 1 operations context:
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
+- Operator login allows password-only access by default. TOTP/passkey enrollment
+  remains available but is not required unless
+  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is set.
 - Migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.

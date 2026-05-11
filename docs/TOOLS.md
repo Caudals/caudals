@@ -79,7 +79,7 @@ Hard rules:
 ## Better Auth Migration Pattern
 1. Use PostgreSQL as the Better Auth adapter target.
 2. Keep operator sessions cookie-based, httpOnly, SameSite=Lax, rotating, and refresh-on-use.
-3. Enforce TOTP for all operator accounts and WebAuthn for production roles.
+3. Keep TOTP and WebAuthn/passkeys available as optional operator hardening; password-only operator login is allowed by default.
 4. Preserve emails and roles when mapping legacy auth users into operator identity records.
 5. Force password reset on first login after migration.
 6. Record JIT-elevation events into `audit_event`.
@@ -108,12 +108,14 @@ Current scaffold:
   records.
 - Operator security enrollment: `npm run operator:security-status` reports
   MFA/passkey completion and reset-eligible counts without printing emails by
-  default. Add `-- --send-resets` to request fresh reset links for required
+  default. Password-only operator login is allowed unless
+  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is set. When enforcement
+  is enabled, add `-- --send-resets` to request fresh reset links for required
   non-fixture operators still missing enrollment; reset attempts write
   `audit_event` rows without email addresses in metadata. Add
-  `-- --fail-on-incomplete` for release gates that must fail until all required
-  factors are enrolled, and `-- --show-emails` only when an admin explicitly
-  needs the pending address list.
+  `-- --fail-on-incomplete` only for release gates that intentionally require
+  all factors, and `-- --show-emails` only when an admin explicitly needs the
+  pending address list.
 - Password-reset links default to 30 minutes. Set
   `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` to a value from `300` to
   `86400` seconds when coordinating migrated operator enrollment needs a longer
@@ -225,6 +227,7 @@ Operational env controls:
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
+- `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`

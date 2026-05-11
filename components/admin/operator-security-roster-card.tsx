@@ -57,7 +57,7 @@ export function OperatorSecurityRosterCard({
           </div>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
             {t(
-              "Tracks migrated operator readiness for the Better Auth security gate. Operators marked action needed must finish password reset, TOTP, and passkey setup before production-role access is complete."
+              "Tracks optional Better Auth hardening for operator accounts. Password-only login is allowed; TOTP and passkeys can be enabled later when the operator's device supports them."
             )}
           </p>
         </div>

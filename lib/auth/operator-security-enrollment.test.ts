@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getResetEligibleOperators,
@@ -8,7 +8,34 @@ import {
 } from "@/lib/auth/operator-security-enrollment";
 
 describe("operator security enrollment helpers", () => {
-  it("marks required operators complete only after MFA and passkey enrollment", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("treats MFA and passkeys as optional by default", () => {
+    const operator = mapOperatorSecurityEnrollmentRow({
+      id: "op_pending",
+      email: "ops@example.com",
+      name: "Ops",
+      role: "admin",
+      state: "active",
+      mfaRequired: true,
+      mfaEnabled: false,
+      webauthnRequired: true,
+      passkeyCount: 0,
+    });
+
+    expect(operator).toMatchObject({
+      mfaRequired: false,
+      webauthnRequired: false,
+      securityComplete: true,
+      resetEligible: false,
+    });
+  });
+
+  it("marks required operators complete only after MFA and passkey enrollment when enforcement is enabled", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
+
     const pending = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
       email: "ops@example.com",
@@ -40,6 +67,8 @@ describe("operator security enrollment helpers", () => {
   });
 
   it("keeps fixture operators out of reset reminders", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
+
     const fixture = mapOperatorSecurityEnrollmentRow({
       id: "op_fixture",
       email: "fixture.admin@caudals.local",
@@ -57,6 +86,8 @@ describe("operator security enrollment helpers", () => {
   });
 
   it("summarizes enrollment and reset-eligible operators", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
+
     const operators = [
       mapOperatorSecurityEnrollmentRow({
         id: "op_ready",

@@ -9,7 +9,7 @@ A complete technical blueprint for designing, building and operating the softwar
 | | |
 |---|---|
 | **Document** | 01 |
-| **Revision** | 1.1 — Postgres + Better Auth migration contract |
+| **Revision** | 1.2 — Optional operator MFA/passkey enforcement |
 | **Date issued** | 09 May 2026 |
 | **Owner** | Caudals Platform Engineering |
 | **Status** | Approved for engineering execution |
@@ -57,6 +57,7 @@ Marketing copy, pricing rate cards, individual customer integrations, and specif
 #### Changelog
 
 - **1.1** — Replaces platform OLTP/auth target with self-hosted PostgreSQL + Better Auth for Phase 1.
+- **1.2** — Makes operator TOTP/passkey enrollment optional by default while retaining the Better Auth factor flows.
 
 ---
 
@@ -356,7 +357,7 @@ The stack favours mature, instrumented technology with strong operational track 
 |---|---|---|---|
 | Runtime | Node 22 LTS, TypeScript strict mode | Continuity; ecosystem. | Bun (revisit at year 2) |
 | API style | Server Actions internally; tRPC for buyer/supplier; signed REST for partner integrations | Type-safe across boundaries; minimal contract drift. | GraphQL (overkill at this scale) |
-| Auth | Better Auth + Postgres adapter; org-scoped roles; SSO scaffolded for Phase 3 | Cookie sessions and operator MFA live in-app while Postgres RLS remains the tenancy boundary. | Auth0, WorkOS |
+| Auth | Better Auth + Postgres adapter; org-scoped roles; SSO scaffolded for Phase 3 | Cookie sessions and optional operator MFA/passkeys live in-app while Postgres RLS remains the tenancy boundary. | Auth0, WorkOS |
 | Webhooks | Idempotent receivers, replay log, signed events | Required for Stripe + supplier-side integrations. | — |
 | Email | Resend with audited templates & suppressions | Transactional + light marketing. | Postmark |
 | Payments | Stripe (Connect for supplier revenue share) | Standard for B2B; revenue share via Connect transfers. | Adyen |
@@ -1442,7 +1443,7 @@ Caudals' commercial credibility depends on its security and compliance posture f
 
 ### Identity & access
 
-- **Better Auth operator identity** with mandatory MFA; phishing-resistant factors required for production roles.
+- **Better Auth operator identity** with password-only login allowed by default; TOTP and phishing-resistant passkeys remain available as optional hardening and can be made mandatory later by policy.
 - **Internal SSO scaffolded** but disabled until the Phase 3 buyer/supplier identity rollout.
 - **Role-based access control** with least-privilege roles enforced at the database (RLS), service (server actions), and infrastructure layers (Tailscale ACLs).
 - **Just-in-time elevation** for production database access; every elevation is recorded with reason and is time-bounded.
@@ -1998,6 +1999,5 @@ This document is the canonical technical specification for the Caudals platform.
 *Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.1 · Issued 2026-05-09*
 
 *Pairs with: `AGENTS.md` · `docs/ARCHITECTURE.md` · `docs/product-specs/overview.md`*
-
 
 
