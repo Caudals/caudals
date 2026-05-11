@@ -21,7 +21,11 @@ export async function signInAsFixtureOperator(
   await page.goto("/auth/sign-in");
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(FIXTURE_PASSWORD);
-  await page.getByRole("button", { name: /sign in|iniciar sesión/i }).click();
+  await Promise.all([
+    page.waitForURL(/\/admin(?:[?#].*)?$/, { timeout: 45_000 }),
+    page.getByRole("button", { name: /sign in|iniciar sesión/i }).click(),
+  ]);
+  await page.waitForLoadState("domcontentloaded");
 
   await expect
     .poll(

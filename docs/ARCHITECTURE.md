@@ -23,6 +23,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - Payments: Stripe is present in the codebase but not part of the current public deployment
 - Storage: DigitalOcean Spaces (S3-compatible)
 - Email: Resend
+- Observability: Sentry for Next.js error capture and opt-in OpenTelemetry stdout traces
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
 
 ## Code Topology
@@ -69,16 +70,24 @@ Target Phase 1 operations context:
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
-- Legacy migration report: `docs/migrations/supabase-to-postgres.md`
+- Migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.
   - Application access goes through server-side typed DB clients and operator-scoped RLS settings.
   - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
   - Raw database ports are not intended to be reachable from the public internet.
 
-Legacy Supabase containers remain live until the migration report records the final encrypted backup and explicit decommission approval.
+Legacy Supabase containers, images, volumes, and host filesystem tree were removed after verified encrypted backups were written under `/root/.caudals/backups`.
 
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
+
+## Observability
+- Sentry initialization is registered through Next.js instrumentation for server,
+  edge, and client runtime errors.
+- Sentry is disabled until `SENTRY_DSN` is configured. Default sampling is `0`
+  for traces/profiles unless environment variables raise it.
+- OpenTelemetry stdout export is opt-in via `OTEL_STDOUT_ENABLED=true` and is
+  intended for bounded VPS diagnostics, not always-on production logging.
 
 ## Data and Storage Domains
 Current live data domains:
@@ -99,6 +108,7 @@ Future marketplace data domains:
 - Webhook replay/idempotency protections when payment code is active
 - Upload/path validation guardrails
 - Dataset rights, provenance, PII handling, and licensing auditability
+- Error capture and opt-in stdout tracing without default PII transmission
 - CI quality gates for release confidence
 
 ## Core Lifecycle Flows

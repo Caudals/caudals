@@ -13,6 +13,7 @@ import {
   FileUp,
   FolderArchive,
   LifeBuoy,
+  ListChecks,
   Megaphone,
   Settings,
   Shield,
@@ -100,6 +101,12 @@ const adminNav: NavGroup[] = [
         icon: Database,
         href: "/admin?module=datasets",
         query: { module: "datasets" },
+      },
+      {
+        title: "Labeling",
+        icon: ListChecks,
+        href: "/admin?module=labeling",
+        query: { module: "labeling" },
       },
       {
         title: "Quality",

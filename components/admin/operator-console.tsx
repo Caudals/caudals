@@ -12,9 +12,14 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
+import { OperatorElevationCard } from "@/components/admin/operator-elevation-card";
+import { OperatorSecurityRosterCard } from "@/components/admin/operator-security-roster-card";
+import { OperatorSigningKeyCard } from "@/components/admin/operator-signing-key-card";
 import { OperatorWorkQueue } from "@/components/admin/operator-work-queue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { OperatorElevationStatus } from "@/lib/actions/operator-elevation-actions";
+import type { OperatorSecurityRoster } from "@/lib/actions/operator-security-actions";
 import type { Translator } from "@/lib/i18n/create-translator";
 import type {
   BuildGate,
@@ -27,6 +32,8 @@ import { cn } from "@/lib/utils";
 
 type OperatorConsoleProps = {
   activeModuleKey: OperatorModuleKey;
+  elevationStatus: OperatorElevationStatus | null;
+  securityRoster: OperatorSecurityRoster | null;
   snapshot: OperatorConsoleSnapshot;
   t: Translator;
 };
@@ -121,7 +128,10 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
   const budgetPct = Math.min(100, Math.round((build.costUsedUsd / build.budgetUsd) * 100));
 
   return (
-    <div className="grid gap-3 border-t border-gray-100 py-4 first:border-t-0 lg:grid-cols-[1.4fr_0.7fr_1fr] lg:items-center">
+    <div
+      id={build.id}
+      className="grid scroll-mt-24 gap-3 border-t border-gray-100 py-4 first:border-t-0 lg:grid-cols-[1.4fr_0.7fr_1fr] lg:items-center"
+    >
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-gray-950">{build.title}</p>
@@ -159,7 +169,13 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
   );
 }
 
-export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsoleProps) {
+export function OperatorConsole({
+  activeModuleKey,
+  elevationStatus,
+  securityRoster,
+  snapshot,
+  t,
+}: OperatorConsoleProps) {
   const featuredBuild = snapshot.featuredBuild;
   const activeModule =
     snapshot.modules.find((module) => module.key === activeModuleKey) ??
@@ -219,7 +235,7 @@ export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsol
           <div>
             <p className="text-sm font-semibold text-gray-950">{t("Modules")}</p>
             <p className="text-sm text-gray-500">
-              {t("All 13 Phase 1 operator modules are visible from one surface.")}
+              {t("All 14 Phase 1 operator modules are visible from one surface.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -248,6 +264,16 @@ export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsol
           module={activeModule}
           initialItems={activeWorkItems}
         />
+      ) : null}
+
+      {activeModuleKey === "settings" ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <OperatorSecurityRosterCard roster={securityRoster} t={t} />
+          {elevationStatus ? (
+            <OperatorElevationCard initialStatus={elevationStatus} />
+          ) : null}
+          <OperatorSigningKeyCard />
+        </div>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
@@ -376,7 +402,7 @@ export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsol
             </div>
             <div className="divide-y divide-gray-100">
               {snapshot.auditRows.map((row) => (
-                <div key={row.id} className="py-3 text-xs">
+                <div id={row.id} key={row.id} className="scroll-mt-24 py-3 text-xs">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-mono font-semibold text-gray-950">{row.action}</span>
                     <span className="text-gray-400">{new Date(row.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
@@ -398,7 +424,11 @@ export function OperatorConsole({ activeModuleKey, snapshot, t }: OperatorConsol
           </div>
           <div className="divide-y divide-gray-100">
             {snapshot.lineageEvents.map((event) => (
-              <div key={event.id} className="grid gap-1 py-3 text-xs sm:grid-cols-[1fr_0.9fr]">
+              <div
+                id={event.id}
+                key={event.id}
+                className="grid scroll-mt-24 gap-1 py-3 text-xs sm:grid-cols-[1fr_0.9fr]"
+              >
                 <span className="font-mono font-semibold text-gray-950">{event.jobName}</span>
                 <span className="font-mono text-gray-500">{event.datasetVersionId}</span>
                 <span className="text-gray-500">{event.namespace}</span>

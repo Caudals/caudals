@@ -91,6 +91,7 @@ type WorkItemRow = {
   updated_at: string | Date;
   severity: OperatorWorkItem["severity"];
   next_action: string | null;
+  field_values?: Record<string, unknown> | string | null;
 };
 
 type PersistTransitionRow = {
@@ -280,6 +281,8 @@ async function getOperatorConsoleSnapshotFromPostgres(
 }
 
 function mapWorkItemRow(row: WorkItemRow): OperatorWorkItem {
+  const fields = normalizeWorkItemFields(row.field_values);
+
   return {
     moduleKey: row.module_key,
     recordType: row.record_type,
@@ -287,10 +290,32 @@ function mapWorkItemRow(row: WorkItemRow): OperatorWorkItem {
     title: row.title,
     state: row.state,
     detail: row.detail ?? "",
+    ...(fields ? { fields } : {}),
     updatedAt: normalizeDate(row.updated_at),
     severity: row.severity,
     nextAction: row.next_action ?? "Review",
   };
+}
+
+function normalizeWorkItemFields(
+  fieldValues: WorkItemRow["field_values"]
+): Record<string, string> | null {
+  if (!fieldValues) {
+    return null;
+  }
+
+  const parsed =
+    typeof fieldValues === "string"
+      ? (JSON.parse(fieldValues) as Record<string, unknown>)
+      : fieldValues;
+
+  const fields = Object.fromEntries(
+    Object.entries(parsed)
+      .filter(([, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => [key, String(value)])
+  );
+
+  return Object.keys(fields).length > 0 ? fields : null;
 }
 
 async function persistOperatorTransitionToPostgres(
@@ -511,23 +536,40 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM buyer_opportunity WHERE state = 'closed_lost' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM supplier_opportunity WHERE state = 'terminated' AND deleted_at IS NULL)
     UNION ALL SELECT 'suppliers',
-      (SELECT count(*)::int FROM supplier_asset WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM organization WHERE kind = 'supplier' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM contact WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM supplier_asset WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM contract WHERE contract_type IN ('supplier','nda','dpa') AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM license_clause WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM supplier_asset WHERE state = 'blocked' AND deleted_at IS NULL)
     UNION ALL SELECT 'buyers',
-      (SELECT count(*)::int FROM dataset_brief WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM organization WHERE kind = 'buyer' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM contact WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM dataset_brief WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM delivery WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM delivery WHERE state = 'disputed' AND deleted_at IS NULL)
     UNION ALL SELECT 'builds',
-      (SELECT count(*)::int FROM build WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM build WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM build_plan WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM run WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM gate_event),
       (SELECT count(*)::int FROM build WHERE state = 'rework' AND deleted_at IS NULL)
     UNION ALL SELECT 'datasets',
-      (SELECT count(*)::int FROM dataset WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM dataset WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM dataset_version WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM lineage_event),
       (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL)
+    UNION ALL SELECT 'labeling',
+      (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM label_batch WHERE state = 'in_adjudication' AND deleted_at IS NULL)
     UNION ALL SELECT 'quality',
       (SELECT count(*)::int FROM qa_report WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM qa_report WHERE verdict = 'fail' AND deleted_at IS NULL)
     UNION ALL SELECT 'privacy',
       (SELECT count(*)::int FROM license_clause WHERE deleted_at IS NULL) +
-      (SELECT count(*)::int FROM dsar_request WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM consent_record WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM dsar_request WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM pii_map WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM dsar_request WHERE state <> 'completed' AND deleted_at IS NULL)
     UNION ALL SELECT 'catalogue',
       (SELECT count(*)::int FROM catalogue_listing WHERE deleted_at IS NULL) +
@@ -535,11 +577,13 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM catalogue_listing WHERE state = 'review' AND deleted_at IS NULL)
     UNION ALL SELECT 'commercials',
       (SELECT count(*)::int FROM quote WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM contract WHERE contract_type = 'buyer' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM invoice WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM payout WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM payout WHERE state IN ('failed', 'held') AND deleted_at IS NULL)
     UNION ALL SELECT 'operations',
       (SELECT count(*)::int FROM run WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM cost_entry) +
       (SELECT count(*)::int FROM alert WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM run WHERE state = 'queued' AND deleted_at IS NULL)
     UNION ALL SELECT 'audit',
@@ -547,7 +591,8 @@ const moduleCountsSql = `
       0
     UNION ALL SELECT 'settings',
       (SELECT count(*)::int FROM integration WHERE deleted_at IS NULL) +
-      (SELECT count(*)::int FROM signing_key WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM signing_key WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM "operator" WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM signing_key WHERE state = 'revoked' AND deleted_at IS NULL)
   ) module_counts
 `;
@@ -623,7 +668,7 @@ const licenseRowsSql = `
 `;
 
 const moduleWorkItemsSql = `
-  WITH work_items AS (
+  WITH raw_work_items AS (
     SELECT
       'pipeline'::text AS module_key,
       'build'::text AS record_type,
@@ -678,6 +723,32 @@ const moduleWorkItemsSql = `
     UNION ALL
     SELECT
       'suppliers',
+      'organization',
+      org.id,
+      org.display_name,
+      org.state,
+      COALESCE(org.website, org.jurisdiction, org.kind),
+      org.updated_at,
+      CASE WHEN org.state = 'paused' THEN 'warning' WHEN org.state = 'archived' THEN 'critical' ELSE 'info' END,
+      'Review supplier org'
+    FROM organization org
+    WHERE org.kind = 'supplier' AND org.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'suppliers',
+      'contact',
+      co.id,
+      co.full_name,
+      CASE WHEN co.signing_authority THEN 'signing_authority' ELSE 'contact' END,
+      COALESCE(co.role, co.email::text, 'Supplier contact'),
+      co.updated_at,
+      CASE WHEN co.signing_authority THEN 'warning' ELSE 'info' END,
+      'Review supplier contact'
+    FROM contact co
+    WHERE co.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'suppliers',
       'supplier_asset',
       sa.id,
       sa.name,
@@ -701,6 +772,45 @@ const moduleWorkItemsSql = `
       'Review contract'
     FROM contract ct
     WHERE ct.deleted_at IS NULL AND ct.contract_type IN ('supplier','nda','dpa')
+    UNION ALL
+    SELECT
+      'suppliers',
+      'license_clause',
+      lc.id,
+      'License clause',
+      lc.state,
+      COALESCE(lc.notes, lc.exclusivity),
+      lc.updated_at,
+      CASE WHEN lc.state = 'draft' THEN 'warning' WHEN lc.state = 'expired' THEN 'critical' ELSE 'info' END,
+      'Review license clause'
+    FROM license_clause lc
+    WHERE lc.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'buyers',
+      'organization',
+      org.id,
+      org.display_name,
+      org.state,
+      COALESCE(org.website, org.jurisdiction, org.kind),
+      org.updated_at,
+      CASE WHEN org.state = 'paused' THEN 'warning' WHEN org.state = 'archived' THEN 'critical' ELSE 'info' END,
+      'Review buyer org'
+    FROM organization org
+    WHERE org.kind = 'buyer' AND org.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'buyers',
+      'contact',
+      co.id,
+      co.full_name,
+      CASE WHEN co.signing_authority THEN 'signing_authority' ELSE 'contact' END,
+      COALESCE(co.role, co.email::text, 'Buyer contact'),
+      co.updated_at,
+      CASE WHEN co.signing_authority THEN 'warning' ELSE 'info' END,
+      'Review buyer contact'
+    FROM contact co
+    WHERE co.deleted_at IS NULL
     UNION ALL
     SELECT
       'buyers',
@@ -742,6 +852,32 @@ const moduleWorkItemsSql = `
     WHERE b.deleted_at IS NULL
     UNION ALL
     SELECT
+      'builds',
+      'build_plan',
+      bp.id,
+      'Build plan',
+      bp.state,
+      CASE WHEN bp.license_blocked THEN 'License blocked' ELSE left(bp.manifest_yaml, 80) END,
+      bp.updated_at,
+      CASE WHEN bp.license_blocked THEN 'critical' WHEN bp.state = 'draft' THEN 'warning' ELSE 'info' END,
+      'Review build plan'
+    FROM build_plan bp
+    WHERE bp.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
+      'dataset',
+      d.id,
+      d.name,
+      d.state,
+      d.modality,
+      d.updated_at,
+      CASE WHEN d.state = 'draft' THEN 'warning' WHEN d.state = 'retired' THEN 'critical' ELSE 'info' END,
+      'Review dataset'
+    FROM dataset d
+    WHERE d.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'datasets',
       'dataset_version',
       dv.id,
@@ -770,7 +906,7 @@ const moduleWorkItemsSql = `
     WHERE qr.deleted_at IS NULL
     UNION ALL
     SELECT
-      'quality',
+      'labeling',
       'label_batch',
       lb.id,
       COALESCE(b.title, 'Label batch'),
@@ -795,6 +931,32 @@ const moduleWorkItemsSql = `
       'Review DSAR'
     FROM dsar_request ds
     WHERE ds.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'privacy',
+      'license_clause',
+      lc.id,
+      'License clause',
+      lc.state,
+      COALESCE(lc.notes, lc.exclusivity),
+      lc.updated_at,
+      CASE WHEN lc.state = 'draft' THEN 'warning' WHEN lc.state = 'expired' THEN 'critical' ELSE 'info' END,
+      'Review license clause'
+    FROM license_clause lc
+    WHERE lc.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'privacy',
+      'consent_record',
+      cr.id,
+      cr.subject_ref,
+      cr.state,
+      cr.lawful_basis,
+      cr.updated_at,
+      CASE WHEN cr.state <> 'active' THEN 'warning' ELSE 'info' END,
+      'Review consent'
+    FROM consent_record cr
+    WHERE cr.deleted_at IS NULL
     UNION ALL
     SELECT
       'privacy',
@@ -850,6 +1012,32 @@ const moduleWorkItemsSql = `
     UNION ALL
     SELECT
       'commercials',
+      'contract',
+      ct.id,
+      ct.contract_type || ' contract',
+      ct.state,
+      COALESCE(ct.document_uri, 'Document pending'),
+      ct.updated_at,
+      CASE WHEN ct.state IN ('drafting','awaiting_buyer','awaiting_supplier') THEN 'warning' ELSE 'info' END,
+      'Review buyer contract'
+    FROM contract ct
+    WHERE ct.deleted_at IS NULL AND ct.contract_type = 'buyer'
+    UNION ALL
+    SELECT
+      'commercials',
+      'invoice',
+      iv.id,
+      'Invoice ' || iv.currency || ' ' || round(iv.amount_cents / 100.0)::text,
+      iv.state,
+      COALESCE(iv.stripe_invoice_id, iv.quote_id, 'No quote'),
+      iv.updated_at,
+      CASE WHEN iv.state IN ('open','uncollectible') THEN 'warning' ELSE 'info' END,
+      'Review invoice'
+    FROM invoice iv
+    WHERE iv.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'commercials',
       'payout',
       py.id,
       'Payout ' || py.currency || ' ' || round(py.amount_cents / 100.0)::text,
@@ -873,6 +1061,19 @@ const moduleWorkItemsSql = `
       'Review run'
     FROM run rn
     WHERE rn.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'operations',
+      'alert',
+      al.id,
+      al.title,
+      al.state,
+      COALESCE(al.target_type || '/' || al.target_id, al.severity),
+      al.updated_at,
+      CASE WHEN al.severity = 'critical' THEN 'critical' ELSE 'warning' END,
+      'Acknowledge alert'
+    FROM alert al
+    WHERE al.deleted_at IS NULL
     UNION ALL
     SELECT
       'operations',
@@ -924,6 +1125,220 @@ const moduleWorkItemsSql = `
     FROM signing_key sk
     WHERE sk.deleted_at IS NULL
   ),
+  work_items AS (
+    SELECT
+      raw_work_items.*,
+      CASE
+        WHEN record_type = 'buyer_opportunity' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'modality', bo.modality,
+            'budgetRange', bo.budget_range ->> 'summary',
+            'timeline', bo.timeline
+          ))
+          FROM buyer_opportunity bo
+          WHERE bo.id = raw_work_items.id
+        )
+        WHEN record_type = 'supplier_asset' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'modality', sa.modality,
+            'declaredVolume', sa.declared_volume ->> 'summary',
+            'refreshPolicy', sa.refresh_policy,
+            'sensitivity', sa.sensitivity
+          ))
+          FROM supplier_asset sa
+          WHERE sa.id = raw_work_items.id
+        )
+        WHEN record_type = 'contract' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'contractType', ct.contract_type,
+            'documentUri', ct.document_uri,
+            'signedAt', ct.signed_at,
+            'startsAt', ct.starts_at,
+            'endsAt', ct.ends_at
+          ))
+          FROM contract ct
+          WHERE ct.id = raw_work_items.id
+        )
+        WHEN record_type = 'license_clause' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'permittedUses',
+            concat_ws(
+              ', ',
+              CASE WHEN lc.permits_train THEN 'train' END,
+              CASE WHEN lc.permits_finetune THEN 'finetune' END,
+              CASE WHEN lc.permits_eval THEN 'eval' END,
+              CASE WHEN lc.permits_inference_commercial THEN 'commercial_inference' END,
+              CASE WHEN lc.permits_redistribute THEN 'redistribute' END
+            ),
+            'geo', array_to_string(lc.geo, ', '),
+            'exclusivity', lc.exclusivity,
+            'termEndsAt', lc.term_ends_at,
+            'shareAlike', lc.share_alike
+          ))
+          FROM license_clause lc
+          WHERE lc.id = raw_work_items.id
+        )
+        WHEN record_type = 'dataset_brief' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'targetFormats', array_to_string(db.target_formats, ', '),
+            'sensitivityConstraints', db.sensitivity_constraints ->> 'summary'
+          ))
+          FROM dataset_brief db
+          WHERE db.id = raw_work_items.id
+        )
+        WHEN record_type = 'delivery' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'channel', dl.channel,
+            'receiptHash', dl.receipt ->> 'receiptHash',
+            'acceptanceWindowDays', dl.receipt ->> 'acceptanceWindowDays'
+          ))
+          FROM delivery dl
+          WHERE dl.id = raw_work_items.id
+        )
+        WHEN record_type = 'build' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'etaAt', b.eta_at,
+            'qScore', b.q_score,
+            'costBudgetCents', b.cost_budget_cents,
+            'costUsedCents', b.cost_used_cents
+          ))
+          FROM build b
+          WHERE b.id = raw_work_items.id
+        )
+        WHEN record_type = 'build_plan' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'licenseBlocked', bp.license_blocked,
+            'permitSummary', bp.composed_permits ->> 'summary'
+          ))
+          FROM build_plan bp
+          WHERE bp.id = raw_work_items.id
+        )
+        WHEN record_type = 'dataset' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'modality', d.modality
+          ))
+          FROM dataset d
+          WHERE d.id = raw_work_items.id
+        )
+        WHEN record_type = 'dataset_version' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'contentHash', dv.content_hash,
+            'recordCount', dv.record_count,
+            'sizeBytes', dv.size_bytes,
+            'qaScore', dv.qa_score
+          ))
+          FROM dataset_version dv
+          WHERE dv.id = raw_work_items.id
+        )
+        WHEN record_type = 'qa_report' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'compositeScore', qr.composite_score
+          ))
+          FROM qa_report qr
+          WHERE qr.id = raw_work_items.id
+        )
+        WHEN record_type = 'label_batch' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'queueDepth', lb.queue_depth,
+            'agreementScore', lb.agreement_score
+          ))
+          FROM label_batch lb
+          WHERE lb.id = raw_work_items.id
+        )
+        WHEN record_type = 'consent_record' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'lawfulBasis', cr.lawful_basis,
+            'evidenceUri', cr.evidence_uri
+          ))
+          FROM consent_record cr
+          WHERE cr.id = raw_work_items.id
+        )
+        WHEN record_type = 'dsar_request' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'requestType', ds.request_type,
+            'slaDays',
+            CASE
+              WHEN ds.sla_due_at IS NULL THEN NULL
+              ELSE GREATEST(
+                1,
+                ceil(extract(epoch FROM (ds.sla_due_at - now())) / 86400.0)::int
+              )
+            END
+          ))
+          FROM dsar_request ds
+          WHERE ds.id = raw_work_items.id
+        )
+        WHEN record_type = 'pii_map' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'treatmentSummary', pm.treatments ->> 'summary'
+          ))
+          FROM pii_map pm
+          WHERE pm.id = raw_work_items.id
+        )
+        WHEN record_type = 'catalogue_listing' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'priceCents', cl.pricing ->> 'priceCents',
+            'currency', cl.pricing ->> 'currency',
+            'billingModel', cl.pricing ->> 'billingModel'
+          ))
+          FROM catalogue_listing cl
+          WHERE cl.id = raw_work_items.id
+        )
+        WHEN record_type = 'private_offer' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'offerValueCents', po.terms ->> 'offerValueCents',
+            'currency', po.terms ->> 'currency',
+            'expiresAt', po.terms ->> 'expiresAt'
+          ))
+          FROM private_offer po
+          WHERE po.id = raw_work_items.id
+        )
+        WHEN record_type = 'quote' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'amountCents', qt.amount_cents,
+            'currency', qt.currency
+          ))
+          FROM quote qt
+          WHERE qt.id = raw_work_items.id
+        )
+        WHEN record_type = 'invoice' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'amountCents', iv.amount_cents,
+            'currency', iv.currency
+          ))
+          FROM invoice iv
+          WHERE iv.id = raw_work_items.id
+        )
+        WHEN record_type = 'payout' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'amountCents', py.amount_cents,
+            'currency', py.currency
+          ))
+          FROM payout py
+          WHERE py.id = raw_work_items.id
+        )
+        WHEN record_type = 'run' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'externalRunId', rn.external_run_id,
+            'retryCount', rn.retry_count,
+            'startedAt', rn.started_at,
+            'finishedAt', rn.finished_at
+          ))
+          FROM run rn
+          WHERE rn.id = raw_work_items.id
+        )
+        WHEN record_type = 'cost_entry' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'amountCents', ce.amount_cents,
+            'metadataSummary', ce.metadata ->> 'summary'
+          ))
+          FROM cost_entry ce
+          WHERE ce.id = raw_work_items.id
+        )
+        ELSE '{}'::jsonb
+      END AS field_values
+    FROM raw_work_items
+  ),
   ranked AS (
     SELECT
       *,
@@ -933,7 +1348,14 @@ const moduleWorkItemsSql = `
           CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
           updated_at DESC,
           id
-      ) AS work_rank
+      ) AS work_rank,
+      row_number() OVER (
+        PARTITION BY module_key, record_type
+        ORDER BY
+          CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+          updated_at DESC,
+          id
+      ) AS type_rank
     FROM work_items
   )
   SELECT
@@ -945,8 +1367,9 @@ const moduleWorkItemsSql = `
     detail,
     updated_at,
     severity,
-    next_action
+    next_action,
+    field_values
   FROM ranked
-  WHERE work_rank <= 4
-  ORDER BY module_key, work_rank
+  WHERE work_rank <= 4 OR type_rank = 1
+  ORDER BY module_key, work_rank, record_type
 `;

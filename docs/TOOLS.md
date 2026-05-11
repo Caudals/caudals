@@ -44,7 +44,7 @@ Target Phase 1 runtime:
 Direct SSH runtime inspection is allowed when local context is stale:
 - `ssh root@ubuntu-caudals`
 
-Legacy Supabase containers may still exist during migration. Do not stop or delete them until the migration report records a successful final encrypted backup and explicit decommission approval.
+Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
@@ -57,7 +57,7 @@ Legacy Supabase containers may still exist during migration. Do not stop or dele
 
 ## PostgreSQL Migration Usage Pattern
 1. Validate SQL on a disposable database before touching a shared database:
-   - `docker run --rm --name caudals-sqlcheck -e POSTGRES_PASSWORD=postgres -p 55433:5432 -d supabase/postgres:15.8.1.085`
+   - `docker run --rm --name caudals-sqlcheck -e POSTGRES_PASSWORD=postgres -p 55433:5432 -d pgvector/pgvector:pg16`
    - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
    - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/rollbacks/<file>_down.sql`
    - `docker rm -f caudals-sqlcheck`
@@ -69,7 +69,7 @@ Hard rules:
 - Keep schema changes in `db/migrations/*` with matching rollback files in `db/rollbacks/*`.
 - Never expose DB credentials in docs, command output, or captured media.
 - Do not rely on raw public database ports; use SSH tunnels or Tailscale/private access paths only.
-- Do not decommission legacy Supabase services without final-backup evidence and explicit confirmation.
+- Do not delete encrypted migration backups unless a newer verified backup exists.
 
 ## Better Auth Migration Pattern
 1. Use PostgreSQL as the Better Auth adapter target.
@@ -86,12 +86,39 @@ Current scaffold:
 - Next.js endpoint: `app/(app)/api/auth/[...all]/route.ts`
 - Identity schema migration: `db/migrations/003_better_auth_identity.sql`
 - JIT production-DB elevation: `db/migrations/008_operator_elevation.sql`,
-  `lib/auth/operator-elevation.ts`, and `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
+  `lib/auth/operator-elevation.ts`, `lib/actions/operator-elevation-actions.ts`,
+  `components/admin/operator-elevation-card.tsx`, and
+  `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
+- Delivery signing keys: `lib/actions/signing-key-actions.ts` and
+  `components/admin/operator-signing-key-card.tsx`; private keys are encrypted
+  before insertion into `signing_key.encrypted_private_key`.
+- Cross-module record notes: `db/migrations/010_operator_record_note.sql`,
+  `lib/actions/operator-record-note-actions.ts`, and
+  `components/admin/operator-record-notes.tsx`; create/update/delete operations
+  write `audit_event` rows.
+- Generic operator record CRUD: `lib/operator/record-crud.ts`,
+  `lib/actions/operator-record-actions.ts`, and
+  `components/admin/operator-work-queue.tsx`; descriptor-gated create/update/delete
+  operations write `audit_event` rows, with append-only exceptions for immutable
+  records.
 - Legacy account migration: `npm run migrate:supabase-auth -- --apply`
 
 Install caveat:
 - Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.
   Use `npm install --legacy-peer-deps` when adding or refreshing Better Auth packages until the Vite peer range is reconciled.
+
+## Observability Runtime
+- Sentry is wired through `instrumentation.ts`, `instrumentation-client.ts`,
+  `sentry.server.config.ts`, `sentry.edge.config.ts`, and
+  `lib/observability/sentry-config.ts`.
+- Sentry stays disabled unless `SENTRY_DSN` is set. Keep `sendDefaultPii=false`
+  unless a privacy review explicitly approves a change.
+- Optional OpenTelemetry stdout traces are registered from
+  `lib/observability/opentelemetry.ts` when `OTEL_STDOUT_ENABLED=true`.
+- The stdout exporter is intended for VPS diagnostics and short-lived debugging;
+  do not enable it permanently if logs may contain sensitive operational context.
+- Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
+  OpenTelemetry peer packages explicit in `package.json`.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -180,16 +207,24 @@ Operational env controls:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
+- `SENTRY_DSN` (enables Sentry when non-empty)
+- `SENTRY_ENVIRONMENT`
+- `SENTRY_RELEASE`
+- `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
+- `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
+- `OTEL_STDOUT_ENABLED` (default disabled; set `true` for stdout spans)
+- `OTEL_SERVICE_NAME` (default `caudals-web`)
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
 ## Environment Variable Categories
 - PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
-- Legacy migration-only auth/data: legacy variables remain until the migration report authorizes removal
+- Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
+- Observability: Sentry DSN/environment/release/sample rates and opt-in OpenTelemetry stdout export
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
@@ -223,6 +258,9 @@ Operational env controls:
   - on a fresh VPS, run `npx playwright install-deps chromium` if host libraries are missing.
 - `next build` exits through the PTY without diagnostics on the small VPS:
   - rerun as `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` and capture output to a temp log if needed.
+- Sentry/Turbopack warns about nested `import-in-the-middle` versions:
+  - confirm the build still reaches `Compiled successfully` and finishes the route table,
+  - keep `@opentelemetry/instrumentation` explicit unless Sentry changes its peer packaging.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
   - inspect the `stripe_webhook_event` replay/idempotency table.

@@ -13,6 +13,7 @@ export const operatorModuleKeys = [
   "buyers",
   "builds",
   "datasets",
+  "labeling",
   "quality",
   "privacy",
   "catalogue",
@@ -78,6 +79,7 @@ export type OperatorWorkItem = {
   title: string;
   state: string;
   detail: string;
+  fields?: Record<string, string>;
   updatedAt: string;
   severity: "info" | "warning" | "critical";
   nextAction: string;
@@ -177,13 +179,22 @@ export const operatorModuleSummaries: OperatorModuleSummary[] = [
     savedViews: ["Released", "Lineage gaps", "Needs card"],
   },
   {
+    key: "labeling",
+    title: "Labeling",
+    description: "Reviewer queues, label batches, agreement review, and adjudication depth.",
+    anchorRecords: ["label_batch"],
+    totalRecords: 8,
+    blockedRecords: 2,
+    savedViews: ["Queue depth", "Adjudication", "Reviewer drift"],
+  },
+  {
     key: "quality",
     title: "Quality",
-    description: "QA reports, scorecards, exceptions, bias panels, and label batches.",
-    anchorRecords: ["qa_report", "label_batch"],
-    totalRecords: 29,
-    blockedRecords: 5,
-    savedViews: ["Exceptions", "Adjudication", "Buyer scorecards"],
+    description: "QA reports, scorecards, exception logs, bias panels, and buyer-ready verdicts.",
+    anchorRecords: ["qa_report"],
+    totalRecords: 21,
+    blockedRecords: 3,
+    savedViews: ["Exceptions", "Buyer scorecards", "Release blockers"],
   },
   {
     key: "privacy",
@@ -404,6 +415,17 @@ const fixtureWorkItems: OperatorWorkItem[] = [
     updatedAt: "2026-05-10T13:10:00.000Z",
     severity: "warning",
     nextAction: "Sign release artefact",
+  },
+  {
+    moduleKey: "labeling",
+    recordType: "label_batch",
+    id: "lb_01J2RECEIPTS",
+    title: "Receipt line-item label batch",
+    state: "in_adjudication",
+    detail: "Queue depth 42",
+    updatedAt: "2026-05-10T13:05:00.000Z",
+    severity: "warning",
+    nextAction: "Review adjudication queue",
   },
   {
     moduleKey: "quality",

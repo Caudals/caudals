@@ -36,6 +36,7 @@ export type OperatorElevationGrant = {
 export type GrantOperatorElevationInput = {
   orgId: string;
   operatorId: string;
+  actorOperatorId?: string;
   reason: string;
   durationMinutes?: number;
   scope?: OperatorDbElevationScope;
@@ -45,13 +46,21 @@ export type GrantOperatorElevationInput = {
 export type RevokeOperatorElevationInput = {
   orgId: string;
   operatorId: string;
+  actorOperatorId?: string;
   elevationId: string;
   reason?: string;
+};
+
+export type GetActiveOperatorElevationInput = {
+  orgId: string;
+  operatorId: string;
+  scope?: OperatorDbElevationScope;
 };
 
 export async function grantOperatorElevation({
   orgId,
   operatorId,
+  actorOperatorId = operatorId,
   reason,
   durationMinutes = DEFAULT_ELEVATION_MINUTES,
   scope = PRODUCTION_DB_ELEVATION_SCOPE,
@@ -85,7 +94,7 @@ export async function grantOperatorElevation({
               $4,
               $5,
               now() + ($6::int * interval '1 minute'),
-              $3,
+              $8,
               $7::jsonb
             )
             RETURNING id, org_id, operator_id, scope, reason, state, expires_at
@@ -101,9 +110,9 @@ export async function grantOperatorElevation({
               metadata
             )
             SELECT
-              $8,
+              $9,
               org_id,
-              operator_id,
+              $8,
               'operator_elevation.granted',
               'operator_elevation',
               id,
@@ -128,6 +137,7 @@ export async function grantOperatorElevation({
           trimmedReason,
           normalizedDuration,
           JSON.stringify(metadata),
+          actorOperatorId,
           auditId,
         ]
       );
@@ -140,6 +150,7 @@ export async function grantOperatorElevation({
 export async function revokeOperatorElevation({
   orgId,
   operatorId,
+  actorOperatorId = operatorId,
   elevationId,
   reason,
 }: RevokeOperatorElevationInput): Promise<OperatorElevationGrant | null> {
@@ -156,7 +167,7 @@ export async function revokeOperatorElevation({
             SET
               state = 'revoked',
               revoked_at = now(),
-              revoked_by = $2
+              revoked_by = $6
             WHERE id = $3
               AND org_id = $1
               AND operator_id = $2
@@ -177,7 +188,7 @@ export async function revokeOperatorElevation({
             SELECT
               $4,
               org_id,
-              operator_id,
+              $6,
               'operator_elevation.revoked',
               'operator_elevation',
               id,
@@ -193,7 +204,36 @@ export async function revokeOperatorElevation({
           FROM revoked
           CROSS JOIN audit
         `,
-        [orgId, operatorId, elevationId, auditId, revokeReason]
+        [orgId, operatorId, elevationId, auditId, revokeReason, actorOperatorId]
+      );
+
+      return rows[0] ? mapElevationRow(rows[0]) : null;
+    }
+  );
+}
+
+export async function getActiveOperatorElevation({
+  orgId,
+  operatorId,
+  scope = PRODUCTION_DB_ELEVATION_SCOPE,
+}: GetActiveOperatorElevationInput): Promise<OperatorElevationGrant | null> {
+  return withOperatorDbSession(
+    { orgId, operatorId, serviceRole: true },
+    async (client) => {
+      const { rows } = await client.query<OperatorElevationRow>(
+        `
+          SELECT id, org_id, operator_id, scope, reason, state, expires_at
+          FROM operator_elevation
+          WHERE org_id = $1
+            AND operator_id = $2
+            AND scope = $3
+            AND state = 'active'
+            AND expires_at > now()
+            AND deleted_at IS NULL
+          ORDER BY expires_at DESC
+          LIMIT 1
+        `,
+        [orgId, operatorId, scope]
       );
 
       return rows[0] ? mapElevationRow(rows[0]) : null;
