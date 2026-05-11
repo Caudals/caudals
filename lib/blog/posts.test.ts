@@ -9,9 +9,11 @@ import {
 describe("blog content loader", () => {
   it("returns localized posts ordered by publish date", async () => {
     const posts = await getBlogPosts("en");
+    const publishedTimes = posts.map((post) => +new Date(post.publishedAt));
 
-    expect(posts).toHaveLength(5);
-    expect(posts[0]?.slug).toBe("budgeting-a-dataset-collection-program");
+    expect(posts).toHaveLength(8);
+    expect(posts[0]?.slug).toBe("preference-data-rlhf");
+    expect(publishedTimes).toEqual([...publishedTimes].sort((a, b) => b - a));
     expect(posts.some((post) => post.slug === "launching-caudals-clearer-dataset-operations" && post.featured)).toBe(true);
     expect(posts.every((post) => post.locale === "en")).toBe(true);
   });
@@ -32,20 +34,23 @@ describe("blog content loader", () => {
   it("exposes stable slugs and adjacent navigation", async () => {
     const slugs = await getAllBlogSlugs();
     const adjacent = await getAdjacentBlogPosts(
-      "operational-playbooks-for-multimodal-datasets",
+      "active-learning-guided-data-collection",
       "en",
     );
 
     expect(slugs).toEqual([
+      "active-learning-guided-data-collection",
       "budgeting-a-dataset-collection-program",
+      "how-much-data-to-fine-tune-a-model",
       "how-we-review-contributor-quality-signals",
       "launching-caudals-clearer-dataset-operations",
       "operational-playbooks-for-multimodal-datasets",
+      "preference-data-rlhf",
       "synthetic-vs-human-data",
     ]);
-    expect(adjacent.next?.slug).toBe("launching-caudals-clearer-dataset-operations");
+    expect(adjacent.next?.slug).toBe("preference-data-rlhf");
     expect(adjacent.previous?.slug).toBe(
-      "how-we-review-contributor-quality-signals",
+      "how-much-data-to-fine-tune-a-model",
     );
   });
 });
