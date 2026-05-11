@@ -15,7 +15,7 @@ const sections = [
   },
   {
     title: "How We Use Data",
-    body: "We use data to operate requester/contributor/admin workflows, process payouts and funding, secure the platform, and improve service reliability.",
+    body: "We use data to operate buyer, supplier, and internal admin workflows, support commercial operations, secure the platform, and improve service reliability.",
   },
   {
     title: "Data Sharing",

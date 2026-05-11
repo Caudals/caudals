@@ -1,28 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+import { requireCurrentOperator } from "@/lib/auth/operator-session";
+import { getOperatorSecurityStatus } from "@/lib/auth/operator-security";
+
 export async function requireAdmin() {
-  const supabase = await createClient();
+  const session = await requireCurrentOperator();
+  const security = getOperatorSecurityStatus(session);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/sign-in");
+  if (!security.complete) {
+    redirect("/auth/security?next=/admin");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
-    const fallback =
-      profile?.role === "contributor" ? "/contributor" : "/requester";
-    redirect(fallback);
-  }
-
-  return user;
+  return session;
 }

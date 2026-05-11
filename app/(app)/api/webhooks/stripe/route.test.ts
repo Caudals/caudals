@@ -1,331 +1,124 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const { getStripeServerMock, queryRowsMock, logErrorMock, logInfoMock } =
+  vi.hoisted(() => ({
+    getStripeServerMock: vi.fn(),
+    queryRowsMock: vi.fn(),
+    logErrorMock: vi.fn(),
+    logInfoMock: vi.fn(),
+  }));
+
+vi.mock("@/lib/db/client", () => ({
+  queryRows: queryRowsMock,
+}));
+
+vi.mock("@/lib/stripe/server", () => ({
+  getStripeServer: getStripeServerMock,
+}));
+
+vi.mock("@/lib/security/structured-logger", () => ({
+  logError: logErrorMock,
+  logInfo: logInfoMock,
+}));
+
 import {
-  handlePaymentIntentSucceeded,
-  handlePaymentIntentFailed,
-  handleCheckoutSessionCompleted,
-  handleTransferCreated,
+  POST,
+  markStripeWebhookEventFailed,
   markStripeWebhookEventProcessed,
   reserveStripeWebhookEvent,
 } from "@/app/(app)/api/webhooks/stripe/route";
 
-type BuilderConfig = {
-  awaitResult?: {
-    data?: unknown;
-    error?: { message: string; code?: string } | null;
-    count?: number | null;
-  };
-  singleResult?: { data?: unknown; error?: { message: string; code?: string } | null };
-  maybeSingleResult?: { data?: unknown; error?: { message: string; code?: string } | null };
-};
-
-function createBuilder(config: BuilderConfig = {}) {
-  const awaitResult = config.awaitResult ?? { data: null, error: null };
-  const builder: any = {};
-
-  const chainMethods = [
-    "select",
-    "eq",
-    "in",
-    "order",
-    "range",
-    "limit",
-    "gte",
-    "lte",
-    "or",
-    "update",
-    "insert",
-    "delete",
-  ];
-
-  for (const method of chainMethods) {
-    builder[method] = vi.fn(() => builder);
-  }
-
-  builder.single = vi.fn(async () => config.singleResult ?? awaitResult);
-  builder.maybeSingle = vi.fn(async () => config.maybeSingleResult ?? awaitResult);
-  builder.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-    Promise.resolve(awaitResult).then(resolve, reject);
-
-  return builder;
+function createStripeEvent(overrides: Partial<{ id: string; type: string }> = {}) {
+  return {
+    id: overrides.id ?? "evt_123",
+    type: overrides.type ?? "payment_intent.succeeded",
+    data: { object: { id: "pi_123" } },
+  } as any;
 }
 
-describe("stripe webhook idempotency", () => {
-  it("skips payment_intent processing when transaction already exists", async () => {
-    const existingTxBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { id: "tx_existing_1" },
-        error: null,
-      },
-    });
-    const adminClient = {
-      from: vi.fn((_table: string) => existingTxBuilder),
-    };
-
-    const event = {
-      data: {
-        object: {
-          id: "pi_123",
-          metadata: {
-            user_id: "user_1",
-            type: "wallet_deposit",
-          },
-          amount_received: 5000,
-          amount: 5000,
-          currency: "usd",
-        },
-      },
-    };
-
-    await handlePaymentIntentSucceeded(event as any, adminClient as any);
-
-    expect(adminClient.from).toHaveBeenCalledTimes(1);
-    expect(adminClient.from).toHaveBeenCalledWith("transactions");
-    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
+function createRequest(body = "{}") {
+  return new NextRequest("http://localhost:3000/api/webhooks/stripe", {
+    method: "POST",
+    body,
+    headers: {
+      "stripe-signature": "sig_test",
+    },
   });
-
-  it("skips transfer.created processing when payout transaction already exists", async () => {
-    const accountLookupBuilder = createBuilder({
-      singleResult: {
-        data: {
-          user_id: "user_2",
-          default_currency: "usd",
-          stripe_account_id: "acct_123",
-        },
-        error: null,
-      },
-    });
-    const existingTxBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { id: "tx_existing_2" },
-        error: null,
-      },
-    });
-
-    const queue = [accountLookupBuilder, existingTxBuilder];
-    const adminClient = {
-      from: vi.fn((_table: string) => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("Unexpected query call");
-        }
-        return next;
-      }),
-    };
-
-    const event = {
-      data: {
-        object: {
-          id: "tr_123",
-          destination: "acct_123",
-          amount: 4500,
-          currency: "usd",
-          metadata: {},
-        },
-      },
-    };
-
-    await handleTransferCreated(event as any, adminClient as any);
-
-    expect(adminClient.from).toHaveBeenCalledTimes(2);
-    expect(accountLookupBuilder.insert).not.toHaveBeenCalled();
-    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
-  });
-
-  it("skips payment_intent failure processing when transaction already exists", async () => {
-    const existingTxBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { id: "tx_existing_3" },
-        error: null,
-      },
-    });
-    const adminClient = {
-      from: vi.fn((_table: string) => existingTxBuilder),
-    };
-
-    const event = {
-      data: {
-        object: {
-          id: "pi_failed_1",
-          metadata: {
-            user_id: "user_3",
-            type: "dataset_funding",
-            dataset_id: "dataset_1",
-          },
-          amount: 3000,
-          currency: "usd",
-          last_payment_error: {
-            message: "Card declined",
-          },
-        },
-      },
-    };
-
-    await handlePaymentIntentFailed(event as any, adminClient as any);
-
-    expect(adminClient.from).toHaveBeenCalledTimes(1);
-    expect(adminClient.from).toHaveBeenCalledWith("transactions");
-    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
-  });
-
-  it("processes checkout.session.completed through payment-intent logic", async () => {
-    const transactionBuilder = createBuilder({
-      maybeSingleResult: {
-        data: null,
-        error: null,
-      },
-      awaitResult: {
-        data: null,
-        error: null,
-      },
-    });
-    const adminClient = {
-      from: vi.fn((_table: string) => transactionBuilder),
-    };
-
-    const event = {
-      data: {
-        object: {
-          id: "cs_123",
-          mode: "payment",
-          payment_status: "paid",
-          payment_intent: {
-            id: "pi_456",
-            metadata: {
-              user_id: "user_4",
-              type: "wallet_deposit",
-            },
-            amount_received: 1200,
-            amount: 1200,
-            currency: "usd",
-            customer: null,
-          },
-        },
-      },
-    };
-
-    await handleCheckoutSessionCompleted(event as any, adminClient as any);
-
-    expect(adminClient.from).toHaveBeenCalledWith("transactions");
-    expect(transactionBuilder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        reference_id: "pi_456",
-        type: "wallet_deposit",
-        status: "completed",
-      })
-    );
-  });
-
-  it("skips checkout.session.completed when payment transaction already exists", async () => {
-    const existingTxBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { id: "tx_existing_4" },
-        error: null,
-      },
-    });
-    const adminClient = {
-      from: vi.fn((_table: string) => existingTxBuilder),
-    };
-
-    const event = {
-      data: {
-        object: {
-          id: "cs_456",
-          mode: "payment",
-          payment_status: "paid",
-          payment_intent: {
-            id: "pi_789",
-            metadata: {
-              user_id: "user_5",
-              type: "wallet_deposit",
-            },
-            amount_received: 3000,
-            amount: 3000,
-            currency: "usd",
-            customer: null,
-          },
-        },
-      },
-    };
-
-    await handleCheckoutSessionCompleted(event as any, adminClient as any);
-
-    expect(adminClient.from).toHaveBeenCalledTimes(1);
-    expect(existingTxBuilder.insert).not.toHaveBeenCalled();
-  });
-});
+}
 
 describe("stripe webhook replay guard", () => {
-  it("deduplicates an already-processed webhook event", async () => {
-    const duplicateInsertBuilder = createBuilder({
-      awaitResult: {
-        data: null,
-        error: { message: "duplicate key value violates unique constraint", code: "23505" },
-      },
-    });
-    const processedLookupBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { processing_state: "processed" },
-        error: null,
-      },
-    });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryRowsMock.mockReset();
+    process.env.STRIPE_SECRET_KEY = "sk_test_123";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
+  });
 
-    const queue = [duplicateInsertBuilder, processedLookupBuilder];
-    const adminClient = {
-      from: vi.fn((_table: string) => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("Unexpected query call");
-        }
-        return next;
-      }),
-    };
+  it("reserves a new event for processing", async () => {
+    queryRowsMock.mockResolvedValueOnce([{ processing_state: "processing" }]);
 
-    const result = await reserveStripeWebhookEvent(
-      { id: "evt_1", type: "payment_intent.succeeded" } as any,
-      adminClient as any
+    const result = await reserveStripeWebhookEvent(createStripeEvent());
+
+    expect(result).toEqual({
+      shouldProcess: true,
+      deduplicated: false,
+      retrying: false,
+    });
+    expect(queryRowsMock).toHaveBeenCalledTimes(1);
+    expect(queryRowsMock.mock.calls[0]?.[0]).toContain(
+      "INSERT INTO stripe_webhook_event"
     );
+    expect(queryRowsMock.mock.calls[0]?.[1]).toEqual(
+      expect.arrayContaining(["evt_123", "payment_intent.succeeded"])
+    );
+  });
+
+  it("deduplicates an already-processed event", async () => {
+    queryRowsMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ processing_state: "processed" }]);
+
+    const result = await reserveStripeWebhookEvent(createStripeEvent());
 
     expect(result).toEqual({
       shouldProcess: false,
       deduplicated: true,
       retrying: false,
     });
+    expect(queryRowsMock).toHaveBeenCalledTimes(2);
+    expect(queryRowsMock.mock.calls[1]?.[0]).toContain(
+      "SELECT processing_state"
+    );
   });
 
-  it("retries processing for previously failed webhook events", async () => {
-    const duplicateInsertBuilder = createBuilder({
-      awaitResult: {
-        data: null,
-        error: { message: "duplicate key value violates unique constraint", code: "23505" },
-      },
-    });
-    const failedLookupBuilder = createBuilder({
-      maybeSingleResult: {
-        data: { processing_state: "failed" },
-        error: null,
-      },
-    });
-    const retryUpdateBuilder = createBuilder({
-      awaitResult: {
-        data: null,
-        error: null,
-      },
-    });
+  it("deduplicates an in-flight processing event unless the guarded retry wins", async () => {
+    queryRowsMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ processing_state: "processing" }])
+      .mockResolvedValueOnce([]);
 
-    const queue = [duplicateInsertBuilder, failedLookupBuilder, retryUpdateBuilder];
-    const adminClient = {
-      from: vi.fn((_table: string) => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("Unexpected query call");
-        }
-        return next;
-      }),
-    };
+    const result = await reserveStripeWebhookEvent(createStripeEvent());
+
+    expect(result).toEqual({
+      shouldProcess: false,
+      deduplicated: true,
+      retrying: false,
+    });
+    expect(queryRowsMock).toHaveBeenCalledTimes(3);
+    expect(queryRowsMock.mock.calls[2]?.[0]).toContain(
+      "received_at < now()"
+    );
+  });
+
+  it("retries a previously failed event", async () => {
+    queryRowsMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ processing_state: "failed" }])
+      .mockResolvedValueOnce([{ processing_state: "processing" }]);
 
     const result = await reserveStripeWebhookEvent(
-      { id: "evt_2", type: "transfer.created" } as any,
-      adminClient as any
+      createStripeEvent({ id: "evt_failed", type: "transfer.created" })
     );
 
     expect(result).toEqual({
@@ -333,27 +126,73 @@ describe("stripe webhook replay guard", () => {
       deduplicated: false,
       retrying: true,
     });
+    expect(queryRowsMock).toHaveBeenCalledTimes(3);
+    expect(queryRowsMock.mock.calls[2]?.[0]).toContain(
+      "UPDATE stripe_webhook_event"
+    );
   });
 
-  it("marks webhook events as processed after successful handling", async () => {
-    const updateBuilder = createBuilder({
-      awaitResult: {
-        data: null,
-        error: null,
+  it("marks events processed after successful handling", async () => {
+    queryRowsMock.mockResolvedValueOnce([{ stripe_event_id: "evt_done" }]);
+
+    await markStripeWebhookEventProcessed("evt_done");
+
+    expect(queryRowsMock).toHaveBeenCalledTimes(1);
+    expect(queryRowsMock.mock.calls[0]?.[0]).toContain(
+      "processing_state = 'processed'"
+    );
+    expect(queryRowsMock.mock.calls[0]?.[1]).toEqual(["evt_done"]);
+  });
+
+  it("records failed events without surfacing update failures", async () => {
+    queryRowsMock.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await markStripeWebhookEventFailed("evt_failed", "Handler failed");
+
+    expect(logErrorMock).toHaveBeenCalledWith(
+      "stripe.webhook.mark_failed_error",
+      expect.objectContaining({ eventId: "evt_failed" })
+    );
+  });
+
+  it("verifies and persists a signed webhook request", async () => {
+    const event = createStripeEvent({ id: "evt_post" });
+    getStripeServerMock.mockReturnValue({
+      webhooks: {
+        constructEvent: vi.fn(() => event),
       },
     });
-    const adminClient = {
-      from: vi.fn((_table: string) => updateBuilder),
-    };
+    queryRowsMock
+      .mockResolvedValueOnce([{ processing_state: "processing" }])
+      .mockResolvedValueOnce([{ stripe_event_id: "evt_post" }]);
 
-    await markStripeWebhookEventProcessed("evt_done", adminClient as any);
+    const response = await POST(createRequest(JSON.stringify(event)));
+    const payload = await response.json();
 
-    expect(updateBuilder.update).toHaveBeenCalledWith(
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({ received: true });
+    expect(getStripeServerMock().webhooks.constructEvent).toHaveBeenCalledWith(
+      JSON.stringify(event),
+      "sig_test",
+      "whsec_test_123"
+    );
+    expect(logInfoMock).toHaveBeenCalledWith(
+      "stripe.webhook.accepted_phase_1",
       expect.objectContaining({
-        processing_state: "processed",
-        last_error: null,
+        eventId: "evt_post",
+        eventType: "payment_intent.succeeded",
       })
     );
-    expect(updateBuilder.eq).toHaveBeenCalledWith("stripe_event_id", "evt_done");
+  });
+
+  it("rejects webhook requests when Stripe is not configured", async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+
+    const response = await POST(createRequest());
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toEqual({ error: "Stripe not configured" });
+    expect(getStripeServerMock).not.toHaveBeenCalled();
   });
 });

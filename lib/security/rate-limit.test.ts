@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as adminModule from "@/lib/supabase/admin";
+import * as dbModule from "@/lib/db/client";
 import {
   __resetRateLimitMemoryStoreForTests,
   consumeRateLimit,
@@ -16,22 +16,17 @@ describe("rate-limit", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns durable RPC result when abuse limiter RPC is available", async () => {
+  it("returns durable PostgreSQL result when the abuse limiter table is available", async () => {
     const resetAt = new Date(Date.now() + 60_000).toISOString();
-    const rpc = vi.fn(async () => ({
-      data: [
+    const queryRows = vi
+      .spyOn(dbModule, "queryRows")
+      .mockResolvedValue([
         {
-          allowed: true,
-          limit_count: 5,
+          count: 1,
           remaining: 4,
-          retry_after_seconds: 0,
           reset_at: resetAt,
         },
-      ],
-      error: null,
-    }));
-
-    vi.spyOn(adminModule, "createAdminClient").mockReturnValue({ rpc } as any);
+      ] as any);
 
     const result = await consumeRateLimit({
       key: "waitlist:ip:127.0.0.1",
@@ -44,15 +39,14 @@ describe("rate-limit", () => {
     expect(result.remaining).toBe(4);
     expect(result.retryAfterSeconds).toBe(0);
     expect(result.resetAt).toBeGreaterThan(Date.now());
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(queryRows).toHaveBeenCalledTimes(1);
+    expect(queryRows.mock.calls[0]?.[0]).toContain("abuse_rate_limit");
   });
 
   it("falls back to in-memory limiter and isolates keys across repeated requests", async () => {
-    const rpc = vi.fn(async () => ({
-      data: null,
-      error: { code: "42883", message: "function missing" },
-    }));
-    vi.spyOn(adminModule, "createAdminClient").mockReturnValue({ rpc } as any);
+    const queryRows = vi
+      .spyOn(dbModule, "queryRows")
+      .mockRejectedValue(new Error("relation missing"));
 
     const a1 = await consumeRateLimit({
       key: "collaboration:ip:1.1.1.1",
@@ -81,7 +75,7 @@ describe("rate-limit", () => {
     expect(a3.retryAfterSeconds).toBeGreaterThan(0);
     expect(b1.allowed).toBe(true);
     expect(b1.remaining).toBe(1);
-    expect(rpc).toHaveBeenCalledTimes(4);
+    expect(queryRows).toHaveBeenCalledTimes(4);
   });
 
   it("extracts client IP from forwarded headers", () => {

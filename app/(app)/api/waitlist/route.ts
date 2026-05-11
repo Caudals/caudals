@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getResendClient } from "@/lib/resend/client";
 import { WaitlistConfirmationEmail } from "@/emails/waitlist-confirmation";
-import type { Database, Json } from "@/types/database";
+import type { QueryResultRow } from "pg";
+import { generatePrefixedUlid } from "@/lib/db/ids";
+import { queryRows } from "@/lib/db/client";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
 import { ensureAudienceContact } from "@/lib/resend/subscribers";
 import {
@@ -35,6 +36,12 @@ function withHeaders(
 type ResendEmailPayload = Parameters<
   ReturnType<typeof getResendClient>["emails"]["send"]
 >[0];
+
+type WaitlistSignupRow = QueryResultRow & {
+  id: string;
+  created_at: string;
+  status: string;
+};
 
 async function sendEmailWithFallback({
   resend,
@@ -161,9 +168,7 @@ export async function POST(request: NextRequest) {
   }
 
   const generalAudienceId = process.env.RESEND_GENERAL_AUDIENCE_ID;
-  const supabase = createAdminClient("waitlist_intake");
-
-  const metadata: Record<string, Json> = {
+  const metadata: Record<string, unknown> = {
     source: "landing-page",
   };
 
@@ -181,19 +186,21 @@ export async function POST(request: NextRequest) {
     metadata.referer = referer;
   }
 
-  const metadataJson = metadata as Json;
+  let existingRecord: WaitlistSignupRow | undefined;
 
-  type WaitlistSignupUpdate = Database["public"]["Tables"]["waitlist_signups"]["Update"];
-  type WaitlistSignupInsert = Database["public"]["Tables"]["waitlist_signups"]["Insert"];
-
-  const { data: existingRecord, error: lookupError } = await supabase
-    .from("waitlist_signups")
-    .select("id, created_at, status")
-    .eq("email", emailLower)
-    .maybeSingle();
-
-  if (lookupError) {
-    logError("waitlist.lookup_failed", { error: lookupError, email: emailLower });
+  try {
+    const existingRows = await queryRows<WaitlistSignupRow>(
+      `
+        SELECT id, created_at, status
+        FROM waitlist_signup
+        WHERE email = $1
+        LIMIT 1
+      `,
+      [emailLower]
+    );
+    existingRecord = existingRows[0];
+  } catch (error) {
+    logError("waitlist.lookup_failed", { error, email: emailLower });
     return withHeaders(
       NextResponse.json(
         { error: "Failed to save waitlist entry" },
@@ -206,24 +213,32 @@ export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString();
 
   if (existingRecord) {
-    const updatePayload: WaitlistSignupUpdate = {
-      full_name: fullName ?? null,
-      company: company ?? null,
-      use_case: useCase ?? null,
-      metadata: metadataJson,
-      updated_at: timestamp,
-    };
-
-    const waitlistTable = supabase.from("waitlist_signups") as any;
-
-    const recordId = (existingRecord as { id: string }).id;
-
-    const { error: updateError } = await waitlistTable
-      .update(updatePayload)
-      .eq("id", recordId);
-
-    if (updateError) {
-      logError("waitlist.update_failed", { error: updateError, email: emailLower, recordId });
+    try {
+      await queryRows(
+        `
+          UPDATE waitlist_signup
+          SET full_name = $1,
+              company = $2,
+              use_case = $3,
+              metadata = $4::jsonb,
+              updated_at = $5
+          WHERE id = $6
+        `,
+        [
+          fullName ?? null,
+          company ?? null,
+          useCase ?? null,
+          JSON.stringify(metadata),
+          timestamp,
+          existingRecord.id,
+        ]
+      );
+    } catch (error) {
+      logError("waitlist.update_failed", {
+        error,
+        email: emailLower,
+        recordId: existingRecord.id,
+      });
       return withHeaders(
         NextResponse.json(
           { error: "Failed to update waitlist entry" },
@@ -243,25 +258,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const insertPayload: WaitlistSignupInsert = {
-    full_name: fullName ?? null,
-    email: emailLower,
-    company: company ?? null,
-    use_case: useCase ?? null,
-    metadata: metadataJson,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
+  let insertedRecord: { id: string } | undefined;
 
-  const waitlistInsert = supabase.from("waitlist_signups") as any;
+  try {
+    const insertedRows = await queryRows<QueryResultRow & { id: string }>(
+      `
+        INSERT INTO waitlist_signup (
+          id,
+          full_name,
+          email,
+          company,
+          use_case,
+          metadata,
+          created_at,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
+        RETURNING id
+      `,
+      [
+        generatePrefixedUlid("wl"),
+        fullName ?? null,
+        emailLower,
+        company ?? null,
+        useCase ?? null,
+        JSON.stringify(metadata),
+        timestamp,
+        timestamp,
+      ]
+    );
+    insertedRecord = insertedRows[0];
+  } catch (error) {
+    logError("waitlist.insert_failed", { error, email: emailLower });
+    return withHeaders(
+      NextResponse.json(
+        { error: "Failed to save waitlist entry" },
+        { status: 500 }
+      ),
+      ipRateHeaders
+    );
+  }
 
-  const { data: insertedRecord, error: insertError } = await waitlistInsert
-    .insert(insertPayload)
-    .select("id")
-    .single();
-
-  if (insertError || !insertedRecord) {
-    logError("waitlist.insert_failed", { error: insertError, email: emailLower });
+  if (!insertedRecord) {
+    logError("waitlist.insert_empty", { email: emailLower });
     return withHeaders(
       NextResponse.json(
         { error: "Failed to save waitlist entry" },
