@@ -74,6 +74,156 @@ describe("operator console repository", () => {
             updated_at: "2026-05-10T13:20:00.000Z",
             severity: "warning",
             next_action: "Open build detail",
+            field_values: {
+              etaAt: "2026-05-31T09:00:00.000Z",
+              qScore: 0.912,
+              costBudgetCents: 250000,
+              costUsedCents: 184000,
+            },
+          },
+          {
+            module_key: "suppliers",
+            record_type: "contract",
+            id: "ct_01J2CONTRACT",
+            title: "supplier contract",
+            state: "active",
+            detail: "s3://contracts/supplier-msa.pdf",
+            updated_at: "2026-05-10T13:19:30.000Z",
+            severity: "info",
+            next_action: "Review contract",
+            field_values: {
+              contractType: "supplier",
+              documentUri: "s3://contracts/supplier-msa.pdf",
+              signedAt: "2026-05-10T12:00:00.000Z",
+            },
+          },
+          {
+            module_key: "privacy",
+            record_type: "license_clause",
+            id: "lc_01J2LICENSE",
+            title: "License clause",
+            state: "active",
+            detail: "Training and eval only",
+            updated_at: "2026-05-10T13:19:00.000Z",
+            severity: "info",
+            next_action: "Review license clause",
+            field_values: {
+              permittedUses: "train, eval",
+              geo: "EU, WW",
+              exclusivity: "none",
+              shareAlike: false,
+            },
+          },
+          {
+            module_key: "buyers",
+            record_type: "delivery",
+            id: "dl_01J2DELIVERY",
+            title: "Delivery s3_share",
+            state: "sent",
+            detail: "dv_01J2VERSION",
+            updated_at: "2026-05-10T13:18:30.000Z",
+            severity: "info",
+            next_action: "Review delivery",
+            field_values: {
+              channel: "s3_share",
+              receiptHash: "sha256:abc123",
+              acceptanceWindowDays: 14,
+            },
+          },
+          {
+            module_key: "commercials",
+            record_type: "quote",
+            id: "qt_01J2QUOTE",
+            title: "Quote EUR 2500",
+            state: "draft",
+            detail: "Buyer opportunity",
+            updated_at: "2026-05-10T13:18:00.000Z",
+            severity: "warning",
+            next_action: "Review quote",
+            field_values: JSON.stringify({
+              amountCents: 250000,
+              currency: "EUR",
+            }),
+          },
+          {
+            module_key: "datasets",
+            record_type: "dataset_version",
+            id: "dv_01J2VERSION",
+            title: "Iberian retail receipts v2026.05",
+            state: "released",
+            detail: "1250000 records",
+            updated_at: "2026-05-10T13:17:00.000Z",
+            severity: "info",
+            next_action: "Review dataset version",
+            field_values: {
+              contentHash: "sha256:abc123",
+              recordCount: 1250000,
+              sizeBytes: 536870912,
+              qaScore: 0.944,
+            },
+          },
+          {
+            module_key: "privacy",
+            record_type: "dsar_request",
+            id: "ds_01J2DSAR",
+            title: "delete request",
+            state: "received",
+            detail: "SLA 24 May",
+            updated_at: "2026-05-10T13:16:00.000Z",
+            severity: "warning",
+            next_action: "Review DSAR",
+            field_values: {
+              requestType: "delete",
+              slaDays: 14,
+            },
+          },
+          {
+            module_key: "catalogue",
+            record_type: "catalogue_listing",
+            id: "cl_01J2LISTING",
+            title: "Retail receipt OCR dataset",
+            state: "active",
+            detail: "dt_01J2DATASET",
+            updated_at: "2026-05-10T13:15:00.000Z",
+            severity: "info",
+            next_action: "Review listing",
+            field_values: JSON.stringify({
+              priceCents: 990000,
+              currency: "USD",
+              billingModel: "pilot",
+            }),
+          },
+          {
+            module_key: "operations",
+            record_type: "run",
+            id: "rn_01J2RUN",
+            title: "dagster/run/receipts-v4",
+            state: "succeeded",
+            detail: "Retry 2",
+            updated_at: "2026-05-10T13:14:00.000Z",
+            severity: "info",
+            next_action: "Review run",
+            field_values: {
+              externalRunId: "dagster/run/receipts-v4",
+              retryCount: 2,
+              startedAt: "2026-05-10T12:00:00.000Z",
+              finishedAt: "2026-05-10T12:45:00.000Z",
+            },
+          },
+          {
+            module_key: "operations",
+            record_type: "cost_entry",
+            id: "ce_01J2COST",
+            title: "labeling_review cost",
+            state: "USD",
+            detail: "125",
+            updated_at: "2026-05-10T13:13:00.000Z",
+            severity: "info",
+            next_action: "Review cost entry",
+            field_values: {
+              amountCents: 12500,
+              metadataSummary: "Reviewer batch cost estimate.",
+            },
           },
         ];
       }
@@ -169,17 +319,113 @@ describe("operator console repository", () => {
         updatedAt: "2026-05-10T13:20:00.000Z",
         severity: "warning",
         nextAction: "Open build detail",
+        fields: {
+          etaAt: "2026-05-31T09:00:00.000Z",
+          qScore: "0.912",
+          costBudgetCents: "250000",
+          costUsedCents: "184000",
+        },
       },
     ]);
+    expect(snapshot.workItems.suppliers[0]).toMatchObject({
+      id: "ct_01J2CONTRACT",
+      recordType: "contract",
+      fields: {
+        contractType: "supplier",
+        documentUri: "s3://contracts/supplier-msa.pdf",
+      },
+    });
+    expect(
+      snapshot.workItems.privacy.find((item) => item.id === "lc_01J2LICENSE")
+    ).toMatchObject({
+      recordType: "license_clause",
+      fields: {
+        permittedUses: "train, eval",
+        geo: "EU, WW",
+        shareAlike: "false",
+      },
+    });
+    expect(snapshot.workItems.buyers[0]).toMatchObject({
+      id: "dl_01J2DELIVERY",
+      recordType: "delivery",
+      fields: {
+        channel: "s3_share",
+        receiptHash: "sha256:abc123",
+        acceptanceWindowDays: "14",
+      },
+    });
+    expect(snapshot.workItems.commercials[0]).toMatchObject({
+      id: "qt_01J2QUOTE",
+      recordType: "quote",
+      fields: {
+        amountCents: "250000",
+        currency: "EUR",
+      },
+    });
+    expect(snapshot.workItems.datasets[0]).toMatchObject({
+      id: "dv_01J2VERSION",
+      recordType: "dataset_version",
+      fields: {
+        contentHash: "sha256:abc123",
+        recordCount: "1250000",
+        sizeBytes: "536870912",
+        qaScore: "0.944",
+      },
+    });
+    expect(
+      snapshot.workItems.privacy.find((item) => item.id === "ds_01J2DSAR")
+    ).toMatchObject({
+      recordType: "dsar_request",
+      fields: {
+        requestType: "delete",
+        slaDays: "14",
+      },
+    });
+    expect(
+      snapshot.workItems.catalogue.find((item) => item.id === "cl_01J2LISTING")
+    ).toMatchObject({
+      recordType: "catalogue_listing",
+      fields: {
+        priceCents: "990000",
+        currency: "USD",
+        billingModel: "pilot",
+      },
+    });
+    expect(
+      snapshot.workItems.operations.find((item) => item.id === "rn_01J2RUN")
+    ).toMatchObject({
+      recordType: "run",
+      fields: {
+        externalRunId: "dagster/run/receipts-v4",
+        retryCount: "2",
+      },
+    });
+    expect(
+      snapshot.workItems.operations.find((item) => item.id === "ce_01J2COST")
+    ).toMatchObject({
+      recordType: "cost_entry",
+      fields: {
+        amountCents: "12500",
+        metadataSummary: "Reviewer batch cost estimate.",
+      },
+    });
     expect(snapshot.licensePreview.requestedUseAllowed).toBe(false);
     expect(query).toHaveBeenCalledTimes(6);
+
+    const workItemsSql = query.mock.calls.find(([sql]) =>
+      sql.includes("work_items")
+    )?.[0];
+    expect(workItemsSql).toContain("contractType");
+    expect(workItemsSql).toContain("permittedUses");
+    expect(workItemsSql).toContain("acceptanceWindowDays");
+    expect(workItemsSql).toContain("externalRunId");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
     const snapshot = await createFixtureOperatorConsoleRepository().getSnapshot();
 
     expect(snapshot.builds).toHaveLength(5);
-    expect(snapshot.modules).toHaveLength(13);
+    expect(snapshot.modules).toHaveLength(14);
     expect(snapshot.workItems.builds).toHaveLength(1);
   });
 

@@ -33,7 +33,6 @@ These are one-time platform changes that retire pre-pivot infrastructure. The bl
 - Migrate existing data: dump → transform → load; verify row counts and a sampled diff; preserve `created_at`/`updated_at`. Produce a written migration report at `docs/migrations/supabase-to-postgres.md`.
 - Replace Supabase Storage usage with DO Spaces via the S3 SDK directly.
 - Replace Supabase Realtime (if used) with `LISTEN`/`NOTIFY` plus a thin SSE gateway, or remove if unused.
-- **Decommission gate:** only after the new stack runs against the migrated DB for ≥48 hours of internal use, stop the Supabase containers, take one final encrypted backup to Spaces, then remove containers, images, volumes, `@supabase/*` dependencies, `SUPABASE_*` env vars, and the legacy `supabase/migrations/` directory.
 
 ### M-B · Replace Supabase Auth with Better Auth
 
@@ -122,6 +121,7 @@ Read the returned diff before applying it. Do not delegate trivial styling.
 - Run typecheck + lint + unit tests after every slice; do not move on with red CI.
 - If a tool / MCP / CLI is missing, install it, record it in `docs/TOOLS.md`, continue.
 - Keep docs concise, brief and short. Do not spend time and tokens writing extensive documentation.
+- You can skip the 48 hours of db use requisite we had previously set and migrate directly. When migrated, delete all Supabase containers, images, instances etc to clear disk space.
 
 ## Stop and Ask Only If
 
@@ -135,4 +135,3 @@ Otherwise proceed autonomously. Do not stop for routine implementation choices, 
 ## Out of Scope for This Goal
 
 Buyer workspace, supplier portal, public catalogue, public `/v1` REST surface, real Dagster/Temporal pipeline workers, lakeFS, Iceberg / Lance, GPU pool, SOC 2 controls implementation, HF mirror, Stripe live keys, real DSAR propagation engine, marketing-site rework. These come in later `/goal` sessions and depend on the operator console being load-bearing first.
-

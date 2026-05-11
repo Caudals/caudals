@@ -1,5 +1,7 @@
 import { OperatorConsole } from "@/components/admin/operator-console";
+import { getCurrentOperatorElevationStatus } from "@/lib/actions/operator-elevation-actions";
 import { getOperatorConsoleOverview } from "@/lib/actions/operator-console-actions";
+import { getOperatorSecurityRoster } from "@/lib/actions/operator-security-actions";
 import {
   isOperatorModuleKey,
   type OperatorModuleKey,
@@ -22,12 +24,18 @@ export default async function AdminDashboard({
   await requireAdmin();
   const params = await searchParams;
   const t = await getServerTranslator();
-  const overview = await getOperatorConsoleOverview();
+  const [overview, elevation, securityRoster] = await Promise.all([
+    getOperatorConsoleOverview(),
+    getCurrentOperatorElevationStatus(),
+    getOperatorSecurityRoster(),
+  ]);
   const activeModuleKey = resolveActiveModuleKey(params.module);
 
   return (
     <OperatorConsole
       activeModuleKey={activeModuleKey}
+      elevationStatus={"error" in elevation ? null : elevation.status}
+      securityRoster={"error" in securityRoster ? null : securityRoster.roster}
       snapshot={overview.data}
       t={t}
     />

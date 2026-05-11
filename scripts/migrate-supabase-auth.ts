@@ -32,13 +32,11 @@ const defaultAuthOrganizationId = deterministicPrefixedId(
 );
 
 function getSourceDatabaseUrl() {
-  const databaseUrl =
-    process.env.LEGACY_SUPABASE_DATABASE_URL ??
-    process.env.SUPABASE_DATABASE_URL;
+  const databaseUrl = process.env.LEGACY_SUPABASE_DATABASE_URL;
 
   if (!databaseUrl) {
     throw new Error(
-      "LEGACY_SUPABASE_DATABASE_URL or SUPABASE_DATABASE_URL is required"
+      "LEGACY_SUPABASE_DATABASE_URL is required for the legacy source database"
     );
   }
 

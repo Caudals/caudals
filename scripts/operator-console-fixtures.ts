@@ -1009,7 +1009,7 @@ async function seedOperatorElevation(client: PoolClient) {
 }
 
 async function seedAudit(client: PoolClient) {
-  const auditEvents = [
+  const baseAuditEvents = [
     [fixtureId("ae", 1), "build", fixtureBuilds[0].id, "state_transition", { from_state: "labeling", to_state: "qa" }],
     [fixtureId("ae", 2), "license_clause", ids.licenseClause, "license_review", { verdict: "approved" }],
     [fixtureId("ae", 3), "dataset_version", ids.datasetVersion, "delivery_signed", { signer: ids.signingKey }],
@@ -1017,6 +1017,20 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 5), "payout", ids.payout, "payout_hold_review", { reason: "fixture commercial control" }],
     [fixtureId("ae", 6), "operator_elevation", ids.operatorElevation, "operator_elevation.granted", { scope: "production_db", reason: "fixture JIT elevation" }],
   ] as const;
+  const buildAuditEvents = fixtureBuilds.map((build, index) => [
+    fixtureId("ae", 100 + index),
+    "build",
+    build.id,
+    "build_gate_summary",
+    {
+      gates: gateKeys.map((gate, gateIndex) => ({
+        gate,
+        verdict: build.gates[gateIndex],
+      })),
+      state: build.state,
+    },
+  ] as const);
+  const auditEvents = [...baseAuditEvents, ...buildAuditEvents];
 
   for (const [index, event] of auditEvents.entries()) {
     await query(
