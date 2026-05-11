@@ -48,8 +48,8 @@ Legacy Supabase containers, images, volumes, network, and host filesystem tree h
 
 If Docker registry access is unavailable, restore the current deployed app image
 from the local archive before rescheduling the app service:
-- `sha256sum -c /root/.caudals/backups/caudals-image-phase1-c648ef9-20260511T121804Z.tar.gz.sha256`
-- `gunzip -c /root/.caudals/backups/caudals-image-phase1-c648ef9-20260511T121804Z.tar.gz | docker load`
+- `sha256sum -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz.sha256`
+- `gunzip -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz | docker load`
 
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
