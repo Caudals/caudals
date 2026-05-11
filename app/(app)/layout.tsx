@@ -5,7 +5,7 @@ import { buildNoIndexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoIndexMetadata(
   "Caudals app",
-  "Authenticated workspace for requester, contributor, admin, and PWA surfaces."
+  "Authenticated workspace for internal and migration-only app surfaces."
 );
 
 export default function AppLayout({ children }: { children: ReactNode }) {

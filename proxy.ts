@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { isBetterAuthSessionCookieName } from "@/lib/auth/session-cookie";
 import {
   isLandingModeEnabledServer,
   isLandingModeRequestAllowed,
 } from "@/lib/landing-mode";
+import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
@@ -15,7 +16,6 @@ import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
 const APP_ONLY_PATH_PREFIXES = [
-  "/dashboard",
   "/requester",
   "/contributor",
   "/admin",
@@ -24,6 +24,7 @@ const APP_ONLY_PATH_PREFIXES = [
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
+const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
 
 type HostConfig = {
   hostname: string;
@@ -94,6 +95,22 @@ function matchesAppOnlyPath(pathname: string): boolean {
 
 function isRedirectResponse(response: NextResponse) {
   return response.status >= 300 && response.status < 400;
+}
+
+function hasBetterAuthSessionCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => isBetterAuthSessionCookieName(cookie.name));
+}
+
+function redirectAnonymousAdminRequest(request: NextRequest) {
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = "/auth/sign-in";
+  redirectUrl.searchParams.set(
+    "next",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`
+  );
+  return NextResponse.redirect(redirectUrl);
 }
 
 function rewriteWithState(
@@ -175,6 +192,19 @@ export async function proxy(request: NextRequest) {
     });
   }
 
+  if (shouldBlockPhaseOneHiddenSurface(pathname)) {
+    return new NextResponse("Not Found", {
+      status: 404,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+    });
+  }
+
+  if (ADMIN_ROOT_PATHS.has(pathname) && !hasBetterAuthSessionCookie(request)) {
+    return redirectAnonymousAdminRequest(request);
+  }
+
   if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.hostname = primaryAppHost.hostname;
@@ -182,12 +212,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const treatAppRootAsDashboard = !landingMode && isAppHost && pathname === "/";
+  const treatAppRootAsAdmin = !landingMode && isAppHost && pathname === "/";
 
-  const response = await updateSession(
-    request,
-    treatAppRootAsDashboard ? { pathnameOverride: "/dashboard" } : undefined
-  );
+  const response = NextResponse.next({ request });
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
   
   // Get country code and language header
@@ -240,8 +267,8 @@ export async function proxy(request: NextRequest) {
     console.log(`[i18n] Cookie set to: ${localeToSet}`);
   }
 
-  if (treatAppRootAsDashboard && !isRedirectResponse(response)) {
-    return rewriteWithState(request, response, "/dashboard");
+  if (treatAppRootAsAdmin && !isRedirectResponse(response)) {
+    return rewriteWithState(request, response, "/admin");
   }
 
   return response;

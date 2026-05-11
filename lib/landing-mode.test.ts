@@ -19,11 +19,19 @@ describe("landing mode route allowlist", () => {
     ).toBe(true);
   });
 
+  it("keeps the private admin auth surface reachable", () => {
+    expect(isLandingModePagePathAllowed("/admin")).toBe(true);
+    expect(isLandingModePagePathAllowed("/auth/sign-in")).toBe(true);
+    expect(isLandingModePagePathAllowed("/auth/security")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/auth/sign-in/email")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/auth/session")).toBe(true);
+  });
+
   it("blocks non-public pages", () => {
     expect(isLandingModePagePathAllowed("/pricing")).toBe(false);
     expect(isLandingModePagePathAllowed("/collaborate")).toBe(false);
-    expect(isLandingModePagePathAllowed("/auth/sign-in")).toBe(false);
     expect(isLandingModePagePathAllowed("/requester")).toBe(false);
+    expect(isLandingModePagePathAllowed("/admin/requests")).toBe(false);
   });
 
   it("allows only explicit public APIs", () => {
@@ -31,6 +39,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeApiPathAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/analytics/track")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/collaborations")).toBe(false);
+    expect(isLandingModeApiPathAllowed("/api/trpc/health")).toBe(false);
     expect(isLandingModeApiPathAllowed("/api/upload")).toBe(false);
   });
 
@@ -49,7 +58,10 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
-    expect(isLandingModeRequestAllowed("/auth/sign-up")).toBe(false);
-    expect(isLandingModeRequestAllowed("/api/internal/export-jobs")).toBe(false);
+    expect(isLandingModeRequestAllowed("/admin")).toBe(true);
+    expect(isLandingModeRequestAllowed("/auth/sign-in")).toBe(true);
+    expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);
+    expect(isLandingModeRequestAllowed("/api/internal/jobs")).toBe(false);
+    expect(isLandingModeRequestAllowed("/api/trpc/health")).toBe(false);
   });
 });

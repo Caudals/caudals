@@ -58,13 +58,8 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                 </h4>
                 <ul className="space-y-2 text-sm text-slate-500">
                   <li>
-                    <Link href="/browse" className="hover:text-foreground">
-                      {t("Browse requests")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/requester" className="hover:text-foreground">
-                      {t("Dashboard")}
+                    <Link href="/contact" className="hover:text-foreground">
+                      {t("Contact")}
                     </Link>
                   </li>
                   <li>

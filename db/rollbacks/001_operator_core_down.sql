@@ -1,0 +1,43 @@
+-- Rollback for db/migrations/001_operator_core.sql.
+-- Drops only the Phase 1 operator-core objects introduced by that migration.
+
+DROP TABLE IF EXISTS audit_event_2026_q2 CASCADE;
+DROP TABLE IF EXISTS audit_event CASCADE;
+DROP TABLE IF EXISTS signing_key CASCADE;
+DROP TABLE IF EXISTS integration CASCADE;
+DROP TABLE IF EXISTS alert CASCADE;
+DROP TABLE IF EXISTS cost_entry CASCADE;
+DROP TABLE IF EXISTS payout CASCADE;
+DROP TABLE IF EXISTS invoice CASCADE;
+DROP TABLE IF EXISTS delivery CASCADE;
+DROP TABLE IF EXISTS quote CASCADE;
+DROP TABLE IF EXISTS private_offer CASCADE;
+DROP TABLE IF EXISTS catalogue_listing CASCADE;
+DROP TABLE IF EXISTS pii_map CASCADE;
+DROP TABLE IF EXISTS lineage_event CASCADE;
+DROP TABLE IF EXISTS dataset_version CASCADE;
+DROP TABLE IF EXISTS dataset CASCADE;
+DROP TABLE IF EXISTS qa_report CASCADE;
+DROP TABLE IF EXISTS label_batch CASCADE;
+DROP TABLE IF EXISTS gate_event CASCADE;
+DROP TABLE IF EXISTS run CASCADE;
+DROP TABLE IF EXISTS build_plan CASCADE;
+DROP TABLE IF EXISTS build CASCADE;
+DROP TABLE IF EXISTS dsar_request CASCADE;
+DROP TABLE IF EXISTS consent_record CASCADE;
+DROP TABLE IF EXISTS license_clause CASCADE;
+DROP TABLE IF EXISTS dataset_brief CASCADE;
+DROP TABLE IF EXISTS supplier_asset CASCADE;
+DROP TABLE IF EXISTS contract CASCADE;
+DROP TABLE IF EXISTS supplier_opportunity CASCADE;
+DROP TABLE IF EXISTS buyer_opportunity CASCADE;
+DROP TABLE IF EXISTS contact CASCADE;
+DROP TABLE IF EXISTS "operator" CASCADE;
+DROP TABLE IF EXISTS organization CASCADE;
+
+DROP FUNCTION IF EXISTS app_private.assert_ulid_prefixed(text, text);
+DROP FUNCTION IF EXISTS app_private.touch_updated_at();
+DROP FUNCTION IF EXISTS app_private.is_service_role();
+DROP FUNCTION IF EXISTS app_private.current_org_id();
+DROP FUNCTION IF EXISTS app_private.current_operator_id();
+DROP SCHEMA IF EXISTS app_private;

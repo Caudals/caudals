@@ -3,7 +3,6 @@
 import {
   User,
   Settings,
-  CreditCard,
   LogOut,
   Moon,
   Sun,
@@ -13,7 +12,9 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import { useAuth } from "@/lib/auth/provider";
+import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { resolveSettingsHref } from "@/lib/navigation/role-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,6 +32,7 @@ import {
 export function UserMenu() {
   const { user, userRole } = useAuth();
   const t = useTranslations();
+  const toast = useLocaleToast();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -40,9 +42,23 @@ export function UserMenu() {
     .join("")
     .toUpperCase() || "U";
 
-  const billingHref =
-    userRole === "requester" ? "/requester/billing" : "/contributor/earnings";
   const settingsHref = resolveSettingsHref(pathname, userRole);
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await betterAuthClient.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(t("Signed out successfully"));
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error(t("Failed to sign out"));
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -50,7 +66,7 @@ export function UserMenu() {
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={user?.user_metadata?.avatar_url}
+              src={user?.user_metadata?.avatar_url ?? undefined}
               alt={user?.email || "User"}
             />
             <AvatarFallback>{userInitials}</AvatarFallback>
@@ -78,14 +94,6 @@ export function UserMenu() {
             <Settings className="mr-2 h-4 w-4" />
             <span>{t("Settings")}</span>
           </DropdownMenuItem>
-          {userRole !== "admin" && (
-            <DropdownMenuItem onClick={() => router.push(billingHref)}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>
-                {userRole === "requester" ? t("Billing") : t("Earnings")}
-              </span>
-            </DropdownMenuItem>
-          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
@@ -114,7 +122,7 @@ export function UserMenu() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/auth/sign-out")}>
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>{t("Sign Out")}</span>
         </DropdownMenuItem>

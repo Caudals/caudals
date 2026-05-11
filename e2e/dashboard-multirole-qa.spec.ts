@@ -1,36 +1,19 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { signInAsFixtureOperator } from "./helpers/auth";
 
 const AUTH_E2E_ENABLED = process.env.PLAYWRIGHT_AUTH_E2E === "true";
-const FIXTURE_PASSWORD = process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
-
-async function signIn(page: Page, email: string) {
-  await page.goto("/auth/sign-in");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(FIXTURE_PASSWORD);
-  await page.getByRole("button", { name: /sign in|iniciar sesión/i }).click();
-
-  await expect
-    .poll(
-      async () => {
-        const cookies = await page.context().cookies();
-        return cookies.some((cookie) => cookie.name.includes("-auth-token"));
-      },
-      {
-        timeout: 15_000,
-        message: `Expected Supabase auth cookie after signing in as ${email}`,
-      }
-    )
-    .toBe(true);
-}
 
 test.describe("dashboard access failure states", () => {
-  test("unauthenticated users are redirected from role dashboards", async ({ page }) => {
-    const protectedRoutes = ["/requester", "/contributor", "/admin"];
+  test("unauthenticated users are redirected from the admin dashboard", async ({ page }) => {
+    const protectedRoutes = ["/admin"];
 
     for (const route of protectedRoutes) {
       await page.goto(route);
       await expect(page).toHaveURL(/\/auth\/sign-in/);
     }
+
+    const requesterResponse = await page.goto("/requester");
+    expect(requesterResponse?.status()).toBe(404);
   });
 });
 
@@ -44,22 +27,10 @@ test.describe("multi-role dashboard QA pass", () => {
 
   const roles = [
     {
-      name: "requester",
-      email: "fixture.requester@caudals.local",
-      route: "/requester",
-      heading: /control center|centro de control|requester workspace|espacio de solicitante/i,
-    },
-    {
-      name: "contributor",
-      email: "fixture.contributor@caudals.local",
-      route: "/contributor",
-      heading: /contributor dashboard|panel de colaborador/i,
-    },
-    {
       name: "admin",
       email: "fixture.admin@caudals.local",
       route: "/admin",
-      heading: /admin dashboard|panel de administración|good .*admin/i,
+      heading: /operator console/i,
     },
   ];
 
@@ -74,7 +45,7 @@ test.describe("multi-role dashboard QA pass", () => {
     test(`${role.name} dashboard renders across locales and breakpoints without overflow`, async ({
       page,
     }) => {
-      await signIn(page, role.email);
+      await signInAsFixtureOperator(page, role.email);
 
       for (const locale of locales) {
         await page.goto(role.route);

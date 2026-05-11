@@ -1,10 +1,16 @@
 const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set(["/", "/contact", "/blog"]);
 const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
+const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
+  "/admin",
+  "/auth",
+]);
+const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = ["/auth/"];
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
   "/api/waitlist",
 ]);
+const LANDING_MODE_ALLOWED_API_PREFIXES = ["/api/auth/"];
 const SITE_VERIFICATION_HTML_PATTERN = /^\/google[a-z0-9]+\.html$/i;
 const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
@@ -34,7 +40,14 @@ export function isLandingModeEnabledServer() {
 }
 
 export function isLandingModeApiPathAllowed(pathname: string) {
-  return LANDING_MODE_ALLOWED_API_PATHS.has(normalizePathname(pathname));
+  const normalizedPathname = normalizePathname(pathname);
+
+  return (
+    LANDING_MODE_ALLOWED_API_PATHS.has(normalizedPathname) ||
+    LANDING_MODE_ALLOWED_API_PREFIXES.some((prefix) =>
+      normalizedPathname.startsWith(prefix)
+    )
+  );
 }
 
 export function isLandingModeStaticAssetPath(pathname: string) {
@@ -52,7 +65,11 @@ export function isLandingModePagePathAllowed(pathname: string) {
 
   return (
     LANDING_MODE_ALLOWED_PAGE_PATHS.has(normalizedPathname) ||
+    LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS.has(normalizedPathname) ||
     LANDING_MODE_ALLOWED_PAGE_PREFIXES.some((prefix) =>
+      normalizedPathname.startsWith(prefix)
+    ) ||
+    LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES.some((prefix) =>
       normalizedPathname.startsWith(prefix)
     ) ||
     isLandingModeStaticAssetPath(normalizedPathname)

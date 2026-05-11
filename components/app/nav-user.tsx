@@ -15,8 +15,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import { useAuth } from "@/lib/auth/provider";
-import { createClient } from "@/lib/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
@@ -27,7 +27,6 @@ export function NavUser() {
   const { user, userRole } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
   const toast = useLocaleToast();
   const t = useTranslations();
 
@@ -50,7 +49,12 @@ export function NavUser() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await betterAuthClient.signOut();
+
+      if (error) {
+        throw error;
+      }
+
       toast.success(t("Signed out successfully"));
       router.push("/");
       router.refresh();
@@ -72,7 +76,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={user.user_metadata?.avatar_url}
+                  src={user.user_metadata?.avatar_url ?? undefined}
                   alt={displayName}
                 />
                 <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
@@ -98,7 +102,7 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={user.user_metadata?.avatar_url}
+                    src={user.user_metadata?.avatar_url ?? undefined}
                     alt={displayName}
                   />
                   <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">

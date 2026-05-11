@@ -5,34 +5,34 @@ test.describe("core role smoke", () => {
     await page.goto("/");
     await expect(page.locator("main h1").first()).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /start a project|iniciar un proyecto/i })
+      page.getByRole("button", { name: /request access|solicitar acceso/i })
     ).toBeVisible();
   });
 
   test("auth sign-in loads", async ({ page }) => {
     await page.goto("/auth/sign-in");
+
     await expect(page.locator("form")).toBeVisible();
     await expect(
       page.getByRole("button", { name: /sign in|iniciar sesión/i })
     ).toBeVisible();
   });
 
-  test("requester route redirects anonymous users to sign-in", async ({
-    page,
-  }) => {
-    await page.goto("/requester");
-    await expect(page).toHaveURL(/\/auth\/sign-in/);
-  });
+  test("pre-pivot self-serve routes are removed", async ({ page }) => {
+    const routes = ["/requester", "/browse", "/contributor", "/dashboard", "/pwa"];
 
-  test("contributor route redirects anonymous users to sign-in", async ({
-    page,
-  }) => {
-    await page.goto("/contributor");
-    await expect(page).toHaveURL(/\/auth\/sign-in/);
+    for (const route of routes) {
+      const response = await page.goto(route);
+      expect(response?.status()).toBe(404);
+    }
+
+    const response = await page.goto("/admin/requests");
+    expect(response?.status()).toBe(404);
   });
 
   test("admin route redirects anonymous users to sign-in", async ({ page }) => {
     await page.goto("/admin");
+
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });
 });

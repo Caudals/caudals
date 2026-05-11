@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createAdminClient } from "@/lib/supabase/admin";
-import type { Json } from "@/types/database";
+import { generatePrefixedUlid } from "@/lib/db/ids";
+import { queryRows } from "@/lib/db/client";
 import type {
   FunnelEventName,
   FunnelEventPayload,
@@ -77,7 +77,7 @@ function isMissingAnalyticsTableError(error: unknown) {
     return false;
   }
   const code = String((error as { code?: string }).code ?? "");
-  return code === "42P01" || code === "PGRST205";
+  return code === "42P01";
 }
 
 function isAnalyticsIngestTemporarilyDisabled() {
@@ -92,37 +92,39 @@ export async function recordProductEvent(input: RecordProductEventInput) {
     return { skipped: true };
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { error: "Analytics disabled: missing Supabase admin credentials." };
-  }
-
-  let adminClient: any;
-  try {
-    adminClient = createAdminClient("analytics_ingest");
-  } catch (error) {
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Analytics disabled: could not initialize admin client.",
-    };
-  }
-
   const metadata = sanitizePayload(input.payload);
 
-  const { error } = await adminClient.from("product_analytics_events").insert({
-    event_name: input.eventName,
-    event_category: resolveEventCategory(input.eventName),
-    user_id: input.userId ?? null,
-    user_role: input.userRole ?? null,
-    session_id: input.sessionId ?? null,
-    path: input.path ?? null,
-    source: input.source,
-    metadata: metadata as Json,
-    occurred_at: new Date().toISOString(),
-  });
-
-  if (error) {
+  try {
+    await queryRows(
+      `
+        INSERT INTO product_analytics_event (
+          id,
+          event_name,
+          event_category,
+          user_id,
+          user_role,
+          session_id,
+          path,
+          source,
+          metadata,
+          occurred_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
+      `,
+      [
+        generatePrefixedUlid("pa"),
+        input.eventName,
+        resolveEventCategory(input.eventName),
+        input.userId ?? null,
+        input.userRole ?? null,
+        input.sessionId ?? null,
+        input.path ?? null,
+        input.source,
+        JSON.stringify(metadata),
+        new Date().toISOString(),
+      ]
+    );
+  } catch (error) {
     if (isMissingAnalyticsTableError(error)) {
       globalThis.__caudalsAnalyticsIngestDisabledUntilMs =
         Date.now() + 10 * 60 * 1000;
@@ -132,14 +134,22 @@ export async function recordProductEvent(input: RecordProductEventInput) {
           error,
         });
       }
-      return { skipped: true, error: error.message };
+      return {
+        skipped: true,
+        error: error instanceof Error ? error.message : "analytics table missing",
+      };
     }
 
     logError("analytics.record_funnel_event_failed", {
       event: input.eventName,
       error,
     });
-    return { error: error.message };
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to record analytics event",
+    };
   }
 
   return { ok: true };

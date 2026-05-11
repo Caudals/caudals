@@ -1,18 +1,7 @@
 /** @type {import('next').NextConfig} */
-const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-  : null;
-
-const imageDomains = ["images.unsplash.com"];
 const remotePatterns = [
   { protocol: "https", hostname: "images.unsplash.com" },
-  { protocol: "https", hostname: "*.supabase.co" },
 ];
-
-if (supabaseHostname && !imageDomains.includes(supabaseHostname)) {
-  imageDomains.push(supabaseHostname);
-  remotePatterns.push({ protocol: "https", hostname: supabaseHostname });
-}
 
 const isDev = process.env.NODE_ENV !== "production";
 const landingModePublicFlag =
