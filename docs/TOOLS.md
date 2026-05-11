@@ -108,6 +108,10 @@ Current scaffold:
   release gates that must fail until all required factors are enrolled, and
   `-- --show-emails` only when an admin explicitly needs the pending address
   list.
+- Password-reset links default to 30 minutes. Set
+  `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` to a value from `300` to
+  `86400` seconds when coordinating migrated operator enrollment needs a longer
+  reset window.
 - Legacy account migration: `npm run migrate:supabase-auth -- --apply`
 
 Install caveat:
@@ -214,6 +218,7 @@ Operational env controls:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
+- `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
