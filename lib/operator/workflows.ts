@@ -9,7 +9,8 @@ export type WorkflowName =
   | "dsar"
   | "sample_preview_access"
   | "modality_contract"
-  | "enrichment_manifest";
+  | "enrichment_manifest"
+  | "active_learning_loop";
 
 export type WorkflowTransition = {
   from: string;
@@ -58,6 +59,7 @@ export const workflowRecordTypeMap = {
   sample_preview_access: "sample_preview_access",
   modality_contract: "modality_contract",
   enrichment_manifest: "enrichment_manifest",
+  active_learning_loop: "active_learning_loop",
 } as const satisfies Record<string, WorkflowName>;
 
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
@@ -299,6 +301,19 @@ export const workflowDefinitions = {
       { from: "review", to: "approved" },
       { from: "review", to: "blocked" },
       { from: "approved", to: "superseded" },
+      { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  active_learning_loop: {
+    name: "active_learning_loop",
+    states: ["draft", "sampling", "review", "queued", "closed", "blocked"],
+    terminalStates: ["closed", "blocked"],
+    transitions: [
+      { from: "draft", to: "sampling" },
+      { from: "sampling", to: "review" },
+      { from: "review", to: "queued" },
+      { from: "review", to: "blocked" },
+      { from: "queued", to: "closed" },
       { from: "blocked", to: "draft", label: "rework" },
     ],
   },

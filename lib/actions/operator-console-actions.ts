@@ -29,6 +29,7 @@ const workflowNameSchema = z.enum([
   "sample_preview_access",
   "modality_contract",
   "enrichment_manifest",
+  "active_learning_loop",
 ]);
 
 const transitionSchema = z.object({

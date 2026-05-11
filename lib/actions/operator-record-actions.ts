@@ -11,6 +11,10 @@ import {
 } from "@/lib/operator/console-snapshot";
 import { createPrefixedId } from "@/lib/operator/ids";
 import {
+  isActiveLearningLoopEnabled,
+  validateActiveLearningLoopEvidence,
+} from "@/lib/operator/active-learning";
+import {
   isModalityContractsEnabled,
   validateEnrichmentManifest,
 } from "@/lib/operator/modality-contracts";
@@ -118,6 +122,11 @@ const mutableTables = {
     softDelete: true,
   },
   label_batch: { table: "label_batch", prefix: "lb", softDelete: true },
+  active_learning_loop: {
+    table: "active_learning_loop",
+    prefix: "ll",
+    softDelete: true,
+  },
   dsar_request: { table: "dsar_request", prefix: "ds", softDelete: true },
   pii_map: { table: "pii_map", prefix: "pm", softDelete: true },
   catalogue_listing: {
@@ -309,6 +318,41 @@ function validateM2RecordEvidence(
           `Enrichment manifest is missing approval evidence: ${validation.missing.join(", ")}.`
         );
       }
+    }
+  }
+
+  if (recordType === "active_learning_loop") {
+    if (!isActiveLearningLoopEnabled()) {
+      return actionError(
+        "CONFLICT",
+        "M2 active-learning controls are disabled by ACTIVE_LEARNING_LOOP_ENABLED."
+      );
+    }
+
+    const validation = validateActiveLearningLoopEvidence(
+      {
+        strategy: fields.strategy ?? "",
+        candidateSourceUri: fields.candidateSourceUri,
+        embeddingIndexUri: fields.embeddingIndexUri,
+        modelSnapshotUri: fields.modelSnapshotUri,
+        uncertaintyMetric: fields.uncertaintyMetric,
+        diversityMetric: fields.diversityMetric,
+        boundaryMetric: fields.boundaryMetric,
+        targetSampleSize: fields.targetSampleSize
+          ? Number(fields.targetSampleSize)
+          : null,
+        selectedCount: fields.selectedCount ? Number(fields.selectedCount) : null,
+        selectionManifestUri: fields.selectionManifestUri,
+        reviewerRouting: fields.reviewerRouting,
+      },
+      state
+    );
+
+    if (!validation.ok) {
+      return actionError(
+        "VALIDATION_ERROR",
+        `Active-learning loop is missing routing evidence: ${validation.missing.join(", ")}.`
+      );
     }
   }
 
@@ -1136,6 +1180,59 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    active_learning_loop: `
+      WITH target_build AS (
+        SELECT id
+        FROM build
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_label_batch AS (
+        SELECT id
+        FROM label_batch
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO active_learning_loop (
+          id, org_id, build_id, label_batch_id, strategy, state,
+          candidate_source_uri, embedding_index_uri, model_snapshot_uri,
+          uncertainty_metric, diversity_metric, boundary_metric,
+          target_sample_size, selected_count, selection_manifest_uri,
+          selection_summary, reviewer_routing, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_build.id,
+          (SELECT id FROM target_label_batch),
+          COALESCE(NULLIF($11::jsonb ->> 'strategy', ''), 'hybrid_uncertainty_diversity'),
+          $4,
+          COALESCE(NULLIF($11::jsonb ->> 'candidateSourceUri', ''), $9),
+          NULLIF($11::jsonb ->> 'embeddingIndexUri', ''),
+          NULLIF($11::jsonb ->> 'modelSnapshotUri', ''),
+          COALESCE(NULLIF($11::jsonb ->> 'uncertaintyMetric', ''), 'entropy'),
+          COALESCE(NULLIF($11::jsonb ->> 'diversityMetric', ''), 'embedding_distance'),
+          COALESCE(NULLIF($11::jsonb ->> 'boundaryMetric', ''), 'margin'),
+          COALESCE(NULLIF($11::jsonb ->> 'targetSampleSize', '')::integer, 1),
+          COALESCE(NULLIF($11::jsonb ->> 'selectedCount', '')::integer, 0),
+          NULLIF($11::jsonb ->> 'selectionManifestUri', ''),
+          jsonb_strip_nulls(jsonb_build_object(
+            'summary', NULLIF($9, ''),
+            'strategy', NULLIF($11::jsonb ->> 'strategy', '')
+          )),
+          jsonb_strip_nulls(jsonb_build_object(
+            'policy', NULLIF($11::jsonb ->> 'reviewerRouting', '')
+          )),
+          $6
+        FROM target_build
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     dsar_request: `
       WITH inserted AS (
         INSERT INTO dsar_request (id, org_id, subject_ref, request_type, state, sla_due_at, created_by)
@@ -1533,6 +1630,8 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "enrichment_class = COALESCE(NULLIF($10::jsonb ->> 'enrichmentClass', ''), enrichment_class), added_columns = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'addedColumns', ''), ''), ',') AS value WHERE trim(value) <> ''), added_columns), sources = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'sources', ''), ''), ',') AS value WHERE trim(value) <> ''), sources), source_license = COALESCE(NULLIF($10::jsonb ->> 'sourceLicense', ''), source_license), source_version = COALESCE(NULLIF($10::jsonb ->> 'sourceVersion', ''), source_version), computation_method = COALESCE(NULLIF($10::jsonb ->> 'computationMethod', ''), NULLIF($8, ''), computation_method), model_identity_hash = COALESCE(NULLIF($10::jsonb ->> 'modelIdentityHash', ''), model_identity_hash), prompt_template_version = COALESCE(NULLIF($10::jsonb ->> 'promptTemplateVersion', ''), prompt_template_version), reproducer_uri = COALESCE(NULLIF($10::jsonb ->> 'reproducerUri', ''), reproducer_uri), spot_check_rate = COALESCE(NULLIF($10::jsonb ->> 'spotCheckRate', '')::numeric, spot_check_rate), independence_passed = COALESCE(NULLIF($10::jsonb ->> 'independencePassed', '')::boolean, independence_passed), license_compatible = COALESCE(NULLIF($10::jsonb ->> 'licenseCompatible', '')::boolean, license_compatible), state = $4";
     case "label_batch":
       return "state = $4, queue_depth = COALESCE(NULLIF($10::jsonb ->> 'queueDepth', '')::integer, queue_depth), agreement_score = COALESCE(NULLIF($10::jsonb ->> 'agreementScore', '')::numeric, agreement_score)";
+    case "active_learning_loop":
+      return "strategy = COALESCE(NULLIF($10::jsonb ->> 'strategy', ''), strategy), state = $4, candidate_source_uri = COALESCE(NULLIF($10::jsonb ->> 'candidateSourceUri', ''), NULLIF($8, ''), candidate_source_uri), embedding_index_uri = COALESCE(NULLIF($10::jsonb ->> 'embeddingIndexUri', ''), embedding_index_uri), model_snapshot_uri = COALESCE(NULLIF($10::jsonb ->> 'modelSnapshotUri', ''), model_snapshot_uri), uncertainty_metric = COALESCE(NULLIF($10::jsonb ->> 'uncertaintyMetric', ''), uncertainty_metric), diversity_metric = COALESCE(NULLIF($10::jsonb ->> 'diversityMetric', ''), diversity_metric), boundary_metric = COALESCE(NULLIF($10::jsonb ->> 'boundaryMetric', ''), boundary_metric), target_sample_size = COALESCE(NULLIF($10::jsonb ->> 'targetSampleSize', '')::integer, target_sample_size), selected_count = COALESCE(NULLIF($10::jsonb ->> 'selectedCount', '')::integer, selected_count), selection_manifest_uri = COALESCE(NULLIF($10::jsonb ->> 'selectionManifestUri', ''), selection_manifest_uri), selection_summary = selection_summary || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'strategy', NULLIF($10::jsonb ->> 'strategy', ''))), reviewer_routing = reviewer_routing || jsonb_strip_nulls(jsonb_build_object('policy', NULLIF($10::jsonb ->> 'reviewerRouting', '')))";
     case "dsar_request":
       return "subject_ref = $3, request_type = COALESCE(NULLIF($10::jsonb ->> 'requestType', ''), request_type), sla_due_at = CASE WHEN NULLIF($10::jsonb ->> 'slaDays', '') IS NULL THEN sla_due_at ELSE now() + make_interval(days => NULLIF($10::jsonb ->> 'slaDays', '')::integer) END, state = $4";
     case "pii_map":

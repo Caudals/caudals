@@ -11,6 +11,7 @@ import {
 describe("operator workflow state machines", () => {
   it("defines every deployed state machine from the blueprint", () => {
     expect(Object.keys(workflowDefinitions).sort()).toEqual([
+      "active_learning_loop",
       "build",
       "buyer_opportunity",
       "contract",
@@ -100,6 +101,9 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("enrichment_manifest")).toBe(
       "enrichment_manifest"
     );
+    expect(getWorkflowNameForRecordType("active_learning_loop")).toBe(
+      "active_learning_loop"
+    );
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
   });
 
@@ -119,6 +123,10 @@ describe("operator workflow state machines", () => {
     ]);
     expect(getNextWorkflowTransitions("enrichment_manifest", "blocked")).toEqual([
       { from: "blocked", to: "draft", label: "rework" },
+    ]);
+    expect(getNextWorkflowTransitions("active_learning_loop", "review")).toEqual([
+      { from: "review", to: "queued" },
+      { from: "review", to: "blocked" },
     ]);
   });
 });

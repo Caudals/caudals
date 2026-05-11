@@ -196,6 +196,25 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "labeling",
+            record_type: "active_learning_loop",
+            id: "ll_01J2ACTIVE",
+            title: "Crop imagery active loop",
+            state: "review",
+            detail: "hybrid_uncertainty_diversity / selected 96/128",
+            updated_at: "2026-05-10T13:16:05.000Z",
+            severity: "warning",
+            next_action: "Review active-learning loop",
+            field_values: {
+              strategy: "hybrid_uncertainty_diversity",
+              candidateSourceUri: "s3://silver/candidates/crop-v1.jsonl",
+              embeddingIndexUri: "s3://indexes/lightly/crop-v1.lance",
+              targetSampleSize: 128,
+              selectedCount: 96,
+              reviewerRouting: "cv_specialists:priority_high",
+            },
+          },
+          {
             module_key: "privacy",
             record_type: "dsar_request",
             id: "ds_01J2DSAR",
@@ -427,6 +446,17 @@ describe("operator console repository", () => {
       },
     });
     expect(
+      snapshot.workItems.labeling.find((item) => item.id === "ll_01J2ACTIVE")
+    ).toMatchObject({
+      recordType: "active_learning_loop",
+      fields: {
+        strategy: "hybrid_uncertainty_diversity",
+        targetSampleSize: "128",
+        selectedCount: "96",
+        reviewerRouting: "cv_specialists:priority_high",
+      },
+    });
+    expect(
       snapshot.workItems.privacy.find((item) => item.id === "ds_01J2DSAR")
     ).toMatchObject({
       recordType: "dsar_request",
@@ -475,6 +505,7 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("externalRunId");
     expect(workItemsSql).toContain("modality_contract");
     expect(workItemsSql).toContain("enrichment_manifest");
+    expect(workItemsSql).toContain("active_learning_loop");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
@@ -600,5 +631,50 @@ describe("operator console repository", () => {
           "delivery/dl_01J2SHIP was not in expected state downloaded",
       });
     }
+  });
+
+  it("guards active-learning queue transitions on selected routing evidence", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "active_learning_loop"');
+      expect(sql).toContain("selected_count > 0");
+      expect(sql).toContain("selection_manifest_uri");
+      expect(sql).toContain("reviewer_routing ? 'policy'");
+
+      return [
+        {
+          id: "ae_01J2ACTIVEAUDIT",
+          action: "state_transition",
+          target_type: "active_learning_loop",
+          target_id: "ll_01J2ACTIVE",
+          metadata: {
+            from_state: "review",
+            to_state: "queued",
+          },
+          created_at: "2026-05-10T13:21:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "active_learning_loop",
+        targetId: "ll_01J2ACTIVE",
+        fromState: "review",
+        toState: "queued",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "active_learning_loop",
+        metadata: {
+          from_state: "review",
+          to_state: "queued",
+        },
+      },
+    });
   });
 });
