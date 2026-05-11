@@ -232,6 +232,44 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("modality_contract")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "modality",
+          allowedValues: ["video", "audio", "geospatial"],
+        }),
+        expect.objectContaining({
+          key: "canonicalFormat",
+          kind: "text",
+        }),
+        expect.objectContaining({
+          key: "packagingTargets",
+          kind: "text",
+        }),
+      ])
+    );
+    expect(getOperatorRecordFieldDescriptors("enrichment_manifest")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "enrichmentClass",
+          allowedValues: expect.arrayContaining(["geospatial", "embeddings"]),
+        }),
+        expect.objectContaining({
+          key: "sourceLicense",
+          kind: "text",
+        }),
+        expect.objectContaining({
+          key: "spotCheckRate",
+          kind: "decimal",
+          min: 0,
+          max: 1,
+        }),
+        expect.objectContaining({
+          key: "licenseCompatible",
+          allowedValues: ["true", "false"],
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("consent_record")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

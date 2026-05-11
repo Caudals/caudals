@@ -37,6 +37,8 @@ const ids = {
   buildPlan: fixtureId("bp", 1),
   dataset: fixtureId("dt", 1),
   datasetVersion: fixtureId("dv", 1),
+  modalityContract: fixtureId("mc", 1),
+  enrichmentManifest: fixtureId("em", 1),
   piiMap: fixtureId("pm", 1),
   catalogueListing: fixtureId("cl", 1),
   privateOffer: fixtureId("po", 1),
@@ -762,6 +764,90 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO modality_contract (
+        id, org_id, dataset_version_id, modality, canonical_format,
+        profile_signals, cleaning_operators, privacy_treatments,
+        labeling_widgets, qa_dimensions, packaging_targets,
+        state, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'video', 'Lance index over MP4 chunks',
+        '["duration_histogram","fps","codec","scene_change_density"]'::jsonb,
+        '["temporal_dedup","shot_change_sampling","metadata_strip"]'::jsonb,
+        '["face_blur","license_plate_blur","audio_track_pii_review"]'::jsonb,
+        ARRAY['temporal_segment','bounding_box','keyframe'],
+        '["temporal_coverage","frame_quality","privacy_residual"]'::jsonb,
+        ARRAY['mp4_clips','per_frame_manifest','coco_video'],
+        'review', $4, $4, $5
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        dataset_version_id = EXCLUDED.dataset_version_id,
+        modality = EXCLUDED.modality,
+        canonical_format = EXCLUDED.canonical_format,
+        profile_signals = EXCLUDED.profile_signals,
+        cleaning_operators = EXCLUDED.cleaning_operators,
+        privacy_treatments = EXCLUDED.privacy_treatments,
+        labeling_widgets = EXCLUDED.labeling_widgets,
+        qa_dimensions = EXCLUDED.qa_dimensions,
+        packaging_targets = EXCLUDED.packaging_targets,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [ids.modalityContract, ids.tenantOrg, ids.datasetVersion, FIXTURE_CREATED_AT, ids.operator]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO enrichment_manifest (
+        id, org_id, build_id, dataset_version_id, modality_contract_id,
+        enrichment_class, added_columns, sources, source_license,
+        source_version, computation_method, reproducer_uri, spot_check_rate,
+        independence_passed, license_compatible, state,
+        created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, 'geospatial',
+        '["h3_cell","admin_region"]'::jsonb,
+        '["OSM boundaries 2026.05","Caudals silver coordinates"]'::jsonb,
+        'ODbL-1.0', '2026.05',
+        'H3 resolution 8 binning from silver-layer coordinates.',
+        's3://fixture/manifests/enrichment-h3.json',
+        0.100, true, true, 'review', $6, $6, $7
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        build_id = EXCLUDED.build_id,
+        dataset_version_id = EXCLUDED.dataset_version_id,
+        modality_contract_id = EXCLUDED.modality_contract_id,
+        enrichment_class = EXCLUDED.enrichment_class,
+        added_columns = EXCLUDED.added_columns,
+        sources = EXCLUDED.sources,
+        source_license = EXCLUDED.source_license,
+        source_version = EXCLUDED.source_version,
+        computation_method = EXCLUDED.computation_method,
+        reproducer_uri = EXCLUDED.reproducer_uri,
+        spot_check_rate = EXCLUDED.spot_check_rate,
+        independence_passed = EXCLUDED.independence_passed,
+        license_compatible = EXCLUDED.license_compatible,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.enrichmentManifest,
+      ids.tenantOrg,
+      fixtureBuilds[0].id,
+      ids.datasetVersion,
+      ids.modalityContract,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO pii_map (
         id, org_id, dataset_version_id, findings, treatments, state,
         created_at, updated_at, created_by
@@ -1086,6 +1172,8 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 4), "dsar", ids.dsarRequest, "state_transition", { from_state: "received", to_state: "identity_verified" }],
     [fixtureId("ae", 5), "payout", ids.payout, "payout_hold_review", { reason: "fixture commercial control" }],
     [fixtureId("ae", 6), "operator_elevation", ids.operatorElevation, "operator_elevation.granted", { scope: "production_db", reason: "fixture JIT elevation" }],
+    [fixtureId("ae", 7), "modality_contract", ids.modalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
+    [fixtureId("ae", 8), "enrichment_manifest", ids.enrichmentManifest, "state_transition", { from_state: "draft", to_state: "review" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),

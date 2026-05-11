@@ -9,14 +9,16 @@ import {
 } from "@/lib/operator/workflows";
 
 describe("operator workflow state machines", () => {
-  it("defines every Phase 1 state machine from the blueprint", () => {
+  it("defines every deployed state machine from the blueprint", () => {
     expect(Object.keys(workflowDefinitions).sort()).toEqual([
       "build",
       "buyer_opportunity",
       "contract",
       "delivery",
       "dsar",
+      "enrichment_manifest",
       "label_batch",
+      "modality_contract",
       "run",
       "sample_preview_access",
       "supplier_opportunity",
@@ -92,6 +94,12 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("sample_preview_access")).toBe(
       "sample_preview_access"
     );
+    expect(getWorkflowNameForRecordType("modality_contract")).toBe(
+      "modality_contract"
+    );
+    expect(getWorkflowNameForRecordType("enrichment_manifest")).toBe(
+      "enrichment_manifest"
+    );
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
   });
 
@@ -104,6 +112,13 @@ describe("operator workflow state machines", () => {
     expect(getNextWorkflowTransitions("sample_preview_access", "requested")).toEqual([
       { from: "requested", to: "nda_acknowledged" },
       { from: "requested", to: "denied" },
+    ]);
+    expect(getNextWorkflowTransitions("modality_contract", "review")).toEqual([
+      { from: "review", to: "approved" },
+      { from: "review", to: "blocked" },
+    ]);
+    expect(getNextWorkflowTransitions("enrichment_manifest", "blocked")).toEqual([
+      { from: "blocked", to: "draft", label: "rework" },
     ]);
   });
 });

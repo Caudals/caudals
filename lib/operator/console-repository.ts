@@ -486,6 +486,8 @@ const transitionWorkflowTables = {
   delivery: '"delivery"',
   dsar: '"dsar_request"',
   sample_preview_access: '"sample_preview_access"',
+  modality_contract: '"modality_contract"',
+  enrichment_manifest: '"enrichment_manifest"',
 } satisfies Record<WorkflowName, string>;
 
 function buildPersistTransitionAssignments(workflow: WorkflowName) {
@@ -516,6 +518,42 @@ function buildPersistTransitionAssignments(workflow: WorkflowName) {
   `;
 }
 
+function buildPersistTransitionPredicate(workflow: WorkflowName) {
+  if (workflow === "modality_contract") {
+    return `
+        AND (
+          $1 <> 'approved'
+          OR (
+            cardinality(labeling_widgets) > 0
+            AND cardinality(packaging_targets) > 0
+            AND jsonb_array_length(profile_signals) > 0
+            AND jsonb_array_length(cleaning_operators) > 0
+            AND jsonb_array_length(privacy_treatments) > 0
+            AND jsonb_array_length(qa_dimensions) > 0
+          )
+        )
+    `;
+  }
+
+  if (workflow === "enrichment_manifest") {
+    return `
+        AND (
+          $1 <> 'approved'
+          OR (
+            jsonb_array_length(added_columns) > 0
+            AND jsonb_array_length(sources) > 0
+            AND source_license <> 'unreviewed'
+            AND char_length(computation_method) > 1
+            AND independence_passed
+            AND license_compatible
+          )
+        )
+    `;
+  }
+
+  return "";
+}
+
 function buildPersistTransitionSql(tableName: string, workflow: WorkflowName) {
   return `
     WITH updated AS (
@@ -524,6 +562,7 @@ function buildPersistTransitionSql(tableName: string, workflow: WorkflowName) {
       WHERE id = $2
         AND state = $3
         AND deleted_at IS NULL
+        ${buildPersistTransitionPredicate(workflow)}
       RETURNING id, org_id
     ),
     inserted AS (
@@ -586,14 +625,18 @@ const moduleCountsSql = `
     UNION ALL SELECT 'datasets',
       (SELECT count(*)::int FROM dataset WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM dataset_version WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM modality_contract WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM lineage_event),
-      (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL)
+      (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM modality_contract WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'labeling',
       (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM label_batch WHERE state = 'in_adjudication' AND deleted_at IS NULL)
     UNION ALL SELECT 'quality',
-      (SELECT count(*)::int FROM qa_report WHERE deleted_at IS NULL),
-      (SELECT count(*)::int FROM qa_report WHERE verdict = 'fail' AND deleted_at IS NULL)
+      (SELECT count(*)::int FROM qa_report WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM enrichment_manifest WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM qa_report WHERE verdict = 'fail' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM enrichment_manifest WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'privacy',
       (SELECT count(*)::int FROM license_clause WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM consent_record WHERE deleted_at IS NULL) +
@@ -923,6 +966,21 @@ const moduleWorkItemsSql = `
     WHERE dv.deleted_at IS NULL
     UNION ALL
     SELECT
+      'datasets',
+      'modality_contract',
+      mc.id,
+      d.name || ' ' || mc.modality || ' contract',
+      mc.state,
+      mc.canonical_format,
+      mc.updated_at,
+      CASE WHEN mc.state = 'blocked' THEN 'critical' WHEN mc.state IN ('draft','review') THEN 'warning' ELSE 'info' END,
+      'Review modality contract'
+    FROM modality_contract mc
+    JOIN dataset_version dv ON dv.id = mc.dataset_version_id
+    JOIN dataset d ON d.id = dv.dataset_id
+    WHERE mc.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'quality',
       'qa_report',
       qr.id,
@@ -935,6 +993,22 @@ const moduleWorkItemsSql = `
     FROM qa_report qr
     LEFT JOIN build b ON b.id = qr.build_id
     WHERE qr.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'quality',
+      'enrichment_manifest',
+      em.id,
+      COALESCE(b.title, d.name, 'Enrichment manifest'),
+      em.state,
+      em.enrichment_class || ' / ' || em.source_license,
+      em.updated_at,
+      CASE WHEN em.state = 'blocked' THEN 'critical' WHEN em.state IN ('draft','review') THEN 'warning' ELSE 'info' END,
+      'Review enrichment manifest'
+    FROM enrichment_manifest em
+    LEFT JOIN build b ON b.id = em.build_id
+    LEFT JOIN dataset_version dv ON dv.id = em.dataset_version_id
+    LEFT JOIN dataset d ON d.id = dv.dataset_id
+    WHERE em.deleted_at IS NULL
     UNION ALL
     SELECT
       'labeling',
@@ -1281,12 +1355,44 @@ const moduleWorkItemsSql = `
           FROM dataset_version dv
           WHERE dv.id = raw_work_items.id
         )
+        WHEN record_type = 'modality_contract' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'modality', mc.modality,
+            'canonicalFormat', mc.canonical_format,
+            'profileSignals', array_to_string(ARRAY(SELECT jsonb_array_elements_text(mc.profile_signals)), ', '),
+            'cleaningOperators', array_to_string(ARRAY(SELECT jsonb_array_elements_text(mc.cleaning_operators)), ', '),
+            'privacyTreatments', array_to_string(ARRAY(SELECT jsonb_array_elements_text(mc.privacy_treatments)), ', '),
+            'labelingWidgets', array_to_string(mc.labeling_widgets, ', '),
+            'qaDimensions', array_to_string(ARRAY(SELECT jsonb_array_elements_text(mc.qa_dimensions)), ', '),
+            'packagingTargets', array_to_string(mc.packaging_targets, ', ')
+          ))
+          FROM modality_contract mc
+          WHERE mc.id = raw_work_items.id
+        )
         WHEN record_type = 'qa_report' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'compositeScore', qr.composite_score
           ))
           FROM qa_report qr
           WHERE qr.id = raw_work_items.id
+        )
+        WHEN record_type = 'enrichment_manifest' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'enrichmentClass', em.enrichment_class,
+            'addedColumns', array_to_string(ARRAY(SELECT jsonb_array_elements_text(em.added_columns)), ', '),
+            'sources', array_to_string(ARRAY(SELECT jsonb_array_elements_text(em.sources)), ', '),
+            'sourceLicense', em.source_license,
+            'sourceVersion', em.source_version,
+            'computationMethod', em.computation_method,
+            'modelIdentityHash', em.model_identity_hash,
+            'promptTemplateVersion', em.prompt_template_version,
+            'reproducerUri', em.reproducer_uri,
+            'spotCheckRate', em.spot_check_rate,
+            'independencePassed', em.independence_passed,
+            'licenseCompatible', em.license_compatible
+          ))
+          FROM enrichment_manifest em
+          WHERE em.id = raw_work_items.id
         )
         WHEN record_type = 'label_batch' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

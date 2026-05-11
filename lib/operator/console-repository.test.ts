@@ -163,6 +163,39 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "datasets",
+            record_type: "modality_contract",
+            id: "mc_01J2MODALITY",
+            title: "Crop imagery video contract",
+            state: "review",
+            detail: "Lance index over MP4 chunks",
+            updated_at: "2026-05-10T13:16:30.000Z",
+            severity: "warning",
+            next_action: "Review modality contract",
+            field_values: {
+              modality: "video",
+              canonicalFormat: "Lance index over MP4 chunks",
+              packagingTargets: "mp4_clips, per_frame_manifest",
+            },
+          },
+          {
+            module_key: "quality",
+            record_type: "enrichment_manifest",
+            id: "em_01J2ENRICH",
+            title: "G-5 H3 enrichment",
+            state: "review",
+            detail: "geospatial / ODbL-1.0",
+            updated_at: "2026-05-10T13:16:15.000Z",
+            severity: "warning",
+            next_action: "Review enrichment manifest",
+            field_values: {
+              enrichmentClass: "geospatial",
+              addedColumns: "h3_cell, admin_region",
+              sourceLicense: "ODbL-1.0",
+              licenseCompatible: true,
+            },
+          },
+          {
             module_key: "privacy",
             record_type: "dsar_request",
             id: "ds_01J2DSAR",
@@ -373,6 +406,27 @@ describe("operator console repository", () => {
       },
     });
     expect(
+      snapshot.workItems.datasets.find((item) => item.id === "mc_01J2MODALITY")
+    ).toMatchObject({
+      recordType: "modality_contract",
+      fields: {
+        modality: "video",
+        canonicalFormat: "Lance index over MP4 chunks",
+        packagingTargets: "mp4_clips, per_frame_manifest",
+      },
+    });
+    expect(
+      snapshot.workItems.quality.find((item) => item.id === "em_01J2ENRICH")
+    ).toMatchObject({
+      recordType: "enrichment_manifest",
+      fields: {
+        enrichmentClass: "geospatial",
+        addedColumns: "h3_cell, admin_region",
+        sourceLicense: "ODbL-1.0",
+        licenseCompatible: "true",
+      },
+    });
+    expect(
       snapshot.workItems.privacy.find((item) => item.id === "ds_01J2DSAR")
     ).toMatchObject({
       recordType: "dsar_request",
@@ -419,6 +473,8 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("permittedUses");
     expect(workItemsSql).toContain("acceptanceWindowDays");
     expect(workItemsSql).toContain("externalRunId");
+    expect(workItemsSql).toContain("modality_contract");
+    expect(workItemsSql).toContain("enrichment_manifest");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
