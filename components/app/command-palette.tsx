@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CommandDialog,
@@ -12,9 +12,10 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { createClient } from "@/lib/supabase/client";
+import { getOperatorConsoleOverview } from "@/lib/actions/operator-console-actions";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import type { OperatorConsoleSnapshot } from "@/lib/operator/console-snapshot";
 import {
   Activity,
   AlertCircle,
@@ -24,51 +25,114 @@ import {
   FileText,
   FileUp,
   FolderArchive,
+  ListChecks,
   Search,
   Settings,
   Shield,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 
-type DatasetResult = {
-  id: string;
-  title: string;
-  approval_status: string | null;
-  status: string | null;
-  updated_at?: string | null;
+type PaletteItem = {
+  key: string;
+  label: string;
+  href: string;
+  description?: string;
+  shortcut?: string;
+  searchValue: string;
+  icon: LucideIcon;
 };
 
-type SupportTicketResult = {
-  id: string;
-  subject: string | null;
-  status: string | null;
-  priority: string | null;
-  updated_at: string | null;
-};
+function anchorHref(moduleKey: string, id: string) {
+  return `/admin?module=${moduleKey}#${encodeURIComponent(id)}`;
+}
 
-type SubmissionResult = {
-  id: string;
-  status: string | null;
-  updated_at: string | null;
-  dataset_requests: { title: string | null } | Array<{ title: string | null }> | null;
-};
+function addUniqueRecord(items: Map<string, PaletteItem>, item: PaletteItem) {
+  if (!items.has(item.key)) {
+    items.set(item.key, item);
+  }
+}
 
-function extractDatasetTitle(record: SubmissionResult["dataset_requests"]) {
-  if (!record) return "Untitled dataset";
-  if (Array.isArray(record)) return record[0]?.title ?? "Untitled dataset";
-  return record.title ?? "Untitled dataset";
+function buildRecordItems(snapshot: OperatorConsoleSnapshot): PaletteItem[] {
+  const items = new Map<string, PaletteItem>();
+  const workItems = Object.values(snapshot.workItems).flat();
+
+  for (const item of workItems) {
+    addUniqueRecord(items, {
+      key: `${item.recordType}:${item.id}`,
+      label: item.title,
+      href: anchorHref(item.moduleKey, item.id),
+      description: `${item.recordType} / ${item.state} / ${item.detail}`,
+      shortcut: item.id,
+      searchValue: [
+        item.title,
+        item.id,
+        item.recordType,
+        item.state,
+        item.detail,
+        item.moduleKey,
+      ].join(" "),
+      icon: Search,
+    });
+  }
+
+  for (const build of snapshot.builds) {
+    addUniqueRecord(items, {
+      key: `build:${build.id}`,
+      label: build.title,
+      href: anchorHref("builds", build.id),
+      description: `build / ${build.state} / ${build.buyerBriefId} / ${build.supplierOrgId}`,
+      shortcut: build.id,
+      searchValue: [
+        build.title,
+        build.id,
+        build.state,
+        build.buyerBriefId,
+        build.supplierOrgId,
+      ].join(" "),
+      icon: Activity,
+    });
+  }
+
+  for (const event of snapshot.lineageEvents) {
+    addUniqueRecord(items, {
+      key: `lineage_event:${event.id}`,
+      label: event.jobName,
+      href: anchorHref("datasets", event.id),
+      description: `lineage_event / ${event.datasetVersionId} / ${event.namespace}`,
+      shortcut: event.datasetVersionId,
+      searchValue: [
+        event.id,
+        event.jobName,
+        event.datasetVersionId,
+        event.namespace,
+      ].join(" "),
+      icon: Database,
+    });
+  }
+
+  for (const row of snapshot.auditRows) {
+    addUniqueRecord(items, {
+      key: `audit_event:${row.id}`,
+      label: row.action,
+      href: anchorHref("audit", row.id),
+      description: `${row.target} / ${row.actor}`,
+      shortcut: row.id,
+      searchValue: [row.id, row.action, row.target, row.actor].join(" "),
+      icon: FileText,
+    });
+  }
+
+  return Array.from(items.values()).slice(0, 48);
 }
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [datasets, setDatasets] = useState<DatasetResult[]>([]);
-  const [tickets, setTickets] = useState<SupportTicketResult[]>([]);
-  const [submissions, setSubmissions] = useState<SubmissionResult[]>([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const { userRole, user } = useAuth();
+  const [snapshot, setSnapshot] = useState<OperatorConsoleSnapshot | null>(null);
+  const [recordError, setRecordError] = useState(false);
+  const recordsRequestStartedRef = useRef(false);
+  const { userRole } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
   const t = useTranslations();
 
   useEffect(() => {
@@ -94,222 +158,108 @@ export function CommandPalette() {
 
   useEffect(() => {
     let active = true;
-    const term = query.trim();
 
-    const clear = () => {
-      if (!active) return;
-      setDatasets([]);
-      setTickets([]);
-      setSubmissions([]);
-      setLoadingSearch(false);
-    };
+    if (
+      !open ||
+      !userRole ||
+      snapshot ||
+      recordError ||
+      recordsRequestStartedRef.current
+    ) {
+      return;
+    }
 
-    const loadSearchResults = async () => {
-      if (!userRole || !user || term.length < 2) {
-        clear();
-        return;
-      }
+    recordsRequestStartedRef.current = true;
 
-      setLoadingSearch(true);
-      const ilikeTerm = `%${term}%`;
-
-      if (userRole === "requester") {
-        const [datasetsRes, ticketsRes] = await Promise.all([
-          supabase
-            .from("dataset_requests")
-            .select("id,title,approval_status,status,updated_at")
-            .eq("created_by", user.id)
-            .ilike("title", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(10),
-          supabase
-            .from("support_tickets")
-            .select("id,subject,status,priority,updated_at")
-            .eq("requester_id", user.id)
-            .ilike("subject", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(8),
-        ]);
-
-        if (!active) return;
-        if (datasetsRes.error) {
-          console.error("Command palette requester dataset search error", datasetsRes.error);
-          setDatasets([]);
-        } else {
-          setDatasets(datasetsRes.data ?? []);
+    getOperatorConsoleOverview()
+      .then((result) => {
+        if (active) {
+          setSnapshot(result.data);
         }
-
-        if (ticketsRes.error) {
-          console.error("Command palette requester ticket search error", ticketsRes.error);
-          setTickets([]);
-        } else {
-          setTickets(ticketsRes.data ?? []);
+      })
+      .catch(() => {
+        if (active) {
+          setRecordError(true);
         }
-
-        setSubmissions([]);
-        setLoadingSearch(false);
-        return;
-      }
-
-      if (userRole === "contributor") {
-        const [datasetsRes, submissionsRes] = await Promise.all([
-          supabase
-            .from("dataset_requests")
-            .select("id,title,approval_status,status,updated_at")
-            .eq("approval_status", "approved")
-            .ilike("title", ilikeTerm)
-            .order("updated_at", { ascending: false })
-            .limit(10),
-          supabase
-            .from("submissions")
-            .select("id,status,updated_at,dataset_requests(title)")
-            .eq("contributor_id", user.id)
-            .order("updated_at", { ascending: false })
-            .limit(20),
-        ]);
-
-        if (!active) return;
-        if (datasetsRes.error) {
-          console.error("Command palette contributor dataset search error", datasetsRes.error);
-          setDatasets([]);
-        } else {
-          setDatasets(datasetsRes.data ?? []);
-        }
-
-        if (submissionsRes.error) {
-          console.error("Command palette contributor submissions search error", submissionsRes.error);
-          setSubmissions([]);
-        } else {
-          const filtered = (submissionsRes.data ?? []).filter((row) =>
-            extractDatasetTitle(row.dataset_requests)
-              .toLowerCase()
-              .includes(term.toLowerCase())
-          );
-          setSubmissions(filtered.slice(0, 8));
-        }
-
-        setTickets([]);
-        setLoadingSearch(false);
-        return;
-      }
-
-      const [datasetsRes, ticketsRes] = await Promise.all([
-        supabase
-          .from("dataset_requests")
-          .select("id,title,approval_status,status,updated_at")
-          .ilike("title", ilikeTerm)
-          .order("updated_at", { ascending: false })
-          .limit(12),
-        supabase
-          .from("support_tickets")
-          .select("id,subject,status,priority,updated_at")
-          .ilike("subject", ilikeTerm)
-          .order("updated_at", { ascending: false })
-          .limit(10),
-      ]);
-
-      if (!active) return;
-      if (datasetsRes.error) {
-        console.error("Command palette admin dataset search error", datasetsRes.error);
-        setDatasets([]);
-      } else {
-        setDatasets(datasetsRes.data ?? []);
-      }
-
-      if (ticketsRes.error) {
-        console.error("Command palette admin ticket search error", ticketsRes.error);
-        setTickets([]);
-      } else {
-        setTickets(ticketsRes.data ?? []);
-      }
-      setSubmissions([]);
-      setLoadingSearch(false);
-    };
-
-    const timer = setTimeout(() => {
-      void loadSearchResults();
-    }, 180);
+      })
+      .finally(() => {
+        recordsRequestStartedRef.current = false;
+      });
 
     return () => {
       active = false;
-      clearTimeout(timer);
     };
-  }, [query, supabase, userRole, user]);
+  }, [open, recordError, snapshot, userRole]);
 
-  const navigationItems = useMemo(() => {
-    if (userRole === "admin") {
+  const recordsPending = Boolean(open && userRole && !snapshot && !recordError);
+
+  const navigationItems: PaletteItem[] = useMemo(() => {
+    if (userRole) {
       return [
-        { label: t("Control center"), href: "/admin", icon: Shield },
-        { label: t("Requests"), href: "/admin/requests", icon: FileText },
-        { label: t("Submissions"), href: "/admin/submissions", icon: FileUp },
-        { label: t("Datasets"), href: "/admin/datasets", icon: Database },
-        { label: t("Payments"), href: "/admin/payments", icon: CreditCard },
-        { label: t("Support queue"), href: "/admin/support", icon: AlertCircle },
-        { label: t("Activity"), href: "/admin/activity", icon: Activity },
-        { label: t("Analytics"), href: "/admin/analytics", icon: BarChart3 },
-        { label: t("Users"), href: "/admin/users", icon: Users },
-        { label: t("Settings"), href: "/admin/settings", icon: Settings },
-      ];
+        { label: t("Pipeline / Home"), href: "/admin", icon: Shield },
+        { label: t("Leads & Opportunities"), href: "/admin?module=leads", icon: FileText },
+        { label: t("Suppliers"), href: "/admin?module=suppliers", icon: Users },
+        { label: t("Buyers"), href: "/admin?module=buyers", icon: AlertCircle },
+        { label: t("Builds"), href: "/admin?module=builds", icon: Activity },
+        { label: t("Datasets"), href: "/admin?module=datasets", icon: Database },
+        { label: t("Labeling"), href: "/admin?module=labeling", icon: ListChecks },
+        { label: t("Quality"), href: "/admin?module=quality", icon: BarChart3 },
+        { label: t("Privacy & Rights"), href: "/admin?module=privacy", icon: Shield },
+        { label: t("Catalogue & Offers"), href: "/admin?module=catalogue", icon: FileUp },
+        { label: t("Commercials"), href: "/admin?module=commercials", icon: CreditCard },
+        { label: t("Operations"), href: "/admin?module=operations", icon: FolderArchive },
+        { label: t("Audit"), href: "/admin?module=audit", icon: Activity },
+        { label: t("Settings"), href: "/admin?module=settings", icon: Settings },
+      ].map((item) => ({
+        ...item,
+        key: item.href,
+        searchValue: `${item.label} ${item.href}`,
+        shortcut: item.href,
+      }));
     }
 
-    if (userRole === "contributor") {
-      return [
-        { label: t("Dashboard"), href: "/contributor", icon: FileText },
-        { label: t("Browse opportunities"), href: "/contributor/browse", icon: Search },
-        { label: t("My contributions"), href: "/contributor/contributions", icon: FileUp },
-        { label: t("Earnings & payouts"), href: "/contributor/earnings", icon: CreditCard },
-        { label: t("Settings"), href: "/contributor/settings", icon: Settings },
-      ];
-    }
-
-    return [
-      { label: t("Dashboard"), href: "/requester", icon: FileText },
-      { label: t("Datasets"), href: "/requester/datasets", icon: FileText },
-      { label: t("Review queue"), href: "/requester/datasets?filter=pending_review", icon: AlertCircle },
-      { label: t("Funding needed"), href: "/requester/datasets?filter=needs_funding", icon: CreditCard },
-      { label: t("Files & exports"), href: "/requester/files", icon: FolderArchive },
-      { label: t("Support"), href: "/requester/support", icon: AlertCircle },
-      { label: t("Analytics"), href: "/requester/analytics", icon: BarChart3 },
-      { label: t("Settings"), href: "/requester/settings", icon: Settings },
-    ];
+    return [];
   }, [t, userRole]);
 
-  const adminActions = useMemo(() => {
-    if (userRole !== "admin") return [];
+  const adminActions: PaletteItem[] = useMemo(() => {
+    if (!userRole) return [];
     return [
-      { label: t("Approve next pending request"), href: "/admin/requests" },
-      { label: t("Open payout queue"), href: "/admin/payments" },
-      { label: t("Open activity log"), href: "/admin/activity" },
-      { label: t("Open analytics"), href: "/admin/analytics" },
-    ];
+      { label: t("Review active blockers"), href: "/admin" },
+      { label: t("Open QA pending builds"), href: "/admin?module=builds" },
+      { label: t("Open license vault"), href: "/admin?module=privacy" },
+      { label: t("Open audit overlay"), href: "/admin?module=audit" },
+    ].map((item) => ({
+      ...item,
+      key: item.label,
+      searchValue: `${item.label} ${item.href}`,
+      icon: Search,
+    }));
   }, [t, userRole]);
 
-  const handleSelect = (value: string) => {
-    router.push(value);
+  const recordItems = useMemo(
+    () => (snapshot ? buildRecordItems(snapshot) : []),
+    [snapshot]
+  );
+
+  const handleSelect = (href: string) => {
+    router.push(href);
     setOpen(false);
-    setQuery("");
   };
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput
-        placeholder={t("Search datasets, tickets, actions...")}
-        value={query}
-        onValueChange={setQuery}
-      />
+      <CommandInput placeholder={t("Search records, modules, or actions...")} />
       <CommandList>
         <CommandEmpty>
-          {loadingSearch
-            ? t("Searching...")
-            : t("No results. Try another search.")}
+          {t("No matching modules or actions.")}
         </CommandEmpty>
 
         <CommandGroup heading={t("Navigation")}>
           {navigationItems.map((item) => (
             <CommandItem
-              key={item.href}
-              value={item.href}
-              onSelect={handleSelect}
+              key={item.key}
+              value={item.searchValue}
+              onSelect={() => handleSelect(item.href)}
             >
               <item.icon className="h-4 w-4" />
               <span>{item.label}</span>
@@ -328,7 +278,7 @@ export function CommandPalette() {
                   value={action.href}
                   onSelect={handleSelect}
                 >
-                  <Shield className="h-4 w-4" />
+                  <Search className="h-4 w-4" />
                   <span>{action.label}</span>
                 </CommandItem>
               ))}
@@ -336,88 +286,42 @@ export function CommandPalette() {
           </>
         )}
 
-        {datasets.length > 0 && (
+        {userRole && (
           <>
             <CommandSeparator />
-            <CommandGroup heading={t("Datasets")}>
-              {datasets.map((dataset) => {
-                const href =
-                  userRole === "admin"
-                    ? `/admin/datasets?search=${encodeURIComponent(dataset.title)}`
-                    : userRole === "contributor"
-                      ? `/browse/${dataset.id}`
-                      : `/requester/datasets/${dataset.id}`;
-
-                return (
+            <CommandGroup heading={t("Records")}>
+              {recordsPending ? (
+                <div className="px-3 py-2 text-sm text-slate-500">
+                  {t("Loading operator records...")}
+                </div>
+              ) : recordError ? (
+                <div className="px-3 py-2 text-sm text-red-700">
+                  {t("Unable to load operator records.")}
+                </div>
+              ) : (
+                recordItems.map((item) => (
                   <CommandItem
-                    key={dataset.id}
-                    value={href}
-                    onSelect={handleSelect}
+                    key={item.key}
+                    value={item.searchValue}
+                    onSelect={() => handleSelect(item.href)}
                   >
-                    <FileText className="h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span className="line-clamp-1">{dataset.title}</span>
-                      <span className="text-[11px] text-slate-500">
-                        {dataset.status} / {dataset.approval_status}
-                      </span>
+                    <item.icon className="h-4 w-4" />
+                    <div className="min-w-0">
+                      <p className="truncate">{item.label}</p>
+                      {item.description ? (
+                        <p className="truncate text-xs text-slate-500">
+                          {item.description}
+                        </p>
+                      ) : null}
                     </div>
+                    {item.shortcut ? (
+                      <CommandShortcut className="max-w-[160px] truncate font-mono">
+                        {item.shortcut}
+                      </CommandShortcut>
+                    ) : null}
                   </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </>
-        )}
-
-        {tickets.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={t("Support tickets")}>
-              {tickets.map((ticket) => (
-                <CommandItem
-                  key={ticket.id}
-                  value={
-                    userRole === "admin"
-                      ? "/admin/support"
-                      : `/requester/support/${ticket.id}`
-                  }
-                  onSelect={handleSelect}
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  <div className="flex flex-col">
-                    <span className="line-clamp-1">
-                      {ticket.subject || t("Support ticket")}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {ticket.status} / {ticket.priority}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
-
-        {submissions.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading={t("My submissions")}>
-              {submissions.map((submission) => (
-                <CommandItem
-                  key={submission.id}
-                  value="/contributor/contributions"
-                  onSelect={handleSelect}
-                >
-                  <FileText className="h-4 w-4" />
-                  <div className="flex flex-col">
-                    <span className="line-clamp-1">
-                      {extractDatasetTitle(submission.dataset_requests)}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {submission.status}
-                    </span>
-                  </div>
-                </CommandItem>
-              ))}
+                ))
+              )}
             </CommandGroup>
           </>
         )}

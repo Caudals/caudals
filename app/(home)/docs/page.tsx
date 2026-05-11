@@ -14,14 +14,14 @@ export const metadata = buildPublicMetadata({
 
 const guideCards = [
   {
-    title: "Requester Quickstart",
-    description: "Create your first dataset brief, define quality criteria, and launch contributor workflows.",
-    href: "/auth/sign-up",
+    title: "Buyer Brief Guide",
+    description: "Scope dataset needs, quality criteria, rights constraints, budget, and delivery expectations.",
+    href: "/contact",
   },
   {
-    title: "Contributor Workflow",
-    description: "Find dataset opportunities, submit work, and track review + payout statuses.",
-    href: "/browse",
+    title: "Supplier Data Guide",
+    description: "Prepare source metadata, rights evidence, provenance notes, and privacy constraints for Caudals review.",
+    href: "/contact",
   },
   {
     title: "Admin Operations",
@@ -46,8 +46,8 @@ export default function DocsPage() {
     <MarketingPageLayout
       title="Guides to run reliable data operations"
       description="Explore launch guides, role workflows, and operational playbooks to keep dataset programs predictable from intake to payout."
-      ctaLabel="Open Dashboard"
-      ctaHref="/requester"
+      ctaLabel="Contact Caudals"
+      ctaHref="/contact"
     >
       <div className="grid gap-5 sm:grid-cols-2">
         {guideCards.map((guide) => (

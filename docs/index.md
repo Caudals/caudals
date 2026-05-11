@@ -10,6 +10,7 @@ This directory is the persistent reference set for Caudals' product, architectur
 - `TOOLS.md`: operational tooling, setup commands, and troubleshooting.
 - `product-specs/`: B2B dataset marketplace and managed services product contract.
 - `blueprints/`: generated product blueprints and exports.
+- `migrations/`: platform migration reports and cutover evidence.
 
 ## Read/Write Matrix
 | Path | Purpose | Update Trigger |
@@ -22,6 +23,7 @@ This directory is the persistent reference set for Caudals' product, architectur
 | `docs/TOOLS.md` | operational tooling and setup runbook | tooling workflows, setup, or troubleshooting changes |
 | `docs/product-specs/*.md` | product behavior contracts and startup context | behavior/product contract changes |
 | `docs/blueprints/*` | generated strategic/product artifacts | explicit blueprint generation or export updates |
+| `docs/migrations/*` | migration reports, verification, and decommission gates | platform/data/auth/storage migrations |
 
 ## Governance Canon
 `docs/product-specs/overview.md` is the canonical product direction. Supporting docs should align to it and avoid reintroducing obsolete workflow assumptions.

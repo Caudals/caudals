@@ -1,0 +1,227 @@
+import { passkey } from "@better-auth/passkey";
+import type { BetterAuthOptions } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
+import { organization, twoFactor } from "better-auth/plugins";
+
+import { createBetterAuthId } from "@/lib/auth/better-auth-ids";
+import { betterAuthBasePath } from "@/lib/auth/better-auth-shared";
+import { getSecretEnvValue } from "@/lib/env/secrets";
+import { getResendClient } from "@/lib/resend/client";
+
+const APP_NAME = "Caudals";
+const LOCAL_AUTH_URL = "http://localhost:3000";
+const PRODUCTION_AUTH_URL = "https://app.caudals.com";
+const DEFAULT_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 30;
+const MIN_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 5;
+const MAX_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24;
+
+type BetterAuthDatabase = NonNullable<BetterAuthOptions["database"]>;
+
+function splitEnvList(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function normalizeOrigin(value: string) {
+  try {
+    const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+function getBetterAuthUrl() {
+  return (
+    process.env.BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    (process.env.NODE_ENV === "production"
+      ? PRODUCTION_AUTH_URL
+      : LOCAL_AUTH_URL)
+  );
+}
+
+function getTrustedOrigins(baseUrl: string) {
+  const origins = new Set<string>();
+  const addOrigin = (value: string | null) => {
+    if (value) {
+      origins.add(value);
+    }
+  };
+
+  addOrigin(normalizeOrigin(baseUrl));
+  splitEnvList(process.env.BETTER_AUTH_TRUSTED_ORIGINS).forEach((origin) =>
+    addOrigin(normalizeOrigin(origin))
+  );
+  splitEnvList(process.env.NEXT_PUBLIC_APP_HOSTNAMES).forEach((origin) =>
+    addOrigin(normalizeOrigin(origin))
+  );
+
+  return Array.from(origins);
+}
+
+function getPasskeyRpId(baseUrl: string) {
+  if (process.env.BETTER_AUTH_PASSKEY_RP_ID) {
+    return process.env.BETTER_AUTH_PASSKEY_RP_ID;
+  }
+
+  try {
+    return new URL(baseUrl).hostname;
+  } catch {
+    return "localhost";
+  }
+}
+
+export function getResetPasswordTokenExpiresInSeconds() {
+  const raw = process.env.BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS;
+
+  if (!raw) {
+    return DEFAULT_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS;
+  }
+
+  const value = Number(raw);
+
+  if (!Number.isInteger(value)) {
+    throw new Error(
+      "BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS must be an integer number of seconds"
+    );
+  }
+
+  if (
+    value < MIN_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS ||
+    value > MAX_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS
+  ) {
+    throw new Error(
+      "BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS must be between 300 and 86400 seconds"
+    );
+  }
+
+  return value;
+}
+
+export function createBetterAuthOptions(
+  database: BetterAuthDatabase
+): BetterAuthOptions {
+  const baseURL = getBetterAuthUrl();
+  const trustedOrigins = getTrustedOrigins(baseURL);
+
+  return {
+    appName: APP_NAME,
+    baseURL,
+    basePath: betterAuthBasePath,
+    database,
+    secret: getSecretEnvValue("BETTER_AUTH_SECRET"),
+    trustedOrigins,
+    user: {
+      modelName: "auth_user",
+    },
+    session: {
+      modelName: "auth_session",
+      expiresIn: 60 * 60 * 8,
+      updateAge: 60 * 15,
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 5,
+        strategy: "jwe",
+      },
+    },
+    account: {
+      modelName: "auth_account",
+    },
+    verification: {
+      modelName: "auth_verification",
+    },
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
+      minPasswordLength: 12,
+      requireEmailVerification: true,
+      resetPasswordTokenExpiresIn: getResetPasswordTokenExpiresInSeconds(),
+      revokeSessionsOnPasswordReset: true,
+      async sendResetPassword({ user, url }) {
+        const from = process.env.RESEND_FROM_EMAIL;
+
+        if (!from) {
+          throw new Error("RESEND_FROM_EMAIL is required for password reset");
+        }
+
+        await getResendClient().emails.send({
+          from,
+          to: user.email,
+          subject: "Reset your Caudals password",
+          text: `Use this link to reset your Caudals password: ${url}`,
+          html: `<p>Use this link to reset your Caudals password:</p><p><a href="${url}">Reset password</a></p>`,
+        });
+      },
+    },
+    advanced: {
+      cookiePrefix: "caudals",
+      database: {
+        generateId: createBetterAuthId,
+      },
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+      },
+      skipTrailingSlashes: true,
+      useSecureCookies: process.env.NODE_ENV === "production",
+    },
+    plugins: [
+      organization({
+        allowUserToCreateOrganization: false,
+        cancelPendingInvitationsOnReInvite: true,
+        disableOrganizationDeletion: true,
+        invitationExpiresIn: 60 * 60 * 24,
+        teams: {
+          enabled: true,
+          defaultTeam: {
+            enabled: false,
+          },
+          maximumTeams: 12,
+        },
+        schema: {
+          organization: {
+            modelName: "auth_organization",
+          },
+          member: {
+            modelName: "auth_member",
+          },
+          invitation: {
+            modelName: "auth_invitation",
+          },
+          team: {
+            modelName: "auth_team",
+          },
+          teamMember: {
+            modelName: "auth_team_member",
+          },
+        },
+      }),
+      twoFactor({
+        issuer: APP_NAME,
+        twoFactorTable: "auth_two_factor",
+        twoFactorCookieMaxAge: 60 * 10,
+        trustDeviceMaxAge: 60 * 60 * 8,
+      }),
+      passkey({
+        rpID: getPasskeyRpId(baseURL),
+        rpName: APP_NAME,
+        origin: trustedOrigins,
+        authenticatorSelection: {
+          residentKey: "preferred",
+          userVerification: "required",
+        },
+        schema: {
+          passkey: {
+            modelName: "auth_passkey",
+          },
+        },
+      }),
+      nextCookies(),
+    ],
+  };
+}

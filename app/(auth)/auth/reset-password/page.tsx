@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Loader2, MailCheck, RefreshCw } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import {
   Card,
   CardContent,
@@ -24,97 +24,43 @@ import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 type Mode = "request" | "reset";
 
 export default function ResetPasswordPage() {
-  // Use only the PKCE client - GoTrue will handle session automatically
-  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
   const toast = useLocaleToast();
+  const token = searchParams.get("token");
+  const tokenError = searchParams.get("error");
+  const mode: Mode = token ? "reset" : "request";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [mode, setMode] = useState<Mode>("request");
   const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [hasProcessedToken, setHasProcessedToken] = useState(false);
 
   const redirectUrl = useMemo(() => {
     if (typeof window === "undefined") return "/auth/reset-password";
     return `${window.location.origin}/auth/reset-password`;
   }, []);
 
-  useEffect(() => {
-    // Prevent processing the same token multiple times
-    if (hasProcessedToken) return;
-
-    const error = searchParams.get("error");
-    const errorCode = searchParams.get("error_code");
-
-    // Handle errors from the recovery link
-    if (error && errorCode === "otp_expired") {
-      if (!hasProcessedToken) {
-        toast.error(t("This recovery link has expired. Please request a new one."));
-        setHasProcessedToken(true);
-        // Clean the URL to show the request form again
-        if (typeof window !== "undefined") {
-          router.replace("/auth/reset-password");
-        }
-      }
-      return;
-    }
-
-    // Check if user session already exists (GoTrue handles recovery tokens automatically)
-    const checkSession = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          // Session exists, user came from recovery link
-          setMode("reset");
-          setSessionReady(true);
-          setHasProcessedToken(true);
-
-          // Clean the URL
-          if (typeof window !== "undefined") {
-            router.replace("/auth/reset-password");
-          }
-        } else {
-          // No session, show request form
-          setMode("request");
-          setSessionReady(false);
-        }
-      } catch (error) {
-        console.error("Failed to check session", error);
-        setMode("request");
-        setSessionReady(false);
-      } finally {
-        setVerifying(false);
-      }
-    };
-
-    void checkSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
   const handleRequestEmail = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
 
     try {
-      // Use PKCE client - GoTrue will handle the token verification
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await betterAuthClient.requestPasswordReset({
+        email,
         redirectTo: redirectUrl,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       setEmailSent(true);
       toast.success(t("Check your email for a recovery link."));
     } catch (error) {
-      console.error("resetPasswordForEmail error", error);
+      console.error("requestPasswordReset error", error);
       toast.error(t("We couldn't send the recovery email. Please try again."));
     } finally {
       setLoading(false);
@@ -124,7 +70,7 @@ export default function ResetPasswordPage() {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!sessionReady) {
+    if (!token) {
       toast.error(t("Recovery link not verified. Please use the email link again."));
       return;
     }
@@ -134,22 +80,31 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error(t("Password must be at least 6 characters"));
+    if (password.length < 12) {
+      toast.error(t("Password must be at least 12 characters"));
       return;
     }
 
     setLoading(true);
 
     try {
-      // Use PKCE client to update password
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      const { data, error } = await betterAuthClient.resetPassword({
+        newPassword: password,
+        token,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.status) {
+        throw new Error("Password reset was not accepted");
+      }
 
       toast.success(t("Your password has been updated. You can sign in now."));
       router.push("/auth/sign-in");
     } catch (error) {
-      console.error("updateUser password error", error);
+      console.error("resetPassword error", error);
       toast.error(t("We couldn't update your password. Please try the link again."));
     } finally {
       setLoading(false);
@@ -191,6 +146,12 @@ export default function ResetPasswordPage() {
             <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {tokenError && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {t("This recovery link has expired. Please request a new one.")}
+              </div>
+            )}
+
             {mode === "request" && (
               <form onSubmit={handleRequestEmail} className="space-y-4">
                 <div className="space-y-2">
@@ -252,7 +213,7 @@ export default function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    disabled={loading || verifying}
+                    disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -266,23 +227,18 @@ export default function ResetPasswordPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    disabled={loading || verifying}
+                    disabled={loading}
                   />
                 </div>
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading || verifying}
+                  disabled={loading}
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       {t("Updating password...")}
-                    </span>
-                  ) : verifying ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {t("Verifying link...")}
                     </span>
                   ) : (
                     t("Update password")

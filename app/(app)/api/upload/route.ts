@@ -1,16 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentOperatorSession } from "@/lib/auth/operator-session";
 import { spacesClient, SPACES_BUCKET, CDN_URL } from "@/lib/storage/spaces-client";
 import { logError } from "@/lib/security/structured-logger";
 
 const SAFE_BUCKET_PATTERN = /^[a-z0-9-]+$/;
 const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+$/;
-const SAFE_SEGMENT_PATTERN = /^[a-zA-Z0-9-]{1,80}$/;
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SAFE_SEGMENT_PATTERN = /^[a-zA-Z0-9_-]{1,80}$/;
 
 const ALLOWED_BUCKETS = new Set(["dataset-files", "dataset-images"]);
 
@@ -42,8 +39,6 @@ const MIME_TO_EXTENSION: Record<string, string> = {
   "application/pdf": "pdf",
   "application/json": "json",
 };
-
-type UserRole = "requester" | "contributor" | "admin";
 
 function isAllowedBucket(bucket: string) {
   return SAFE_BUCKET_PATTERN.test(bucket) && ALLOWED_BUCKETS.has(bucket);
@@ -95,84 +90,19 @@ function isAllowedMime(bucket: string, mimeType: string) {
   return false;
 }
 
-function pathBelongsToUser(path: string, userId: string) {
-  return path.startsWith(`${userId}/`) || path.includes(`/${userId}/`);
-}
-
-async function getUserRole(userId: string): Promise<UserRole | null> {
-  const admin = createAdminClient("file_uploads");
-  const adminClient = admin as any;
-
-  const { data, error } = await adminClient
-    .from("profiles")
-    .select("role")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error || !data?.role) {
-    if (error) {
-      logError("upload.resolve_role_failed", { error, userId });
-    }
-    return null;
-  }
-
-  return data.role as UserRole;
-}
-
-async function canUploadToDataset(
-  role: UserRole,
-  userId: string,
-  bucket: string,
-  datasetId: string
-) {
-  const admin = createAdminClient("file_uploads");
-  const adminClient = admin as any;
-
-  const { data: dataset, error } = await adminClient
-    .from("dataset_requests")
-    .select("id, created_by, status, approval_status")
-    .eq("id", datasetId)
-    .maybeSingle();
-
-  if (error || !dataset) {
-    if (error) {
-      logError("upload.dataset_access_lookup_failed", {
-        error,
-        userId,
-        datasetId,
-        role,
-      });
-    }
-    return false;
-  }
-
-  if (role === "admin") {
-    return true;
-  }
-
-  if (bucket === "dataset-images") {
-    return role === "requester" && dataset.created_by === userId;
-  }
-
-  if (bucket === "dataset-files") {
-    if (role !== "contributor") return false;
-    if (dataset.approval_status !== "approved") return false;
-    return dataset.status === "active" || dataset.status === "closing-soon";
-  }
-
-  return false;
+function pathBelongsToOperator(path: string, operatorId: string) {
+  return path.startsWith(`${operatorId}/`) || path.includes(`/${operatorId}/`);
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const session = await getCurrentOperatorSession(request.headers);
 
-    if (!user) {
+    if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+
+    const operatorId = session.operator.id;
 
     const formData = await request.formData();
     const fileValue = formData.get("file");
@@ -221,25 +151,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userRole = await getUserRole(user.id);
-    if (!userRole) {
-      return NextResponse.json({ error: "Unable to resolve user role" }, { status: 403 });
-    }
-
-    if (bucket === "dataset-images" && !["admin", "requester"].includes(userRole)) {
-      return NextResponse.json(
-        { error: "You do not have permission to upload dataset images" },
-        { status: 403 }
-      );
-    }
-
-    if (bucket === "dataset-files" && !["admin", "contributor"].includes(userRole)) {
-      return NextResponse.json(
-        { error: "You do not have permission to upload dataset files" },
-        { status: 403 }
-      );
-    }
-
     if (bucket === "dataset-files") {
       if (!datasetId) {
         return NextResponse.json(
@@ -248,44 +159,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (!UUID_PATTERN.test(datasetId)) {
+      if (!SAFE_SEGMENT_PATTERN.test(datasetId)) {
         return NextResponse.json(
           { error: "Invalid datasetId format" },
           { status: 400 }
         );
       }
-
-      const hasAccess = await canUploadToDataset(userRole, user.id, bucket, datasetId);
-      if (!hasAccess) {
-        return NextResponse.json(
-          { error: "You do not have access to upload to this dataset" },
-          { status: 403 }
-        );
-      }
     }
 
     if (bucket === "dataset-images") {
-      if (userRole === "requester") {
-        if (!datasetId || !UUID_PATTERN.test(datasetId)) {
-          return NextResponse.json(
-            { error: "A valid datasetId is required for requester image uploads" },
-            { status: 400 }
-          );
-        }
-
-        const hasAccess = await canUploadToDataset(
-          userRole,
-          user.id,
-          bucket,
-          datasetId
-        );
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: "You do not have access to upload to this dataset" },
-            { status: 403 }
-          );
-        }
-      } else if (datasetId && !SAFE_SEGMENT_PATTERN.test(datasetId)) {
+      if (datasetId && !SAFE_SEGMENT_PATTERN.test(datasetId)) {
         return NextResponse.json(
           { error: "Invalid datasetId folder value" },
           { status: 400 }
@@ -295,8 +178,8 @@ export async function POST(request: NextRequest) {
 
     const fileExt = getSanitizedExtension(file);
     const filePath = datasetId
-      ? `${datasetId}/${user.id}/${Date.now()}_${randomUUID().slice(0, 12)}.${fileExt}`
-      : `${user.id}/${Date.now()}_${randomUUID().slice(0, 12)}.${fileExt}`;
+      ? `${datasetId}/${operatorId}/${Date.now()}_${randomUUID().slice(0, 12)}.${fileExt}`
+      : `${operatorId}/${Date.now()}_${randomUUID().slice(0, 12)}.${fileExt}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -326,14 +209,13 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const session = await getCurrentOperatorSession(request.headers);
 
-    if (!user) {
+    if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+
+    const operatorId = session.operator.id;
 
     const body = await request.json().catch(() => null);
     const bucket = typeof body?.bucket === "string" ? body.bucket.trim() : "";
@@ -360,12 +242,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const userRole = await getUserRole(user.id);
-    if (!userRole) {
-      return NextResponse.json({ error: "Unable to resolve user role" }, { status: 403 });
-    }
-
-    if (userRole !== "admin" && !pathBelongsToUser(path, user.id)) {
+    if (
+      session.operator.role !== "admin" &&
+      !pathBelongsToOperator(path, operatorId)
+    ) {
       return NextResponse.json(
         { error: "You can only delete files you own" },
         { status: 403 }

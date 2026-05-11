@@ -4,7 +4,7 @@
 Agents can assume access to:
 - local repository source code,
 - product and technical context in `docs/product-specs/overview.md` and `docs/`,
-- Supabase via self-hosted operational path and MCP when available,
+- self-hosted PostgreSQL through local Docker, Tailscale, SSH, or Dokploy when credentials are available,
 - browser/devtools tooling for runtime UI inspection,
 - GitHub tooling for CI and review context.
 
@@ -12,8 +12,9 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 ## Primary Tooling
 - Terminal: build/lint/file ops/repo diagnostics
-- Supabase CLI: migrations, schema checks, policy inspection
-- Supabase MCP: runtime DB inspection and operational queries
+- `psql`: SQL migration, rollback, RLS, and schema inspection
+- Docker: local integration checks for PostgreSQL and runtime dependencies
+- Dokploy: VPS service lifecycle and deployment diagnostics
 - Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
 - Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
 - GitHub MCP: issue/PR/review workflows
@@ -21,25 +22,34 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
 ## Tool Selection Matrix
-- Schema migrations and drift checks: Supabase CLI
-- Ad hoc DB inspection/read queries: Supabase MCP
+- Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database
+- Ad hoc DB inspection/read queries: `psql` over Tailscale/SSH tunnel
 - Local webhook event simulation: Stripe CLI
 - Stripe object lookup/limited write operations: Stripe MCP
 - PR/issues/review actions: GitHub MCP
 - CI/CD run diagnostics: `gh`
 - Frontend runtime inspection: browser/devtools tooling
 
-## Self-Hosted Supabase Operational Context
-Internal-only runtime context:
+## PostgreSQL Operational Context
+Target Phase 1 runtime:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
-- Supabase host path: `/supabase/supabase/docker`
-- Common services: db, kong, rest, auth, storage, studio, pooler
-- Internal-only localhost ports: `3001`, `4000`, `5432`, `6543`, `8000`, `8443`
-- `https://supabase.caudals.com/` is intentionally not a public Studio surface; only API path prefixes are routed publicly.
-- Public `22/tcp` is closed; SSH administration is available only through `tailscale0`.
+- PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
+- Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
+- App service: `caudalsdep-caudals-vgbvxp`; database/auth secrets are mounted through `DATABASE_URL_FILE` and `BETTER_AUTH_SECRET_FILE`
+- Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
+- Schema migrations: `db/migrations/*`
+- Rollbacks: `db/rollbacks/*`
+- Migration report: `docs/migrations/supabase-to-postgres.md`
 
-Direct SSH runtime inspection is allowed when MCP context is stale:
+Direct SSH runtime inspection is allowed when local context is stale:
 - `ssh root@ubuntu-caudals`
+
+Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
+
+If Docker registry access is unavailable, restore the current deployed app image
+from the local archive before rescheduling the app service:
+- `sha256sum -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz.sha256`
+- `gunzip -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz | docker load`
 
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
@@ -50,38 +60,84 @@ Direct SSH runtime inspection is allowed when MCP context is stale:
   - `http://100.92.160.68:7443`
   - `http://100.92.160.68:7444`
 
-## Supabase CLI Usage Pattern
-1. Keep credentials in local secret file:
-   - `~/.config/caudals/supabase-selfhosted.env`
-2. Start tunnel(s):
-   - `./scripts/supabase-selfhosted-tunnel.sh start db`
-   - `./scripts/supabase-selfhosted-tunnel.sh start all`
-   - fallback raw tunnel: `ssh -L 55432:127.0.0.1:5432 root@ubuntu-caudals -N`
-3. Use explicit DB URL:
-   - `./scripts/supabase-cli-selfhosted.sh migration list`
-   - `./scripts/supabase-cli-selfhosted.sh db push --dry-run`
-   - `./scripts/supabase-cli-selfhosted.sh db pull`
-   - direct CLI fallback:
-     - `supabase migration list --db-url \"$SUPABASE_DB_URL\"`
-     - `supabase db push --db-url \"$SUPABASE_DB_URL\"`
-     - `supabase db pull --db-url \"$SUPABASE_DB_URL\"`
+## PostgreSQL Migration Usage Pattern
+1. Validate SQL on a disposable database before touching a shared database:
+   - `docker run --rm --name caudals-sqlcheck -e POSTGRES_PASSWORD=postgres -p 55433:5432 -d pgvector/pgvector:pg16`
+   - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
+   - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/rollbacks/<file>_down.sql`
+   - `docker rm -f caudals-sqlcheck`
+2. Apply to integration/production only after review:
+   - `docker exec -i $(docker ps --filter label=com.docker.swarm.service.name=caudals-postgres --format '{{.Names}}' | head -n 1) psql -U caudals_app -d caudals -v ON_ERROR_STOP=1 < db/migrations/<file>.sql`
+3. Record verification in `docs/migrations/supabase-to-postgres.md`.
 
 Hard rules:
-- For self-hosted targets, `--db-url` is mandatory.
-- Prefer `db push --dry-run` before write operations.
-- Keep schema changes in `supabase/migrations/*`.
+- Keep schema changes in `db/migrations/*` with matching rollback files in `db/rollbacks/*`.
 - Never expose DB credentials in docs, command output, or captured media.
-- Do not rely on raw public host ports for Supabase access; use SSH tunnels or Tailscale/private access paths only.
+- Do not rely on raw public database ports; use SSH tunnels or Tailscale/private access paths only.
+- Do not delete encrypted migration backups unless a newer verified backup exists.
 
-## Supabase MCP Usage Pattern
-1. Start MCP tunnel:
-   - `./scripts/supabase-selfhosted-tunnel.sh start mcp`
-2. Verify endpoint:
-   - `codex mcp get supabase`
-   - expected: `http://127.0.0.1:18100/mcp`
-3. Use MCP for read-first diagnostics.
-4. Use migration files + CLI for schema-changing work.
-5. If MCP context is stale/broken, fallback to SSH + CLI/psql.
+## Better Auth Migration Pattern
+1. Use PostgreSQL as the Better Auth adapter target.
+2. Keep operator sessions cookie-based, httpOnly, SameSite=Lax, rotating, and refresh-on-use.
+3. Keep TOTP and WebAuthn/passkeys available as optional operator hardening; password-only operator login is allowed by default.
+4. Preserve emails and roles when mapping legacy auth users into operator identity records.
+5. Force password reset on first login after migration.
+6. Record JIT-elevation events into `audit_event`.
+
+Current scaffold:
+- Server config: `lib/auth/better-auth.ts`
+- Shared auth options/table mapping: `lib/auth/better-auth-options.ts`
+- Client wrapper for future UI migration: `lib/auth/better-auth-client.ts`
+- Next.js endpoint: `app/(app)/api/auth/[...all]/route.ts`
+- Identity schema migration: `db/migrations/003_better_auth_identity.sql`
+- JIT production-DB elevation: `db/migrations/008_operator_elevation.sql`,
+  `lib/auth/operator-elevation.ts`, `lib/actions/operator-elevation-actions.ts`,
+  `components/admin/operator-elevation-card.tsx`, and
+  `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
+- Delivery signing keys: `lib/actions/signing-key-actions.ts` and
+  `components/admin/operator-signing-key-card.tsx`; private keys are encrypted
+  before insertion into `signing_key.encrypted_private_key`.
+- Cross-module record notes: `db/migrations/010_operator_record_note.sql`,
+  `lib/actions/operator-record-note-actions.ts`, and
+  `components/admin/operator-record-notes.tsx`; create/update/delete operations
+  write `audit_event` rows.
+- Generic operator record CRUD: `lib/operator/record-crud.ts`,
+  `lib/actions/operator-record-actions.ts`, and
+  `components/admin/operator-work-queue.tsx`; descriptor-gated create/update/delete
+  operations write `audit_event` rows, with append-only exceptions for immutable
+  records.
+- Operator security enrollment: `npm run operator:security-status` reports
+  MFA/passkey completion and reset-eligible counts without printing emails by
+  default. Password-only operator login is allowed unless
+  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is set. When enforcement
+  is enabled, add `-- --send-resets` to request fresh reset links for required
+  non-fixture operators still missing enrollment; reset attempts write
+  `audit_event` rows without email addresses in metadata. Add
+  `-- --fail-on-incomplete` only for release gates that intentionally require
+  all factors, and `-- --show-emails` only when an admin explicitly needs the
+  pending address list.
+- Password-reset links default to 30 minutes. Set
+  `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` to a value from `300` to
+  `86400` seconds when coordinating migrated operator enrollment needs a longer
+  reset window.
+- Legacy account migration: `npm run migrate:supabase-auth -- --apply`
+
+Install caveat:
+- Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.
+  Use `npm install --legacy-peer-deps` when adding or refreshing Better Auth packages until the Vite peer range is reconciled.
+
+## Observability Runtime
+- Sentry is wired through `instrumentation.ts`, `instrumentation-client.ts`,
+  `sentry.server.config.ts`, `sentry.edge.config.ts`, and
+  `lib/observability/sentry-config.ts`.
+- Sentry stays disabled unless `SENTRY_DSN` is set. Keep `sendDefaultPii=false`
+  unless a privacy review explicitly approves a change.
+- Optional OpenTelemetry stdout traces are registered from
+  `lib/observability/opentelemetry.ts` when `OTEL_STDOUT_ENABLED=true`.
+- The stdout exporter is intended for VPS diagnostics and short-lived debugging;
+  do not enable it permanently if logs may contain sensitive operational context.
+- Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
+  OpenTelemetry peer packages explicit in `package.json`.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -123,6 +179,8 @@ For translation-impacting work run:
 - `npm run i18n:check-parity`
 - optional strict sweep: `npm run i18n:check-parity -- --strict-orphans`
 
+If the parity script is missing, update `lib/i18n/es.json`, `translations-es.json`, and `translations-source.json` manually and verify the JSON parses.
+
 ## Sensitive Data Rule
 Never include secrets, tokens, private keys, webhook signing secrets, or unredacted financial data in repository docs or user-facing output.
 
@@ -130,12 +188,13 @@ Never include secrets, tokens, private keys, webhook signing secrets, or unredac
 Prerequisites:
 - Node.js `20+`
 - npm `10+`
-- Supabase CLI for migration workflows
+- PostgreSQL client tools (`psql`)
+- Docker for disposable migration checks
 
 Bootstrap:
 1. `npm install`
 2. `cp .env.example .env.local`
-3. Populate required secrets in `.env.local` (Supabase, Stripe, DO Spaces, Resend).
+3. Populate required secrets in `.env.local` (PostgreSQL/Better Auth during migration, Stripe, DO Spaces, Resend).
 4. `npm run dev`
 
 ## Core Script Catalog
@@ -150,11 +209,10 @@ Bootstrap:
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
+- `npm run migrate:supabase-auth`: dry-run legacy Supabase Auth to Better Auth
+  operator-account migration; pass `-- --apply` to write rows
+- `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
-- `npm run jobs:process-exports`: drain pending export jobs
-- `npm run payments:check-ledger`: ledger invariant checks
-- `npm run payments:repair-ledger`: dry-run/apply ledger repair
-- `npm run payments:check-compliance-policies`: payment policy/RLS checks
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
 ## Useful Route-Level Checks
@@ -163,16 +221,31 @@ Bootstrap:
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for hidden authenticated-route changes
 
 Operational env controls:
+- `DATABASE_URL`
+- `DATABASE_URL_FILE` (Docker secret-file fallback; `DATABASE_URL` wins when both are set)
+- `BETTER_AUTH_SECRET`
+- `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
+- `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
+- `SENTRY_DSN` (enables Sentry when non-empty)
+- `SENTRY_ENVIRONMENT`
+- `SENTRY_RELEASE`
+- `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
+- `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
+- `OTEL_STDOUT_ENABLED` (default disabled; set `true` for stdout spans)
+- `OTEL_SERVICE_NAME` (default `caudals-web`)
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
-- `EXPORT_JOBS_TOKEN` (required for `/api/internal/export-jobs`)
 
 ## Environment Variable Categories
-- Supabase: URL, anon key, service-role key, JWT settings
+- PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
+- Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
+- Observability: Sentry DSN/environment/release/sample rates and opt-in OpenTelemetry stdout export
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
@@ -183,16 +256,32 @@ Operational env controls:
 - Local/dev convenience: `next.config.js` mirrors `LANDING_MODE` into `NEXT_PUBLIC_LANDING_MODE` when the public flag is unset, so `.env.local` can activate the landing surface with just `LANDING_MODE=true`.
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
 
+## Phase 1 Surface Gate
+- `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
+- `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
+- `/dashboard` is removed and blocked during Phase 1.
+- `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
+- `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.
+- `/admin/*` legacy subroutes are removed and blocked during Phase 1; `/admin` remains the Operator Console.
+
 ## Troubleshooting Quick Hits
-- `Could not find table ... in schema cache`:
-  - apply pending migrations,
-  - reload PostgREST schema cache,
-  - restart API service if needed.
+- `permission denied for table ...`:
+  - confirm `app.current_org_id` and service-role session settings,
+  - inspect the table's RLS policy,
+  - retry with a read-only query before any mutation.
+- `extension "vector" is not available`:
+  - use a Postgres image/runtime with pgvector installed,
+  - verify `CREATE EXTENSION vector;` on a disposable database before applying migrations.
 - `Unable to acquire lock at .next/dev/lock` during Playwright:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
+- `browserType.launch: Executable doesn't exist` during Playwright:
+  - run `npx playwright install chromium`,
+  - on a fresh VPS, run `npx playwright install-deps chromium` if host libraries are missing.
+- `next build` exits through the PTY without diagnostics on the small VPS:
+  - rerun as `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build` and capture output to a temp log if needed.
+- Sentry/Turbopack warns about nested `import-in-the-middle` versions:
+  - confirm the build still reaches `Compiled successfully` and finishes the route table,
+  - keep `@opentelemetry/instrumentation` explicit unless Sentry changes its peer packaging.
 - Stripe webhook failures:
   - verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`,
-  - inspect `stripe_webhook_events` and transaction state.
-- Export jobs stuck in `pending`:
-  - verify `EXPORT_JOBS_TOKEN` and scheduler wiring for `/api/internal/export-jobs`,
-  - run `npm run jobs:process-exports`.
+  - inspect the `stripe_webhook_event` replay/idempotency table.

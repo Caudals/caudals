@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const {
-  createAdminClientMock,
+  generatePrefixedUlidMock,
+  queryRowsMock,
   getResendClientMock,
   ensureAudienceContactMock,
   buildRateLimitHeadersMock,
@@ -11,7 +12,8 @@ const {
   logErrorMock,
   logWarnMock,
 } = vi.hoisted(() => ({
-  createAdminClientMock: vi.fn(),
+  generatePrefixedUlidMock: vi.fn(() => "wl_01J2WAT7ST0000000000000000"),
+  queryRowsMock: vi.fn(),
   getResendClientMock: vi.fn(),
   ensureAudienceContactMock: vi.fn(),
   buildRateLimitHeadersMock: vi.fn(() => ({})),
@@ -21,8 +23,12 @@ const {
   logWarnMock: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: createAdminClientMock,
+vi.mock("@/lib/db/client", () => ({
+  queryRows: queryRowsMock,
+}));
+
+vi.mock("@/lib/db/ids", () => ({
+  generatePrefixedUlid: generatePrefixedUlidMock,
 }));
 
 vi.mock("@/lib/resend/client", () => ({
@@ -45,26 +51,6 @@ vi.mock("@/lib/security/structured-logger", () => ({
 }));
 
 import { POST } from "@/app/(app)/api/waitlist/route";
-
-type BuilderConfig = {
-  singleResult?: { data?: unknown; error?: unknown };
-  maybeSingleResult?: { data?: unknown; error?: unknown };
-};
-
-function createBuilder(config: BuilderConfig = {}) {
-  const builder: any = {};
-
-  for (const method of ["select", "eq", "update", "insert"]) {
-    builder[method] = vi.fn(() => builder);
-  }
-
-  builder.single = vi.fn(async () => config.singleResult ?? { data: null, error: null });
-  builder.maybeSingle = vi.fn(
-    async () => config.maybeSingleResult ?? { data: null, error: null },
-  );
-
-  return builder;
-}
 
 function createRequest(body: Record<string, unknown>) {
   return new NextRequest("http://localhost:3000/api/waitlist", {
@@ -94,22 +80,14 @@ describe("/api/waitlist", () => {
     });
 
     ensureAudienceContactMock.mockResolvedValue(true);
+    queryRowsMock.mockReset();
+    generatePrefixedUlidMock.mockReturnValue("wl_01J2WAT7ST0000000000000000");
   });
 
   it("uses the fallback sender when the primary confirmation send fails", async () => {
-    const lookupBuilder = createBuilder({
-      maybeSingleResult: { data: null, error: null },
-    });
-    const insertBuilder = createBuilder({
-      singleResult: { data: { id: "signup_1" }, error: null },
-    });
-
-    createAdminClientMock.mockReturnValue({
-      from: vi
-        .fn()
-        .mockReturnValueOnce(lookupBuilder)
-        .mockReturnValueOnce(insertBuilder),
-    });
+    queryRowsMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      { id: "wl_01J2WAT7ST0000000000000001" },
+    ]);
 
     const sendMock = vi
       .fn()
@@ -141,6 +119,10 @@ describe("/api/waitlist", () => {
       }),
     );
     expect(sendMock).toHaveBeenCalledTimes(3);
+    expect(queryRowsMock).toHaveBeenCalledTimes(2);
+    expect(queryRowsMock.mock.calls[0]?.[0]).toContain("FROM waitlist_signup");
+    expect(queryRowsMock.mock.calls[1]?.[0]).toContain("INSERT INTO waitlist_signup");
+    expect(generatePrefixedUlidMock).toHaveBeenCalledWith("wl");
     expect(logWarnMock).toHaveBeenCalledWith(
       "waitlist.confirmation_fallback_used",
       expect.objectContaining({ email: "person@example.com" }),
@@ -148,19 +130,9 @@ describe("/api/waitlist", () => {
   });
 
   it("returns emailSent false when confirmation delivery fails on both senders", async () => {
-    const lookupBuilder = createBuilder({
-      maybeSingleResult: { data: null, error: null },
-    });
-    const insertBuilder = createBuilder({
-      singleResult: { data: { id: "signup_2" }, error: null },
-    });
-
-    createAdminClientMock.mockReturnValue({
-      from: vi
-        .fn()
-        .mockReturnValueOnce(lookupBuilder)
-        .mockReturnValueOnce(insertBuilder),
-    });
+    queryRowsMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      { id: "wl_01J2WAT7ST0000000000000002" },
+    ]);
 
     const sendMock = vi
       .fn()
@@ -188,19 +160,9 @@ describe("/api/waitlist", () => {
   });
 
   it("keeps emailSent true when the internal notification fails after the confirmation succeeds", async () => {
-    const lookupBuilder = createBuilder({
-      maybeSingleResult: { data: null, error: null },
-    });
-    const insertBuilder = createBuilder({
-      singleResult: { data: { id: "signup_3" }, error: null },
-    });
-
-    createAdminClientMock.mockReturnValue({
-      from: vi
-        .fn()
-        .mockReturnValueOnce(lookupBuilder)
-        .mockReturnValueOnce(insertBuilder),
-    });
+    queryRowsMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      { id: "wl_01J2WAT7ST0000000000000003" },
+    ]);
 
     const sendMock = vi
       .fn()

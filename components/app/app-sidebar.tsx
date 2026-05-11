@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -10,23 +9,20 @@ import {
   CheckCircle,
   CreditCard,
   Database,
-  FilePlus2,
   FileText,
   FileUp,
   FolderArchive,
-  LayoutDashboard,
   LifeBuoy,
+  ListChecks,
   Megaphone,
   Settings,
   Shield,
   UserPlus,
   Users,
-  Wallet,
   LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
 import { useTranslations } from "@/lib/i18n/use-translations";
-import { resolveViewKey, type ViewKey } from "@/lib/navigation/role-view";
 import {
   Sidebar,
   SidebarContent,
@@ -42,11 +38,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { NavUser } from "@/components/app/nav-user";
-import { RoleSwitcher } from "@/components/app/role-switcher";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
-import { NotificationBell } from "@/components/app/notification-bell";
 
 type NavItem = {
   title: string;
@@ -63,88 +56,105 @@ type NavGroup = {
   items: NavItem[];
 };
 
-const requesterNav: NavGroup[] = [
-  {
-    group: "Overview",
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, href: "/requester", exact: true },
-      { title: "Analytics", icon: BarChart3, href: "/requester/analytics" },
-    ],
-  },
-  {
-    group: "Execution queues",
-    items: [
-      {
-        title: "Review queue",
-        icon: CheckCircle,
-        href: "/requester/datasets?filter=pending_review",
-        query: { filter: "pending_review" },
-      },
-    ],
-  },
-  {
-    group: "Dataset ops",
-    items: [
-      {
-        title: "All datasets",
-        icon: FileText,
-        href: "/requester/datasets",
-        exact: true,
-        clearQueryKeys: ["status", "filter"],
-      },
-      { title: "New dataset", icon: FilePlus2, href: "/requester/datasets/new" },
-      { title: "Files & exports", icon: FolderArchive, href: "/requester/files" },
-    ],
-  },
-  {
-    group: "Finance & billing",
-    items: [
-      { title: "Billing & payouts", icon: CreditCard, href: "/requester/billing" },
-    ],
-  },
-];
-
-const contributorNav: NavGroup[] = [
-  {
-    group: "Overview",
-    items: [{ title: "Dashboard", icon: LayoutDashboard, href: "/contributor", exact: true }],
-  },
-  {
-    group: "Work queue",
-    items: [
-      { title: "My contributions", icon: FileUp, href: "/contributor/contributions" },
-      { title: "Browse opportunities", icon: Database, href: "/contributor/browse" },
-    ],
-  },
-  {
-    group: "Finance & earnings",
-    items: [{ title: "Earnings & payouts", icon: Wallet, href: "/contributor/earnings" }],
-  },
-];
-
 const adminNav: NavGroup[] = [
   {
-    group: "Overview",
+    group: "Operator console",
     items: [
-      { title: "Control center", icon: Shield, href: "/admin", exact: true },
-      { title: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-      { title: "Activity", icon: CheckCircle, href: "/admin/activity" },
+      {
+        title: "Pipeline / Home",
+        icon: Shield,
+        href: "/admin",
+        exact: true,
+        clearQueryKeys: ["module"],
+      },
+      {
+        title: "Leads & Opportunities",
+        icon: FileText,
+        href: "/admin?module=leads",
+        query: { module: "leads" },
+      },
+      {
+        title: "Suppliers",
+        icon: Users,
+        href: "/admin?module=suppliers",
+        query: { module: "suppliers" },
+      },
+      {
+        title: "Buyers",
+        icon: UserPlus,
+        href: "/admin?module=buyers",
+        query: { module: "buyers" },
+      },
     ],
   },
   {
-    group: "Operations",
+    group: "Dataset operations",
     items: [
-      { title: "Requests", icon: FileText, href: "/admin/requests" },
-      { title: "Submissions", icon: FileUp, href: "/admin/submissions" },
-      { title: "Datasets", icon: Database, href: "/admin/datasets" },
-      { title: "Users", icon: Users, href: "/admin/users" },
-      { title: "Featured", icon: Megaphone, href: "/admin/featured" },
+      {
+        title: "Builds",
+        icon: CheckCircle,
+        href: "/admin?module=builds",
+        query: { module: "builds" },
+      },
+      {
+        title: "Datasets",
+        icon: Database,
+        href: "/admin?module=datasets",
+        query: { module: "datasets" },
+      },
+      {
+        title: "Labeling",
+        icon: ListChecks,
+        href: "/admin?module=labeling",
+        query: { module: "labeling" },
+      },
+      {
+        title: "Quality",
+        icon: BarChart3,
+        href: "/admin?module=quality",
+        query: { module: "quality" },
+      },
+      {
+        title: "Privacy & Rights",
+        icon: Shield,
+        href: "/admin?module=privacy",
+        query: { module: "privacy" },
+      },
     ],
   },
   {
-    group: "Finance & risk",
+    group: "Business operations",
     items: [
-      { title: "Payments", icon: CreditCard, href: "/admin/payments" },
+      {
+        title: "Catalogue & Offers",
+        icon: Megaphone,
+        href: "/admin?module=catalogue",
+        query: { module: "catalogue" },
+      },
+      {
+        title: "Commercials",
+        icon: CreditCard,
+        href: "/admin?module=commercials",
+        query: { module: "commercials" },
+      },
+      {
+        title: "Operations",
+        icon: FileUp,
+        href: "/admin?module=operations",
+        query: { module: "operations" },
+      },
+      {
+        title: "Audit",
+        icon: CheckCircle,
+        href: "/admin?module=audit",
+        query: { module: "audit" },
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        href: "/admin?module=settings",
+        query: { module: "settings" },
+      },
     ],
   },
 ];
@@ -161,14 +171,12 @@ function parseHref(href: string): { path: string; params: URLSearchParams } {
 }
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  const { user, userRole, loading } = useAuth();
+  const { userRole, loading } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { state } = useSidebar();
   const t = useTranslations();
   const isCollapsed = state === "collapsed";
-
-  const workspaceTitle = user?.user_metadata?.workspace || "Caudals";
 
   if (loading || !userRole) {
     return (
@@ -195,33 +203,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     );
   }
 
-  const viewKey = resolveViewKey(pathname, userRole);
-
-  let navGroups: NavGroup[] = requesterNav;
-  let viewLabel = "Requester";
-  let homeHref = "/requester";
-
-  if (viewKey === "admin") {
-    navGroups = adminNav;
-    viewLabel = "Admin";
-    homeHref = "/admin";
-  } else if (viewKey === "contributor") {
-    navGroups = contributorNav;
-    viewLabel = "Contributor";
-    homeHref = "/contributor";
-  }
+  const homeHref = "/admin";
 
   const footerLinks = baseFooterLinks.map(item => {
     if (item.title === "Support") {
-      return { ...item, href: `/${viewKey}/support` };
+      return { ...item, href: "/admin?module=operations" };
     }
     if (item.title === "Settings") {
-      return { ...item, href: `/${viewKey}/settings` };
+      return { ...item, href: "/admin?module=settings" };
     }
     return item;
   });
 
-  const sidebarGroups: NavGroup[] = [...navGroups, { group: "Workspace", items: footerLinks }];
+  const sidebarGroups: NavGroup[] = [...adminNav, { group: "Workspace", items: footerLinks }];
 
   const isItemActive = (item: NavItem) => {
     const { path: itemPath, params } = parseHref(item.href);
@@ -263,7 +257,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
              <NavUser />
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {!isCollapsed && <NotificationBell />}
             <SidebarTrigger className="h-8 w-8 text-slate-500 hover:text-foreground shrink-0 flex items-center justify-center" />
           </div>
         </div>
@@ -273,11 +266,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             compact={isCollapsed}
             className={isCollapsed ? "mx-auto flex justify-center w-8 h-8 p-0" : "w-full justify-between rounded-lg"}
           />
-          {userRole === "admin" ? (
-            <div className="flex justify-center">
-              <RoleSwitcher userRole={userRole} currentView={viewKey} isCollapsed={isCollapsed} />
-            </div>
-          ) : null}
         </div>
       </SidebarHeader>
 

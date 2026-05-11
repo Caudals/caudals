@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentOperatorSession } from "@/lib/auth/operator-session";
 import {
   PRODUCT_EVENT_NAMES,
   type ProductEventName,
@@ -66,21 +66,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let role: string | null = null;
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-    role = profile?.role ?? null;
-  }
+  const operatorSession = await getCurrentOperatorSession(request.headers);
 
   const { eventName, payload, path, sessionId } = parsed.data;
 
@@ -89,8 +75,8 @@ export async function POST(request: NextRequest) {
     payload,
     path,
     sessionId,
-    userId: user?.id ?? null,
-    userRole: role,
+    userId: operatorSession?.authUser.id ?? null,
+    userRole: operatorSession?.operator.role ?? null,
     source: "client",
   });
 

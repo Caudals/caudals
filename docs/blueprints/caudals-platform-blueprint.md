@@ -9,7 +9,7 @@ A complete technical blueprint for designing, building and operating the softwar
 | | |
 |---|---|
 | **Document** | 01 |
-| **Revision** | 1.0 — first canonical issue |
+| **Revision** | 1.2 — Optional operator MFA/passkey enforcement |
 | **Date issued** | 09 May 2026 |
 | **Owner** | Caudals Platform Engineering |
 | **Status** | Approved for engineering execution |
@@ -53,6 +53,11 @@ Marketing copy, pricing rate cards, individual customer integrations, and specif
 - **34** Sections
 - **9** Pipeline stages
 - **8** Data modalities
+
+#### Changelog
+
+- **1.1** — Replaces platform OLTP/auth target with self-hosted PostgreSQL + Better Auth for Phase 1.
+- **1.2** — Makes operator TOTP/passkey enrollment optional by default while retaining the Better Auth factor flows.
 
 ---
 
@@ -294,7 +299,7 @@ The Caudals platform is structured as five horizontal planes, each with a clear 
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  PLANE 4 · SERVICES & API                                                        │
 │  Server actions · tRPC/REST · Auth · Permissions · Webhooks                      │
-│  Node · TypeScript · Supabase Auth                                               │
+│  Node · TypeScript · Better Auth                                                │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  PLANE 3 · DATASET OPERATIONS — THE CORE                                         │
 │  Orchestrator · Profilers · Cleaners · PII · Enrichers · Labeling · QA · Packagers│
@@ -352,7 +357,7 @@ The stack favours mature, instrumented technology with strong operational track 
 |---|---|---|---|
 | Runtime | Node 22 LTS, TypeScript strict mode | Continuity; ecosystem. | Bun (revisit at year 2) |
 | API style | Server Actions internally; tRPC for buyer/supplier; signed REST for partner integrations | Type-safe across boundaries; minimal contract drift. | GraphQL (overkill at this scale) |
-| Auth | Supabase Auth + RLS; org-scoped roles; SCIM-ready for enterprise buyers | Already wired; RLS is the primary enforcement. | Auth0, WorkOS |
+| Auth | Better Auth + Postgres adapter; org-scoped roles; SSO scaffolded for Phase 3 | Cookie sessions and optional operator MFA/passkeys live in-app while Postgres RLS remains the tenancy boundary. | Auth0, WorkOS |
 | Webhooks | Idempotent receivers, replay log, signed events | Required for Stripe + supplier-side integrations. | — |
 | Email | Resend with audited templates & suppressions | Transactional + light marketing. | Postmark |
 | Payments | Stripe (Connect for supplier revenue share) | Standard for B2B; revenue share via Connect transfers. | Adyen |
@@ -378,7 +383,7 @@ The stack favours mature, instrumented technology with strong operational track 
 
 | Layer | Choice | Why |
 |---|---|---|
-| OLTP | Postgres 16 (Supabase self-hosted) | Existing infrastructure; pgvector, RLS, FDW headroom. |
+| OLTP | Self-hosted Postgres 16 via Dokploy | Direct control of extensions, RLS, backups, migration cadence, and Phase 1 operator schema. |
 | Object store | DigitalOcean Spaces (S3-compatible) + R2 for cross-region delivery | S3 API compatibility; existing repo wiring. |
 | Lakehouse tables | **Apache Iceberg** on object store, queried by DuckDB / Trino | Vendor-neutral table format; works with every engine. |
 | Tensor / unstructured | **Lance** format for image/video/audio collections; WebDataset for streaming training | Random-access columnar tensors; GPU-friendly streaming. |
@@ -394,7 +399,7 @@ The stack favours mature, instrumented technology with strong operational track 
 | Container runtime | Docker + Dokploy on DigitalOcean VPS (current) |
 | Orchestration (year 2) | Managed Kubernetes when GPU pool exceeds 4 nodes |
 | Networking | Tailscale for admin, Traefik / Kong for public |
-| Secrets | Doppler / Infisical; Supabase Vault for in-DB secrets |
+| Secrets | Doppler / Infisical; encrypted Postgres columns for per-org integration material |
 | CI/CD | GitHub Actions → Docker Hub → Dokploy |
 | Logs | OpenTelemetry → Grafana Loki |
 | Metrics | Prometheus + Grafana |
@@ -1438,7 +1443,8 @@ Caudals' commercial credibility depends on its security and compliance posture f
 
 ### Identity & access
 
-- **Internal SSO** with mandatory MFA; phishing-resistant factors required for production roles.
+- **Better Auth operator identity** with password-only login allowed by default; TOTP and phishing-resistant passkeys remain available as optional hardening and can be made mandatory later by policy.
+- **Internal SSO scaffolded** but disabled until the Phase 3 buyer/supplier identity rollout.
 - **Role-based access control** with least-privilege roles enforced at the database (RLS), service (server actions), and infrastructure layers (Tailscale ACLs).
 - **Just-in-time elevation** for production database access; every elevation is recorded with reason and is time-bounded.
 - **Buyer-side SSO + SCIM**; supplier-side SSO available on request.
@@ -1562,7 +1568,7 @@ Seven sections that turn the blueprint into a build sequence: the data model, th
 
 ### The schema is the operations spine
 
-The list below is the canonical core of the platform's relational schema. Naming is final; ID prefixes match the records; foreign-key edges are indicative. Migrations land in `supabase/migrations/*` and never bypass review.
+The list below is the canonical core of the platform's relational schema. Naming is final; ID prefixes match the records; foreign-key edges are indicative. Migrations land in `db/migrations/*` with matching rollbacks in `db/rollbacks/*` and never bypass review.
 
 ### Domain map
 
@@ -1990,11 +1996,7 @@ This document is the canonical technical specification for the Caudals platform.
 
 ---
 
-*Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.0 · Issued 2026-05-09*
+*Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.2 · Issued 2026-05-09*
 
 *Pairs with: `AGENTS.md` · `docs/ARCHITECTURE.md` · `docs/product-specs/overview.md`*
-
-
-
-
 

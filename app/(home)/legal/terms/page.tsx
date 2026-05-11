@@ -18,8 +18,8 @@ const sections = [
     body: "You are responsible for maintaining account security, accurate profile information, and authorized use of your workspace.",
   },
   {
-    title: "Requester and Contributor Conduct",
-    body: "Requesters must provide clear project requirements and fair compensation terms. Contributors must submit lawful, original, and policy-compliant work.",
+    title: "Buyer and Supplier Conduct",
+    body: "Buyers must provide clear project requirements and lawful use cases. Suppliers must provide lawful, permissioned, and policy-compliant data access.",
   },
   {
     title: "Payments and Payouts",
