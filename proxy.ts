@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isBetterAuthSessionCookieName } from "@/lib/auth/session-cookie";
 import {
   isLandingModeEnabledServer,
   isLandingModeRequestAllowed,
@@ -23,6 +24,7 @@ const APP_ONLY_PATH_PREFIXES = [
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
+const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
 
 type HostConfig = {
   hostname: string;
@@ -93,6 +95,22 @@ function matchesAppOnlyPath(pathname: string): boolean {
 
 function isRedirectResponse(response: NextResponse) {
   return response.status >= 300 && response.status < 400;
+}
+
+function hasBetterAuthSessionCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => isBetterAuthSessionCookieName(cookie.name));
+}
+
+function redirectAnonymousAdminRequest(request: NextRequest) {
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = "/auth/sign-in";
+  redirectUrl.searchParams.set(
+    "next",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`
+  );
+  return NextResponse.redirect(redirectUrl);
 }
 
 function rewriteWithState(
@@ -181,6 +199,10 @@ export async function proxy(request: NextRequest) {
         "Content-Type": "text/plain; charset=utf-8",
       },
     });
+  }
+
+  if (ADMIN_ROOT_PATHS.has(pathname) && !hasBetterAuthSessionCookie(request)) {
+    return redirectAnonymousAdminRequest(request);
   }
 
   if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {

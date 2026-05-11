@@ -1,18 +1,10 @@
 import { expect, type Page } from "@playwright/test";
+import { isBetterAuthSessionCookieName } from "../../lib/auth/session-cookie";
 
 export const FIXTURE_OPERATOR_EMAIL = "fixture.admin@caudals.local";
 
 const FIXTURE_PASSWORD =
   process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
-
-function isBetterAuthSessionCookie(cookieName: string) {
-  return (
-    cookieName === "caudals.session_token" ||
-    cookieName === "caudals-session_token" ||
-    cookieName === "__Secure-caudals.session_token" ||
-    cookieName === "__Secure-caudals-session_token"
-  );
-}
 
 export async function signInAsFixtureOperator(
   page: Page,
@@ -31,7 +23,9 @@ export async function signInAsFixtureOperator(
     .poll(
       async () => {
         const cookies = await page.context().cookies();
-        return cookies.some((cookie) => isBetterAuthSessionCookie(cookie.name));
+        return cookies.some((cookie) =>
+          isBetterAuthSessionCookieName(cookie.name)
+        );
       },
       {
         timeout: 45_000,
