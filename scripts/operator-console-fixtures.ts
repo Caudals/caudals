@@ -40,6 +40,7 @@ const ids = {
   piiMap: fixtureId("pm", 1),
   catalogueListing: fixtureId("cl", 1),
   privateOffer: fixtureId("po", 1),
+  samplePreviewAccess: fixtureId("pa", 1),
   quote: fixtureId("qt", 1),
   delivery: fixtureId("dl", 1),
   invoice: fixtureId("iv", 1),
@@ -785,43 +786,112 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     client,
     `
       INSERT INTO catalogue_listing (
-        id, org_id, dataset_id, title, pricing, state, created_at, updated_at, created_by
+        id, org_id, dataset_id, dataset_version_id, title, pricing,
+        visibility, sample_preview_uri, sample_preview_policy,
+        refresh_cadence, license_tier, state, created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, 'Operator-managed receipt corpus listing',
-        '{"listPrice":9900,"currency":"USD"}'::jsonb,
-        'review', $4, $4, $5
+        $1, $2, $3, $4, 'Operator-managed receipt corpus listing',
+        '{"priceCents":990000,"currency":"USD","billingModel":"pilot"}'::jsonb,
+        'private',
+        's3://fixture/previews/receipt-sample.jsonl',
+        '{"gate":"nda_required","watermark":true}'::jsonb,
+        'monthly',
+        'evaluation',
+        'review', $5, $5, $6
       )
       ON CONFLICT (id) DO UPDATE SET
+        dataset_version_id = EXCLUDED.dataset_version_id,
         title = EXCLUDED.title,
         pricing = EXCLUDED.pricing,
+        visibility = EXCLUDED.visibility,
+        sample_preview_uri = EXCLUDED.sample_preview_uri,
+        sample_preview_policy = EXCLUDED.sample_preview_policy,
+        refresh_cadence = EXCLUDED.refresh_cadence,
+        license_tier = EXCLUDED.license_tier,
         state = EXCLUDED.state,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.catalogueListing, ids.tenantOrg, ids.dataset, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.catalogueListing,
+      ids.tenantOrg,
+      ids.dataset,
+      ids.datasetVersion,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
     client,
     `
       INSERT INTO private_offer (
-        id, org_id, buyer_org_id, dataset_id, terms, state, created_at, updated_at, created_by
+        id, org_id, buyer_org_id, dataset_id, dataset_version_id,
+        terms, sample_preview_uri, sample_preview_policy,
+        state, created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, $4,
+        $1, $2, $3, $4, $5,
         '{"term":"12 months","scope":"evaluation+fine-tuning"}'::jsonb,
-        'sent', $5, $5, $6
+        's3://fixture/previews/private-offer-sample.jsonl',
+        '{"gate":"operator_approved","watermark":true}'::jsonb,
+        'sent', $6, $6, $7
       )
       ON CONFLICT (id) DO UPDATE SET
         buyer_org_id = EXCLUDED.buyer_org_id,
         dataset_id = EXCLUDED.dataset_id,
+        dataset_version_id = EXCLUDED.dataset_version_id,
         terms = EXCLUDED.terms,
+        sample_preview_uri = EXCLUDED.sample_preview_uri,
+        sample_preview_policy = EXCLUDED.sample_preview_policy,
         state = EXCLUDED.state,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.privateOffer, ids.tenantOrg, ids.buyerOrg, ids.dataset, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.privateOffer,
+      ids.tenantOrg,
+      ids.buyerOrg,
+      ids.dataset,
+      ids.datasetVersion,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO sample_preview_access (
+        id, org_id, catalogue_listing_id, buyer_org_id, state,
+        nda_acknowledged_at, watermark_subject, decision_reason,
+        expires_at, decided_by, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, 'nda_acknowledged',
+        $5, 'buyer_org', 'Fixture buyer acknowledged NDA for preview review.',
+        $5::timestamptz + interval '14 days', NULL, $5, $5, $6
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        catalogue_listing_id = EXCLUDED.catalogue_listing_id,
+        buyer_org_id = EXCLUDED.buyer_org_id,
+        state = EXCLUDED.state,
+        nda_acknowledged_at = EXCLUDED.nda_acknowledged_at,
+        watermark_subject = EXCLUDED.watermark_subject,
+        decision_reason = EXCLUDED.decision_reason,
+        expires_at = EXCLUDED.expires_at,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.samplePreviewAccess,
+      ids.tenantOrg,
+      ids.catalogueListing,
+      ids.buyerOrg,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(

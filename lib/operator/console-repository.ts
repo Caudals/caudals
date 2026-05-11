@@ -326,7 +326,7 @@ async function persistOperatorTransitionToPostgres(
   const auditEvent = buildTransitionAuditEvent(input);
   const tableName = transitionWorkflowTables[input.workflow];
   const rows = await query<PersistTransitionRow>(
-    buildPersistTransitionSql(tableName),
+    buildPersistTransitionSql(tableName, input.workflow),
     [
       input.toState,
       input.targetId,
@@ -485,13 +485,42 @@ const transitionWorkflowTables = {
   contract: '"contract"',
   delivery: '"delivery"',
   dsar: '"dsar_request"',
+  sample_preview_access: '"sample_preview_access"',
 } satisfies Record<WorkflowName, string>;
 
-function buildPersistTransitionSql(tableName: string) {
+function buildPersistTransitionAssignments(workflow: WorkflowName) {
+  if (workflow !== "sample_preview_access") {
+    return "state = $1";
+  }
+
+  return `
+        state = $1,
+        nda_acknowledged_at = CASE
+          WHEN $1 IN ('nda_acknowledged', 'approved') THEN COALESCE(nda_acknowledged_at, now())
+          ELSE nda_acknowledged_at
+        END,
+        decision_reason = CASE
+          WHEN $1 IN ('approved', 'denied', 'revoked', 'expired')
+            THEN COALESCE(NULLIF($8::jsonb ->> 'reason', ''), decision_reason)
+          ELSE decision_reason
+        END,
+        decided_by = CASE
+          WHEN $1 IN ('approved', 'denied', 'revoked', 'expired') THEN $5
+          ELSE decided_by
+        END,
+        expires_at = CASE
+          WHEN $1 = 'approved' THEN COALESCE(expires_at, now() + interval '14 days')
+          WHEN $1 = 'expired' THEN COALESCE(expires_at, now())
+          ELSE expires_at
+        END
+  `;
+}
+
+function buildPersistTransitionSql(tableName: string, workflow: WorkflowName) {
   return `
     WITH updated AS (
       UPDATE ${tableName}
-      SET state = $1
+      SET ${buildPersistTransitionAssignments(workflow)}
       WHERE id = $2
         AND state = $3
         AND deleted_at IS NULL
@@ -573,8 +602,10 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM dsar_request WHERE state <> 'completed' AND deleted_at IS NULL)
     UNION ALL SELECT 'catalogue',
       (SELECT count(*)::int FROM catalogue_listing WHERE deleted_at IS NULL) +
-      (SELECT count(*)::int FROM private_offer WHERE deleted_at IS NULL),
-      (SELECT count(*)::int FROM catalogue_listing WHERE state = 'review' AND deleted_at IS NULL)
+      (SELECT count(*)::int FROM private_offer WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM sample_preview_access WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM catalogue_listing WHERE state = 'review' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM sample_preview_access WHERE state IN ('requested', 'nda_acknowledged') AND deleted_at IS NULL)
     UNION ALL SELECT 'commercials',
       (SELECT count(*)::int FROM quote WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM contract WHERE contract_type = 'buyer' AND deleted_at IS NULL) +
@@ -998,6 +1029,26 @@ const moduleWorkItemsSql = `
     WHERE po.deleted_at IS NULL
     UNION ALL
     SELECT
+      'catalogue',
+      'sample_preview_access',
+      spa.id,
+      COALESCE(cl.title, po.terms ->> 'summary', 'Sample preview access'),
+      spa.state,
+      COALESCE(buyer.display_name, spa.buyer_org_id, 'buyer') || ' · ' || COALESCE(cl.visibility, 'private'),
+      spa.updated_at,
+      CASE
+        WHEN spa.state IN ('denied', 'revoked', 'expired') THEN 'critical'
+        WHEN spa.state IN ('requested', 'nda_acknowledged') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review preview gate'
+    FROM sample_preview_access spa
+    LEFT JOIN catalogue_listing cl ON cl.id = spa.catalogue_listing_id
+    LEFT JOIN private_offer po ON po.id = spa.private_offer_id
+    LEFT JOIN organization buyer ON buyer.id = spa.buyer_org_id
+    WHERE spa.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'commercials',
       'quote',
       qt.id,
@@ -1279,7 +1330,12 @@ const moduleWorkItemsSql = `
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'priceCents', cl.pricing ->> 'priceCents',
             'currency', cl.pricing ->> 'currency',
-            'billingModel', cl.pricing ->> 'billingModel'
+            'billingModel', cl.pricing ->> 'billingModel',
+            'visibility', cl.visibility,
+            'previewGate', cl.sample_preview_policy ->> 'gate',
+            'samplePreviewUri', cl.sample_preview_uri,
+            'refreshCadence', cl.refresh_cadence,
+            'licenseTier', cl.license_tier
           ))
           FROM catalogue_listing cl
           WHERE cl.id = raw_work_items.id
@@ -1288,10 +1344,21 @@ const moduleWorkItemsSql = `
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'offerValueCents', po.terms ->> 'offerValueCents',
             'currency', po.terms ->> 'currency',
-            'expiresAt', po.terms ->> 'expiresAt'
+            'expiresAt', po.terms ->> 'expiresAt',
+            'previewGate', po.sample_preview_policy ->> 'gate',
+            'samplePreviewUri', po.sample_preview_uri
           ))
           FROM private_offer po
           WHERE po.id = raw_work_items.id
+        )
+        WHEN record_type = 'sample_preview_access' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'watermarkSubject', spa.watermark_subject,
+            'expiresAt', spa.expires_at,
+            'decisionReason', spa.decision_reason
+          ))
+          FROM sample_preview_access spa
+          WHERE spa.id = raw_work_items.id
         )
         WHEN record_type = 'quote' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

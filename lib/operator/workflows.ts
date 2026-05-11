@@ -6,7 +6,8 @@ export type WorkflowName =
   | "label_batch"
   | "contract"
   | "delivery"
-  | "dsar";
+  | "dsar"
+  | "sample_preview_access";
 
 export type WorkflowTransition = {
   from: string;
@@ -52,6 +53,7 @@ export const workflowRecordTypeMap = {
   delivery: "delivery",
   dsar: "dsar",
   dsar_request: "dsar",
+  sample_preview_access: "sample_preview_access",
 } as const satisfies Record<string, WorkflowName>;
 
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
@@ -248,6 +250,28 @@ export const workflowDefinitions = {
       { from: "identity_verified", to: "impact_assessed" },
       { from: "impact_assessed", to: "propagating" },
       { from: "propagating", to: "completed" },
+    ],
+  },
+  sample_preview_access: {
+    name: "sample_preview_access",
+    states: [
+      "requested",
+      "nda_acknowledged",
+      "approved",
+      "denied",
+      "revoked",
+      "expired",
+    ],
+    terminalStates: ["denied", "revoked", "expired"],
+    transitions: [
+      { from: "requested", to: "nda_acknowledged" },
+      { from: "requested", to: "denied" },
+      { from: "nda_acknowledged", to: "approved" },
+      { from: "nda_acknowledged", to: "denied" },
+      { from: "approved", to: "revoked" },
+      { from: "approved", to: "expired" },
+      { from: "denied", to: "requested", label: "reopen" },
+      { from: "revoked", to: "requested", label: "reopen" },
     ],
   },
 } satisfies Record<WorkflowName, WorkflowDefinition>;

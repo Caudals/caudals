@@ -26,6 +26,7 @@ const workflowNameSchema = z.enum([
   "contract",
   "delivery",
   "dsar",
+  "sample_preview_access",
 ]);
 
 const transitionSchema = z.object({

@@ -112,6 +112,11 @@ const mutableTables = {
     softDelete: true,
   },
   private_offer: { table: "private_offer", prefix: "po", softDelete: true },
+  sample_preview_access: {
+    table: "sample_preview_access",
+    prefix: "pa",
+    softDelete: true,
+  },
   quote: { table: "quote", prefix: "qt", softDelete: true },
   invoice: { table: "invoice", prefix: "iv", softDelete: true },
   payout: { table: "payout", prefix: "py", softDelete: true },
@@ -904,19 +909,27 @@ function buildCreateSql(
       FROM inserted CROSS JOIN audit
     `,
     catalogue_listing: `
-      WITH target_dataset AS (
-        SELECT id
-        FROM dataset
-        WHERE org_id = $2 AND deleted_at IS NULL
-        ORDER BY updated_at DESC
+      WITH target_version AS (
+        SELECT dv.dataset_id, dv.id AS dataset_version_id
+        FROM dataset_version dv
+        JOIN dataset d ON d.id = dv.dataset_id
+        WHERE dv.org_id = $2
+          AND dv.deleted_at IS NULL
+          AND d.deleted_at IS NULL
+        ORDER BY dv.released_at DESC NULLS LAST, dv.updated_at DESC
         LIMIT 1
       ),
       inserted AS (
-        INSERT INTO catalogue_listing (id, org_id, dataset_id, title, pricing, state, created_by)
+        INSERT INTO catalogue_listing (
+          id, org_id, dataset_id, dataset_version_id, title, pricing,
+          visibility, sample_preview_uri, sample_preview_policy,
+          refresh_cadence, license_tier, state, created_by
+        )
         SELECT
           $1,
           $2,
-          id,
+          dataset_id,
+          dataset_version_id,
           $3,
           jsonb_strip_nulls(jsonb_build_object(
             'summary', NULLIF($9, ''),
@@ -924,18 +937,79 @@ function buildCreateSql(
             'currency', NULLIF($11::jsonb ->> 'currency', ''),
             'billingModel', NULLIF($11::jsonb ->> 'billingModel', '')
           )),
+          COALESCE(NULLIF($11::jsonb ->> 'visibility', ''), 'private'),
+          NULLIF($11::jsonb ->> 'samplePreviewUri', ''),
+          jsonb_strip_nulls(jsonb_build_object(
+            'gate', COALESCE(NULLIF($11::jsonb ->> 'previewGate', ''), 'nda_required'),
+            'watermark', true
+          )),
+          NULLIF($11::jsonb ->> 'refreshCadence', ''),
+          COALESCE(NULLIF($11::jsonb ->> 'licenseTier', ''), 'standard'),
           $4,
           $6
-        FROM target_dataset
+        FROM target_version
         RETURNING id, updated_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
     private_offer: `
-      WITH target_dataset AS (
+      WITH target_version AS (
+        SELECT dv.dataset_id, dv.id AS dataset_version_id
+        FROM dataset_version dv
+        JOIN dataset d ON d.id = dv.dataset_id
+        WHERE dv.org_id = $2
+          AND dv.deleted_at IS NULL
+          AND d.deleted_at IS NULL
+        ORDER BY dv.released_at DESC NULLS LAST, dv.updated_at DESC
+        LIMIT 1
+      ),
+      target_buyer AS (
+        SELECT COALESCE(
+          (
+            SELECT id
+            FROM organization
+            WHERE org_id = $2 AND kind = 'buyer' AND deleted_at IS NULL
+            ORDER BY updated_at DESC
+            LIMIT 1
+          ),
+          $2
+        ) AS id
+      ),
+      inserted AS (
+        INSERT INTO private_offer (
+          id, org_id, buyer_org_id, dataset_id, dataset_version_id,
+          terms, sample_preview_uri, sample_preview_policy, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_buyer.id,
+          target_version.dataset_id,
+          target_version.dataset_version_id,
+          jsonb_strip_nulls(jsonb_build_object(
+            'summary', COALESCE(NULLIF($9, ''), $3),
+            'offerValueCents', NULLIF($11::jsonb ->> 'offerValueCents', '')::integer,
+            'currency', NULLIF($11::jsonb ->> 'currency', ''),
+            'expiresAt', NULLIF($11::jsonb ->> 'expiresAt', '')
+          )),
+          NULLIF($11::jsonb ->> 'samplePreviewUri', ''),
+          jsonb_strip_nulls(jsonb_build_object(
+            'gate', COALESCE(NULLIF($11::jsonb ->> 'previewGate', ''), 'operator_approved'),
+            'watermark', true
+          )),
+          $4,
+          $6
+        FROM target_version CROSS JOIN target_buyer
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    sample_preview_access: `
+      WITH target_listing AS (
         SELECT id
-        FROM dataset
+        FROM catalogue_listing
         WHERE org_id = $2 AND deleted_at IS NULL
         ORDER BY updated_at DESC
         LIMIT 1
@@ -953,21 +1027,24 @@ function buildCreateSql(
         ) AS id
       ),
       inserted AS (
-        INSERT INTO private_offer (id, org_id, buyer_org_id, dataset_id, terms, state, created_by)
+        INSERT INTO sample_preview_access (
+          id, org_id, catalogue_listing_id, buyer_org_id, state,
+          nda_acknowledged_at, watermark_subject, decision_reason,
+          expires_at, decided_by, created_by
+        )
         SELECT
           $1,
           $2,
+          target_listing.id,
           target_buyer.id,
-          target_dataset.id,
-          jsonb_strip_nulls(jsonb_build_object(
-            'summary', COALESCE(NULLIF($9, ''), $3),
-            'offerValueCents', NULLIF($11::jsonb ->> 'offerValueCents', '')::integer,
-            'currency', NULLIF($11::jsonb ->> 'currency', ''),
-            'expiresAt', NULLIF($11::jsonb ->> 'expiresAt', '')
-          )),
           $4,
+          CASE WHEN $4 IN ('nda_acknowledged', 'approved') THEN now() ELSE NULL END,
+          COALESCE(NULLIF($11::jsonb ->> 'watermarkSubject', ''), 'buyer_org'),
+          COALESCE(NULLIF($11::jsonb ->> 'decisionReason', ''), NULLIF($9, '')),
+          NULLIF($11::jsonb ->> 'expiresAt', '')::timestamptz,
+          CASE WHEN $4 IN ('approved', 'denied', 'revoked', 'expired') THEN $6 ELSE NULL END,
           $6
-        FROM target_dataset CROSS JOIN target_buyer
+        FROM target_listing CROSS JOIN target_buyer
         RETURNING id, updated_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
@@ -1185,9 +1262,11 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
     case "pii_map":
       return "findings = findings || jsonb_build_object('summary', NULLIF($8, '')), treatments = treatments || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($10::jsonb ->> 'treatmentSummary', ''))), state = $4";
     case "catalogue_listing":
-      return "title = $3, pricing = pricing || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'priceCents', NULLIF($10::jsonb ->> 'priceCents', '')::integer, 'currency', NULLIF($10::jsonb ->> 'currency', ''), 'billingModel', NULLIF($10::jsonb ->> 'billingModel', ''))), state = $4";
+      return "title = $3, pricing = pricing || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'priceCents', NULLIF($10::jsonb ->> 'priceCents', '')::integer, 'currency', NULLIF($10::jsonb ->> 'currency', ''), 'billingModel', NULLIF($10::jsonb ->> 'billingModel', ''))), visibility = COALESCE(NULLIF($10::jsonb ->> 'visibility', ''), visibility), sample_preview_uri = COALESCE(NULLIF($10::jsonb ->> 'samplePreviewUri', ''), sample_preview_uri), sample_preview_policy = sample_preview_policy || jsonb_strip_nulls(jsonb_build_object('gate', NULLIF($10::jsonb ->> 'previewGate', ''), 'watermark', true)), refresh_cadence = COALESCE(NULLIF($10::jsonb ->> 'refreshCadence', ''), refresh_cadence), license_tier = COALESCE(NULLIF($10::jsonb ->> 'licenseTier', ''), license_tier), state = $4";
     case "private_offer":
-      return "terms = terms || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'offerValueCents', NULLIF($10::jsonb ->> 'offerValueCents', '')::integer, 'currency', NULLIF($10::jsonb ->> 'currency', ''), 'expiresAt', NULLIF($10::jsonb ->> 'expiresAt', ''))), state = $4";
+      return "terms = terms || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'offerValueCents', NULLIF($10::jsonb ->> 'offerValueCents', '')::integer, 'currency', NULLIF($10::jsonb ->> 'currency', ''), 'expiresAt', NULLIF($10::jsonb ->> 'expiresAt', ''))), sample_preview_uri = COALESCE(NULLIF($10::jsonb ->> 'samplePreviewUri', ''), sample_preview_uri), sample_preview_policy = sample_preview_policy || jsonb_strip_nulls(jsonb_build_object('gate', NULLIF($10::jsonb ->> 'previewGate', ''), 'watermark', true)), state = $4";
+    case "sample_preview_access":
+      return "state = $4, nda_acknowledged_at = CASE WHEN $4 IN ('nda_acknowledged', 'approved') THEN COALESCE(nda_acknowledged_at, now()) ELSE nda_acknowledged_at END, watermark_subject = COALESCE(NULLIF($10::jsonb ->> 'watermarkSubject', ''), watermark_subject), decision_reason = COALESCE(NULLIF($10::jsonb ->> 'decisionReason', ''), NULLIF($8, ''), decision_reason), expires_at = COALESCE(NULLIF($10::jsonb ->> 'expiresAt', '')::timestamptz, expires_at), decided_by = CASE WHEN $4 IN ('approved', 'denied', 'revoked', 'expired') THEN $6 ELSE decided_by END";
     case "quote":
       return "amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
     case "invoice":

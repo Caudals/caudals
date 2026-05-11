@@ -18,6 +18,7 @@ describe("operator workflow state machines", () => {
       "dsar",
       "label_batch",
       "run",
+      "sample_preview_access",
       "supplier_opportunity",
     ]);
   });
@@ -88,6 +89,9 @@ describe("operator workflow state machines", () => {
   it("maps queue record types to transition workflows", () => {
     expect(getWorkflowNameForRecordType("build")).toBe("build");
     expect(getWorkflowNameForRecordType("dsar_request")).toBe("dsar");
+    expect(getWorkflowNameForRecordType("sample_preview_access")).toBe(
+      "sample_preview_access"
+    );
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
   });
 
@@ -97,5 +101,9 @@ describe("operator workflow state machines", () => {
       { from: "qa", to: "rework", label: "qa_failed" },
     ]);
     expect(getNextWorkflowTransitions("delivery", "accepted")).toEqual([]);
+    expect(getNextWorkflowTransitions("sample_preview_access", "requested")).toEqual([
+      { from: "requested", to: "nda_acknowledged" },
+      { from: "requested", to: "denied" },
+    ]);
   });
 });
