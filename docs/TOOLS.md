@@ -109,10 +109,11 @@ Current scaffold:
 - Operator security enrollment: `npm run operator:security-status` reports
   MFA/passkey completion and reset-eligible counts without printing emails by
   default. Add `-- --send-resets` to request fresh reset links for required
-  non-fixture operators still missing enrollment, `-- --fail-on-incomplete` for
-  release gates that must fail until all required factors are enrolled, and
-  `-- --show-emails` only when an admin explicitly needs the pending address
-  list.
+  non-fixture operators still missing enrollment; reset attempts write
+  `audit_event` rows without email addresses in metadata. Add
+  `-- --fail-on-incomplete` for release gates that must fail until all required
+  factors are enrolled, and `-- --show-emails` only when an admin explicitly
+  needs the pending address list.
 - Password-reset links default to 30 minutes. Set
   `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` to a value from `300` to
   `86400` seconds when coordinating migrated operator enrollment needs a longer

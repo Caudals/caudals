@@ -1,5 +1,6 @@
 export type OperatorSecurityEnrollmentRow = {
   id: string;
+  orgId?: string | null;
   email: string;
   name: string;
   role: string;
@@ -14,6 +15,7 @@ export type OperatorSecurityEnrollmentRow = {
 
 export type OperatorSecurityEnrollmentEntry = {
   id: string;
+  orgId: string | null;
   email: string;
   name: string;
   role: string;
@@ -64,6 +66,7 @@ export function mapOperatorSecurityEnrollmentRow(
 
   return {
     id: row.id,
+    orgId: row.orgId ?? null,
     email: row.email,
     name: row.name,
     role: row.role,
