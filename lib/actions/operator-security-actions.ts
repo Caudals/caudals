@@ -1,7 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { requireCurrentOperator } from "@/lib/auth/operator-session";
 import { queryRows } from "@/lib/db/client";
+import { createPrefixedId } from "@/lib/operator/ids";
 import {
   actionError,
   type ActionError,
@@ -38,6 +41,13 @@ export type OperatorSecurityRoster = {
 export type OperatorSecurityRosterResult =
   | { ok: true; roster: OperatorSecurityRoster }
   | ActionError;
+
+export type OperatorSecurityResetLinksState = {
+  ok: boolean;
+  message: string;
+  resetRequests: number;
+  failedRequests: number;
+};
 
 type OperatorSecurityRosterRow = {
   id: string;
@@ -85,7 +95,34 @@ function mapSecurityRow(row: OperatorSecurityRosterRow): OperatorSecurityRosterE
   };
 }
 
-export async function getOperatorSecurityRoster(): Promise<OperatorSecurityRosterResult> {
+function isFixtureOperatorEmail(email: string) {
+  return email.toLowerCase().endsWith("@caudals.local");
+}
+
+function isResetEligible(operator: OperatorSecurityRosterEntry) {
+  return (
+    !operator.securityComplete &&
+    (operator.mfaRequired || operator.webauthnRequired) &&
+    !isFixtureOperatorEmail(operator.email)
+  );
+}
+
+function getBaseUrl() {
+  const baseUrl =
+    process.env.BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL;
+
+  if (!baseUrl) {
+    throw new Error(
+      "BETTER_AUTH_URL, NEXT_PUBLIC_BETTER_AUTH_URL, or NEXT_PUBLIC_APP_URL is required when sending reset emails"
+    );
+  }
+
+  return baseUrl;
+}
+
+async function requireAdminOperatorSession() {
   const session = await requireCurrentOperator();
   const orgId = session.operator.orgId;
 
@@ -103,7 +140,14 @@ export async function getOperatorSecurityRoster(): Promise<OperatorSecurityRoste
     );
   }
 
-  const rows = await queryRows<OperatorSecurityRosterRow>(
+  return { session, orgId } as const;
+}
+
+async function fetchSecurityRows(
+  orgId: string,
+  operatorId: string
+) {
+  return queryRows<OperatorSecurityRosterRow>(
     `
       SELECT
         o.id,
@@ -140,11 +184,13 @@ export async function getOperatorSecurityRoster(): Promise<OperatorSecurityRoste
     [orgId],
     {
       orgId,
-      operatorId: session.operator.id,
+      operatorId,
       serviceRole: true,
     }
   );
+}
 
+function buildRoster(rows: OperatorSecurityRosterRow[]): OperatorSecurityRoster {
   const operators = rows.map(mapSecurityRow);
   const summary = {
     total: operators.length,
@@ -160,10 +206,133 @@ export async function getOperatorSecurityRoster(): Promise<OperatorSecurityRoste
   };
 
   return {
+    operators,
+    summary,
+  };
+}
+
+export async function getOperatorSecurityRoster(): Promise<OperatorSecurityRosterResult> {
+  const admin = await requireAdminOperatorSession();
+
+  if ("error" in admin) {
+    return admin;
+  }
+
+  const { session, orgId } = admin;
+  const rows = await fetchSecurityRows(orgId, session.operator.id);
+
+  return {
     ok: true,
-    roster: {
-      operators,
-      summary,
-    },
+    roster: buildRoster(rows),
+  };
+}
+
+export async function requestOperatorSecurityResetLinks(
+  _previousState?: OperatorSecurityResetLinksState
+): Promise<OperatorSecurityResetLinksState> {
+  const admin = await requireAdminOperatorSession();
+
+  if ("error" in admin) {
+    return {
+      ok: false,
+      message: admin.error,
+      resetRequests: 0,
+      failedRequests: 0,
+    };
+  }
+
+  const { session, orgId } = admin;
+  const rows = await fetchSecurityRows(orgId, session.operator.id);
+  const roster = buildRoster(rows);
+  const eligibleOperators = roster.operators.filter(isResetEligible);
+
+  if (eligibleOperators.length === 0) {
+    return {
+      ok: true,
+      message: "No reset-eligible operators need security enrollment.",
+      resetRequests: 0,
+      failedRequests: 0,
+    };
+  }
+
+  const baseUrl = getBaseUrl();
+  const url = new URL("/api/auth/request-password-reset", baseUrl);
+  const redirectTo = new URL("/auth/reset-password", baseUrl).toString();
+  let resetRequests = 0;
+  let failedRequests = 0;
+
+  for (const operator of eligibleOperators) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: operator.email,
+        redirectTo,
+      }),
+    });
+
+    if (response.ok) {
+      resetRequests += 1;
+    } else {
+      failedRequests += 1;
+    }
+  }
+
+  if (resetRequests > 0 || failedRequests > 0) {
+    await queryRows(
+      `
+        INSERT INTO audit_event (
+          id,
+          org_id,
+          actor_id,
+          action,
+          target_type,
+          target_id,
+          metadata
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          'operator_security.reset_links_requested',
+          'operator_security',
+          $2,
+          $4::jsonb
+        )
+      `,
+      [
+        createPrefixedId("ae"),
+        orgId,
+        session.operator.id,
+        JSON.stringify({
+          reset_requested_count: resetRequests,
+          reset_failed_count: failedRequests,
+          target_operator_ids: eligibleOperators.map((operator) => operator.id),
+        }),
+      ],
+      {
+        orgId,
+        operatorId: session.operator.id,
+        serviceRole: true,
+      }
+    );
+  }
+
+  revalidatePath("/admin");
+
+  if (failedRequests > 0) {
+    return {
+      ok: false,
+      message: `${failedRequests} reset request(s) failed.`,
+      resetRequests,
+      failedRequests,
+    };
+  }
+
+  return {
+    ok: true,
+    message: `${resetRequests} reset link(s) requested.`,
+    resetRequests,
+    failedRequests,
   };
 }

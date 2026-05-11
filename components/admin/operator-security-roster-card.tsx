@@ -1,5 +1,6 @@
 import { ShieldCheck, ShieldAlert } from "lucide-react";
 
+import { OperatorSecurityResetButton } from "@/components/admin/operator-security-reset-button";
 import { Badge } from "@/components/ui/badge";
 import type { OperatorSecurityRoster } from "@/lib/actions/operator-security-actions";
 import type { Translator } from "@/lib/i18n/create-translator";
@@ -29,10 +30,21 @@ function statusBadge(complete: boolean) {
     : "border-amber-200 bg-amber-50 text-amber-700";
 }
 
+function isResetEligibleOperator(operator: OperatorSecurityRoster["operators"][number]) {
+  return (
+    !operator.securityComplete &&
+    (operator.mfaRequired || operator.webauthnRequired) &&
+    !operator.email.toLowerCase().endsWith("@caudals.local")
+  );
+}
+
 export function OperatorSecurityRosterCard({
   roster,
   t,
 }: OperatorSecurityRosterCardProps) {
+  const resetEligibleCount =
+    roster?.operators.filter(isResetEligibleOperator).length ?? 0;
+
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 xl:col-span-2">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -50,21 +62,28 @@ export function OperatorSecurityRosterCard({
           </p>
         </div>
         {roster ? (
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
-            >
-              {t("{{count}} complete", { count: roster.summary.complete })}
-            </Badge>
-            <Badge
-              variant="outline"
-              className={cn("rounded-full", statusBadge(roster.summary.actionNeeded === 0))}
-            >
-              {t("{{count}} action needed", {
-                count: roster.summary.actionNeeded,
-              })}
-            </Badge>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
+              >
+                {t("{{count}} complete", { count: roster.summary.complete })}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn("rounded-full", statusBadge(roster.summary.actionNeeded === 0))}
+              >
+                {t("{{count}} action needed", {
+                  count: roster.summary.actionNeeded,
+                })}
+              </Badge>
+            </div>
+            <OperatorSecurityResetButton
+              actionLabel={t("Send reset link")}
+              pendingCount={resetEligibleCount}
+              sendingLabel={t("Sending...")}
+            />
           </div>
         ) : null}
       </div>
