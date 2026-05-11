@@ -7,7 +7,9 @@ export type WorkflowName =
   | "contract"
   | "delivery"
   | "dsar"
-  | "sample_preview_access";
+  | "sample_preview_access"
+  | "modality_contract"
+  | "enrichment_manifest";
 
 export type WorkflowTransition = {
   from: string;
@@ -54,6 +56,8 @@ export const workflowRecordTypeMap = {
   dsar: "dsar",
   dsar_request: "dsar",
   sample_preview_access: "sample_preview_access",
+  modality_contract: "modality_contract",
+  enrichment_manifest: "enrichment_manifest",
 } as const satisfies Record<string, WorkflowName>;
 
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
@@ -272,6 +276,30 @@ export const workflowDefinitions = {
       { from: "approved", to: "expired" },
       { from: "denied", to: "requested", label: "reopen" },
       { from: "revoked", to: "requested", label: "reopen" },
+    ],
+  },
+  modality_contract: {
+    name: "modality_contract",
+    states: ["draft", "review", "approved", "blocked", "superseded"],
+    terminalStates: ["approved", "blocked", "superseded"],
+    transitions: [
+      { from: "draft", to: "review" },
+      { from: "review", to: "approved" },
+      { from: "review", to: "blocked" },
+      { from: "approved", to: "superseded" },
+      { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  enrichment_manifest: {
+    name: "enrichment_manifest",
+    states: ["draft", "review", "approved", "blocked", "superseded"],
+    terminalStates: ["approved", "blocked", "superseded"],
+    transitions: [
+      { from: "draft", to: "review" },
+      { from: "review", to: "approved" },
+      { from: "review", to: "blocked" },
+      { from: "approved", to: "superseded" },
+      { from: "blocked", to: "draft", label: "rework" },
     ],
   },
 } satisfies Record<WorkflowName, WorkflowDefinition>;

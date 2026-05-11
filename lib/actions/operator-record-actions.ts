@@ -11,6 +11,10 @@ import {
 } from "@/lib/operator/console-snapshot";
 import { createPrefixedId } from "@/lib/operator/ids";
 import {
+  isModalityContractsEnabled,
+  validateEnrichmentManifest,
+} from "@/lib/operator/modality-contracts";
+import {
   getOperatorRecordCrudDescriptor,
   getOperatorRecordFieldDescriptors,
   isOperatorRecordCrudType,
@@ -102,7 +106,17 @@ const mutableTables = {
   build_plan: { table: "build_plan", prefix: "bp", softDelete: true },
   dataset: { table: "dataset", prefix: "dt", softDelete: true },
   dataset_version: { table: "dataset_version", prefix: "dv", softDelete: true },
+  modality_contract: {
+    table: "modality_contract",
+    prefix: "mc",
+    softDelete: true,
+  },
   qa_report: { table: "qa_report", prefix: "qr", softDelete: true },
+  enrichment_manifest: {
+    table: "enrichment_manifest",
+    prefix: "em",
+    softDelete: true,
+  },
   label_batch: { table: "label_batch", prefix: "lb", softDelete: true },
   dsar_request: { table: "dsar_request", prefix: "ds", softDelete: true },
   pii_map: { table: "pii_map", prefix: "pm", softDelete: true },
@@ -230,6 +244,72 @@ function validateState(recordType: OperatorRecordCrudType, state: string) {
       "VALIDATION_ERROR",
       `Unsupported state "${state}" for ${descriptor?.label ?? recordType}`
     );
+  }
+
+  return null;
+}
+
+function splitCsvField(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function validateM2RecordEvidence(
+  recordType: OperatorRecordCrudType,
+  state: string,
+  fields: NormalizedRecordFields
+) {
+  if (
+    (recordType === "modality_contract" ||
+      recordType === "enrichment_manifest") &&
+    !isModalityContractsEnabled()
+  ) {
+    return actionError(
+      "CONFLICT",
+      "M2 modality and enrichment controls are disabled by MODALITY_CONTRACTS_ENABLED."
+    );
+  }
+
+  if (recordType === "enrichment_manifest") {
+    const missingCore = [
+      ["addedColumns", "Added columns"],
+      ["sources", "Sources"],
+      ["sourceLicense", "Source license"],
+      ["computationMethod", "Computation method"],
+    ].filter(([key]) => !fields[key]);
+
+    if (missingCore.length > 0) {
+      return actionError(
+        "VALIDATION_ERROR",
+        `Enrichment manifest requires ${missingCore
+          .map(([, label]) => label)
+          .join(", ")}.`
+      );
+    }
+
+    if (state === "approved") {
+      const validation = validateEnrichmentManifest({
+        enrichmentClass: fields.enrichmentClass ?? "geospatial",
+        addedColumns: splitCsvField(fields.addedColumns),
+        sources: splitCsvField(fields.sources),
+        sourceLicense: fields.sourceLicense ?? "",
+        computationMethod: fields.computationMethod ?? "",
+        spotCheckRate: fields.spotCheckRate
+          ? Number(fields.spotCheckRate)
+          : null,
+        independencePassed: fields.independencePassed === "true",
+        licenseCompatible: fields.licenseCompatible === "true",
+      });
+
+      if (!validation.ok) {
+        return actionError(
+          "VALIDATION_ERROR",
+          `Enrichment manifest is missing approval evidence: ${validation.missing.join(", ")}.`
+        );
+      }
+    }
   }
 
   return null;
@@ -822,6 +902,122 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    modality_contract: `
+      WITH target_version AS (
+        SELECT dv.id, d.modality AS dataset_modality
+        FROM dataset_version dv
+        JOIN dataset d ON d.id = dv.dataset_id
+        WHERE dv.org_id = $2
+          AND dv.deleted_at IS NULL
+          AND d.deleted_at IS NULL
+        ORDER BY dv.released_at DESC NULLS LAST, dv.updated_at DESC
+        LIMIT 1
+      ),
+      resolved AS (
+        SELECT
+          id AS dataset_version_id,
+          CASE
+            WHEN NULLIF($11::jsonb ->> 'modality', '') IN ('video','audio','geospatial')
+              THEN NULLIF($11::jsonb ->> 'modality', '')
+            WHEN dataset_modality IN ('video','audio','geospatial') THEN dataset_modality
+            ELSE 'video'
+          END AS modality
+        FROM target_version
+      ),
+      inserted AS (
+        INSERT INTO modality_contract (
+          id, org_id, dataset_version_id, modality, canonical_format,
+          profile_signals, cleaning_operators, privacy_treatments,
+          labeling_widgets, qa_dimensions, packaging_targets, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          dataset_version_id,
+          modality,
+          COALESCE(
+            NULLIF($11::jsonb ->> 'canonicalFormat', ''),
+            NULLIF($9, ''),
+            CASE modality
+              WHEN 'audio' THEN 'WAV/FLAC plus Lance segment index'
+              WHEN 'geospatial' THEN 'STAC plus GeoParquet and Cloud Optimized GeoTIFF'
+              ELSE 'Lance index over MP4 chunks'
+            END
+          ),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'profileSignals', ''), 'duration_histogram'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'cleaningOperators', ''), 'metadata_strip'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'privacyTreatments', ''), 'metadata_strip'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(
+            (
+              SELECT array_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'labelingWidgets', ''), 'segment'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            ARRAY['segment']::text[]
+          ),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'qaDimensions', ''), 'privacy_residual'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(
+            (
+              SELECT array_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'packagingTargets', ''), 'manifest'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            ARRAY['manifest']::text[]
+          ),
+          $4,
+          $6
+        FROM resolved
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     qa_report: `
       WITH inserted AS (
         INSERT INTO qa_report (id, org_id, dimensions, composite_score, verdict, created_by)
@@ -833,6 +1029,82 @@ function buildCreateSql(
           $4,
           $6
         )
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    enrichment_manifest: `
+      WITH target_build AS (
+        SELECT id
+        FROM build
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY released_at DESC NULLS LAST, updated_at DESC
+        LIMIT 1
+      ),
+      target_contract AS (
+        SELECT id
+        FROM modality_contract
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO enrichment_manifest (
+          id, org_id, build_id, dataset_version_id, modality_contract_id,
+          enrichment_class, added_columns, sources, source_license,
+          source_version, computation_method, model_identity_hash,
+          prompt_template_version, reproducer_uri, spot_check_rate,
+          independence_passed, license_compatible, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_build.id,
+          target_version.id,
+          (SELECT id FROM target_contract),
+          COALESCE(NULLIF($11::jsonb ->> 'enrichmentClass', ''), 'geospatial'),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'addedColumns', ''), 'h3_cell'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'sources', ''), 'operator_manifest'),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            ),
+            '[]'::jsonb
+          ),
+          COALESCE(NULLIF($11::jsonb ->> 'sourceLicense', ''), 'unreviewed'),
+          NULLIF($11::jsonb ->> 'sourceVersion', ''),
+          COALESCE(NULLIF($11::jsonb ->> 'computationMethod', ''), NULLIF($9, ''), 'operator declared enrichment method'),
+          NULLIF($11::jsonb ->> 'modelIdentityHash', ''),
+          NULLIF($11::jsonb ->> 'promptTemplateVersion', ''),
+          NULLIF($11::jsonb ->> 'reproducerUri', ''),
+          NULLIF($11::jsonb ->> 'spotCheckRate', '')::numeric,
+          COALESCE(NULLIF($11::jsonb ->> 'independencePassed', '')::boolean, false),
+          COALESCE(NULLIF($11::jsonb ->> 'licenseCompatible', '')::boolean, false),
+          $4,
+          $6
+        FROM target_build CROSS JOIN target_version
         RETURNING id, updated_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
@@ -1253,8 +1525,12 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "name = $3, modality = COALESCE(NULLIF($10::jsonb ->> 'modality', ''), NULLIF($8, ''), modality), state = $4";
     case "dataset_version":
       return "version_label = $3, manifest_uri = COALESCE(NULLIF($8, ''), manifest_uri), content_hash = COALESCE(NULLIF($10::jsonb ->> 'contentHash', ''), content_hash), record_count = COALESCE(NULLIF($10::jsonb ->> 'recordCount', '')::bigint, record_count), size_bytes = COALESCE(NULLIF($10::jsonb ->> 'sizeBytes', '')::bigint, size_bytes), qa_score = COALESCE(NULLIF($10::jsonb ->> 'qaScore', '')::numeric, qa_score), state = $4";
+    case "modality_contract":
+      return "modality = COALESCE(NULLIF($10::jsonb ->> 'modality', ''), modality), canonical_format = COALESCE(NULLIF($10::jsonb ->> 'canonicalFormat', ''), NULLIF($8, ''), canonical_format), profile_signals = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'profileSignals', ''), ''), ',') AS value WHERE trim(value) <> ''), profile_signals), cleaning_operators = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'cleaningOperators', ''), ''), ',') AS value WHERE trim(value) <> ''), cleaning_operators), privacy_treatments = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'privacyTreatments', ''), ''), ',') AS value WHERE trim(value) <> ''), privacy_treatments), labeling_widgets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'labelingWidgets', ''), ''), ',') AS value WHERE trim(value) <> ''), labeling_widgets), qa_dimensions = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'qaDimensions', ''), ''), ',') AS value WHERE trim(value) <> ''), qa_dimensions), packaging_targets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'packagingTargets', ''), ''), ',') AS value WHERE trim(value) <> ''), packaging_targets), state = $4";
     case "qa_report":
       return "dimensions = dimensions || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), composite_score = COALESCE(NULLIF($10::jsonb ->> 'compositeScore', '')::numeric, composite_score), verdict = $4";
+    case "enrichment_manifest":
+      return "enrichment_class = COALESCE(NULLIF($10::jsonb ->> 'enrichmentClass', ''), enrichment_class), added_columns = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'addedColumns', ''), ''), ',') AS value WHERE trim(value) <> ''), added_columns), sources = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'sources', ''), ''), ',') AS value WHERE trim(value) <> ''), sources), source_license = COALESCE(NULLIF($10::jsonb ->> 'sourceLicense', ''), source_license), source_version = COALESCE(NULLIF($10::jsonb ->> 'sourceVersion', ''), source_version), computation_method = COALESCE(NULLIF($10::jsonb ->> 'computationMethod', ''), NULLIF($8, ''), computation_method), model_identity_hash = COALESCE(NULLIF($10::jsonb ->> 'modelIdentityHash', ''), model_identity_hash), prompt_template_version = COALESCE(NULLIF($10::jsonb ->> 'promptTemplateVersion', ''), prompt_template_version), reproducer_uri = COALESCE(NULLIF($10::jsonb ->> 'reproducerUri', ''), reproducer_uri), spot_check_rate = COALESCE(NULLIF($10::jsonb ->> 'spotCheckRate', '')::numeric, spot_check_rate), independence_passed = COALESCE(NULLIF($10::jsonb ->> 'independencePassed', '')::boolean, independence_passed), license_compatible = COALESCE(NULLIF($10::jsonb ->> 'licenseCompatible', '')::boolean, license_compatible), state = $4";
     case "label_batch":
       return "state = $4, queue_depth = COALESCE(NULLIF($10::jsonb ->> 'queueDepth', '')::integer, queue_depth), agreement_score = COALESCE(NULLIF($10::jsonb ->> 'agreementScore', '')::numeric, agreement_score)";
     case "dsar_request":
@@ -1456,6 +1732,13 @@ export async function createOperatorRecord(
   const fields = normalizeRecordFields(parsed.data.recordType, parsed.data.fields);
   if (isActionError(fields)) return fields;
 
+  const evidenceError = validateM2RecordEvidence(
+    parsed.data.recordType,
+    parsed.data.state,
+    fields
+  );
+  if (evidenceError) return evidenceError;
+
   const normalizedInput = { ...parsed.data, fields };
 
   const context = await getMutationContext();
@@ -1530,6 +1813,13 @@ export async function updateOperatorRecord(
 
   const fields = normalizeRecordFields(parsed.data.recordType, parsed.data.fields);
   if (isActionError(fields)) return fields;
+
+  const evidenceError = validateM2RecordEvidence(
+    parsed.data.recordType,
+    parsed.data.state,
+    fields
+  );
+  if (evidenceError) return evidenceError;
 
   const normalizedInput = { ...parsed.data, fields };
 

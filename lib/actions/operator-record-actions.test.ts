@@ -914,6 +914,153 @@ describe("operator record actions", () => {
     );
   });
 
+  it("creates modality contracts with video/audio/geospatial contract fields", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "mc_01J2MODALITY",
+        updated_at: "2026-05-10T15:17:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "datasets",
+        recordType: "modality_contract",
+        title: "Geospatial contract",
+        detail: "STAC plus GeoParquet and COG",
+        state: "review",
+        fields: {
+          modality: "Geospatial",
+          canonicalFormat: "STAC plus GeoParquet and Cloud Optimized GeoTIFF",
+          profileSignals: "bounding_box, crs",
+          cleaningOperators: "crs_reconcile, geometry_repair",
+          privacyTreatments: "jurisdiction_embargo_check",
+          labelingWidgets: "polygon, raster_tile",
+          qaDimensions: "spatial_coverage, crs_consistency",
+          packagingTargets: "stac_catalog, geoparquet",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "mc_01J2MODALITY",
+        moduleKey: "datasets",
+        recordType: "modality_contract",
+        fields: {
+          modality: "geospatial",
+          packagingTargets: "stac_catalog, geoparquet",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO modality_contract");
+    expect(createSql).toContain("$11::jsonb ->> 'profileSignals'");
+    expect(createSql).toContain("$11::jsonb ->> 'packagingTargets'");
+  });
+
+  it("creates enrichment manifests with reproducibility and license fields", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "em_01J2ENRICH",
+        updated_at: "2026-05-10T15:17:30.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "quality",
+        recordType: "enrichment_manifest",
+        title: "G-5 H3 enrichment",
+        detail: "H3 bins from silver-layer coordinates.",
+        state: "review",
+        fields: {
+          enrichmentClass: "Geospatial",
+          addedColumns: "h3_cell, admin_region",
+          sources: "OSM boundaries 2026.05",
+          sourceLicense: "ODbL-1.0",
+          sourceVersion: "2026.05",
+          computationMethod: "h3 v4 resolution 8",
+          reproducerUri: "s3://manifests/enrichment/h3.json",
+          spotCheckRate: "0.1",
+          independencePassed: "true",
+          licenseCompatible: "true",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "em_01J2ENRICH",
+        moduleKey: "quality",
+        recordType: "enrichment_manifest",
+        fields: {
+          enrichmentClass: "geospatial",
+          spotCheckRate: "0.1",
+          independencePassed: "true",
+          licenseCompatible: "true",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO enrichment_manifest");
+    expect(createSql).toContain("$11::jsonb ->> 'addedColumns'");
+    expect(createSql).toContain("$11::jsonb ->> 'sourceLicense'");
+    expect(createSql).toContain("$11::jsonb ->> 'licenseCompatible'");
+  });
+
+  it("rejects enrichment manifests without source, license, and method evidence", async () => {
+    await expect(
+      createOperatorRecord({
+        moduleKey: "quality",
+        recordType: "enrichment_manifest",
+        title: "Weak enrichment",
+        detail: "Operator note only.",
+        state: "review",
+        fields: {
+          enrichmentClass: "geospatial",
+          addedColumns: "h3_cell",
+        },
+      })
+    ).resolves.toMatchObject({
+      code: "VALIDATION_ERROR",
+      error:
+        "Enrichment manifest requires Sources, Source license, Computation method.",
+    });
+
+    expect(queryRowsMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects approved enrichment manifests without approval evidence", async () => {
+    await expect(
+      updateOperatorRecord({
+        moduleKey: "quality",
+        recordType: "enrichment_manifest",
+        targetId: "em_01J2ENRICH",
+        title: "G-5 H3 enrichment",
+        detail: "H3 bins from silver-layer coordinates.",
+        state: "approved",
+        fields: {
+          enrichmentClass: "geospatial",
+          addedColumns: "h3_cell",
+          sources: "OSM boundaries",
+          sourceLicense: "ODbL-1.0",
+          computationMethod: "h3 v4 resolution 8",
+          independencePassed: "false",
+          licenseCompatible: "true",
+        },
+      })
+    ).resolves.toMatchObject({
+      code: "VALIDATION_ERROR",
+      error:
+        "Enrichment manifest is missing approval evidence: independence_test.",
+    });
+
+    expect(queryRowsMock).not.toHaveBeenCalled();
+  });
+
   it("updates catalogue listings with structured pricing fields", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {
