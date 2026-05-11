@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getResetEligibleOperators,
+  isOperatorSecurityEnrollmentComplete,
   mapOperatorSecurityEnrollmentRow,
   summarizeOperatorSecurityEnrollment,
 } from "@/lib/auth/operator-security-enrollment";
@@ -92,5 +93,17 @@ describe("operator security enrollment helpers", () => {
       resetEligible: 1,
     });
     expect(getResetEligibleOperators(operators)).toEqual([operators[1]]);
+    expect(
+      isOperatorSecurityEnrollmentComplete(
+        summarizeOperatorSecurityEnrollment(operators)
+      )
+    ).toBe(false);
+    expect(
+      isOperatorSecurityEnrollmentComplete({
+        ...summarizeOperatorSecurityEnrollment(operators),
+        complete: 2,
+        actionNeeded: 0,
+      })
+    ).toBe(true);
   });
 });

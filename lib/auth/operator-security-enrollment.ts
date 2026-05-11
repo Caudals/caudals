@@ -101,6 +101,12 @@ export function summarizeOperatorSecurityEnrollment(
   };
 }
 
+export function isOperatorSecurityEnrollmentComplete(
+  summary: OperatorSecurityEnrollmentSummary
+) {
+  return summary.actionNeeded === 0;
+}
+
 export function getResetEligibleOperators(
   operators: OperatorSecurityEnrollmentEntry[]
 ) {

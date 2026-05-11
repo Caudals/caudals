@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 import {
   getResetEligibleOperators,
+  isOperatorSecurityEnrollmentComplete,
   mapOperatorSecurityEnrollmentRow,
   summarizeOperatorSecurityEnrollment,
   type OperatorSecurityEnrollmentRow,
@@ -16,6 +17,7 @@ const args = new Set(process.argv.slice(2));
 const sendResets = args.has("--send-resets");
 const showEmails = args.has("--show-emails");
 const json = args.has("--json");
+const failOnIncomplete = args.has("--fail-on-incomplete");
 
 function getTargetDatabaseUrl() {
   return getDatabaseUrlFromEnv({
@@ -70,30 +72,38 @@ async function main() {
           2
         )
       );
-      return;
-    }
+    } else {
+      console.log(
+        [
+          `operator_security total=${summary.total}`,
+          `complete=${summary.complete}`,
+          `action_needed=${summary.actionNeeded}`,
+          `mfa=${summary.mfaEnabled}/${summary.mfaRequired}`,
+          `passkey_users=${summary.passkeyUsers}/${summary.webauthnRequired}`,
+          `reset_eligible=${summary.resetEligible}`,
+          `reset_requests=${resetRequests}`,
+        ].join(" ")
+      );
 
-    console.log(
-      [
-        `operator_security total=${summary.total}`,
-        `complete=${summary.complete}`,
-        `action_needed=${summary.actionNeeded}`,
-        `mfa=${summary.mfaEnabled}/${summary.mfaRequired}`,
-        `passkey_users=${summary.passkeyUsers}/${summary.webauthnRequired}`,
-        `reset_eligible=${summary.resetEligible}`,
-        `reset_requests=${resetRequests}`,
-      ].join(" ")
-    );
+      if (showEmails && resetEligibleOperators.length > 0) {
+        console.log("reset_eligible_emails:");
+        for (const operator of resetEligibleOperators) {
+          console.log(`- ${operator.email}`);
+        }
+      }
 
-    if (showEmails && resetEligibleOperators.length > 0) {
-      console.log("reset_eligible_emails:");
-      for (const operator of resetEligibleOperators) {
-        console.log(`- ${operator.email}`);
+      if (!sendResets && resetEligibleOperators.length > 0) {
+        console.log(
+          "Dry run only. Re-run with --send-resets to request reset links."
+        );
       }
     }
 
-    if (!sendResets && resetEligibleOperators.length > 0) {
-      console.log("Dry run only. Re-run with --send-resets to request reset links.");
+    if (failOnIncomplete && !isOperatorSecurityEnrollmentComplete(summary)) {
+      console.error(
+        `Operator security enrollment incomplete: ${summary.actionNeeded} operator(s) still need MFA/passkey setup.`
+      );
+      process.exitCode = 1;
     }
   } finally {
     await pool.end();

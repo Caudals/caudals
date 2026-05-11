@@ -104,8 +104,10 @@ Current scaffold:
 - Operator security enrollment: `npm run operator:security-status` reports
   MFA/passkey completion and reset-eligible counts without printing emails by
   default. Add `-- --send-resets` to request fresh reset links for required
-  non-fixture operators still missing enrollment, and `-- --show-emails` only
-  when an admin explicitly needs the pending address list.
+  non-fixture operators still missing enrollment, `-- --fail-on-incomplete` for
+  release gates that must fail until all required factors are enrolled, and
+  `-- --show-emails` only when an admin explicitly needs the pending address
+  list.
 - Legacy account migration: `npm run migrate:supabase-auth -- --apply`
 
 Install caveat:
