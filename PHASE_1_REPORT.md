@@ -2,7 +2,7 @@
 
 ## Current Slice Plan
 
-- Publish the verified Phase 1 branch so GitHub CI can be run from a PR or main push.
+- Publish the verified Phase 1 branch so GitHub CI can be run from a PR, manual dispatch, feature-branch push, or main push.
 - Audit which completion criteria are now satisfied by code/deploy evidence versus blocked by missing external credentials or human enrollment.
 - Record remaining non-code gates precisely instead of treating local/deployed checks as a proxy for final completion.
 - Use this report as the local review trail because no pull request exists yet.
@@ -95,6 +95,7 @@
 - Created verified encrypted final backups for both the Supabase database dump and `/supabase` filesystem tree under `/root/.caudals/backups`.
 - Removed the legacy repo `supabase/` migration tree and Supabase CLI dev dependency.
 - Removed obsolete public Supabase build/runtime configuration from the Dockerfile, GitHub Actions workflows, Next image remote patterns, env example, and migration-script source variable fallbacks; only `LEGACY_SUPABASE_DATABASE_URL` remains for explicit one-off legacy migration reruns.
+- Added `workflow_dispatch` and `phase-1-operator-console` branch push support to the GitHub Actions CI workflow so the Phase 1 branch can run the existing lint/typecheck/unit/smoke jobs without a risky direct push to `main`.
 - Deployed the decommission/command-palette image `mariomedpar/caudals:phase1-202605102238` to the VPS app service.
 - Deployed the saved-view/keyboard/JIT-elevation image `mariomedpar/caudals:phase1-202605110055` to the VPS app service.
 - Deployed the Settings signing-key image `mariomedpar/caudals:phase1-202605110112` to the VPS app service.
@@ -137,7 +138,7 @@
 - tRPC scaffold has only a health procedure; buyer/supplier routers remain out of scope for this goal phase.
 - Operator Console Playwright smoke remains opt-in with `PLAYWRIGHT_AUTH_E2E=true`, but `npm run e2e:auth-smoke` now seeds the Better Auth/Postgres fixture admin before running.
 - Off-host backup upload remains optional because Spaces credentials are not present on the VPS; local encrypted backups are verified under `/root/.caudals/backups`.
-- GitHub CI is not yet observed for this branch because `gh` is not logged in on the VPS, `GITHUB_TOKEN`/`GH_TOKEN`/`GITHUB_APP_TOKEN` are absent, unauthenticated GitHub API requests return `404` for the private repository, and `.github/workflows/ci.yml` runs on pull requests or pushes to `main`, not ordinary branch pushes.
+- GitHub CI is not yet observed for this branch because `gh` is not logged in on the VPS, `GITHUB_TOKEN`/`GH_TOKEN`/`GITHUB_APP_TOKEN` are absent, and unauthenticated GitHub API requests return `404` for the private repository. The workflow now supports manual dispatch and `phase-1-operator-console` branch pushes, but confirming the resulting run still requires GitHub access.
 
 ## Completion Audit
 
@@ -395,7 +396,9 @@ Prompt-to-artifact checklist:
 - Production route probes on `phase1-202605110747` returned 200 for `/`, `/contact`, and `/blog`; 307 from anonymous `/admin` to `/auth/sign-in`; and 404 for `/browse`, `/requester`, `/contributor`, `/dashboard`, `/pwa`, and `/admin/requests`.
 - Deployed smokes against `https://app.caudals.com` passed on `phase1-202605110747`: `LANDING_MODE=true ... e2e/smoke.spec.ts --project=chromium --reporter=line` with 4 tests and `PLAYWRIGHT_AUTH_E2E=true ... e2e/authenticated-role-smoke.spec.ts e2e/operator-console.spec.ts --project=chromium --reporter=line` with 2 tests.
 - `git push -u origin phase-1-operator-console` succeeded for commit `5b6edac`; `git status --short --branch` showed the local branch tracking `origin/phase-1-operator-console` with no uncommitted code changes before this report update.
-- CI observation remains blocked from this VPS: `gh auth status` reports no logged-in GitHub hosts, token-presence checks returned absent for `GITHUB_TOKEN`, `GH_TOKEN`, and `GITHUB_APP_TOKEN`, unauthenticated GitHub API calls for commit status/actions returned `404`, and `.github/workflows/ci.yml` only triggers on pull requests or pushes to `main`.
+- CI observation remains blocked from this VPS: `gh auth status` reports no logged-in GitHub hosts, token-presence checks returned absent for `GITHUB_TOKEN`, `GH_TOKEN`, and `GITHUB_APP_TOKEN`, and unauthenticated GitHub API calls for commit status/actions returned `404`.
 - `npm test -- --run lib/blog/posts.test.ts` passed with 3 tests after refreshing the blog loader assertions for the current eight localized posts.
 - `npm test -- --run` passed with 31 test files and 136 tests after the blog loader refresh.
 - `npm run typecheck`, `npm run lint`, `npm run i18n:check-parity`, `NODE_OPTIONS=--max-old-space-size=2048 NEXT_PRIVATE_BUILD_WORKER=1 npm run build`, and `git diff --check` passed after the blog loader refresh. The build completed with the same two non-fatal Turbopack `import-in-the-middle` warnings from nested OpenTelemetry instrumentation dependencies.
+- `.github/workflows/ci.yml` now supports `workflow_dispatch` and push-triggered CI for `phase-1-operator-console`; this removes the need for a direct push to `main` solely to start CI, but the run result still cannot be inspected from this VPS without GitHub auth.
+- Live operator-security recheck returned `operator_security|4|3|3` and `auth_factors|0|0`: three real migrated admins still require MFA/WebAuthn, while the fixture admin remains exempt for smoke tests.
