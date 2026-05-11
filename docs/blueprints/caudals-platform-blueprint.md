@@ -1996,8 +1996,7 @@ This document is the canonical technical specification for the Caudals platform.
 
 ---
 
-*Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.1 · Issued 2026-05-09*
+*Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.2 · Issued 2026-05-09*
 
 *Pairs with: `AGENTS.md` · `docs/ARCHITECTURE.md` · `docs/product-specs/overview.md`*
-
 
