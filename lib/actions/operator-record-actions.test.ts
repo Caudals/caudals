@@ -1061,6 +1061,85 @@ describe("operator record actions", () => {
     expect(queryRowsMock).not.toHaveBeenCalled();
   });
 
+  it("creates active-learning loops with sampling and routing evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "ll_01J2ACTIVE",
+        updated_at: "2026-05-10T15:18:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "labeling",
+        recordType: "active_learning_loop",
+        title: "Crop imagery loop",
+        detail: "Uncertainty and diversity samples for reviewer pass.",
+        state: "queued",
+        fields: {
+          strategy: "FiftyOne_Brain",
+          candidateSourceUri: "s3://silver/candidates/crop-v1.jsonl",
+          embeddingIndexUri: "s3://indexes/fiftyone-brain/crop-v1",
+          modelSnapshotUri: "s3://models/crop-assistant-v2",
+          uncertaintyMetric: "Entropy",
+          diversityMetric: "Brain_similarity",
+          boundaryMetric: "Margin",
+          targetSampleSize: "128",
+          selectedCount: "96",
+          selectionManifestUri:
+            "s3://manifests/active-learning/crop-loop-v1.json",
+          reviewerRouting: "cv_specialists:priority_high",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "ll_01J2ACTIVE",
+        moduleKey: "labeling",
+        recordType: "active_learning_loop",
+        fields: {
+          strategy: "fiftyone_brain",
+          targetSampleSize: "128",
+          selectedCount: "96",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO active_learning_loop");
+    expect(createSql).toContain("$11::jsonb ->> 'embeddingIndexUri'");
+    expect(createSql).toContain("$11::jsonb ->> 'reviewerRouting'");
+  });
+
+  it("rejects queued active-learning loops without reviewer routing evidence", async () => {
+    await expect(
+      createOperatorRecord({
+        moduleKey: "labeling",
+        recordType: "active_learning_loop",
+        title: "Weak active loop",
+        detail: "Missing manifest and reviewer routing.",
+        state: "queued",
+        fields: {
+          strategy: "hybrid_uncertainty_diversity",
+          candidateSourceUri: "s3://silver/candidates.jsonl",
+          embeddingIndexUri: "s3://indexes/lightly.lance",
+          modelSnapshotUri: "s3://models/assistant",
+          uncertaintyMetric: "entropy",
+          diversityMetric: "embedding_distance",
+          boundaryMetric: "margin",
+          targetSampleSize: "64",
+        },
+      })
+    ).resolves.toMatchObject({
+      code: "VALIDATION_ERROR",
+      error:
+        "Active-learning loop is missing routing evidence: selected_count, selection_manifest_uri, reviewer_routing.",
+    });
+
+    expect(queryRowsMock).not.toHaveBeenCalled();
+  });
+
   it("updates catalogue listings with structured pricing fields", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {

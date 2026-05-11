@@ -488,6 +488,7 @@ const transitionWorkflowTables = {
   sample_preview_access: '"sample_preview_access"',
   modality_contract: '"modality_contract"',
   enrichment_manifest: '"enrichment_manifest"',
+  active_learning_loop: '"active_learning_loop"',
 } satisfies Record<WorkflowName, string>;
 
 function buildPersistTransitionAssignments(workflow: WorkflowName) {
@@ -546,6 +547,20 @@ function buildPersistTransitionPredicate(workflow: WorkflowName) {
             AND char_length(computation_method) > 1
             AND independence_passed
             AND license_compatible
+          )
+        )
+    `;
+  }
+
+  if (workflow === "active_learning_loop") {
+    return `
+        AND (
+          $1 NOT IN ('queued', 'closed')
+          OR (
+            selected_count > 0
+            AND selected_count <= target_sample_size
+            AND char_length(selection_manifest_uri) > 1
+            AND reviewer_routing ? 'policy'
           )
         )
     `;
@@ -630,8 +645,10 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM modality_contract WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'labeling',
-      (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL),
-      (SELECT count(*)::int FROM label_batch WHERE state = 'in_adjudication' AND deleted_at IS NULL)
+      (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM active_learning_loop WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM label_batch WHERE state = 'in_adjudication' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM active_learning_loop WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'quality',
       (SELECT count(*)::int FROM qa_report WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM enrichment_manifest WHERE deleted_at IS NULL),
@@ -1025,6 +1042,20 @@ const moduleWorkItemsSql = `
     WHERE lb.deleted_at IS NULL
     UNION ALL
     SELECT
+      'labeling',
+      'active_learning_loop',
+      alloop.id,
+      COALESCE(b.title, 'Active-learning loop'),
+      alloop.state,
+      alloop.strategy || ' / selected ' || alloop.selected_count::text || '/' || alloop.target_sample_size::text,
+      alloop.updated_at,
+      CASE WHEN alloop.state = 'blocked' THEN 'critical' WHEN alloop.state IN ('draft','sampling','review') THEN 'warning' ELSE 'info' END,
+      'Review active-learning loop'
+    FROM active_learning_loop alloop
+    LEFT JOIN build b ON b.id = alloop.build_id
+    WHERE alloop.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'privacy',
       'dsar_request',
       ds.id,
@@ -1401,6 +1432,23 @@ const moduleWorkItemsSql = `
           ))
           FROM label_batch lb
           WHERE lb.id = raw_work_items.id
+        )
+        WHEN record_type = 'active_learning_loop' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'strategy', alloop.strategy,
+            'candidateSourceUri', alloop.candidate_source_uri,
+            'embeddingIndexUri', alloop.embedding_index_uri,
+            'modelSnapshotUri', alloop.model_snapshot_uri,
+            'uncertaintyMetric', alloop.uncertainty_metric,
+            'diversityMetric', alloop.diversity_metric,
+            'boundaryMetric', alloop.boundary_metric,
+            'targetSampleSize', alloop.target_sample_size,
+            'selectedCount', alloop.selected_count,
+            'selectionManifestUri', alloop.selection_manifest_uri,
+            'reviewerRouting', alloop.reviewer_routing ->> 'policy'
+          ))
+          FROM active_learning_loop alloop
+          WHERE alloop.id = raw_work_items.id
         )
         WHEN record_type = 'consent_record' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

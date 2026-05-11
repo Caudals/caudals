@@ -39,6 +39,8 @@ const ids = {
   datasetVersion: fixtureId("dv", 1),
   modalityContract: fixtureId("mc", 1),
   enrichmentManifest: fixtureId("em", 1),
+  activeLearningLoop: fixtureId("ll", 1),
+  activeLearningCandidate: fixtureId("ac", 1),
   piiMap: fixtureId("pm", 1),
   catalogueListing: fixtureId("cl", 1),
   privateOffer: fixtureId("po", 1),
@@ -664,6 +666,93 @@ async function seedBuilds(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO active_learning_loop (
+        id, org_id, build_id, label_batch_id, strategy, state,
+        candidate_source_uri, embedding_index_uri, model_snapshot_uri,
+        uncertainty_metric, diversity_metric, boundary_metric,
+        target_sample_size, selected_count, selection_manifest_uri,
+        selection_summary, reviewer_routing, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, 'hybrid_uncertainty_diversity', 'review',
+        's3://fixture/silver/crop-candidates.jsonl',
+        's3://fixture/indexes/crop-lightly-v1.lance',
+        's3://fixture/models/crop-assistant-v2',
+        'entropy', 'embedding_distance', 'margin',
+        128, 96,
+        's3://fixture/manifests/active-learning-crop-loop.json',
+        '{"summary":"High-uncertainty and diverse boundary samples selected."}'::jsonb,
+        '{"policy":"cv_specialists:priority_high"}'::jsonb,
+        $5, $5, $6
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        build_id = EXCLUDED.build_id,
+        label_batch_id = EXCLUDED.label_batch_id,
+        strategy = EXCLUDED.strategy,
+        state = EXCLUDED.state,
+        candidate_source_uri = EXCLUDED.candidate_source_uri,
+        embedding_index_uri = EXCLUDED.embedding_index_uri,
+        model_snapshot_uri = EXCLUDED.model_snapshot_uri,
+        uncertainty_metric = EXCLUDED.uncertainty_metric,
+        diversity_metric = EXCLUDED.diversity_metric,
+        boundary_metric = EXCLUDED.boundary_metric,
+        target_sample_size = EXCLUDED.target_sample_size,
+        selected_count = EXCLUDED.selected_count,
+        selection_manifest_uri = EXCLUDED.selection_manifest_uri,
+        selection_summary = EXCLUDED.selection_summary,
+        reviewer_routing = EXCLUDED.reviewer_routing,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.activeLearningLoop,
+      ids.tenantOrg,
+      fixtureBuilds[3].id,
+      fixtureId("lb", 1),
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO active_learning_candidate (
+        id, org_id, active_learning_loop_id, item_ref,
+        uncertainty_score, diversity_score, boundary_score, combined_score,
+        selection_reason, route_state, reviewer_priority, metadata,
+        created_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'silver/crop/frame-0042',
+        0.9200, 0.8100, 0.6400, 0.8255,
+        'uncertainty=0.920; diversity=0.810; boundary=0.640',
+        'selected', 1, '{"fixture":true}'::jsonb, $4, $5
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        active_learning_loop_id = EXCLUDED.active_learning_loop_id,
+        item_ref = EXCLUDED.item_ref,
+        uncertainty_score = EXCLUDED.uncertainty_score,
+        diversity_score = EXCLUDED.diversity_score,
+        boundary_score = EXCLUDED.boundary_score,
+        combined_score = EXCLUDED.combined_score,
+        selection_reason = EXCLUDED.selection_reason,
+        route_state = EXCLUDED.route_state,
+        reviewer_priority = EXCLUDED.reviewer_priority,
+        metadata = EXCLUDED.metadata
+    `,
+    [
+      ids.activeLearningCandidate,
+      ids.tenantOrg,
+      ids.activeLearningLoop,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO qa_report (
         id, org_id, build_id, dimensions, composite_score, verdict,
         created_at, updated_at, created_by
@@ -1174,6 +1263,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 6), "operator_elevation", ids.operatorElevation, "operator_elevation.granted", { scope: "production_db", reason: "fixture JIT elevation" }],
     [fixtureId("ae", 7), "modality_contract", ids.modalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
     [fixtureId("ae", 8), "enrichment_manifest", ids.enrichmentManifest, "state_transition", { from_state: "draft", to_state: "review" }],
+    [fixtureId("ae", 9), "active_learning_loop", ids.activeLearningLoop, "state_transition", { from_state: "sampling", to_state: "review" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),

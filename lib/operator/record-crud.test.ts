@@ -53,6 +53,28 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("active_learning_loop")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "strategy",
+          allowedValues: [
+            "fiftyone_brain",
+            "lightly_embeddings",
+            "hybrid_uncertainty_diversity",
+          ],
+        }),
+        expect.objectContaining({
+          key: "targetSampleSize",
+          kind: "integer",
+          min: 1,
+        }),
+        expect.objectContaining({
+          key: "selectedCount",
+          kind: "integer",
+          min: 0,
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("qa_report")).toEqual([
       expect.objectContaining({
         key: "compositeScore",

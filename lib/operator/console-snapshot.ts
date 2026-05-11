@@ -181,11 +181,11 @@ export const operatorModuleSummaries: OperatorModuleSummary[] = [
   {
     key: "labeling",
     title: "Labeling",
-    description: "Reviewer queues, label batches, agreement review, and adjudication depth.",
-    anchorRecords: ["label_batch"],
-    totalRecords: 8,
+    description: "Reviewer queues, active-learning loops, agreement review, and adjudication depth.",
+    anchorRecords: ["label_batch", "active_learning_loop"],
+    totalRecords: 9,
     blockedRecords: 2,
-    savedViews: ["Queue depth", "Adjudication", "Reviewer drift"],
+    savedViews: ["Queue depth", "Active learning", "Reviewer drift"],
   },
   {
     key: "quality",
@@ -437,6 +437,17 @@ const fixtureWorkItems: OperatorWorkItem[] = [
     updatedAt: "2026-05-10T13:05:00.000Z",
     severity: "warning",
     nextAction: "Review adjudication queue",
+  },
+  {
+    moduleKey: "labeling",
+    recordType: "active_learning_loop",
+    id: "ll_01J2ACTIVE",
+    title: "Crop imagery active-learning loop",
+    state: "review",
+    detail: "hybrid_uncertainty_diversity / selected 96/128",
+    updatedAt: "2026-05-10T13:04:00.000Z",
+    severity: "warning",
+    nextAction: "Review active-learning loop",
   },
   {
     moduleKey: "quality",
