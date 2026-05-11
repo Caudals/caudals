@@ -38,7 +38,7 @@ These are one-time platform changes that retire pre-pivot infrastructure. The bl
 
 - Adopt Better Auth with the Postgres adapter and an org/team plugin; scaffold SSO but keep it off until Phase 3.
 - Sessions cookie-based, httpOnly, SameSite=Lax, rotating, refresh-on-use.
-- TOTP enabled for all operator accounts; WebAuthn wired and enforced for production roles per §25.
+- TOTP and WebAuthn wired as optional operator hardening. Password-only Better Auth login is allowed for Phase 1 operators unless `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is explicitly enabled later.
 - Migrate existing accounts: map `auth.users` → `operator` + identity tables, preserve emails, force password reset on first login (email via Resend), preserve roles.
 - Replace every Supabase auth call site with the Better Auth equivalent and delete the old auth helpers — no dual code paths.
 - Wire the JIT-elevation hook for production DB access required by §25 (audit-logged, time-bounded).
@@ -103,7 +103,7 @@ Read the returned diff before applying it. Do not delegate trivial styling.
 ## Acceptance Criteria — Phase 1 done = all of these
 
 1. Postgres is the only OLTP. Supabase containers/images/volumes are gone from the VPS; `@supabase/*` is absent from `package.json`.
-2. Better Auth is the only auth. All operator accounts log in via the new flow; MFA is enabled; sessions, password reset and JIT elevation work end-to-end.
+2. Better Auth is the only auth. All operator accounts log in via the new flow with password-only access allowed; optional MFA/passkey setup, sessions, password reset and JIT elevation work end-to-end.
 3. The console renders all 13 §19 modules wired to real (not mocked) data on the new schema, with RLS enforced.
 4. The §23 state machines for `buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, `dsar` are persisted, validated server-side and emit `audit_event` on every transition.
 5. Five concurrent demo builds progress through G-1..G-7 with seed data and full audit trail (the §30 M1 north-star milestone, simulated).

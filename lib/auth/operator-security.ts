@@ -8,12 +8,18 @@ export type OperatorSecurityStatus = {
   complete: boolean;
 };
 
+export function isOperatorSecurityEnrollmentRequired() {
+  return process.env.OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT === "true";
+}
+
 export function getOperatorSecurityStatus(
   session: CurrentOperatorSession
 ): OperatorSecurityStatus {
-  const mfaRequired = session.operator.mfaRequired;
+  const enrollmentRequired = isOperatorSecurityEnrollmentRequired();
+  const mfaRequired = enrollmentRequired && session.operator.mfaRequired;
   const mfaEnabled = session.authUser.twoFactorEnabled;
-  const webauthnRequired = session.operator.webauthnRequired;
+  const webauthnRequired =
+    enrollmentRequired && session.operator.webauthnRequired;
   const webauthnRegistered = session.authUser.passkeyCount > 0;
 
   return {

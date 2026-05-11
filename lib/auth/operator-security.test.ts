@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getOperatorSecurityStatus } from "@/lib/auth/operator-security";
 import type { CurrentOperatorSession } from "@/lib/auth/operator-session";
@@ -31,12 +31,26 @@ function session(
 }
 
 describe("operator security status", () => {
-  it("requires both TOTP and passkey when both controls are required", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("allows password-only access by default", () => {
+    expect(getOperatorSecurityStatus(session())).toMatchObject({
+      mfaRequired: false,
+      mfaEnabled: false,
+      webauthnRequired: false,
+      webauthnRegistered: false,
+      complete: true,
+    });
+  });
+
+  it("requires both TOTP and passkey when enrollment enforcement is enabled", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
+
     expect(getOperatorSecurityStatus(session())).toMatchObject({
       mfaRequired: true,
-      mfaEnabled: false,
       webauthnRequired: true,
-      webauthnRegistered: false,
       complete: false,
     });
   });

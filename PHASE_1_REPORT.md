@@ -55,7 +55,7 @@
 - Added the `operator_elevation` migration/rollback and server helpers for time-bounded production DB JIT elevation grants, revocation, active-grant checks, and audit-event writes.
 - Added the DB-session hook so service-role Operator Console queries can opt into `production_db` elevation enforcement with `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`.
 - Added `npm run migrate:supabase-auth`, an apply-gated Postgres-to-Postgres migration script that maps legacy Supabase admin accounts into Better Auth users/accounts, operator rows, org membership, and audit events.
-- Added `/auth/security`, operator security-status checks, `/admin` MFA/passkey enforcement, TOTP challenge handling on sign-in, and passkey registration for production-role operators.
+- Added `/auth/security`, operator security-status checks, optional `/admin` MFA/passkey enforcement, TOTP challenge handling on sign-in, and passkey registration for operators.
 - Added `infra/postgres/Dockerfile` and `db/migrations/009_postgres_runtime_extensions.sql` for the Postgres 16 + pgvector + pg_cron runtime.
 - Created the private `caudals-postgres` swarm service on the VPS, applied migrations `001` through `009`, seeded the five-build fixture set, and applied the legacy operator-account migration.
 - Added Docker secret-file fallback support for app database and Better Auth secrets so the app service can consume mounted secrets during cutover.
@@ -90,7 +90,7 @@
 - Added field-parity persistence and Postgres readback for contract terms, license-clause permission algebra fields, delivery receipts, build metrics, build-plan license gates, run retry/timing metadata, and cost-ledger metadata; existing `signed_s3` delivery rows remain editable.
 - Refreshed the blog content loader unit expectations for the current eight localized posts so the full unit suite covers the public blog surface without stale five-post assumptions.
 - Added Sentry for Next.js server/client/edge error capture plus an opt-in OpenTelemetry stdout trace provider gated by `OTEL_STDOUT_ENABLED=true`.
-- Added the Settings module operator security-enrollment roster so admins can see which migrated operators have completed the Better Auth MFA/passkey production-role gate.
+- Added the Settings module operator security-enrollment roster so admins can see optional Better Auth MFA/passkey hardening status.
 - Added an admin-only Settings action that sends fresh Better Auth reset links to real, reset-eligible operators missing MFA/passkey enrollment and writes `audit_event` rows for successful or failed request attempts without storing emails in audit metadata.
 - Added a proxy-level anonymous `/admin` redirect that detects Better Auth session-cookie variants before any database-backed auth lookup, so CI smoke can verify the admin redirect path without a configured Postgres database.
 - Removed the legacy Supabase runtime from the VPS: compose containers, network, named volumes, service images, stale app-service env keys, and `/supabase` host tree.
@@ -121,6 +121,7 @@
 - Deployed the anonymous-admin proxy redirect image `mariomedpar/caudals:phase1-392a19a` to the VPS app service.
 - Deployed the configurable reset-token image `mariomedpar/caudals:phase1-c648ef9` to the VPS app service with `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS=14400` so pending real-operator enrollment links stay valid for four hours.
 - Deployed the operator reset-link action image `mariomedpar/caudals:phase1-2887c39` to the VPS app service and archived the deployed image locally because registry auth is still unavailable.
+- Made operator MFA/passkey enrollment optional by default: password-only Better Auth login is allowed, `db/migrations/011_optional_operator_security_factors.sql` clears required-factor flags, and `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is now the explicit opt-in for enforcing the old setup gate.
 - Committed the verified Phase 1 work as `5b6edac` and pushed branch `phase-1-operator-console` to `origin`; GitHub returned the PR creation URL `https://github.com/Caudals/caudals/pull/new/phase-1-operator-console`.
 - Backfilled deterministic `build_gate_summary` audit events for all five demo builds and updated the fixture seed so every seeded build has a build-target audit trail alongside G-1..G-7 gate rows.
 
@@ -128,7 +129,7 @@
 
 - Earlier slices used deterministic Phase 1 seed data in code while the Postgres and Better Auth migration was pending; the deployed app now reads `caudals-postgres`, while fixture mode remains for local tests.
 - New schema work lands in `db/migrations/*` with matching rollbacks because the goal replaces the legacy Supabase migration path.
-- The production smoke fixture account remains MFA/WebAuthn-exempt so Playwright can verify the private console; the three real migrated operator accounts still require both controls.
+- Operator MFA/passkey enrollment is optional by default after the founder policy change; the old setup gate can be re-enabled only by setting `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true`.
 
 ## Known Gaps
 
@@ -136,7 +137,7 @@
 - The local `frontend-design` skill referenced by `AGENTS.md` is not installed in this repo. Claude CLI fallback review with Opus/xhigh could not run because Claude CLI returned `401 Invalid authentication credentials`; a manual fallback design-system review and UI polish pass was completed instead.
 - Operator console transition mutations persist only when `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; fixture mode intentionally returns non-durable audit payloads for local tests.
 - The five concurrent builds are loaded into `caudals-postgres`; the deployed app service now reads them through the Postgres-backed Operator Console repository.
-- Better Auth now owns the visible operator auth shell. Operator-account migration and reset-password requests have been applied to `caudals-postgres`; the Operator Console Settings module exposes the operator security roster, admin reset-link action, JIT elevation UI, and server action path.
+- Better Auth now owns the visible operator auth shell. Operator-account migration and reset-password requests have been applied to `caudals-postgres`; the Operator Console Settings module exposes the optional operator security roster, admin reset-link action, JIT elevation UI, and server action path.
 - The standalone Labeling module is now live for `label_batch` work queues and state transitions; embedded Label Studio/CVAT reviewer operations remain later-phase work.
 - Deep entity-specific editors remain later-phase work; the current production console now covers field-specific Buyer, Dataset, Supplier Asset, Contract, License, Delivery, Build, Build Plan, Run, Cost, Privacy, Catalogue, Labeling, Quality, and Commercials controls, real-data module views, validated state transitions, bulk actions, command-palette record jumps, JIT elevation, signing-key generation, cross-module record notes CRUD, descriptor-gated create/update/delete controls, and guided field copy for every mutable anchor record surfaced in module work queues.
 - Sentry is wired but remains disabled until `SENTRY_DSN` is configured. OpenTelemetry stdout export is intentionally opt-in with `OTEL_STDOUT_ENABLED=true`. Current Turbopack builds emit two non-fatal Sentry dependency warnings about nested `import-in-the-middle` versions.
@@ -147,7 +148,7 @@
 
 ## Completion Audit
 
-Current status: not complete until the external/human gates below are cleared.
+Current status: not complete until the external CI/registry gates below are cleared.
 
 Prompt-to-artifact checklist:
 
@@ -156,7 +157,7 @@ Prompt-to-artifact checklist:
 - **Replace Supabase with PostgreSQL:** live Docker inspection shows only `caudals-postgres:16-pgvector-cron` and no Supabase containers, network, volumes, images, repo tree, service env keys, or `@supabase/*` package dependencies.
 - **Migrate old data:** public-funnel and operator-account migration scripts ran, row-count/sample verification is recorded in `docs/migrations/supabase-to-postgres.md`, and encrypted database/filesystem backups are verified under `/root/.caudals/backups`.
 - **Replace Supabase Auth with Better Auth:** app service uses `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`, and `OPERATOR_CONSOLE_DATA_SOURCE=postgres`; active auth code paths use Better Auth/Postgres.
-- **Real operator login/MFA:** code enforces security setup for required accounts, but live `auth_two_factor` and `auth_passkey` enrollment counts are still zero. The three real migrated operators have `mfa_required=true` and `webauthn_required=true`; completing enrollment requires those operators to use the current reset/security flow.
+- **Real operator login/MFA:** password-only Better Auth login is allowed by default. TOTP/passkeys remain available as optional hardening, and the old setup gate is only active if `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true`.
 - **14 modules with real data/RLS:** deployed console renders the §19 module map from `caudals-postgres`; live DB audit shows required extensions, 34 RLS policies, RLS enabled on 10 checked operator tables, and module work queues backed by real tables.
 - **§23 state machines:** `buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, and `dsar` transitions are defined, server-validated, persisted, and audited through Postgres-backed actions.
 - **Five demo builds/G-1..G-7:** live DB has 5 builds, 35 gate events, 7 gates per build, and build-target audit events for all five builds.
@@ -433,3 +434,4 @@ Prompt-to-artifact checklist:
 - Created a local recovery archive for the deployed image at `/root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz`; `gzip -t` and `sha256sum -c` passed. This replaces the `phase1-c648ef9` archive as the current fallback while registry auth remains unavailable.
 - Fresh reset requests were accepted for the 3 eligible real operators after the `phase1-2887c39` deployment; live verification returned `valid_reset_verifications=3`, `valid_after_3h=3`, and `max_minutes_remaining=240`. Live enrollment remains incomplete at `operator_security total=4 complete=1 action_needed=3 mfa=0/3 passkey_users=0/3 reset_eligible=3` until those operators complete `/auth/security`.
 - Added audit-event writes to the `operator:security-status -- --send-resets` CLI path so operational reset requests are tracked like the admin UI action, without storing emails in audit metadata. `npm run typecheck`, `npm run lint`, `npm run i18n:check-parity`, `npm test -- --run lib/auth/operator-security-enrollment.test.ts`, `npm test -- --run` with 34 files and 151 tests, and `git diff --check` passed; a live dry run on `dokploy-network` reported `reset_requests=0 reset_failed=0` without sending emails. No app redeploy was needed because this slice only changes the operational script and docs.
+- Applied `db/migrations/011_optional_operator_security_factors.sql` to live `caudals-postgres`, set `mariomedra2003@gmail.com` as an active admin, and requested a fresh password-reset email for that account. Live verification returned `operator_security total=4 complete=4 action_needed=0 mfa=0/0 passkey_users=0/0 reset_eligible=0`; anonymous `/admin` still redirects to sign-in, and password-only login is no longer blocked by `/auth/security`.

@@ -1,3 +1,5 @@
+import { isOperatorSecurityEnrollmentRequired } from "@/lib/auth/operator-security";
+
 export type OperatorSecurityEnrollmentRow = {
   id: string;
   orgId?: string | null;
@@ -56,9 +58,11 @@ function isFixtureOperatorEmail(email: string) {
 export function mapOperatorSecurityEnrollmentRow(
   row: OperatorSecurityEnrollmentRow
 ): OperatorSecurityEnrollmentEntry {
-  const mfaRequired = row.mfaRequired === true;
+  const enrollmentRequired = isOperatorSecurityEnrollmentRequired();
+  const mfaRequired = enrollmentRequired && row.mfaRequired === true;
   const mfaEnabled = row.mfaEnabled === true;
-  const webauthnRequired = row.webauthnRequired === true;
+  const webauthnRequired =
+    enrollmentRequired && row.webauthnRequired === true;
   const passkeyCount = Number(row.passkeyCount ?? 0);
   const securityComplete =
     (!mfaRequired || mfaEnabled) &&
