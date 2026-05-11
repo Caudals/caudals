@@ -46,6 +46,11 @@ Direct SSH runtime inspection is allowed when local context is stale:
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
+If Docker registry access is unavailable, restore the current deployed app image
+from the local archive before rescheduling the app service:
+- `sha256sum -c /root/.caudals/backups/caudals-image-phase1-c648ef9-20260511T121804Z.tar.gz.sha256`
+- `gunzip -c /root/.caudals/backups/caudals-image-phase1-c648ef9-20260511T121804Z.tar.gz | docker load`
+
 ## Private Dashboard Access
 - Dokploy and Umami dashboards are not public.
 - Direct Tailscale-only URLs:
