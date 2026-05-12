@@ -5,6 +5,7 @@ Caudals is a B2B AI dataset marketplace and managed data operations platform. Th
 
 Current production scope is deliberately limited:
 - Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
+- Public catalogue: `/catalogue` for the curated M3 dataset listing subset
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
 - Private buyer access: `/buyer` for read-only delivery, scorecard, and manifest review
@@ -17,7 +18,7 @@ Future marketplace scope:
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the private operator auth/admin surface, the relaunched read-only buyer delivery workspace, and the M2 managed supplier portal.
+While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the public M3 `/catalogue` listing subset, the private operator auth/admin surface, the relaunched read-only buyer delivery workspace, and the M2 managed supplier portal.
 
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
@@ -50,13 +51,14 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, `/supplier`, and required metadata/assets. All other routes return `404`.
+- In landing mode, the allowlist is `/`, `/catalogue`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, `/supplier`, and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
 - `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
+- `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
   read-only, and limited to delivery, scorecard, manifest, and trust evidence.
 - `/supplier` is the new B2B supplier portal entrypoint. It is authenticated

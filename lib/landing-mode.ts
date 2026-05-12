@@ -1,4 +1,9 @@
-const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set(["/", "/contact", "/blog"]);
+const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
+  "/",
+  "/catalogue",
+  "/contact",
+  "/blog",
+]);
 const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
 const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
@@ -22,6 +27,7 @@ const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
 
 export const landingModePublicNavigationLinks = [
+  { href: "/catalogue", label: "Catalogue" },
   { href: "/contact", label: "Contact" },
   { href: "/blog", label: "Blog" },
 ] as const;

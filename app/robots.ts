@@ -29,7 +29,14 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/blog/", "/contact", "/robots.txt", "/sitemap.xml"],
+      allow: [
+        "/",
+        "/blog/",
+        "/catalogue",
+        "/contact",
+        "/robots.txt",
+        "/sitemap.xml",
+      ],
       disallow,
     },
     sitemap: buildMarketingUrl("/sitemap.xml"),

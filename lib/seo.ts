@@ -21,6 +21,7 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/about", changeFrequency: "monthly", priority: 0.7 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/careers", changeFrequency: "monthly", priority: 0.5 },
+  { pathname: "/catalogue", changeFrequency: "weekly", priority: 0.85 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/docs", changeFrequency: "monthly", priority: 0.65 },
   { pathname: "/docs/security-baseline", changeFrequency: "monthly", priority: 0.6 },
@@ -34,6 +35,7 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
 const LANDING_MODE_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
+  { pathname: "/catalogue", changeFrequency: "weekly", priority: 0.85 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
 ];
 
