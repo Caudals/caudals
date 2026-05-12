@@ -1,0 +1,197 @@
+x-observability-defaults: &observability-defaults
+  networks:
+    - observability
+  deploy:
+    replicas: 1
+    restart_policy:
+      condition: any
+
+services:
+  tempo:
+    <<: *observability-defaults
+    image: grafana/tempo:2.7.2
+    command:
+      - -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - type: bind
+        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/tempo.yaml
+        target: /etc/tempo/tempo.yaml
+        read_only: true
+      - tempo-data:/var/tempo
+    networks:
+      observability:
+        aliases:
+          - tempo
+          - caudals-observability-tempo
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 512M
+
+  loki:
+    <<: *observability-defaults
+    image: grafana/loki:3.3.2
+    command:
+      - -config.file=/etc/loki/loki.yaml
+    volumes:
+      - type: bind
+        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/loki.yaml
+        target: /etc/loki/loki.yaml
+        read_only: true
+      - loki-data:/loki
+    networks:
+      observability:
+        aliases:
+          - loki
+          - caudals-observability-loki
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 512M
+
+  prometheus:
+    <<: *observability-defaults
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=14d
+      - --web.enable-lifecycle
+    volumes:
+      - type: bind
+        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/prometheus.yaml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+      - prometheus-data:/prometheus
+    networks:
+      observability:
+        aliases:
+          - prometheus
+          - caudals-observability-prometheus
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 512M
+
+  promtail:
+    <<: *observability-defaults
+    image: grafana/promtail:3.3.2
+    command:
+      - -config.file=/etc/promtail/promtail.yaml
+    volumes:
+      - type: bind
+        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/promtail.yaml
+        target: /etc/promtail/promtail.yaml
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - promtail-positions:/var/lib/promtail
+    networks:
+      observability:
+        aliases:
+          - promtail
+          - caudals-observability-promtail
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 256M
+
+  cadvisor:
+    <<: *observability-defaults
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    command:
+      - --housekeeping_interval=30s
+      - --docker_only=true
+    volumes:
+      - type: bind
+        source: /
+        target: /rootfs
+        read_only: true
+      - type: bind
+        source: /var/run
+        target: /var/run
+        read_only: true
+      - type: bind
+        source: /sys
+        target: /sys
+        read_only: true
+      - type: bind
+        source: /var/lib/docker
+        target: /var/lib/docker
+        read_only: true
+      - type: bind
+        source: /dev/disk
+        target: /dev/disk
+        read_only: true
+    networks:
+      observability:
+        aliases:
+          - cadvisor
+          - caudals-observability-cadvisor
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 256M
+
+  grafana:
+    <<: *observability-defaults
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    secrets:
+      - source: grafana_admin_password
+        target: grafana_admin_password
+    volumes:
+      - type: bind
+        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/grafana-datasources.yaml
+        target: /etc/grafana/provisioning/datasources/caudals.yaml
+        read_only: true
+      - grafana-data:/var/lib/grafana
+    networks:
+      observability:
+        aliases:
+          - grafana
+          - caudals-observability-grafana
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 384M
+
+networks:
+  observability:
+    name: ${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}
+    external: true
+
+secrets:
+  grafana_admin_password:
+    external: true
+    name: ${CAUDALS_OBSERVABILITY_GRAFANA_SECRET:-caudals_observability_grafana_admin_password}
+
+volumes:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+  promtail-positions:
+  grafana-data:

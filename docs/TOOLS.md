@@ -132,10 +132,28 @@ Install caveat:
   `lib/observability/sentry-config.ts`.
 - Sentry stays disabled unless `SENTRY_DSN` is set. Keep `sendDefaultPii=false`
   unless a privacy review explicitly approves a change.
-- Optional OpenTelemetry stdout traces are registered from
-  `lib/observability/opentelemetry.ts` when `OTEL_STDOUT_ENABLED=true`.
-- The stdout exporter is intended for VPS diagnostics and short-lived debugging;
-  do not enable it permanently if logs may contain sensitive operational context.
+- OpenTelemetry traces are registered from
+  `lib/observability/opentelemetry.ts`. Set
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://caudals-observability-tempo:4318/v1/traces`
+  and `OTEL_SERVICE_NAME=caudals-web` on the app service to export spans to the
+  private Tempo service.
+- Signal-specific `OTEL_EXPORTER_OTLP_TRACES_HEADERS` and generic
+  `OTEL_EXPORTER_OTLP_HEADERS` are supported for OTLP HTTP headers; do not store
+  secrets in repository files.
+- Optional OpenTelemetry stdout traces remain available when
+  `OTEL_STDOUT_ENABLED=true`. The stdout exporter is intended for VPS
+  diagnostics and short-lived debugging; do not enable it permanently if logs
+  may contain sensitive operational context.
+- The private observability stack lives in `infra/observability/` and is
+  deployed with `scripts/deploy-observability-stack.sh`. It runs Tempo, Loki,
+  Prometheus, Promtail, cAdvisor, and internal Grafana on `dokploy-network`
+  without public published ports.
+- `scripts/probe-observability-stack.sh` verifies private readiness endpoints
+  for Tempo, Loki, Prometheus, Promtail, cAdvisor, and Grafana from an ephemeral
+  container attached to `dokploy-network`.
+- Promtail scrapes Docker logs through the Docker socket and labels streams by
+  Swarm service name. Prometheus scrapes `tempo:3200`, `loki:3100`,
+  `promtail:9080`, `cadvisor:8080`, and itself.
 - Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
   OpenTelemetry peer packages explicit in `package.json`.
 
@@ -244,7 +262,10 @@ Operational env controls:
 - `SENTRY_RELEASE`
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
 - `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
-- `OTEL_STDOUT_ENABLED` (default disabled; set `true` for stdout spans)
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
+- `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
+  OTLP HTTP headers; do not commit secret values)
+- `OTEL_STDOUT_ENABLED` (default disabled; set `true` for short-lived stdout spans)
 - `OTEL_SERVICE_NAME` (default `caudals-web`)
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
@@ -256,7 +277,9 @@ Operational env controls:
 - Resend: API key, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
-- Observability: Sentry DSN/environment/release/sample rates and opt-in OpenTelemetry stdout export
+- Observability: Sentry DSN/environment/release/sample rates,
+  OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
+  export
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

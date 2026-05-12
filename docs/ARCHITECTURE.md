@@ -29,7 +29,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - Payments: Stripe is present in the codebase but not part of the current public deployment
 - Storage: DigitalOcean Spaces (S3-compatible)
 - Email: Resend
-- Observability: Sentry for Next.js error capture and opt-in OpenTelemetry stdout traces
+- Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
+  private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
+  for the private observability services and container runtime
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
 
 ## Code Topology
@@ -120,8 +122,21 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   edge, and client runtime errors.
 - Sentry is disabled until `SENTRY_DSN` is configured. Default sampling is `0`
   for traces/profiles unless environment variables raise it.
-- OpenTelemetry stdout export is opt-in via `OTEL_STDOUT_ENABLED=true` and is
-  intended for bounded VPS diagnostics, not always-on production logging.
+- The private Docker Swarm observability stack is defined in
+  `infra/observability/docker-stack.yml` and runs on `dokploy-network` without
+  public ingress.
+- OpenTelemetry spans emitted by the app export over OTLP HTTP when
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. The production target is
+  `http://caudals-observability-tempo:4318/v1/traces`.
+- Docker runtime logs are scraped through Promtail and written to Loki with
+  `service_name`, `container_name`, `container_id`, `stack`, and `stream`
+  labels.
+- Prometheus scrapes Tempo, Loki, Promtail, cAdvisor, and itself for platform
+  metrics. Grafana is provisioned internally with Prometheus, Loki, and Tempo
+  datasources.
+- OpenTelemetry stdout export remains opt-in via `OTEL_STDOUT_ENABLED=true`
+  for bounded diagnostics; it should not be enabled permanently if logs may
+  contain sensitive operational context.
 
 ## Data and Storage Domains
 Current live data domains:
