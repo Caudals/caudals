@@ -53,6 +53,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `release_documentation_bundle` records store G-7 package evidence for each
   released dataset version: required docs, Croissant JSON-LD, Article 10 data
   governance notes, validation status, and public HF mirror metadata.
+- `compliance_control_scope` records store SOC 2 / ISO 27001 control scope,
+  framework mappings, owner, evidence links, review cadence, and readiness state
+  for operator-managed governance review.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 

@@ -15,6 +15,7 @@ describe("operator workflow state machines", () => {
       "build",
       "buyer_opportunity",
       "cleanlab_qa_pass",
+      "compliance_control_scope",
       "contract",
       "delivery",
       "delta_manifest",
@@ -105,6 +106,9 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("release_documentation_bundle")).toBe(
       "release_documentation_bundle"
     );
+    expect(getWorkflowNameForRecordType("compliance_control_scope")).toBe(
+      "compliance_control_scope"
+    );
     expect(getWorkflowNameForRecordType("enrichment_manifest")).toBe(
       "enrichment_manifest"
     );
@@ -138,6 +142,12 @@ describe("operator workflow state machines", () => {
     ).toEqual([
       { from: "approved", to: "published" },
       { from: "approved", to: "superseded" },
+    ]);
+    expect(
+      getNextWorkflowTransitions("compliance_control_scope", "evidence_review")
+    ).toEqual([
+      { from: "evidence_review", to: "ready" },
+      { from: "evidence_review", to: "exception" },
     ]);
     expect(getNextWorkflowTransitions("enrichment_manifest", "blocked")).toEqual([
       { from: "blocked", to: "draft", label: "rework" },

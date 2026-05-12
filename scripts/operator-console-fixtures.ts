@@ -75,6 +75,10 @@ const ids = {
   supplierPayoutIntegration: fixtureId("in", 2),
   signingKey: fixtureId("sk", 1),
   operatorElevation: fixtureId("oe", 1),
+  accessControlScope: fixtureId("cc", 1),
+  auditLoggingScope: fixtureId("cc", 2),
+  dataProtectionScope: fixtureId("cc", 3),
+  incidentResponseScope: fixtureId("cc", 4),
 };
 
 const fixtureBuilds = [
@@ -173,6 +177,7 @@ export async function seedOperatorConsoleFixtures() {
     await seedBuilds(client);
     await seedDatasetAndCommercials(client);
     await seedOperatorElevation(client);
+    await seedComplianceControlScopes(client);
     await seedAudit(client);
 
     await client.query("COMMIT");
@@ -2005,6 +2010,152 @@ async function seedOperatorElevation(client: PoolClient) {
   );
 }
 
+async function seedComplianceControlScopes(client: PoolClient) {
+  const controls = [
+    {
+      id: ids.accessControlScope,
+      key: "access-control-jit-mfa",
+      title: "Operator access, MFA readiness, and JIT elevation",
+      family: "identity_access",
+      state: "ready",
+      status: "implemented",
+      soc2: ["CC6.1", "CC6.2", "CC7.2"],
+      iso27001: ["A.5.15", "A.5.16", "A.8.2"],
+      evidence: [
+        { type: "operator_security_status", command: "npm run operator:security-status" },
+        { type: "audit_event", targetType: "operator_elevation" },
+      ],
+      linked: [
+        { type: "operator_elevation", id: ids.operatorElevation },
+        { type: "audit_event", id: fixtureId("ae", 6) },
+      ],
+      boundary:
+        "Better Auth operator identities, optional MFA/passkeys, RLS, and audited production DB JIT elevation.",
+    },
+    {
+      id: ids.auditLoggingScope,
+      key: "audit-logging-privileged-actions",
+      title: "Privileged action audit logging and retention scope",
+      family: "governance",
+      state: "ready",
+      status: "implemented",
+      soc2: ["CC7.2", "CC7.3", "CC8.1"],
+      iso27001: ["A.5.28", "A.8.15", "A.8.16"],
+      evidence: [
+        { type: "audit_event", targetType: "operator_record" },
+        { type: "audit_event", targetType: "release_documentation_bundle" },
+      ],
+      linked: [
+        { type: "release_documentation_bundle", id: ids.releaseDocumentationBundle },
+        { type: "signing_key", id: ids.signingKey },
+      ],
+      boundary:
+        "Operator Console mutations, state transitions, delivery signing, release documentation, and audit-event export scope.",
+    },
+    {
+      id: ids.dataProtectionScope,
+      key: "data-protection-dataset-packaging",
+      title: "Dataset protection, PII treatment, and release evidence",
+      family: "data_protection",
+      state: "evidence_review",
+      status: "partial",
+      soc2: ["CC6.7", "CC6.8", "CC9.2"],
+      iso27001: ["A.5.34", "A.8.10", "A.8.11"],
+      evidence: [
+        { type: "pii_map", id: ids.piiMap },
+        { type: "release_documentation_bundle", id: ids.releaseDocumentationBundle },
+      ],
+      linked: [
+        { type: "dataset_version", id: ids.datasetVersion },
+        { type: "pii_map", id: ids.piiMap },
+      ],
+      boundary:
+        "Dataset build artifacts, PII findings, privacy treatments, release docs, and buyer delivery evidence.",
+    },
+    {
+      id: ids.incidentResponseScope,
+      key: "incident-response-runbooks-alerts",
+      title: "Security incident response and operator escalation scope",
+      family: "incident_response",
+      state: "scoped",
+      status: "partial",
+      soc2: ["CC7.3", "CC7.4", "CC7.5"],
+      iso27001: ["A.5.24", "A.5.25", "A.5.26"],
+      evidence: [
+        { type: "alert", id: ids.alert },
+        { type: "runbook", id: "R-08" },
+      ],
+      linked: [
+        { type: "alert", id: ids.alert },
+        { type: "operator_elevation", id: ids.operatorElevation },
+      ],
+      boundary:
+        "Operator alerts, escalation review, restore checklist, and security-event triage for the current VPS deployment.",
+    },
+  ] as const;
+
+  for (const control of controls) {
+    await query(
+      client,
+      `
+        INSERT INTO compliance_control_scope (
+          id, org_id, control_key, title, control_family,
+          framework_mappings, scope_boundary, owner_operator_id,
+          evidence_sources, linked_records, implementation_status,
+          risk_notes, review_cadence, next_review_at, scoped_at,
+          approved_at, state, created_at, updated_at, created_by
+        )
+        VALUES (
+          $1, $2, $3, $4, $5,
+          jsonb_build_object(
+            'soc2', jsonb_build_object('criteria', $6::text[]),
+            'iso27001', jsonb_build_object('controls', $7::text[])
+          ),
+          $8, $9, $10::jsonb, $11::jsonb, $12,
+          $13, 'quarterly', $14::timestamptz + interval '90 days',
+          $14, CASE WHEN $15 = 'ready' THEN $14 ELSE NULL END,
+          $15, $14, $14, $9
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          control_key = EXCLUDED.control_key,
+          title = EXCLUDED.title,
+          control_family = EXCLUDED.control_family,
+          framework_mappings = EXCLUDED.framework_mappings,
+          scope_boundary = EXCLUDED.scope_boundary,
+          owner_operator_id = EXCLUDED.owner_operator_id,
+          evidence_sources = EXCLUDED.evidence_sources,
+          linked_records = EXCLUDED.linked_records,
+          implementation_status = EXCLUDED.implementation_status,
+          risk_notes = EXCLUDED.risk_notes,
+          review_cadence = EXCLUDED.review_cadence,
+          next_review_at = EXCLUDED.next_review_at,
+          scoped_at = EXCLUDED.scoped_at,
+          approved_at = EXCLUDED.approved_at,
+          state = EXCLUDED.state,
+          updated_at = EXCLUDED.updated_at,
+          deleted_at = NULL
+      `,
+      [
+        control.id,
+        ids.tenantOrg,
+        control.key,
+        control.title,
+        control.family,
+        control.soc2,
+        control.iso27001,
+        control.boundary,
+        ids.operator,
+        JSON.stringify(control.evidence),
+        JSON.stringify(control.linked),
+        control.status,
+        "Fixture scoping evidence; formal certification remains out of scope.",
+        FIXTURE_CREATED_AT,
+        control.state,
+      ]
+    );
+  }
+}
+
 async function seedAudit(client: PoolClient) {
   const baseAuditEvents = [
     [fixtureId("ae", 1), "build", fixtureBuilds[0].id, "state_transition", { from_state: "labeling", to_state: "qa" }],
@@ -2021,6 +2172,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 12), "delta_manifest", ids.deltaManifest, "state_transition", { from_state: "validating", to_state: "ready" }],
     [fixtureId("ae", 13), "modality_contract", ids.timeSeriesModalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
     [fixtureId("ae", 14), "release_documentation_bundle", ids.releaseDocumentationBundle, "state_transition", { from_state: "generated", to_state: "review" }],
+    [fixtureId("ae", 15), "compliance_control_scope", ids.accessControlScope, "state_transition", { from_state: "evidence_review", to_state: "ready" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),
