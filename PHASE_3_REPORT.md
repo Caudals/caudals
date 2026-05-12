@@ -19,6 +19,7 @@
 - SOC 2 / ISO 27001 scoping now has an operator-owned control register with framework mappings, evidence links, review cadence, readiness states, and audited workflow transitions.
 - Versioned `/v1/*` REST now exposes inline API documentation, public catalogue/version/sample reads, public brief/access intake, and buyer-scoped delivery, quote, and subscription actions behind rate limits and Better Auth where required.
 - Private observability now runs on `dokploy-network` with OpenTelemetry traces to Tempo, Docker logs to Loki through Promtail, Prometheus metrics for Tempo/Loki/Promtail/cAdvisor, and internal Grafana datasources.
+- Production operator MFA is required for non-fixture accounts: TOTP enrollment gates `/admin`, fixture accounts remain password-only for automated smoke tests, and reset-link requests are audited.
 
 ## Verification
 
@@ -31,8 +32,9 @@
 - SOC 2 / ISO 27001 control scoping passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke.
 - Public REST v1 passed focused/full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, Docker deployment, route probes, live `/v1` descriptor/catalogue/version/header/validation probes, production core route smoke, and production authenticated role smoke.
 - Observability passed focused OpenTelemetry unit tests, full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, private stack config validation, Docker deployment, private readiness probes, Prometheus `up` scrape readback, Loki app-log readback, Tempo `v1.datasets.list` route-span readback, production route probes, and deployed public browser smoke for image `mariomedpar/caudals:938935446944336fd008f95d193d8c59886340d5`.
+- Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 
 ## Known Gaps / Next M3 Inputs
 
-- Do not mark the full platform goal done until the operator-security policy conflict is resolved: `docs/goal.md` requires MFA on operator accounts, while the current blueprint/deployment allow password-only login by default. Live non-secret readback currently shows four active operators, zero MFA-required flags, zero WebAuthn-required flags, zero TOTP users, and zero passkey users.
+- Do not mark the full platform goal done until live operator MFA enrollment is complete. The policy conflict has been resolved in favor of required production TOTP with a fixture-only smoke-test exemption; three reset-eligible real operators have fresh reset links and still need to complete their own authenticator setup.
 - Sentry error delivery remains disabled until `SENTRY_DSN` is configured in production. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.

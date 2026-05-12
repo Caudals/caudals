@@ -1443,7 +1443,7 @@ Caudals' commercial credibility depends on its security and compliance posture f
 
 ### Identity & access
 
-- **Better Auth operator identity** with password-only login allowed by default; TOTP and phishing-resistant passkeys remain available as optional hardening and can be made mandatory later by policy.
+- **Better Auth operator identity** with required TOTP enrollment for production operators; phishing-resistant passkeys remain available as additional hardening, and fixture operators stay password-only only for automated smoke tests.
 - **Internal SSO scaffolded** but disabled until the Phase 3 buyer/supplier identity rollout.
 - **Role-based access control** with least-privilege roles enforced at the database (RLS), service (server actions), and infrastructure layers (Tailscale ACLs).
 - **Just-in-time elevation** for production database access; every elevation is recorded with reason and is time-bounded.
@@ -1999,4 +1999,3 @@ This document is the canonical technical specification for the Caudals platform.
 *Caudals — Platform Blueprint · Volume 01 · Document 01 · Revision 1.2 · Issued 2026-05-09*
 
 *Pairs with: `AGENTS.md` · `docs/ARCHITECTURE.md` · `docs/product-specs/overview.md`*
-

@@ -20,3 +20,10 @@
 - **Decision:** Earlier Phase 1 slices temporarily exposed `label_batch` under Quality; the console now ships Labeling as a standalone module while keeping embedded Label Studio/CVAT/reviewer workforce flows out of scope for later phases.
 - **Reason:** The temporary consolidation kept the first operator-console release narrow while the Postgres and Better Auth cutover was still in progress.
 - **Status:** Closed. The Operator Console now exposes a standalone Labeling module for `label_batch` reviewer queues, adjudication depth, create/edit controls, state transitions, and Postgres-backed work items. Embedded Label Studio/CVAT/reviewer workforce operations remain later-phase implementation, but the §19 module map is no longer consolidated into Quality.
+
+## D-004 · Operator MFA fixture exemption
+
+- **Blueprint section:** §25
+- **Decision:** Production operator rows require TOTP enrollment before `/admin`; fixture operators remain password-only for automated smoke tests and local seed reproducibility.
+- **Reason:** `docs/goal.md` requires real MFA on operator accounts, while CI cannot safely store shared MFA seeds or passkeys.
+- **Status:** Active for M3. Non-fixture operators are required to enroll TOTP; passkeys remain optional hardening.

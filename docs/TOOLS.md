@@ -79,7 +79,7 @@ Hard rules:
 ## Better Auth Migration Pattern
 1. Use PostgreSQL as the Better Auth adapter target.
 2. Keep operator sessions cookie-based, httpOnly, SameSite=Lax, rotating, and refresh-on-use.
-3. Keep TOTP and WebAuthn/passkeys available as optional operator hardening; password-only operator login is allowed by default.
+3. Require TOTP enrollment for production operator accounts; keep passkeys available as additional hardening. Fixture accounts remain password-only for smoke tests.
 4. Preserve emails and roles when mapping legacy auth users into operator identity records.
 5. Force password reset on first login after migration.
 6. Record JIT-elevation events into `audit_event`.
@@ -108,10 +108,10 @@ Current scaffold:
   records.
 - Operator security enrollment: `npm run operator:security-status` reports
   MFA/passkey completion and reset-eligible counts without printing emails by
-  default. Password-only operator login is allowed unless
-  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is set. When enforcement
-  is enabled, add `-- --send-resets` to request fresh reset links for required
-  non-fixture operators still missing enrollment; reset attempts write
+  default. TOTP enrollment is required for production operators unless
+  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false` is set for local or
+  break-glass use. Add `-- --send-resets` to request fresh reset links for
+  required non-fixture operators still missing enrollment; reset attempts write
   `audit_event` rows without email addresses in metadata. Add
   `-- --fail-on-incomplete` only for release gates that intentionally require
   all factors, and `-- --show-emails` only when an admin explicitly needs the
@@ -251,7 +251,7 @@ Operational env controls:
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
-- `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
+- `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default required; set `false` only for local or break-glass password-only operator access)
 - `SUPPLIER_PORTAL_ENABLED` (default enabled; set `false` to hide `/supplier`)
 - `SUPPLIER_PORTAL_V1_ENABLED` (default enabled; set `false` to hide read-only payout and Stripe Connect panels on `/supplier`)
 - `MODALITY_CONTRACTS_ENABLED` (default enabled; set `false` to block operator modality-contract and enrichment writes)
