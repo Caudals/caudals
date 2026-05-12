@@ -490,6 +490,7 @@ const transitionWorkflowTables = {
   sample_preview_access: '"sample_preview_access"',
   modality_contract: '"modality_contract"',
   release_documentation_bundle: '"release_documentation_bundle"',
+  compliance_control_scope: '"compliance_control_scope"',
   enrichment_manifest: '"enrichment_manifest"',
   active_learning_loop: '"active_learning_loop"',
   cleanlab_qa_pass: '"cleanlab_qa_pass"',
@@ -516,6 +517,20 @@ function buildPersistTransitionAssignments(workflow: WorkflowName) {
         published_at = CASE
           WHEN $1 = 'published' THEN COALESCE(published_at, now())
           ELSE published_at
+        END
+    `;
+  }
+
+  if (workflow === "compliance_control_scope") {
+    return `
+        state = $1,
+        scoped_at = CASE
+          WHEN $1 IN ('scoped','evidence_review','ready') THEN COALESCE(scoped_at, now())
+          ELSE scoped_at
+        END,
+        approved_at = CASE
+          WHEN $1 = 'ready' THEN COALESCE(approved_at, now())
+          ELSE approved_at
         END
     `;
   }
@@ -620,6 +635,30 @@ function buildPersistTransitionPredicate(workflow: WorkflowName) {
                 AND hf_mirror ? 'license'
               )
             )
+          )
+        )
+    `;
+  }
+
+  if (workflow === "compliance_control_scope") {
+    return `
+        AND (
+          $1 NOT IN ('scoped', 'evidence_review', 'ready', 'exception')
+          OR (
+            char_length(scope_boundary) >= 6
+            AND owner_operator_id IS NOT NULL
+            AND framework_mappings ?& ARRAY['soc2','iso27001']
+            AND jsonb_typeof(evidence_sources) = 'array'
+            AND jsonb_array_length(evidence_sources) > 0
+            AND jsonb_typeof(linked_records) = 'array'
+            AND jsonb_array_length(linked_records) > 0
+          )
+        )
+        AND (
+          $1 <> 'ready'
+          OR (
+            implementation_status = 'implemented'
+            AND next_review_at IS NOT NULL
           )
         )
     `;
@@ -810,8 +849,9 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM alert WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM run WHERE state = 'queued' AND deleted_at IS NULL)
     UNION ALL SELECT 'audit',
-      (SELECT count(*)::int FROM audit_event),
-      0
+      (SELECT count(*)::int FROM audit_event) +
+      (SELECT count(*)::int FROM compliance_control_scope WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM compliance_control_scope WHERE state IN ('draft','evidence_review','exception','deferred') AND deleted_at IS NULL)
     UNION ALL SELECT 'settings',
       (SELECT count(*)::int FROM integration WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM signing_key WHERE deleted_at IS NULL) +
@@ -1456,6 +1496,23 @@ const moduleWorkItemsSql = `
     FROM audit_event ae
     UNION ALL
     SELECT
+      'audit',
+      'compliance_control_scope',
+      ccs.id,
+      ccs.title,
+      ccs.state,
+      ccs.control_family || ' / ' || ccs.implementation_status,
+      ccs.updated_at,
+      CASE
+        WHEN ccs.state = 'exception' THEN 'critical'
+        WHEN ccs.state IN ('draft','scoped','evidence_review','deferred') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review compliance scope'
+    FROM compliance_control_scope ccs
+    WHERE ccs.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'settings',
       'integration',
       i.id,
@@ -1820,6 +1877,28 @@ const moduleWorkItemsSql = `
           ))
           FROM cost_entry ce
           WHERE ce.id = raw_work_items.id
+        )
+        WHEN record_type = 'compliance_control_scope' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'controlKey', ccs.control_key,
+            'controlFamily', ccs.control_family,
+            'implementationStatus', ccs.implementation_status,
+            'soc2Criteria', array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(
+                COALESCE(ccs.framework_mappings -> 'soc2' -> 'criteria', '[]'::jsonb)
+              )
+            ), ', '),
+            'iso27001Controls', array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(
+                COALESCE(ccs.framework_mappings -> 'iso27001' -> 'controls', '[]'::jsonb)
+              )
+            ), ', '),
+            'evidenceCount', jsonb_array_length(ccs.evidence_sources),
+            'linkedRecordCount', jsonb_array_length(ccs.linked_records),
+            'nextReviewAt', ccs.next_review_at
+          ))
+          FROM compliance_control_scope ccs
+          WHERE ccs.id = raw_work_items.id
         )
         ELSE '{}'::jsonb
       END AS field_values

@@ -314,6 +314,27 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "audit",
+            record_type: "compliance_control_scope",
+            id: "cc_01J2CONTROL",
+            title: "Operator access, MFA readiness, and JIT elevation",
+            state: "ready",
+            detail: "identity_access / implemented",
+            updated_at: "2026-05-10T13:15:30.000Z",
+            severity: "info",
+            next_action: "Review compliance scope",
+            field_values: {
+              controlKey: "access-control-jit-mfa",
+              controlFamily: "identity_access",
+              implementationStatus: "implemented",
+              soc2Criteria: "CC6.1, CC7.2",
+              iso27001Controls: "A.5.15, A.8.2",
+              evidenceCount: 2,
+              linkedRecordCount: 2,
+              nextReviewAt: "2026-08-10T12:00:00.000Z",
+            },
+          },
+          {
             module_key: "catalogue",
             record_type: "catalogue_listing",
             id: "cl_01J2LISTING",
@@ -598,6 +619,20 @@ describe("operator console repository", () => {
       },
     });
     expect(
+      snapshot.workItems.audit.find((item) => item.id === "cc_01J2CONTROL")
+    ).toMatchObject({
+      recordType: "compliance_control_scope",
+      fields: {
+        controlKey: "access-control-jit-mfa",
+        controlFamily: "identity_access",
+        implementationStatus: "implemented",
+        soc2Criteria: "CC6.1, CC7.2",
+        iso27001Controls: "A.5.15, A.8.2",
+        evidenceCount: "2",
+        linkedRecordCount: "2",
+      },
+    });
+    expect(
       snapshot.workItems.catalogue.find((item) => item.id === "cl_01J2LISTING")
     ).toMatchObject({
       recordType: "catalogue_listing",
@@ -644,6 +679,8 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("cleanlab_qa_pass");
     expect(workItemsSql).toContain("release_documentation_bundle");
     expect(workItemsSql).toContain("hfMirrorRepo");
+    expect(workItemsSql).toContain("compliance_control_scope");
+    expect(workItemsSql).toContain("soc2Criteria");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
@@ -993,6 +1030,53 @@ describe("operator console repository", () => {
         metadata: {
           from_state: "approved",
           to_state: "published",
+        },
+      },
+    });
+  });
+
+  it("guards compliance control readiness on scoped framework evidence", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "compliance_control_scope"');
+      expect(sql).toContain("framework_mappings ?& ARRAY['soc2','iso27001']");
+      expect(sql).toContain("jsonb_array_length(evidence_sources) > 0");
+      expect(sql).toContain("jsonb_array_length(linked_records) > 0");
+      expect(sql).toContain("implementation_status = 'implemented'");
+      expect(sql).toContain("approved_at");
+
+      return [
+        {
+          id: "ae_01J2CONTROLAUDIT",
+          action: "state_transition",
+          target_type: "compliance_control_scope",
+          target_id: "cc_01J2CONTROL",
+          metadata: {
+            from_state: "evidence_review",
+            to_state: "ready",
+          },
+          created_at: "2026-05-10T13:26:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "compliance_control_scope",
+        targetId: "cc_01J2CONTROL",
+        fromState: "evidence_review",
+        toState: "ready",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "compliance_control_scope",
+        metadata: {
+          from_state: "evidence_review",
+          to_state: "ready",
         },
       },
     });

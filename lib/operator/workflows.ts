@@ -12,6 +12,7 @@ export type WorkflowName =
   | "sample_preview_access"
   | "modality_contract"
   | "release_documentation_bundle"
+  | "compliance_control_scope"
   | "enrichment_manifest"
   | "active_learning_loop"
   | "cleanlab_qa_pass";
@@ -65,6 +66,7 @@ export const workflowRecordTypeMap = {
   sample_preview_access: "sample_preview_access",
   modality_contract: "modality_contract",
   release_documentation_bundle: "release_documentation_bundle",
+  compliance_control_scope: "compliance_control_scope",
   enrichment_manifest: "enrichment_manifest",
   active_learning_loop: "active_learning_loop",
   cleanlab_qa_pass: "cleanlab_qa_pass",
@@ -352,6 +354,30 @@ export const workflowDefinitions = {
       { from: "approved", to: "published" },
       { from: "approved", to: "superseded" },
       { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  compliance_control_scope: {
+    name: "compliance_control_scope",
+    states: [
+      "draft",
+      "scoped",
+      "evidence_review",
+      "ready",
+      "exception",
+      "deferred",
+      "retired",
+    ],
+    terminalStates: ["retired"],
+    transitions: [
+      { from: "draft", to: "scoped" },
+      { from: "draft", to: "deferred" },
+      { from: "scoped", to: "evidence_review" },
+      { from: "evidence_review", to: "ready" },
+      { from: "evidence_review", to: "exception" },
+      { from: "exception", to: "scoped", label: "rework" },
+      { from: "ready", to: "evidence_review", label: "recertify" },
+      { from: "ready", to: "retired" },
+      { from: "deferred", to: "draft", label: "restore" },
     ],
   },
   enrichment_manifest: {
