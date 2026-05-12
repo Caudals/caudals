@@ -1305,12 +1305,12 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       VALUES (
         $1, $2, $3, $4, 'Operator-managed receipt corpus listing',
         '{"priceCents":990000,"currency":"USD","billingModel":"pilot"}'::jsonb,
-        'private',
+        'public',
         's3://fixture/previews/receipt-sample.jsonl',
         '{"gate":"nda_required","watermark":true}'::jsonb,
         'monthly',
         'evaluation',
-        'review', $5, $5, $6
+        'active', $5, $5, $6
       )
       ON CONFLICT (id) DO UPDATE SET
         dataset_version_id = EXCLUDED.dataset_version_id,

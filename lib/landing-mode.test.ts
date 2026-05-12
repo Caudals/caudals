@@ -9,6 +9,8 @@ import {
 describe("landing mode route allowlist", () => {
   it("allows the public page surface", () => {
     expect(isLandingModePagePathAllowed("/")).toBe(true);
+    expect(isLandingModePagePathAllowed("/catalogue")).toBe(true);
+    expect(isLandingModePagePathAllowed("/catalogue/")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact/")).toBe(true);
     expect(isLandingModePagePathAllowed("/blog")).toBe(true);
@@ -60,6 +62,7 @@ describe("landing mode route allowlist", () => {
 
   it("evaluates full request allowlisting", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
+    expect(isLandingModeRequestAllowed("/catalogue")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);

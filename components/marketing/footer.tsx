@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { landingModePublicEnabled } from "@/lib/landing-mode";
+import {
+  landingModePublicEnabled,
+  landingModePublicNavigationLinks,
+} from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface MarketingFooterProps {
@@ -38,16 +41,13 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                 {t("Explore")}
               </h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li>
-                  <Link href="/contact" className="hover:text-foreground">
-                    {t("Contact")}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/blog" className="hover:text-foreground">
-                    {t("Blog")}
-                  </Link>
-                </li>
+                {landingModePublicNavigationLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="hover:text-foreground">
+                      {t(link.label)}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           ) : (

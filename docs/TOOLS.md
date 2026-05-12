@@ -223,6 +223,7 @@ Bootstrap:
 Operational env controls:
 - `DATABASE_URL`
 - `DATABASE_URL_FILE` (Docker secret-file fallback; `DATABASE_URL` wins when both are set)
+- `CAUDALS_TENANT_ORG_ID` (optional public catalogue RLS scope; defaults to the seeded Caudals tenant id)
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`
@@ -240,7 +241,7 @@ Operational env controls:
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
 ## Environment Variable Categories
-- PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
+- PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, optional `CAUDALS_TENANT_ORG_ID`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key, webhook secret
 - Resend: API key, sender addresses, audience/segment IDs
@@ -263,6 +264,8 @@ Operational env controls:
 - `/supplier` is the M2 managed supplier portal exception; it stays authenticated
   and limited to supplier-owned asset declaration, signed sample upload, and
   build status review while `/contributor` remains blocked.
+- `/catalogue` is the M3 public catalogue exception; it stays read-only,
+  shows only active public listings, and sends access requests to `/contact`.
 - `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.
