@@ -4,6 +4,7 @@ import { hashPassword } from "better-auth/crypto";
 import { Pool, type PoolClient } from "pg";
 
 import { getDatabaseUrlFromEnv } from "@/lib/env/database-url";
+import { buildReleaseDocumentationBundle } from "@/lib/operator/release-documentation";
 
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ quiet: true });
@@ -58,6 +59,7 @@ const ids = {
   cleanlabQaPass: fixtureId("cq", 1),
   cleanlabLabelIssue: fixtureId("li", 1),
   piiMap: fixtureId("pm", 1),
+  releaseDocumentationBundle: fixtureId("rd", 1),
   catalogueListing: fixtureId("cl", 1),
   privateOffer: fixtureId("po", 1),
   samplePreviewAccess: fixtureId("pa", 1),
@@ -1433,6 +1435,144 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     ]
   );
 
+  const releaseDocumentationBundle = buildReleaseDocumentationBundle({
+    dataset: {
+      id: ids.dataset,
+      name: "Iberian retail receipt extraction corpus",
+      modality: "document",
+    },
+    version: {
+      id: ids.datasetVersion,
+      label: "v1.0-fixture",
+      manifestUri: "s3://fixture/manifests/receipt-v1.yaml",
+      contentHash: "fixture-content-hash",
+      sizeBytes: 1048576,
+      recordCount: 50000,
+      qaScore: 0.91,
+      releasedAt: FIXTURE_CREATED_AT,
+    },
+    build: {
+      id: fixtureBuilds[0].id,
+      title: fixtureBuilds[0].title,
+      state: fixtureBuilds[0].state,
+    },
+    catalogue: {
+      id: ids.catalogueListing,
+      title: "Operator-managed receipt corpus listing",
+      visibility: "public",
+      licenseTier: "evaluation",
+      refreshCadence: "monthly",
+      samplePreviewUri: "s3://fixture/previews/receipt-sample.jsonl",
+    },
+    license: {
+      spdxId: "supplier-contract",
+      permits: {
+        train: true,
+        finetune: true,
+        eval: true,
+        commercialInference: true,
+      },
+      geo: ["WW"],
+    },
+    quality: {
+      score: 0.91,
+      verdict: "pass",
+      dimensions: {
+        layout_fidelity: 0.93,
+        ocr_confidence: 0.91,
+      },
+    },
+    privacy: {
+      state: "approved",
+      findings: {
+        email: 124,
+        phone: 48,
+      },
+      treatments: {
+        email: "tokenized",
+        phone: "removed",
+      },
+    },
+    lineage: [
+      {
+        namespace: "caudals.fixture",
+        jobName: "receipt_redaction_quality_gate",
+        runId: "fixture-run-1",
+        eventTime: FIXTURE_CREATED_AT,
+      },
+    ],
+    modalityContract: {
+      canonicalFormat: "Parquet page records plus original PDF references",
+      packagingTargets: ["page_parquet", "jsonl_fields", "pdf_bundle", "rest_query"],
+      qaDimensions: [
+        "layout_fidelity",
+        "ocr_confidence",
+        "field_accuracy",
+        "redaction_residual",
+      ],
+      privacyTreatments: [
+        "signature_redaction",
+        "printed_pii_redaction",
+        "handwriting_review",
+        "source_pdf_access_control",
+      ],
+    },
+    signingKeyId: ids.signingKey,
+    documentationUri: "s3://fixture/docs/receipt-v1/release-documentation.json",
+    hfMirror: {
+      namespace: "caudals",
+      repoId: "iberian-retail-receipt-corpus",
+      url: "https://huggingface.co/datasets/caudals/iberian-retail-receipt-corpus",
+      status: "planned",
+      license: "supplier-contract",
+    },
+  });
+
+  await query(
+    client,
+    `
+      INSERT INTO release_documentation_bundle (
+        id, org_id, dataset_version_id, catalogue_listing_id,
+        documentation_uri, package_manifest, croissant_manifest,
+        article10_document, required_documents, hf_mirror,
+        validation_summary, state, generated_at, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb,
+        $9::jsonb, $10::jsonb, $11::jsonb, 'review', $12, $12, $12, $13
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        dataset_version_id = EXCLUDED.dataset_version_id,
+        catalogue_listing_id = EXCLUDED.catalogue_listing_id,
+        documentation_uri = EXCLUDED.documentation_uri,
+        package_manifest = EXCLUDED.package_manifest,
+        croissant_manifest = EXCLUDED.croissant_manifest,
+        article10_document = EXCLUDED.article10_document,
+        required_documents = EXCLUDED.required_documents,
+        hf_mirror = EXCLUDED.hf_mirror,
+        validation_summary = EXCLUDED.validation_summary,
+        state = EXCLUDED.state,
+        generated_at = EXCLUDED.generated_at,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.releaseDocumentationBundle,
+      ids.tenantOrg,
+      ids.datasetVersion,
+      ids.catalogueListing,
+      releaseDocumentationBundle.documentationUri,
+      JSON.stringify(releaseDocumentationBundle.packageManifest),
+      JSON.stringify(releaseDocumentationBundle.croissantManifest),
+      JSON.stringify(releaseDocumentationBundle.article10Document),
+      JSON.stringify(releaseDocumentationBundle.requiredDocuments),
+      JSON.stringify(releaseDocumentationBundle.hfMirror),
+      JSON.stringify(releaseDocumentationBundle.validationSummary),
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
   await query(
     client,
     `
@@ -1880,6 +2020,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 11), "subscription", ids.subscription, "state_transition", { from_state: "draft", to_state: "active" }],
     [fixtureId("ae", 12), "delta_manifest", ids.deltaManifest, "state_transition", { from_state: "validating", to_state: "ready" }],
     [fixtureId("ae", 13), "modality_contract", ids.timeSeriesModalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
+    [fixtureId("ae", 14), "release_documentation_bundle", ids.releaseDocumentationBundle, "state_transition", { from_state: "generated", to_state: "review" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),

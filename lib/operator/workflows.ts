@@ -11,6 +11,7 @@ export type WorkflowName =
   | "dsar"
   | "sample_preview_access"
   | "modality_contract"
+  | "release_documentation_bundle"
   | "enrichment_manifest"
   | "active_learning_loop"
   | "cleanlab_qa_pass";
@@ -63,6 +64,7 @@ export const workflowRecordTypeMap = {
   dsar_request: "dsar",
   sample_preview_access: "sample_preview_access",
   modality_contract: "modality_contract",
+  release_documentation_bundle: "release_documentation_bundle",
   enrichment_manifest: "enrichment_manifest",
   active_learning_loop: "active_learning_loop",
   cleanlab_qa_pass: "cleanlab_qa_pass",
@@ -326,6 +328,28 @@ export const workflowDefinitions = {
       { from: "draft", to: "review" },
       { from: "review", to: "approved" },
       { from: "review", to: "blocked" },
+      { from: "approved", to: "superseded" },
+      { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  release_documentation_bundle: {
+    name: "release_documentation_bundle",
+    states: [
+      "draft",
+      "generated",
+      "review",
+      "approved",
+      "published",
+      "blocked",
+      "superseded",
+    ],
+    terminalStates: ["published", "superseded"],
+    transitions: [
+      { from: "draft", to: "generated" },
+      { from: "generated", to: "review" },
+      { from: "review", to: "approved" },
+      { from: "review", to: "blocked" },
+      { from: "approved", to: "published" },
       { from: "approved", to: "superseded" },
       { from: "blocked", to: "draft", label: "rework" },
     ],

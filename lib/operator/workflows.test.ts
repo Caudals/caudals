@@ -22,6 +22,7 @@ describe("operator workflow state machines", () => {
       "enrichment_manifest",
       "label_batch",
       "modality_contract",
+      "release_documentation_bundle",
       "run",
       "sample_preview_access",
       "subscription",
@@ -101,6 +102,9 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("modality_contract")).toBe(
       "modality_contract"
     );
+    expect(getWorkflowNameForRecordType("release_documentation_bundle")).toBe(
+      "release_documentation_bundle"
+    );
     expect(getWorkflowNameForRecordType("enrichment_manifest")).toBe(
       "enrichment_manifest"
     );
@@ -128,6 +132,12 @@ describe("operator workflow state machines", () => {
     expect(getNextWorkflowTransitions("modality_contract", "review")).toEqual([
       { from: "review", to: "approved" },
       { from: "review", to: "blocked" },
+    ]);
+    expect(
+      getNextWorkflowTransitions("release_documentation_bundle", "approved")
+    ).toEqual([
+      { from: "approved", to: "published" },
+      { from: "approved", to: "superseded" },
     ]);
     expect(getNextWorkflowTransitions("enrichment_manifest", "blocked")).toEqual([
       { from: "blocked", to: "draft", label: "rework" },

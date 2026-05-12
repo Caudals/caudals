@@ -235,6 +235,7 @@ Operational env controls:
 - `SUPPLIER_PORTAL_ENABLED` (default enabled; set `false` to hide `/supplier`)
 - `SUPPLIER_PORTAL_V1_ENABLED` (default enabled; set `false` to hide read-only payout and Stripe Connect panels on `/supplier`)
 - `MODALITY_CONTRACTS_ENABLED` (default enabled; set `false` to block operator modality-contract and enrichment writes)
+- `RELEASE_DOCUMENTATION_ENABLED` (default enabled; set `false` to block generated release documentation validation)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
