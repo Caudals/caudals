@@ -17,6 +17,7 @@ describe("Phase 1 surface gates", () => {
     expect(isPhaseOneHiddenSurfacePath("/contact")).toBe(false);
     expect(isPhaseOneHiddenSurfacePath("/blog")).toBe(false);
     expect(isPhaseOneHiddenSurfacePath("/admin")).toBe(false);
+    expect(isPhaseOneHiddenSurfacePath("/buyer")).toBe(false);
     expect(isPhaseOneHiddenSurfacePath("/auth/sign-in")).toBe(false);
   });
 
@@ -38,6 +39,8 @@ describe("Phase 1 surface gates", () => {
     expect(isPhaseOneRemovedSurfacePath("/pwa/upload")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/requester")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/requester/datasets")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/buyer")).toBe(false);
+    expect(shouldBlockPhaseOneHiddenSurface("/buyer")).toBe(false);
     expect(shouldBlockPhaseOneHiddenSurface("/dashboard")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/browse")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/contributor")).toBe(true);

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { betterAuthClient } from "@/lib/auth/better-auth-client";
+import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +28,17 @@ export default function SignInPage() {
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useLocaleToast();
   const t = useTranslations();
+  const requestedNext = searchParams.get("next");
+  const nextPath =
+    requestedNext &&
+    requestedNext.startsWith("/") &&
+    !requestedNext.startsWith("//") &&
+    !shouldBlockPhaseOneHiddenSurface(requestedNext)
+      ? requestedNext
+      : "/admin";
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +48,7 @@ export default function SignInPage() {
       const { data, error } = await betterAuthClient.signIn.email({
         email,
         password,
-        callbackURL: "/admin",
+        callbackURL: nextPath,
         rememberMe: true,
       });
 
@@ -54,7 +64,7 @@ export default function SignInPage() {
         toast.success(t("Enter your authenticator code"));
       } else if (signInData?.user) {
         toast.success(t("Signed in successfully!"));
-        router.push(signInData.url ?? "/admin");
+        router.push(signInData.url ?? nextPath);
         router.refresh();
       }
     } catch {
@@ -80,7 +90,7 @@ export default function SignInPage() {
       }
 
       toast.success(t("Signed in successfully!"));
-      router.push("/admin");
+      router.push(nextPath);
       router.refresh();
     } catch {
       toast.error(t("An unexpected error occurred"));

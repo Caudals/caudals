@@ -8,14 +8,15 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
 - Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
-- Keep marketplace, buyer, supplier, and hidden authenticated routes unavailable until explicitly relaunched
+- Keep marketplace, supplier, and hidden authenticated routes unavailable until explicitly relaunched
+- `/buyer` is the explicitly relaunched M2 buyer surface and is limited to read-only delivery, scorecard, manifest, and trust evidence review
 
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.
 - Public navigation should expose only Contact and Blog unless the user explicitly requests another public route.
 - Do not add new company-facing workflows under hidden app routes.
-- The internal admin dashboard is the only authenticated surface that should be preserved in the near term.
-- Future buyer/supplier workspaces require a new IA and schema direction before implementation.
+- The internal admin dashboard and the `/buyer` read-only delivery workspace are the only authenticated surfaces that should be preserved in the near term.
+- Future supplier workspaces and broader buyer self-service require a new IA and schema direction before implementation.
 
 ## Localization Contract
 - Supported locales: `en` and `es`.
