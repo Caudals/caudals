@@ -20,7 +20,7 @@
 - Focused buyer workspace tests, full Vitest, typecheck, lint, i18n parity, production build, migration/rollback validation, disposable fixture seed, and authenticated local role smoke passed.
 - Live Postgres readback after `018_buyer_workspace_v1.sql` confirmed seven new buyer workspace columns and one buyer-scoped row each for subscription, invoice, and delivery integration fixtures.
 - Supplier Portal v1 focused tests, full Vitest, typecheck, lint, i18n parity, production build, migration/rollback validation, disposable fixture seed, and authenticated local role smoke passed. Disposable readback confirmed one supplier payout, one supplier payout integration, and one Stripe Connect fixture row.
-- Supplier Portal v1 live migration, deployment, and production smoke are pending for this slice.
+- Supplier Portal v1 live migration, Docker deployment, route probes, production authenticated role smoke, and production public smoke passed for image `mariomedpar/caudals:a911a6c0f49d97c440e97a9fd988d8afe7e4869e`.
 
 ## Known Gaps / Next M3 Inputs
 
