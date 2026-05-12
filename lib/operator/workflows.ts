@@ -6,6 +6,8 @@ export type WorkflowName =
   | "label_batch"
   | "contract"
   | "delivery"
+  | "subscription"
+  | "delta_manifest"
   | "dsar"
   | "sample_preview_access"
   | "modality_contract"
@@ -55,6 +57,8 @@ export const workflowRecordTypeMap = {
   label_batch: "label_batch",
   contract: "contract",
   delivery: "delivery",
+  subscription: "subscription",
+  delta_manifest: "delta_manifest",
   dsar: "dsar",
   dsar_request: "dsar",
   sample_preview_access: "sample_preview_access",
@@ -241,6 +245,38 @@ export const workflowDefinitions = {
       { from: "sent", to: "downloaded" },
       { from: "downloaded", to: "accepted" },
       { from: "downloaded", to: "disputed" },
+    ],
+  },
+  subscription: {
+    name: "subscription",
+    states: ["draft", "active", "refreshing", "paused", "terminated", "blocked"],
+    terminalStates: ["terminated"],
+    transitions: [
+      { from: "draft", to: "active" },
+      { from: "draft", to: "terminated" },
+      { from: "active", to: "refreshing" },
+      { from: "refreshing", to: "active" },
+      { from: "active", to: "paused" },
+      { from: "paused", to: "active" },
+      { from: "active", to: "terminated" },
+      { from: "paused", to: "terminated" },
+      { from: "refreshing", to: "blocked" },
+      { from: "blocked", to: "active", label: "resume_after_fix" },
+      { from: "blocked", to: "terminated" },
+    ],
+  },
+  delta_manifest: {
+    name: "delta_manifest",
+    states: ["draft", "validating", "ready", "published", "tombstoned", "blocked"],
+    terminalStates: ["tombstoned"],
+    transitions: [
+      { from: "draft", to: "validating" },
+      { from: "validating", to: "ready" },
+      { from: "validating", to: "blocked" },
+      { from: "ready", to: "published" },
+      { from: "ready", to: "blocked" },
+      { from: "published", to: "tombstoned" },
+      { from: "blocked", to: "draft", label: "rebuild_delta" },
     ],
   },
   dsar: {

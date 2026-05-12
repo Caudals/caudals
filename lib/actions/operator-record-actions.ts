@@ -19,6 +19,11 @@ import {
   validateCleanlabQaEvidence,
 } from "@/lib/operator/cleanlab";
 import {
+  isSubscriptionDeliveryEnabled,
+  validateDeltaManifestEvidence,
+  validateSubscriptionDeliveryEvidence,
+} from "@/lib/operator/subscription-delivery";
+import {
   isModalityContractsEnabled,
   validateEnrichmentManifest,
 } from "@/lib/operator/modality-contracts";
@@ -110,6 +115,8 @@ const mutableTables = {
   consent_record: { table: "consent_record", prefix: "cr", softDelete: true },
   dataset_brief: { table: "dataset_brief", prefix: "br", softDelete: true },
   delivery: { table: "delivery", prefix: "dl", softDelete: true },
+  subscription: { table: "subscription", prefix: "su", softDelete: true },
+  delta_manifest: { table: "delta_manifest", prefix: "dm", softDelete: true },
   build: { table: "build", prefix: "bd", softDelete: true },
   build_plan: { table: "build_plan", prefix: "bp", softDelete: true },
   dataset: { table: "dataset", prefix: "dt", softDelete: true },
@@ -193,6 +200,9 @@ function getStateSeverity(state: string): OperatorWorkItem["severity"] {
       "in_adjudication",
       "paused",
       "pending",
+      "refreshing",
+      "validating",
+      "ready",
     ].includes(state)
   ) {
     return "warning";
@@ -399,6 +409,76 @@ function validateM2RecordEvidence(
       return actionError(
         "VALIDATION_ERROR",
         `Cleanlab QA pass is missing scan evidence: ${validation.missing.join(", ")}.`
+      );
+    }
+  }
+
+  if (recordType === "subscription") {
+    if (!isSubscriptionDeliveryEnabled()) {
+      return actionError(
+        "CONFLICT",
+        "M2 subscription delivery controls are disabled by SUBSCRIPTION_DELIVERY_ENABLED."
+      );
+    }
+
+    const validation = validateSubscriptionDeliveryEvidence(
+      {
+        cadence: fields.cadence ?? "",
+        deliveryChannel: fields.deliveryChannel ?? "",
+        rollingWindowVersions: fields.rollingWindowVersions
+          ? Number(fields.rollingWindowVersions)
+          : null,
+        nextRefreshAt: fields.nextRefreshAt,
+      },
+      state
+    );
+
+    if (!validation.ok) {
+      return actionError(
+        "VALIDATION_ERROR",
+        `Subscription is missing delivery evidence: ${validation.missing.join(", ")}.`
+      );
+    }
+  }
+
+  if (recordType === "delta_manifest") {
+    if (!isSubscriptionDeliveryEnabled()) {
+      return actionError(
+        "CONFLICT",
+        "M2 subscription delivery controls are disabled by SUBSCRIPTION_DELIVERY_ENABLED."
+      );
+    }
+
+    const validation = validateDeltaManifestEvidence(
+      {
+        manifestUri: fields.manifestUri,
+        manifestHash: fields.manifestHash,
+        previousDatasetVersionId: fields.previousDatasetVersionId,
+        deliveryId: fields.deliveryId,
+        qaReportId: fields.qaReportId,
+        addedRecords: fields.addedRecords ? Number(fields.addedRecords) : null,
+        updatedRecords: fields.updatedRecords
+          ? Number(fields.updatedRecords)
+          : null,
+        deletedRecords: fields.deletedRecords
+          ? Number(fields.deletedRecords)
+          : null,
+        tombstonedRecords: fields.tombstonedRecords
+          ? Number(fields.tombstonedRecords)
+          : null,
+        totalRecords: fields.totalRecords ? Number(fields.totalRecords) : null,
+        qualityScore: fields.qualityScore ? Number(fields.qualityScore) : null,
+        rightsReverified: fields.rightsReverified === "true",
+        privacyVerified: fields.privacyVerified === "true",
+        deletionNoticeUri: fields.deletionNoticeUri,
+      },
+      state
+    );
+
+    if (!validation.ok) {
+      return actionError(
+        "VALIDATION_ERROR",
+        `Delta manifest is missing refresh evidence: ${validation.missing.join(", ")}.`
       );
     }
   }
@@ -887,6 +967,134 @@ function buildCreateSql(
           $4,
           $6
         FROM target_version CROSS JOIN target_buyer
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    subscription: `
+      WITH target_dataset AS (
+        SELECT id
+        FROM dataset
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_buyer AS (
+        SELECT COALESCE(
+          (
+            SELECT id
+            FROM organization
+            WHERE org_id = $2 AND kind = 'buyer' AND deleted_at IS NULL
+            ORDER BY updated_at DESC
+            LIMIT 1
+          ),
+          $2
+        ) AS id
+      ),
+      target_contract AS (
+        SELECT id
+        FROM contract
+        WHERE org_id = $2 AND contract_type = 'buyer' AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_offer AS (
+        SELECT id
+        FROM private_offer
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO subscription (
+          id, org_id, buyer_org_id, dataset_id, contract_id, private_offer_id,
+          current_dataset_version_id, cadence, delivery_channel, state,
+          rolling_window_versions, next_refresh_at, retention_policy,
+          delivery_policy, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_buyer.id,
+          target_dataset.id,
+          target_contract.id,
+          target_offer.id,
+          target_version.id,
+          COALESCE(NULLIF($11::jsonb ->> 'cadence', ''), 'monthly'),
+          COALESCE(NULLIF($11::jsonb ->> 'deliveryChannel', ''), 'delta_share'),
+          $4,
+          COALESCE(NULLIF($11::jsonb ->> 'rollingWindowVersions', '')::integer, 3),
+          NULLIF($11::jsonb ->> 'nextRefreshAt', '')::timestamptz,
+          jsonb_strip_nulls(jsonb_build_object(
+            'retentionDays', NULLIF($11::jsonb ->> 'retentionDays', '')::integer
+          )),
+          jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($9, ''))),
+          $6
+        FROM target_dataset
+        CROSS JOIN target_buyer
+        LEFT JOIN target_version ON true
+        LEFT JOIN target_contract ON true
+        LEFT JOIN target_offer ON true
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    delta_manifest: `
+      WITH target_subscription AS (
+        SELECT id
+        FROM subscription
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO delta_manifest (
+          id, org_id, subscription_id, dataset_version_id,
+          previous_dataset_version_id, delivery_id, qa_report_id, state,
+          manifest_uri, manifest_hash, added_records, updated_records,
+          deleted_records, tombstoned_records, total_records, quality_score,
+          rights_reverified, privacy_verified, deletion_notice_uri, summary,
+          created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_subscription.id,
+          target_version.id,
+          NULLIF($11::jsonb ->> 'previousDatasetVersionId', ''),
+          NULLIF($11::jsonb ->> 'deliveryId', ''),
+          NULLIF($11::jsonb ->> 'qaReportId', ''),
+          $4,
+          COALESCE(NULLIF($11::jsonb ->> 'manifestUri', ''), NULLIF($9, '')),
+          COALESCE(NULLIF($11::jsonb ->> 'manifestHash', ''), 'sha256:pending'),
+          COALESCE(NULLIF($11::jsonb ->> 'addedRecords', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'updatedRecords', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'deletedRecords', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'tombstonedRecords', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'totalRecords', '')::bigint, 0),
+          NULLIF($11::jsonb ->> 'qualityScore', '')::numeric,
+          COALESCE(NULLIF($11::jsonb ->> 'rightsReverified', '')::boolean, false),
+          COALESCE(NULLIF($11::jsonb ->> 'privacyVerified', '')::boolean, false),
+          NULLIF($11::jsonb ->> 'deletionNoticeUri', ''),
+          jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($9, ''))),
+          $6
+        FROM target_subscription CROSS JOIN target_version
         RETURNING id, updated_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
@@ -1723,6 +1931,10 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "title = $3, requirements = requirements || jsonb_build_object('summary', NULLIF($8, '')), sensitivity_constraints = sensitivity_constraints || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($10::jsonb ->> 'sensitivityConstraints', ''))), target_formats = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'targetFormats', ''), ''), ',') AS value WHERE trim(value) <> ''), target_formats), state = $4";
     case "delivery":
       return "channel = COALESCE(NULLIF($10::jsonb ->> 'channel', ''), $3), receipt = receipt || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'receiptHash', NULLIF($10::jsonb ->> 'receiptHash', ''), 'acceptanceWindowDays', NULLIF($10::jsonb ->> 'acceptanceWindowDays', '')::integer)), state = $4";
+    case "subscription":
+      return "cadence = COALESCE(NULLIF($10::jsonb ->> 'cadence', ''), cadence), delivery_channel = COALESCE(NULLIF($10::jsonb ->> 'deliveryChannel', ''), delivery_channel), rolling_window_versions = COALESCE(NULLIF($10::jsonb ->> 'rollingWindowVersions', '')::integer, rolling_window_versions), next_refresh_at = COALESCE(NULLIF($10::jsonb ->> 'nextRefreshAt', '')::timestamptz, next_refresh_at), retention_policy = retention_policy || jsonb_strip_nulls(jsonb_build_object('retentionDays', NULLIF($10::jsonb ->> 'retentionDays', '')::integer)), delivery_policy = delivery_policy || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), state = $4";
+    case "delta_manifest":
+      return "manifest_uri = COALESCE(NULLIF($10::jsonb ->> 'manifestUri', ''), manifest_uri), manifest_hash = COALESCE(NULLIF($10::jsonb ->> 'manifestHash', ''), manifest_hash), previous_dataset_version_id = COALESCE(NULLIF($10::jsonb ->> 'previousDatasetVersionId', ''), previous_dataset_version_id), delivery_id = COALESCE(NULLIF($10::jsonb ->> 'deliveryId', ''), delivery_id), qa_report_id = COALESCE(NULLIF($10::jsonb ->> 'qaReportId', ''), qa_report_id), added_records = COALESCE(NULLIF($10::jsonb ->> 'addedRecords', '')::bigint, added_records), updated_records = COALESCE(NULLIF($10::jsonb ->> 'updatedRecords', '')::bigint, updated_records), deleted_records = COALESCE(NULLIF($10::jsonb ->> 'deletedRecords', '')::bigint, deleted_records), tombstoned_records = COALESCE(NULLIF($10::jsonb ->> 'tombstonedRecords', '')::bigint, tombstoned_records), total_records = COALESCE(NULLIF($10::jsonb ->> 'totalRecords', '')::bigint, total_records), quality_score = COALESCE(NULLIF($10::jsonb ->> 'qualityScore', '')::numeric, quality_score), rights_reverified = COALESCE(NULLIF($10::jsonb ->> 'rightsReverified', '')::boolean, rights_reverified), privacy_verified = COALESCE(NULLIF($10::jsonb ->> 'privacyVerified', '')::boolean, privacy_verified), deletion_notice_uri = COALESCE(NULLIF($10::jsonb ->> 'deletionNoticeUri', ''), deletion_notice_uri), summary = summary || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), state = $4";
     case "build":
       return "title = $3, state = $4, eta_at = COALESCE(NULLIF($10::jsonb ->> 'etaAt', '')::timestamptz, eta_at), q_score = COALESCE(NULLIF($10::jsonb ->> 'qScore', '')::numeric, q_score), cost_budget_cents = COALESCE(NULLIF($10::jsonb ->> 'costBudgetCents', '')::bigint, cost_budget_cents), cost_used_cents = COALESCE(NULLIF($10::jsonb ->> 'costUsedCents', '')::bigint, cost_used_cents)";
     case "build_plan":

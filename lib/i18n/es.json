@@ -2888,5 +2888,13 @@
   "Your Requests": "Sus solicitudes",
   "Your Rights": "Tus derechos",
   "Your submission history across all datasets": "Su historial de envíos en todos los datasets",
-  "Zero": "Cero"
+  "Zero": "Cero",
+  "Organizations, contacts, briefs, subscriptions, sample reviews, and deliveries.": "Organizaciones, contactos, briefs, suscripciones, revisiones de muestras y entregas.",
+  "Dataset families, versions, delta manifests, modality contracts, lineage, and sample previews.": "Familias de datasets, versiones, manifiestos delta, contratos de modalidad, linaje y vistas previas de muestras.",
+  "Subscriptions": "Suscripciones",
+  "Delta manifests": "Manifiestos delta",
+  "Subscription": "Suscripción",
+  "Delta manifest": "Manifiesto delta",
+  "Prepare subscription refresh": "Preparar refresco de suscripción",
+  "Publish delta manifest": "Publicar manifiesto delta"
 }

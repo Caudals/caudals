@@ -1808,5 +1808,13 @@
   "Your payouts will appear here when submissions are approved": "Sus pagos aparecerán aquí cuando se aprueben los envíos",
   "Your recent payouts and transactions": "Sus pagos y transacciones recientes",
   "Your Requests": "Sus solicitudes",
-  "Your submission history across all datasets": "Su historial de envíos en todos los conjuntos de datos"
+  "Your submission history across all datasets": "Su historial de envíos en todos los conjuntos de datos",
+  "Organizations, contacts, briefs, subscriptions, sample reviews, and deliveries.": "Organizaciones, contactos, briefs, suscripciones, revisiones de muestras y entregas.",
+  "Dataset families, versions, delta manifests, modality contracts, lineage, and sample previews.": "Familias de datasets, versiones, manifiestos delta, contratos de modalidad, linaje y vistas previas de muestras.",
+  "Subscriptions": "Suscripciones",
+  "Delta manifests": "Manifiestos delta",
+  "Subscription": "Suscripción",
+  "Delta manifest": "Manifiesto delta",
+  "Prepare subscription refresh": "Preparar refresco de suscripción",
+  "Publish delta manifest": "Publicar manifiesto delta"
 }

@@ -131,6 +131,24 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "buyers",
+            record_type: "subscription",
+            id: "su_01J2SUBSCRIPTION",
+            title: "Subscription monthly",
+            state: "active",
+            detail: "delta_share / window 3",
+            updated_at: "2026-05-10T13:18:15.000Z",
+            severity: "info",
+            next_action: "Prepare subscription refresh",
+            field_values: {
+              cadence: "monthly",
+              deliveryChannel: "delta_share",
+              rollingWindowVersions: 3,
+              nextRefreshAt: "2026-06-01T09:00:00.000Z",
+              retentionDays: 365,
+            },
+          },
+          {
             module_key: "commercials",
             record_type: "quote",
             id: "qt_01J2QUOTE",
@@ -160,6 +178,32 @@ describe("operator console repository", () => {
               recordCount: 1250000,
               sizeBytes: 536870912,
               qaScore: 0.944,
+            },
+          },
+          {
+            module_key: "datasets",
+            record_type: "delta_manifest",
+            id: "dm_01J2DELTA",
+            title: "Delta manifest ready",
+            state: "ready",
+            detail: "1302 changed / QA 0.944",
+            updated_at: "2026-05-10T13:16:45.000Z",
+            severity: "warning",
+            next_action: "Publish delta manifest",
+            field_values: {
+              manifestUri: "s3://datasets/receipts/v2026.05/delta.json",
+              manifestHash: "sha256:delta",
+              previousDatasetVersionId: "dv_01J2PREVIOUS",
+              deliveryId: "dl_01J2DELIVERY",
+              qaReportId: "qr_01J2QA",
+              addedRecords: 1250,
+              updatedRecords: 48,
+              deletedRecords: 4,
+              tombstonedRecords: 0,
+              totalRecords: 51221,
+              qualityScore: 0.944,
+              rightsReverified: true,
+              privacyVerified: true,
             },
           },
           {
@@ -427,6 +471,17 @@ describe("operator console repository", () => {
         acceptanceWindowDays: "14",
       },
     });
+    expect(
+      snapshot.workItems.buyers.find((item) => item.id === "su_01J2SUBSCRIPTION")
+    ).toMatchObject({
+      recordType: "subscription",
+      fields: {
+        cadence: "monthly",
+        deliveryChannel: "delta_share",
+        rollingWindowVersions: "3",
+        retentionDays: "365",
+      },
+    });
     expect(snapshot.workItems.commercials[0]).toMatchObject({
       id: "qt_01J2QUOTE",
       recordType: "quote",
@@ -443,6 +498,18 @@ describe("operator console repository", () => {
         recordCount: "1250000",
         sizeBytes: "536870912",
         qaScore: "0.944",
+      },
+    });
+    expect(
+      snapshot.workItems.datasets.find((item) => item.id === "dm_01J2DELTA")
+    ).toMatchObject({
+      recordType: "delta_manifest",
+      fields: {
+        manifestUri: "s3://datasets/receipts/v2026.05/delta.json",
+        manifestHash: "sha256:delta",
+        previousDatasetVersionId: "dv_01J2PREVIOUS",
+        rightsReverified: "true",
+        privacyVerified: "true",
       },
     });
     expect(
@@ -535,6 +602,9 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("contractType");
     expect(workItemsSql).toContain("permittedUses");
     expect(workItemsSql).toContain("acceptanceWindowDays");
+    expect(workItemsSql).toContain("subscription");
+    expect(workItemsSql).toContain("delta_manifest");
+    expect(workItemsSql).toContain("rightsReverified");
     expect(workItemsSql).toContain("externalRunId");
     expect(workItemsSql).toContain("modality_contract");
     expect(workItemsSql).toContain("enrichment_manifest");
@@ -751,6 +821,96 @@ describe("operator console repository", () => {
         metadata: {
           from_state: "review",
           to_state: "accepted",
+        },
+      },
+    });
+  });
+
+  it("guards subscription refresh transitions on schedule and version evidence", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "subscription"');
+      expect(sql).toContain("next_refresh_at IS NOT NULL");
+      expect(sql).toContain("current_dataset_version_id IS NOT NULL");
+
+      return [
+        {
+          id: "ae_01J2SUBSCRIPTIONAUDIT",
+          action: "state_transition",
+          target_type: "subscription",
+          target_id: "su_01J2SUBSCRIPTION",
+          metadata: {
+            from_state: "active",
+            to_state: "refreshing",
+          },
+          created_at: "2026-05-10T13:23:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "subscription",
+        targetId: "su_01J2SUBSCRIPTION",
+        fromState: "active",
+        toState: "refreshing",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "subscription",
+        metadata: {
+          from_state: "active",
+          to_state: "refreshing",
+        },
+      },
+    });
+  });
+
+  it("guards delta publishing transitions on QA, rights, privacy, and delivery evidence", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "delta_manifest"');
+      expect(sql).toContain("previous_dataset_version_id IS NOT NULL");
+      expect(sql).toContain("rights_reverified");
+      expect(sql).toContain("privacy_verified");
+      expect(sql).toContain("published_at");
+
+      return [
+        {
+          id: "ae_01J2DELTAAUDIT",
+          action: "state_transition",
+          target_type: "delta_manifest",
+          target_id: "dm_01J2DELTA",
+          metadata: {
+            from_state: "ready",
+            to_state: "published",
+          },
+          created_at: "2026-05-10T13:24:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "delta_manifest",
+        targetId: "dm_01J2DELTA",
+        fromState: "ready",
+        toState: "published",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "delta_manifest",
+        metadata: {
+          from_state: "ready",
+          to_state: "published",
         },
       },
     });
