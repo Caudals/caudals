@@ -1410,11 +1410,12 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     client,
     `
       INSERT INTO quote (
-        id, org_id, buyer_opportunity_id, amount_cents, currency, state,
+        id, org_id, buyer_org_id, buyer_opportunity_id, amount_cents, currency, state,
         created_at, updated_at, created_by
       )
-      VALUES ($1, $2, $3, 990000, 'USD', 'sent', $4, $4, $5)
+      VALUES ($1, $2, $3, $4, 990000, 'USD', 'sent', $5, $5, $6)
       ON CONFLICT (id) DO UPDATE SET
+        buyer_org_id = EXCLUDED.buyer_org_id,
         buyer_opportunity_id = EXCLUDED.buyer_opportunity_id,
         amount_cents = EXCLUDED.amount_cents,
         currency = EXCLUDED.currency,
@@ -1422,7 +1423,14 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.quote, ids.tenantOrg, ids.buyerOpportunity, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.quote,
+      ids.tenantOrg,
+      ids.buyerOrg,
+      ids.buyerOpportunity,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
@@ -1562,11 +1570,12 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     client,
     `
       INSERT INTO invoice (
-        id, org_id, quote_id, stripe_invoice_id, amount_cents, currency, state,
+        id, org_id, buyer_org_id, quote_id, stripe_invoice_id, amount_cents, currency, state,
         created_at, updated_at, created_by
       )
-      VALUES ($1, $2, $3, 'in_fixture_test', 990000, 'USD', 'open', $4, $4, $5)
+      VALUES ($1, $2, $3, $4, 'in_fixture_test', 990000, 'USD', 'open', $5, $5, $6)
       ON CONFLICT (id) DO UPDATE SET
+        buyer_org_id = EXCLUDED.buyer_org_id,
         quote_id = EXCLUDED.quote_id,
         stripe_invoice_id = EXCLUDED.stripe_invoice_id,
         amount_cents = EXCLUDED.amount_cents,
@@ -1574,7 +1583,14 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.invoice, ids.tenantOrg, ids.quote, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.invoice,
+      ids.tenantOrg,
+      ids.buyerOrg,
+      ids.quote,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
@@ -1637,17 +1653,34 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     client,
     `
       INSERT INTO integration (
-        id, org_id, provider, encrypted_config, state, created_at, updated_at, created_by
+        id, org_id, buyer_org_id, integration_scope, provider, display_name,
+        encrypted_config, metadata, last_verified_at, state, created_at, updated_at, created_by
       )
-      VALUES ($1, $2, 'spaces', $3, 'active', $4, $4, $5)
+      VALUES (
+        $1, $2, $3, 'buyer_delivery', 'spaces', 'Iberian Retail delivery bucket',
+        $4, '{"destination":"s3://buyer-fixture/caudals-deliveries","region":"eu-west-1","authMode":"cross-account role"}'::jsonb,
+        $5, 'active', $5, $5, $6
+      )
       ON CONFLICT (id) DO UPDATE SET
+        buyer_org_id = EXCLUDED.buyer_org_id,
+        integration_scope = EXCLUDED.integration_scope,
         provider = EXCLUDED.provider,
+        display_name = EXCLUDED.display_name,
         encrypted_config = EXCLUDED.encrypted_config,
+        metadata = EXCLUDED.metadata,
+        last_verified_at = EXCLUDED.last_verified_at,
         state = EXCLUDED.state,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.integration, ids.tenantOrg, Buffer.from("fixture-config"), FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.integration,
+      ids.tenantOrg,
+      ids.buyerOrg,
+      Buffer.from("fixture-config"),
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(

@@ -8,7 +8,8 @@ Current production scope is deliberately limited:
 - Public catalogue: `/catalogue` for the curated M3 dataset listing subset
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
-- Private buyer access: `/buyer` for read-only delivery, scorecard, and manifest review
+- Private buyer access: `/buyer` for read-only delivery, subscription,
+  integration, billing, scorecard, and manifest review
 - Private supplier access: `/supplier` for managed asset declaration, signed
   sample upload, and build participation review
 
@@ -35,7 +36,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
 - `app/(buyer)/*`: relaunched B2B buyer workspace routes; currently `/buyer`
-  only, read-only, and delivery-focused
+  only, read-only, and focused on deliveries, subscriptions, integrations,
+  billing, scorecards, manifests, and trust evidence
 - `app/(supplier)/*`: relaunched supplier portal routes; currently `/supplier`
   only, limited to managed onboarding, asset declaration, sample upload, and
   build progress review
@@ -61,7 +63,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
-  read-only, and limited to delivery, scorecard, manifest, and trust evidence.
+  read-only, and limited to delivery, subscription, integration, billing,
+  scorecard, manifest, and trust evidence.
 - `/supplier` is the new B2B supplier portal entrypoint. It is authenticated
   and limited to supplier-owned asset declarations, signed sample uploads, and
   build participation status.

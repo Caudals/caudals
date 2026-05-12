@@ -40,11 +40,14 @@ test.describe("authenticated role journeys", () => {
     });
     await expect(
       page.getByRole("heading", {
-        name: /buyer delivery workspace/i,
+        name: /buyer workspace/i,
       }),
     ).toBeVisible();
     await expect(page.getByText(/iberian retail/i).first()).toBeVisible();
     await expect(page.getByText(/qa scorecard/i)).toBeVisible();
+    await expect(page.getByText(/subscription operations/i)).toBeVisible();
+    await expect(page.getByText(/delivery integrations/i)).toBeVisible();
+    await expect(page.getByText(/billing/i).first()).toBeVisible();
     await expect(page.getByText(/sha256:fixture-delta-manifest/i)).toBeVisible();
   });
 

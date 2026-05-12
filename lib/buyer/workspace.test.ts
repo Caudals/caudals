@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   formatScorecardDimensionLabel,
@@ -28,6 +28,10 @@ const buyerSession: CurrentBuyerSession = {
 };
 
 describe("buyer workspace data", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("normalizes scorecard dimensions for display", () => {
     expect(formatScorecardDimensionLabel("label_accuracy")).toBe(
       "Label Accuracy",
@@ -100,6 +104,68 @@ describe("buyer workspace data", () => {
           activeSubscriptions: 1,
           nextRefreshAt: new Date("2026-06-01T12:00:00.000Z"),
         },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "su_1",
+          state: "active",
+          cadence: "monthly",
+          deliveryChannel: "delta_share",
+          nextRefreshAt: new Date("2026-06-01T12:00:00.000Z"),
+          rollingWindowVersions: 3,
+          retentionPolicy: { retentionDays: 365 },
+          deliveryPolicy: { summary: "Rolling refreshes" },
+          datasetId: "dt_1",
+          datasetName: "Receipt corpus",
+          modality: "document",
+          currentVersionId: "dv_1",
+          currentVersionLabel: "v1",
+          currentVersionRecords: "50000",
+          currentVersionQaScore: "0.91",
+          currentVersionReleasedAt: new Date("2026-05-10T12:00:00.000Z"),
+          contractId: "ct_1",
+          contractState: "active",
+          contractEndsAt: new Date("2027-05-10T12:00:00.000Z"),
+          privateOfferId: "po_1",
+          privateOfferState: "accepted",
+          privateOfferTerms: { scope: "evaluation+fine-tuning" },
+          latestDeltaId: "dm_1",
+          latestDeltaState: "ready",
+          latestDeltaRecords: "51221",
+          latestDeltaQualityScore: "0.944",
+          latestDeltaPublishedAt: new Date("2026-05-11T12:00:00.000Z"),
+          latestDeltaRightsReverified: true,
+          latestDeltaPrivacyVerified: true,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "iv_1",
+          state: "open",
+          stripeInvoiceId: "in_1",
+          amountCents: "990000",
+          currency: "USD",
+          createdAt: new Date("2026-05-10T12:00:00.000Z"),
+          updatedAt: new Date("2026-05-11T12:00:00.000Z"),
+          quoteId: "qt_1",
+          quoteState: "sent",
+          buyerOpportunityId: "bo_1",
+          buyerOpportunityTitle: "Retail receipt pilot",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "in_1",
+          provider: "spaces",
+          state: "active",
+          displayName: "Buyer delivery bucket",
+          metadata: {
+            destination: "s3://buyer/caudals-deliveries",
+            authMode: "cross-account role",
+          },
+          lastVerifiedAt: new Date("2026-05-11T12:00:00.000Z"),
+          updatedAt: new Date("2026-05-11T12:00:00.000Z"),
+        },
       ]);
 
     const data = await getBuyerWorkspaceData(buyerSession, query);
@@ -126,10 +192,74 @@ describe("buyer workspace data", () => {
       ["or_buyer"],
       { orgId: "or_tenant" },
     );
+    expect(query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("WHERE su.buyer_org_id = $1"),
+      ["or_buyer"],
+      { orgId: "or_tenant" },
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining("COALESCE(iv.buyer_org_id, qt.buyer_org_id) = $1"),
+      ["or_buyer"],
+      { orgId: "or_tenant" },
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      5,
+      expect.stringContaining("WHERE buyer_org_id = $1"),
+      ["or_buyer"],
+      { orgId: "or_tenant" },
+    );
     expect(data.summary).toMatchObject({
       deliveryCount: 1,
       activeSubscriptions: 1,
       averageQualityScore: 0.91,
+      openInvoiceCount: 1,
+      openInvoiceAmountCents: 990000,
+      activeIntegrationCount: 1,
+    });
+    expect(data.subscriptions[0]).toMatchObject({
+      id: "su_1",
+      latestDelta: {
+        totalRecords: 51221,
+        rightsReverified: true,
+        privacyVerified: true,
+      },
+    });
+    expect(data.invoices[0]).toMatchObject({
+      id: "iv_1",
+      amountCents: 990000,
+      opportunity: { title: "Retail receipt pilot" },
+    });
+    expect(data.integrations[0]).toMatchObject({
+      id: "in_1",
+      displayName: "Buyer delivery bucket",
+      metadata: { destination: "s3://buyer/caudals-deliveries" },
+    });
+  });
+
+  it("keeps v1 commercial panels behind a feature flag", async () => {
+    vi.stubEnv("BUYER_WORKSPACE_V1_ENABLED", "false");
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          activeSubscriptions: 0,
+          nextRefreshAt: null,
+        },
+      ]);
+
+    const data = await getBuyerWorkspaceData(buyerSession, query);
+
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(data.subscriptions).toEqual([]);
+    expect(data.invoices).toEqual([]);
+    expect(data.integrations).toEqual([]);
+    expect(data.summary).toMatchObject({
+      openInvoiceCount: 0,
+      openInvoiceAmountCents: 0,
+      activeIntegrationCount: 0,
     });
   });
 });
