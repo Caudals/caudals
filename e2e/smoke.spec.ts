@@ -41,4 +41,10 @@ test.describe("core role smoke", () => {
 
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });
+
+  test("supplier portal redirects anonymous users to sign-in", async ({ page }) => {
+    await page.goto("/supplier");
+
+    await expect(page).toHaveURL(/\/auth\/sign-in/);
+  });
 });

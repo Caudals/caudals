@@ -21,12 +21,14 @@ const APP_ONLY_PATH_PREFIXES = [
   "/admin",
   "/auth",
   "/buyer",
+  "/supplier",
   "/pwa",
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
 const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
 const BUYER_WORKSPACE_PATH_PREFIXES = ["/buyer"];
+const SUPPLIER_PORTAL_PATH_PREFIXES = ["/supplier"];
 
 type HostConfig = {
   hostname: string;
@@ -131,6 +133,12 @@ function matchesBuyerWorkspacePath(pathname: string) {
   );
 }
 
+function matchesSupplierPortalPath(pathname: string) {
+  return SUPPLIER_PORTAL_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 function rewriteWithState(
   request: NextRequest,
   sourceResponse: NextResponse,
@@ -225,6 +233,13 @@ export async function proxy(request: NextRequest) {
 
   if (
     matchesBuyerWorkspacePath(pathname) &&
+    !hasBetterAuthSessionCookie(request)
+  ) {
+    return redirectAnonymousPrivateRequest(request);
+  }
+
+  if (
+    matchesSupplierPortalPath(pathname) &&
     !hasBetterAuthSessionCookie(request)
   ) {
     return redirectAnonymousPrivateRequest(request);

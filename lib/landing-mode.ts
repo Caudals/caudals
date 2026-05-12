@@ -4,8 +4,13 @@ const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
   "/auth",
   "/buyer",
+  "/supplier",
 ]);
-const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = ["/auth/", "/buyer/"];
+const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = [
+  "/auth/",
+  "/buyer/",
+  "/supplier/",
+];
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
