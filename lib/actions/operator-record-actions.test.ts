@@ -1140,6 +1140,84 @@ describe("operator record actions", () => {
     expect(queryRowsMock).not.toHaveBeenCalled();
   });
 
+  it("creates Cleanlab QA passes with scan and requeue evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "cq_01J2CLEANLAB",
+        updated_at: "2026-05-10T15:20:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "quality",
+        recordType: "cleanlab_qa_pass",
+        title: "Receipt OCR Cleanlab pass",
+        detail: "Three suspected label errors routed back to reviewers.",
+        state: "requeue",
+        fields: {
+          scanStrategy: "Confident_Learning",
+          inputManifestUri: "s3://silver/labels/receipt-pass-1.jsonl",
+          cleanlabReportUri: "s3://qa/cleanlab/receipt-report.json",
+          modelSnapshotUri: "s3://models/receipt-label-error-detector",
+          scannedCount: "128",
+          suspectedLabelErrors: "3",
+          estimatedErrorRate: "0.02344",
+          errorRateThreshold: "0.03",
+          requeueCount: "3",
+          requeueManifestUri: "s3://qa/cleanlab/receipt-requeue.jsonl",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "cq_01J2CLEANLAB",
+        moduleKey: "quality",
+        recordType: "cleanlab_qa_pass",
+        fields: {
+          scanStrategy: "confident_learning",
+          scannedCount: "128",
+          estimatedErrorRate: "0.02344",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO cleanlab_qa_pass");
+    expect(createSql).toContain("$11::jsonb ->> 'cleanlabReportUri'");
+    expect(createSql).toContain("target_report");
+  });
+
+  it("rejects accepted Cleanlab QA passes above the error threshold", async () => {
+    await expect(
+      createOperatorRecord({
+        moduleKey: "quality",
+        recordType: "cleanlab_qa_pass",
+        title: "Weak Cleanlab pass",
+        detail: "Error rate remains too high.",
+        state: "accepted",
+        fields: {
+          scanStrategy: "confident_learning",
+          inputManifestUri: "s3://silver/labels.jsonl",
+          cleanlabReportUri: "s3://qa/cleanlab/report.json",
+          modelSnapshotUri: "s3://models/label-error",
+          scannedCount: "100",
+          suspectedLabelErrors: "8",
+          estimatedErrorRate: "0.08",
+          errorRateThreshold: "0.03",
+          requeueCount: "8",
+        },
+      })
+    ).resolves.toMatchObject({
+      code: "VALIDATION_ERROR",
+      error:
+        "Cleanlab QA pass is missing scan evidence: error_rate_threshold_pass.",
+    });
+
+    expect(queryRowsMock).not.toHaveBeenCalled();
+  });
+
   it("updates catalogue listings with structured pricing fields", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {

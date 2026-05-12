@@ -489,6 +489,7 @@ const transitionWorkflowTables = {
   modality_contract: '"modality_contract"',
   enrichment_manifest: '"enrichment_manifest"',
   active_learning_loop: '"active_learning_loop"',
+  cleanlab_qa_pass: '"cleanlab_qa_pass"',
 } satisfies Record<WorkflowName, string>;
 
 function buildPersistTransitionAssignments(workflow: WorkflowName) {
@@ -562,6 +563,19 @@ function buildPersistTransitionPredicate(workflow: WorkflowName) {
             AND char_length(selection_manifest_uri) > 1
             AND reviewer_routing ? 'policy'
           )
+        )
+    `;
+  }
+
+  if (workflow === "cleanlab_qa_pass") {
+    return `
+        AND (
+          ($1 <> 'requeue' OR (
+            requeue_count > 0
+            AND requeue_count <= suspected_label_errors
+            AND char_length(requeue_manifest_uri) > 1
+          ))
+          AND ($1 <> 'accepted' OR estimated_error_rate <= error_rate_threshold)
         )
     `;
   }
@@ -651,8 +665,10 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM active_learning_loop WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'quality',
       (SELECT count(*)::int FROM qa_report WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM cleanlab_qa_pass WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM enrichment_manifest WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM qa_report WHERE verdict = 'fail' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM cleanlab_qa_pass WHERE state IN ('review','requeue','blocked') AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM enrichment_manifest WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'privacy',
       (SELECT count(*)::int FROM license_clause WHERE deleted_at IS NULL) +
@@ -1010,6 +1026,25 @@ const moduleWorkItemsSql = `
     FROM qa_report qr
     LEFT JOIN build b ON b.id = qr.build_id
     WHERE qr.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'quality',
+      'cleanlab_qa_pass',
+      cqp.id,
+      COALESCE(b.title, 'Cleanlab QA pass'),
+      cqp.state,
+      cqp.suspected_label_errors::text || ' suspected / ' ||
+        cqp.scanned_count::text || ' scanned',
+      cqp.updated_at,
+      CASE
+        WHEN cqp.state = 'blocked' THEN 'critical'
+        WHEN cqp.state IN ('review','requeue') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review Cleanlab pass'
+    FROM cleanlab_qa_pass cqp
+    LEFT JOIN build b ON b.id = cqp.build_id
+    WHERE cqp.deleted_at IS NULL
     UNION ALL
     SELECT
       'quality',
@@ -1406,6 +1441,22 @@ const moduleWorkItemsSql = `
           ))
           FROM qa_report qr
           WHERE qr.id = raw_work_items.id
+        )
+        WHEN record_type = 'cleanlab_qa_pass' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'scanStrategy', cqp.scan_strategy,
+            'inputManifestUri', cqp.input_manifest_uri,
+            'cleanlabReportUri', cqp.cleanlab_report_uri,
+            'modelSnapshotUri', cqp.model_snapshot_uri,
+            'scannedCount', cqp.scanned_count,
+            'suspectedLabelErrors', cqp.suspected_label_errors,
+            'estimatedErrorRate', cqp.estimated_error_rate,
+            'errorRateThreshold', cqp.error_rate_threshold,
+            'requeueCount', cqp.requeue_count,
+            'requeueManifestUri', cqp.requeue_manifest_uri
+          ))
+          FROM cleanlab_qa_pass cqp
+          WHERE cqp.id = raw_work_items.id
         )
         WHEN record_type = 'enrichment_manifest' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

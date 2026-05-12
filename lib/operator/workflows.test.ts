@@ -14,6 +14,7 @@ describe("operator workflow state machines", () => {
       "active_learning_loop",
       "build",
       "buyer_opportunity",
+      "cleanlab_qa_pass",
       "contract",
       "delivery",
       "dsar",
@@ -104,6 +105,9 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("active_learning_loop")).toBe(
       "active_learning_loop"
     );
+    expect(getWorkflowNameForRecordType("cleanlab_qa_pass")).toBe(
+      "cleanlab_qa_pass"
+    );
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
   });
 
@@ -126,6 +130,11 @@ describe("operator workflow state machines", () => {
     ]);
     expect(getNextWorkflowTransitions("active_learning_loop", "review")).toEqual([
       { from: "review", to: "queued" },
+      { from: "review", to: "blocked" },
+    ]);
+    expect(getNextWorkflowTransitions("cleanlab_qa_pass", "review")).toEqual([
+      { from: "review", to: "requeue" },
+      { from: "review", to: "accepted" },
       { from: "review", to: "blocked" },
     ]);
   });

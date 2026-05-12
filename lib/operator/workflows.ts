@@ -10,7 +10,8 @@ export type WorkflowName =
   | "sample_preview_access"
   | "modality_contract"
   | "enrichment_manifest"
-  | "active_learning_loop";
+  | "active_learning_loop"
+  | "cleanlab_qa_pass";
 
 export type WorkflowTransition = {
   from: string;
@@ -60,6 +61,7 @@ export const workflowRecordTypeMap = {
   modality_contract: "modality_contract",
   enrichment_manifest: "enrichment_manifest",
   active_learning_loop: "active_learning_loop",
+  cleanlab_qa_pass: "cleanlab_qa_pass",
 } as const satisfies Record<string, WorkflowName>;
 
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
@@ -314,6 +316,21 @@ export const workflowDefinitions = {
       { from: "review", to: "queued" },
       { from: "review", to: "blocked" },
       { from: "queued", to: "closed" },
+      { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  cleanlab_qa_pass: {
+    name: "cleanlab_qa_pass",
+    states: ["draft", "scanning", "review", "requeue", "accepted", "blocked"],
+    terminalStates: ["accepted", "blocked"],
+    transitions: [
+      { from: "draft", to: "scanning" },
+      { from: "scanning", to: "review" },
+      { from: "review", to: "requeue" },
+      { from: "review", to: "accepted" },
+      { from: "review", to: "blocked" },
+      { from: "requeue", to: "accepted" },
+      { from: "requeue", to: "review", label: "rescan" },
       { from: "blocked", to: "draft", label: "rework" },
     ],
   },

@@ -15,6 +15,10 @@ import {
   validateActiveLearningLoopEvidence,
 } from "@/lib/operator/active-learning";
 import {
+  isCleanlabQaPassEnabled,
+  validateCleanlabQaEvidence,
+} from "@/lib/operator/cleanlab";
+import {
   isModalityContractsEnabled,
   validateEnrichmentManifest,
 } from "@/lib/operator/modality-contracts";
@@ -125,6 +129,11 @@ const mutableTables = {
   active_learning_loop: {
     table: "active_learning_loop",
     prefix: "ll",
+    softDelete: true,
+  },
+  cleanlab_qa_pass: {
+    table: "cleanlab_qa_pass",
+    prefix: "cq",
     softDelete: true,
   },
   dsar_request: { table: "dsar_request", prefix: "ds", softDelete: true },
@@ -352,6 +361,44 @@ function validateM2RecordEvidence(
       return actionError(
         "VALIDATION_ERROR",
         `Active-learning loop is missing routing evidence: ${validation.missing.join(", ")}.`
+      );
+    }
+  }
+
+  if (recordType === "cleanlab_qa_pass") {
+    if (!isCleanlabQaPassEnabled()) {
+      return actionError(
+        "CONFLICT",
+        "M2 Cleanlab QA controls are disabled by CLEANLAB_QA_PASS_ENABLED."
+      );
+    }
+
+    const validation = validateCleanlabQaEvidence(
+      {
+        scanStrategy: fields.scanStrategy ?? "",
+        inputManifestUri: fields.inputManifestUri,
+        cleanlabReportUri: fields.cleanlabReportUri,
+        modelSnapshotUri: fields.modelSnapshotUri,
+        scannedCount: fields.scannedCount ? Number(fields.scannedCount) : null,
+        suspectedLabelErrors: fields.suspectedLabelErrors
+          ? Number(fields.suspectedLabelErrors)
+          : null,
+        estimatedErrorRate: fields.estimatedErrorRate
+          ? Number(fields.estimatedErrorRate)
+          : null,
+        errorRateThreshold: fields.errorRateThreshold
+          ? Number(fields.errorRateThreshold)
+          : null,
+        requeueCount: fields.requeueCount ? Number(fields.requeueCount) : null,
+        requeueManifestUri: fields.requeueManifestUri,
+      },
+      state
+    );
+
+    if (!validation.ok) {
+      return actionError(
+        "VALIDATION_ERROR",
+        `Cleanlab QA pass is missing scan evidence: ${validation.missing.join(", ")}.`
       );
     }
   }
@@ -1078,6 +1125,68 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    cleanlab_qa_pass: `
+      WITH target_report AS (
+        SELECT id, build_id
+        FROM qa_report
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_batch AS (
+        SELECT id
+        FROM label_batch
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO cleanlab_qa_pass (
+          id,
+          org_id,
+          qa_report_id,
+          label_batch_id,
+          build_id,
+          scan_strategy,
+          state,
+          input_manifest_uri,
+          cleanlab_report_uri,
+          model_snapshot_uri,
+          scanned_count,
+          suspected_label_errors,
+          estimated_error_rate,
+          error_rate_threshold,
+          requeue_count,
+          requeue_manifest_uri,
+          summary,
+          created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_report.id,
+          target_batch.id,
+          target_report.build_id,
+          COALESCE(NULLIF($11::jsonb ->> 'scanStrategy', ''), 'confident_learning'),
+          $4,
+          NULLIF($11::jsonb ->> 'inputManifestUri', ''),
+          NULLIF($11::jsonb ->> 'cleanlabReportUri', ''),
+          NULLIF($11::jsonb ->> 'modelSnapshotUri', ''),
+          NULLIF($11::jsonb ->> 'scannedCount', '')::integer,
+          NULLIF($11::jsonb ->> 'suspectedLabelErrors', '')::integer,
+          NULLIF($11::jsonb ->> 'estimatedErrorRate', '')::numeric,
+          NULLIF($11::jsonb ->> 'errorRateThreshold', '')::numeric,
+          COALESCE(NULLIF($11::jsonb ->> 'requeueCount', '')::integer, 0),
+          NULLIF($11::jsonb ->> 'requeueManifestUri', ''),
+          jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($9, ''))),
+          $6
+        FROM target_report
+        LEFT JOIN target_batch ON true
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     enrichment_manifest: `
       WITH target_build AS (
         SELECT id
@@ -1626,6 +1735,8 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "modality = COALESCE(NULLIF($10::jsonb ->> 'modality', ''), modality), canonical_format = COALESCE(NULLIF($10::jsonb ->> 'canonicalFormat', ''), NULLIF($8, ''), canonical_format), profile_signals = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'profileSignals', ''), ''), ',') AS value WHERE trim(value) <> ''), profile_signals), cleaning_operators = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'cleaningOperators', ''), ''), ',') AS value WHERE trim(value) <> ''), cleaning_operators), privacy_treatments = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'privacyTreatments', ''), ''), ',') AS value WHERE trim(value) <> ''), privacy_treatments), labeling_widgets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'labelingWidgets', ''), ''), ',') AS value WHERE trim(value) <> ''), labeling_widgets), qa_dimensions = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'qaDimensions', ''), ''), ',') AS value WHERE trim(value) <> ''), qa_dimensions), packaging_targets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'packagingTargets', ''), ''), ',') AS value WHERE trim(value) <> ''), packaging_targets), state = $4";
     case "qa_report":
       return "dimensions = dimensions || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), composite_score = COALESCE(NULLIF($10::jsonb ->> 'compositeScore', '')::numeric, composite_score), verdict = $4";
+    case "cleanlab_qa_pass":
+      return "scan_strategy = COALESCE(NULLIF($10::jsonb ->> 'scanStrategy', ''), scan_strategy), state = $4, input_manifest_uri = COALESCE(NULLIF($10::jsonb ->> 'inputManifestUri', ''), input_manifest_uri), cleanlab_report_uri = COALESCE(NULLIF($10::jsonb ->> 'cleanlabReportUri', ''), cleanlab_report_uri), model_snapshot_uri = COALESCE(NULLIF($10::jsonb ->> 'modelSnapshotUri', ''), model_snapshot_uri), scanned_count = COALESCE(NULLIF($10::jsonb ->> 'scannedCount', '')::integer, scanned_count), suspected_label_errors = COALESCE(NULLIF($10::jsonb ->> 'suspectedLabelErrors', '')::integer, suspected_label_errors), estimated_error_rate = COALESCE(NULLIF($10::jsonb ->> 'estimatedErrorRate', '')::numeric, estimated_error_rate), error_rate_threshold = COALESCE(NULLIF($10::jsonb ->> 'errorRateThreshold', '')::numeric, error_rate_threshold), requeue_count = COALESCE(NULLIF($10::jsonb ->> 'requeueCount', '')::integer, requeue_count), requeue_manifest_uri = COALESCE(NULLIF($10::jsonb ->> 'requeueManifestUri', ''), requeue_manifest_uri), summary = summary || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, '')))";
     case "enrichment_manifest":
       return "enrichment_class = COALESCE(NULLIF($10::jsonb ->> 'enrichmentClass', ''), enrichment_class), added_columns = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'addedColumns', ''), ''), ',') AS value WHERE trim(value) <> ''), added_columns), sources = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'sources', ''), ''), ',') AS value WHERE trim(value) <> ''), sources), source_license = COALESCE(NULLIF($10::jsonb ->> 'sourceLicense', ''), source_license), source_version = COALESCE(NULLIF($10::jsonb ->> 'sourceVersion', ''), source_version), computation_method = COALESCE(NULLIF($10::jsonb ->> 'computationMethod', ''), NULLIF($8, ''), computation_method), model_identity_hash = COALESCE(NULLIF($10::jsonb ->> 'modelIdentityHash', ''), model_identity_hash), prompt_template_version = COALESCE(NULLIF($10::jsonb ->> 'promptTemplateVersion', ''), prompt_template_version), reproducer_uri = COALESCE(NULLIF($10::jsonb ->> 'reproducerUri', ''), reproducer_uri), spot_check_rate = COALESCE(NULLIF($10::jsonb ->> 'spotCheckRate', '')::numeric, spot_check_rate), independence_passed = COALESCE(NULLIF($10::jsonb ->> 'independencePassed', '')::boolean, independence_passed), license_compatible = COALESCE(NULLIF($10::jsonb ->> 'licenseCompatible', '')::boolean, license_compatible), state = $4";
     case "label_batch":
