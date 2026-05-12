@@ -59,6 +59,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
 - `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
+- Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
   read-only, and limited to delivery, scorecard, manifest, and trust evidence.
 - `/supplier` is the new B2B supplier portal entrypoint. It is authenticated

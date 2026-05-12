@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { PublicBuyerBriefRoutingResult } from "@/lib/public/buyer-brief-intake";
 import type { CollaborationFormValues } from "@/lib/validators/collaboration";
 
 const focusAreaLabels: Record<CollaborationFormValues["focusArea"], string> = {
@@ -26,6 +27,7 @@ type ContactInquiryEmailProps = CollaborationFormValues & {
   submittedAt: string;
   userAgent?: string | null;
   referer?: string | null;
+  buyerBriefRouting?: PublicBuyerBriefRoutingResult | null;
 };
 
 export function ContactInquiryEmail({
@@ -37,9 +39,18 @@ export function ContactInquiryEmail({
   focusArea,
   industry,
   teamSize,
+  datasetModality,
+  geography,
+  freshness,
+  volume,
+  budgetRange,
+  timeline,
+  targetFormats,
+  sensitivityConstraints,
   submittedAt,
   userAgent,
   referer,
+  buyerBriefRouting,
 }: ContactInquiryEmailProps) {
   const submitted = new Date(submittedAt);
   const formattedDate = submitted.toLocaleString("en-US", {
@@ -95,6 +106,23 @@ export function ContactInquiryEmail({
                 <InfoRow label="Interest" value={focusAreaLabels[focusArea]} />
                 {industry ? <InfoRow label="Industry" value={industryLabels[industry] ?? industry} /> : null}
                 {teamSize ? <InfoRow label="Company size" value={teamSize} /> : null}
+                {datasetModality ? (
+                  <InfoRow label="Dataset type" value={datasetModality} />
+                ) : null}
+                {budgetRange ? <InfoRow label="Budget" value={budgetRange} /> : null}
+                {timeline ? <InfoRow label="Timeline" value={timeline} /> : null}
+                {geography ? <InfoRow label="Geography" value={geography} /> : null}
+                {freshness ? <InfoRow label="Freshness" value={freshness} /> : null}
+                {volume ? <InfoRow label="Volume" value={volume} /> : null}
+                {targetFormats ? (
+                  <InfoRow label="Target formats" value={targetFormats} />
+                ) : null}
+                {buyerBriefRouting?.status === "routed" ? (
+                  <InfoRow
+                    label="Operator queue"
+                    value={`${buyerBriefRouting.buyerOpportunityId} / ${buyerBriefRouting.datasetBriefId}`}
+                  />
+                ) : null}
                 {organizationWebsite ? (
                   <InfoRow label="Website" value={organizationWebsite} />
                 ) : null}
@@ -131,6 +159,19 @@ export function ContactInquiryEmail({
                 >
                   {message}
                 </p>
+                {sensitivityConstraints ? (
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "#475569",
+                      lineHeight: 1.5,
+                      whiteSpace: "pre-wrap",
+                      margin: "16px 0 0 0",
+                    }}
+                  >
+                    Sensitivity notes: {sensitivityConstraints}
+                  </p>
+                ) : null}
               </div>
               {(userAgent || referer) && (
                 <div

@@ -6,7 +6,15 @@ import { ContactForm } from "@/components/contact/contact-form";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
-export function ContactPageContent() {
+type ContactPageContentProps = {
+  catalogueListingId?: string;
+  requestedDatasetId?: string;
+};
+
+export function ContactPageContent({
+  catalogueListingId,
+  requestedDatasetId,
+}: ContactPageContentProps) {
   const t = useTranslations();
 
   return (
@@ -25,7 +33,10 @@ export function ContactPageContent() {
         </header>
 
         <section className="w-full">
-          <ContactForm />
+          <ContactForm
+            catalogueListingId={catalogueListingId}
+            requestedDatasetId={requestedDatasetId}
+          />
         </section>
       </main>
       <MarketingFooter forceLandingMode />

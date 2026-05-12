@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
 import { collaborationFormSchema } from "@/lib/validators/collaboration";
 import { ContactInquiryEmail } from "@/emails/contact-inquiry";
+import { routePublicBuyerBriefIntake } from "@/lib/public/buyer-brief-intake";
 import {
   addContactEmailToSegment,
   ensureAudienceContact,
@@ -135,6 +136,29 @@ export async function POST(request: NextRequest) {
   const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
   let audienceContactReady = false;
+  let buyerBriefRouting: Awaited<
+    ReturnType<typeof routePublicBuyerBriefIntake>
+  > | null = null;
+
+  try {
+    buyerBriefRouting = await routePublicBuyerBriefIntake(data, {
+      clientIp,
+      referer,
+      userAgent,
+    });
+  } catch (error) {
+    logError("contact.buyer_brief_routing_failed", {
+      error,
+      email: normalizedWorkEmail,
+    });
+    return withHeaders(
+      NextResponse.json(
+        { error: "We couldn't route your brief. Please try again." },
+        { status: 500 }
+      ),
+      ipRateHeaders
+    );
+  }
 
   if (contactAudienceId) {
     try {
@@ -191,6 +215,7 @@ export async function POST(request: NextRequest) {
       submittedAt,
       userAgent,
       referer,
+      buyerBriefRouting,
     }),
     tags: [{ name: "source", value: "contact-form" }],
   };

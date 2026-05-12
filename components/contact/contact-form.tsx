@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   collaborationFocusAreas,
   collaborationTeamSizes,
   collaborationIndustries,
+  collaborationDatasetModalities,
 } from "@/lib/validators/collaboration";
 import {
   Form,
@@ -30,10 +31,10 @@ const focusAreaLabels: Record<
   (typeof collaborationFocusAreas)[number],
   string
 > = {
-  "sell-data": "I want to sell my company's data",
-  "buy-dataset": "I want to acquire a pre-made dataset",
-  "custom-dataset": "I need a custom dataset built for my team",
-  "ai-consulting": "AI consulting & model training",
+  "sell-data": "Monetize company data",
+  "buy-dataset": "Acquire a catalogue dataset",
+  "custom-dataset": "Build a custom dataset",
+  "ai-consulting": "AI consulting",
 };
 
 const industryLabels: Record<
@@ -53,6 +54,20 @@ const industryLabels: Record<
   other: "Other",
 };
 
+const modalityLabels: Record<
+  (typeof collaborationDatasetModalities)[number],
+  string
+> = {
+  tabular: "Tabular",
+  text: "Text",
+  image: "Image",
+  video: "Video",
+  audio: "Audio",
+  geospatial: "Geospatial",
+  timeseries: "Time series",
+  document: "Document",
+};
+
 const defaultValues: Partial<CollaborationFormValues> = {
   fullName: "",
   workEmail: "",
@@ -61,6 +76,16 @@ const defaultValues: Partial<CollaborationFormValues> = {
   focusArea: undefined,
   industry: undefined,
   teamSize: undefined,
+  datasetModality: undefined,
+  geography: "",
+  freshness: "",
+  volume: "",
+  budgetRange: "",
+  timeline: "",
+  targetFormats: "",
+  sensitivityConstraints: "",
+  catalogueListingId: undefined,
+  requestedDatasetId: undefined,
   message: "",
 };
 
@@ -70,13 +95,31 @@ const minimalInputClass =
 const minimalSelectClass =
   "w-full border-0 border-b border-gray-300 rounded-none px-0 py-2 bg-transparent focus-visible:ring-0 focus-visible:border-black text-base shadow-none appearance-none outline-none";
 
-export function ContactForm() {
+type ContactFormProps = {
+  catalogueListingId?: string;
+  requestedDatasetId?: string;
+};
+
+export function ContactForm({
+  catalogueListingId,
+  requestedDatasetId,
+}: ContactFormProps) {
   const [isComplete, setIsComplete] = useState(false);
   const toast = useLocaleToast();
   const t = useTranslations();
+  const formDefaults = useMemo<Partial<CollaborationFormValues>>(
+    () => ({
+      ...defaultValues,
+      focusArea:
+        catalogueListingId || requestedDatasetId ? "buy-dataset" : undefined,
+      catalogueListingId,
+      requestedDatasetId,
+    }),
+    [catalogueListingId, requestedDatasetId],
+  );
   const form = useForm<CollaborationFormValues>({
     resolver: zodResolver(collaborationFormSchema),
-    defaultValues,
+    defaultValues: formDefaults,
     mode: "onBlur",
   });
 
@@ -120,7 +163,7 @@ export function ContactForm() {
       }
 
       setIsComplete(true);
-      form.reset(defaultValues);
+      form.reset(formDefaults);
     } catch (error) {
       console.error("Failed to submit contact form", error);
       toast.error(t("We couldn't send your message. Please try again."));
@@ -162,6 +205,9 @@ export function ContactForm() {
     <div className="bg-gray-50/50 p-8 sm:p-10 border border-gray-200 rounded-md">
       <Form {...form}>
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+          <input type="hidden" {...form.register("catalogueListingId")} />
+          <input type="hidden" {...form.register("requestedDatasetId")} />
+
           <div className="grid gap-8 md:grid-cols-2">
             <FormField
               control={form.control}
@@ -336,6 +382,199 @@ export function ContactForm() {
                 </FormItem>
               )}
             />
+          </div>
+
+          <div className="space-y-6 border-t border-gray-200 pt-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                  {t("Buyer brief")}
+                </p>
+                <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
+                  {t("Dataset requirements")}
+                </h2>
+              </div>
+              {catalogueListingId || requestedDatasetId ? (
+                <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                  {t("Catalogue request")}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="datasetModality"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Dataset type")}
+                    </FormLabel>
+                    <FormControl>
+                      <select
+                        className={minimalSelectClass}
+                        value={field.value ?? ""}
+                        onChange={(e) =>
+                          field.onChange(e.target.value || undefined)
+                        }
+                      >
+                        <option value="">{t("Select type")}</option>
+                        {collaborationDatasetModalities.map((modality) => (
+                          <option key={modality} value={modality}>
+                            {t(modalityLabels[modality])}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="geography"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Geography")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("EU, US, global")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="freshness"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Freshness")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("Daily, monthly, 24 mo")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="volume"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Volume")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("50k rows or 2 TB")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="budgetRange"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Budget range")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("$25k-$75k")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="timeline"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Timeline")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("Pilot in 30 days")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-8 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="targetFormats"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Target formats")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("Parquet, JSONL, Snowflake")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sensitivityConstraints"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Sensitivity constraints")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("PII, PHI, regulated regions")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
 
           <FormField
