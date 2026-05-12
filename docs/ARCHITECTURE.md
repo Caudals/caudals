@@ -6,7 +6,7 @@ Caudals is a B2B AI dataset marketplace and managed data operations platform. Th
 Current production scope is deliberately limited:
 - Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
 - Public catalogue: `/catalogue` for the curated M3 dataset listing subset
-- Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
+- Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`, and versioned `/v1/*` catalogue/intake REST
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
 - Private buyer access: `/buyer` for read-only delivery, subscription,
   integration, billing, scorecard, and manifest review
@@ -72,6 +72,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
 - `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
+- `/v1/*` is the M3 public REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
   read-only, and limited to delivery, subscription, integration, billing,
   scorecard, manifest, and trust evidence.

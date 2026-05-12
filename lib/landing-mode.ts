@@ -3,8 +3,9 @@ const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   "/catalogue",
   "/contact",
   "/blog",
+  "/v1",
 ]);
-const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
+const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/", "/v1/"];
 const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
   "/auth",

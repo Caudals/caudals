@@ -226,6 +226,8 @@ Operational env controls:
 - `CAUDALS_TENANT_ORG_ID` (optional public catalogue RLS scope; defaults to the seeded Caudals tenant id)
 - `PUBLIC_BUYER_BRIEF_TENANT_ORG_ID` (optional public buyer-brief intake RLS scope; defaults to `CAUDALS_TENANT_ORG_ID`)
 - `PUBLIC_BUYER_BRIEF_INTAKE_ENABLED` (default enabled; set `false` to keep `/contact` email-only)
+- `PUBLIC_REST_V1_ENABLED` (default enabled; set `false` to disable `/v1/*`)
+- `PUBLIC_REST_V1_TENANT_ORG_ID` (optional `/v1/*` public catalogue/intake RLS scope; defaults to the public buyer-brief tenant or `CAUDALS_TENANT_ORG_ID`)
 - `BUYER_WORKSPACE_V1_ENABLED` (default enabled; set `false` to hide read-only subscription, integration, and billing panels on `/buyer`)
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
