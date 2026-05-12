@@ -83,6 +83,29 @@ describe("operator record CRUD metadata", () => {
         max: 1,
       }),
     ]);
+    expect(getOperatorRecordFieldDescriptors("cleanlab_qa_pass")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "scanStrategy",
+          allowedValues: [
+            "confident_learning",
+            "cleanlab_studio",
+            "hybrid_confidence_agreement",
+          ],
+        }),
+        expect.objectContaining({
+          key: "scannedCount",
+          kind: "integer",
+          min: 1,
+        }),
+        expect.objectContaining({
+          key: "estimatedErrorRate",
+          kind: "decimal",
+          min: 0,
+          max: 1,
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("quote")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

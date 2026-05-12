@@ -196,6 +196,27 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "quality",
+            record_type: "cleanlab_qa_pass",
+            id: "cq_01J2CLEANLAB",
+            title: "Receipt OCR Cleanlab pass",
+            state: "review",
+            detail: "3 suspected / 128 scanned",
+            updated_at: "2026-05-10T13:16:10.000Z",
+            severity: "warning",
+            next_action: "Review Cleanlab pass",
+            field_values: {
+              scanStrategy: "confident_learning",
+              inputManifestUri: "s3://silver/labels/receipt-pass-1.jsonl",
+              cleanlabReportUri: "s3://qa/cleanlab/receipt-report.json",
+              scannedCount: 128,
+              suspectedLabelErrors: 3,
+              estimatedErrorRate: 0.02344,
+              errorRateThreshold: 0.03,
+              requeueCount: 3,
+            },
+          },
+          {
             module_key: "labeling",
             record_type: "active_learning_loop",
             id: "ll_01J2ACTIVE",
@@ -446,6 +467,18 @@ describe("operator console repository", () => {
       },
     });
     expect(
+      snapshot.workItems.quality.find((item) => item.id === "cq_01J2CLEANLAB")
+    ).toMatchObject({
+      recordType: "cleanlab_qa_pass",
+      fields: {
+        scanStrategy: "confident_learning",
+        scannedCount: "128",
+        suspectedLabelErrors: "3",
+        estimatedErrorRate: "0.02344",
+        errorRateThreshold: "0.03",
+      },
+    });
+    expect(
       snapshot.workItems.labeling.find((item) => item.id === "ll_01J2ACTIVE")
     ).toMatchObject({
       recordType: "active_learning_loop",
@@ -506,6 +539,7 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("modality_contract");
     expect(workItemsSql).toContain("enrichment_manifest");
     expect(workItemsSql).toContain("active_learning_loop");
+    expect(workItemsSql).toContain("cleanlab_qa_pass");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
@@ -673,6 +707,50 @@ describe("operator console repository", () => {
         metadata: {
           from_state: "review",
           to_state: "queued",
+        },
+      },
+    });
+  });
+
+  it("guards Cleanlab acceptance transitions on the error-rate threshold", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "cleanlab_qa_pass"');
+      expect(sql).toContain("estimated_error_rate <= error_rate_threshold");
+      expect(sql).toContain("requeue_manifest_uri");
+
+      return [
+        {
+          id: "ae_01J2CLEANLABAUDIT",
+          action: "state_transition",
+          target_type: "cleanlab_qa_pass",
+          target_id: "cq_01J2CLEANLAB",
+          metadata: {
+            from_state: "review",
+            to_state: "accepted",
+          },
+          created_at: "2026-05-10T13:22:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "cleanlab_qa_pass",
+        targetId: "cq_01J2CLEANLAB",
+        fromState: "review",
+        toState: "accepted",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "cleanlab_qa_pass",
+        metadata: {
+          from_state: "review",
+          to_state: "accepted",
         },
       },
     });

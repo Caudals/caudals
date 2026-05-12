@@ -41,6 +41,8 @@ const ids = {
   enrichmentManifest: fixtureId("em", 1),
   activeLearningLoop: fixtureId("ll", 1),
   activeLearningCandidate: fixtureId("ac", 1),
+  cleanlabQaPass: fixtureId("cq", 1),
+  cleanlabLabelIssue: fixtureId("li", 1),
   piiMap: fixtureId("pm", 1),
   catalogueListing: fixtureId("cl", 1),
   privateOffer: fixtureId("po", 1),
@@ -772,6 +774,94 @@ async function seedBuilds(client: PoolClient) {
     `,
     [fixtureId("qr", 1), ids.tenantOrg, fixtureBuilds[0].id, FIXTURE_CREATED_AT, ids.operator]
   );
+
+  await query(
+    client,
+    `
+      INSERT INTO cleanlab_qa_pass (
+        id, org_id, qa_report_id, label_batch_id, build_id, scan_strategy,
+        state, input_manifest_uri, cleanlab_report_uri, model_snapshot_uri,
+        scanned_count, suspected_label_errors, estimated_error_rate,
+        error_rate_threshold, requeue_count, requeue_manifest_uri, summary,
+        created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, 'confident_learning',
+        'review',
+        's3://fixture/labels/receipt-pass-1.jsonl',
+        's3://fixture/qa/cleanlab-receipt-report.json',
+        's3://fixture/models/receipt-label-error-detector',
+        128, 3, 0.02344, 0.03000, 3,
+        's3://fixture/qa/cleanlab-requeue-receipts.jsonl',
+        '{"summary":"Confident-learning scan routed three likely receipt OCR label errors to reviewers."}'::jsonb,
+        $6, $6, $7
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        qa_report_id = EXCLUDED.qa_report_id,
+        label_batch_id = EXCLUDED.label_batch_id,
+        build_id = EXCLUDED.build_id,
+        scan_strategy = EXCLUDED.scan_strategy,
+        state = EXCLUDED.state,
+        input_manifest_uri = EXCLUDED.input_manifest_uri,
+        cleanlab_report_uri = EXCLUDED.cleanlab_report_uri,
+        model_snapshot_uri = EXCLUDED.model_snapshot_uri,
+        scanned_count = EXCLUDED.scanned_count,
+        suspected_label_errors = EXCLUDED.suspected_label_errors,
+        estimated_error_rate = EXCLUDED.estimated_error_rate,
+        error_rate_threshold = EXCLUDED.error_rate_threshold,
+        requeue_count = EXCLUDED.requeue_count,
+        requeue_manifest_uri = EXCLUDED.requeue_manifest_uri,
+        summary = EXCLUDED.summary,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.cleanlabQaPass,
+      ids.tenantOrg,
+      fixtureId("qr", 1),
+      fixtureId("lb", 1),
+      fixtureBuilds[0].id,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO cleanlab_label_issue (
+        id, org_id, cleanlab_qa_pass_id, item_ref, observed_label,
+        suggested_label, issue_score, confidence, issue_reason, route_state,
+        reviewer_priority, metadata, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'silver/receipts/doc-0042', 'merchant_total',
+        'tax_total', 0.9400, 0.8100,
+        'Self-confidence below class prior and nearest-neighbor labels disagree.',
+        'requeued', 1, '{"fixture":true}'::jsonb, $4, $4, $5
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        cleanlab_qa_pass_id = EXCLUDED.cleanlab_qa_pass_id,
+        item_ref = EXCLUDED.item_ref,
+        observed_label = EXCLUDED.observed_label,
+        suggested_label = EXCLUDED.suggested_label,
+        issue_score = EXCLUDED.issue_score,
+        confidence = EXCLUDED.confidence,
+        issue_reason = EXCLUDED.issue_reason,
+        route_state = EXCLUDED.route_state,
+        reviewer_priority = EXCLUDED.reviewer_priority,
+        metadata = EXCLUDED.metadata,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.cleanlabLabelIssue,
+      ids.tenantOrg,
+      ids.cleanlabQaPass,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
 }
 
 async function seedDatasetAndCommercials(client: PoolClient) {
@@ -1264,6 +1354,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 7), "modality_contract", ids.modalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
     [fixtureId("ae", 8), "enrichment_manifest", ids.enrichmentManifest, "state_transition", { from_state: "draft", to_state: "review" }],
     [fixtureId("ae", 9), "active_learning_loop", ids.activeLearningLoop, "state_transition", { from_state: "sampling", to_state: "review" }],
+    [fixtureId("ae", 10), "cleanlab_qa_pass", ids.cleanlabQaPass, "state_transition", { from_state: "scanning", to_state: "review" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),
