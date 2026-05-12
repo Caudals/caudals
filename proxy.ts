@@ -20,11 +20,13 @@ const APP_ONLY_PATH_PREFIXES = [
   "/contributor",
   "/admin",
   "/auth",
+  "/buyer",
   "/pwa",
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
 const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
+const BUYER_WORKSPACE_PATH_PREFIXES = ["/buyer"];
 
 type HostConfig = {
   hostname: string;
@@ -111,6 +113,22 @@ function redirectAnonymousAdminRequest(request: NextRequest) {
     `${request.nextUrl.pathname}${request.nextUrl.search}`
   );
   return NextResponse.redirect(redirectUrl);
+}
+
+function redirectAnonymousPrivateRequest(request: NextRequest) {
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = "/auth/sign-in";
+  redirectUrl.searchParams.set(
+    "next",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`
+  );
+  return NextResponse.redirect(redirectUrl);
+}
+
+function matchesBuyerWorkspacePath(pathname: string) {
+  return BUYER_WORKSPACE_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 }
 
 function rewriteWithState(
@@ -203,6 +221,13 @@ export async function proxy(request: NextRequest) {
 
   if (ADMIN_ROOT_PATHS.has(pathname) && !hasBetterAuthSessionCookie(request)) {
     return redirectAnonymousAdminRequest(request);
+  }
+
+  if (
+    matchesBuyerWorkspacePath(pathname) &&
+    !hasBetterAuthSessionCookie(request)
+  ) {
+    return redirectAnonymousPrivateRequest(request);
   }
 
   if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {

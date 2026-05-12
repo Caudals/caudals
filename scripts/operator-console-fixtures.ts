@@ -9,6 +9,7 @@ loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ quiet: true });
 
 export const FIXTURE_OPERATOR_EMAIL = "fixture.admin@caudals.local";
+export const FIXTURE_BUYER_EMAIL = "buyer.fixture@caudals.local";
 export const FIXTURE_OPERATOR_PASSWORD =
   process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
 
@@ -23,6 +24,10 @@ const ids = {
   authAccount: fixtureId("aa", 1),
   authOrganization: fixtureId("ao", 1),
   authMember: fixtureId("am", 1),
+  buyerAuthUser: fixtureId("au", 2),
+  buyerAuthAccount: fixtureId("aa", 2),
+  buyerAuthOrganization: fixtureId("ao", 2),
+  buyerAuthMember: fixtureId("am", 2),
   buyerContact: fixtureId("co", 1),
   supplierContact: fixtureId("co", 2),
   buyerOpportunity: fixtureId("bo", 1),
@@ -193,6 +198,23 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
   await query(
     client,
     `
+      INSERT INTO "auth_user" (
+        "id", "name", "email", "emailVerified", "image", "createdAt", "updatedAt", "twoFactorEnabled"
+      )
+      VALUES ($1, 'Fixture Buyer', $2, true, NULL, $3, $3, false)
+      ON CONFLICT ("id") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "email" = EXCLUDED."email",
+        "emailVerified" = true,
+        "updatedAt" = EXCLUDED."updatedAt",
+        "twoFactorEnabled" = false
+    `,
+    [ids.buyerAuthUser, FIXTURE_BUYER_EMAIL, FIXTURE_CREATED_AT]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO "auth_account" (
         "id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt"
       )
@@ -205,6 +227,28 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
         "updatedAt" = EXCLUDED."updatedAt"
     `,
     [ids.authAccount, ids.authUser, passwordHash, FIXTURE_CREATED_AT]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO "auth_account" (
+        "id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt"
+      )
+      VALUES ($1, $2, 'credential', $2, $3, $4, $4)
+      ON CONFLICT ("id") DO UPDATE SET
+        "accountId" = EXCLUDED."accountId",
+        "providerId" = 'credential',
+        "userId" = EXCLUDED."userId",
+        "password" = EXCLUDED."password",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `,
+    [
+      ids.buyerAuthAccount,
+      ids.buyerAuthUser,
+      passwordHash,
+      FIXTURE_CREATED_AT,
+    ]
   );
 
   await query(
@@ -223,6 +267,34 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
   await query(
     client,
     `
+      INSERT INTO "auth_organization" ("id", "name", "slug", "logo", "createdAt", "metadata")
+      VALUES (
+        $1,
+        'Iberian Retail Buyer Workspace',
+        'iberian-retail-buyer',
+        NULL,
+        $2,
+        $3
+      )
+      ON CONFLICT ("id") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "slug" = EXCLUDED."slug",
+        "metadata" = EXCLUDED."metadata"
+    `,
+    [
+      ids.buyerAuthOrganization,
+      FIXTURE_CREATED_AT,
+      JSON.stringify({
+        surface: "buyer",
+        domainOrgId: ids.buyerOrg,
+        tenantOrgId: ids.tenantOrg,
+      }),
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO "auth_member" ("id", "organizationId", "userId", "role", "createdAt")
       VALUES ($1, $2, $3, 'admin', $4)
       ON CONFLICT ("id") DO UPDATE SET
@@ -231,6 +303,24 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
         "role" = EXCLUDED."role"
     `,
     [ids.authMember, ids.authOrganization, ids.authUser, FIXTURE_CREATED_AT]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO "auth_member" ("id", "organizationId", "userId", "role", "createdAt")
+      VALUES ($1, $2, $3, 'buyer_admin', $4)
+      ON CONFLICT ("id") DO UPDATE SET
+        "organizationId" = EXCLUDED."organizationId",
+        "userId" = EXCLUDED."userId",
+        "role" = EXCLUDED."role"
+    `,
+    [
+      ids.buyerAuthMember,
+      ids.buyerAuthOrganization,
+      ids.buyerAuthUser,
+      FIXTURE_CREATED_AT,
+    ]
   );
 }
 

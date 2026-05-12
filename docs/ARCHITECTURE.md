@@ -7,6 +7,7 @@ Current production scope is deliberately limited:
 - Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
+- Private buyer access: `/buyer` for read-only delivery, scorecard, and manifest review
 
 Future marketplace scope:
 - Supplier company intake for raw data sources and licensing metadata
@@ -14,7 +15,7 @@ Future marketplace scope:
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the private operator auth/admin surface.
+While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the private operator auth/admin surface and the relaunched read-only buyer delivery workspace.
 
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
@@ -30,6 +31,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
+- `app/(buyer)/*`: relaunched B2B buyer workspace routes; currently `/buyer`
+  only, read-only, and delivery-focused
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password,
   reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
@@ -42,16 +45,18 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, and required metadata/assets. All other routes return `404`.
+- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
 - `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
+- `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
+  read-only, and limited to delivery, scorecard, manifest, and trust evidence.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
 - `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
-- Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators.
+- Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators; `/buyer` is the explicit M2 exception.
 
 ## Infrastructure and Deployment
 - Production runtime is self-hosted on DigitalOcean VPS.
