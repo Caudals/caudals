@@ -224,6 +224,8 @@ Operational env controls:
 - `DATABASE_URL`
 - `DATABASE_URL_FILE` (Docker secret-file fallback; `DATABASE_URL` wins when both are set)
 - `CAUDALS_TENANT_ORG_ID` (optional public catalogue RLS scope; defaults to the seeded Caudals tenant id)
+- `PUBLIC_BUYER_BRIEF_TENANT_ORG_ID` (optional public buyer-brief intake RLS scope; defaults to `CAUDALS_TENANT_ORG_ID`)
+- `PUBLIC_BUYER_BRIEF_INTAKE_ENABLED` (default enabled; set `false` to keep `/contact` email-only)
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
 - `BETTER_AUTH_URL`

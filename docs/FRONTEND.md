@@ -16,6 +16,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.
 - Public navigation should expose Catalogue, Contact, and Blog while landing mode remains active.
+- `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
 - Do not add new company-facing workflows under hidden app routes.
 - The internal admin dashboard, `/buyer` read-only delivery workspace, and `/supplier` managed supplier portal are the only authenticated surfaces that should be preserved in the near term.
 - Broader buyer/supplier self-service requires a new IA and schema direction before implementation.
