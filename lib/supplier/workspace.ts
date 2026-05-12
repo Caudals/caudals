@@ -1,11 +1,17 @@
 import "server-only";
 
+import * as Sentry from "@sentry/nextjs";
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+
 import {
   queryRows,
   type OperatorDbSession,
   type QueryValue,
 } from "@/lib/db/client";
+import { isSupplierPortalV1Enabled } from "@/lib/supplier/feature-flags";
 import type { CurrentSupplierSession } from "@/lib/supplier/session";
+
+const tracer = trace.getTracer("caudals.supplier_portal");
 
 type QueryRows = <T extends Record<string, unknown>>(
   sql: string,
@@ -50,6 +56,26 @@ type SupplierBuildRow = {
   opportunityState: string | null;
   latestGate: string | null;
   latestGateState: string | null;
+};
+
+type SupplierPayoutRow = {
+  id: string;
+  state: string;
+  stripeTransferId: string | null;
+  amountCents: number | string;
+  currency: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+};
+
+type SupplierPayoutIntegrationRow = {
+  id: string;
+  provider: string;
+  state: string;
+  displayName: string | null;
+  metadata: Record<string, unknown> | string | null;
+  lastVerifiedAt: string | Date | null;
+  updatedAt: string | Date;
 };
 
 export type SupplierLicenseClause = {
@@ -110,6 +136,29 @@ export type SupplierBuild = {
   };
 };
 
+export type SupplierPayout = {
+  id: string;
+  state: string;
+  stripeTransferId: string | null;
+  amountCents: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SupplierPayoutIntegration = {
+  id: string;
+  provider: string;
+  state: string;
+  displayName: string;
+  metadata: Record<string, unknown>;
+  accountStatus: string | null;
+  payoutSchedule: string | null;
+  pendingRequirements: string[];
+  lastVerifiedAt: string | null;
+  updatedAt: string;
+};
+
 export type SupplierWorkspaceData = {
   supplier: CurrentSupplierSession["supplier"];
   authOrganization: CurrentSupplierSession["authOrganization"];
@@ -119,9 +168,18 @@ export type SupplierWorkspaceData = {
     samplesReceived: number;
     buildsInFlight: number;
     rightsApproved: number;
+    payoutCount: number;
+    totalPayoutCents: number;
+    paidPayoutCents: number;
+    heldPayoutCents: number;
+    pendingPayoutCents: number;
+    activePayoutIntegrationCount: number;
+    stripeConnectStatus: string | null;
   };
   assets: SupplierAsset[];
   builds: SupplierBuild[];
+  payouts: SupplierPayout[];
+  payoutIntegrations: SupplierPayoutIntegration[];
 };
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -154,6 +212,22 @@ function toNumber(value: unknown): number | null {
 
   const numeric = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toInteger(value: unknown): number {
+  return Math.trunc(toNumber(value) ?? 0);
+}
+
+function toStringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 function toIsoString(value: string | Date | null | undefined): string | null {
@@ -257,122 +331,274 @@ function mapBuild(row: SupplierBuildRow): SupplierBuild {
   };
 }
 
+function mapPayout(row: SupplierPayoutRow): SupplierPayout {
+  return {
+    id: row.id,
+    state: row.state,
+    stripeTransferId: row.stripeTransferId,
+    amountCents: toInteger(row.amountCents),
+    currency: row.currency,
+    createdAt: toIsoString(row.createdAt) ?? "",
+    updatedAt: toIsoString(row.updatedAt) ?? "",
+  };
+}
+
+function mapPayoutIntegration(
+  row: SupplierPayoutIntegrationRow,
+): SupplierPayoutIntegration {
+  const metadata = toRecord(row.metadata);
+
+  return {
+    id: row.id,
+    provider: row.provider,
+    state: row.state,
+    displayName:
+      row.displayName ??
+      toStringOrNull(metadata.displayName) ??
+      row.provider
+        .split(/[_-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" "),
+    metadata,
+    accountStatus: toStringOrNull(metadata.accountStatus),
+    payoutSchedule: toStringOrNull(metadata.payoutSchedule),
+    pendingRequirements: toStringArray(metadata.pendingRequirements),
+    lastVerifiedAt: toIsoString(row.lastVerifiedAt),
+    updatedAt: toIsoString(row.updatedAt) ?? "",
+  };
+}
+
+async function withSupplierWorkspaceSpan<T>(
+  session: CurrentSupplierSession,
+  callback: () => Promise<T>,
+) {
+  return tracer.startActiveSpan("supplier.workspace.load", async (span) => {
+    span.setAttributes({
+      "caudals.feature": "supplier_portal_v1",
+      "supplier.org_id": session.supplier.id,
+      "supplier.tenant_org_id": session.tenantOrgId,
+      "supplier.role": session.role,
+      "supplier.portal_v1_enabled": isSupplierPortalV1Enabled(),
+    });
+
+    try {
+      const result = await callback();
+      span.setStatus({ code: SpanStatusCode.OK });
+      return result;
+    } catch (error) {
+      span.recordException(error as Error);
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+      Sentry.captureException(error);
+      throw error;
+    } finally {
+      span.end();
+    }
+  });
+}
+
 export async function getSupplierWorkspaceData(
   session: CurrentSupplierSession,
   query: QueryRows = queryRows,
 ): Promise<SupplierWorkspaceData> {
-  const dbSession = { orgId: session.tenantOrgId };
+  return withSupplierWorkspaceSpan(session, async () => {
+    const dbSession = { orgId: session.tenantOrgId };
+    const supplierPortalV1Enabled = isSupplierPortalV1Enabled();
 
-  const [assetRows, buildRows] = await Promise.all([
-    query<SupplierAssetRow>(
-      `
-        SELECT
-          sa.id,
-          sa.name,
-          sa.modality,
-          sa.declared_volume AS "declaredVolume",
-          sa.refresh_policy AS "refreshPolicy",
-          sa.sensitivity,
-          sa.rights_summary AS "rightsSummary",
-          sa.state,
-          sa.created_at AS "createdAt",
-          sa.updated_at AS "updatedAt",
-          sa.sample_upload_uri AS "sampleUploadUri",
-          sa.sample_upload_filename AS "sampleUploadFilename",
-          sa.sample_upload_bytes AS "sampleUploadBytes",
-          sa.sample_upload_content_type AS "sampleUploadContentType",
-          sa.sample_upload_requested_at AS "sampleUploadRequestedAt",
-          sa.sample_upload_received_at AS "sampleUploadReceivedAt",
-          sa.supplier_portal_metadata AS "supplierPortalMetadata",
-          ct.id AS "contractId",
-          ct.state AS "contractState",
-          ct.ends_at AS "contractEndsAt",
-          COALESCE(
-            jsonb_agg(
-              jsonb_build_object(
-                'id', lc.id,
-                'permitsTrain', lc.permits_train,
-                'permitsFinetune', lc.permits_finetune,
-                'permitsEval', lc.permits_eval,
-                'permitsCommercialInference', lc.permits_inference_commercial,
-                'permitsRedistribute', lc.permits_redistribute,
-                'exclusivity', lc.exclusivity,
-                'geo', lc.geo
+    const [assetRows, buildRows, payoutRows, payoutIntegrationRows] =
+      await Promise.all([
+        query<SupplierAssetRow>(
+          `
+            SELECT
+              sa.id,
+              sa.name,
+              sa.modality,
+              sa.declared_volume AS "declaredVolume",
+              sa.refresh_policy AS "refreshPolicy",
+              sa.sensitivity,
+              sa.rights_summary AS "rightsSummary",
+              sa.state,
+              sa.created_at AS "createdAt",
+              sa.updated_at AS "updatedAt",
+              sa.sample_upload_uri AS "sampleUploadUri",
+              sa.sample_upload_filename AS "sampleUploadFilename",
+              sa.sample_upload_bytes AS "sampleUploadBytes",
+              sa.sample_upload_content_type AS "sampleUploadContentType",
+              sa.sample_upload_requested_at AS "sampleUploadRequestedAt",
+              sa.sample_upload_received_at AS "sampleUploadReceivedAt",
+              sa.supplier_portal_metadata AS "supplierPortalMetadata",
+              ct.id AS "contractId",
+              ct.state AS "contractState",
+              ct.ends_at AS "contractEndsAt",
+              COALESCE(
+                jsonb_agg(
+                  jsonb_build_object(
+                    'id', lc.id,
+                    'permitsTrain', lc.permits_train,
+                    'permitsFinetune', lc.permits_finetune,
+                    'permitsEval', lc.permits_eval,
+                    'permitsCommercialInference', lc.permits_inference_commercial,
+                    'permitsRedistribute', lc.permits_redistribute,
+                    'exclusivity', lc.exclusivity,
+                    'geo', lc.geo
+                  )
+                  ORDER BY lc.created_at DESC
+                ) FILTER (WHERE lc.id IS NOT NULL),
+                '[]'::jsonb
+              ) AS "licenseClauses"
+            FROM supplier_asset sa
+            LEFT JOIN contract ct ON ct.id = sa.contract_id AND ct.deleted_at IS NULL
+            LEFT JOIN license_clause lc ON lc.contract_id = ct.id AND lc.deleted_at IS NULL
+            WHERE sa.org_id = $2
+              AND sa.deleted_at IS NULL
+              AND (
+                sa.supplier_org_id = $1
+                OR ct.counterparty_org_id = $1
               )
-              ORDER BY lc.created_at DESC
-            ) FILTER (WHERE lc.id IS NOT NULL),
-            '[]'::jsonb
-          ) AS "licenseClauses"
-        FROM supplier_asset sa
-        LEFT JOIN contract ct ON ct.id = sa.contract_id AND ct.deleted_at IS NULL
-        LEFT JOIN license_clause lc ON lc.contract_id = ct.id AND lc.deleted_at IS NULL
-        WHERE sa.org_id = $2
-          AND sa.deleted_at IS NULL
-          AND (
-            sa.supplier_org_id = $1
-            OR ct.counterparty_org_id = $1
-          )
-        GROUP BY sa.id, ct.id
-        ORDER BY sa.updated_at DESC
-        LIMIT 24
-      `,
-      [session.supplier.id, session.tenantOrgId],
-      dbSession,
-    ),
-    query<SupplierBuildRow>(
-      `
-        SELECT
-          bd.id,
-          bd.title,
-          bd.state,
-          bd.eta_at AS "etaAt",
-          bd.q_score AS "qScore",
-          bd.cost_budget_cents AS "costBudgetCents",
-          bd.cost_used_cents AS "costUsedCents",
-          so.id AS "opportunityId",
-          so.title AS "opportunityTitle",
-          so.state AS "opportunityState",
-          ge.gate_key AS "latestGate",
-          ge.verdict AS "latestGateState"
-        FROM build bd
-        JOIN supplier_opportunity so
-          ON so.id = bd.supplier_opportunity_id
-          AND so.deleted_at IS NULL
-        LEFT JOIN LATERAL (
-          SELECT gate_key, verdict
-          FROM gate_event ge
-          WHERE ge.build_id = bd.id
-          ORDER BY ge.created_at DESC
-          LIMIT 1
-        ) ge ON true
-        WHERE bd.org_id = $2
-          AND bd.deleted_at IS NULL
-          AND so.supplier_org_id = $1
-        ORDER BY bd.updated_at DESC
-        LIMIT 8
-      `,
-      [session.supplier.id, session.tenantOrgId],
-      dbSession,
-    ),
-  ]);
+            GROUP BY sa.id, ct.id
+            ORDER BY sa.updated_at DESC
+            LIMIT 24
+          `,
+          [session.supplier.id, session.tenantOrgId],
+          dbSession,
+        ),
+        query<SupplierBuildRow>(
+          `
+            SELECT
+              bd.id,
+              bd.title,
+              bd.state,
+              bd.eta_at AS "etaAt",
+              bd.q_score AS "qScore",
+              bd.cost_budget_cents AS "costBudgetCents",
+              bd.cost_used_cents AS "costUsedCents",
+              so.id AS "opportunityId",
+              so.title AS "opportunityTitle",
+              so.state AS "opportunityState",
+              ge.gate_key AS "latestGate",
+              ge.verdict AS "latestGateState"
+            FROM build bd
+            JOIN supplier_opportunity so
+              ON so.id = bd.supplier_opportunity_id
+              AND so.deleted_at IS NULL
+            LEFT JOIN LATERAL (
+              SELECT gate_key, verdict
+              FROM gate_event ge
+              WHERE ge.build_id = bd.id
+              ORDER BY ge.created_at DESC
+              LIMIT 1
+            ) ge ON true
+            WHERE bd.org_id = $2
+              AND bd.deleted_at IS NULL
+              AND so.supplier_org_id = $1
+            ORDER BY bd.updated_at DESC
+            LIMIT 8
+          `,
+          [session.supplier.id, session.tenantOrgId],
+          dbSession,
+        ),
+        supplierPortalV1Enabled
+          ? query<SupplierPayoutRow>(
+              `
+                SELECT
+                  id,
+                  state,
+                  stripe_transfer_id AS "stripeTransferId",
+                  amount_cents AS "amountCents",
+                  currency,
+                  created_at AS "createdAt",
+                  updated_at AS "updatedAt"
+                FROM payout
+                WHERE supplier_org_id = $1
+                  AND org_id = $2
+                  AND deleted_at IS NULL
+                ORDER BY
+                  CASE
+                    WHEN state IN ('pending','held') THEN 0
+                    WHEN state = 'failed' THEN 1
+                    ELSE 2
+                  END,
+                  updated_at DESC
+                LIMIT 12
+              `,
+              [session.supplier.id, session.tenantOrgId],
+              dbSession,
+            )
+          : Promise.resolve([]),
+        supplierPortalV1Enabled
+          ? query<SupplierPayoutIntegrationRow>(
+              `
+                SELECT
+                  id,
+                  provider,
+                  state,
+                  display_name AS "displayName",
+                  metadata,
+                  last_verified_at AS "lastVerifiedAt",
+                  updated_at AS "updatedAt"
+                FROM integration
+                WHERE supplier_org_id = $1
+                  AND org_id = $2
+                  AND integration_scope = 'supplier_payout'
+                  AND deleted_at IS NULL
+                ORDER BY
+                  CASE WHEN state = 'active' THEN 0 ELSE 1 END,
+                  updated_at DESC
+                LIMIT 8
+              `,
+              [session.supplier.id, session.tenantOrgId],
+              dbSession,
+            )
+          : Promise.resolve([]),
+      ]);
 
-  const assets = assetRows.map(mapAsset);
-  const builds = buildRows.map(mapBuild);
+    const assets = assetRows.map(mapAsset);
+    const builds = buildRows.map(mapBuild);
+    const payouts = payoutRows.map(mapPayout);
+    const payoutIntegrations = payoutIntegrationRows.map(mapPayoutIntegration);
 
-  return {
-    supplier: session.supplier,
-    authOrganization: session.authOrganization,
-    role: session.role,
-    summary: {
-      assetCount: assets.length,
-      samplesReceived: assets.filter((asset) => asset.sampleUpload.receivedAt)
-        .length,
-      buildsInFlight: builds.filter(
-        (build) => !["released", "delivered", "rework"].includes(build.state),
-      ).length,
-      rightsApproved: assets.filter((asset) => asset.state === "approved").length,
-    },
-    assets,
-    builds,
-  };
+    return {
+      supplier: session.supplier,
+      authOrganization: session.authOrganization,
+      role: session.role,
+      summary: {
+        assetCount: assets.length,
+        samplesReceived: assets.filter((asset) => asset.sampleUpload.receivedAt)
+          .length,
+        buildsInFlight: builds.filter(
+          (build) => !["released", "delivered", "rework"].includes(build.state),
+        ).length,
+        rightsApproved: assets.filter((asset) => asset.state === "approved")
+          .length,
+        payoutCount: payouts.length,
+        totalPayoutCents: payouts.reduce(
+          (total, payout) => total + payout.amountCents,
+          0,
+        ),
+        paidPayoutCents: payouts
+          .filter((payout) => payout.state === "paid")
+          .reduce((total, payout) => total + payout.amountCents, 0),
+        heldPayoutCents: payouts
+          .filter((payout) => payout.state === "held")
+          .reduce((total, payout) => total + payout.amountCents, 0),
+        pendingPayoutCents: payouts
+          .filter((payout) => payout.state === "pending")
+          .reduce((total, payout) => total + payout.amountCents, 0),
+        activePayoutIntegrationCount: payoutIntegrations.filter(
+          (integration) => integration.state === "active",
+        ).length,
+        stripeConnectStatus:
+          payoutIntegrations[0]?.accountStatus ??
+          payoutIntegrations[0]?.state ??
+          null,
+      },
+      assets,
+      builds,
+      payouts,
+      payoutIntegrations,
+    };
+  });
 }

@@ -11,7 +11,8 @@ Current production scope is deliberately limited:
 - Private buyer access: `/buyer` for read-only delivery, subscription,
   integration, billing, scorecard, and manifest review
 - Private supplier access: `/supplier` for managed asset declaration, signed
-  sample upload, and build participation review
+  sample upload, build participation, revenue-share payout, and Stripe Connect
+  status review
 
 Future marketplace scope:
 - Supplier company intake for raw data sources and licensing metadata
@@ -39,8 +40,8 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
   only, read-only, and focused on deliveries, subscriptions, integrations,
   billing, scorecards, manifests, and trust evidence
 - `app/(supplier)/*`: relaunched supplier portal routes; currently `/supplier`
-  only, limited to managed onboarding, asset declaration, sample upload, and
-  build progress review
+  only, limited to managed onboarding, asset declaration, sample upload, build
+  progress, revenue-share payout, and Stripe Connect status review
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password,
   reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
@@ -66,8 +67,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
   read-only, and limited to delivery, subscription, integration, billing,
   scorecard, manifest, and trust evidence.
 - `/supplier` is the new B2B supplier portal entrypoint. It is authenticated
-  and limited to supplier-owned asset declarations, signed sample uploads, and
-  build participation status.
+  and limited to supplier-owned asset declarations, signed sample uploads,
+  build participation status, revenue-share payout visibility, and Stripe
+  Connect account status.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
 - `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
 - Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators; `/buyer` and `/supplier` are the explicit M2 exceptions.
