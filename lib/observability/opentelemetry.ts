@@ -86,6 +86,30 @@ export function registerOpenTelemetry() {
     spanProcessors,
   });
 
-  trace.setGlobalTracerProvider(provider);
+  const registered = trace.setGlobalTracerProvider(provider);
+  if (!registered) {
+    console.warn(
+      "[otel] OpenTelemetry provider was already registered; Caudals OTLP exporter was not installed.",
+    );
+    return;
+  }
+
   globalThis.__caudalsOpenTelemetryProvider = provider;
+
+  const bootstrapSpan = trace
+    .getTracer("caudals.observability")
+    .startSpan("observability.bootstrap");
+  bootstrapSpan.setAttribute(
+    "caudals.otel.otlp_enabled",
+    Boolean(config.otlpTracesEndpoint),
+  );
+  bootstrapSpan.setAttribute("caudals.otel.stdout_enabled", config.stdoutEnabled);
+  bootstrapSpan.end();
+
+  provider.forceFlush().catch((error: unknown) => {
+    console.warn(
+      "[otel] OpenTelemetry bootstrap flush failed.",
+      error instanceof Error ? error.message : String(error),
+    );
+  });
 }
