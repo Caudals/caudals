@@ -23,6 +23,8 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModePagePathAllowed("/admin")).toBe(true);
     expect(isLandingModePagePathAllowed("/buyer")).toBe(true);
     expect(isLandingModePagePathAllowed("/buyer/deliveries")).toBe(true);
+    expect(isLandingModePagePathAllowed("/supplier")).toBe(true);
+    expect(isLandingModePagePathAllowed("/supplier/assets")).toBe(true);
     expect(isLandingModePagePathAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModePagePathAllowed("/auth/security")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/auth/sign-in/email")).toBe(true);
@@ -62,6 +64,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);
     expect(isLandingModeRequestAllowed("/buyer")).toBe(true);
+    expect(isLandingModeRequestAllowed("/supplier")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/internal/jobs")).toBe(false);

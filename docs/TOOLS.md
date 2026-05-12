@@ -228,6 +228,7 @@ Operational env controls:
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
 - `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
+- `SUPPLIER_PORTAL_ENABLED` (default enabled; set `false` to hide `/supplier`)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
@@ -259,6 +260,9 @@ Operational env controls:
 ## Phase 1 Surface Gate
 - `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
+- `/supplier` is the M2 managed supplier portal exception; it stays authenticated
+  and limited to supplier-owned asset declaration, signed sample upload, and
+  build status review while `/contributor` remains blocked.
 - `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.

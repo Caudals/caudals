@@ -10,6 +10,7 @@ loadEnv({ quiet: true });
 
 export const FIXTURE_OPERATOR_EMAIL = "fixture.admin@caudals.local";
 export const FIXTURE_BUYER_EMAIL = "buyer.fixture@caudals.local";
+export const FIXTURE_SUPPLIER_EMAIL = "supplier.fixture@caudals.local";
 export const FIXTURE_OPERATOR_PASSWORD =
   process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
 
@@ -28,6 +29,10 @@ const ids = {
   buyerAuthAccount: fixtureId("aa", 2),
   buyerAuthOrganization: fixtureId("ao", 2),
   buyerAuthMember: fixtureId("am", 2),
+  supplierAuthUser: fixtureId("au", 3),
+  supplierAuthAccount: fixtureId("aa", 3),
+  supplierAuthOrganization: fixtureId("ao", 3),
+  supplierAuthMember: fixtureId("am", 3),
   buyerContact: fixtureId("co", 1),
   supplierContact: fixtureId("co", 2),
   buyerOpportunity: fixtureId("bo", 1),
@@ -215,6 +220,23 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
   await query(
     client,
     `
+      INSERT INTO "auth_user" (
+        "id", "name", "email", "emailVerified", "image", "createdAt", "updatedAt", "twoFactorEnabled"
+      )
+      VALUES ($1, 'Fixture Supplier', $2, true, NULL, $3, $3, false)
+      ON CONFLICT ("id") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "email" = EXCLUDED."email",
+        "emailVerified" = true,
+        "updatedAt" = EXCLUDED."updatedAt",
+        "twoFactorEnabled" = false
+    `,
+    [ids.supplierAuthUser, FIXTURE_SUPPLIER_EMAIL, FIXTURE_CREATED_AT]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO "auth_account" (
         "id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt"
       )
@@ -246,6 +268,28 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
     [
       ids.buyerAuthAccount,
       ids.buyerAuthUser,
+      passwordHash,
+      FIXTURE_CREATED_AT,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO "auth_account" (
+        "id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt"
+      )
+      VALUES ($1, $2, 'credential', $2, $3, $4, $4)
+      ON CONFLICT ("id") DO UPDATE SET
+        "accountId" = EXCLUDED."accountId",
+        "providerId" = 'credential',
+        "userId" = EXCLUDED."userId",
+        "password" = EXCLUDED."password",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `,
+    [
+      ids.supplierAuthAccount,
+      ids.supplierAuthUser,
       passwordHash,
       FIXTURE_CREATED_AT,
     ]
@@ -295,6 +339,34 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
   await query(
     client,
     `
+      INSERT INTO "auth_organization" ("id", "name", "slug", "logo", "createdAt", "metadata")
+      VALUES (
+        $1,
+        'Mediterranean Data Supplier Portal',
+        'mediterranean-data-supplier',
+        NULL,
+        $2,
+        $3
+      )
+      ON CONFLICT ("id") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "slug" = EXCLUDED."slug",
+        "metadata" = EXCLUDED."metadata"
+    `,
+    [
+      ids.supplierAuthOrganization,
+      FIXTURE_CREATED_AT,
+      JSON.stringify({
+        surface: "supplier",
+        domainOrgId: ids.supplierOrg,
+        tenantOrgId: ids.tenantOrg,
+      }),
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO "auth_member" ("id", "organizationId", "userId", "role", "createdAt")
       VALUES ($1, $2, $3, 'admin', $4)
       ON CONFLICT ("id") DO UPDATE SET
@@ -319,6 +391,24 @@ async function seedAuth(client: PoolClient, passwordHash: string) {
       ids.buyerAuthMember,
       ids.buyerAuthOrganization,
       ids.buyerAuthUser,
+      FIXTURE_CREATED_AT,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO "auth_member" ("id", "organizationId", "userId", "role", "createdAt")
+      VALUES ($1, $2, $3, 'supplier_admin', $4)
+      ON CONFLICT ("id") DO UPDATE SET
+        "organizationId" = EXCLUDED."organizationId",
+        "userId" = EXCLUDED."userId",
+        "role" = EXCLUDED."role"
+    `,
+    [
+      ids.supplierAuthMember,
+      ids.supplierAuthOrganization,
+      ids.supplierAuthUser,
       FIXTURE_CREATED_AT,
     ]
   );
@@ -437,21 +527,30 @@ async function seedOpportunitiesAndRights(client: PoolClient) {
     client,
     `
       INSERT INTO supplier_opportunity (
-        id, org_id, contact_id, title, asset_summary, state, created_at, updated_at, created_by
+        id, org_id, supplier_org_id, contact_id, title, asset_summary, state,
+        created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, 'Mediterranean supplier data room',
+        $1, $2, $3, $4, 'Mediterranean supplier data room',
         'Receipts, route telemetry, crop imagery, and support-ticket exports',
-        'full_active', $4, $4, $5
+        'full_active', $5, $5, $6
       )
       ON CONFLICT (id) DO UPDATE SET
+        supplier_org_id = EXCLUDED.supplier_org_id,
         title = EXCLUDED.title,
         asset_summary = EXCLUDED.asset_summary,
         state = EXCLUDED.state,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.supplierOpportunity, ids.tenantOrg, ids.supplierContact, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.supplierOpportunity,
+      ids.tenantOrg,
+      ids.supplierOrg,
+      ids.supplierContact,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
@@ -487,17 +586,22 @@ async function seedOpportunitiesAndRights(client: PoolClient) {
     client,
     `
       INSERT INTO supplier_asset (
-        id, org_id, contract_id, name, modality, declared_volume, refresh_policy,
-        sensitivity, rights_summary, state, created_at, updated_at, created_by
+        id, org_id, supplier_org_id, contract_id, name, modality, declared_volume,
+        refresh_policy, sensitivity, rights_summary, state, sample_upload_uri,
+        sample_upload_filename, sample_upload_bytes, sample_upload_content_type,
+        sample_upload_requested_at, sample_upload_received_at, created_at,
+        updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, 'Iberian receipt and ticket corpus', 'document',
+        $1, $2, $3, $4, 'Iberian receipt and ticket corpus', 'document',
         '{"records":125000,"format":"pdf+json"}'::jsonb,
         'scheduled', 'pii',
-        '{"ai_training":true,"requires_redaction":true}'::jsonb,
-        'approved', $4, $4, $5
+        '{"aiTrainingRights":true,"ownershipConfirmed":true,"requiresRedaction":true}'::jsonb,
+        'approved', 's3://fixture/supplier-samples/receipts-sample.zip',
+        'receipts-sample.zip', 1048576, 'application/zip', $5, $5, $5, $5, $6
       )
       ON CONFLICT (id) DO UPDATE SET
+        supplier_org_id = EXCLUDED.supplier_org_id,
         name = EXCLUDED.name,
         modality = EXCLUDED.modality,
         declared_volume = EXCLUDED.declared_volume,
@@ -505,10 +609,23 @@ async function seedOpportunitiesAndRights(client: PoolClient) {
         sensitivity = EXCLUDED.sensitivity,
         rights_summary = EXCLUDED.rights_summary,
         state = EXCLUDED.state,
+        sample_upload_uri = EXCLUDED.sample_upload_uri,
+        sample_upload_filename = EXCLUDED.sample_upload_filename,
+        sample_upload_bytes = EXCLUDED.sample_upload_bytes,
+        sample_upload_content_type = EXCLUDED.sample_upload_content_type,
+        sample_upload_requested_at = EXCLUDED.sample_upload_requested_at,
+        sample_upload_received_at = EXCLUDED.sample_upload_received_at,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.supplierAsset, ids.tenantOrg, ids.supplierContract, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.supplierAsset,
+      ids.tenantOrg,
+      ids.supplierOrg,
+      ids.supplierContract,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
