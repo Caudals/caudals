@@ -323,7 +323,13 @@ describe("operator record CRUD metadata", () => {
       expect.arrayContaining([
         expect.objectContaining({
           key: "modality",
-          allowedValues: ["video", "audio", "geospatial"],
+          allowedValues: [
+            "video",
+            "audio",
+            "geospatial",
+            "document",
+            "timeseries",
+          ],
         }),
         expect.objectContaining({
           key: "canonicalFormat",

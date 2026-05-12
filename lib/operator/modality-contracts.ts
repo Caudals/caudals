@@ -1,7 +1,12 @@
-export type M2Modality = "video" | "audio" | "geospatial";
+export type ModalityContractModality =
+  | "video"
+  | "audio"
+  | "geospatial"
+  | "document"
+  | "timeseries";
 
 export type ModalityContractTemplate = {
-  modality: M2Modality;
+  modality: ModalityContractModality;
   canonicalFormat: string;
   profileSignals: string[];
   cleaningOperators: string[];
@@ -22,10 +27,16 @@ export type EnrichmentManifestDraft = {
   licenseCompatible: boolean;
 };
 
-export const m2Modalities = ["video", "audio", "geospatial"] as const;
+export const modalityContractModalities = [
+  "video",
+  "audio",
+  "geospatial",
+  "document",
+  "timeseries",
+] as const;
 
 export const modalityContractTemplates: Record<
-  M2Modality,
+  ModalityContractModality,
   ModalityContractTemplate
 > = {
   video: {
@@ -119,16 +130,93 @@ export const modalityContractTemplates: Record<
     ],
     packagingTargets: ["stac_catalog", "geoparquet", "cog", "mvt_tiles"],
   },
+  document: {
+    modality: "document",
+    canonicalFormat: "Parquet page records plus original PDF references",
+    profileSignals: [
+      "page_count",
+      "layout_type_inventory",
+      "language_mix",
+      "ocr_confidence",
+      "tabular_data_ratio",
+    ],
+    cleaningOperators: [
+      "ocr_normalize",
+      "page_dedup",
+      "layout_segment",
+      "table_extract",
+    ],
+    privacyTreatments: [
+      "signature_redaction",
+      "printed_pii_redaction",
+      "handwriting_review",
+      "source_pdf_access_control",
+    ],
+    labelingWidgets: [
+      "page_region",
+      "field_extraction",
+      "table_cell",
+      "signature_presence",
+    ],
+    qaDimensions: [
+      "layout_fidelity",
+      "ocr_confidence",
+      "field_accuracy",
+      "redaction_residual",
+    ],
+    packagingTargets: ["page_parquet", "jsonl_fields", "pdf_bundle", "rest_query"],
+  },
+  timeseries: {
+    modality: "timeseries",
+    canonicalFormat: "Iceberg Parquet partitioned by event time and entity",
+    profileSignals: [
+      "sample_rate",
+      "gap_distribution",
+      "regime_changes",
+      "seasonality_fingerprint",
+      "sensor_drift",
+    ],
+    cleaningOperators: [
+      "sample_rate_align",
+      "gap_policy_apply",
+      "clock_skew_correct",
+      "outlier_window_flag",
+    ],
+    privacyTreatments: [
+      "entity_pseudonymize",
+      "location_precision_reduce",
+      "blackout_window_apply",
+    ],
+    labelingWidgets: [
+      "event_window",
+      "anomaly_span",
+      "regime_marker",
+      "calibration_jump",
+    ],
+    qaDimensions: [
+      "temporal_continuity",
+      "gap_policy_compliance",
+      "split_leakage",
+      "sensor_drift",
+    ],
+    packagingTargets: ["time_partitioned_parquet", "arrow_ipc", "rest_cursor"],
+  },
 };
 
-export function isM2Modality(value: string): value is M2Modality {
-  return m2Modalities.includes(value as M2Modality);
+export function isModalityContractModality(
+  value: string
+): value is ModalityContractModality {
+  return modalityContractModalities.includes(
+    value as ModalityContractModality
+  );
 }
 
 export function getModalityContractTemplate(
   modality: string
 ): ModalityContractTemplate | null {
-  return isM2Modality(modality) ? modalityContractTemplates[modality] : null;
+  return isModalityContractModality(modality)
+    ? modalityContractTemplates[modality]
+    : null;
 }
 
 export function isModalityContractsEnabled() {
@@ -144,7 +232,7 @@ export function validateModalityContractTemplate(
     missing.push("feature_flag");
   }
 
-  if (!isM2Modality(contract.modality)) {
+  if (!isModalityContractModality(contract.modality)) {
     missing.push("modality");
   }
 

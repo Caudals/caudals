@@ -234,6 +234,7 @@ Operational env controls:
 - `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
 - `SUPPLIER_PORTAL_ENABLED` (default enabled; set `false` to hide `/supplier`)
 - `SUPPLIER_PORTAL_V1_ENABLED` (default enabled; set `false` to hide read-only payout and Stripe Connect panels on `/supplier`)
+- `MODALITY_CONTRACTS_ENABLED` (default enabled; set `false` to block operator modality-contract and enrichment writes)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`

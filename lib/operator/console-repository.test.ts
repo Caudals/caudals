@@ -210,32 +210,32 @@ describe("operator console repository", () => {
             module_key: "datasets",
             record_type: "modality_contract",
             id: "mc_01J2MODALITY",
-            title: "Crop imagery video contract",
+            title: "Receipt extraction document contract",
             state: "review",
-            detail: "Lance index over MP4 chunks",
+            detail: "Parquet page records plus original PDF references",
             updated_at: "2026-05-10T13:16:30.000Z",
             severity: "warning",
             next_action: "Review modality contract",
             field_values: {
-              modality: "video",
-              canonicalFormat: "Lance index over MP4 chunks",
-              packagingTargets: "mp4_clips, per_frame_manifest",
+              modality: "document",
+              canonicalFormat: "Parquet page records plus original PDF references",
+              packagingTargets: "page_parquet, pdf_bundle",
             },
           },
           {
             module_key: "quality",
             record_type: "enrichment_manifest",
             id: "em_01J2ENRICH",
-            title: "G-5 H3 enrichment",
+            title: "G-5 receipt-field enrichment",
             state: "review",
-            detail: "geospatial / ODbL-1.0",
+            detail: "derived_features / supplier-contract",
             updated_at: "2026-05-10T13:16:15.000Z",
             severity: "warning",
             next_action: "Review enrichment manifest",
             field_values: {
-              enrichmentClass: "geospatial",
-              addedColumns: "h3_cell, admin_region",
-              sourceLicense: "ODbL-1.0",
+              enrichmentClass: "derived_features",
+              addedColumns: "merchant_name, receipt_total",
+              sourceLicense: "supplier-contract",
               licenseCompatible: true,
             },
           },
@@ -517,9 +517,9 @@ describe("operator console repository", () => {
     ).toMatchObject({
       recordType: "modality_contract",
       fields: {
-        modality: "video",
-        canonicalFormat: "Lance index over MP4 chunks",
-        packagingTargets: "mp4_clips, per_frame_manifest",
+        modality: "document",
+        canonicalFormat: "Parquet page records plus original PDF references",
+        packagingTargets: "page_parquet, pdf_bundle",
       },
     });
     expect(
@@ -527,9 +527,9 @@ describe("operator console repository", () => {
     ).toMatchObject({
       recordType: "enrichment_manifest",
       fields: {
-        enrichmentClass: "geospatial",
-        addedColumns: "h3_cell, admin_region",
-        sourceLicense: "ODbL-1.0",
+        enrichmentClass: "derived_features",
+        addedColumns: "merchant_name, receipt_total",
+        sourceLicense: "supplier-contract",
         licenseCompatible: "true",
       },
     });
