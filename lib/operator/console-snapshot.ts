@@ -461,6 +461,17 @@ const fixtureWorkItems: OperatorWorkItem[] = [
     nextAction: "Review modality contract",
   },
   {
+    moduleKey: "datasets",
+    recordType: "release_documentation_bundle",
+    id: "rd_01J2DOCS",
+    title: "Iberian retail receipts v1 release docs",
+    state: "review",
+    detail: "Croissant + Article 10 + HF mirror",
+    updatedAt: "2026-05-10T13:07:00.000Z",
+    severity: "warning",
+    nextAction: "Review release documentation",
+  },
+  {
     moduleKey: "labeling",
     recordType: "label_batch",
     id: "lb_01J2RECEIPTS",

@@ -50,6 +50,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `modality_contract` records cover video, audio, geospatial, document, and
   time-series build contracts; document uses page-level Parquet plus source
   references, while time-series uses event-time/entity partitioned Parquet.
+- `release_documentation_bundle` records store G-7 package evidence for each
+  released dataset version: required docs, Croissant JSON-LD, Article 10 data
+  governance notes, validation status, and public HF mirror metadata.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 

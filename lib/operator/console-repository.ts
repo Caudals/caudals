@@ -489,6 +489,7 @@ const transitionWorkflowTables = {
   dsar: '"dsar_request"',
   sample_preview_access: '"sample_preview_access"',
   modality_contract: '"modality_contract"',
+  release_documentation_bundle: '"release_documentation_bundle"',
   enrichment_manifest: '"enrichment_manifest"',
   active_learning_loop: '"active_learning_loop"',
   cleanlab_qa_pass: '"cleanlab_qa_pass"',
@@ -505,6 +506,16 @@ function buildPersistTransitionAssignments(workflow: WorkflowName) {
         tombstoned_at = CASE
           WHEN $1 = 'tombstoned' THEN COALESCE(tombstoned_at, now())
           ELSE tombstoned_at
+        END
+    `;
+  }
+
+  if (workflow === "release_documentation_bundle") {
+    return `
+        state = $1,
+        published_at = CASE
+          WHEN $1 = 'published' THEN COALESCE(published_at, now())
+          ELSE published_at
         END
     `;
   }
@@ -564,6 +575,51 @@ function buildPersistTransitionPredicate(workflow: WorkflowName) {
             AND char_length(computation_method) > 1
             AND independence_passed
             AND license_compatible
+          )
+        )
+    `;
+  }
+
+  if (workflow === "release_documentation_bundle") {
+    return `
+        AND (
+          $1 NOT IN ('review', 'approved', 'published')
+          OR (
+            required_documents ?& ARRAY[
+              'datasetCard',
+              'datasheet',
+              'croissantManifest',
+              'schemaDataDictionary',
+              'qualityScorecard',
+              'lineageProvenanceSummary',
+              'licensePermittedUseSummary',
+              'privacySummary',
+              'refreshPolicy',
+              'samplePreview'
+            ]
+            AND croissant_manifest ? '@context'
+            AND croissant_manifest ? '@type'
+            AND article10_document ? 'dataGovernance'
+            AND article10_document ? 'biasTesting'
+            AND article10_document ? 'relevanceRepresentativeness'
+            AND package_manifest ? 'croissant'
+          )
+        )
+        AND (
+          $1 <> 'published'
+          OR (
+            documentation_uri IS NOT NULL
+            AND char_length(documentation_uri) > 1
+            AND validation_summary ->> 'status' = 'pass'
+            AND (
+              catalogue_listing_id IS NULL
+              OR (
+                hf_mirror ? 'namespace'
+                AND hf_mirror ? 'repoId'
+                AND hf_mirror ? 'url'
+                AND hf_mirror ? 'license'
+              )
+            )
           )
         )
     `;
@@ -712,10 +768,12 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM dataset_version WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM delta_manifest WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM modality_contract WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM release_documentation_bundle WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM lineage_event),
       (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM delta_manifest WHERE state IN ('ready','blocked') AND deleted_at IS NULL) +
-      (SELECT count(*)::int FROM modality_contract WHERE state IN ('review','blocked') AND deleted_at IS NULL)
+      (SELECT count(*)::int FROM modality_contract WHERE state IN ('review','blocked') AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM release_documentation_bundle WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'labeling',
       (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM active_learning_loop WHERE deleted_at IS NULL),
@@ -1097,6 +1155,28 @@ const moduleWorkItemsSql = `
     JOIN dataset_version dv ON dv.id = mc.dataset_version_id
     JOIN dataset d ON d.id = dv.dataset_id
     WHERE mc.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
+      'release_documentation_bundle',
+      rdb.id,
+      d.name || ' ' || dv.version_label || ' release docs',
+      rdb.state,
+      CASE
+        WHEN rdb.catalogue_listing_id IS NULL THEN 'Croissant + Article 10'
+        ELSE 'Croissant + Article 10 + HF mirror'
+      END,
+      rdb.updated_at,
+      CASE
+        WHEN rdb.state = 'blocked' THEN 'critical'
+        WHEN rdb.state IN ('generated','review') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review release documentation'
+    FROM release_documentation_bundle rdb
+    JOIN dataset_version dv ON dv.id = rdb.dataset_version_id
+    JOIN dataset d ON d.id = dv.dataset_id
+    WHERE rdb.deleted_at IS NULL
     UNION ALL
     SELECT
       'quality',
@@ -1550,6 +1630,24 @@ const moduleWorkItemsSql = `
           ))
           FROM modality_contract mc
           WHERE mc.id = raw_work_items.id
+        )
+        WHEN record_type = 'release_documentation_bundle' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'documentationUri', rdb.documentation_uri,
+            'validationStatus', rdb.validation_summary ->> 'status',
+            'missingEvidence', array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(
+                COALESCE(rdb.validation_summary -> 'missing', '[]'::jsonb)
+              )
+            ), ', '),
+            'hfMirrorRepo', rdb.hf_mirror ->> 'repoId',
+            'hfMirrorStatus', rdb.hf_mirror ->> 'status',
+            'requiredDocumentCount', (
+              SELECT count(*)::int FROM jsonb_object_keys(rdb.required_documents)
+            )
+          ))
+          FROM release_documentation_bundle rdb
+          WHERE rdb.id = raw_work_items.id
         )
         WHEN record_type = 'qa_report' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

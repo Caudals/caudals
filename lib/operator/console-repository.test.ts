@@ -223,6 +223,25 @@ describe("operator console repository", () => {
             },
           },
           {
+            module_key: "datasets",
+            record_type: "release_documentation_bundle",
+            id: "rd_01J2RELEASEDOCS",
+            title: "Iberian retail receipts v2026.05 release docs",
+            state: "review",
+            detail: "Croissant + Article 10 + HF mirror",
+            updated_at: "2026-05-10T13:16:20.000Z",
+            severity: "warning",
+            next_action: "Review release documentation",
+            field_values: {
+              documentationUri:
+                "s3://datasets/receipts/v2026.05/release-documentation.json",
+              validationStatus: "pass",
+              hfMirrorRepo: "iberian-retail-receipt-corpus",
+              hfMirrorStatus: "planned",
+              requiredDocumentCount: 10,
+            },
+          },
+          {
             module_key: "quality",
             record_type: "enrichment_manifest",
             id: "em_01J2ENRICH",
@@ -523,6 +542,19 @@ describe("operator console repository", () => {
       },
     });
     expect(
+      snapshot.workItems.datasets.find((item) => item.id === "rd_01J2RELEASEDOCS")
+    ).toMatchObject({
+      recordType: "release_documentation_bundle",
+      fields: {
+        documentationUri:
+          "s3://datasets/receipts/v2026.05/release-documentation.json",
+        validationStatus: "pass",
+        hfMirrorRepo: "iberian-retail-receipt-corpus",
+        hfMirrorStatus: "planned",
+        requiredDocumentCount: "10",
+      },
+    });
+    expect(
       snapshot.workItems.quality.find((item) => item.id === "em_01J2ENRICH")
     ).toMatchObject({
       recordType: "enrichment_manifest",
@@ -610,6 +642,8 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("enrichment_manifest");
     expect(workItemsSql).toContain("active_learning_loop");
     expect(workItemsSql).toContain("cleanlab_qa_pass");
+    expect(workItemsSql).toContain("release_documentation_bundle");
+    expect(workItemsSql).toContain("hfMirrorRepo");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
@@ -910,6 +944,54 @@ describe("operator console repository", () => {
         target_type: "delta_manifest",
         metadata: {
           from_state: "ready",
+          to_state: "published",
+        },
+      },
+    });
+  });
+
+  it("guards release documentation publishing on generated docs and mirror evidence", async () => {
+    const query = vi.fn(async (sql: string) => {
+      expect(sql).toContain('UPDATE "release_documentation_bundle"');
+      expect(sql).toContain("required_documents ?& ARRAY");
+      expect(sql).toContain("croissant_manifest ? '@context'");
+      expect(sql).toContain("article10_document ? 'dataGovernance'");
+      expect(sql).toContain("validation_summary ->> 'status' = 'pass'");
+      expect(sql).toContain("hf_mirror ? 'repoId'");
+      expect(sql).toContain("published_at");
+
+      return [
+        {
+          id: "ae_01J2RELEASEDOCSAUDIT",
+          action: "state_transition",
+          target_type: "release_documentation_bundle",
+          target_id: "rd_01J2RELEASEDOCS",
+          metadata: {
+            from_state: "approved",
+            to_state: "published",
+          },
+          created_at: "2026-05-10T13:25:00.000Z",
+        },
+      ];
+    });
+    const repository = createPostgresOperatorConsoleRepository(
+      { orgId: "or_01J2INTERNAL", operatorId: "op_01J2OPS" },
+      query as unknown as QueryRows
+    );
+
+    await expect(
+      repository.persistTransition({
+        workflow: "release_documentation_bundle",
+        targetId: "rd_01J2RELEASEDOCS",
+        fromState: "approved",
+        toState: "published",
+      })
+    ).resolves.toMatchObject({
+      persisted: true,
+      auditEvent: {
+        target_type: "release_documentation_bundle",
+        metadata: {
+          from_state: "approved",
           to_state: "published",
         },
       },
