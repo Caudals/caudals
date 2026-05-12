@@ -8,7 +8,7 @@ const publicRoutes = landingModeEnabled
   ? [
       {
         path: "/",
-        heading: /build production-grade datasets to train tailored ai models/i,
+        heading: /professional datasets for ai tailored/i,
       },
       { path: "/blog", heading: /^blog$/i },
       {

@@ -18,6 +18,7 @@
 - Release documentation bundles now generate and store G-7 package manifests, Croissant JSON-LD, Article 10 documentation, required docs, validation evidence, and public HF mirror metadata.
 - SOC 2 / ISO 27001 scoping now has an operator-owned control register with framework mappings, evidence links, review cadence, readiness states, and audited workflow transitions.
 - Versioned `/v1/*` REST now exposes inline API documentation, public catalogue/version/sample reads, public brief/access intake, and buyer-scoped delivery, quote, and subscription actions behind rate limits and Better Auth where required.
+- Private observability now runs on `dokploy-network` with OpenTelemetry traces to Tempo, Docker logs to Loki through Promtail, Prometheus metrics for Tempo/Loki/Promtail/cAdvisor, and internal Grafana datasources.
 
 ## Verification
 
@@ -29,6 +30,7 @@
 - Release documentation bundles passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke for image `mariomedpar/caudals:1ba77908a227d9bd0349709682153335902d6527`.
 - SOC 2 / ISO 27001 control scoping passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke.
 - Public REST v1 passed focused/full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, Docker deployment, route probes, live `/v1` descriptor/catalogue/version/header/validation probes, production core route smoke, and production authenticated role smoke.
+- Observability passed focused OpenTelemetry unit tests, full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, private stack config validation, Docker deployment, private readiness probes, Prometheus `up` scrape readback, Loki app-log readback, Tempo `v1.datasets.list` route-span readback, production route probes, and deployed public browser smoke for image `mariomedpar/caudals:92d10563b161fc588fdfe081a8f28debd30bc774`.
 
 ## Known Gaps / Next M3 Inputs
 
