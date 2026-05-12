@@ -610,9 +610,9 @@ export const operatorRecordFormGuidance = {
   },
   modality_contract: {
     primaryLabel: "Contract label",
-    primaryPlaceholder: "Video review contract",
+    primaryPlaceholder: "Document extraction contract",
     detailLabel: "Canonical format",
-    detailPlaceholder: "Lance index over MP4 chunks",
+    detailPlaceholder: "Parquet page records plus original PDF references",
     detailHelp: "Stored as the modality contract canonical format; contract fields are captured below.",
     createHelp: "Requires at least one dataset version in this operator org.",
   },
@@ -1387,17 +1387,17 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "modality",
       label: "Modality",
-      placeholder: "video",
-      help: "M2 modality contract to apply to the dataset version.",
+      placeholder: "document",
+      help: "Modality contract to apply to the dataset version.",
       kind: "text",
       maxLength: 20,
-      allowedValues: ["video", "audio", "geospatial"],
+      allowedValues: ["video", "audio", "geospatial", "document", "timeseries"],
       caseTransform: "lower",
     },
     {
       key: "canonicalFormat",
       label: "Canonical format",
-      placeholder: "Lance index over MP4 chunks",
+      placeholder: "Parquet page records plus original PDF references",
       help: "Canonical storage/package representation for this modality.",
       kind: "text",
       maxLength: 120,
@@ -1405,7 +1405,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "profileSignals",
       label: "Profile signals",
-      placeholder: "duration_histogram, fps, codec",
+      placeholder: "page_count, ocr_confidence, layout_type_inventory",
       help: "Comma-separated signals required during profiling.",
       kind: "text",
       maxLength: 240,
@@ -1414,7 +1414,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "cleaningOperators",
       label: "Cleaning operators",
-      placeholder: "temporal_dedup, shot_change_sampling",
+      placeholder: "ocr_normalize, page_dedup, table_extract",
       help: "Comma-separated modality-specific cleaning operators.",
       kind: "text",
       maxLength: 240,
@@ -1423,7 +1423,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "privacyTreatments",
       label: "Privacy treatments",
-      placeholder: "face_blur, metadata_strip",
+      placeholder: "signature_redaction, printed_pii_redaction",
       help: "Comma-separated PII/provenance treatments required before release.",
       kind: "text",
       maxLength: 240,
@@ -1432,7 +1432,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "labelingWidgets",
       label: "Labeling widgets",
-      placeholder: "temporal_segment, bounding_box",
+      placeholder: "page_region, field_extraction, table_cell",
       help: "Comma-separated annotation widgets available to reviewers.",
       kind: "text",
       maxLength: 180,
@@ -1441,7 +1441,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "qaDimensions",
       label: "QA dimensions",
-      placeholder: "temporal_coverage, privacy_residual",
+      placeholder: "layout_fidelity, ocr_confidence, redaction_residual",
       help: "Comma-separated modality-specific QA dimensions.",
       kind: "text",
       maxLength: 240,
@@ -1450,7 +1450,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "packagingTargets",
       label: "Packaging targets",
-      placeholder: "mp4_clips, per_frame_manifest",
+      placeholder: "page_parquet, pdf_bundle, rest_query",
       help: "Comma-separated delivery package targets.",
       kind: "text",
       maxLength: 180,
@@ -1461,7 +1461,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "enrichmentClass",
       label: "Enrichment class",
-      placeholder: "geospatial",
+      placeholder: "derived_features",
       help: "Blueprint enrichment class used for G-5 review.",
       kind: "text",
       maxLength: 32,
@@ -1479,7 +1479,7 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "addedColumns",
       label: "Added columns",
-      placeholder: "h3_cell, admin_region",
+      placeholder: "merchant_name, receipt_total",
       help: "Comma-separated columns added by enrichment.",
       kind: "text",
       maxLength: 240,

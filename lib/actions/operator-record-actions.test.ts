@@ -914,7 +914,7 @@ describe("operator record actions", () => {
     );
   });
 
-  it("creates modality contracts with video/audio/geospatial contract fields", async () => {
+  it("creates modality contracts with document and time-series contract fields", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {
         id: "mc_01J2MODALITY",
@@ -927,18 +927,18 @@ describe("operator record actions", () => {
       createOperatorRecord({
         moduleKey: "datasets",
         recordType: "modality_contract",
-        title: "Geospatial contract",
-        detail: "STAC plus GeoParquet and COG",
+        title: "Document extraction contract",
+        detail: "Parquet page records plus original PDF references",
         state: "review",
         fields: {
-          modality: "Geospatial",
-          canonicalFormat: "STAC plus GeoParquet and Cloud Optimized GeoTIFF",
-          profileSignals: "bounding_box, crs",
-          cleaningOperators: "crs_reconcile, geometry_repair",
-          privacyTreatments: "jurisdiction_embargo_check",
-          labelingWidgets: "polygon, raster_tile",
-          qaDimensions: "spatial_coverage, crs_consistency",
-          packagingTargets: "stac_catalog, geoparquet",
+          modality: "Document",
+          canonicalFormat: "Parquet page records plus original PDF references",
+          profileSignals: "page_count, ocr_confidence",
+          cleaningOperators: "ocr_normalize, table_extract",
+          privacyTreatments: "signature_redaction, printed_pii_redaction",
+          labelingWidgets: "page_region, field_extraction",
+          qaDimensions: "layout_fidelity, redaction_residual",
+          packagingTargets: "page_parquet, pdf_bundle",
         },
       })
     ).resolves.toMatchObject({
@@ -948,14 +948,16 @@ describe("operator record actions", () => {
         moduleKey: "datasets",
         recordType: "modality_contract",
         fields: {
-          modality: "geospatial",
-          packagingTargets: "stac_catalog, geoparquet",
+          modality: "document",
+          packagingTargets: "page_parquet, pdf_bundle",
         },
       },
     });
 
     const createSql = queryRowsMock.mock.calls[0]?.[0];
     expect(createSql).toContain("INSERT INTO modality_contract");
+    expect(createSql).toContain("'document'");
+    expect(createSql).toContain("'timeseries'");
     expect(createSql).toContain("$11::jsonb ->> 'profileSignals'");
     expect(createSql).toContain("$11::jsonb ->> 'packagingTargets'");
   });

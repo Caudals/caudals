@@ -296,7 +296,7 @@ function validateM2RecordEvidence(
   ) {
     return actionError(
       "CONFLICT",
-      "M2 modality and enrichment controls are disabled by MODALITY_CONTRACTS_ENABLED."
+      "Modality and enrichment controls are disabled by MODALITY_CONTRACTS_ENABLED."
     );
   }
 
@@ -1216,9 +1216,9 @@ function buildCreateSql(
         SELECT
           id AS dataset_version_id,
           CASE
-            WHEN NULLIF($11::jsonb ->> 'modality', '') IN ('video','audio','geospatial')
+            WHEN NULLIF($11::jsonb ->> 'modality', '') IN ('video','audio','geospatial','document','timeseries')
               THEN NULLIF($11::jsonb ->> 'modality', '')
-            WHEN dataset_modality IN ('video','audio','geospatial') THEN dataset_modality
+            WHEN dataset_modality IN ('video','audio','geospatial','document','timeseries') THEN dataset_modality
             ELSE 'video'
           END AS modality
         FROM target_version
@@ -1240,6 +1240,8 @@ function buildCreateSql(
             CASE modality
               WHEN 'audio' THEN 'WAV/FLAC plus Lance segment index'
               WHEN 'geospatial' THEN 'STAC plus GeoParquet and Cloud Optimized GeoTIFF'
+              WHEN 'document' THEN 'Parquet page records plus original PDF references'
+              WHEN 'timeseries' THEN 'Iceberg Parquet partitioned by event time and entity'
               ELSE 'Lance index over MP4 chunks'
             END
           ),
@@ -1247,7 +1249,16 @@ function buildCreateSql(
             (
               SELECT jsonb_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'profileSignals', ''), 'duration_histogram'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'profileSignals', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'duration_histogram,sample_rate,channel_layout'
+                    WHEN 'geospatial' THEN 'bounding_box,crs,feature_density'
+                    WHEN 'document' THEN 'page_count,layout_type_inventory,ocr_confidence'
+                    WHEN 'timeseries' THEN 'sample_rate,gap_distribution,seasonality_fingerprint'
+                    ELSE 'duration_histogram,fps,codec'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1258,7 +1269,16 @@ function buildCreateSql(
             (
               SELECT jsonb_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'cleaningOperators', ''), 'metadata_strip'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'cleaningOperators', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'resample,silence_trim,loudness_normalize'
+                    WHEN 'geospatial' THEN 'crs_reconcile,geometry_repair,h3_bin'
+                    WHEN 'document' THEN 'ocr_normalize,page_dedup,table_extract'
+                    WHEN 'timeseries' THEN 'sample_rate_align,gap_policy_apply,clock_skew_correct'
+                    ELSE 'temporal_dedup,shot_change_sampling,metadata_strip'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1269,7 +1289,16 @@ function buildCreateSql(
             (
               SELECT jsonb_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'privacyTreatments', ''), 'metadata_strip'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'privacyTreatments', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'voice_biometric_review,speaker_consent_check,metadata_strip'
+                    WHEN 'geospatial' THEN 'jurisdiction_embargo_check,coordinate_precision_reduction'
+                    WHEN 'document' THEN 'signature_redaction,printed_pii_redaction,source_pdf_access_control'
+                    WHEN 'timeseries' THEN 'entity_pseudonymize,location_precision_reduce,blackout_window_apply'
+                    ELSE 'face_blur,license_plate_blur,audio_track_pii_review'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1280,7 +1309,16 @@ function buildCreateSql(
             (
               SELECT array_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'labelingWidgets', ''), 'segment'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'labelingWidgets', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'audio_segment,transcript_span,event_marker'
+                    WHEN 'geospatial' THEN 'polygon,raster_tile,point_class'
+                    WHEN 'document' THEN 'page_region,field_extraction,table_cell'
+                    WHEN 'timeseries' THEN 'event_window,anomaly_span,regime_marker'
+                    ELSE 'bounding_box,mask,keyframe,temporal_segment'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1291,7 +1329,16 @@ function buildCreateSql(
             (
               SELECT jsonb_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'qaDimensions', ''), 'privacy_residual'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'qaDimensions', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'transcript_alignment,speaker_balance,signal_quality'
+                    WHEN 'geospatial' THEN 'spatial_coverage,crs_consistency,edge_artifacts'
+                    WHEN 'document' THEN 'layout_fidelity,ocr_confidence,redaction_residual'
+                    WHEN 'timeseries' THEN 'temporal_continuity,gap_policy_compliance,split_leakage'
+                    ELSE 'temporal_coverage,frame_quality,privacy_residual'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1302,7 +1349,16 @@ function buildCreateSql(
             (
               SELECT array_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'packagingTargets', ''), 'manifest'),
+                COALESCE(
+                  NULLIF($11::jsonb ->> 'packagingTargets', ''),
+                  CASE modality
+                    WHEN 'audio' THEN 'wav,flac,jsonl_labels,hf_audio'
+                    WHEN 'geospatial' THEN 'stac_catalog,geoparquet,cog'
+                    WHEN 'document' THEN 'page_parquet,jsonl_fields,pdf_bundle,rest_query'
+                    WHEN 'timeseries' THEN 'time_partitioned_parquet,arrow_ipc,rest_cursor'
+                    ELSE 'mp4_clips,per_frame_manifest,coco_video'
+                  END
+                ),
                 ','
               ) AS value
               WHERE trim(value) <> ''
@@ -1431,12 +1487,12 @@ function buildCreateSql(
           target_build.id,
           target_version.id,
           (SELECT id FROM target_contract),
-          COALESCE(NULLIF($11::jsonb ->> 'enrichmentClass', ''), 'geospatial'),
+          COALESCE(NULLIF($11::jsonb ->> 'enrichmentClass', ''), 'derived_features'),
           COALESCE(
             (
               SELECT jsonb_agg(trim(value))
               FROM regexp_split_to_table(
-                COALESCE(NULLIF($11::jsonb ->> 'addedColumns', ''), 'h3_cell'),
+                COALESCE(NULLIF($11::jsonb ->> 'addedColumns', ''), 'derived_feature'),
                 ','
               ) AS value
               WHERE trim(value) <> ''

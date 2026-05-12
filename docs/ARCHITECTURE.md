@@ -47,6 +47,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
 - `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
+- `modality_contract` records cover video, audio, geospatial, document, and
+  time-series build contracts; document uses page-level Parquet plus source
+  references, while time-series uses event-time/entity partitioned Parquet.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 

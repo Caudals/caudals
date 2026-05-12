@@ -46,9 +46,12 @@ const ids = {
   dsarRequest: fixtureId("ds", 1),
   buildPlan: fixtureId("bp", 1),
   dataset: fixtureId("dt", 1),
+  timeSeriesDataset: fixtureId("dt", 2),
   datasetVersion: fixtureId("dv", 1),
   previousDatasetVersion: fixtureId("dv", 2),
+  timeSeriesDatasetVersion: fixtureId("dv", 3),
   modalityContract: fixtureId("mc", 1),
+  timeSeriesModalityContract: fixtureId("mc", 2),
   enrichmentManifest: fixtureId("em", 1),
   activeLearningLoop: fixtureId("ll", 1),
   activeLearningCandidate: fixtureId("ac", 1),
@@ -1094,6 +1097,21 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO dataset (id, org_id, name, modality, state, created_at, updated_at, created_by)
+      VALUES ($1, $2, 'Cold-chain route telemetry corpus', 'timeseries', 'active', $3, $3, $4)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        modality = EXCLUDED.modality,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [ids.timeSeriesDataset, ids.tenantOrg, FIXTURE_CREATED_AT, ids.operator]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO dataset_version (
         id, org_id, dataset_id, version_label, build_id, manifest_uri, content_hash,
         size_bytes, record_count, composed_permits, qa_score, state, released_at,
@@ -1168,6 +1186,43 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO dataset_version (
+        id, org_id, dataset_id, version_label, build_id, manifest_uri, content_hash,
+        size_bytes, record_count, composed_permits, qa_score, state, released_at,
+        released_by, signed_by, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'v0.3-fixture', $4, 's3://fixture/manifests/cold-chain-telemetry-v0.yaml',
+        'fixture-timeseries-content-hash', 7340032, 1250000,
+        '{"train":true,"eval":true,"commercialInference":false}'::jsonb,
+        0.84, 'released', $5, $6, $7, $5, $5, $6
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        dataset_id = EXCLUDED.dataset_id,
+        build_id = EXCLUDED.build_id,
+        manifest_uri = EXCLUDED.manifest_uri,
+        content_hash = EXCLUDED.content_hash,
+        record_count = EXCLUDED.record_count,
+        composed_permits = EXCLUDED.composed_permits,
+        qa_score = EXCLUDED.qa_score,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.timeSeriesDatasetVersion,
+      ids.tenantOrg,
+      ids.timeSeriesDataset,
+      fixtureBuilds[1].id,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+      ids.signingKey,
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO lineage_event (
         id, org_id, dataset_version_id, namespace, job_name, run_id,
         event_time, payload, created_at, created_by
@@ -1198,13 +1253,13 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         state, created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, 'video', 'Lance index over MP4 chunks',
-        '["duration_histogram","fps","codec","scene_change_density"]'::jsonb,
-        '["temporal_dedup","shot_change_sampling","metadata_strip"]'::jsonb,
-        '["face_blur","license_plate_blur","audio_track_pii_review"]'::jsonb,
-        ARRAY['temporal_segment','bounding_box','keyframe'],
-        '["temporal_coverage","frame_quality","privacy_residual"]'::jsonb,
-        ARRAY['mp4_clips','per_frame_manifest','coco_video'],
+        $1, $2, $3, 'document', 'Parquet page records plus original PDF references',
+        '["page_count","layout_type_inventory","language_mix","ocr_confidence","tabular_data_ratio"]'::jsonb,
+        '["ocr_normalize","page_dedup","layout_segment","table_extract"]'::jsonb,
+        '["signature_redaction","printed_pii_redaction","handwriting_review","source_pdf_access_control"]'::jsonb,
+        ARRAY['page_region','field_extraction','table_cell','signature_presence'],
+        '["layout_fidelity","ocr_confidence","field_accuracy","redaction_residual"]'::jsonb,
+        ARRAY['page_parquet','jsonl_fields','pdf_bundle','rest_query'],
         'review', $4, $4, $5
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -1227,6 +1282,48 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO modality_contract (
+        id, org_id, dataset_version_id, modality, canonical_format,
+        profile_signals, cleaning_operators, privacy_treatments,
+        labeling_widgets, qa_dimensions, packaging_targets,
+        state, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'timeseries', 'Iceberg Parquet partitioned by event time and entity',
+        '["sample_rate","gap_distribution","regime_changes","seasonality_fingerprint","sensor_drift"]'::jsonb,
+        '["sample_rate_align","gap_policy_apply","clock_skew_correct","outlier_window_flag"]'::jsonb,
+        '["entity_pseudonymize","location_precision_reduce","blackout_window_apply"]'::jsonb,
+        ARRAY['event_window','anomaly_span','regime_marker','calibration_jump'],
+        '["temporal_continuity","gap_policy_compliance","split_leakage","sensor_drift"]'::jsonb,
+        ARRAY['time_partitioned_parquet','arrow_ipc','rest_cursor'],
+        'review', $4, $4, $5
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        dataset_version_id = EXCLUDED.dataset_version_id,
+        modality = EXCLUDED.modality,
+        canonical_format = EXCLUDED.canonical_format,
+        profile_signals = EXCLUDED.profile_signals,
+        cleaning_operators = EXCLUDED.cleaning_operators,
+        privacy_treatments = EXCLUDED.privacy_treatments,
+        labeling_widgets = EXCLUDED.labeling_widgets,
+        qa_dimensions = EXCLUDED.qa_dimensions,
+        packaging_targets = EXCLUDED.packaging_targets,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.timeSeriesModalityContract,
+      ids.tenantOrg,
+      ids.timeSeriesDatasetVersion,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO enrichment_manifest (
         id, org_id, build_id, dataset_version_id, modality_contract_id,
         enrichment_class, added_columns, sources, source_license,
@@ -1235,12 +1332,12 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, $4, $5, 'geospatial',
-        '["h3_cell","admin_region"]'::jsonb,
-        '["OSM boundaries 2026.05","Caudals silver coordinates"]'::jsonb,
-        'ODbL-1.0', '2026.05',
-        'H3 resolution 8 binning from silver-layer coordinates.',
-        's3://fixture/manifests/enrichment-h3.json',
+        $1, $2, $3, $4, $5, 'derived_features',
+        '["merchant_name","receipt_total","line_item_count"]'::jsonb,
+        '["Caudals receipt OCR silver pages","Supplier field dictionary"]'::jsonb,
+        'supplier-contract', '2026.05',
+        'Layout-aware receipt field extraction from silver page records with operator spot checks.',
+        's3://fixture/manifests/enrichment-receipt-fields.json',
         0.100, true, true, 'review', $6, $6, $7
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -1782,6 +1879,7 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 10), "cleanlab_qa_pass", ids.cleanlabQaPass, "state_transition", { from_state: "scanning", to_state: "review" }],
     [fixtureId("ae", 11), "subscription", ids.subscription, "state_transition", { from_state: "draft", to_state: "active" }],
     [fixtureId("ae", 12), "delta_manifest", ids.deltaManifest, "state_transition", { from_state: "validating", to_state: "ready" }],
+    [fixtureId("ae", 13), "modality_contract", ids.timeSeriesModalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),
