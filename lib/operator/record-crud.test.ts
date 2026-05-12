@@ -181,6 +181,48 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("subscription")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "cadence",
+          allowedValues: ["weekly", "monthly", "quarterly", "event_driven", "custom"],
+        }),
+        expect.objectContaining({
+          key: "deliveryChannel",
+          allowedValues: [
+            "signed_s3",
+            "signed_url",
+            "s3_share",
+            "warehouse_share",
+            "api",
+            "delta_share",
+          ],
+        }),
+        expect.objectContaining({
+          key: "rollingWindowVersions",
+          kind: "integer",
+          min: 1,
+        }),
+      ])
+    );
+    expect(getOperatorRecordFieldDescriptors("delta_manifest")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "manifestUri",
+          kind: "text",
+        }),
+        expect.objectContaining({
+          key: "qualityScore",
+          kind: "decimal",
+          min: 0,
+          max: 1,
+        }),
+        expect.objectContaining({
+          key: "rightsReverified",
+          allowedValues: ["true", "false"],
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("build")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

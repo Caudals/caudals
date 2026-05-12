@@ -1727,5 +1727,13 @@
   "Your payouts will appear here when submissions are approved",
   "Your recent payouts and transactions",
   "Your Requests",
-  "Your submission history across all datasets"
+  "Your submission history across all datasets",
+  "Organizations, contacts, briefs, subscriptions, sample reviews, and deliveries.",
+  "Dataset families, versions, delta manifests, modality contracts, lineage, and sample previews.",
+  "Subscriptions",
+  "Delta manifests",
+  "Subscription",
+  "Delta manifest",
+  "Prepare subscription refresh",
+  "Publish delta manifest"
 ]

@@ -25,6 +25,8 @@ const workflowNameSchema = z.enum([
   "label_batch",
   "contract",
   "delivery",
+  "subscription",
+  "delta_manifest",
   "dsar",
   "sample_preview_access",
   "modality_contract",

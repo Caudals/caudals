@@ -1218,6 +1218,125 @@ describe("operator record actions", () => {
     expect(queryRowsMock).not.toHaveBeenCalled();
   });
 
+  it("creates subscriptions with recurring delivery evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "su_01J2SUBSCRIPTION",
+        updated_at: "2026-05-10T15:21:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "buyers",
+        recordType: "subscription",
+        title: "Retail receipts monthly feed",
+        detail: "Latest plus three rolling refreshes.",
+        state: "active",
+        fields: {
+          cadence: "Monthly",
+          deliveryChannel: "Delta_Share",
+          rollingWindowVersions: "3",
+          nextRefreshAt: "2026-06-01T09:00:00Z",
+          retentionDays: "365",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "su_01J2SUBSCRIPTION",
+        moduleKey: "buyers",
+        recordType: "subscription",
+        fields: {
+          cadence: "monthly",
+          deliveryChannel: "delta_share",
+          rollingWindowVersions: "3",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO subscription");
+    expect(createSql).toContain("$11::jsonb ->> 'deliveryChannel'");
+    expect(createSql).toContain("target_buyer");
+  });
+
+  it("creates delta manifests with per-increment QA, rights, and privacy evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "dm_01J2DELTA",
+        updated_at: "2026-05-10T15:22:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "datasets",
+        recordType: "delta_manifest",
+        title: "Retail receipts May refresh delta",
+        detail: "1,302 changed records.",
+        state: "published",
+        fields: {
+          manifestUri: "s3://datasets/receipts/v2026.05/delta.json",
+          manifestHash: "sha256:delta",
+          previousDatasetVersionId: "dv_01J2PREVIOUS",
+          deliveryId: "dl_01J2DELIVERY",
+          qaReportId: "qr_01J2QA",
+          addedRecords: "1250",
+          updatedRecords: "48",
+          deletedRecords: "4",
+          tombstonedRecords: "0",
+          totalRecords: "51221",
+          qualityScore: "0.944",
+          rightsReverified: "TRUE",
+          privacyVerified: "true",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "dm_01J2DELTA",
+        moduleKey: "datasets",
+        recordType: "delta_manifest",
+        fields: {
+          manifestHash: "sha256:delta",
+          qualityScore: "0.944",
+          rightsReverified: "true",
+          privacyVerified: "true",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO delta_manifest");
+    expect(createSql).toContain("$11::jsonb ->> 'previousDatasetVersionId'");
+    expect(createSql).toContain("$11::jsonb ->> 'rightsReverified'");
+  });
+
+  it("rejects published delta manifests without per-increment evidence", async () => {
+    await expect(
+      createOperatorRecord({
+        moduleKey: "datasets",
+        recordType: "delta_manifest",
+        title: "Weak delta",
+        detail: "Missing QA and rights evidence.",
+        state: "published",
+        fields: {
+          manifestUri: "s3://datasets/receipts/v2026.05/delta.json",
+          manifestHash: "sha256:delta",
+        },
+      })
+    ).resolves.toMatchObject({
+      code: "VALIDATION_ERROR",
+      error:
+        "Delta manifest is missing refresh evidence: previous_dataset_version_id, delivery_id, qa_report_id, quality_score, rights_reverified, privacy_verified.",
+    });
+
+    expect(queryRowsMock).not.toHaveBeenCalled();
+  });
+
   it("updates catalogue listings with structured pricing fields", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {

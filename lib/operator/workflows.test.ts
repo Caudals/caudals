@@ -17,12 +17,14 @@ describe("operator workflow state machines", () => {
       "cleanlab_qa_pass",
       "contract",
       "delivery",
+      "delta_manifest",
       "dsar",
       "enrichment_manifest",
       "label_batch",
       "modality_contract",
       "run",
       "sample_preview_access",
+      "subscription",
       "supplier_opportunity",
     ]);
   });
@@ -108,6 +110,8 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("cleanlab_qa_pass")).toBe(
       "cleanlab_qa_pass"
     );
+    expect(getWorkflowNameForRecordType("subscription")).toBe("subscription");
+    expect(getWorkflowNameForRecordType("delta_manifest")).toBe("delta_manifest");
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
   });
 
@@ -136,6 +140,15 @@ describe("operator workflow state machines", () => {
       { from: "review", to: "requeue" },
       { from: "review", to: "accepted" },
       { from: "review", to: "blocked" },
+    ]);
+    expect(getNextWorkflowTransitions("subscription", "active")).toEqual([
+      { from: "active", to: "refreshing" },
+      { from: "active", to: "paused" },
+      { from: "active", to: "terminated" },
+    ]);
+    expect(getNextWorkflowTransitions("delta_manifest", "ready")).toEqual([
+      { from: "ready", to: "published" },
+      { from: "ready", to: "blocked" },
     ]);
   });
 });

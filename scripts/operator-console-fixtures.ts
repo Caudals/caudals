@@ -37,6 +37,7 @@ const ids = {
   buildPlan: fixtureId("bp", 1),
   dataset: fixtureId("dt", 1),
   datasetVersion: fixtureId("dv", 1),
+  previousDatasetVersion: fixtureId("dv", 2),
   modalityContract: fixtureId("mc", 1),
   enrichmentManifest: fixtureId("em", 1),
   activeLearningLoop: fixtureId("ll", 1),
@@ -49,6 +50,8 @@ const ids = {
   samplePreviewAccess: fixtureId("pa", 1),
   quote: fixtureId("qt", 1),
   delivery: fixtureId("dl", 1),
+  subscription: fixtureId("su", 1),
+  deltaManifest: fixtureId("dm", 1),
   invoice: fixtureId("iv", 1),
   payout: fixtureId("py", 1),
   costEntry: fixtureId("ce", 1),
@@ -889,6 +892,43 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         released_by, signed_by, created_at, updated_at, created_by
       )
       VALUES (
+        $1, $2, $3, 'v0.9-fixture', $4, 's3://fixture/manifests/receipt-v0.yaml',
+        'fixture-previous-content-hash', 917504, 48698,
+        '{"train":true,"commercialInference":true}'::jsonb,
+        0.90, 'released', $5, $6, $7, $5, $5, $6
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        dataset_id = EXCLUDED.dataset_id,
+        build_id = EXCLUDED.build_id,
+        manifest_uri = EXCLUDED.manifest_uri,
+        content_hash = EXCLUDED.content_hash,
+        record_count = EXCLUDED.record_count,
+        composed_permits = EXCLUDED.composed_permits,
+        qa_score = EXCLUDED.qa_score,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.previousDatasetVersion,
+      ids.tenantOrg,
+      ids.dataset,
+      fixtureBuilds[0].id,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+      ids.signingKey,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO dataset_version (
+        id, org_id, dataset_id, version_label, build_id, manifest_uri, content_hash,
+        size_bytes, record_count, composed_permits, qa_score, state, released_at,
+        released_by, signed_by, created_at, updated_at, created_by
+      )
+      VALUES (
         $1, $2, $3, 'v1.0-fixture', $4, 's3://fixture/manifests/receipt-v1.yaml',
         'fixture-content-hash', 1048576, 50000,
         '{"train":true,"commercialInference":true}'::jsonb,
@@ -1181,25 +1221,134 @@ async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
     `
+      INSERT INTO subscription (
+        id, org_id, buyer_org_id, dataset_id, contract_id, private_offer_id,
+        current_dataset_version_id, cadence, delivery_channel, state,
+        rolling_window_versions, next_refresh_at, retention_policy,
+        delivery_policy, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7,
+        'monthly', 'delta_share', 'active', 3,
+        $8::timestamptz + interval '21 days',
+        '{"retentionDays":365}'::jsonb,
+        '{"summary":"Latest plus three rolling refreshes through Delta Share."}'::jsonb,
+        $8, $8, $9
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        buyer_org_id = EXCLUDED.buyer_org_id,
+        dataset_id = EXCLUDED.dataset_id,
+        contract_id = EXCLUDED.contract_id,
+        private_offer_id = EXCLUDED.private_offer_id,
+        current_dataset_version_id = EXCLUDED.current_dataset_version_id,
+        cadence = EXCLUDED.cadence,
+        delivery_channel = EXCLUDED.delivery_channel,
+        state = EXCLUDED.state,
+        rolling_window_versions = EXCLUDED.rolling_window_versions,
+        next_refresh_at = EXCLUDED.next_refresh_at,
+        retention_policy = EXCLUDED.retention_policy,
+        delivery_policy = EXCLUDED.delivery_policy,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.subscription,
+      ids.tenantOrg,
+      ids.buyerOrg,
+      ids.dataset,
+      ids.buyerContract,
+      ids.privateOffer,
+      ids.datasetVersion,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
       INSERT INTO delivery (
-        id, org_id, dataset_version_id, buyer_org_id, channel, receipt, state,
+        id, org_id, dataset_version_id, buyer_org_id, subscription_id, channel, receipt, state,
         created_at, updated_at, created_by
       )
       VALUES (
-        $1, $2, $3, $4, 'signed_s3',
+        $1, $2, $3, $4, $5, 'delta_share',
         '{"object":"s3://fixture/delivery/receipt-v1.parquet"}'::jsonb,
-        'ready', $5, $5, $6
+        'ready', $6, $6, $7
       )
       ON CONFLICT (id) DO UPDATE SET
         dataset_version_id = EXCLUDED.dataset_version_id,
         buyer_org_id = EXCLUDED.buyer_org_id,
+        subscription_id = EXCLUDED.subscription_id,
         channel = EXCLUDED.channel,
         receipt = EXCLUDED.receipt,
         state = EXCLUDED.state,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
-    [ids.delivery, ids.tenantOrg, ids.datasetVersion, ids.buyerOrg, FIXTURE_CREATED_AT, ids.operator]
+    [
+      ids.delivery,
+      ids.tenantOrg,
+      ids.datasetVersion,
+      ids.buyerOrg,
+      ids.subscription,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO delta_manifest (
+        id, org_id, subscription_id, dataset_version_id,
+        previous_dataset_version_id, delivery_id, qa_report_id, state,
+        manifest_uri, manifest_hash, added_records, updated_records,
+        deleted_records, tombstoned_records, total_records, quality_score,
+        rights_reverified, privacy_verified, deletion_notice_uri, summary,
+        created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, 'ready',
+        's3://fixture/deltas/receipts-2026-05.json',
+        'sha256:fixture-delta-manifest', 1250, 48, 4, 0, 51221,
+        0.9440, true, true, NULL,
+        '{"summary":"Monthly receipt feed increment with per-version QA, rights, and privacy verification."}'::jsonb,
+        $8, $8, $9
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        subscription_id = EXCLUDED.subscription_id,
+        dataset_version_id = EXCLUDED.dataset_version_id,
+        previous_dataset_version_id = EXCLUDED.previous_dataset_version_id,
+        delivery_id = EXCLUDED.delivery_id,
+        qa_report_id = EXCLUDED.qa_report_id,
+        state = EXCLUDED.state,
+        manifest_uri = EXCLUDED.manifest_uri,
+        manifest_hash = EXCLUDED.manifest_hash,
+        added_records = EXCLUDED.added_records,
+        updated_records = EXCLUDED.updated_records,
+        deleted_records = EXCLUDED.deleted_records,
+        tombstoned_records = EXCLUDED.tombstoned_records,
+        total_records = EXCLUDED.total_records,
+        quality_score = EXCLUDED.quality_score,
+        rights_reverified = EXCLUDED.rights_reverified,
+        privacy_verified = EXCLUDED.privacy_verified,
+        deletion_notice_uri = EXCLUDED.deletion_notice_uri,
+        summary = EXCLUDED.summary,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.deltaManifest,
+      ids.tenantOrg,
+      ids.subscription,
+      ids.datasetVersion,
+      ids.previousDatasetVersion,
+      ids.delivery,
+      fixtureId("qr", 1),
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 
   await query(
@@ -1355,6 +1504,8 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 8), "enrichment_manifest", ids.enrichmentManifest, "state_transition", { from_state: "draft", to_state: "review" }],
     [fixtureId("ae", 9), "active_learning_loop", ids.activeLearningLoop, "state_transition", { from_state: "sampling", to_state: "review" }],
     [fixtureId("ae", 10), "cleanlab_qa_pass", ids.cleanlabQaPass, "state_transition", { from_state: "scanning", to_state: "review" }],
+    [fixtureId("ae", 11), "subscription", ids.subscription, "state_transition", { from_state: "draft", to_state: "active" }],
+    [fixtureId("ae", 12), "delta_manifest", ids.deltaManifest, "state_transition", { from_state: "validating", to_state: "ready" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),

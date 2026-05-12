@@ -484,6 +484,8 @@ const transitionWorkflowTables = {
   label_batch: '"label_batch"',
   contract: '"contract"',
   delivery: '"delivery"',
+  subscription: '"subscription"',
+  delta_manifest: '"delta_manifest"',
   dsar: '"dsar_request"',
   sample_preview_access: '"sample_preview_access"',
   modality_contract: '"modality_contract"',
@@ -493,6 +495,20 @@ const transitionWorkflowTables = {
 } satisfies Record<WorkflowName, string>;
 
 function buildPersistTransitionAssignments(workflow: WorkflowName) {
+  if (workflow === "delta_manifest") {
+    return `
+        state = $1,
+        published_at = CASE
+          WHEN $1 = 'published' THEN COALESCE(published_at, now())
+          ELSE published_at
+        END,
+        tombstoned_at = CASE
+          WHEN $1 = 'tombstoned' THEN COALESCE(tombstoned_at, now())
+          ELSE tombstoned_at
+        END
+    `;
+  }
+
   if (workflow !== "sample_preview_access") {
     return "state = $1";
   }
@@ -580,6 +596,44 @@ function buildPersistTransitionPredicate(workflow: WorkflowName) {
     `;
   }
 
+  if (workflow === "subscription") {
+    return `
+        AND (
+          $1 NOT IN ('active', 'refreshing')
+          OR next_refresh_at IS NOT NULL
+        )
+        AND (
+          $1 <> 'refreshing'
+          OR current_dataset_version_id IS NOT NULL
+        )
+    `;
+  }
+
+  if (workflow === "delta_manifest") {
+    return `
+        AND (
+          $1 <> 'published'
+          OR (
+            previous_dataset_version_id IS NOT NULL
+            AND delivery_id IS NOT NULL
+            AND qa_report_id IS NOT NULL
+            AND rights_reverified
+            AND privacy_verified
+            AND quality_score IS NOT NULL
+            AND char_length(manifest_uri) > 1
+            AND char_length(manifest_hash) > 1
+          )
+        )
+        AND (
+          $1 <> 'tombstoned'
+          OR (
+            tombstoned_records > 0
+            AND char_length(deletion_notice_uri) > 1
+          )
+        )
+    `;
+  }
+
   return "";
 }
 
@@ -643,7 +697,9 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM organization WHERE kind = 'buyer' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM contact WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM dataset_brief WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM subscription WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM delivery WHERE deleted_at IS NULL),
+      (SELECT count(*)::int FROM subscription WHERE state IN ('blocked','paused') AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM delivery WHERE state = 'disputed' AND deleted_at IS NULL)
     UNION ALL SELECT 'builds',
       (SELECT count(*)::int FROM build WHERE deleted_at IS NULL) +
@@ -654,9 +710,11 @@ const moduleCountsSql = `
     UNION ALL SELECT 'datasets',
       (SELECT count(*)::int FROM dataset WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM dataset_version WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM delta_manifest WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM modality_contract WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM lineage_event),
       (SELECT count(*)::int FROM dataset_version WHERE state = 'draft' AND deleted_at IS NULL) +
+      (SELECT count(*)::int FROM delta_manifest WHERE state IN ('ready','blocked') AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM modality_contract WHERE state IN ('review','blocked') AND deleted_at IS NULL)
     UNION ALL SELECT 'labeling',
       (SELECT count(*)::int FROM label_batch WHERE deleted_at IS NULL) +
@@ -934,6 +992,19 @@ const moduleWorkItemsSql = `
     UNION ALL
     SELECT
       'buyers',
+      'subscription',
+      su.id,
+      'Subscription ' || su.cadence,
+      su.state,
+      su.delivery_channel || ' / window ' || su.rolling_window_versions::text,
+      su.updated_at,
+      CASE WHEN su.state IN ('blocked','paused') THEN 'warning' ELSE 'info' END,
+      'Prepare subscription refresh'
+    FROM subscription su
+    WHERE su.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'buyers',
       'delivery',
       dl.id,
       'Delivery ' || dl.channel,
@@ -997,6 +1068,20 @@ const moduleWorkItemsSql = `
     FROM dataset_version dv
     JOIN dataset d ON d.id = dv.dataset_id
     WHERE dv.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
+      'delta_manifest',
+      dm.id,
+      'Delta manifest ' || dm.state,
+      dm.state,
+      (dm.added_records + dm.updated_records + dm.deleted_records + dm.tombstoned_records)::text ||
+        ' changed / QA ' || COALESCE(dm.quality_score::text, 'pending'),
+      dm.updated_at,
+      CASE WHEN dm.state = 'blocked' THEN 'critical' WHEN dm.state IN ('ready','validating') THEN 'warning' ELSE 'info' END,
+      'Publish delta manifest'
+    FROM delta_manifest dm
+    WHERE dm.deleted_at IS NULL
     UNION ALL
     SELECT
       'datasets',
@@ -1386,6 +1471,17 @@ const moduleWorkItemsSql = `
           FROM delivery dl
           WHERE dl.id = raw_work_items.id
         )
+        WHEN record_type = 'subscription' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'cadence', su.cadence,
+            'deliveryChannel', su.delivery_channel,
+            'rollingWindowVersions', su.rolling_window_versions,
+            'nextRefreshAt', su.next_refresh_at,
+            'retentionDays', su.retention_policy ->> 'retentionDays'
+          ))
+          FROM subscription su
+          WHERE su.id = raw_work_items.id
+        )
         WHEN record_type = 'build' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'etaAt', b.eta_at,
@@ -1420,6 +1516,26 @@ const moduleWorkItemsSql = `
           ))
           FROM dataset_version dv
           WHERE dv.id = raw_work_items.id
+        )
+        WHEN record_type = 'delta_manifest' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'manifestUri', dm.manifest_uri,
+            'manifestHash', dm.manifest_hash,
+            'previousDatasetVersionId', dm.previous_dataset_version_id,
+            'deliveryId', dm.delivery_id,
+            'qaReportId', dm.qa_report_id,
+            'addedRecords', dm.added_records,
+            'updatedRecords', dm.updated_records,
+            'deletedRecords', dm.deleted_records,
+            'tombstonedRecords', dm.tombstoned_records,
+            'totalRecords', dm.total_records,
+            'qualityScore', dm.quality_score,
+            'rightsReverified', dm.rights_reverified,
+            'privacyVerified', dm.privacy_verified,
+            'deletionNoticeUri', dm.deletion_notice_uri
+          ))
+          FROM delta_manifest dm
+          WHERE dm.id = raw_work_items.id
         )
         WHEN record_type = 'modality_contract' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
