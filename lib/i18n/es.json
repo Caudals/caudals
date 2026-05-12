@@ -2630,7 +2630,7 @@
   "Transfer created but not yet settled": "Transferencia creada pero aún no liquidada",
   "Transfer created: payout transaction enters pending queue.": "Transferencia creada: la transacción de pago entra en la cola de pendientes.",
   "Transfer missing destination account": "Falta la cuenta de destino de la transferencia",
-  "Tracks optional Better Auth hardening for operator accounts. Password-only login is allowed; TOTP and passkeys can be enabled later when the operator's device supports them.": "Realiza seguimiento del refuerzo opcional de Better Auth para las cuentas de operador. El inicio de sesión solo con contraseña está permitido; TOTP y passkeys pueden activarse más tarde cuando el dispositivo del operador lo admita.",
+  "Tracks required Better Auth MFA enrollment for production operator accounts. Fixture accounts stay password-only for smoke tests.": "Realiza seguimiento de la inscripción MFA obligatoria de Better Auth para cuentas de operador de producción. Las cuentas fixture siguen usando solo contraseña para las pruebas smoke.",
   "transfer(s)": "transferencia(s)",
   "Transfers created but not yet settled.": "Transferencias creadas pero aún no liquidadas.",
   "Transition reason": "Motivo de la transición",

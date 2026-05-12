@@ -12,7 +12,30 @@ describe("operator security enrollment helpers", () => {
     vi.unstubAllEnvs();
   });
 
-  it("treats MFA and passkeys as optional by default", () => {
+  it("treats configured MFA and passkeys as required by default", () => {
+    const operator = mapOperatorSecurityEnrollmentRow({
+      id: "op_pending",
+      email: "ops@example.com",
+      name: "Ops",
+      role: "admin",
+      state: "active",
+      mfaRequired: true,
+      mfaEnabled: false,
+      webauthnRequired: true,
+      passkeyCount: 0,
+    });
+
+    expect(operator).toMatchObject({
+      mfaRequired: true,
+      webauthnRequired: true,
+      securityComplete: false,
+      resetEligible: true,
+    });
+  });
+
+  it("treats MFA and passkeys as optional only when enforcement is explicitly disabled", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "false");
+
     const operator = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
       email: "ops@example.com",
@@ -33,9 +56,7 @@ describe("operator security enrollment helpers", () => {
     });
   });
 
-  it("marks required operators complete only after MFA and passkey enrollment when enforcement is enabled", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
-
+  it("marks required operators complete only after MFA and passkey enrollment", () => {
     const pending = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
       email: "ops@example.com",
@@ -67,8 +88,6 @@ describe("operator security enrollment helpers", () => {
   });
 
   it("keeps fixture operators out of reset reminders", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
-
     const fixture = mapOperatorSecurityEnrollmentRow({
       id: "op_fixture",
       email: "fixture.admin@caudals.local",
@@ -86,8 +105,6 @@ describe("operator security enrollment helpers", () => {
   });
 
   it("summarizes enrollment and reset-eligible operators", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
-
     const operators = [
       mapOperatorSecurityEnrollmentRow({
         id: "op_ready",

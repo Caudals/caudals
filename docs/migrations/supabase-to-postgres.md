@@ -53,4 +53,4 @@ Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, 
 ## Not Done Yet
 
 - Optional: upload encrypted backups to Spaces when Spaces credentials are available.
-- Migrated real operators still need to complete the Better Auth password-reset flow before first login. TOTP/passkey enrollment is optional unless `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is explicitly enabled.
+- Migrated real operators must complete the Better Auth password-reset flow before first login and enroll TOTP before accessing `/admin`. `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false` is reserved for local or break-glass password-only access.

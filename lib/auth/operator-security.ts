@@ -9,7 +9,7 @@ export type OperatorSecurityStatus = {
 };
 
 export function isOperatorSecurityEnrollmentRequired() {
-  return process.env.OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT === "true";
+  return process.env.OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT !== "false";
 }
 
 export function getOperatorSecurityStatus(

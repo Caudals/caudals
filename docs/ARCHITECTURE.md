@@ -103,9 +103,10 @@ Target Phase 1 operations context:
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
-- Operator login allows password-only access by default. TOTP/passkey enrollment
-  remains available but is not required unless
-  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` is set.
+- Production operator login requires completed TOTP enrollment when the
+  operator row has `mfa_required=true`; fixture operators may stay
+  password-only for automated smoke tests. `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false`
+  is a break-glass/local-development override, not the production posture.
 - Migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.

@@ -35,23 +35,25 @@ describe("operator security status", () => {
     vi.unstubAllEnvs();
   });
 
-  it("allows password-only access by default", () => {
+  it("requires configured operator factors by default", () => {
+    expect(getOperatorSecurityStatus(session())).toMatchObject({
+      mfaRequired: true,
+      mfaEnabled: false,
+      webauthnRequired: true,
+      webauthnRegistered: false,
+      complete: false,
+    });
+  });
+
+  it("allows password-only access only when enrollment enforcement is explicitly disabled", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "false");
+
     expect(getOperatorSecurityStatus(session())).toMatchObject({
       mfaRequired: false,
       mfaEnabled: false,
       webauthnRequired: false,
       webauthnRegistered: false,
       complete: true,
-    });
-  });
-
-  it("requires both TOTP and passkey when enrollment enforcement is enabled", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
-
-    expect(getOperatorSecurityStatus(session())).toMatchObject({
-      mfaRequired: true,
-      webauthnRequired: true,
-      complete: false,
     });
   });
 

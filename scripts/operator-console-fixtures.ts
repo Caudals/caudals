@@ -2030,7 +2030,7 @@ async function seedComplianceControlScopes(client: PoolClient) {
         { type: "audit_event", id: fixtureId("ae", 6) },
       ],
       boundary:
-        "Better Auth operator identities, optional MFA/passkeys, RLS, and audited production DB JIT elevation.",
+        "Better Auth operator identities, required production MFA, fixture-only password access, RLS, and audited production DB JIT elevation.",
     },
     {
       id: ids.auditLoggingScope,
