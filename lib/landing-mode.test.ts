@@ -11,6 +11,8 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModePagePathAllowed("/")).toBe(true);
     expect(isLandingModePagePathAllowed("/catalogue")).toBe(true);
     expect(isLandingModePagePathAllowed("/catalogue/")).toBe(true);
+    expect(isLandingModePagePathAllowed("/v1")).toBe(true);
+    expect(isLandingModePagePathAllowed("/v1/datasets")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact/")).toBe(true);
     expect(isLandingModePagePathAllowed("/blog")).toBe(true);
@@ -36,6 +38,7 @@ describe("landing mode route allowlist", () => {
   it("blocks non-public pages", () => {
     expect(isLandingModePagePathAllowed("/pricing")).toBe(false);
     expect(isLandingModePagePathAllowed("/collaborate")).toBe(false);
+    expect(isLandingModePagePathAllowed("/v10")).toBe(false);
     expect(isLandingModePagePathAllowed("/requester")).toBe(false);
     expect(isLandingModePagePathAllowed("/admin/requests")).toBe(false);
   });
@@ -63,6 +66,7 @@ describe("landing mode route allowlist", () => {
   it("evaluates full request allowlisting", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
     expect(isLandingModeRequestAllowed("/catalogue")).toBe(true);
+    expect(isLandingModeRequestAllowed("/v1/datasets")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);

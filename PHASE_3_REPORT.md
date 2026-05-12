@@ -17,6 +17,7 @@
 - Document and time-series modality contracts now extend the operator modality model, creation defaults, and fixtures.
 - Release documentation bundles now generate and store G-7 package manifests, Croissant JSON-LD, Article 10 documentation, required docs, validation evidence, and public HF mirror metadata.
 - SOC 2 / ISO 27001 scoping now has an operator-owned control register with framework mappings, evidence links, review cadence, readiness states, and audited workflow transitions.
+- Versioned `/v1/*` REST now exposes inline API documentation, public catalogue/version/sample reads, public brief/access intake, and buyer-scoped delivery, quote, and subscription actions behind rate limits and Better Auth where required.
 
 ## Verification
 
@@ -27,6 +28,7 @@
 - Document/time-series modality coverage passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, operator-console smoke, authenticated role smoke, and core route smoke. Live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke passed for image `mariomedpar/caudals:7baa23ad6720c831784e7bc6047e5ed31fd8e8f9`.
 - Release documentation bundles passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke for image `mariomedpar/caudals:1ba77908a227d9bd0349709682153335902d6527`.
 - SOC 2 / ISO 27001 control scoping passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke.
+- Public REST v1 validation is pending for this slice.
 
 ## Known Gaps / Next M3 Inputs
 
