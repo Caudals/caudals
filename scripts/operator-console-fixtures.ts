@@ -67,6 +67,7 @@ const ids = {
   costEntry: fixtureId("ce", 1),
   alert: fixtureId("al", 1),
   integration: fixtureId("in", 1),
+  supplierPayoutIntegration: fixtureId("in", 2),
   signingKey: fixtureId("sk", 1),
   operatorElevation: fixtureId("oe", 1),
 };
@@ -1678,6 +1679,41 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       ids.tenantOrg,
       ids.buyerOrg,
       Buffer.from("fixture-config"),
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
+  );
+
+  await query(
+    client,
+    `
+      INSERT INTO integration (
+        id, org_id, supplier_org_id, integration_scope, provider, display_name,
+        encrypted_config, metadata, last_verified_at, state, created_at, updated_at, created_by
+      )
+      VALUES (
+        $1, $2, $3, 'supplier_payout', 'stripe_connect', 'Med Data Coop Stripe Connect',
+        $4,
+        '{"accountStatus":"restricted","payoutSchedule":"manual","pendingRequirements":["external_account"],"dashboardMode":"test","accountId":"acct_fixture_supplier"}'::jsonb,
+        $5, 'active', $5, $5, $6
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        supplier_org_id = EXCLUDED.supplier_org_id,
+        integration_scope = EXCLUDED.integration_scope,
+        provider = EXCLUDED.provider,
+        display_name = EXCLUDED.display_name,
+        encrypted_config = EXCLUDED.encrypted_config,
+        metadata = EXCLUDED.metadata,
+        last_verified_at = EXCLUDED.last_verified_at,
+        state = EXCLUDED.state,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.supplierPayoutIntegration,
+      ids.tenantOrg,
+      ids.supplierOrg,
+      Buffer.from("fixture-stripe-connect-config"),
       FIXTURE_CREATED_AT,
       ids.operator,
     ]

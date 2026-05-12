@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getSupplierWorkspaceData } from "@/lib/supplier/workspace";
 import type { CurrentSupplierSession } from "@/lib/supplier/session";
 
@@ -23,6 +23,10 @@ const session: CurrentSupplierSession = {
 };
 
 describe("supplier workspace data", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("filters assets and builds by supplier organization under tenant RLS", async () => {
     const query = vi
       .fn()
@@ -80,6 +84,32 @@ describe("supplier workspace data", () => {
           latestGate: "G-7",
           latestGateState: "review",
         },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "py_1",
+          state: "held",
+          stripeTransferId: "tr_fixture_test",
+          amountCents: "240000",
+          currency: "USD",
+          createdAt: "2026-05-10T12:00:00.000Z",
+          updatedAt: "2026-05-10T12:00:00.000Z",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "in_2",
+          provider: "stripe_connect",
+          state: "active",
+          displayName: "Supplier Stripe Connect",
+          metadata: {
+            accountStatus: "restricted",
+            payoutSchedule: "manual",
+            pendingRequirements: ["external_account"],
+          },
+          lastVerifiedAt: "2026-05-10T12:00:00.000Z",
+          updatedAt: "2026-05-10T12:00:00.000Z",
+        },
       ]);
 
     const data = await getSupplierWorkspaceData(session, query);
@@ -89,6 +119,10 @@ describe("supplier workspace data", () => {
       samplesReceived: 1,
       buildsInFlight: 1,
       rightsApproved: 1,
+      payoutCount: 1,
+      totalPayoutCents: 240000,
+      heldPayoutCents: 240000,
+      stripeConnectStatus: "restricted",
     });
     expect(data.assets[0]).toMatchObject({
       id: "sa_asset",
@@ -98,6 +132,16 @@ describe("supplier workspace data", () => {
       id: "bd_1",
       qScore: 0.91,
       latestGate: { key: "G-7" },
+    });
+    expect(data.payouts[0]).toMatchObject({
+      id: "py_1",
+      amountCents: 240000,
+      state: "held",
+    });
+    expect(data.payoutIntegrations[0]).toMatchObject({
+      id: "in_2",
+      accountStatus: "restricted",
+      pendingRequirements: ["external_account"],
     });
     expect(query).toHaveBeenNthCalledWith(
       1,
@@ -111,5 +155,35 @@ describe("supplier workspace data", () => {
       ["or_supplier", "or_tenant"],
       { orgId: "or_tenant" },
     );
+    expect(query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("FROM payout"),
+      ["or_supplier", "or_tenant"],
+      { orgId: "or_tenant" },
+    );
+    expect(query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining("integration_scope = 'supplier_payout'"),
+      ["or_supplier", "or_tenant"],
+      { orgId: "or_tenant" },
+    );
+  });
+
+  it("omits v1 payout queries when supplier portal v1 is disabled", async () => {
+    vi.stubEnv("SUPPLIER_PORTAL_V1_ENABLED", "false");
+
+    const query = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const data = await getSupplierWorkspaceData(session, query);
+
+    expect(data.summary).toMatchObject({
+      payoutCount: 0,
+      totalPayoutCents: 0,
+      activePayoutIntegrationCount: 0,
+      stripeConnectStatus: null,
+    });
+    expect(data.payouts).toEqual([]);
+    expect(data.payoutIntegrations).toEqual([]);
+    expect(query).toHaveBeenCalledTimes(2);
   });
 });

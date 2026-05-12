@@ -11,7 +11,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - `/catalogue` is the explicitly relaunched M3 public catalogue subset; it is read-only and routes access requests to `/contact`
 - Keep marketplace, supplier, and hidden authenticated routes unavailable until explicitly relaunched
 - `/buyer` is the explicitly relaunched buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review
-- `/supplier` is the explicitly relaunched M2 supplier surface and is limited to managed asset declaration, signed sample upload, and build participation review
+- `/supplier` is the explicitly relaunched supplier surface and is limited to managed asset declaration, signed sample upload, build participation, revenue-share payout, and Stripe Connect status review
 
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.

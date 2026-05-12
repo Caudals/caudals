@@ -12,9 +12,12 @@ import {
 } from "react";
 import {
   CalendarClock,
+  CircleDollarSign,
+  CreditCard,
   Database,
   FileCheck2,
   LogOut,
+  Plug,
   Scale,
   ShieldCheck,
   UploadCloud,
@@ -29,6 +32,8 @@ import {
 import type {
   SupplierAsset,
   SupplierBuild,
+  SupplierPayout,
+  SupplierPayoutIntegration,
   SupplierWorkspaceData,
 } from "@/lib/supplier/workspace";
 import { Button } from "@/components/ui/button";
@@ -78,6 +83,16 @@ function formatNumber(value: number | null | undefined) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function formatMoney(valueCents: number | null | undefined, currency = "USD") {
+  const amount = (valueCents ?? 0) / 100;
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  }).format(amount);
+}
+
 function formatBytes(value: number | null | undefined) {
   if (!value) {
     return "No sample";
@@ -119,7 +134,12 @@ function fieldValue(value: unknown, fallback = "Not provided") {
 }
 
 function statusClassName(state: string | null | undefined) {
-  if (state === "approved" || state === "active" || state === "sample_received") {
+  if (
+    state === "approved" ||
+    state === "active" ||
+    state === "paid" ||
+    state === "sample_received"
+  ) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
@@ -127,7 +147,16 @@ function statusClassName(state: string | null | undefined) {
     return "border-blue-200 bg-blue-50 text-blue-700";
   }
 
-  if (state === "blocked" || state === "retired" || state === "terminated") {
+  if (state === "pending" || state === "held" || state === "restricted") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (
+    state === "blocked" ||
+    state === "failed" ||
+    state === "retired" ||
+    state === "terminated"
+  ) {
     return "border-red-200 bg-red-50 text-red-700";
   }
 
@@ -326,6 +355,136 @@ function BuildCard({ build }: { build: SupplierBuild }) {
         ))}
       </div>
     </article>
+  );
+}
+
+function PayoutCard({ payout }: { payout: SupplierPayout }) {
+  return (
+    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-[var(--ds-shadow-surface)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-950">
+            {formatMoney(payout.amountCents, payout.currency)}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {payout.stripeTransferId ?? "Operator payout hold"} / {payout.id}
+          </p>
+        </div>
+        <Pill className={statusClassName(payout.state)}>
+          {sentenceCase(payout.state)}
+        </Pill>
+      </div>
+
+      <div className="mt-4 grid gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100 sm:grid-cols-2">
+        <div className="bg-white p-3">
+          <p className="text-xs font-medium uppercase text-gray-400">Created</p>
+          <p className="mt-1 text-sm font-semibold text-gray-900">
+            {formatDate(payout.createdAt)}
+          </p>
+        </div>
+        <div className="bg-white p-3">
+          <p className="text-xs font-medium uppercase text-gray-400">Updated</p>
+          <p className="mt-1 text-sm font-semibold text-gray-900">
+            {formatDate(payout.updatedAt)}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function StripeConnectPanel({
+  integrations,
+}: {
+  integrations: SupplierPayoutIntegration[];
+}) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-[var(--ds-shadow-surface)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-950">Stripe Connect</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Payout account status and requirements from the operator record.
+          </p>
+        </div>
+        <CreditCard className="mt-0.5 h-4 w-4 text-emerald-600" />
+      </div>
+
+      <div className="mt-5 space-y-4">
+        {integrations.length > 0 ? (
+          integrations.map((integration) => (
+            <article
+              key={integration.id}
+              className="rounded-lg border border-gray-100 bg-gray-50 p-4"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-950">
+                    {integration.displayName}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {sentenceCase(integration.provider)} / {integration.id}
+                  </p>
+                </div>
+                <Pill
+                  className={statusClassName(
+                    integration.accountStatus ?? integration.state,
+                  )}
+                >
+                  {sentenceCase(integration.accountStatus ?? integration.state)}
+                </Pill>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-400">
+                    Schedule
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {sentenceCase(integration.payoutSchedule)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-400">
+                    Last verified
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {formatDate(integration.lastVerifiedAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {integration.pendingRequirements.length > 0 ? (
+                  integration.pendingRequirements.map((requirement) => (
+                    <Pill
+                      key={requirement}
+                      className="border-amber-200 bg-amber-50 text-amber-700"
+                    >
+                      {sentenceCase(requirement)}
+                    </Pill>
+                  ))
+                ) : (
+                  <Pill className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                    No pending requirements
+                  </Pill>
+                )}
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <p className="text-sm font-semibold text-gray-950">
+              Stripe Connect is not configured yet.
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Caudals operations will attach an account before payouts are
+              released.
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -619,7 +778,7 @@ export function SupplierPortalWorkspace({ data }: SupplierPortalWorkspaceProps) 
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Pill className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                Supplier portal v0
+                Supplier portal v1
               </Pill>
               <Pill className="border-gray-200 bg-white text-gray-600">
                 {data.authOrganization.name}
@@ -630,8 +789,9 @@ export function SupplierPortalWorkspace({ data }: SupplierPortalWorkspaceProps) 
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
               {data.supplier.displayName} can declare candidate data assets,
-              send representative samples, and track Caudals build progress
-              without operating marketplace listings or buyer support.
+              send representative samples, track Caudals build progress, and
+              review revenue-share payout status without operating marketplace
+              listings or buyer support.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -647,7 +807,7 @@ export function SupplierPortalWorkspace({ data }: SupplierPortalWorkspaceProps) 
           </div>
         </header>
 
-        <section className="grid gap-3 md:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Metric
             label="Assets"
             value={formatNumber(data.summary.assetCount)}
@@ -668,10 +828,58 @@ export function SupplierPortalWorkspace({ data }: SupplierPortalWorkspaceProps) 
             value={formatNumber(data.summary.rightsApproved)}
             icon={ShieldCheck}
           />
+          <Metric
+            label="Earned share"
+            value={formatMoney(data.summary.totalPayoutCents)}
+            icon={CircleDollarSign}
+          />
+          <Metric
+            label="Connect"
+            value={sentenceCase(data.summary.stripeConnectStatus)}
+            icon={Plug}
+          />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_27rem]">
           <div className="space-y-5">
+            <section className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-950">
+                    Revenue share and payouts
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Operator-managed Stripe transfers stay visible with current
+                    payout state.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Pill className="border-gray-200 bg-white text-gray-700">
+                    {formatMoney(data.summary.heldPayoutCents)} held
+                  </Pill>
+                  <Pill className="border-gray-200 bg-white text-gray-700">
+                    {formatNumber(data.summary.payoutCount)} payouts
+                  </Pill>
+                </div>
+              </div>
+
+              {data.payouts.length > 0 ? (
+                data.payouts.map((payout) => (
+                  <PayoutCard key={payout.id} payout={payout} />
+                ))
+              ) : (
+                <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-[var(--ds-shadow-surface)]">
+                  <p className="text-sm font-semibold text-gray-950">
+                    No payout rows are linked yet.
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Revenue-share payouts appear after an operator qualifies a
+                    supplier contract and build outcome.
+                  </p>
+                </section>
+              )}
+            </section>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-gray-950">
@@ -738,6 +946,7 @@ export function SupplierPortalWorkspace({ data }: SupplierPortalWorkspaceProps) 
           </div>
 
           <aside className="space-y-5">
+            <StripeConnectPanel integrations={data.payoutIntegrations} />
             <AssetDeclarationForm readOnly={readOnly} />
             <SampleUploadForm assets={data.assets} readOnly={readOnly} />
           </aside>

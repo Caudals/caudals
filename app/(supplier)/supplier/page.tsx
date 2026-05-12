@@ -9,7 +9,7 @@ import { buildNoIndexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoIndexMetadata(
   "Supplier portal",
-  "Managed supplier onboarding, asset declaration, sample upload, and build participation surface.",
+  "Managed supplier onboarding, asset declaration, sample upload, build participation, and payout visibility surface.",
 );
 
 export default async function SupplierPortalPage() {

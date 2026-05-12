@@ -233,6 +233,7 @@ Operational env controls:
 - `BETTER_AUTH_RESET_PASSWORD_TOKEN_EXPIRES_IN_SECONDS` (default `1800`, valid range `300`-`86400`)
 - `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT` (default unset/false; set `true` only to require completed TOTP/passkey enrollment before `/admin`)
 - `SUPPLIER_PORTAL_ENABLED` (default enabled; set `false` to hide `/supplier`)
+- `SUPPLIER_PORTAL_V1_ENABLED` (default enabled; set `false` to hide read-only payout and Stripe Connect panels on `/supplier`)
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
@@ -264,9 +265,10 @@ Operational env controls:
 ## Phase 1 Surface Gate
 - `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
-- `/supplier` is the M2 managed supplier portal exception; it stays authenticated
-  and limited to supplier-owned asset declaration, signed sample upload, and
-  build status review while `/contributor` remains blocked.
+- `/supplier` is the managed supplier portal exception; it stays authenticated
+  and limited to supplier-owned asset declaration, signed sample upload, build
+  status, revenue-share payout, and Stripe Connect review while `/contributor`
+  remains blocked.
 - `/catalogue` is the M3 public catalogue exception; it stays read-only,
   shows only active public listings, and sends access requests to `/contact`.
 - `/dashboard` is removed and blocked during Phase 1.

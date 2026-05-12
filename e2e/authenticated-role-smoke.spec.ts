@@ -66,6 +66,9 @@ test.describe("authenticated role journeys", () => {
     await expect(
       page.getByText(/iberian receipt and ticket corpus/i).first(),
     ).toBeVisible();
+    await expect(page.getByText(/revenue share and payouts/i)).toBeVisible();
+    await expect(page.getByText(/stripe connect/i).first()).toBeVisible();
+    await expect(page.getByText(/tr_fixture_test/i)).toBeVisible();
     await expect(page.getByText(/build participation/i)).toBeVisible();
   });
 });
