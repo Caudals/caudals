@@ -10,7 +10,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
 - `/catalogue` is the explicitly relaunched M3 public catalogue subset; it is read-only and routes access requests to `/contact`
 - Keep marketplace, supplier, and hidden authenticated routes unavailable until explicitly relaunched
-- `/buyer` is the explicitly relaunched M2 buyer surface and is limited to read-only delivery, scorecard, manifest, and trust evidence review
+- `/buyer` is the explicitly relaunched buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review
 - `/supplier` is the explicitly relaunched M2 supplier surface and is limited to managed asset declaration, signed sample upload, and build participation review
 
 ## Routing and IA Contract
@@ -18,7 +18,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Public navigation should expose Catalogue, Contact, and Blog while landing mode remains active.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
 - Do not add new company-facing workflows under hidden app routes.
-- The internal admin dashboard, `/buyer` read-only delivery workspace, and `/supplier` managed supplier portal are the only authenticated surfaces that should be preserved in the near term.
+- The internal admin dashboard, `/buyer` read-only buyer workspace, and `/supplier` managed supplier portal are the only authenticated surfaces that should be preserved in the near term.
 - Broader buyer/supplier self-service requires a new IA and schema direction before implementation.
 
 ## Localization Contract

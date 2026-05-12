@@ -7,8 +7,8 @@ import { getBuyerWorkspaceData } from "@/lib/buyer/workspace";
 import { buildNoIndexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoIndexMetadata(
-  "Buyer delivery workspace",
-  "Read-only buyer delivery, scorecard, and manifest review surface.",
+  "Buyer workspace",
+  "Read-only buyer delivery, subscription, integration, billing, scorecard, and manifest review surface.",
 );
 
 export default async function BuyerWorkspacePage() {
