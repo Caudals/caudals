@@ -235,7 +235,7 @@ export function OperatorConsole({
           <div>
             <p className="text-sm font-semibold text-gray-950">{t("Modules")}</p>
             <p className="text-sm text-gray-500">
-              {t("All 14 Phase 1 operator modules are visible from one surface.")}
+              {t("All operator modules are visible from one surface.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

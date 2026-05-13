@@ -161,6 +161,7 @@ const mutableTables = {
   payout: { table: "payout", prefix: "py", softDelete: true },
   run: { table: "run", prefix: "rn", softDelete: true },
   cost_entry: { table: "cost_entry", prefix: "ce", softDelete: false },
+  escalation_case: { table: "escalation_case", prefix: "ec", softDelete: true },
   integration: { table: "integration", prefix: "in", softDelete: true },
   signing_key: { table: "signing_key", prefix: "sk", softDelete: true },
 } as const;
@@ -221,6 +222,10 @@ function buildWorkItem(
   fields: NormalizedRecordFields = {}
 ): OperatorWorkItem {
   const hasFields = Object.keys(fields).length > 0;
+  const fieldSeverity =
+    fields.severity === "critical" || fields.severity === "warning" || fields.severity === "info"
+      ? fields.severity
+      : null;
 
   return {
     moduleKey,
@@ -231,7 +236,7 @@ function buildWorkItem(
     detail: detail || getOperatorRecordCrudDescriptor(recordType)?.label || recordType,
     ...(hasFields ? { fields } : {}),
     updatedAt: normalizeDate(row.updated_at ?? row.created_at),
-    severity: getStateSeverity(state),
+    severity: fieldSeverity ?? getStateSeverity(state),
     nextAction: "Review record",
   };
 }
@@ -1940,6 +1945,47 @@ function buildCreateSql(
       SELECT inserted.id, inserted.created_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    escalation_case: `
+      WITH inserted AS (
+        INSERT INTO escalation_case (
+          id,
+          org_id,
+          title,
+          escalation_kind,
+          severity,
+          source_record_type,
+          source_record_id,
+          detail,
+          runbook_key,
+          routed_to,
+          sla_due_at,
+          state,
+          resolution_summary,
+          resolved_at,
+          created_by
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          COALESCE(NULLIF($11::jsonb ->> 'escalationKind', ''), 'platform_incident'),
+          COALESCE(NULLIF($11::jsonb ->> 'severity', ''), 'warning'),
+          NULLIF($11::jsonb ->> 'sourceRecordType', ''),
+          NULLIF($11::jsonb ->> 'sourceRecordId', ''),
+          COALESCE(NULLIF($9, ''), 'Operator-created escalation'),
+          NULLIF($11::jsonb ->> 'runbookKey', ''),
+          NULLIF($11::jsonb ->> 'routedTo', ''),
+          NULLIF($11::jsonb ->> 'slaDueAt', '')::timestamptz,
+          $4,
+          NULLIF($11::jsonb ->> 'resolutionSummary', ''),
+          CASE WHEN $4 = 'resolved' THEN now() ELSE NULL END,
+          $6
+        )
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     audit_event: `
       INSERT INTO audit_event (
         id,
@@ -2057,6 +2103,8 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
     case "run":
       return "external_run_id = COALESCE(NULLIF($10::jsonb ->> 'externalRunId', ''), NULLIF($3, ''), external_run_id), state = $4, retry_count = COALESCE(NULLIF($10::jsonb ->> 'retryCount', '')::integer, retry_count), started_at = COALESCE(NULLIF($10::jsonb ->> 'startedAt', '')::timestamptz, started_at), finished_at = COALESCE(NULLIF($10::jsonb ->> 'finishedAt', '')::timestamptz, finished_at)";
+    case "escalation_case":
+      return "title = $3, state = $4, escalation_kind = COALESCE(NULLIF($10::jsonb ->> 'escalationKind', ''), escalation_kind), severity = COALESCE(NULLIF($10::jsonb ->> 'severity', ''), severity), source_record_type = NULLIF($10::jsonb ->> 'sourceRecordType', ''), source_record_id = NULLIF($10::jsonb ->> 'sourceRecordId', ''), detail = COALESCE(NULLIF($8, ''), detail), runbook_key = COALESCE(NULLIF($10::jsonb ->> 'runbookKey', ''), runbook_key), routed_to = COALESCE(NULLIF($10::jsonb ->> 'routedTo', ''), routed_to), sla_due_at = COALESCE(NULLIF($10::jsonb ->> 'slaDueAt', '')::timestamptz, sla_due_at), resolution_summary = COALESCE(NULLIF($10::jsonb ->> 'resolutionSummary', ''), resolution_summary), resolved_at = CASE WHEN $4 = 'resolved' THEN COALESCE(resolved_at, now()) ELSE resolved_at END";
     case "integration":
       return "provider = $3, state = $4";
     case "signing_key":

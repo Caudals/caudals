@@ -681,14 +681,18 @@ describe("operator console repository", () => {
     expect(workItemsSql).toContain("hfMirrorRepo");
     expect(workItemsSql).toContain("compliance_control_scope");
     expect(workItemsSql).toContain("soc2Criteria");
+    expect(workItemsSql).toContain("escalation_case");
+    expect(workItemsSql).toContain("runbookKey");
+    expect(workItemsSql).toContain("routedTo");
   });
 
   it("keeps fixture repository available for explicit migration mode", async () => {
     const snapshot = await createFixtureOperatorConsoleRepository().getSnapshot();
 
     expect(snapshot.builds).toHaveLength(5);
-    expect(snapshot.modules).toHaveLength(14);
+    expect(snapshot.modules).toHaveLength(15);
     expect(snapshot.workItems.builds).toHaveLength(1);
+    expect(snapshot.workItems.escalations).toHaveLength(1);
   });
 
   it("returns non-durable audit payloads in fixture mode", async () => {

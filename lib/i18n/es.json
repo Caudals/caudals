@@ -2953,5 +2953,12 @@
   "Acquire a catalogue dataset": "Adquirir un dataset del catálogo",
   "AI consulting": "Consultoría de IA",
   "Build a custom dataset": "Crear un dataset a medida",
-  "Monetize company data": "Monetizar datos de la empresa"
+  "Monetize company data": "Monetizar datos de la empresa",
+  "All operator modules are visible from one surface.": "Todos los modulos de operador estan visibles desde una sola superficie.",
+  "Escalations": "Escalaciones",
+  "Privacy incidents, buyer disputes, supplier failures, security events, and runbook routing.": "Incidentes de privacidad, disputas de compradores, fallos de proveedores, eventos de seguridad y enrutamiento de runbooks.",
+  "Open cases": "Casos abiertos",
+  "Security/privacy": "Seguridad/privacidad",
+  "Due soon": "Vencen pronto",
+  "Run R-05 recovery": "Ejecutar recuperacion R-05"
 }

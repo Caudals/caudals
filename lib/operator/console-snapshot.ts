@@ -19,6 +19,7 @@ export const operatorModuleKeys = [
   "catalogue",
   "commercials",
   "operations",
+  "escalations",
   "audit",
   "settings",
 ] as const;
@@ -231,6 +232,16 @@ export const operatorModuleSummaries: OperatorModuleSummary[] = [
     totalRecords: 37,
     blockedRecords: 4,
     savedViews: ["Queue depth", "Budget risk", "Escalations"],
+  },
+  {
+    key: "escalations",
+    title: "Escalations",
+    description:
+      "Privacy incidents, buyer disputes, supplier failures, security events, and runbook routing.",
+    anchorRecords: ["escalation_case", "runbook", "alert"],
+    totalRecords: 7,
+    blockedRecords: 2,
+    savedViews: ["Open cases", "Security/privacy", "Due soon"],
   },
   {
     key: "audit",
@@ -580,6 +591,23 @@ const fixtureWorkItems: OperatorWorkItem[] = [
     updatedAt: "2026-05-10T12:20:00.000Z",
     severity: "warning",
     nextAction: "Check worker queue",
+  },
+  {
+    moduleKey: "escalations",
+    recordType: "escalation_case",
+    id: "ec_01J2SUPPLIERFAIL",
+    title: "Supplier delivery failure - retail receipts sample",
+    state: "triaged",
+    detail: "R-05 supplier_operations / due today",
+    fields: {
+      escalationKind: "supplier_delivery_failure",
+      severity: "critical",
+      runbookKey: "R-05",
+      routedTo: "supplier_operations",
+    },
+    updatedAt: "2026-05-10T12:15:00.000Z",
+    severity: "critical",
+    nextAction: "Run R-05 recovery",
   },
   {
     moduleKey: "audit",
