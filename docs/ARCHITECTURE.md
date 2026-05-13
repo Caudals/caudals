@@ -4,7 +4,7 @@
 Caudals is a B2B AI dataset marketplace and managed data operations platform. The public product promise is simple: companies bring proprietary or difficult-to-source data, companies buy AI-ready datasets, and Caudals performs the operational work in between.
 
 Current production scope is deliberately limited:
-- Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
+- Public marketing and demand capture: `/`, `/contact`, `/security`, `/blog`, `/blog/*`
 - Public catalogue: `/catalogue` for the curated M3 dataset listing subset
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`, and versioned `/v1/*` catalogue/intake REST
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
@@ -72,7 +72,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the allowlist is `/`, `/catalogue`, `/contact`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, `/supplier`, and required metadata/assets. All other routes return `404`.
+- In landing mode, the allowlist is `/`, `/catalogue`, `/contact`, `/security`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, `/supplier`, and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
@@ -80,6 +80,7 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
 - `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
+- `/security` is the public M3 security-review surface. It summarizes implemented controls, flags credential-gated readiness items, and routes DPA or questionnaire follow-up to `/contact`.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
 - `/v1/*` is the M3 public REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,

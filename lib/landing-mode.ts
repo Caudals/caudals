@@ -2,6 +2,7 @@ const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   "/",
   "/catalogue",
   "/contact",
+  "/security",
   "/blog",
   "/v1",
 ]);
@@ -29,6 +30,7 @@ const STATIC_ASSET_PATH_PATTERN =
 
 export const landingModePublicNavigationLinks = [
   { href: "/catalogue", label: "Catalogue" },
+  { href: "/security", label: "Security" },
   { href: "/contact", label: "Contact" },
   { href: "/blog", label: "Blog" },
 ] as const;
