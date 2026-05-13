@@ -153,14 +153,16 @@ Install caveat:
   may contain sensitive operational context.
 - The private observability stack lives in `infra/observability/` and is
   deployed with `scripts/deploy-observability-stack.sh`. It runs Tempo, Loki,
-  Prometheus, Promtail, cAdvisor, and internal Grafana on `dokploy-network`
-  without public published ports.
+  Prometheus, Alertmanager, Promtail, cAdvisor, and internal Grafana on
+  `dokploy-network` without public published ports.
 - `scripts/probe-observability-stack.sh` verifies private readiness endpoints
-  for Tempo, Loki, Prometheus, Promtail, cAdvisor, and Grafana from an ephemeral
-  container attached to `dokploy-network`.
+  for Tempo, Loki, Prometheus, Alertmanager, Promtail, cAdvisor, and Grafana
+  from an ephemeral container attached to `dokploy-network`.
 - Promtail scrapes Docker logs through the Docker socket and labels streams by
-  Swarm service name. Prometheus scrapes `tempo:3200`, `loki:3100`,
-  `promtail:9080`, `cadvisor:8080`, and itself.
+  Swarm service name. Prometheus scrapes `alertmanager:9093`, `tempo:3200`,
+  `loki:3100`, `promtail:9080`, `cadvisor:8080`, and itself, then sends
+  private alerts to Alertmanager. External PagerDuty/on-call contact points
+  still require production routing credentials outside the repository.
 - Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
   OpenTelemetry peer packages explicit in `package.json`.
 

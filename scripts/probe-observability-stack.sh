@@ -29,6 +29,7 @@ probe() {
 probe "tempo" "http://tempo:3200/ready"
 probe "loki" "http://loki:3100/ready"
 probe "prometheus" "http://prometheus:9090/-/ready"
+probe "alertmanager" "http://alertmanager:9093/-/ready"
 probe "promtail" "http://promtail:9080/ready"
 probe "cadvisor" "http://cadvisor:8080/healthz"
 probe "grafana" "http://grafana:3000/api/health"

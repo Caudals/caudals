@@ -133,9 +133,10 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - Docker runtime logs are scraped through Promtail and written to Loki with
   `service_name`, `container_name`, `container_id`, `stack`, and `stream`
   labels.
-- Prometheus scrapes Tempo, Loki, Promtail, cAdvisor, and itself for platform
-  metrics. Grafana is provisioned internally with Prometheus, Loki, and Tempo
-  datasources.
+- Prometheus scrapes Alertmanager, Tempo, Loki, Promtail, cAdvisor, and itself
+  for platform metrics and evaluates private Alertmanager-routed rules for
+  scrape failures, host disk pressure, and rule/config health. Grafana is
+  provisioned internally with Prometheus, Loki, and Tempo datasources.
 - OpenTelemetry stdout export remains opt-in via `OTEL_STDOUT_ENABLED=true`
   for bounded diagnostics; it should not be enabled permanently if logs may
   contain sensitive operational context.
