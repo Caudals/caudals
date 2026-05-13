@@ -35,6 +35,7 @@ export default function robots(): MetadataRoute.Robots {
         "/catalogue",
         "/contact",
         "/robots.txt",
+        "/security",
         "/sitemap.xml",
       ],
       disallow,

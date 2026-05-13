@@ -7,7 +7,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
+- Current public deployment is landing mode: `/`, `/contact`, `/security`, `/blog`, `/blog/*`
 - `/catalogue` is the explicitly relaunched M3 public catalogue subset; it is read-only and routes access requests to `/contact`
 - Keep marketplace, supplier, and hidden authenticated routes unavailable until explicitly relaunched
 - `/buyer` is the explicitly relaunched buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review
@@ -15,7 +15,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.
-- Public navigation should expose Catalogue, Contact, and Blog while landing mode remains active.
+- Public navigation should expose Catalogue, Security, Contact, and Blog while landing mode remains active.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
 - Do not add new company-facing workflows under hidden app routes.
 - The internal admin dashboard, `/buyer` read-only buyer workspace, and `/supplier` managed supplier portal are the only authenticated surfaces that should be preserved in the near term.

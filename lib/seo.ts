@@ -29,6 +29,7 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/pricing", changeFrequency: "monthly", priority: 0.75 },
+  { pathname: "/security", changeFrequency: "monthly", priority: 0.78 },
   { pathname: "/trust", changeFrequency: "monthly", priority: 0.75 },
 ];
 
@@ -37,6 +38,7 @@ const LANDING_MODE_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/catalogue", changeFrequency: "weekly", priority: 0.85 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
+  { pathname: "/security", changeFrequency: "monthly", priority: 0.78 },
 ];
 
 type PublicMetadataOptions = {
