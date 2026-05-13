@@ -1,23 +1,14 @@
 const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   "/",
-  "/catalogue",
   "/contact",
-  "/security",
   "/blog",
-  "/v1",
 ]);
-const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/", "/v1/"];
+const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
 const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
   "/auth",
-  "/buyer",
-  "/supplier",
 ]);
-const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = [
-  "/auth/",
-  "/buyer/",
-  "/supplier/",
-];
+const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = ["/auth/"];
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
@@ -29,8 +20,6 @@ const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
 
 export const landingModePublicNavigationLinks = [
-  { href: "/catalogue", label: "Catalogue" },
-  { href: "/security", label: "Security" },
   { href: "/contact", label: "Contact" },
   { href: "/blog", label: "Blog" },
 ] as const;
