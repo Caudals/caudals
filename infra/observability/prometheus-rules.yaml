@@ -1,0 +1,56 @@
+groups:
+  - name: caudals-platform
+    rules:
+      - alert: CaudalsObservabilityTargetDown
+        expr: up{job=~"prometheus|alertmanager|tempo|loki|promtail|cadvisor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Observability target {{ $labels.job }} is down"
+          description: "Prometheus cannot scrape {{ $labels.job }} at {{ $labels.instance }}."
+
+      - alert: CaudalsHostDiskPressure
+        expr: |
+          container_fs_usage_bytes{job="cadvisor", id="/", device="/dev/vda1"}
+            / container_fs_limit_bytes{job="cadvisor", id="/", device="/dev/vda1"} > 0.90
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Caudals host disk is above 90%"
+          description: "The root filesystem reported by cAdvisor is above 90% usage."
+
+      - alert: CaudalsHostDiskCritical
+        expr: |
+          container_fs_usage_bytes{job="cadvisor", id="/", device="/dev/vda1"}
+            / container_fs_limit_bytes{job="cadvisor", id="/", device="/dev/vda1"} > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Caudals host disk is above 95%"
+          description: "The root filesystem reported by cAdvisor is critically full."
+
+      - alert: CaudalsPrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Prometheus config reload failed"
+          description: "Prometheus rejected its latest configuration or rule reload."
+
+      - alert: CaudalsPrometheusRuleEvaluationFailures
+        expr: increase(prometheus_rule_evaluation_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Prometheus rule evaluation failed"
+          description: "At least one Prometheus rule evaluation failed in the last five minutes."
