@@ -39,3 +39,4 @@
 
 - Do not mark the full platform goal done until live operator MFA enrollment is complete. The policy conflict has been resolved in favor of required production TOTP with a fixture-only smoke-test exemption; three reset-eligible real operators have fresh reset links and still need to complete their own authenticator setup.
 - Sentry error delivery remains disabled until `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback is configured in production. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
+- External PagerDuty/on-call notification routing still requires production contact-point credentials. Private Prometheus rules and Alertmanager routing are live.
