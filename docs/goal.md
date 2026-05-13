@@ -22,6 +22,31 @@ You are inside the DigitalOcean VPS that hosts Caudals. Shell access to Docker, 
 
 Bring the blueprint to life. The platform is "done" when every section of the blueprint is implemented, observable in production, and exercised by either live operators, live suppliers, live buyers, or scheduled jobs.
 
+## Production Deployment Visibility (LANDING_MODE)
+
+Production runs with `LANDING_MODE=true` (and `NEXT_PUBLIC_LANDING_MODE=true`). The only publicly reachable surfaces in production are:
+
+- the landing page (`/`),
+- the contact form (`/contact`),
+- the blog (`/blog` and `/blog/*`),
+- the internal admin/auth surfaces (`/admin`, `/auth/*`, `/api/auth/*`),
+- the minimum public API needed by the public surfaces (`/api/analytics/track`, `/api/contact`, `/api/waitlist`).
+
+The public top navbar in production MUST contain exactly **Contacto** and **Blog** — nothing else. This is enforced by `landingModePublicNavigationLinks` in `lib/landing-mode.ts` and the conditional render in `components/ui/header.tsx`.
+
+Every other surface — buyer workspace (§20), supplier portal (§21), public catalogue (§22, §15), security review page, pricing, trust, docs, the public `/v1` REST surface (§29), self-serve auth flows, marketplace browse, payments UI, etc. — must still be implemented end-to-end per the blueprint, but **must stay hidden in production until each is explicitly cleared for public exposure**. Implementation is not gated by visibility; visibility is gated separately.
+
+When you add a new public-facing surface:
+
+1. Build it end-to-end per the blueprint as if it were going live (real data, real schema, real auth, real RLS, real audit, real tests).
+2. Do **not** add its route to `LANDING_MODE_ALLOWED_PAGE_PATHS`/`LANDING_MODE_ALLOWED_PAGE_PREFIXES` (or the private equivalents) in `lib/landing-mode.ts`. The middleware must continue to 404/redirect it when `LANDING_MODE=true`.
+3. Do **not** add it to `landingModePublicNavigationLinks` or any other public nav surface.
+4. Do **not** relax the landing-mode gate, the middleware, or the navbar conditional as a shortcut to "preview" the feature.
+5. Verify the surface is reachable with `LANDING_MODE=false` (local/dev/staging) and unreachable + invisible with `LANDING_MODE=true` (production).
+6. Update `e2e/public-routes.spec.ts`: add the new route to the `landingModeEnabled` `blockedRoutes` list so we catch any regression that re-exposes it.
+
+A feature can only be unhidden by an explicit, separate request that names the surface and confirms its readiness. Until then, it ships behind the gate.
+
 ## Sequencing
 
 Follow the blueprint's roadmap §30. Treat each milestone as a goal of its own; finish it before starting the next. Within a milestone, sequence slices so the operations spine stays load-bearing first, then catalogue depth, then self-serve surfaces.

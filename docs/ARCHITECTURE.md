@@ -75,17 +75,19 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the allowlist is `/`, `/catalogue`, `/contact`, `/security`, `/blog`, `/blog/*`, explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, `/buyer`, `/supplier`, and required metadata/assets. All other routes return `404`.
+- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`,
+  explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, and required
+  metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
 - `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
-- `/catalogue` is the M3 curated public dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`.
-- `/security` is the public M3 security-review surface. It summarizes implemented controls, flags credential-gated readiness items, and routes DPA or questionnaire follow-up to `/contact`.
+- `/catalogue` is the M3 curated dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`; production `LANDING_MODE` keeps it hidden until explicit clearance.
+- `/security` is the M3 security-review surface. It summarizes implemented controls, flags credential-gated readiness items, and routes DPA or questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it hidden until explicit clearance.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
-- `/v1/*` is the M3 public REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions.
+- `/v1/*` is the M3 REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions. Production `LANDING_MODE` keeps the surface hidden until explicit clearance.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
   read-only, and limited to delivery, subscription, integration, billing,
   scorecard, manifest, and trust evidence.
@@ -95,7 +97,9 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
   Connect account status.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
 - `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
-- Hidden app routes must not be treated as canonical product behavior until the marketplace is rebuilt around B2B buyers, suppliers, and internal operators; `/buyer` and `/supplier` are the explicit M2 exceptions.
+- Hidden app routes must not be treated as canonical production behavior until
+  the marketplace is rebuilt around B2B buyers, suppliers, and internal
+  operators.
 
 ## Infrastructure and Deployment
 - Production runtime is self-hosted on DigitalOcean VPS.
