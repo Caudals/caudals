@@ -16,7 +16,6 @@ const publicRoutes = landingModeEnabled
         heading: /launching caudals: a clearer control plane for dataset operations/i,
       },
       { path: "/contact", heading: /talk with caudals/i },
-      { path: "/security", heading: /security posture for ai data buyers/i },
     ]
   : [
       { path: "/blog", heading: /^blog$/i },
@@ -39,7 +38,9 @@ const blockedRoutes = landingModeEnabled
   ? [
       "/about",
       "/browse",
+      "/buyer",
       "/catalog",
+      "/catalogue",
       "/collaborate",
       "/dashboard",
       "/docs",
@@ -48,7 +49,11 @@ const blockedRoutes = landingModeEnabled
       "/legal/privacy",
       "/legal/terms",
       "/pricing",
+      "/security",
+      "/supplier",
       "/trust",
+      "/v1",
+      "/v1/datasets",
     ]
   : [];
 
