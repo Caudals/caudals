@@ -45,6 +45,7 @@ RUN npm ci --omit=dev
 COPY --from=build /app/public ./public
 COPY --from=build /app/content ./content
 COPY --from=build /app/.next ./.next
+COPY --from=build /app/scripts/check-sentry-config.mjs ./scripts/check-sentry-config.mjs
 
 EXPOSE 3000
 

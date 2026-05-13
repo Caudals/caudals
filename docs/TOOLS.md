@@ -136,7 +136,9 @@ Install caveat:
   unless a privacy review explicitly approves a change.
 - `npm run observability:sentry-status -- --fail-on-disabled` reports whether
   error delivery is active without printing the DSN, and fails release gates
-  when neither DSN source is configured.
+  when neither DSN source is configured. The runtime Docker image copies this
+  plain Node probe so the same command can run inside the deployed app
+  container.
 - OpenTelemetry traces are registered from
   `lib/observability/opentelemetry.ts`. Set
   `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://caudals-observability-tempo:4318/v1/traces`
