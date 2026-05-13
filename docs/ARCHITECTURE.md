@@ -107,6 +107,9 @@ Target Phase 1 operations context:
   operator row has `mfa_required=true`; fixture operators may stay
   password-only for automated smoke tests. `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false`
   is a break-glass/local-development override, not the production posture.
+- Vulnerability management runs through weekly Dependabot checks for npm,
+  GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
+  the Docker publish workflow.
 - Migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.

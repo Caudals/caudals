@@ -201,6 +201,13 @@ Hard rules:
 
 For failed runs, capture the run ID, failing job, and key error excerpt in the user-facing summary when relevant.
 
+## Vulnerability Management
+- `.github/dependabot.yml` checks npm, GitHub Actions, and Dockerfile base-image
+  updates weekly.
+- `.github/workflows/deploy.yml` runs Docker Scout CVE scanning against the
+  pushed image tag and uploads SARIF to GitHub code scanning without printing
+  registry credentials.
+
 ## Localization Guardrail
 For translation-impacting work run:
 - `npm run i18n:check-parity`
