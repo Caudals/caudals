@@ -1624,7 +1624,10 @@ const moduleWorkItemsSql = `
             'etaAt', b.eta_at,
             'qScore', b.q_score,
             'costBudgetCents', b.cost_budget_cents,
-            'costUsedCents', b.cost_used_cents
+            'llmBudgetCents', b.llm_budget_cents,
+            'externalApiBudgetCents', b.external_api_budget_cents,
+            'costUsedCents', b.cost_used_cents,
+            'costOverrideReason', b.cost_override_reason
           ))
           FROM build b
           WHERE b.id = raw_work_items.id
@@ -1872,8 +1875,11 @@ const moduleWorkItemsSql = `
         )
         WHEN record_type = 'cost_entry' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
+            'buildId', ce.build_id,
             'amountCents', ce.amount_cents,
-            'metadataSummary', ce.metadata ->> 'summary'
+            'costBucket', app_private.cost_entry_bucket(ce.category, ce.metadata),
+            'metadataSummary', ce.metadata ->> 'summary',
+            'overrideReason', ce.metadata ->> 'budgetOverrideReason'
           ))
           FROM cost_entry ce
           WHERE ce.id = raw_work_items.id

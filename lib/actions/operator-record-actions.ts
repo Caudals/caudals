@@ -1104,7 +1104,8 @@ function buildCreateSql(
       WITH inserted AS (
         INSERT INTO build (
           id, org_id, title, state, eta_at, q_score,
-          cost_budget_cents, cost_used_cents, created_by
+          cost_budget_cents, llm_budget_cents, external_api_budget_cents,
+          cost_used_cents, cost_override_reason, created_by
         )
         VALUES (
           $1,
@@ -1114,7 +1115,10 @@ function buildCreateSql(
           NULLIF($11::jsonb ->> 'etaAt', '')::timestamptz,
           NULLIF($11::jsonb ->> 'qScore', '')::numeric,
           COALESCE(NULLIF($11::jsonb ->> 'costBudgetCents', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'llmBudgetCents', '')::bigint, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'externalApiBudgetCents', '')::bigint, 0),
           COALESCE(NULLIF($11::jsonb ->> 'costUsedCents', '')::bigint, 0),
+          NULLIF($11::jsonb ->> 'costOverrideReason', ''),
           $6
         )
         RETURNING id, updated_at
@@ -1893,20 +1897,44 @@ function buildCreateSql(
       FROM inserted CROSS JOIN audit
     `,
     cost_entry: `
-      WITH inserted AS (
-        INSERT INTO cost_entry (id, org_id, category, amount_cents, currency, metadata, created_by)
-        VALUES (
+      WITH target_build AS (
+        SELECT id
+        FROM build
+        WHERE org_id = $2
+          AND deleted_at IS NULL
+          AND (
+            NULLIF($11::jsonb ->> 'buildId', '') IS NULL
+            OR id = NULLIF($11::jsonb ->> 'buildId', '')
+          )
+        ORDER BY
+          CASE
+            WHEN id = NULLIF($11::jsonb ->> 'buildId', '') THEN 0
+            ELSE 1
+          END,
+          updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO cost_entry (
+          id, org_id, build_id, category, amount_cents, currency, metadata, created_by
+        )
+        SELECT
           $1,
           $2,
+          target_build.id,
           $3,
           COALESCE(NULLIF($11::jsonb ->> 'amountCents', '')::bigint, 0),
           $4,
           jsonb_strip_nulls(jsonb_build_object(
             'summary',
-            COALESCE(NULLIF($11::jsonb ->> 'metadataSummary', ''), NULLIF($9, ''))
+            COALESCE(NULLIF($11::jsonb ->> 'metadataSummary', ''), NULLIF($9, '')),
+            'costBucket',
+            COALESCE(NULLIF($11::jsonb ->> 'costBucket', ''), 'other'),
+            'overrideReason',
+            NULLIF($11::jsonb ->> 'overrideReason', '')
           )),
           $6
-        )
+        FROM target_build
         RETURNING id, created_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.created_at, audit.id AS audit_event_id
@@ -1992,7 +2020,7 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
     case "delta_manifest":
       return "manifest_uri = COALESCE(NULLIF($10::jsonb ->> 'manifestUri', ''), manifest_uri), manifest_hash = COALESCE(NULLIF($10::jsonb ->> 'manifestHash', ''), manifest_hash), previous_dataset_version_id = COALESCE(NULLIF($10::jsonb ->> 'previousDatasetVersionId', ''), previous_dataset_version_id), delivery_id = COALESCE(NULLIF($10::jsonb ->> 'deliveryId', ''), delivery_id), qa_report_id = COALESCE(NULLIF($10::jsonb ->> 'qaReportId', ''), qa_report_id), added_records = COALESCE(NULLIF($10::jsonb ->> 'addedRecords', '')::bigint, added_records), updated_records = COALESCE(NULLIF($10::jsonb ->> 'updatedRecords', '')::bigint, updated_records), deleted_records = COALESCE(NULLIF($10::jsonb ->> 'deletedRecords', '')::bigint, deleted_records), tombstoned_records = COALESCE(NULLIF($10::jsonb ->> 'tombstonedRecords', '')::bigint, tombstoned_records), total_records = COALESCE(NULLIF($10::jsonb ->> 'totalRecords', '')::bigint, total_records), quality_score = COALESCE(NULLIF($10::jsonb ->> 'qualityScore', '')::numeric, quality_score), rights_reverified = COALESCE(NULLIF($10::jsonb ->> 'rightsReverified', '')::boolean, rights_reverified), privacy_verified = COALESCE(NULLIF($10::jsonb ->> 'privacyVerified', '')::boolean, privacy_verified), deletion_notice_uri = COALESCE(NULLIF($10::jsonb ->> 'deletionNoticeUri', ''), deletion_notice_uri), summary = summary || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), state = $4";
     case "build":
-      return "title = $3, state = $4, eta_at = COALESCE(NULLIF($10::jsonb ->> 'etaAt', '')::timestamptz, eta_at), q_score = COALESCE(NULLIF($10::jsonb ->> 'qScore', '')::numeric, q_score), cost_budget_cents = COALESCE(NULLIF($10::jsonb ->> 'costBudgetCents', '')::bigint, cost_budget_cents), cost_used_cents = COALESCE(NULLIF($10::jsonb ->> 'costUsedCents', '')::bigint, cost_used_cents)";
+      return "title = $3, state = $4, eta_at = COALESCE(NULLIF($10::jsonb ->> 'etaAt', '')::timestamptz, eta_at), q_score = COALESCE(NULLIF($10::jsonb ->> 'qScore', '')::numeric, q_score), cost_budget_cents = COALESCE(NULLIF($10::jsonb ->> 'costBudgetCents', '')::bigint, cost_budget_cents), llm_budget_cents = COALESCE(NULLIF($10::jsonb ->> 'llmBudgetCents', '')::bigint, llm_budget_cents), external_api_budget_cents = COALESCE(NULLIF($10::jsonb ->> 'externalApiBudgetCents', '')::bigint, external_api_budget_cents), cost_used_cents = COALESCE(NULLIF($10::jsonb ->> 'costUsedCents', '')::bigint, cost_used_cents), cost_override_reason = COALESCE(NULLIF($10::jsonb ->> 'costOverrideReason', ''), cost_override_reason)";
     case "build_plan":
       return "manifest_yaml = COALESCE(NULLIF($8, ''), manifest_yaml), composed_permits = composed_permits || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($10::jsonb ->> 'permitSummary', ''))), license_blocked = COALESCE(NULLIF($10::jsonb ->> 'licenseBlocked', '')::boolean, license_blocked), state = $4";
     case "dataset":
@@ -2181,7 +2209,7 @@ function buildDeleteSql(
 function mapDbError(error: unknown) {
   if (
     error instanceof Error &&
-    /violates|constraint|invalid input|foreign key/i.test(error.message)
+    /violates|constraint|invalid input|foreign key|cost envelope/i.test(error.message)
   ) {
     return actionError("CONFLICT", error.message);
   }

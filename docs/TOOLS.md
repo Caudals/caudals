@@ -212,6 +212,16 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   `node scripts/create-pentest-tracker.mjs --dry-run` to preview the issue body
   without touching GitHub.
 
+## Cost Envelope Checks
+- `db/migrations/024_build_cost_envelopes.sql` enforces build budget envelopes
+  from append-only `cost_entry` rows. Cost entries above the hard build budget,
+  LLM sub-budget, or external API sub-budget must carry an override reason; the
+  trigger opens alerts and audit rows for soft thresholds, overrides, and margin
+  retrospectives.
+- Validate changes with a disposable Postgres run of migration `001`, migration
+  `002`, migration `024`, a budget-overrun insert attempt, and
+  `db/rollbacks/024_build_cost_envelopes_down.sql`.
+
 ## Localization Guardrail
 For translation-impacting work run:
 - `npm run i18n:check-parity`

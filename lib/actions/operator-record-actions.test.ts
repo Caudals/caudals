@@ -289,6 +289,62 @@ describe("operator record actions", () => {
     );
   });
 
+  it("creates cost entries against build cost envelopes", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "ce_01J2COST",
+        created_at: "2026-05-10T15:09:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "operations",
+        recordType: "cost_entry",
+        title: "llm_enrichment",
+        detail: "Expanded prompt review batch.",
+        state: "USD",
+        fields: {
+          buildId: "bd_01J2BUILD",
+          costBucket: "LLM",
+          amountCents: "26000",
+          metadataSummary: "Expanded prompt review batch.",
+          overrideReason: "Buyer approved extra enrichment pass",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "ce_01J2COST",
+        moduleKey: "operations",
+        recordType: "cost_entry",
+        fields: {
+          buildId: "bd_01J2BUILD",
+          costBucket: "llm",
+          amountCents: "26000",
+          overrideReason: "Buyer approved extra enrichment pass",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    const values = queryRowsMock.mock.calls[0]?.[1];
+    expect(createSql).toContain("target_build");
+    expect(createSql).toContain("INSERT INTO cost_entry");
+    expect(createSql).toContain("$11::jsonb ->> 'costBucket'");
+    expect(createSql).toContain("$11::jsonb ->> 'overrideReason'");
+    expect(values?.[10]).toBe(
+      JSON.stringify({
+        buildId: "bd_01J2BUILD",
+        costBucket: "llm",
+        amountCents: "26000",
+        metadataSummary: "Expanded prompt review batch.",
+        overrideReason: "Buyer approved extra enrichment pass",
+      })
+    );
+  });
+
   it("updates records with optimistic conflict detection", async () => {
     await expect(
       updateOperatorRecord({
@@ -459,7 +515,10 @@ describe("operator record actions", () => {
           etaAt: "2026-05-31T09:00:00Z",
           qScore: "0.912",
           costBudgetCents: "250000",
+          llmBudgetCents: "25000",
+          externalApiBudgetCents: "15000",
           costUsedCents: "184000",
+          costOverrideReason: "Buyer approved expanded geocoding pass.",
         },
       })
     ).resolves.toMatchObject({
@@ -470,7 +529,10 @@ describe("operator record actions", () => {
         fields: {
           qScore: "0.912",
           costBudgetCents: "250000",
+          llmBudgetCents: "25000",
+          externalApiBudgetCents: "15000",
           costUsedCents: "184000",
+          costOverrideReason: "Buyer approved expanded geocoding pass.",
         },
       },
     });
@@ -507,6 +569,9 @@ describe("operator record actions", () => {
     const runSql = queryRowsMock.mock.calls[1]?.[0];
     expect(buildSql).toContain("$10::jsonb ->> 'etaAt'");
     expect(buildSql).toContain("$10::jsonb ->> 'costBudgetCents'");
+    expect(buildSql).toContain("$10::jsonb ->> 'llmBudgetCents'");
+    expect(buildSql).toContain("$10::jsonb ->> 'externalApiBudgetCents'");
+    expect(buildSql).toContain("$10::jsonb ->> 'costOverrideReason'");
     expect(runSql).toContain("$10::jsonb ->> 'externalRunId'");
     expect(runSql).toContain("$10::jsonb ->> 'retryCount'");
     expect(runSql).toContain("$10::jsonb ->> 'finishedAt'");

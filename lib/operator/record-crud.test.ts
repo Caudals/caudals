@@ -236,6 +236,16 @@ describe("operator record CRUD metadata", () => {
           kind: "integer",
           min: 0,
         }),
+        expect.objectContaining({
+          key: "llmBudgetCents",
+          kind: "integer",
+          min: 0,
+        }),
+        expect.objectContaining({
+          key: "externalApiBudgetCents",
+          kind: "integer",
+          min: 0,
+        }),
       ])
     );
     expect(getOperatorRecordFieldDescriptors("build_plan")).toEqual(
@@ -269,6 +279,10 @@ describe("operator record CRUD metadata", () => {
           key: "amountCents",
           kind: "integer",
           min: 0,
+        }),
+        expect.objectContaining({
+          key: "costBucket",
+          allowedValues: ["compute", "storage", "network", "llm", "external_api", "other"],
         }),
         expect.objectContaining({
           key: "metadataSummary",
