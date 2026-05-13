@@ -205,8 +205,8 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
 - `.github/dependabot.yml` checks npm, GitHub Actions, and Dockerfile base-image
   updates weekly.
 - `.github/workflows/deploy.yml` runs Docker Scout CVE scanning against the
-  pushed image tag and uploads SARIF to GitHub code scanning without printing
-  registry credentials.
+  pushed image tag and uploads the SARIF file as a workflow artifact without
+  printing registry credentials.
 
 ## Localization Guardrail
 For translation-impacting work run:
