@@ -7,10 +7,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
   packages: write
-  security-events: write
 
 env:
   REGISTRY: docker.io
@@ -62,8 +60,10 @@ jobs:
           only-severities: critical,high
           sarif-file: docker-scout.sarif
 
-      - name: Upload Docker Scout SARIF
+      - name: Upload Docker Scout SARIF artifact
         if: ${{ always() && hashFiles('docker-scout.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: docker-scout.sarif
+          name: docker-scout-sarif
+          path: docker-scout.sarif
+          retention-days: 30
