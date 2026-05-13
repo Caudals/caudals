@@ -20,6 +20,7 @@
 - Versioned `/v1/*` REST now exposes inline API documentation, public catalogue/version/sample reads, public brief/access intake, and buyer-scoped delivery, quote, and subscription actions behind rate limits and Better Auth where required.
 - Private observability now runs on `dokploy-network` with OpenTelemetry traces to Tempo, Docker logs to Loki through Promtail, Prometheus metrics for Tempo/Loki/Promtail/cAdvisor, and internal Grafana datasources.
 - Production operator MFA is required for non-fixture accounts: TOTP enrollment gates `/admin`, fixture accounts remain password-only for automated smoke tests, and reset-link requests are audited.
+- Vulnerability management now has weekly Dependabot checks for npm, GitHub Actions, and Dockerfile base images plus Docker Scout scans on published app images.
 
 ## Verification
 
@@ -34,6 +35,7 @@
 - Observability passed focused OpenTelemetry unit tests, full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, private stack config validation, Docker deployment, private readiness probes, Prometheus `up` scrape readback, Loki app-log readback, Tempo `v1.datasets.list` route-span readback, production route probes, and deployed public browser smoke for image `mariomedpar/caudals:938935446944336fd008f95d193d8c59886340d5`.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
+- Vulnerability management validation covers YAML parsing and targeted diff checks; Docker Scout SARIF delivery is verified by the main Docker workflow.
 
 ## Known Gaps / Next M3 Inputs
 
