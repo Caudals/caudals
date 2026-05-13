@@ -17,6 +17,9 @@ Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, 
 - Added `db/migrations/025_escalation_runbooks.sql` for section 24 escalation
   operations: canonical R-01..R-10 runbooks, top-level escalation cases,
   automatic runbook/on-call routing, alerts, and audit evidence.
+- Added `db/migrations/026_security_review_library.sql` for the M3 security
+  review library: published questionnaire answers, DPA review-path notes, and
+  security packet items backing `/security`.
 - Verified the migrations and rollbacks against a temporary `supabase/postgres:15.8.1.085` container with pgvector available.
 - Removed the remaining Supabase Storage helper path. Browser uploads now delegate to `/api/upload`, active writes/deletes use DigitalOcean Spaces, and `lib/storage/get-public-url.ts` is CDN-first while still recognizing legacy absolute object URLs already stored in records.
 - Added the Better Auth server/client scaffold and `/api/auth/[...all]` endpoint, configured for the existing PostgreSQL pool, organization membership, TOTP, passkeys, and disabled self-serve sign-up.

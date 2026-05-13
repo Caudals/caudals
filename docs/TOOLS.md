@@ -230,6 +230,14 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   `002`, migration `025`, an escalation insert, and
   `db/rollbacks/025_escalation_runbooks_down.sql` before applying to production.
 
+## Security Review Library
+- `db/migrations/026_security_review_library.sql` creates
+  `security_review_artifact` and seeds public questionnaire answers, DPA
+  review-path notes, and security packet items for `/security`.
+- Validate changes with a disposable Postgres run of migration `001`, an
+  internal organization row, migration `026`, a public artifact readback, and
+  `db/rollbacks/026_security_review_library_down.sql`.
+
 ## Localization Guardrail
 For translation-impacting work run:
 - `npm run i18n:check-parity`
