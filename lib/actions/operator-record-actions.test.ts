@@ -345,6 +345,69 @@ describe("operator record actions", () => {
     );
   });
 
+  it("creates routed escalation cases with normalized runbook fields", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "ec_01J2ESCALATION",
+        updated_at: "2026-05-10T15:10:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "escalations",
+        recordType: "escalation_case",
+        title: "Supplier delivery failure - retail receipts sample",
+        detail: "Supplier sample delivery is late and the buyer pilot date is at risk.",
+        state: "open",
+        fields: {
+          escalationKind: "Supplier_Delivery_Failure",
+          severity: "CRITICAL",
+          sourceRecordType: "Delivery",
+          sourceRecordId: "dl_01J2DELIVERY",
+          runbookKey: "r-05",
+          routedTo: "Supplier_Operations",
+          slaDueAt: "2026-05-13T17:00:00Z",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "ec_01J2ESCALATION",
+        moduleKey: "escalations",
+        recordType: "escalation_case",
+        severity: "critical",
+        fields: {
+          escalationKind: "supplier_delivery_failure",
+          severity: "critical",
+          sourceRecordType: "delivery",
+          sourceRecordId: "dl_01J2DELIVERY",
+          runbookKey: "R-05",
+          routedTo: "supplier_operations",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    const values = queryRowsMock.mock.calls[0]?.[1];
+    expect(createSql).toContain("INSERT INTO escalation_case");
+    expect(createSql).toContain("$11::jsonb ->> 'escalationKind'");
+    expect(createSql).toContain("$11::jsonb ->> 'runbookKey'");
+    expect(values?.[0]).toEqual(expect.stringMatching(/^ec_/));
+    expect(values?.[10]).toBe(
+      JSON.stringify({
+        escalationKind: "supplier_delivery_failure",
+        severity: "critical",
+        sourceRecordType: "delivery",
+        sourceRecordId: "dl_01J2DELIVERY",
+        runbookKey: "R-05",
+        routedTo: "supplier_operations",
+        slaDueAt: "2026-05-13T17:00:00Z",
+      })
+    );
+  });
+
   it("updates records with optimistic conflict detection", async () => {
     await expect(
       updateOperatorRecord({

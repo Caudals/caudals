@@ -15,7 +15,8 @@ export type WorkflowName =
   | "compliance_control_scope"
   | "enrichment_manifest"
   | "active_learning_loop"
-  | "cleanlab_qa_pass";
+  | "cleanlab_qa_pass"
+  | "escalation_case";
 
 export type WorkflowTransition = {
   from: string;
@@ -70,6 +71,7 @@ export const workflowRecordTypeMap = {
   enrichment_manifest: "enrichment_manifest",
   active_learning_loop: "active_learning_loop",
   cleanlab_qa_pass: "cleanlab_qa_pass",
+  escalation_case: "escalation_case",
 } as const satisfies Record<string, WorkflowName>;
 
 function chainTransitions(states: readonly string[]): WorkflowTransition[] {
@@ -418,6 +420,22 @@ export const workflowDefinitions = {
       { from: "requeue", to: "accepted" },
       { from: "requeue", to: "review", label: "rescan" },
       { from: "blocked", to: "draft", label: "rework" },
+    ],
+  },
+  escalation_case: {
+    name: "escalation_case",
+    states: ["open", "triaged", "mitigating", "monitoring", "resolved", "cancelled"],
+    terminalStates: ["resolved", "cancelled"],
+    transitions: [
+      { from: "open", to: "triaged" },
+      { from: "open", to: "cancelled" },
+      { from: "triaged", to: "mitigating" },
+      { from: "triaged", to: "monitoring" },
+      { from: "triaged", to: "cancelled" },
+      { from: "mitigating", to: "monitoring" },
+      { from: "mitigating", to: "resolved" },
+      { from: "monitoring", to: "resolved" },
+      { from: "monitoring", to: "mitigating", label: "reopen_mitigation" },
     ],
   },
 } satisfies Record<WorkflowName, WorkflowDefinition>;

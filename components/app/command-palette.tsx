@@ -25,6 +25,7 @@ import {
   FileText,
   FileUp,
   FolderArchive,
+  LifeBuoy,
   ListChecks,
   Search,
   Settings,
@@ -208,6 +209,7 @@ export function CommandPalette() {
         { label: t("Catalogue & Offers"), href: "/admin?module=catalogue", icon: FileUp },
         { label: t("Commercials"), href: "/admin?module=commercials", icon: CreditCard },
         { label: t("Operations"), href: "/admin?module=operations", icon: FolderArchive },
+        { label: t("Escalations"), href: "/admin?module=escalations", icon: LifeBuoy },
         { label: t("Audit"), href: "/admin?module=audit", icon: Activity },
         { label: t("Settings"), href: "/admin?module=settings", icon: Settings },
       ].map((item) => ({

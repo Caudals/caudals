@@ -55,4 +55,28 @@ describe("operator console actions", () => {
     });
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
+
+  it("accepts escalation-case transitions through the action validator", async () => {
+    const result = await validateOperatorTransition({
+      workflow: "escalation_case",
+      targetId: "ec_01J2SUPPLIERFAIL",
+      fromState: "triaged",
+      toState: "mitigating",
+      reason: "Supplier owner acknowledged R-05 recovery.",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      auditEvent: {
+        target_type: "escalation_case",
+        target_id: "ec_01J2SUPPLIERFAIL",
+        metadata: {
+          from_state: "triaged",
+          to_state: "mitigating",
+          reason: "Supplier owner acknowledged R-05 recovery.",
+        },
+      },
+      persisted: false,
+    });
+  });
 });

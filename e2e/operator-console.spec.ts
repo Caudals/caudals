@@ -19,6 +19,7 @@ const moduleTitles = [
   "Catalogue & Offers",
   "Commercials",
   "Operations",
+  "Escalations",
   "Audit",
   "Settings",
 ];
@@ -77,7 +78,7 @@ test.describe("operator console smoke", () => {
     ).toBeVisible();
 
     const moduleCards = page.locator('main a[href^="/admin?module="]');
-    await expect(moduleCards).toHaveCount(14);
+    await expect(moduleCards).toHaveCount(15);
     for (const title of moduleTitles) {
       await expect(moduleCards.filter({ hasText: title }).first()).toBeVisible();
     }

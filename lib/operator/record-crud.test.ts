@@ -440,5 +440,25 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("escalation_case")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "escalationKind",
+          allowedValues: expect.arrayContaining([
+            "privacy_incident",
+            "supplier_delivery_failure",
+            "security_event",
+          ]),
+        }),
+        expect.objectContaining({
+          key: "runbookKey",
+          allowedValues: expect.arrayContaining(["R-01", "R-05", "R-10"]),
+        }),
+        expect.objectContaining({
+          key: "severity",
+          allowedValues: ["info", "warning", "critical"],
+        }),
+      ])
+    );
   });
 });

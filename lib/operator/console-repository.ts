@@ -494,6 +494,7 @@ const transitionWorkflowTables = {
   enrichment_manifest: '"enrichment_manifest"',
   active_learning_loop: '"active_learning_loop"',
   cleanlab_qa_pass: '"cleanlab_qa_pass"',
+  escalation_case: '"escalation_case"',
 } satisfies Record<WorkflowName, string>;
 
 function buildPersistTransitionAssignments(workflow: WorkflowName) {
@@ -531,6 +532,24 @@ function buildPersistTransitionAssignments(workflow: WorkflowName) {
         approved_at = CASE
           WHEN $1 = 'ready' THEN COALESCE(approved_at, now())
           ELSE approved_at
+        END
+    `;
+  }
+
+  if (workflow === "escalation_case") {
+    return `
+        state = $1,
+        resolved_at = CASE
+          WHEN $1 = 'resolved' THEN COALESCE(resolved_at, now())
+          ELSE resolved_at
+        END,
+        resolution_summary = CASE
+          WHEN $1 = 'resolved' THEN COALESCE(
+            NULLIF($8::jsonb ->> 'reason', ''),
+            resolution_summary,
+            'Resolved through audited operator state transition'
+          )
+          ELSE resolution_summary
         END
     `;
   }
@@ -848,6 +867,13 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM cost_entry) +
       (SELECT count(*)::int FROM alert WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM run WHERE state = 'queued' AND deleted_at IS NULL)
+    UNION ALL SELECT 'escalations',
+      (SELECT count(*)::int FROM escalation_case WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM runbook WHERE state = 'active'),
+      (SELECT count(*)::int FROM escalation_case
+        WHERE deleted_at IS NULL
+          AND state NOT IN ('resolved','cancelled')
+          AND (severity = 'critical' OR sla_due_at <= now()))
     UNION ALL SELECT 'audit',
       (SELECT count(*)::int FROM audit_event) +
       (SELECT count(*)::int FROM compliance_control_scope WHERE deleted_at IS NULL),
@@ -1484,6 +1510,23 @@ const moduleWorkItemsSql = `
     FROM cost_entry ce
     UNION ALL
     SELECT
+      'escalations',
+      'escalation_case',
+      ec.id,
+      ec.title,
+      ec.state,
+      COALESCE(ec.runbook_key || ' / ' || ec.routed_to, ec.detail),
+      ec.updated_at,
+      CASE
+        WHEN ec.severity = 'critical' OR ec.sla_due_at <= now() THEN 'critical'
+        WHEN ec.state IN ('open','triaged','mitigating','monitoring') THEN 'warning'
+        ELSE 'info'
+      END,
+      COALESCE('Run ' || ec.runbook_key, 'Review escalation')
+    FROM escalation_case ec
+    WHERE ec.deleted_at IS NULL
+    UNION ALL
+    SELECT
       'audit',
       'audit_event',
       ae.id,
@@ -1905,6 +1948,20 @@ const moduleWorkItemsSql = `
           ))
           FROM compliance_control_scope ccs
           WHERE ccs.id = raw_work_items.id
+        )
+        WHEN record_type = 'escalation_case' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'escalationKind', ec.escalation_kind,
+            'severity', ec.severity,
+            'sourceRecordType', ec.source_record_type,
+            'sourceRecordId', ec.source_record_id,
+            'runbookKey', ec.runbook_key,
+            'routedTo', ec.routed_to,
+            'slaDueAt', ec.sla_due_at,
+            'resolutionSummary', ec.resolution_summary
+          ))
+          FROM escalation_case ec
+          WHERE ec.id = raw_work_items.id
         )
         ELSE '{}'::jsonb
       END AS field_values

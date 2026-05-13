@@ -144,6 +144,12 @@ const adminNav: NavGroup[] = [
         query: { module: "operations" },
       },
       {
+        title: "Escalations",
+        icon: LifeBuoy,
+        href: "/admin?module=escalations",
+        query: { module: "escalations" },
+      },
+      {
         title: "Audit",
         icon: CheckCircle,
         href: "/admin?module=audit",

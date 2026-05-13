@@ -222,6 +222,14 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   `002`, migration `024`, a budget-overrun insert attempt, and
   `db/rollbacks/024_build_cost_envelopes_down.sql`.
 
+## Escalation Runbooks
+- `db/migrations/025_escalation_runbooks.sql` seeds canonical R-01..R-10
+  runbooks and creates `escalation_case`. Inserts auto-route by kind, open an
+  `alert`, and write an `audit_event` for the selected runbook/on-call team.
+- Validate changes with a disposable Postgres run of migration `001`, migration
+  `002`, migration `025`, an escalation insert, and
+  `db/rollbacks/025_escalation_runbooks_down.sql` before applying to production.
+
 ## Localization Guardrail
 For translation-impacting work run:
 - `npm run i18n:check-parity`

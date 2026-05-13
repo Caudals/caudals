@@ -70,6 +70,7 @@ const ids = {
   invoice: fixtureId("iv", 1),
   payout: fixtureId("py", 1),
   costEntry: fixtureId("ce", 1),
+  escalationCase: fixtureId("ec", 1),
   alert: fixtureId("al", 1),
   integration: fixtureId("in", 1),
   supplierPayoutIntegration: fixtureId("in", 2),
@@ -176,6 +177,7 @@ export async function seedOperatorConsoleFixtures() {
     await seedOpportunitiesAndRights(client);
     await seedBuilds(client);
     await seedDatasetAndCommercials(client);
+    await seedEscalationCases(client);
     await seedOperatorElevation(client);
     await seedComplianceControlScopes(client);
     await seedAudit(client);
@@ -1865,7 +1867,7 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         )
         VALUES (
           $1, $2, $3, $4, $5, 'USD',
-          jsonb_build_object('unit', 'fixture_build', 'costBucket', $6),
+          jsonb_build_object('unit', 'fixture_build', 'costBucket', $6::text),
           $7, $8
         )
         ON CONFLICT (id) DO UPDATE SET
@@ -1996,6 +1998,68 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         deleted_at = NULL
     `,
     [ids.signingKey, ids.tenantOrg, Buffer.from("fixture-private-key"), FIXTURE_CREATED_AT, ids.operator]
+  );
+}
+
+async function seedEscalationCases(client: PoolClient) {
+  await query(
+    client,
+    `
+      INSERT INTO escalation_case (
+        id,
+        org_id,
+        title,
+        escalation_kind,
+        severity,
+        source_record_type,
+        source_record_id,
+        detail,
+        runbook_key,
+        routed_to,
+        state,
+        sla_due_at,
+        created_at,
+        updated_at,
+        created_by
+      )
+      VALUES (
+        $1,
+        $2,
+        'Supplier delivery failure - retail receipts sample',
+        'supplier_delivery_failure',
+        'critical',
+        'delivery',
+        $3,
+        'Supplier sample delivery is late and the buyer pilot date is at risk.',
+        NULL,
+        NULL,
+        'triaged',
+        now() + interval '4 hours',
+        $4,
+        $4,
+        $5
+      )
+      ON CONFLICT (id) DO UPDATE SET
+        title = EXCLUDED.title,
+        escalation_kind = EXCLUDED.escalation_kind,
+        severity = EXCLUDED.severity,
+        source_record_type = EXCLUDED.source_record_type,
+        source_record_id = EXCLUDED.source_record_id,
+        detail = EXCLUDED.detail,
+        runbook_key = EXCLUDED.runbook_key,
+        routed_to = EXCLUDED.routed_to,
+        state = EXCLUDED.state,
+        sla_due_at = EXCLUDED.sla_due_at,
+        updated_at = EXCLUDED.updated_at,
+        deleted_at = NULL
+    `,
+    [
+      ids.escalationCase,
+      ids.tenantOrg,
+      ids.delivery,
+      FIXTURE_CREATED_AT,
+      ids.operator,
+    ]
   );
 }
 

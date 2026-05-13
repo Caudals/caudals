@@ -33,6 +33,7 @@ const workflowNameSchema = z.enum([
   "enrichment_manifest",
   "active_learning_loop",
   "cleanlab_qa_pass",
+  "escalation_case",
 ]);
 
 const transitionSchema = z.object({

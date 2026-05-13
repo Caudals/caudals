@@ -21,6 +21,7 @@ describe("operator workflow state machines", () => {
       "delta_manifest",
       "dsar",
       "enrichment_manifest",
+      "escalation_case",
       "label_batch",
       "modality_contract",
       "release_documentation_bundle",
@@ -118,6 +119,9 @@ describe("operator workflow state machines", () => {
     expect(getWorkflowNameForRecordType("cleanlab_qa_pass")).toBe(
       "cleanlab_qa_pass"
     );
+    expect(getWorkflowNameForRecordType("escalation_case")).toBe(
+      "escalation_case"
+    );
     expect(getWorkflowNameForRecordType("subscription")).toBe("subscription");
     expect(getWorkflowNameForRecordType("delta_manifest")).toBe("delta_manifest");
     expect(getWorkflowNameForRecordType("qa_report")).toBeNull();
@@ -169,6 +173,11 @@ describe("operator workflow state machines", () => {
     expect(getNextWorkflowTransitions("delta_manifest", "ready")).toEqual([
       { from: "ready", to: "published" },
       { from: "ready", to: "blocked" },
+    ]);
+    expect(getNextWorkflowTransitions("escalation_case", "triaged")).toEqual([
+      { from: "triaged", to: "mitigating" },
+      { from: "triaged", to: "monitoring" },
+      { from: "triaged", to: "cancelled" },
     ]);
   });
 });
