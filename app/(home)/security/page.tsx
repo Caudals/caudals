@@ -14,6 +14,9 @@ import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { buildPublicMetadata } from "@/lib/seo";
 import { getServerTranslator } from "@/lib/i18n/server";
+import { getPublicSecurityReviewData } from "@/lib/security/public-security-review";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = buildPublicMetadata({
   title: "Security | Caudals",
@@ -68,40 +71,11 @@ const controlAreas = [
   },
 ];
 
-const questionnaire = [
-  {
-    question: "How is buyer and supplier data isolated?",
-    answer:
-      "Production data access is scoped through Postgres RLS and server-side session context. Public routes never expose operator-only tables.",
-  },
-  {
-    question: "What evidence is attached to a dataset release?",
-    answer:
-      "Release bundles include package manifests, Croissant JSON-LD, Article 10 notes, validation status, QA evidence, and mirror metadata when public distribution is approved.",
-  },
-  {
-    question: "How are incidents routed?",
-    answer:
-      "Operators can open escalation cases for privacy, provenance, supplier, buyer, security, or platform events. Cases route to the mapped runbook and create alert plus audit evidence.",
-  },
-  {
-    question: "What is still gated before formal security review?",
-    answer:
-      "Sentry error delivery and external PagerDuty routing are code-ready but require production DSN and contact-point credentials before they can be marked live.",
-  },
-];
-
-const reviewPacket = [
-  "Security posture summary",
-  "Standard DPA review path",
-  "SOC 2 and ISO 27001 control scope",
-  "Dataset provenance and PII handling notes",
-  "Incident response and escalation runbooks",
-  "Security questionnaire answers",
-];
-
 export default async function SecurityPage() {
-  const t = await getServerTranslator();
+  const [t, reviewData] = await Promise.all([
+    getServerTranslator(),
+    getPublicSecurityReviewData(),
+  ]);
 
   return (
     <div className="min-h-screen bg-white text-gray-950">
@@ -237,8 +211,8 @@ export default async function SecurityPage() {
             </p>
           </div>
           <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
-            {questionnaire.map((item) => (
-              <div key={item.question} className="p-6">
+            {reviewData.questionnaire.map((item) => (
+              <div key={item.id} className="p-6">
                 <h3 className="text-base font-bold text-black">
                   {t(item.question)}
                 </h3>
@@ -267,9 +241,9 @@ export default async function SecurityPage() {
               </Button>
             </div>
             <div className="grid gap-px overflow-hidden rounded-lg bg-white/10">
-              {reviewPacket.map((item) => (
-                <div key={item} className="bg-white/[0.06] px-4 py-3 text-sm font-medium text-gray-100">
-                  {t(item)}
+              {reviewData.reviewPacket.map((item) => (
+                <div key={item.id} className="bg-white/[0.06] px-4 py-3 text-sm font-medium text-gray-100">
+                  {t(item.title)}
                 </div>
               ))}
             </div>

@@ -24,6 +24,7 @@
 - Build cost envelopes now roll append-only cost ledger entries into build totals, alert at 80%, require explicit override reasons above hard build/LLM/API budgets, and flag >15% margin retrospectives.
 - Internal escalation runbooks now have canonical R-01..R-10 records, top-level `escalation_case` routing, automatic alert/audit creation, and an Operator Console Escalations module.
 - Public security review is now reachable at `/security` in landing mode, with buyer-facing control evidence, readiness caveats, and DPA/questionnaire follow-up routed to `/contact`.
+- The public security review page is now backed by `security_review_artifact`, an RLS-scoped library of published questionnaire answers, DPA review-path notes, and evidence packet items.
 
 ## Verification
 
@@ -39,6 +40,7 @@
 - Build cost-envelope validation passed focused/full Vitest, typecheck, lint, i18n parity, production build, targeted diff checks, disposable migration/rollback validation, disposable SQL behavior checks for soft alerts, hard budget blocking, override alerts, and LLM sub-budget blocking, and live migration/readback.
 - Escalation runbook validation passed focused/full Vitest, typecheck, lint, i18n parity, production build, disposable full-chain migration and rollback checks, fixture seed/readback, direct SQL trigger readback for R-05 routing plus alert/audit creation, and authenticated local production-server operator-console smoke.
 - Public security review validation passed landing-mode route/SEO unit tests, full Vitest, typecheck, lint, i18n parity, heap-bounded production build, landing-mode public Playwright route smoke, and desktop/mobile visual inspection.
+- Security review library validation passed disposable migration/readback/rollback, focused/full Vitest, typecheck, lint, i18n parity, and heap-bounded production build.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
