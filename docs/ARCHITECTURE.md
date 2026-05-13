@@ -58,6 +58,10 @@ While `LANDING_MODE=true`, non-public marketplace and app routes must remain una
 - `compliance_control_scope` records store SOC 2 / ISO 27001 control scope,
   framework mappings, owner, evidence links, review cadence, and readiness state
   for operator-managed governance review.
+- Build cost envelopes are enforced from append-only `cost_entry` rows: spend
+  rolls into build totals, 80% thresholds open alerts, hard budget and LLM/API
+  sub-budget overruns require an explicit override reason, and >15% overruns
+  flag margin retrospectives.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 

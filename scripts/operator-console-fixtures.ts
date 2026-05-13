@@ -1855,19 +1855,37 @@ async function seedDatasetAndCommercials(client: PoolClient) {
     [ids.payout, ids.tenantOrg, ids.supplierOrg, FIXTURE_CREATED_AT, ids.operator]
   );
 
-  await query(
-    client,
-    `
-      INSERT INTO cost_entry (id, org_id, build_id, category, amount_cents, currency, metadata, created_at, created_by)
-      VALUES ($1, $2, $3, 'label_review', 42000, 'USD', '{"unit":"batch"}'::jsonb, $4, $5)
-      ON CONFLICT (id) DO UPDATE SET
-        build_id = EXCLUDED.build_id,
-        category = EXCLUDED.category,
-        amount_cents = EXCLUDED.amount_cents,
-        metadata = EXCLUDED.metadata
-    `,
-    [ids.costEntry, ids.tenantOrg, fixtureBuilds[0].id, FIXTURE_CREATED_AT, ids.operator]
-  );
+  for (const [index, build] of fixtureBuilds.entries()) {
+    await query(
+      client,
+      `
+        INSERT INTO cost_entry (
+          id, org_id, build_id, category, amount_cents, currency, metadata,
+          created_at, created_by
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, 'USD',
+          jsonb_build_object('unit', 'fixture_build', 'costBucket', $6),
+          $7, $8
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          build_id = EXCLUDED.build_id,
+          category = EXCLUDED.category,
+          amount_cents = EXCLUDED.amount_cents,
+          metadata = EXCLUDED.metadata
+      `,
+      [
+        fixtureId("ce", index + 1),
+        ids.tenantOrg,
+        build.id,
+        index === 0 ? "label_review" : "budget_baseline",
+        build.usedCents,
+        index === 0 ? "compute" : "other",
+        FIXTURE_CREATED_AT,
+        ids.operator,
+      ]
+    );
+  }
 
   await query(
     client,
