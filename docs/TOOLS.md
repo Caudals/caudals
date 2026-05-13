@@ -207,6 +207,10 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
 - `.github/workflows/deploy.yml` runs Docker Scout CVE scanning against the
   pushed image tag and uploads the SARIF file as a workflow artifact without
   printing registry credentials.
+- `.github/workflows/security-pentest-schedule.yml` opens or updates a quarterly
+  penetration-test tracker issue for Security/CTO execution. Run
+  `node scripts/create-pentest-tracker.mjs --dry-run` to preview the issue body
+  without touching GitHub.
 
 ## Localization Guardrail
 For translation-impacting work run:

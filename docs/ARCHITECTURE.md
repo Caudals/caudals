@@ -109,7 +109,8 @@ Target Phase 1 operations context:
   is a break-glass/local-development override, not the production posture.
 - Vulnerability management runs through weekly Dependabot checks for npm,
   GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
-  the Docker publish workflow.
+  the Docker publish workflow. A quarterly scheduled GitHub workflow opens or
+  updates the penetration-test tracker issue for Security/CTO execution.
 - Migration report: `docs/migrations/supabase-to-postgres.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.
