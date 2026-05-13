@@ -121,8 +121,9 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 ## Observability
 - Sentry initialization is registered through Next.js instrumentation for server,
   edge, and client runtime errors.
-- Sentry is disabled until `SENTRY_DSN` is configured. Default sampling is `0`
-  for traces/profiles unless environment variables raise it.
+- Sentry is disabled until `SENTRY_DSN` or the server-only
+  `SENTRY_DSN_FILE` Docker secret fallback is configured. Default sampling is
+  `0` for traces/profiles unless environment variables raise it.
 - The private Docker Swarm observability stack is defined in
   `infra/observability/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.

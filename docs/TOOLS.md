@@ -129,9 +129,14 @@ Install caveat:
 ## Observability Runtime
 - Sentry is wired through `instrumentation.ts`, `instrumentation-client.ts`,
   `sentry.server.config.ts`, `sentry.edge.config.ts`, and
-  `lib/observability/sentry-config.ts`.
-- Sentry stays disabled unless `SENTRY_DSN` is set. Keep `sendDefaultPii=false`
+  `lib/observability/sentry-config.ts`; server runtime DSN resolution lives in
+  `lib/observability/sentry-server-config.ts`.
+- Sentry stays disabled unless `SENTRY_DSN` or the server-only
+  `SENTRY_DSN_FILE` Docker secret fallback is set. Keep `sendDefaultPii=false`
   unless a privacy review explicitly approves a change.
+- `npm run observability:sentry-status -- --fail-on-disabled` reports whether
+  error delivery is active without printing the DSN, and fails release gates
+  when neither DSN source is configured.
 - OpenTelemetry traces are registered from
   `lib/observability/opentelemetry.ts`. Set
   `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://caudals-observability-tempo:4318/v1/traces`
@@ -258,6 +263,7 @@ Operational env controls:
 - `RELEASE_DOCUMENTATION_ENABLED` (default enabled; set `false` to block generated release documentation validation)
 - `COMPLIANCE_CONTROL_SCOPING_ENABLED` (default enabled; set `false` to block SOC 2 / ISO 27001 scoping validation)
 - `SENTRY_DSN` (enables Sentry when non-empty)
+- `SENTRY_DSN_FILE` (server-only Docker secret-file fallback for `SENTRY_DSN`; `SENTRY_DSN` wins when both are set)
 - `SENTRY_ENVIRONMENT`
 - `SENTRY_RELEASE`
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
