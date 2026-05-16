@@ -27,6 +27,7 @@
     "fixtures:ensure": "tsx scripts/ensure-test-fixtures.ts",
     "migrate:supabase-auth": "tsx scripts/migrate-supabase-auth.ts",
     "migrate:public-funnel": "tsx scripts/migrate-public-funnel-data.ts",
+    "platform:completion-status": "bash scripts/check-platform-completion.sh",
     "operator:security-status": "tsx scripts/check-operator-security-enrollment.ts",
     "observability:sentry-status": "node scripts/check-sentry-config.mjs",
     "analytics:check-surface": "tsx scripts/check-product-analytics-surface.ts",

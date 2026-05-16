@@ -6,6 +6,10 @@ CURL_IMAGE="${CAUDALS_OBSERVABILITY_CURL_IMAGE:-curlimages/curl:8.11.1}"
 OUTPUT_FILE="$(mktemp)"
 trap 'rm -f "$OUTPUT_FILE"' EXIT
 
+if ! docker image inspect "$CURL_IMAGE" >/dev/null 2>&1; then
+  docker pull -q "$CURL_IMAGE" >/dev/null
+fi
+
 probe() {
   local name="$1"
   local url="$2"
