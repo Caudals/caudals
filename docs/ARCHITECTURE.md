@@ -4,13 +4,12 @@
 Caudals is a B2B AI dataset marketplace and managed data operations platform. The public product promise is simple: companies bring proprietary or difficult-to-source data, companies buy AI-ready datasets, and Caudals performs the operational work in between.
 
 Current production scope is deliberately limited:
-- Public marketing and demand capture: `/`, `/contact`, `/security`, `/blog`, `/blog/*`
-- Public catalogue: `/catalogue` for the curated M3 dataset listing subset
-- Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`, and versioned `/v1/*` catalogue/intake REST
+- Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
+- Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
-- Private buyer access: `/buyer` for read-only delivery, subscription,
+- Hidden buyer access: `/buyer` for read-only delivery, subscription,
   integration, billing, scorecard, and manifest review
-- Private supplier access: `/supplier` for managed asset declaration, signed
+- Hidden supplier access: `/supplier` for managed asset declaration, signed
   sample upload, build participation, revenue-share payout, and Stripe Connect
   status review
 
@@ -20,7 +19,10 @@ Future marketplace scope:
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-While `LANDING_MODE=true`, non-public marketplace and app routes must remain unavailable except the public M3 `/catalogue` listing subset, the private operator auth/admin surface, the relaunched read-only buyer delivery workspace, and the M2 managed supplier portal.
+While `LANDING_MODE=true`, marketplace and app routes must remain unavailable
+except the private operator auth/admin surface. `/catalogue`, `/security`,
+`/v1/*`, `/buyer`, and `/supplier` are implemented for non-landing or
+authenticated review but stay hidden in production until explicit clearance.
 
 ## Application Stack
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript

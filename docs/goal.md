@@ -99,6 +99,8 @@ claude --model claude-opus-4-7 --thinking-budget xhigh --skill frontend-design \
 - **Keep tests and validations minimal and short.** Test only what would silently break production. Iterate fast.
 - **Push directly to the deployment branch when a slice is finished. Do not open PRs.** Commits land straight; Dokploy redeploys.
 - Use claude code with frontend-design skill for UI UX design. Make sure the dashboards are professional, polished, and verify the interface visually.
+- Inspect visually the dashboards/consoles once you build them. Make sure every page has a professional UI UX and there are no design bugs. Make sure the design is correct, the elements are not misaligned on the page, and the dashboards are generally user-friendly.
+- **Keep the /catalog route and top nav bar element hidden** (ignore the blueprint). Develop all the logic for the catalog, but keep it hidden in the top menu bar of the page. Remember that LANDING_MODE=true in the deployment.
 
 ## Stop and Ask Only If
 

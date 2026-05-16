@@ -343,9 +343,10 @@ Operational env controls:
 - `/supplier` is the managed supplier portal exception; it stays authenticated
   and limited to supplier-owned asset declaration, signed sample upload, build
   status, revenue-share payout, and Stripe Connect review while `/contributor`
-  remains blocked.
-- `/catalogue` is the M3 public catalogue exception; it stays read-only,
-  shows only active public listings, and sends access requests to `/contact`.
+  remains blocked outside landing mode. It is blocked when `LANDING_MODE=true`.
+- `/catalogue` is the M3 catalogue surface; it stays read-only, shows only
+  active public listings, sends access requests to `/contact`, and is blocked
+  when `LANDING_MODE=true`.
 - `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.
