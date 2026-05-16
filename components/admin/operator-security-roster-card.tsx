@@ -57,7 +57,7 @@ export function OperatorSecurityRosterCard({
           </div>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
             {t(
-              "Tracks required Better Auth MFA enrollment for production operator accounts. Fixture accounts stay password-only for smoke tests."
+              "Tracks optional Better Auth MFA and passkey hardening for operator accounts. Password-only access is allowed by policy."
             )}
           </p>
         </div>

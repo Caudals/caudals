@@ -317,14 +317,14 @@ describe("operator console repository", () => {
             module_key: "audit",
             record_type: "compliance_control_scope",
             id: "cc_01J2CONTROL",
-            title: "Operator access, MFA readiness, and JIT elevation",
+            title: "Operator access, optional MFA, and JIT elevation",
             state: "ready",
             detail: "identity_access / implemented",
             updated_at: "2026-05-10T13:15:30.000Z",
             severity: "info",
             next_action: "Review compliance scope",
             field_values: {
-              controlKey: "access-control-jit-mfa",
+              controlKey: "access-control-jit-optional-mfa",
               controlFamily: "identity_access",
               implementationStatus: "implemented",
               soc2Criteria: "CC6.1, CC7.2",
@@ -623,7 +623,7 @@ describe("operator console repository", () => {
     ).toMatchObject({
       recordType: "compliance_control_scope",
       fields: {
-        controlKey: "access-control-jit-mfa",
+        controlKey: "access-control-jit-optional-mfa",
         controlFamily: "identity_access",
         implementationStatus: "implemented",
         soc2Criteria: "CC6.1, CC7.2",
