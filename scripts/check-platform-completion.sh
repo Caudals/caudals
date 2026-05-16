@@ -89,6 +89,55 @@ check_routes() {
   done
 }
 
+check_navigation() {
+  if ! require_command curl "routing.nav"; then
+    return
+  fi
+
+  if ! require_command node "routing.nav"; then
+    return
+  fi
+
+  local output
+
+  output="$(
+    curl -k -s "$BASE_URL/" | node -e '
+      let html = "";
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (chunk) => {
+        html += chunk;
+      });
+      process.stdin.on("end", () => {
+        const header = html.match(/<header\b[\s\S]*?<\/header>/i)?.[0] ?? "";
+        const nav = header.match(/<nav\b[^>]*>([\s\S]*?)<\/nav>/i)?.[1] ?? "";
+        const links = Array.from(
+          nav.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi),
+          (match) => ({
+            href: match[1],
+            label: match[2].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(),
+          }),
+        );
+        const expected = [
+          { href: "/contact", label: "Contacto" },
+          { href: "/blog", label: "Blog" },
+        ];
+        const actual = JSON.stringify(links);
+        if (actual !== JSON.stringify(expected)) {
+          process.stderr.write(`expected ${JSON.stringify(expected)}, got ${actual}`);
+          process.exit(1);
+        }
+        process.stdout.write("links=Contacto:/contact,Blog:/blog");
+      });
+    ' 2>&1
+  )"
+
+  if [[ "$?" -eq 0 ]]; then
+    mark_ok "routing.nav" "$output"
+  else
+    mark_fail "routing.nav" "$(printf "%s" "$output" | tr "\n" " ")"
+  fi
+}
+
 check_sentry() {
   local app_container="$1"
   local output
@@ -253,6 +302,7 @@ main() {
   check_deployed_service
 
   check_routes
+  check_navigation
 
   if [[ -n "$APP_CONTAINER" ]]; then
     check_sentry "$APP_CONTAINER"
