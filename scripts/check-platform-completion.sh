@@ -6,6 +6,7 @@ POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
+ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
 
 failures=0
 APP_CONTAINER=""
@@ -177,15 +178,25 @@ check_observability_stack() {
 }
 
 check_alert_routing() {
-  if [[ ! -f "$ALERTMANAGER_CONFIG" ]]; then
-    mark_fail "observability.alert_routing" "$ALERTMANAGER_CONFIG not found"
-    return
+  local alertmanager_container config_source config_text
+
+  alertmanager_container="$(first_service_container "$ALERTMANAGER_SERVICE")"
+  if [[ -n "$alertmanager_container" ]]; then
+    config_source="$alertmanager_container:/etc/alertmanager/alertmanager.yml"
+    config_text="$(docker exec "$alertmanager_container" cat /etc/alertmanager/alertmanager.yml 2>/dev/null || true)"
+  else
+    config_source="$ALERTMANAGER_CONFIG"
+    if [[ ! -f "$ALERTMANAGER_CONFIG" ]]; then
+      mark_fail "observability.alert_routing" "$ALERTMANAGER_CONFIG not found"
+      return
+    fi
+    config_text="$(cat "$ALERTMANAGER_CONFIG")"
   fi
 
-  if grep -Eq "pagerduty_configs|webhook_configs|slack_configs|email_configs|opsgenie_configs|msteams_configs" "$ALERTMANAGER_CONFIG"; then
-    mark_ok "observability.alert_routing" "$ALERTMANAGER_CONFIG defines an external receiver"
+  if grep -Eq "pagerduty_configs|webhook_configs|slack_configs|email_configs|opsgenie_configs|msteams_configs" <<<"$config_text"; then
+    mark_ok "observability.alert_routing" "$config_source defines an external receiver"
   else
-    mark_fail "observability.alert_routing" "$ALERTMANAGER_CONFIG has only local/no-op receivers"
+    mark_fail "observability.alert_routing" "$config_source has only local/no-op receivers"
   fi
 }
 

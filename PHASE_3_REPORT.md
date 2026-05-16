@@ -26,6 +26,7 @@
 - Public security review is implemented at `/security` for non-landing environments, with buyer-facing control evidence, readiness caveats, and DPA/questionnaire follow-up routed to `/contact`; current production `LANDING_MODE` keeps it hidden until explicit clearance.
 - The public security review page is now backed by `security_review_artifact`, an RLS-scoped library of published questionnaire answers, DPA review-path notes, and evidence packet items.
 - Added a VPS-side platform completion gate, `npm run platform:completion-status`, that aggregates the final production checks for landing-mode routing, Sentry, operator MFA, private observability readiness, external alert routing, and the current-quarter pentest tracker.
+- Alertmanager deployment now supports rendering a private external webhook receiver from `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or `CAUDALS_ALERTMANAGER_WEBHOOK_URL` without committing the credential.
 
 ## Verification
 
