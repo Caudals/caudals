@@ -1,15 +1,22 @@
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
+  BadgeCheck,
   CheckCircle2,
   Clock3,
   Database,
   FileText,
+  Gauge,
   KeyRound,
   Layers3,
   ListChecks,
+  LockKeyhole,
+  Route,
+  ServerCog,
   ShieldCheck,
   Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { CommandPaletteButton } from "@/components/app/command-palette-button";
 import { OperatorElevationCard } from "@/components/admin/operator-elevation-card";
@@ -25,8 +32,9 @@ import type {
   BuildGate,
   DemoBuild,
   OperatorConsoleSnapshot,
-  OperatorModuleSummary,
   OperatorModuleKey,
+  OperatorModuleSummary,
+  OperatorServiceReadiness,
 } from "@/lib/operator/console-snapshot";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +45,35 @@ type OperatorConsoleProps = {
   snapshot: OperatorConsoleSnapshot;
   t: Translator;
 };
+
+type ModuleGroup = {
+  title: string;
+  description: string;
+  keys: OperatorModuleKey[];
+};
+
+const moduleGroups: ModuleGroup[] = [
+  {
+    title: "Intake",
+    description: "Demand, supply, and triage.",
+    keys: ["pipeline", "leads", "suppliers", "buyers"],
+  },
+  {
+    title: "Dataset factory",
+    description: "Builds, releases, and quality.",
+    keys: ["builds", "datasets", "labeling", "quality", "privacy"],
+  },
+  {
+    title: "Go-to-market",
+    description: "Offers, money, service operations.",
+    keys: ["catalogue", "commercials", "operations", "escalations"],
+  },
+  {
+    title: "Control plane",
+    description: "Audit evidence and console settings.",
+    keys: ["audit", "settings"],
+  },
+];
 
 function gateClassName(state: BuildGate["state"]) {
   if (state === "pass") {
@@ -58,12 +95,83 @@ function statusLabel(state: BuildGate["state"], t: Translator) {
   return t("Pending");
 }
 
+function readinessClassName(state: OperatorServiceReadiness["state"]) {
+  if (state === "ready") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+  if (state === "blocked") {
+    return "border-red-200 bg-red-50 text-red-800";
+  }
+  return "border-amber-200 bg-amber-50 text-amber-800";
+}
+
+function readinessLabel(state: OperatorServiceReadiness["state"], t: Translator) {
+  if (state === "ready") return t("Ready");
+  if (state === "blocked") return t("Blocked");
+  return t("Review");
+}
+
+function moduleHealthClassName(blockedRecords: number) {
+  if (blockedRecords >= 4) {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (blockedRecords > 0) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function formatGeneratedAt(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function Metric({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  tone: "amber" | "red" | "emerald" | "blue";
+}) {
+  const toneClassName = {
+    amber: "bg-amber-50 text-amber-700 border-amber-100",
+    red: "bg-red-50 text-red-700 border-red-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    blue: "bg-blue-50 text-blue-700 border-blue-100",
+  }[tone];
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
+      <div
+        className={cn(
+          "mb-4 flex h-9 w-9 items-center justify-center rounded-md border",
+          toneClassName
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-2xl font-bold text-gray-950">{value}</p>
+      <p className="mt-1 text-xs font-medium uppercase text-gray-400">
+        {label}
+      </p>
+    </div>
+  );
 }
 
 function ModuleCard({
@@ -79,42 +187,40 @@ function ModuleCard({
     <a
       href={`/admin?module=${module.key}`}
       className={cn(
-        "group flex min-h-[178px] flex-col justify-between rounded-xl border bg-white p-4 transition-colors hover:border-gray-300",
-        active ? "border-gray-900 ring-1 ring-gray-900/5" : "border-gray-200"
+        "group block rounded-lg border bg-white p-3 transition-colors hover:border-gray-400",
+        active ? "border-gray-950 ring-1 ring-gray-950/10" : "border-gray-200"
       )}
     >
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-950">{t(module.title)}</p>
-            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-              {t(module.description)}
-            </p>
-          </div>
-          <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-700" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-gray-950">
+            {t(module.title)}
+          </p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+            {t(module.description)}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {module.anchorRecords.slice(0, 3).map((record) => (
-            <Badge
-              key={record}
-              variant="outline"
-              className="rounded-full border-gray-200 bg-gray-50 px-2 font-mono text-[10px] text-gray-600"
-            >
-              {record}
-            </Badge>
-          ))}
-        </div>
+        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-700" />
       </div>
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
-        <span className="font-medium text-gray-900">
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {module.anchorRecords.slice(0, 3).map((record) => (
+          <Badge
+            key={record}
+            variant="outline"
+            className="rounded-md border-gray-200 bg-gray-50 px-1.5 font-mono text-[10px] text-gray-600"
+          >
+            {record}
+          </Badge>
+        ))}
+      </div>
+      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
+        <span className="font-medium text-gray-700">
           {module.totalRecords} {t("records")}
         </span>
         <span
           className={cn(
-            "rounded-full px-2 py-1 font-medium",
-            module.blockedRecords > 0
-              ? "bg-amber-50 text-amber-700"
-              : "bg-emerald-50 text-emerald-700"
+            "rounded-full border px-2 py-0.5 font-medium",
+            moduleHealthClassName(module.blockedRecords)
           )}
         >
           {module.blockedRecords} {t("blocked")}
@@ -124,8 +230,366 @@ function ModuleCard({
   );
 }
 
+function ModuleDirectory({
+  activeModule,
+  modules,
+  t,
+}: {
+  activeModule: OperatorModuleSummary;
+  modules: OperatorModuleSummary[];
+  t: Translator;
+}) {
+  const moduleMap = new Map(modules.map((module) => [module.key, module]));
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-950">
+            {t("Module directory")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t("Workflow phase")}
+          </p>
+        </div>
+        <Badge
+          variant="outline"
+          className="rounded-full border-gray-200 bg-gray-50 text-gray-600"
+        >
+          {modules.length} {t("Modules")}
+        </Badge>
+      </div>
+      <div className="mt-4 space-y-5">
+        {moduleGroups.map((group) => (
+          <div key={group.title}>
+            <div className="mb-2">
+              <p className="text-xs font-bold uppercase text-gray-950">
+                {t(group.title)}
+              </p>
+              <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                {t(group.description)}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              {group.keys.map((key) => {
+                const moduleSummary = moduleMap.get(key);
+
+                return moduleSummary ? (
+                  <ModuleCard
+                    key={moduleSummary.key}
+                    module={moduleSummary}
+                    active={moduleSummary.key === activeModule.key}
+                    t={t}
+                  />
+                ) : null;
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ServiceReadinessPanel({
+  readiness,
+  t,
+}: {
+  readiness: OperatorServiceReadiness[];
+  t: Translator;
+}) {
+  const readyCount = readiness.filter((item) => item.state === "ready").length;
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <ServerCog className="h-4 w-4 text-emerald-700" />
+            <p className="text-sm font-semibold text-gray-950">
+              {t("Service readiness")}
+            </p>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t(
+              "Production services mapped to owners, evidence, and live runtime signals."
+            )}
+          </p>
+        </div>
+        <Badge className="rounded-full bg-gray-950 text-white">
+          {readyCount}/{readiness.length} {t("Ready")}
+        </Badge>
+      </div>
+      <div className="mt-4 divide-y divide-gray-100">
+        {readiness.map((item) => (
+          <div
+            id={item.id}
+            key={item.id}
+            className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto]"
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-gray-950">
+                  {t(item.title)}
+                </p>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "rounded-full px-2 text-[10px] uppercase",
+                    readinessClassName(item.state)
+                  )}
+                >
+                  {readinessLabel(item.state, t)}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {t(item.description)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
+                <span>
+                  <span className="font-semibold text-gray-700">
+                    {t("Owner")}:
+                  </span>{" "}
+                  {item.owner}
+                </span>
+                <span>
+                  <span className="font-semibold text-gray-700">
+                    {t("Evidence")}:
+                  </span>{" "}
+                  <span className="font-mono">{item.evidence}</span>
+                </span>
+              </div>
+            </div>
+            <a
+              href={`#${item.id}`}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-400 hover:bg-white"
+            >
+              {t("Open")}
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FeaturedBuildLane({
+  build,
+  t,
+}: {
+  build: DemoBuild;
+  t: Translator;
+}) {
+  const budgetPct = Math.min(
+    100,
+    Math.round((build.costUsedUsd / build.budgetUsd) * 100)
+  );
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-emerald-700" />
+            <p className="text-sm font-semibold text-gray-950">
+              {t("Build detail")} / {build.title}
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            {build.id} / {build.buyerBriefId} / {build.supplierOrgId}
+          </p>
+        </div>
+        <div className="min-w-[180px]">
+          <p className="text-xs font-medium uppercase text-gray-400">
+            {t("Budget")}
+          </p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div
+              className="h-full bg-emerald-600"
+              style={{ width: `${budgetPct}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">
+            {formatCurrency(build.costUsedUsd)} / {formatCurrency(build.budgetUsd)}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        {build.gates.map((gate) => (
+          <div
+            key={gate.key}
+            className={cn("rounded-lg border p-3 text-center", gateClassName(gate.state))}
+          >
+            <p className="font-mono text-xs font-bold">{gate.key}</p>
+            <p className="mt-1 text-xs font-semibold">{t(gate.label)}</p>
+            <p className="mt-2 text-[10px] font-bold uppercase">
+              {statusLabel(gate.state, t)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ModuleWorkspace({
+  activeModule,
+  activeWorkItems,
+  elevationStatus,
+  securityRoster,
+  serviceReadiness,
+  showSettingsControls,
+  t,
+}: {
+  activeModule: OperatorModuleSummary;
+  activeWorkItems: OperatorConsoleSnapshot["workItems"][OperatorModuleKey];
+  elevationStatus: OperatorElevationStatus | null;
+  securityRoster: OperatorSecurityRoster | null;
+  serviceReadiness: OperatorServiceReadiness[];
+  showSettingsControls: boolean;
+  t: Translator;
+}) {
+  const moduleServices = serviceReadiness.filter(
+    (item) => item.moduleKey === activeModule.key
+  );
+
+  return (
+    <section className="min-w-0 space-y-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Gauge className="h-4 w-4 text-emerald-700" />
+              <p className="text-sm font-semibold text-gray-950">
+                {t("Active workspace")}
+              </p>
+            </div>
+            <p className="mt-1 text-sm font-semibold text-gray-950">
+              {t(activeModule.title)}
+            </p>
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-gray-500">
+              {t(activeModule.description)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeModule.savedViews.map((view) => (
+              <Badge
+                key={view}
+                variant="outline"
+                className="rounded-full border-gray-200 bg-gray-50"
+              >
+                {t(view)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        <div className="min-w-0 space-y-4">
+          <OperatorWorkQueue
+            key={`${activeModule.key}-work-${activeModule.totalRecords}`}
+            module={activeModule}
+            initialItems={activeWorkItems}
+          />
+          {showSettingsControls ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              <OperatorSecurityRosterCard roster={securityRoster} t={t} />
+              {elevationStatus ? (
+                <OperatorElevationCard initialStatus={elevationStatus} />
+              ) : null}
+              <OperatorSigningKeyCard />
+            </div>
+          ) : null}
+        </div>
+
+        <aside className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex items-center gap-2">
+            <LockKeyhole className="h-4 w-4 text-emerald-700" />
+            <p className="text-sm font-semibold text-gray-950">
+              {t("Module operating brief")}
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 text-xs">
+            <BriefMetric
+              label={t("Open work")}
+              value={String(activeWorkItems.length)}
+            />
+            <BriefMetric
+              label={t("Records")}
+              value={String(activeModule.totalRecords)}
+            />
+            <BriefMetric
+              label={t("Blocked")}
+              value={String(activeModule.blockedRecords)}
+            />
+          </div>
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <p className="text-xs font-bold uppercase text-gray-950">
+              {t("Anchor records")}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {activeModule.anchorRecords.map((record) => (
+                <Badge
+                  key={record}
+                  variant="outline"
+                  className="rounded-md border-gray-200 bg-gray-50 font-mono text-[10px]"
+                >
+                  {record}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <p className="text-xs font-bold uppercase text-gray-950">
+              {t("Service dependencies")}
+            </p>
+            <div className="mt-2 space-y-2">
+              {moduleServices.length > 0 ? (
+                moduleServices.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="text-gray-600">{t(item.title)}</span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "rounded-full px-2 text-[10px] uppercase",
+                        readinessClassName(item.state)
+                      )}
+                    >
+                      {readinessLabel(item.state, t)}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs leading-5 text-gray-500">
+                  {t("No direct service dependency is mapped.")}
+                </p>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function BriefMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
+      <span className="text-gray-500">{label}</span>
+      <span className="font-mono font-semibold text-gray-950">{value}</span>
+    </div>
+  );
+}
+
 function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
-  const budgetPct = Math.min(100, Math.round((build.costUsedUsd / build.budgetUsd) * 100));
+  const budgetPct = Math.min(
+    100,
+    Math.round((build.costUsedUsd / build.budgetUsd) * 100)
+  );
 
   return (
     <div
@@ -135,7 +599,10 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-gray-950">{build.title}</p>
-          <Badge variant="outline" className="rounded-full border-gray-200 font-mono text-[10px]">
+          <Badge
+            variant="outline"
+            className="rounded-full border-gray-200 font-mono text-[10px]"
+          >
             {build.id}
           </Badge>
         </div>
@@ -144,9 +611,14 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
         </p>
       </div>
       <div>
-        <p className="text-xs font-medium uppercase text-gray-400">{t("Budget")}</p>
+        <p className="text-xs font-medium uppercase text-gray-400">
+          {t("Budget")}
+        </p>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
-          <div className="h-full bg-emerald-600" style={{ width: `${budgetPct}%` }} />
+          <div
+            className="h-full bg-emerald-600"
+            style={{ width: `${budgetPct}%` }}
+          />
         </div>
         <p className="mt-1 text-xs text-gray-500">
           {formatCurrency(build.costUsedUsd)} / {formatCurrency(build.budgetUsd)}
@@ -169,6 +641,254 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
   );
 }
 
+function QAScorecard({
+  build,
+  dimensions,
+  t,
+}: {
+  build: DemoBuild;
+  dimensions: string[][];
+  t: Translator;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-emerald-700" />
+        <p className="text-sm font-semibold text-gray-950">{t("QA scorecard")}</p>
+      </div>
+      <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-gray-950">
+          {build.qScore.toFixed(2)}
+        </span>
+        <span className="text-xs font-medium uppercase text-gray-400">
+          {t("composite")}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-x-4 text-xs">
+        {dimensions.map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between border-t border-gray-100 py-2"
+          >
+            <span className="text-gray-500">{t(label)}</span>
+            <span className="font-mono font-semibold text-gray-950">
+              {value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LicensePanel({
+  snapshot,
+  t,
+}: {
+  snapshot: OperatorConsoleSnapshot;
+  t: Translator;
+}) {
+  const composed = snapshot.licensePreview.composed;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-emerald-700" />
+        <p className="text-sm font-semibold text-gray-950">
+          {t("License composition")}
+        </p>
+      </div>
+      <div className="grid gap-2 text-xs">
+        {Object.entries(composed.permissions).map(([key, allowed]) => (
+          <div
+            key={key}
+            className="flex items-center justify-between border-t border-gray-100 py-2"
+          >
+            <span className="font-mono text-gray-600">{key}</span>
+            <Badge
+              variant="outline"
+              className={cn(
+                "rounded-full",
+                allowed
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-gray-200 bg-gray-50 text-gray-500"
+              )}
+            >
+              {allowed ? t("Permitted") : t("Forbidden")}
+            </Badge>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+        <p className="font-semibold">{t("Planner result")}</p>
+        <p className="mt-1 leading-5">
+          {snapshot.licensePreview.requestedUseAllowed
+            ? t("Requested use is permitted.")
+            : snapshot.licensePreview.requestedUseReasons.join(" ")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BuildIntelligence({
+  snapshot,
+  qaDimensions,
+  t,
+}: {
+  snapshot: OperatorConsoleSnapshot;
+  qaDimensions: string[][];
+  t: Translator;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-950">
+            {t("Build intelligence")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t(
+              "Gate lane, quality, rights checks, and concurrent builds for the active delivery track."
+            )}
+          </p>
+        </div>
+        <Badge
+          variant="outline"
+          className="rounded-full border-gray-200 bg-white text-gray-600"
+        >
+          {snapshot.builds.length} {t("Builds")}
+        </Badge>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-4">
+          <QAScorecard
+            build={snapshot.featuredBuild}
+            dimensions={qaDimensions}
+            t={t}
+          />
+          <LicensePanel snapshot={snapshot} t={t} />
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <Database className="h-4 w-4 text-emerald-700" />
+            <p className="text-sm font-semibold text-gray-950">
+              {t("Concurrent demo builds")}
+            </p>
+          </div>
+          <div>
+            {snapshot.builds.map((build) => (
+              <BuildRow key={build.id} build={build} t={t} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EvidencePlane({
+  snapshot,
+  t,
+}: {
+  snapshot: OperatorConsoleSnapshot;
+  t: Translator;
+}) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold text-gray-950">
+          {t("Evidence plane")}
+        </p>
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          {t(
+            "Audit, lineage, and workflow coverage stay visible beside production operations."
+          )}
+        </p>
+      </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-emerald-700" />
+            <p className="text-sm font-semibold text-gray-950">
+              {t("Audit overlay")}
+            </p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {snapshot.auditRows.map((row) => (
+              <div id={row.id} key={row.id} className="scroll-mt-24 py-3 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono font-semibold text-gray-950">
+                    {row.action}
+                  </span>
+                  <span className="text-gray-400">
+                    {new Date(row.createdAt).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <p className="mt-1 text-gray-500">{row.target}</p>
+                <p className="mt-1 text-gray-400">{row.actor}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-emerald-700" />
+              <p className="text-sm font-semibold text-gray-950">
+                {t("Marquez-shaped lineage feed")}
+              </p>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {snapshot.lineageEvents.map((event) => (
+                <div
+                  id={event.id}
+                  key={event.id}
+                  className="grid scroll-mt-24 gap-1 py-3 text-xs sm:grid-cols-[1fr_0.9fr]"
+                >
+                  <span className="font-mono font-semibold text-gray-950">
+                    {event.jobName}
+                  </span>
+                  <span className="font-mono text-gray-500">
+                    {event.datasetVersionId}
+                  </span>
+                  <span className="text-gray-500">{event.namespace}</span>
+                  <span className="text-gray-400">{event.emittedAt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-emerald-700" />
+              <p className="text-sm font-semibold text-gray-950">
+                {t("State-machine coverage")}
+              </p>
+            </div>
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              {Object.entries(snapshot.workflowCoverage).map(([workflow, states]) => (
+                <div key={workflow} className="border-t border-gray-100 pt-3">
+                  <p className="font-mono text-xs font-semibold text-gray-950">
+                    {workflow}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    {states.join(" -> ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function OperatorConsole({
   activeModuleKey,
   elevationStatus,
@@ -176,14 +896,15 @@ export function OperatorConsole({
   snapshot,
   t,
 }: OperatorConsoleProps) {
-  const featuredBuild = snapshot.featuredBuild;
   const activeModule =
     snapshot.modules.find((module) => module.key === activeModuleKey) ??
     snapshot.modules[0];
-  const activeWorkItems = activeModule
-    ? snapshot.workItems[activeModule.key] ?? []
-    : [];
-  const composed = snapshot.licensePreview.composed;
+
+  if (!activeModule) {
+    return null;
+  }
+
+  const activeWorkItems = snapshot.workItems[activeModule.key] ?? [];
   const qaDimensions = [
     ["Completeness", "0.99"],
     ["Accuracy", "0.86"],
@@ -196,24 +917,38 @@ export function OperatorConsole({
   ];
 
   return (
-    <div className="space-y-8 pb-12">
-      <header className="border-b border-gray-200 pb-6">
+    <div className="space-y-6 pb-12 text-gray-950">
+      <header className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-emerald-700">
+          <div className="max-w-4xl">
+            <div className="flex flex-wrap items-center gap-2 text-[13px] font-bold uppercase text-emerald-700">
               <span className="h-2 w-2 rounded-full bg-emerald-600" />
               {t("Caudals Ops Console")}
+              <span className="text-gray-300">/</span>
+              <span className="text-gray-500">{t("Operations cockpit")}</span>
             </div>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-bold text-gray-950 sm:text-4xl">
               {t("Operator Console")}
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">
               {t(
-                "The internal control room for leads, suppliers, buyers, builds, datasets, rights, commerce, operations, audit, and settings."
+                "Admin-only workspace for qualifying demand, governing rights, building datasets, and shipping licensed deliveries."
               )}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="h-9 rounded-md border-gray-200 bg-gray-50 px-3 text-gray-700"
+            >
+              {t("Current module")}: {t(activeModule.title)}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="h-9 rounded-md border-gray-200 bg-gray-50 px-3 font-mono text-gray-600"
+            >
+              {t("Generated")}: {formatGeneratedAt(snapshot.generatedAt)}
+            </Badge>
             <CommandPaletteButton className="flex w-auto justify-between rounded-md bg-white shadow-none md:flex" />
             <Button className="bg-gray-950 text-white shadow-none hover:bg-gray-800">
               <ListChecks className="mr-2 h-4 w-4" />
@@ -223,265 +958,90 @@ export function OperatorConsole({
         </div>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-4">
-        <Metric label={t("Active blockers")} value={snapshot.triage.blockers} icon={AlertTriangle} tone="amber" />
-        <Metric label={t("Overdue gates")} value={snapshot.triage.overdueGates} icon={Clock3} tone="red" />
-        <Metric label={t("Releases this week")} value={snapshot.triage.releasesThisWeek} icon={CheckCircle2} tone="emerald" />
-        <Metric label={t("Queued jobs")} value={snapshot.triage.queuedJobs} icon={Layers3} tone="blue" />
-      </section>
-
-      <section>
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-950">{t("Modules")}</p>
-            <p className="text-sm text-gray-500">
-              {t("All operator modules are visible from one surface.")}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {snapshot.modules[0].savedViews.map((view) => (
-              <Badge key={view} variant="outline" className="rounded-full border-gray-200 bg-white">
-                {t(view)}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {snapshot.modules.map((module) => (
-            <ModuleCard
-              key={module.key}
-              module={module}
-              active={module.key === activeModule?.key}
-              t={t}
-            />
-          ))}
-        </div>
-      </section>
-
-      {activeModule ? (
-        <OperatorWorkQueue
-          key={`${activeModule.key}-${snapshot.generatedAt}`}
-          module={activeModule}
-          initialItems={activeWorkItems}
-        />
-      ) : null}
-
-      {activeModuleKey === "settings" ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <OperatorSecurityRosterCard roster={securityRoster} t={t} />
-          {elevationStatus ? (
-            <OperatorElevationCard initialStatus={elevationStatus} />
-          ) : null}
-          <OperatorSigningKeyCard />
-        </div>
-      ) : null}
-
-      <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="rounded-xl border border-gray-200 bg-white">
-          <div className="border-b border-gray-100 p-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-gray-950">
-                  {t("Build detail")} / {featuredBuild.title}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {featuredBuild.id} / {featuredBuild.buyerBriefId} / {featuredBuild.supplierOrgId}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge className="rounded-full bg-emerald-50 text-emerald-700">
-                  {t("Silver")}
-                </Badge>
-                <Badge className="rounded-full bg-blue-50 text-blue-700">
-                  {t("QA pending")}
-                </Badge>
-                <Badge className="rounded-full bg-emerald-50 text-emerald-700">
-                  {t("PII reviewed")}
-                </Badge>
-              </div>
-            </div>
-          </div>
-          <div className="p-5">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-              {featuredBuild.gates.map((gate) => (
-                <div
-                  key={gate.key}
-                  className={cn(
-                    "rounded-lg border p-3 text-center",
-                    gateClassName(gate.state)
-                  )}
-                >
-                  <p className="font-mono text-xs font-bold">{gate.key}</p>
-                  <p className="mt-1 text-xs font-semibold">{t(gate.label)}</p>
-                  <p className="mt-2 text-[10px] font-bold uppercase">
-                    {statusLabel(gate.state, t)}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <div className="rounded-xl border border-gray-200 p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-700" />
-                  <p className="text-sm font-semibold text-gray-950">{t("QA scorecard")}</p>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold tracking-tight text-gray-950">
-                    {featuredBuild.qScore.toFixed(2)}
-                  </span>
-                  <span className="text-xs font-medium uppercase text-gray-400">
-                    {t("composite")}
-                  </span>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-                  {qaDimensions.map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between border-t border-gray-100 py-2">
-                      <span className="text-gray-500">{t(label)}</span>
-                      <span className="font-mono font-semibold text-gray-950">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-4">
-                <div className="mb-4 flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-emerald-700" />
-                  <p className="text-sm font-semibold text-gray-950">
-                    {t("License composition")}
-                  </p>
-                </div>
-                <div className="grid gap-2 text-xs">
-                  {Object.entries(composed.permissions).map(([key, allowed]) => (
-                    <div key={key} className="flex items-center justify-between border-t border-gray-100 py-2">
-                      <span className="font-mono text-gray-600">{key}</span>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "rounded-full",
-                          allowed
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-gray-200 bg-gray-50 text-gray-500"
-                        )}
-                      >
-                        {allowed ? t("Permitted") : t("Forbidden")}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <p className="font-semibold">{t("Planner result")}</p>
-                  <p className="mt-1 leading-5">
-                    {snapshot.licensePreview.requestedUseAllowed
-                      ? t("Requested use is permitted.")
-                      : snapshot.licensePreview.requestedUseReasons.join(" ")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Database className="h-4 w-4 text-emerald-700" />
-              <p className="text-sm font-semibold text-gray-950">{t("Concurrent demo builds")}</p>
-            </div>
-            <div>
-              {snapshot.builds.map((build) => (
-                <BuildRow key={build.id} build={build} t={t} />
-              ))}
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Metric
+              label={t("Active blockers")}
+              value={snapshot.triage.blockers}
+              icon={AlertTriangle}
+              tone="amber"
+            />
+            <Metric
+              label={t("Overdue gates")}
+              value={snapshot.triage.overdueGates}
+              icon={Clock3}
+              tone="red"
+            />
+            <Metric
+              label={t("Releases this week")}
+              value={snapshot.triage.releasesThisWeek}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+            <Metric
+              label={t("Queued jobs")}
+              value={snapshot.triage.queuedJobs}
+              icon={Layers3}
+              tone="blue"
+            />
           </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-emerald-700" />
-              <p className="text-sm font-semibold text-gray-950">{t("Audit overlay")}</p>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {snapshot.auditRows.map((row) => (
-                <div id={row.id} key={row.id} className="scroll-mt-24 py-3 text-xs">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono font-semibold text-gray-950">{row.action}</span>
-                    <span className="text-gray-400">{new Date(row.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
-                  </div>
-                  <p className="mt-1 text-gray-500">{row.target}</p>
-                  <p className="mt-1 text-gray-400">{row.actor}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
+          <ModuleDirectory
+            activeModule={activeModule}
+            modules={snapshot.modules}
+            t={t}
+          />
         </div>
+        <ServiceReadinessPanel readiness={snapshot.serviceReadiness} t={t} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-emerald-700" />
-            <p className="text-sm font-semibold text-gray-950">{t("Marquez-shaped lineage feed")}</p>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {snapshot.lineageEvents.map((event) => (
-              <div
-                id={event.id}
-                key={event.id}
-                className="grid scroll-mt-24 gap-1 py-3 text-xs sm:grid-cols-[1fr_0.9fr]"
-              >
-                <span className="font-mono font-semibold text-gray-950">{event.jobName}</span>
-                <span className="font-mono text-gray-500">{event.datasetVersionId}</span>
-                <span className="text-gray-500">{event.namespace}</span>
-                <span className="text-gray-400">{event.emittedAt}</span>
-              </div>
-            ))}
-          </div>
+      <ModuleWorkspace
+        activeModule={activeModule}
+        activeWorkItems={activeWorkItems}
+        elevationStatus={elevationStatus}
+        securityRoster={securityRoster}
+        serviceReadiness={snapshot.serviceReadiness}
+        showSettingsControls={activeModuleKey === "settings"}
+        t={t}
+      />
+
+      <BuildIntelligence
+        snapshot={snapshot}
+        qaDimensions={qaDimensions}
+        t={t}
+      />
+      <EvidencePlane snapshot={snapshot} t={t} />
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <Route className="h-4 w-4 text-emerald-700" />
+          <p className="mt-3 text-sm font-semibold text-gray-950">
+            {t("Public funnel")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t("LANDING_MODE route policy")}
+          </p>
         </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-emerald-700" />
-            <p className="text-sm font-semibold text-gray-950">{t("State-machine coverage")}</p>
-          </div>
-          <div className="grid gap-2">
-            {Object.entries(snapshot.workflowCoverage).map(([workflow, states]) => (
-              <div key={workflow} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p className="font-mono text-xs font-semibold text-gray-950">{workflow}</p>
-                <p className="mt-1 text-xs leading-5 text-gray-500">{states.join(" -> ")}</p>
-              </div>
-            ))}
-          </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <BadgeCheck className="h-4 w-4 text-emerald-700" />
+          <p className="mt-3 text-sm font-semibold text-gray-950">
+            {t("Dataset governance")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t("G-1 to G-7 release gates")}
+          </p>
         </div>
-      </section>
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  icon: Icon,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: typeof AlertTriangle;
-  tone: "amber" | "red" | "emerald" | "blue";
-}) {
-  const toneClassName = {
-    amber: "bg-amber-50 text-amber-700 border-amber-100",
-    red: "bg-red-50 text-red-700 border-red-100",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    blue: "bg-blue-50 text-blue-700 border-blue-100",
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <div className={cn("mb-4 flex h-9 w-9 items-center justify-center rounded-lg border", toneClassName)}>
-        <Icon className="h-4 w-4" />
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <ShieldCheck className="h-4 w-4 text-emerald-700" />
+          <p className="mt-3 text-sm font-semibold text-gray-950">
+            {t("Access and identity")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {t("JIT audit events")}
+          </p>
+        </div>
       </div>
-      <p className="text-2xl font-bold tracking-tight text-gray-950">{value}</p>
-      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-gray-400">{label}</p>
     </div>
   );
 }

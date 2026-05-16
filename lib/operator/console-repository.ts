@@ -7,6 +7,7 @@ import {
 import {
   createBuildGates,
   getOperatorConsoleSnapshot,
+  getOperatorServiceReadiness,
   groupWorkItems,
   operatorModuleSummaries,
   type BuildGate,
@@ -263,6 +264,7 @@ async function getOperatorConsoleSnapshotFromPostgres(
       ])
     ) as Record<WorkflowName, string[]>,
     workItems: groupWorkItems(workItemRows.map(mapWorkItemRow)),
+    serviceReadiness: getOperatorServiceReadiness(),
     lineageEvents: lineageRows.map((row) => ({
       id: row.id,
       namespace: row.namespace,
