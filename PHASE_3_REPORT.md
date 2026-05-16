@@ -25,6 +25,7 @@
 - Internal escalation runbooks now have canonical R-01..R-10 records, top-level `escalation_case` routing, automatic alert/audit creation, and an Operator Console Escalations module.
 - Public security review is implemented at `/security` for non-landing environments, with buyer-facing control evidence, readiness caveats, and DPA/questionnaire follow-up routed to `/contact`; current production `LANDING_MODE` keeps it hidden until explicit clearance.
 - The public security review page is now backed by `security_review_artifact`, an RLS-scoped library of published questionnaire answers, DPA review-path notes, and evidence packet items.
+- Added a VPS-side platform completion gate, `npm run platform:completion-status`, that aggregates the final production checks for landing-mode routing, Sentry, operator MFA, private observability readiness, external alert routing, and the current-quarter pentest tracker.
 
 ## Verification
 
@@ -41,6 +42,7 @@
 - Escalation runbook validation passed focused/full Vitest, typecheck, lint, i18n parity, production build, disposable full-chain migration and rollback checks, fixture seed/readback, direct SQL trigger readback for R-05 routing plus alert/audit creation, and authenticated local production-server operator-console smoke.
 - Public security review validation passed route/SEO unit tests, full Vitest, typecheck, lint, i18n parity, heap-bounded production build, and desktop/mobile visual inspection before the route moved behind the landing-mode gate; current landing-mode unit tests assert `/security` remains blocked.
 - Security review library validation passed disposable migration/readback/rollback, focused/full Vitest, typecheck, lint, i18n parity, and heap-bounded production build.
+- Platform completion gate validation is intentionally red while external gates remain unfinished; the current run passes route and private observability checks and blocks on Sentry, real-operator MFA enrollment, external alert routing, and pentest closure.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.

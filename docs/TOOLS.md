@@ -158,6 +158,9 @@ Install caveat:
 - `scripts/probe-observability-stack.sh` verifies private readiness endpoints
   for Tempo, Loki, Prometheus, Alertmanager, Promtail, cAdvisor, and Grafana
   from an ephemeral container attached to `dokploy-network`.
+- `npm run platform:completion-status` runs the VPS-side completion gate for
+  landing-mode routing, Sentry, operator MFA, private observability readiness,
+  external alert routing, and the current-quarter pentest tracker.
 - Promtail scrapes Docker logs through the Docker socket and labels streams by
   Swarm service name. Prometheus scrapes `alertmanager:9093`, `tempo:3200`,
   `loki:3100`, `promtail:9080`, `cadvisor:8080`, and itself, then sends
