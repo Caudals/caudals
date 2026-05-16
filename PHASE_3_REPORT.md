@@ -30,6 +30,7 @@
 - Added `npm run observability:configure-alert-routing` so production on-call routing can be enabled from a validated server-only webhook URL file without printing the URL.
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
 - Landing-mode public navigation now locks to exactly `Contacto` and `Blog` with unit and Playwright coverage.
+- Sentry App Router wiring now includes client navigation transition capture, global error capture, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
 
 ## Verification
 
@@ -52,10 +53,11 @@
 - Landing-mode navigation validation passed focused unit coverage, lint, typecheck, and the full landing-mode public Playwright route suite with the exact `Contacto`/`Blog` top-nav assertion.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
+- Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
 
 ## Known Gaps / Next M3 Inputs
 
 - Do not mark the full platform goal done until live operator MFA enrollment is complete. The policy conflict has been resolved in favor of required production TOTP with a fixture-only smoke-test exemption; three reset-eligible real operators were resent setup links on 2026-05-16 and still need to complete their own authenticator setup.
-- Sentry error delivery remains disabled until `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback is configured in production. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
+- Sentry error delivery remains disabled until `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback is configured in production. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
 - External PagerDuty/on-call notification routing still requires production contact-point credentials. Private Prometheus rules and Alertmanager routing are live.
 - External penetration-test execution still requires Security/CTO to assign the tester or vendor and close the generated quarterly tracker with findings and retest evidence.

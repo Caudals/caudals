@@ -128,12 +128,15 @@ Install caveat:
 
 ## Observability Runtime
 - Sentry is wired through `instrumentation.ts`, `instrumentation-client.ts`,
-  `sentry.server.config.ts`, `sentry.edge.config.ts`, and
+  `app/global-error.tsx`, `sentry.server.config.ts`, `sentry.edge.config.ts`, and
   `lib/observability/sentry-config.ts`; server runtime DSN resolution lives in
   `lib/observability/sentry-server-config.ts`.
 - Sentry stays disabled unless `SENTRY_DSN` or the server-only
   `SENTRY_DSN_FILE` Docker secret fallback is set. Keep `sendDefaultPii=false`
   unless a privacy review explicitly approves a change.
+- `.env.sentry-build-plugin` is ignored and is only for Sentry source-map
+  upload auth. It does not enable runtime error delivery; rotate exposed auth
+  tokens before enabling uploads.
 - `npm run observability:sentry-status -- --fail-on-disabled` reports whether
   error delivery is active without printing the DSN, and fails release gates
   when neither DSN source is configured. The runtime Docker image copies this
