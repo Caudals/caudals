@@ -86,6 +86,16 @@ export type OperatorWorkItem = {
   nextAction: string;
 };
 
+export type OperatorServiceReadiness = {
+  id: string;
+  title: string;
+  description: string;
+  state: "ready" | "review" | "blocked";
+  owner: string;
+  moduleKey: OperatorModuleKey;
+  evidence: string;
+};
+
 export type OperatorConsoleSnapshot = {
   generatedAt: string;
   modules: OperatorModuleSummary[];
@@ -104,6 +114,7 @@ export type OperatorConsoleSnapshot = {
   };
   workflowCoverage: Record<WorkflowName, string[]>;
   workItems: Record<OperatorModuleKey, OperatorWorkItem[]>;
+  serviceReadiness: OperatorServiceReadiness[];
   lineageEvents: LineageEventRow[];
   auditRows: AuditRow[];
 };
@@ -655,6 +666,113 @@ export function groupWorkItems(
   ) as Record<OperatorModuleKey, OperatorWorkItem[]>;
 }
 
+function readinessState(ready: boolean): OperatorServiceReadiness["state"] {
+  return ready ? "ready" : "review";
+}
+
+export function getOperatorServiceReadiness(
+  env: Record<string, string | undefined> = process.env
+): OperatorServiceReadiness[] {
+  const postgresBacked = env.OPERATOR_CONSOLE_DATA_SOURCE === "postgres";
+  const publicRoutesLocked = env.LANDING_MODE === "true";
+  const sentryConfigured = Boolean(env.SENTRY_DSN_FILE || env.SENTRY_DSN);
+  const tracesConfigured = Boolean(
+    env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
+      env.OTEL_EXPORTER_OTLP_ENDPOINT
+  );
+  const runtimeMonitoringConfigured = sentryConfigured && tracesConfigured;
+
+  return [
+    {
+      id: "svc_public_funnel",
+      title: "Public funnel",
+      description:
+        "Landing, blog, contact, and security pages stay public while app routes remain private.",
+      state: readinessState(publicRoutesLocked),
+      owner: "Growth Ops",
+      moduleKey: "pipeline",
+      evidence: publicRoutesLocked
+        ? "LANDING_MODE route policy"
+        : "Route policy review",
+    },
+    {
+      id: "svc_operator_data",
+      title: "Operator data plane",
+      description: postgresBacked
+        ? "Postgres-backed console data source is active."
+        : "Fixture fallback is active for local previews.",
+      state: readinessState(postgresBacked),
+      owner: "Platform",
+      moduleKey: "pipeline",
+      evidence: postgresBacked
+        ? "OPERATOR_CONSOLE_DATA_SOURCE=postgres"
+        : "Fixture repository",
+    },
+    {
+      id: "svc_build_gates",
+      title: "Build gate engine",
+      description:
+        "Seven release gates, workflows, and audit-linked transitions are available.",
+      state: "ready",
+      owner: "Dataset Ops",
+      moduleKey: "builds",
+      evidence: "G-1..G-7 workflows",
+    },
+    {
+      id: "svc_rights_privacy",
+      title: "Rights and privacy",
+      description:
+        "License grants, consent, DSAR, PII, and retention controls are visible.",
+      state: "ready",
+      owner: "Privacy",
+      moduleKey: "privacy",
+      evidence: "Privacy module evidence",
+    },
+    {
+      id: "svc_delivery_signing",
+      title: "Delivery signing",
+      description:
+        "Encrypted Ed25519 delivery signing controls are available to operators.",
+      state: "ready",
+      owner: "Security",
+      moduleKey: "settings",
+      evidence: "Signing-key registry",
+    },
+    {
+      id: "svc_observability",
+      title: "Runtime monitoring",
+      description:
+        "Sentry, traces, metrics, logs, and alert routing are configured when runtime secrets are mounted.",
+      state: readinessState(runtimeMonitoringConfigured),
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: runtimeMonitoringConfigured
+        ? "Observability env"
+        : "Observability review",
+    },
+    {
+      id: "svc_admin_identity",
+      title: "Admin identity",
+      description:
+        "Sessions, RLS context, optional MFA/passkeys, and JIT elevation protect the console.",
+      state: "ready",
+      owner: "Security",
+      moduleKey: "settings",
+      evidence: "Security roster",
+    },
+    {
+      id: "svc_commercial_ops",
+      title: "Commercial operations",
+      description:
+        "Quotes, contracts, invoices, payouts, and private offers are routed through the operator console.",
+      state: "ready",
+      owner: "Commercial Ops",
+      moduleKey: "commercials",
+      evidence: "Commercial records",
+    },
+  ];
+}
+
 export function getOperatorConsoleSnapshot(): OperatorConsoleSnapshot {
   const composed = composeLicenseGrants(licenseGrants);
   const requestedUse = evaluateRequestedUse(composed, {
@@ -686,6 +804,7 @@ export function getOperatorConsoleSnapshot(): OperatorConsoleSnapshot {
       ])
     ) as Record<WorkflowName, string[]>,
     workItems: groupWorkItems(fixtureWorkItems),
+    serviceReadiness: getOperatorServiceReadiness(),
     lineageEvents: [
       {
         id: "le_01INTAKE",

@@ -78,8 +78,8 @@ authenticated review but stay hidden in production until explicit clearance.
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
 - In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`,
-  explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, and required
-  metadata/assets. All other routes return `404`.
+  explicit public APIs, `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`,
+  and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
