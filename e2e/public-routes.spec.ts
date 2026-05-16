@@ -69,6 +69,17 @@ test.describe("public route health", () => {
 test.describe("landing mode route blocking", () => {
   test.skip(!landingModeEnabled, "LANDING_MODE is disabled");
 
+  test("top navigation exposes only Contacto and Blog", async ({ page }) => {
+    await page.goto("/");
+
+    const links = page.locator("header nav").first().getByRole("link");
+    await expect(links).toHaveCount(2);
+    await expect(links.nth(0)).toHaveText("Contacto");
+    await expect(links.nth(0)).toHaveAttribute("href", "/contact");
+    await expect(links.nth(1)).toHaveText("Blog");
+    await expect(links.nth(1)).toHaveAttribute("href", "/blog");
+  });
+
   for (const path of blockedRoutes) {
     test(`${path} returns 404`, async ({ page }) => {
       const response = await page.goto(path);

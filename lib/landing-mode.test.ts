@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  landingModePublicNavigationLinks,
   isLandingModeApiPathAllowed,
   isLandingModePagePathAllowed,
   isLandingModeRequestAllowed,
@@ -7,6 +8,13 @@ import {
 } from "@/lib/landing-mode";
 
 describe("landing mode route allowlist", () => {
+  it("exposes only the production public navigation links", () => {
+    expect(landingModePublicNavigationLinks).toEqual([
+      { href: "/contact", label: "Contacto" },
+      { href: "/blog", label: "Blog" },
+    ]);
+  });
+
   it("allows the public page surface", () => {
     expect(isLandingModePagePathAllowed("/")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact")).toBe(true);

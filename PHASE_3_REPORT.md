@@ -29,6 +29,7 @@
 - Alertmanager deployment now supports rendering a private external webhook receiver from `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or `CAUDALS_ALERTMANAGER_WEBHOOK_URL` without committing the credential.
 - Added `npm run observability:configure-alert-routing` so production on-call routing can be enabled from a validated server-only webhook URL file without printing the URL.
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
+- Landing-mode public navigation now locks to exactly `Contacto` and `Blog` with unit and Playwright coverage.
 
 ## Verification
 
@@ -48,6 +49,7 @@
 - Platform completion gate validation is intentionally red while external gates remain unfinished; the current run passes route and private observability checks and blocks on Sentry, real-operator MFA enrollment, external alert routing, and pentest closure.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
 - Sentry runtime helper validation passed no-secret failure handling, disposable Swarm secret/service wiring, lint, typecheck, CI, Docker build, production deployment for image `mariomedpar/caudals:59d48ae6b86ec0cf4d2af9343e4b5f6c3b6f64c2`, landing-mode route probes, and the intentionally red platform completion gate.
+- Landing-mode navigation validation passed focused unit coverage, lint, typecheck, and the full landing-mode public Playwright route suite with the exact `Contacto`/`Blog` top-nav assertion.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
 
