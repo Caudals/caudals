@@ -157,19 +157,31 @@ export function OperatorSecuritySetup({
             <div className="grid gap-2 sm:grid-cols-2">
               <SecurityBadge
                 label={t("Authenticator")}
-                active={!status.mfaRequired || status.mfaEnabled}
-                readyLabel={t("Ready")}
-                requiredLabel={t("Required")}
+                enrolled={status.mfaEnabled}
+                required={status.mfaRequired}
+                statusLabel={
+                  status.mfaEnabled
+                    ? t("Ready")
+                    : status.mfaRequired
+                      ? t("Required")
+                      : t("Optional")
+                }
               />
               <SecurityBadge
                 label={t("Passkey")}
-                active={!status.webauthnRequired || status.webauthnRegistered}
-                readyLabel={t("Ready")}
-                requiredLabel={t("Required")}
+                enrolled={status.webauthnRegistered}
+                required={status.webauthnRequired}
+                statusLabel={
+                  status.webauthnRegistered
+                    ? t("Ready")
+                    : status.webauthnRequired
+                      ? t("Required")
+                      : t("Optional")
+                }
               />
             </div>
 
-            {status.mfaRequired && !status.mfaEnabled ? (
+            {!status.mfaEnabled ? (
               <div className="rounded-xl border border-gray-200 p-4">
                 {!totpUri ? (
                   <form onSubmit={enableTotp} className="space-y-4">
@@ -225,14 +237,14 @@ export function OperatorSecuritySetup({
               </div>
             ) : null}
 
-            {status.webauthnRequired && !status.webauthnRegistered ? (
+            {!status.webauthnRegistered ? (
               <div className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 p-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-950">
                     {t("Production passkey")}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {t("Required for production-role access.")}
+                    {t("Optional hardening for production-role access.")}
                   </p>
                 </div>
                 <Button type="button" onClick={addPasskey} disabled={loading}>
@@ -263,14 +275,14 @@ export function OperatorSecuritySetup({
 
 function SecurityBadge({
   label,
-  active,
-  readyLabel,
-  requiredLabel,
+  enrolled,
+  required,
+  statusLabel,
 }: {
   label: string;
-  active: boolean;
-  readyLabel: string;
-  requiredLabel: string;
+  enrolled: boolean;
+  required: boolean;
+  statusLabel: string;
 }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
@@ -278,12 +290,14 @@ function SecurityBadge({
       <Badge
         variant="outline"
         className={
-          active
+          enrolled
             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : "border-amber-200 bg-amber-50 text-amber-700"
+            : required
+              ? "border-amber-200 bg-amber-50 text-amber-700"
+              : "border-gray-200 bg-gray-50 text-gray-600"
         }
       >
-        {active ? readyLabel : requiredLabel}
+        {statusLabel}
       </Badge>
     </div>
   );

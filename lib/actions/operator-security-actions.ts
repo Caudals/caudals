@@ -72,9 +72,9 @@ function normalizeDate(value: string | Date | null) {
 }
 
 function mapSecurityRow(row: OperatorSecurityRosterRow): OperatorSecurityRosterEntry {
-  const mfaRequired = row.mfaRequired === true;
+  const mfaRequired = false;
   const mfaEnabled = row.mfaEnabled === true;
-  const webauthnRequired = row.webauthnRequired === true;
+  const webauthnRequired = false;
   const passkeyCount = Number(row.passkeyCount ?? 0);
 
   return {

@@ -624,7 +624,7 @@ const fixtureWorkItems: OperatorWorkItem[] = [
     moduleKey: "audit",
     recordType: "compliance_control_scope",
     id: "cc_01J2ACCESS",
-    title: "Operator access, MFA readiness, and JIT elevation",
+    title: "Operator access, optional MFA, and JIT elevation",
     state: "ready",
     detail: "identity_access / implemented",
     updatedAt: "2026-05-10T12:08:00.000Z",

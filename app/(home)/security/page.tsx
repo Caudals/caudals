@@ -32,7 +32,7 @@ const postureHighlights = [
   },
   {
     value: "TOTP",
-    label: "Operator MFA required",
+    label: "Optional operator hardening",
   },
   {
     value: "7 gates",
@@ -48,8 +48,8 @@ const controlAreas = [
   {
     title: "Access and identity",
     icon: LockKeyhole,
-    copy: "Better Auth sessions, Postgres RLS, operator MFA enforcement, and audited JIT elevation protect internal operator access.",
-    evidence: ["Operator MFA gate", "JIT audit events", "Fixture-only smoke exemption"],
+    copy: "Better Auth sessions, Postgres RLS, optional operator MFA/passkeys, and audited JIT elevation protect internal operator access.",
+    evidence: ["Password-only policy", "Optional MFA/passkeys", "JIT audit events"],
   },
   {
     title: "Dataset governance",

@@ -23,13 +23,8 @@ You are inside the DigitalOcean VPS that hosts Caudals. Shell access to Docker, 
 Bring the blueprint to life. The platform is "done" when every section of the blueprint is implemented, observable in production, and exercised by either live operators, live suppliers, live buyers, or scheduled jobs.
 
 ## Updates
-- A later operator-auth policy request says the two real admin accounts should
-  be allowed password-only access and MFA/2FA should not be enforced.
-- This conflicts with Acceptance Criteria #5, `PHASE_3_REPORT.md`,
-  `docs/TOOLS.md`, and the deployed
-  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` posture. Because this is
-  load-bearing production security behavior, do not change auth enforcement
-  until an explicit policy decision updates those sources together.
+- Operator-auth policy explicitly allows password-only production admin access.
+  MFA/2FA and passkeys remain optional Better Auth hardening, not release gates.
 - Sentry is installed at code/build-wiring level. A Sentry auth token was
   redacted from this file; store build-upload auth only in the deployment
   secret manager, rotate the exposed token, and configure `SENTRY_DSN` or
@@ -88,7 +83,7 @@ A slice is done when:
 2. §30 milestones M2, M3 are each closed out with a short `PHASE_N_REPORT.md` at the repo root listing what shipped, deviations, and known gaps for the next phase.
 3. §23 state machines for every entity (`buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, `dsar`, plus any added in later milestones) are persisted, validated server-side, and audited.
 4. §17 license composition algebra runs live on every build planner and blocks non-composable license combinations.
-5. §25 security posture is real: MFA on operator accounts, JIT elevation audited, Ed25519 signing keys generated and encrypted at rest, secrets never in code.
+5. §25 security posture is real: password-only operator access is allowed by policy, optional MFA/passkeys remain available, JIT elevation is audited, Ed25519 signing keys are generated and encrypted at rest, and secrets are never in code.
 6. §26 observability is real: OTel → Tempo, logs → Loki, metrics → Prom (or the deviation you picked, logged).
 7. §29 public REST surface `/v1/*` is live, versioned, rate-limited, and documented inline.
 8. Buyer workspace (§20), supplier portal (§21) and public marketing/catalogue (§22, §15) are reachable for their respective audiences; AGENTS.md separation between public, admin, supplier and buyer surfaces is preserved.

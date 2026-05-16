@@ -78,8 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setRoleState({ userId, role });
         }
       })
-      .catch((error) => {
-        console.error("Error fetching operator role:", error);
+      .catch(() => {
         if (active) {
           setRoleState({ userId, role: null });
         }

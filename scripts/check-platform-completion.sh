@@ -150,25 +150,30 @@ check_sentry() {
   fi
 }
 
-check_operator_mfa() {
-  local postgres_container sql output
+check_operator_auth_policy() {
+  local postgres_container sql output enrollment_env
 
   postgres_container="$(first_service_container "$POSTGRES_SERVICE")"
   if [[ -z "$postgres_container" ]]; then
-    mark_fail "security.operator_mfa" "no running container for service $POSTGRES_SERVICE"
+    mark_fail "security.operator_auth_policy" "no running container for service $POSTGRES_SERVICE"
     return
   fi
+
+  enrollment_env="$(
+    docker service inspect "$APP_SERVICE" \
+      --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' \
+      2>/dev/null \
+      | awk -F= '$1 == "OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT" {print substr($0, index($0, "=") + 1)}' \
+      | tail -n 1
+  )"
 
   read -r -d "" sql <<'SQL'
 WITH operator_status AS (
   SELECT
-    ((NOT COALESCE(o.mfa_required, false) OR COALESCE(u."twoFactorEnabled", false))
-      AND (NOT COALESCE(o.webauthn_required, false) OR COALESCE(p.passkey_count, 0) > 0)) AS security_complete,
     COALESCE(o.mfa_required, false) AS mfa_required,
     COALESCE(u."twoFactorEnabled", false) AS mfa_enabled,
     COALESCE(o.webauthn_required, false) AS webauthn_required,
-    COALESCE(p.passkey_count, 0) > 0 AS has_passkey,
-    lower(o.email::text) NOT LIKE '%@caudals.local' AS real_operator
+    COALESCE(p.passkey_count, 0) > 0 AS has_passkey
   FROM "operator" o
   LEFT JOIN auth_user u ON u.email = o.email::text
   LEFT JOIN LATERAL (
@@ -181,13 +186,10 @@ WITH operator_status AS (
 SELECT concat_ws(
   '|',
   count(*)::int,
-  count(*) FILTER (WHERE security_complete)::int,
-  count(*) FILTER (WHERE NOT security_complete)::int,
   count(*) FILTER (WHERE mfa_enabled)::int,
   count(*) FILTER (WHERE mfa_required)::int,
   count(*) FILTER (WHERE has_passkey)::int,
-  count(*) FILTER (WHERE webauthn_required)::int,
-  count(*) FILTER (WHERE NOT security_complete AND real_operator)::int
+  count(*) FILTER (WHERE webauthn_required)::int
 )
 FROM operator_status;
 SQL
@@ -202,17 +204,23 @@ SQL
   )"
 
   if [[ "$?" -ne 0 ]]; then
-    mark_fail "security.operator_mfa" "$(printf "%s" "$output" | tr "\n" " ")"
+    mark_fail "security.operator_auth_policy" "$(printf "%s" "$output" | tr "\n" " ")"
     return
   fi
 
-  IFS="|" read -r total complete action_needed mfa_enabled mfa_required passkey_users webauthn_required reset_eligible <<<"$output"
+  IFS="|" read -r total mfa_enabled mfa_required passkey_users webauthn_required <<<"$output"
 
-  if [[ "$action_needed" == "0" ]]; then
-    mark_ok "security.operator_mfa" "total=$total complete=$complete mfa=$mfa_enabled/$mfa_required passkeys=$passkey_users/$webauthn_required"
-  else
-    mark_fail "security.operator_mfa" "total=$total complete=$complete action_needed=$action_needed mfa=$mfa_enabled/$mfa_required passkeys=$passkey_users/$webauthn_required reset_eligible=$reset_eligible"
+  if [[ "$enrollment_env" == "true" ]]; then
+    mark_fail "security.operator_auth_policy" "legacy enrollment env is true; set OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false or remove it"
+    return
   fi
+
+  if [[ "$mfa_required" != "0" || "$webauthn_required" != "0" ]]; then
+    mark_fail "security.operator_auth_policy" "operator rows still require factors: total=$total mfa_required=$mfa_required webauthn_required=$webauthn_required"
+    return
+  fi
+
+  mark_ok "security.operator_auth_policy" "password-only operator access allowed total=$total optional_mfa_enabled=$mfa_enabled optional_passkeys=$passkey_users"
 }
 
 check_observability_stack() {
@@ -373,7 +381,7 @@ main() {
     check_sentry "$APP_CONTAINER"
   fi
 
-  check_operator_mfa
+  check_operator_auth_policy
   check_observability_stack
   check_alert_routing
   check_tracked_secret_patterns

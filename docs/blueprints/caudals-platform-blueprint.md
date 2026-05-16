@@ -9,7 +9,7 @@ A complete technical blueprint for designing, building and operating the softwar
 | | |
 |---|---|
 | **Document** | 01 |
-| **Revision** | 1.2 — Optional operator MFA/passkey enforcement |
+| **Revision** | 1.2 — Optional operator MFA/passkeys |
 | **Date issued** | 09 May 2026 |
 | **Owner** | Caudals Platform Engineering |
 | **Status** | Approved for engineering execution |
@@ -1443,7 +1443,7 @@ Caudals' commercial credibility depends on its security and compliance posture f
 
 ### Identity & access
 
-- **Better Auth operator identity** with required TOTP enrollment for production operators; phishing-resistant passkeys remain available as additional hardening, and fixture operators stay password-only only for automated smoke tests.
+- **Better Auth operator identity** with password-only production operator access allowed by policy; TOTP and phishing-resistant passkeys remain available as optional hardening.
 - **Internal SSO scaffolded** but disabled until the Phase 3 buyer/supplier identity rollout.
 - **Role-based access control** with least-privilege roles enforced at the database (RLS), service (server actions), and infrastructure layers (Tailscale ACLs).
 - **Just-in-time elevation** for production database access; every elevation is recorded with reason and is time-bounded.

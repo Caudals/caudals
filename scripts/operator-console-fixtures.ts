@@ -2096,8 +2096,8 @@ async function seedComplianceControlScopes(client: PoolClient) {
   const controls = [
     {
       id: ids.accessControlScope,
-      key: "access-control-jit-mfa",
-      title: "Operator access, MFA readiness, and JIT elevation",
+      key: "access-control-jit-optional-mfa",
+      title: "Operator access, optional MFA, and JIT elevation",
       family: "identity_access",
       state: "ready",
       status: "implemented",
@@ -2112,7 +2112,7 @@ async function seedComplianceControlScopes(client: PoolClient) {
         { type: "audit_event", id: fixtureId("ae", 6) },
       ],
       boundary:
-        "Better Auth operator identities, required production MFA, fixture-only password access, RLS, and audited production DB JIT elevation.",
+        "Better Auth operator identities, password-only operator access, optional MFA/passkeys, RLS, and audited production DB JIT elevation.",
     },
     {
       id: ids.auditLoggingScope,

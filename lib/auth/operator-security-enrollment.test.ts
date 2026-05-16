@@ -12,7 +12,7 @@ describe("operator security enrollment helpers", () => {
     vi.unstubAllEnvs();
   });
 
-  it("treats configured MFA and passkeys as required by default", () => {
+  it("treats configured MFA and passkeys as optional by default", () => {
     const operator = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
       email: "ops@example.com",
@@ -26,15 +26,15 @@ describe("operator security enrollment helpers", () => {
     });
 
     expect(operator).toMatchObject({
-      mfaRequired: true,
-      webauthnRequired: true,
-      securityComplete: false,
-      resetEligible: true,
+      mfaRequired: false,
+      webauthnRequired: false,
+      securityComplete: true,
+      resetEligible: false,
     });
   });
 
-  it("treats MFA and passkeys as optional only when enforcement is explicitly disabled", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "false");
+  it("ignores the legacy enrollment enforcement env flag", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
 
     const operator = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
@@ -56,7 +56,7 @@ describe("operator security enrollment helpers", () => {
     });
   });
 
-  it("marks required operators complete only after MFA and passkey enrollment", () => {
+  it("tracks enrolled factors without making them required", () => {
     const pending = mapOperatorSecurityEnrollmentRow({
       id: "op_pending",
       email: "ops@example.com",
@@ -77,8 +77,8 @@ describe("operator security enrollment helpers", () => {
     });
 
     expect(pending).toMatchObject({
-      securityComplete: false,
-      resetEligible: true,
+      securityComplete: true,
+      resetEligible: false,
     });
     expect(complete).toMatchObject({
       securityComplete: true,
@@ -100,7 +100,7 @@ describe("operator security enrollment helpers", () => {
       passkeyCount: 0,
     });
 
-    expect(fixture.securityComplete).toBe(false);
+    expect(fixture.securityComplete).toBe(true);
     expect(fixture.resetEligible).toBe(false);
   });
 
@@ -132,20 +132,20 @@ describe("operator security enrollment helpers", () => {
 
     expect(summarizeOperatorSecurityEnrollment(operators)).toMatchObject({
       total: 2,
-      complete: 1,
-      actionNeeded: 1,
-      mfaRequired: 2,
+      complete: 2,
+      actionNeeded: 0,
+      mfaRequired: 0,
       mfaEnabled: 1,
-      webauthnRequired: 2,
+      webauthnRequired: 0,
       passkeyUsers: 1,
-      resetEligible: 1,
+      resetEligible: 0,
     });
-    expect(getResetEligibleOperators(operators)).toEqual([operators[1]]);
+    expect(getResetEligibleOperators(operators)).toEqual([]);
     expect(
       isOperatorSecurityEnrollmentComplete(
         summarizeOperatorSecurityEnrollment(operators)
       )
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isOperatorSecurityEnrollmentComplete({
         ...summarizeOperatorSecurityEnrollment(operators),

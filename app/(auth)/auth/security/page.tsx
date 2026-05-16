@@ -14,7 +14,7 @@ export default async function SecurityPage({
   const { next } = await searchParams;
   const nextPath = next?.startsWith("/") ? next : "/admin";
 
-  if (status.complete) {
+  if (status.complete && next) {
     redirect(nextPath);
   }
 
