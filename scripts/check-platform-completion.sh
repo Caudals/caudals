@@ -249,6 +249,35 @@ check_alert_routing() {
   fi
 }
 
+check_tracked_secret_patterns() {
+  if ! require_command git "security.secret_leaks"; then
+    return
+  fi
+
+  local matches sentry_auth_assignment sentry_token_prefix
+
+  sentry_auth_assignment="SENTRY_AUTH_"
+  sentry_auth_assignment+="TOKEN="
+  sentry_token_prefix="sntrys"
+  sentry_token_prefix+="_"
+
+  matches="$(
+    git grep -IlE \
+      "${sentry_auth_assignment}[^[:space:]]+|${sentry_token_prefix}[A-Za-z0-9_=.-]{20,}" \
+      -- \
+      ':!package-lock.json' \
+      ':!node_modules' \
+      ':!.next' \
+      2>/dev/null || true
+  )"
+
+  if [[ -n "$matches" ]]; then
+    mark_fail "security.secret_leaks" "tracked files contain Sentry auth token material: $(printf "%s" "$matches" | tr "\n" " ")"
+  else
+    mark_ok "security.secret_leaks" "no tracked Sentry auth token patterns found"
+  fi
+}
+
 current_pentest_title() {
   node -e '
     const now = process.env.PENTEST_TRACKER_DATE ? new Date(process.env.PENTEST_TRACKER_DATE) : new Date();
@@ -311,6 +340,7 @@ main() {
   check_operator_mfa
   check_observability_stack
   check_alert_routing
+  check_tracked_secret_patterns
   check_pentest_tracker
 
   if [[ "$failures" -gt 0 ]]; then

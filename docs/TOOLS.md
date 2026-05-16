@@ -164,8 +164,8 @@ Install caveat:
   from an ephemeral container attached to `dokploy-network`.
 - `npm run platform:completion-status` runs the VPS-side completion gate for
   landing-mode routing and exact public nav labels, Sentry, operator MFA,
-  private observability readiness, external alert routing, and the current-quarter
-  pentest tracker.
+  private observability readiness, external alert routing, tracked Sentry auth
+  token leaks, and the current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
