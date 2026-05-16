@@ -120,10 +120,9 @@ Target Phase 1 operations context:
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
-- Production operator login requires completed TOTP enrollment when the
-  operator row has `mfa_required=true`; fixture operators may stay
-  password-only for automated smoke tests. `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=false`
-  is a break-glass/local-development override, not the production posture.
+- Production operator login allows password-only Better Auth sessions by
+  policy. TOTP and passkeys remain available as optional hardening, while JIT
+  elevation and Postgres RLS remain the load-bearing admin controls.
 - Vulnerability management runs through weekly Dependabot checks for npm,
   GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
   the Docker publish workflow. A quarterly scheduled GitHub workflow opens or

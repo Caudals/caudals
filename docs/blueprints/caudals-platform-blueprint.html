@@ -3077,7 +3077,7 @@ output.permits = intersect(inputs.permits)
 
   <h2 class="h">Identity &amp; access</h2>
   <ul>
-    <li><strong>Internal SSO</strong> with mandatory MFA; phishing-resistant factors required for production roles.</li>
+    <li><strong>Internal SSO</strong> scaffolded for future enterprise rollout; TOTP and phishing-resistant passkeys remain optional operator hardening.</li>
     <li><strong>Role-based access control</strong> with least-privilege roles enforced at the database (RLS), service (server actions), and infrastructure layers (Tailscale ACLs).</li>
     <li><strong>Just-in-time elevation</strong> for production database access; every elevation is recorded with reason and is time-bounded.</li>
     <li><strong>Buyer-side SSO + SCIM</strong>; supplier-side SSO available on request.</li>

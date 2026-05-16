@@ -21,9 +21,9 @@
 - **Reason:** The temporary consolidation kept the first operator-console release narrow while the Postgres and Better Auth cutover was still in progress.
 - **Status:** Closed. The Operator Console now exposes a standalone Labeling module for `label_batch` reviewer queues, adjudication depth, create/edit controls, state transitions, and Postgres-backed work items. Embedded Label Studio/CVAT/reviewer workforce operations remain later-phase implementation, but the §19 module map is no longer consolidated into Quality.
 
-## D-004 · Operator MFA fixture exemption
+## D-004 · Optional operator MFA/passkeys
 
 - **Blueprint section:** §25
-- **Decision:** Production operator rows require TOTP enrollment before `/admin`; fixture operators remain password-only for automated smoke tests and local seed reproducibility.
-- **Reason:** `docs/goal.md` requires real MFA on operator accounts, while CI cannot safely store shared MFA seeds or passkeys.
-- **Status:** Active for M3. Non-fixture operators are required to enroll TOTP; passkeys remain optional hardening.
+- **Decision:** Password-only production operator access is allowed. TOTP and passkeys remain available as optional Better Auth hardening, not `/admin` gates.
+- **Reason:** The current operator-auth policy explicitly removes obligatory MFA/2FA for real admin accounts.
+- **Status:** Active. `db/migrations/024_remove_operator_mfa_requirement.sql` clears required-factor flags and the app ignores the legacy enrollment-enforcement env.

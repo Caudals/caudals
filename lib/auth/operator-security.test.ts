@@ -35,18 +35,18 @@ describe("operator security status", () => {
     vi.unstubAllEnvs();
   });
 
-  it("requires configured operator factors by default", () => {
+  it("treats configured operator factors as optional by default", () => {
     expect(getOperatorSecurityStatus(session())).toMatchObject({
-      mfaRequired: true,
+      mfaRequired: false,
       mfaEnabled: false,
-      webauthnRequired: true,
+      webauthnRequired: false,
       webauthnRegistered: false,
-      complete: false,
+      complete: true,
     });
   });
 
-  it("allows password-only access only when enrollment enforcement is explicitly disabled", () => {
-    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "false");
+  it("ignores the legacy enrollment enforcement env flag", () => {
+    vi.stubEnv("OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT", "true");
 
     expect(getOperatorSecurityStatus(session())).toMatchObject({
       mfaRequired: false,

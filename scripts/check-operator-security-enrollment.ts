@@ -122,7 +122,7 @@ async function main() {
 
     if (failOnIncomplete && !isOperatorSecurityEnrollmentComplete(summary)) {
       console.error(
-        `Operator security enrollment incomplete: ${summary.actionNeeded} operator(s) still need MFA/passkey setup.`
+        `Operator security enrollment incomplete: ${summary.actionNeeded} operator(s) still need required security setup.`
       );
       process.exitCode = 1;
     }
