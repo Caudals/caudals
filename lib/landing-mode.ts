@@ -20,7 +20,7 @@ const STATIC_ASSET_PATH_PATTERN =
   /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
 
 export const landingModePublicNavigationLinks = [
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Contacto" },
   { href: "/blog", label: "Blog" },
 ] as const;
 
