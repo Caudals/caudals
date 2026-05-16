@@ -56,9 +56,9 @@
 - Operator password-only auth policy passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
 - Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
-- tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; and dashboard screenshots for admin, buyer, supplier, settings, and mobile views.
+- tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
-- Latest platform completion gate readback remains red only on external completion items: missing Sentry runtime DSN/secret, Alertmanager local/no-op receiver config, and open current-quarter pentest tracker `#19`.
+- Latest platform completion gate readback on image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7` remains red only on external completion items: missing Sentry runtime DSN/secret, Alertmanager local/no-op receiver config, and open current-quarter pentest tracker `#19`.
 
 ## Known Gaps / Next M3 Inputs
 
