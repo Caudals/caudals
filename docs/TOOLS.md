@@ -169,6 +169,9 @@ Install caveat:
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
   external webhook receiver config outside the repository.
+- `npm run observability:configure-alert-routing` validates and deploys that
+  external Alertmanager webhook path without printing the webhook URL. Prefer
+  `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE=/path/to/url`.
 - Promtail scrapes Docker logs through the Docker socket and labels streams by
   Swarm service name. Prometheus scrapes `alertmanager:9093`, `tempo:3200`,
   `loki:3100`, `promtail:9080`, `cadvisor:8080`, and itself, then sends

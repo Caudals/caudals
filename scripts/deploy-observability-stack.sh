@@ -52,6 +52,22 @@ YAML
   echo "Rendered external Alertmanager receiver config: $generated_config"
 }
 
+validate_webhook_url() {
+  local webhook_url="$1"
+
+  ALERTMANAGER_WEBHOOK_URL="$webhook_url" node -e '
+    const value = process.env.ALERTMANAGER_WEBHOOK_URL || "";
+    try {
+      const url = new URL(value);
+      if (!["https:"].includes(url.protocol) || !url.host) {
+        process.exit(1);
+      }
+    } catch {
+      process.exit(1);
+    }
+  '
+}
+
 if ! docker node ls >/dev/null 2>&1; then
   echo "Docker Swarm manager access is required before deploying the observability stack." >&2
   exit 1
@@ -73,6 +89,11 @@ if [[ -n "$ALERTMANAGER_WEBHOOK_URL_FILE" ]]; then
     exit 1
   fi
   ALERTMANAGER_WEBHOOK_URL="$(tr -d '\r\n' <"$ALERTMANAGER_WEBHOOK_URL_FILE")"
+fi
+
+if [[ -n "$ALERTMANAGER_WEBHOOK_URL" ]] && ! validate_webhook_url "$ALERTMANAGER_WEBHOOK_URL"; then
+  echo "Alertmanager webhook URL failed validation; expected an https URL." >&2
+  exit 1
 fi
 
 render_external_alertmanager_config "$ALERTMANAGER_WEBHOOK_URL"
