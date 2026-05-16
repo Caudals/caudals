@@ -94,7 +94,7 @@ services:
       - --storage.path=/alertmanager
     volumes:
       - type: bind
-        source: ${CAUDALS_ROOT:-/root/caudals}/infra/observability/alertmanager.yaml
+        source: ${CAUDALS_ALERTMANAGER_CONFIG_PATH:-/root/caudals/infra/observability/alertmanager.yaml}
         target: /etc/alertmanager/alertmanager.yml
         read_only: true
       - alertmanager-data:/alertmanager
