@@ -27,6 +27,7 @@
 - The public security review page is now backed by `security_review_artifact`, an RLS-scoped library of published questionnaire answers, DPA review-path notes, and evidence packet items.
 - Added a VPS-side platform completion gate, `npm run platform:completion-status`, that aggregates the final production checks for landing-mode routing, Sentry, operator MFA, private observability readiness, external alert routing, and the current-quarter pentest tracker.
 - Alertmanager deployment now supports rendering a private external webhook receiver from `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or `CAUDALS_ALERTMANAGER_WEBHOOK_URL` without committing the credential.
+- Added `npm run observability:configure-alert-routing` so production on-call routing can be enabled from a validated server-only webhook URL file without printing the URL.
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
 
 ## Verification
