@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { QueryResultRow } from "pg";
 import type Stripe from "stripe";
 import { queryRows } from "@/lib/db/client";
+import { getSecretEnvValue } from "@/lib/env/secrets";
 import { getStripeServer } from "@/lib/stripe/server";
 import { logError, logInfo } from "@/lib/security/structured-logger";
 
@@ -19,9 +20,10 @@ type WebhookEventUpdateRow = QueryResultRow & {
 };
 
 function ensureStripeConfigured() {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secretKey = getSecretEnvValue("STRIPE_SECRET_KEY");
+  const webhookSecret = getSecretEnvValue("STRIPE_WEBHOOK_SECRET");
 
-  if (!process.env.STRIPE_SECRET_KEY || !webhookSecret) {
+  if (!secretKey || !webhookSecret) {
     throw new Error("Stripe webhook secret or API key missing");
   }
 
