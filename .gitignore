@@ -60,3 +60,5 @@ docs/logs/validations/#*.png
 # exclude c-design folder
 /c-design
 c-design/*
+# Sentry Config File
+.env.sentry-build-plugin
