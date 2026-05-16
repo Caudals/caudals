@@ -29,6 +29,7 @@
 - Alertmanager deployment now supports rendering a private external webhook receiver from `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or `CAUDALS_ALERTMANAGER_WEBHOOK_URL` without committing the credential.
 - Added `npm run observability:configure-alert-routing` so production on-call routing can be enabled from a validated server-only webhook URL file without printing the URL.
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
+- Production Sentry runtime delivery is configured through a Docker secret-backed `SENTRY_DSN_FILE`, and Alertmanager external Slack routing is configured from a server-only webhook file.
 - Landing-mode public navigation now locks to exactly `Contacto` and `Blog` with unit and Playwright coverage.
 - Sentry App Router wiring now includes client navigation transition capture, global error capture, a gated build-time Sentry wrapper, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
 - Buyer and supplier workspaces now have authenticated tRPC `buyer.workspace` and `supplier.workspace` procedures backed by the same scoped workspace loaders as the pages. The global role probe now returns `{ role: null }` for authenticated non-operators so buyer/supplier dashboards do not treat expected non-operator sessions as console errors.
@@ -58,11 +59,11 @@
 - Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
 - tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
-- Latest platform completion gate readback on image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7` remains red only on external completion items: missing Sentry runtime DSN/secret, Alertmanager local/no-op receiver config, and open current-quarter pentest tracker `#19`.
+- Latest platform completion gate readback on image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7` now passes Sentry runtime delivery, Alertmanager external routing, route, operator-auth, observability-stack, secret-scan, runtime-secret, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
 
 ## Known Gaps / Next M3 Inputs
 
-- Sentry error delivery remains disabled until #21 configures `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback in production. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
-- External PagerDuty/on-call notification routing still requires production contact-point credentials and is tracked in #22. Private Prometheus rules and Alertmanager routing are live.
-- External penetration-test execution still requires Security/CTO to assign the tester or vendor and close #19 with findings and retest evidence.
-- Fresh VPS readback found no Sentry DSN Docker secret by name, no Sentry DSN mounted on the app service, Alertmanager still mounted from the local no-op config, and `#19` open with no assignee.
+- Sentry error delivery is enabled through a Docker secret-backed `SENTRY_DSN_FILE`. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
+- External Slack notification routing is configured for Alertmanager from a server-only webhook file. Private Prometheus rules and Alertmanager routing are live.
+- External penetration-test execution is waived for the current completion gate per product-owner direction; #19 is closed as not planned for this gate.
+- Fresh VPS readback passes Sentry runtime delivery and Alertmanager external routing; the completion gate treats the current-quarter pentest tracker as waived unless `CAUDALS_PENTEST_GATE_ENABLED=true`.
