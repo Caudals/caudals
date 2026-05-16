@@ -22,6 +22,20 @@ You are inside the DigitalOcean VPS that hosts Caudals. Shell access to Docker, 
 
 Bring the blueprint to life. The platform is "done" when every section of the blueprint is implemented, observable in production, and exercised by either live operators, live suppliers, live buyers, or scheduled jobs.
 
+## Updates
+- A later operator-auth policy request says the two real admin accounts should
+  be allowed password-only access and MFA/2FA should not be enforced.
+- This conflicts with Acceptance Criteria #5, `PHASE_3_REPORT.md`,
+  `docs/TOOLS.md`, and the deployed
+  `OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT=true` posture. Because this is
+  load-bearing production security behavior, do not change auth enforcement
+  until an explicit policy decision updates those sources together.
+- Sentry is installed at code/build-wiring level. A Sentry auth token was
+  redacted from this file; store build-upload auth only in the deployment
+  secret manager, rotate the exposed token, and configure `SENTRY_DSN` or
+  `SENTRY_DSN_FILE` before marking runtime error delivery complete.
+
+
 ## Production Deployment Visibility (LANDING_MODE)
 
 Production runs with `LANDING_MODE=true` (and `NEXT_PUBLIC_LANDING_MODE=true`). The only publicly reachable surfaces in production are:
