@@ -7,18 +7,18 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: `/`, `/contact`, `/security`, `/blog`, `/blog/*`
-- `/catalogue` is the explicitly relaunched M3 public catalogue subset; it is read-only and routes access requests to `/contact`
-- Keep marketplace, supplier, and hidden authenticated routes unavailable until explicitly relaunched
-- `/buyer` is the explicitly relaunched buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review
-- `/supplier` is the explicitly relaunched supplier surface and is limited to managed asset declaration, signed sample upload, build participation, revenue-share payout, and Stripe Connect status review
+- Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
+- `/catalogue`, `/security`, and `/v1/*` are implemented but hidden while landing mode is active.
+- Keep marketplace, supplier, buyer, and hidden authenticated routes unavailable until explicitly cleared for exposure.
+- `/buyer` is the hidden buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review.
+- `/supplier` is the hidden supplier surface and is limited to managed asset declaration, signed sample upload, build participation, revenue-share payout, and Stripe Connect status review.
 
 ## Routing and IA Contract
 - `LANDING_MODE=true` is the canonical production posture until further notice.
-- Public navigation should expose Catalogue, Security, Contact, and Blog while landing mode remains active.
+- Public navigation exposes only Contact and Blog while landing mode remains active.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
 - Do not add new company-facing workflows under hidden app routes.
-- The internal admin dashboard, `/buyer` read-only buyer workspace, and `/supplier` managed supplier portal are the only authenticated surfaces that should be preserved in the near term.
+- The internal admin dashboard is the only authenticated surface exposed in landing mode; `/buyer` and `/supplier` remain hidden until explicit clearance.
 - Broader buyer/supplier self-service requires a new IA and schema direction before implementation.
 
 ## Localization Contract
