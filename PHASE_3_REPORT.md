@@ -57,7 +57,7 @@
 
 ## Known Gaps / Next M3 Inputs
 
-- Do not mark the full platform goal done until live operator MFA enrollment is complete. The policy conflict has been resolved in favor of required production TOTP with a fixture-only smoke-test exemption; three reset-eligible real operators were resent setup links on 2026-05-16 and still need to complete their own authenticator setup.
-- Sentry error delivery remains disabled until `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback is configured in production. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
-- External PagerDuty/on-call notification routing still requires production contact-point credentials. Private Prometheus rules and Alertmanager routing are live.
-- External penetration-test execution still requires Security/CTO to assign the tester or vendor and close the generated quarterly tracker with findings and retest evidence.
+- Do not mark the full platform goal done until live operator MFA enrollment or an explicit password-only production policy is resolved in #23. Three reset-eligible real operators were resent setup links on 2026-05-16 and still need to complete their own authenticator setup if required TOTP remains the policy.
+- Sentry error delivery remains disabled until #21 configures `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback in production. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
+- External PagerDuty/on-call notification routing still requires production contact-point credentials and is tracked in #22. Private Prometheus rules and Alertmanager routing are live.
+- External penetration-test execution still requires Security/CTO to assign the tester or vendor and close #19 with findings and retest evidence.
