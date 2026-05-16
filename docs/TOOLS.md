@@ -139,6 +139,10 @@ Install caveat:
   when neither DSN source is configured. The runtime Docker image copies this
   plain Node probe so the same command can run inside the deployed app
   container.
+- `npm run observability:configure-sentry` creates or mounts a Docker secret for
+  `SENTRY_DSN_FILE` on the app service without printing the DSN. Provide
+  `CAUDALS_SENTRY_DSN_FILE=/path/to/dsn` when the production DSN is available;
+  the script sets `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, and sample-rate envs.
 - OpenTelemetry traces are registered from
   `lib/observability/opentelemetry.ts`. Set
   `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://caudals-observability-tempo:4318/v1/traces`

@@ -29,6 +29,7 @@
     "migrate:public-funnel": "tsx scripts/migrate-public-funnel-data.ts",
     "platform:completion-status": "bash scripts/check-platform-completion.sh",
     "operator:security-status": "tsx scripts/check-operator-security-enrollment.ts",
+    "observability:configure-sentry": "bash scripts/configure-sentry-runtime.sh",
     "observability:sentry-status": "node scripts/check-sentry-config.mjs",
     "analytics:check-surface": "tsx scripts/check-product-analytics-surface.ts",
     "i18n:check-parity": "tsx scripts/check-i18n-parity.ts",
