@@ -30,7 +30,7 @@
 - Added `npm run observability:configure-alert-routing` so production on-call routing can be enabled from a validated server-only webhook URL file without printing the URL.
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
 - Landing-mode public navigation now locks to exactly `Contacto` and `Blog` with unit and Playwright coverage.
-- Sentry App Router wiring now includes client navigation transition capture, global error capture, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
+- Sentry App Router wiring now includes client navigation transition capture, global error capture, a gated build-time Sentry wrapper, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
 
 ## Verification
 

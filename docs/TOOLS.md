@@ -136,7 +136,9 @@ Install caveat:
   unless a privacy review explicitly approves a change.
 - `.env.sentry-build-plugin` is ignored and is only for Sentry source-map
   upload auth. It does not enable runtime error delivery; rotate exposed auth
-  tokens before enabling uploads.
+  tokens before enabling uploads. Source-map upload is additionally gated by
+  `SENTRY_SOURCE_MAP_UPLOAD=true` so ordinary builds cannot use a local token
+  by accident.
 - `npm run observability:sentry-status -- --fail-on-disabled` reports whether
   error delivery is active without printing the DSN, and fails release gates
   when neither DSN source is configured. The runtime Docker image copies this
@@ -327,6 +329,7 @@ Operational env controls:
 - `SENTRY_RELEASE`
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
 - `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
+- `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)
 - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
   OTLP HTTP headers; do not commit secret values)
