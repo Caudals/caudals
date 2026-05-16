@@ -46,6 +46,7 @@
 - Security review library validation passed disposable migration/readback/rollback, focused/full Vitest, typecheck, lint, i18n parity, and heap-bounded production build.
 - Platform completion gate validation is intentionally red while external gates remain unfinished; the current run passes route and private observability checks and blocks on Sentry, real-operator MFA enrollment, external alert routing, and pentest closure.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
+- Sentry runtime helper validation passed no-secret failure handling, disposable Swarm secret/service wiring, lint, typecheck, CI, Docker build, production deployment for image `mariomedpar/caudals:59d48ae6b86ec0cf4d2af9343e4b5f6c3b6f64c2`, landing-mode route probes, and the intentionally red platform completion gate.
 - Operator MFA enforcement passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, reset-link dispatch for three eligible operators, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
 
