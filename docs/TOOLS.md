@@ -35,7 +35,10 @@ Target Phase 1 runtime:
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
-- App service: `caudalsdep-caudals-vgbvxp`; database/auth secrets are mounted through `DATABASE_URL_FILE` and `BETTER_AUTH_SECRET_FILE`
+- App service: `caudalsdep-caudals-vgbvxp`; database/auth/Stripe/Resend
+  secrets are mounted through Docker secret-file fallbacks such as
+  `DATABASE_URL_FILE`, `BETTER_AUTH_SECRET_FILE`, `STRIPE_SECRET_KEY_FILE`,
+  `STRIPE_WEBHOOK_SECRET_FILE`, and `RESEND_API_KEY_FILE`.
 - Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Schema migrations: `db/migrations/*`
 - Rollbacks: `db/rollbacks/*`
@@ -330,6 +333,8 @@ Operational env controls:
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
 - `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
 - `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)
+- `STRIPE_SECRET_KEY_FILE` / `STRIPE_WEBHOOK_SECRET_FILE` (Docker secret-file fallbacks; direct env vars win when both are set)
+- `RESEND_API_KEY_FILE` (Docker secret-file fallback; `RESEND_API_KEY` wins when both are set)
 - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
   OTLP HTTP headers; do not commit secret values)
@@ -341,8 +346,8 @@ Operational env controls:
 ## Environment Variable Categories
 - PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, optional `CAUDALS_TENANT_ORG_ID`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
-- Stripe: publishable key, secret key, webhook secret
-- Resend: API key, sender addresses, audience/segment IDs
+- Stripe: publishable key, secret key or secret file, webhook secret or secret file
+- Resend: API key or secret file, sender addresses, audience/segment IDs
 - DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,

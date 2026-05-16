@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const { getStripeServerMock, queryRowsMock, logErrorMock, logInfoMock } =
@@ -47,12 +50,30 @@ function createRequest(body = "{}") {
   });
 }
 
+const tempDirs: string[] = [];
+
+function writeTempSecret(name: string, value: string) {
+  const dir = mkdtempSync(path.join(tmpdir(), "caudals-stripe-secret-"));
+  tempDirs.push(dir);
+  const filePath = path.join(dir, name);
+  writeFileSync(filePath, value, "utf8");
+  return filePath;
+}
+
 describe("stripe webhook replay guard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryRowsMock.mockReset();
     process.env.STRIPE_SECRET_KEY = "sk_test_123";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_123";
+    delete process.env.STRIPE_SECRET_KEY_FILE;
+    delete process.env.STRIPE_WEBHOOK_SECRET_FILE;
+  });
+
+  afterEach(() => {
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { force: true, recursive: true });
+    }
   });
 
   it("reserves a new event for processing", async () => {
@@ -182,6 +203,37 @@ describe("stripe webhook replay guard", () => {
         eventId: "evt_post",
         eventType: "payment_intent.succeeded",
       })
+    );
+  });
+
+  it("reads Stripe webhook secrets from mounted secret files", async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    process.env.STRIPE_SECRET_KEY_FILE = writeTempSecret(
+      "secret-key",
+      "sk_test_file\n"
+    );
+    process.env.STRIPE_WEBHOOK_SECRET_FILE = writeTempSecret(
+      "webhook-secret",
+      "whsec_file\n"
+    );
+    const event = createStripeEvent({ id: "evt_file" });
+    getStripeServerMock.mockReturnValue({
+      webhooks: {
+        constructEvent: vi.fn(() => event),
+      },
+    });
+    queryRowsMock
+      .mockResolvedValueOnce([{ processing_state: "processing" }])
+      .mockResolvedValueOnce([{ stripe_event_id: "evt_file" }]);
+
+    const response = await POST(createRequest(JSON.stringify(event)));
+
+    expect(response.status).toBe(200);
+    expect(getStripeServerMock().webhooks.constructEvent).toHaveBeenCalledWith(
+      JSON.stringify(event),
+      "sig_test",
+      "whsec_file"
     );
   });
 

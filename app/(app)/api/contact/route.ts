@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
 import { collaborationFormSchema } from "@/lib/validators/collaboration";
 import { ContactInquiryEmail } from "@/emails/contact-inquiry";
+import { getSecretEnvValue } from "@/lib/env/secrets";
 import { routePublicBuyerBriefIntake } from "@/lib/public/buyer-brief-intake";
 import {
   addContactEmailToSegment,
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
     process.env.RESEND_PARTNERSHIPS_AUDIENCE_ID ??
     process.env.RESEND_GENERAL_AUDIENCE_ID;
   const contactSegmentId = process.env.RESEND_PARTNERSHIPS_SEGMENT_ID;
-  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendApiKey = getSecretEnvValue("RESEND_API_KEY");
   const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
   let audienceContactReady = false;

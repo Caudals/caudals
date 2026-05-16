@@ -278,6 +278,42 @@ check_tracked_secret_patterns() {
   fi
 }
 
+check_runtime_secret_env() {
+  local env_names forbidden present
+  local -a forbidden_names=(
+    "DATABASE_URL"
+    "BETTER_AUTH_SECRET"
+    "STRIPE_SECRET_KEY"
+    "STRIPE_WEBHOOK_SECRET"
+    "RESEND_API_KEY"
+    "SENTRY_DSN"
+    "SENTRY_AUTH_TOKEN"
+    "DO_SPACES_ACCESS_KEY_ID"
+    "DO_SPACES_SECRET_ACCESS_KEY"
+  )
+
+  env_names="$(
+    docker service inspect "$APP_SERVICE" \
+      --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' \
+      2>/dev/null \
+      | sed 's/=.*//' \
+      || true
+  )"
+
+  present=""
+  for forbidden in "${forbidden_names[@]}"; do
+    if grep -qx "$forbidden" <<<"$env_names"; then
+      present+="$forbidden "
+    fi
+  done
+
+  if [[ -n "$present" ]]; then
+    mark_fail "security.runtime_secrets" "plaintext secret env vars must use Docker secrets or *_FILE fallbacks: ${present% }"
+  else
+    mark_ok "security.runtime_secrets" "no plaintext secret env var names on $APP_SERVICE"
+  fi
+}
+
 current_pentest_title() {
   node -e '
     const now = process.env.PENTEST_TRACKER_DATE ? new Date(process.env.PENTEST_TRACKER_DATE) : new Date();
@@ -341,6 +377,7 @@ main() {
   check_observability_stack
   check_alert_routing
   check_tracked_secret_patterns
+  check_runtime_secret_env
   check_pentest_tracker
 
   if [[ "$failures" -gt 0 ]]; then

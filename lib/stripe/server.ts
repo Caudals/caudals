@@ -1,6 +1,8 @@
 import Stripe from 'stripe';
 
-const SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+import { getSecretEnvValue } from "@/lib/env/secrets";
+
+const SECRET_KEY = getSecretEnvValue("STRIPE_SECRET_KEY");
 
 if (SECRET_KEY && !SECRET_KEY.startsWith('sk_')) {
   console.warn(
@@ -44,7 +46,7 @@ const validateStripeKeyOnce = async (client: Stripe) => {
 
 export const getStripeServer = () => {
   if (!stripe) {
-    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY or STRIPE_SECRET_KEY_FILE.');
   }
 
   // Fire and forget validation so we can surface configuration issues early.

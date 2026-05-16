@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { getSecretEnvValue } from "@/lib/env/secrets";
+
 let resendClient: Resend | null = null;
 
 type ClientOptions = {
@@ -7,7 +9,7 @@ type ClientOptions = {
 };
 
 export function getResendClient(options: ClientOptions = {}) {
-  const apiKey = options.apiKey ?? process.env.RESEND_API_KEY;
+  const apiKey = options.apiKey ?? getSecretEnvValue("RESEND_API_KEY");
 
   if (!apiKey) {
     throw new Error("RESEND_API_KEY is not configured");
