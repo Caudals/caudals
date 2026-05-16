@@ -14,14 +14,17 @@ import type { OperatorModuleKey } from "@/lib/operator/console-snapshot";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type OperatorRecordNotesProps = {
+  className?: string;
   moduleKey: OperatorModuleKey;
   targetType: string;
   targetId: string;
 };
 
 export function OperatorRecordNotes({
+  className,
   moduleKey,
   targetType,
   targetId,
@@ -191,7 +194,12 @@ export function OperatorRecordNotes({
   };
 
   return (
-    <div className="mt-3 rounded-lg border border-gray-100 bg-white p-3">
+    <div
+      className={cn(
+        "mt-3 rounded-lg border border-gray-100 bg-white p-3",
+        className
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
           <MessageSquare className="h-3.5 w-3.5 text-gray-400" />
