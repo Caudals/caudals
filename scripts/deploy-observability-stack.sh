@@ -48,6 +48,9 @@ receivers:
         send_resolved: true
 YAML
 
+  chown root:65534 "$generated_config"
+  chmod 0640 "$generated_config"
+
   ALERTMANAGER_CONFIG_PATH="$generated_config"
   echo "Rendered external Alertmanager receiver config: $generated_config"
 }

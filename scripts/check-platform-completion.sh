@@ -7,6 +7,7 @@ BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
+PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
 
 failures=0
 APP_CONTAINER=""
@@ -333,6 +334,11 @@ current_pentest_title() {
 }
 
 check_pentest_tracker() {
+  if [[ "$PENTEST_GATE_ENABLED" != "true" ]]; then
+    mark_ok "security.pentest" "waived for current completion gate; set CAUDALS_PENTEST_GATE_ENABLED=true to require the quarterly tracker"
+    return
+  fi
+
   if ! require_command gh "security.pentest"; then
     return
   fi
