@@ -31,6 +31,8 @@
 - Added `npm run observability:configure-sentry` to mount the production Sentry DSN as a Docker secret on the app service once the DSN is available.
 - Landing-mode public navigation now locks to exactly `Contacto` and `Blog` with unit and Playwright coverage.
 - Sentry App Router wiring now includes client navigation transition capture, global error capture, a gated build-time Sentry wrapper, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
+- Buyer and supplier workspaces now have authenticated tRPC `buyer.workspace` and `supplier.workspace` procedures backed by the same scoped workspace loaders as the pages. The global role probe now returns `{ role: null }` for authenticated non-operators so buyer/supplier dashboards do not treat expected non-operator sessions as console errors.
+- The Operator Console work queue received a visual polish pass: each row now uses a compact record/status header with balanced transition, edit, and note columns across desktop and mobile.
 
 ## Verification
 
@@ -54,9 +56,13 @@
 - Operator password-only auth policy passed focused security tests, full Vitest, typecheck, lint, i18n parity, production build, disposable migration/rollback validation, live migration, live audit readback, service env convergence, and production route probes.
 - Vulnerability management validation covers YAML parsing, targeted diff checks, dry-run penetration-test tracker generation, and Docker Scout SARIF delivery through the main Docker workflow.
 - Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
+- tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; and dashboard screenshots for admin, buyer, supplier, settings, and mobile views.
+- Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
+- Latest platform completion gate readback remains red only on external completion items: missing Sentry runtime DSN/secret, Alertmanager local/no-op receiver config, and open current-quarter pentest tracker `#19`.
 
 ## Known Gaps / Next M3 Inputs
 
 - Sentry error delivery remains disabled until #21 configures `SENTRY_DSN` or the server-only `SENTRY_DSN_FILE` Docker secret fallback in production. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
 - External PagerDuty/on-call notification routing still requires production contact-point credentials and is tracked in #22. Private Prometheus rules and Alertmanager routing are live.
 - External penetration-test execution still requires Security/CTO to assign the tester or vendor and close #19 with findings and retest evidence.
+- Fresh VPS readback found no Sentry DSN Docker secret by name, no Sentry DSN mounted on the app service, Alertmanager still mounted from the local no-op config, and `#19` open with no assignee.

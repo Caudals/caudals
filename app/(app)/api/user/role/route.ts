@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const session = await getCurrentOperatorSession(request.headers);
 
   if (!session) {
-    return NextResponse.json({ role: null }, { status: 401 });
+    return NextResponse.json({ role: null });
   }
 
   return NextResponse.json({

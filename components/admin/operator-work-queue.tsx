@@ -378,6 +378,12 @@ function WorkItemRow({
     setTargetState(transition.to);
     handleTransition(transition.to);
   };
+  const transitionSummary =
+    transitions.length > 0
+      ? transitions.map((transition) => transition.to).join(" / ")
+      : workflow
+        ? t("Terminal state")
+        : t("No workflow");
 
   return (
     <div
@@ -387,133 +393,152 @@ function WorkItemRow({
       aria-selected={selected}
       data-work-queue-row=""
       onKeyDown={handleRowKeyDown}
-      className="grid scroll-mt-24 gap-4 border-t border-gray-100 py-4 outline-hidden transition-colors first:border-t-0 focus:bg-emerald-50/50 focus:ring-2 focus:ring-emerald-500/30 xl:grid-cols-[auto_0.78fr_1.12fr_1.2fr] xl:items-start"
+      className="scroll-mt-24 border-t border-gray-100 py-5 outline-hidden transition-colors first:border-t-0 focus:bg-emerald-50/50 focus:ring-2 focus:ring-emerald-500/30"
     >
-      <div className="pt-1">
-        <Checkbox
-          aria-label={t("Select work item")}
-          checked={selected}
-          disabled={!selectable}
-          onCheckedChange={(checked) => {
-            onSelectedChange(item.id, checked === true);
-          }}
-          className="border-gray-300 data-[state=checked]:border-gray-950 data-[state=checked]:bg-gray-950"
-        />
-      </div>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            variant="outline"
-            className="rounded-full border-gray-200 bg-gray-50 font-mono text-[10px] text-gray-600"
-          >
-            {item.recordType}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={cn("rounded-full text-[10px]", severityClassName(item.severity))}
-          >
-            {t(item.severity)}
-          </Badge>
+      <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)_minmax(240px,0.4fr)] lg:items-start">
+        <div className="pt-1">
+          <Checkbox
+            aria-label={t("Select work item")}
+            checked={selected}
+            disabled={!selectable}
+            onCheckedChange={(checked) => {
+              onSelectedChange(item.id, checked === true);
+            }}
+            className="border-gray-300 data-[state=checked]:border-gray-950 data-[state=checked]:bg-gray-950"
+          />
         </div>
-        <p className="mt-2 truncate font-mono text-xs text-gray-500">{item.id}</p>
-      </div>
 
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-gray-950">{item.title}</p>
-        <p className="mt-1 truncate text-xs text-gray-500">{item.detail}</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="rounded-full border-gray-200 bg-gray-50 font-mono text-[10px] text-gray-600"
+            >
+              {item.recordType}
+            </Badge>
+            <Badge
+              variant="outline"
+              className={cn(
+                "rounded-full text-[10px]",
+                severityClassName(item.severity)
+              )}
+            >
+              {t(item.severity)}
+            </Badge>
+            <span className="truncate font-mono text-xs text-gray-500">
+              {item.id}
+            </span>
+          </div>
+          <p className="mt-2 truncate text-sm font-semibold text-gray-950">
+            {item.title}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">{item.detail}</p>
+        </div>
+
+        <div className="grid gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs sm:grid-cols-3 lg:grid-cols-1">
+          <div className="min-w-0">
+            <p className="font-medium uppercase tracking-wide text-gray-400">
               {t("State")}
             </p>
-            <p className="mt-1 font-mono text-xs font-semibold text-gray-950">
+            <p className="mt-1 truncate font-mono font-semibold text-gray-950">
               {item.state}
             </p>
           </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+          <div className="min-w-0">
+            <p className="font-medium uppercase tracking-wide text-gray-400">
               {t("Next action")}
             </p>
-            <p className="mt-1 text-xs font-semibold text-gray-950">
+            <p className="mt-1 truncate font-semibold text-gray-950">
               {t(item.nextAction)}
+            </p>
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium uppercase tracking-wide text-gray-400">
+              {t("Next transitions")}
+            </p>
+            <p className="mt-1 truncate font-mono font-semibold text-gray-950">
+              {transitionSummary}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
-          <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
-          {t("Inline state transition")}
-        </div>
-        {canTransition ? (
-          <div className="mt-3 grid gap-2">
-            <div className="grid gap-2 sm:grid-cols-[0.8fr_1fr]">
-              <Select
-                value={targetState}
-                onValueChange={setTargetState}
-                disabled={isPending}
-              >
-                <SelectTrigger
-                  size="sm"
-                  className="w-full border-gray-200 bg-white shadow-none"
-                  aria-label={t("Next state")}
-                >
-                  <SelectValue placeholder={t("Next state")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {transitions.map((transition, index) => (
-                    <SelectItem
-                      key={`${transition.from}-${transition.to}`}
-                      value={transition.to}
-                    >
-                      {index + 1} - {transition.to}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                disabled={isPending}
-                placeholder={t("Transition reason")}
-                className="h-8 border-gray-200 bg-white text-xs shadow-none"
-              />
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 w-fit bg-gray-950 text-xs text-white shadow-none hover:bg-gray-800"
-              disabled={isPending}
-              onClick={() => handleTransition()}
-            >
-              {isPending ? (
-                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-              )}
-              {t("Apply transition")}
-            </Button>
-            <p className="text-[11px] leading-4 text-gray-400">
-              Focus row, then press 1-{transitions.length} for a one-key
-              transition shortcut. Use arrow keys to move between rows.
-            </p>
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.15fr)_minmax(280px,0.85fr)]">
+        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
+            <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
+            {t("Inline state transition")}
           </div>
-        ) : (
-          <p className="mt-2 text-xs leading-5 text-gray-500">
-            {workflow
-              ? t("This record is already in a terminal state.")
-              : t("No state transition is configured for this record type.")}
-          </p>
-        )}
-        <div aria-live="polite" className="mt-2 min-h-5">
-          {error ? (
-            <p className="text-xs font-medium text-red-700">{error}</p>
-          ) : feedback ? (
-            <p className="text-xs font-medium text-emerald-700">{feedback}</p>
-          ) : null}
+          {canTransition ? (
+            <div className="mt-3 grid gap-2">
+              <div className="grid gap-2 sm:grid-cols-[0.8fr_1fr] xl:grid-cols-1">
+                <Select
+                  value={targetState}
+                  onValueChange={setTargetState}
+                  disabled={isPending}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="w-full border-gray-200 bg-white shadow-none"
+                    aria-label={t("Next state")}
+                  >
+                    <SelectValue placeholder={t("Next state")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {transitions.map((transition, index) => (
+                      <SelectItem
+                        key={`${transition.from}-${transition.to}`}
+                        value={transition.to}
+                      >
+                        {index + 1} - {transition.to}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  disabled={isPending}
+                  placeholder={t("Transition reason")}
+                  className="h-8 border-gray-200 bg-white text-xs shadow-none"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 w-fit bg-gray-950 text-xs text-white shadow-none hover:bg-gray-800"
+                disabled={isPending}
+                onClick={() => handleTransition()}
+              >
+                {isPending ? (
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                )}
+                {t("Apply transition")}
+              </Button>
+              <p className="text-[11px] leading-4 text-gray-400">
+                Focus row, then press 1-{transitions.length} for a one-key
+                transition shortcut. Use arrow keys to move between rows.
+              </p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              {workflow
+                ? t("This record is already in a terminal state.")
+                : t("No state transition is configured for this record type.")}
+            </p>
+          )}
+          <div aria-live="polite" className="mt-2 min-h-5">
+            {error ? (
+              <p className="text-xs font-medium text-red-700">{error}</p>
+            ) : feedback ? (
+              <p className="text-xs font-medium text-emerald-700">{feedback}</p>
+            ) : null}
+          </div>
         </div>
-        <div className="mt-4 rounded-lg border border-gray-100 bg-white p-3">
+
+        <div className="rounded-lg border border-gray-100 bg-white p-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
             <ListChecks className="h-3.5 w-3.5 text-gray-400" />
             {t("Inline record edit")}
@@ -654,7 +679,9 @@ function WorkItemRow({
             ) : null}
           </div>
         </div>
+
         <OperatorRecordNotes
+          className="mt-0 h-fit"
           moduleKey={item.moduleKey}
           targetType={item.recordType}
           targetId={item.id}
