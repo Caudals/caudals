@@ -1,9 +1,14 @@
 /** @type {import('next').NextConfig} */
+const { withSentryConfig } = require("@sentry/nextjs");
+
 const remotePatterns = [
   { protocol: "https", hostname: "images.unsplash.com" },
 ];
 
 const isDev = process.env.NODE_ENV !== "production";
+const sentrySourceMapUploadEnabled =
+  process.env.SENTRY_SOURCE_MAP_UPLOAD === "true" &&
+  Boolean(process.env.SENTRY_AUTH_TOKEN);
 const landingModePublicFlag =
   process.env.NEXT_PUBLIC_LANDING_MODE ?? process.env.LANDING_MODE ?? "false";
 
@@ -96,4 +101,22 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: "caudals",
+  project: "javascript-nextjs",
+  silent: !process.env.CI,
+  sourcemaps: {
+    disable: !sentrySourceMapUploadEnabled,
+  },
+  release: {
+    create: sentrySourceMapUploadEnabled,
+    finalize: sentrySourceMapUploadEnabled,
+  },
+  telemetry: false,
+  widenClientFileUpload: sentrySourceMapUploadEnabled,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});
