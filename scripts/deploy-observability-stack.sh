@@ -52,8 +52,8 @@ YAML
   echo "Rendered external Alertmanager receiver config: $generated_config"
 }
 
-if [[ "$(docker info --format '{{.Swarm.LocalNodeState}}')" != "active" ]]; then
-  echo "Docker Swarm must be active before deploying the observability stack." >&2
+if ! docker node ls >/dev/null 2>&1; then
+  echo "Docker Swarm manager access is required before deploying the observability stack." >&2
   exit 1
 fi
 
