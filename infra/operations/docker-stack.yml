@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  marquez:
+    image: marquezproject/marquez:0.50.0
+    networks:
+      - dokploy-network
+    environment:
+      MARQUEZ_PORT: "5000"
+      MARQUEZ_ADMIN_PORT: "5001"
+      POSTGRES_HOST: caudals-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: marquez
+      POSTGRES_USER: marquez
+      SEARCH_ENABLED: "false"
+    secrets:
+      - marquez_postgres_password
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/marquez_postgres_password)"
+        cat >/tmp/marquez.yml <<'YAML'
+        server:
+          applicationConnectors:
+            - type: http
+              port: $${MARQUEZ_PORT:-5000}
+              httpCompliance: RFC7230_LEGACY
+          adminConnectors:
+            - type: http
+              port: $${MARQUEZ_ADMIN_PORT:-5001}
+
+        db:
+          driverClass: org.postgresql.Driver
+          url: jdbc:postgresql://$${POSTGRES_HOST:-postgres}:$${POSTGRES_PORT:-5432}/$${POSTGRES_DB:-marquez}
+          user: $${POSTGRES_USER:-marquez}
+          password: $${POSTGRES_PASSWORD}
+
+        migrateOnStartup: true
+
+        graphql:
+          enabled: true
+
+        logging:
+          level: INFO
+          appenders:
+            - type: console
+
+        search:
+          enabled: false
+
+        tags:
+          - name: PII
+            description: Personally identifiable information
+          - name: SENSITIVE
+            description: Contains sensitive information
+        YAML
+        export MARQUEZ_CONFIG=/tmp/marquez.yml
+        exec /usr/src/app/entrypoint.sh
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}
+
+secrets:
+  marquez_postgres_password:
+    external: true

@@ -5,6 +5,7 @@ APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
+OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
@@ -235,6 +236,17 @@ check_observability_stack() {
   fi
 }
 
+check_operations_stack() {
+  local output
+
+  output="$(CAUDALS_OPERATIONS_NETWORK="$OPERATIONS_NETWORK" scripts/probe-operations-stack.sh 2>&1)"
+  if [[ "$?" -eq 0 ]]; then
+    mark_ok "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_alert_routing() {
   local alertmanager_container config_source config_text
 
@@ -389,6 +401,7 @@ main() {
 
   check_operator_auth_policy
   check_observability_stack
+  check_operations_stack
   check_alert_routing
   check_tracked_secret_patterns
   check_runtime_secret_env
