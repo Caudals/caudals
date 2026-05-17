@@ -170,8 +170,9 @@ Install caveat:
   from an ephemeral container attached to `dokploy-network`.
 - `npm run platform:completion-status` runs the VPS-side completion gate for
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
-  private observability readiness, external alert routing, tracked Sentry auth
-  token leaks, and the current-quarter pentest tracker.
+  private observability readiness, private operations lineage readiness,
+  external alert routing, tracked Sentry auth token leaks, and the
+  current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
@@ -186,6 +187,31 @@ Install caveat:
   still require production routing credentials outside the repository.
 - Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
   OpenTelemetry peer packages explicit in `package.json`.
+
+## Operations Runtime
+- The private operations stack lives in `infra/operations/` and is deployed
+  with `npm run operations:deploy`. It currently runs Marquez on
+  `dokploy-network` without public published ports.
+- `scripts/deploy-operations-stack.sh` creates a root-only generated Marquez
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `marquez_postgres_password`, ensures the dedicated `marquez`
+  role/database on the private `caudals-postgres` service, and deploys the
+  stack. The script must not print the generated password.
+- Provide `CAUDALS_MARQUEZ_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/operations/marquez-postgres-password` file.
+- `npm run operations:probe` verifies Marquez admin health, the namespaces API,
+  and a synthetic OpenLineage `COMPLETE` event ingest from an ephemeral curl
+  container on the private network.
+- Useful override variables: `CAUDALS_OPERATIONS_STACK_NAME`,
+  `CAUDALS_OPERATIONS_NETWORK`, `CAUDALS_POSTGRES_SERVICE`,
+  `CAUDALS_MARQUEZ_POSTGRES_SECRET`, `CAUDALS_MARQUEZ_SERVICE`,
+  `CAUDALS_MARQUEZ_API_URL`, `CAUDALS_MARQUEZ_ADMIN_URL`,
+  `CAUDALS_OPERATIONS_PROBE_ATTEMPTS`,
+  `CAUDALS_OPERATIONS_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_OPERATIONS_PROBE_MAX_TIME_SECONDS`.
+- Keep Marquez private. Do not publish ports or expose the lineage API outside
+  the Docker/Tailscale operations boundary without an explicit security review.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -318,6 +344,10 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run operations:deploy`: deploy the private Marquez/OpenLineage
+  operations stack
+- `npm run operations:probe`: probe private Marquez health and synthetic
+  OpenLineage ingestion
 - `npm run caudals`: Caudals operations CLI; pass command arguments after `--`
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
@@ -359,6 +389,10 @@ Operational env controls:
   OTLP HTTP headers; do not commit secret values)
 - `OTEL_STDOUT_ENABLED` (default disabled; set `true` for short-lived stdout spans)
 - `OTEL_SERVICE_NAME` (default `caudals-web`)
+- `CAUDALS_OPERATIONS_STACK_NAME` (default `caudals-operations`)
+- `CAUDALS_OPERATIONS_NETWORK` (default `dokploy-network`)
+- `CAUDALS_MARQUEZ_POSTGRES_SECRET_FILE` (optional server-only password file
+  used by `npm run operations:deploy`)
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
@@ -372,6 +406,8 @@ Operational env controls:
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
+- Operations services: Marquez/OpenLineage stack name, private Docker network,
+  Marquez API/admin URLs, and server-only Marquez PostgreSQL secret file
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

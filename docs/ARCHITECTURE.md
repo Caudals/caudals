@@ -34,6 +34,8 @@ authenticated review but stay hidden in production until explicit clearance.
 - Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
   private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
   for the private observability services and container runtime
+- Operations services: private Marquez/OpenLineage runtime for dataset build
+  lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
 
 ## Code Topology
@@ -161,6 +163,25 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - OpenTelemetry stdout export remains opt-in via `OTEL_STDOUT_ENABLED=true`
   for bounded diagnostics; it should not be enabled permanently if logs may
   contain sensitive operational context.
+
+## Operations Services
+- The private operations service stack is defined in
+  `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
+  public ingress.
+- Marquez stores OpenLineage events in a dedicated `marquez` PostgreSQL
+  database owned by the dedicated `marquez` role on the private
+  `caudals-postgres` service.
+- The Marquez database password is mounted through the external Docker secret
+  `marquez_postgres_password`; the runtime config is generated inside the
+  container so the repository and Docker service spec do not store the secret
+  value.
+- OpenLineage ingestion is available only on the private Docker network at
+  `http://caudals-operations_marquez:5000/api/v1/lineage`; the admin
+  healthcheck is available internally at
+  `http://caudals-operations_marquez:5001/healthcheck`.
+- `scripts/probe-operations-stack.sh` verifies the admin healthcheck,
+  namespaces API, and a synthetic OpenLineage `COMPLETE` event ingest from an
+  ephemeral container attached to the private network.
 
 ## Data and Storage Domains
 Current live data domains:

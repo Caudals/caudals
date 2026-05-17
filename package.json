@@ -36,6 +36,8 @@
     "observability:configure-alert-routing": "bash scripts/configure-alert-routing.sh",
     "observability:configure-sentry": "bash scripts/configure-sentry-runtime.sh",
     "observability:sentry-status": "node scripts/check-sentry-config.mjs",
+    "operations:deploy": "bash scripts/deploy-operations-stack.sh",
+    "operations:probe": "bash scripts/probe-operations-stack.sh",
     "analytics:check-surface": "tsx scripts/check-product-analytics-surface.ts",
     "i18n:check-parity": "tsx scripts/check-i18n-parity.ts",
     "cleanup:expired": "tsx scripts/cleanup-expired-artifacts.ts",
