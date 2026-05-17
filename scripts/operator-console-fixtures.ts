@@ -151,6 +151,24 @@ function fixtureId(prefix: string, index: number) {
   return `${prefix}_01J2${String(index).padStart(22, "0")}`;
 }
 
+function fixtureIndexFromId(id: string) {
+  return Number(id.slice(-22));
+}
+
+function auditMinuteOffset(eventId: string, fallbackIndex: number) {
+  const fixtureIndex = fixtureIndexFromId(eventId);
+
+  if (fixtureIndex >= 100) {
+    return 15 + (fixtureIndex - 100);
+  }
+
+  if (fixtureIndex >= 16 && fixtureIndex <= 19) {
+    return 20 + (fixtureIndex - 16);
+  }
+
+  return fallbackIndex;
+}
+
 function getDatabaseUrl() {
   return getDatabaseUrlFromEnv({
     missingMessage:
@@ -2545,6 +2563,8 @@ async function seedAudit(client: PoolClient) {
   const auditEvents = [...baseAuditEvents, ...buildAuditEvents];
 
   for (const [index, event] of auditEvents.entries()) {
+    const minuteOffset = auditMinuteOffset(event[0], index);
+
     await query(
       client,
       `
@@ -2570,7 +2590,7 @@ async function seedAudit(client: PoolClient) {
         event[2],
         JSON.stringify(event[4]),
         FIXTURE_CREATED_AT,
-        index,
+        minuteOffset,
       ]
     );
   }
