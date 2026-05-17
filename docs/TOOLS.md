@@ -209,14 +209,16 @@ Install caveat:
   profiling, and G-7 QA: `bronze_intake_sample`, `silver_profile_report`, and
   `gold_qa_scorecard`.
 - `npm run orchestration:probe` verifies the Dagster webserver `/server_info`
-  endpoint, the code-server gRPC healthcheck, and a local execution of the
-  `caudals_reference_build` reference job from the running code container.
+  endpoint, the code-server gRPC healthcheck, a local execution of the
+  `caudals_reference_build` reference job from the running code container, and
+  the Marquez namespace created by Dagster-originated OpenLineage events.
 - Useful override variables: `CAUDALS_ORCHESTRATION_STACK_NAME`,
   `CAUDALS_ORCHESTRATION_NETWORK`, `CAUDALS_DAGSTER_IMAGE`,
   `CAUDALS_DAGSTER_POSTGRES_SECRET`,
   `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE`, `CAUDALS_DAGSTER_CODE_SERVICE`,
   `CAUDALS_DAGSTER_WEBSERVER_SERVICE`, `CAUDALS_DAGSTER_WEBSERVER_URL`,
-  `CAUDALS_ORCHESTRATION_PROBE_ATTEMPTS`,
+  `CAUDALS_OPENLINEAGE_URL`, `CAUDALS_OPENLINEAGE_STRICT`,
+  `CAUDALS_MARQUEZ_API_URL`, `CAUDALS_ORCHESTRATION_PROBE_ATTEMPTS`,
   `CAUDALS_ORCHESTRATION_PROBE_CONNECT_TIMEOUT_SECONDS`, and
   `CAUDALS_ORCHESTRATION_PROBE_MAX_TIME_SECONDS`.
 - Keep Dagster private. Do not publish ports or expose the webserver/API
@@ -386,8 +388,8 @@ Bootstrap:
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
 - `npm run orchestration:deploy`: build and deploy the private Dagster
   orchestration stack
-- `npm run orchestration:probe`: probe private Dagster health and execute the
-  reference asset job
+- `npm run orchestration:probe`: probe private Dagster health, execute the
+  reference asset job, and verify Dagster OpenLineage ingestion
 - `npm run operations:deploy`: deploy the private Marquez/OpenLineage
   operations stack
 - `npm run operations:probe`: probe private Marquez health and synthetic
@@ -451,8 +453,9 @@ Operational env controls:
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
 - Operations services: Dagster orchestration stack/image/service names,
-  Marquez/OpenLineage stack name, private Docker network, Marquez API/admin
-  URLs, and server-only Dagster/Marquez PostgreSQL secret files
+  Dagster OpenLineage URL/strictness, Marquez/OpenLineage stack name, private
+  Docker network, Marquez API/admin URLs, and server-only Dagster/Marquez
+  PostgreSQL secret files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

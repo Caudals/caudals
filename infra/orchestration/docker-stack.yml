@@ -8,6 +8,8 @@ x-dagster-env: &dagster-env
   DAGSTER_POSTGRES_PASSWORD_FILE: /run/secrets/dagster_postgres_password
   DAGSTER_LOCAL_ARTIFACT_STORAGE_DIR: /opt/dagster/storage
   DAGSTER_COMPUTE_LOG_DIR: /opt/dagster/storage/compute_logs
+  OPENLINEAGE_URL: ${CAUDALS_OPENLINEAGE_URL:-http://caudals-operations-marquez:5000/api/v1/lineage}
+  OPENLINEAGE_STRICT: ${CAUDALS_OPENLINEAGE_STRICT:-true}
 
 services:
   code:
