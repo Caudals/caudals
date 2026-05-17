@@ -4,8 +4,6 @@
 
 Implement, extend, verify, and deploy Caudals as a polished B2B AI dataset operations platform: public funnel, private operator console, buyer and supplier workspaces, API/security routes, data operations services, compliance controls, delivery flows, observability, and production deployment. The blueprint is the canonical target, but agents may add, remove, or reshape features when doing so makes the product more complete, functional, trustworthy, maintainable, or commercially useful. Log material deviations in `docs/blueprints/deviations.md`.
 
-Caudals is done when every load-bearing blueprint section is implemented or explicitly deferred with a documented reason, the platform can run representative dataset workflows end-to-end, services are observable and operable from the console or documented CLIs, and production passes the completion gates below.
-
 ## Required context
 
 Read in this order:
@@ -13,14 +11,9 @@ Read in this order:
 1. `AGENTS.md`
 2. `docs/blueprints/caudals-platform-blueprint.md`
 3. `docs/product-specs/overview.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/DESIGN.md`
-6. `docs/FRONTEND.md`
-7. `docs/TOOLS.md`
-8. `docs/index.md`
-9. `docs/product-specs/index.md`
-10. `PHASE_1_REPORT.md`, `PHASE_2_REPORT.md`, `PHASE_3_REPORT.md`, and any newer `PHASE_*_REPORT.md`
-11. `docs/blueprints/deviations.md`
+4. `docs/index.md`
+5. `PHASE_1_REPORT.md`, `PHASE_2_REPORT.md`, `PHASE_3_REPORT.md`, and any newer `PHASE_*_REPORT.md`
+6. `docs/blueprints/deviations.md`
 
 Use the current code, database migrations, scripts, deployed service state, and phase reports as evidence. Do not rely on stale assumptions when a command or readback is cheap.
 
@@ -34,7 +27,6 @@ Preserve the current B2B marketplace and managed-services direction:
 - Landing-page visibility: landing mode only hides entry points from the public landing experience. Do not add landing-page buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths for buyer, supplier, API, or security routes unless explicitly requested.
 - Catalogue datasets are out of scope for this goal. Do not implement public catalogue datasets, catalogue browsing, sample-preview catalogue flows, marketplace listing publication, or catalogue purchase flows in this blueprint implementation.
 - Marketplace browse, buyer self-service purchasing, supplier self-service publishing, and broad marketplace commerce stay deferred until a future catalogue goal.
-- Every workflow must preserve provenance, rights, consent, privacy, PII handling, auditability, delivery evidence, and payment/webhook idempotency where applicable.
 
 ## Production visibility
 
