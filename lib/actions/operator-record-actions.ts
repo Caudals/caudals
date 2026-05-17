@@ -102,6 +102,7 @@ function isActionError(
 const mutableTables = {
   organization: { table: "organization", prefix: "or", softDelete: true },
   contact: { table: "contact", prefix: "co", softDelete: true },
+  reviewer: { table: "reviewer", prefix: "rv", softDelete: true },
   alert: { table: "alert", prefix: "al", softDelete: true },
   buyer_opportunity: { table: "buyer_opportunity", prefix: "bo", softDelete: true },
   supplier_opportunity: {
@@ -121,6 +122,16 @@ const mutableTables = {
   build_plan: { table: "build_plan", prefix: "bp", softDelete: true },
   dataset: { table: "dataset", prefix: "dt", softDelete: true },
   dataset_version: { table: "dataset_version", prefix: "dv", softDelete: true },
+  dataset_partition: {
+    table: "dataset_partition",
+    prefix: "dp",
+    softDelete: true,
+  },
+  manifest_artifact: {
+    table: "manifest_artifact",
+    prefix: "ma",
+    softDelete: true,
+  },
   modality_contract: {
     table: "modality_contract",
     prefix: "mc",
@@ -158,7 +169,9 @@ const mutableTables = {
   },
   quote: { table: "quote", prefix: "qt", softDelete: true },
   invoice: { table: "invoice", prefix: "iv", softDelete: true },
+  payment: { table: "payment", prefix: "pt", softDelete: true },
   payout: { table: "payout", prefix: "py", softDelete: true },
+  revenue_share: { table: "revenue_share", prefix: "rs", softDelete: true },
   run: { table: "run", prefix: "rn", softDelete: true },
   cost_entry: { table: "cost_entry", prefix: "ce", softDelete: false },
   escalation_case: { table: "escalation_case", prefix: "ec", softDelete: true },
@@ -700,6 +713,49 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    reviewer: `
+      WITH inserted AS (
+        INSERT INTO reviewer (
+          id, org_id, display_name, reviewer_pool, skill_profile,
+          data_access_policy, state, created_by
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          COALESCE(NULLIF($11::jsonb ->> 'reviewerPool', ''), 'in_house_specialist'),
+          jsonb_strip_nulls(jsonb_build_object(
+            'skills',
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'skills', ''), ''),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            )
+          )),
+          jsonb_strip_nulls(jsonb_build_object(
+            'summary',
+            NULLIF($9, ''),
+            'controls',
+            (
+              SELECT jsonb_agg(trim(value))
+              FROM regexp_split_to_table(
+                COALESCE(NULLIF($11::jsonb ->> 'accessPolicy', ''), ''),
+                ','
+              ) AS value
+              WHERE trim(value) <> ''
+            )
+          )),
+          $4,
+          $6
+        )
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     alert: `
       WITH inserted AS (
         INSERT INTO alert (id, org_id, severity, title, target_type, target_id, state, created_by)
@@ -1210,6 +1266,88 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    dataset_partition: `
+      WITH target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY released_at DESC NULLS LAST, updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO dataset_partition (
+          id, org_id, dataset_version_id, layer, partition_key,
+          object_uri, content_hash, format, record_count, size_bytes,
+          provenance_manifest, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_version.id,
+          COALESCE(NULLIF($11::jsonb ->> 'layer', ''), 'bronze'),
+          $3,
+          COALESCE(NULLIF($11::jsonb ->> 'objectUri', ''), NULLIF($9, ''), 's3://operator-created/partition'),
+          NULLIF($11::jsonb ->> 'contentHash', ''),
+          COALESCE(NULLIF($11::jsonb ->> 'format', ''), 'parquet'),
+          NULLIF($11::jsonb ->> 'recordCount', '')::bigint,
+          NULLIF($11::jsonb ->> 'sizeBytes', '')::bigint,
+          jsonb_strip_nulls(jsonb_build_object(
+            'summary',
+            NULLIF($9, ''),
+            'operatorCreated',
+            true
+          )),
+          $4,
+          $6
+        FROM target_version
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    manifest_artifact: `
+      WITH target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY released_at DESC NULLS LAST, updated_at DESC
+        LIMIT 1
+      ),
+      target_build AS (
+        SELECT id
+        FROM build
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO manifest_artifact (
+          id, org_id, dataset_version_id, build_id, artifact_type,
+          artifact_uri, content_hash, metadata, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_version.id,
+          target_build.id,
+          COALESCE(NULLIF($11::jsonb ->> 'artifactType', ''), 'package_manifest'),
+          COALESCE(NULLIF($11::jsonb ->> 'artifactUri', ''), NULLIF($9, ''), 's3://operator-created/manifest-artifact'),
+          NULLIF($11::jsonb ->> 'contentHash', ''),
+          jsonb_strip_nulls(jsonb_build_object(
+            'label',
+            $3,
+            'summary',
+            NULLIF($11::jsonb ->> 'metadataSummary', '')
+          )),
+          $4,
+          $6
+        FROM target_version
+        LEFT JOIN target_build ON true
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     modality_contract: `
       WITH target_version AS (
         SELECT dv.id, d.modality AS dataset_modality
@@ -1225,10 +1363,10 @@ function buildCreateSql(
         SELECT
           id AS dataset_version_id,
           CASE
-            WHEN NULLIF($11::jsonb ->> 'modality', '') IN ('video','audio','geospatial','document','timeseries')
+            WHEN NULLIF($11::jsonb ->> 'modality', '') IN ('tabular','text','image','video','audio','geospatial','document','timeseries')
               THEN NULLIF($11::jsonb ->> 'modality', '')
-            WHEN dataset_modality IN ('video','audio','geospatial','document','timeseries') THEN dataset_modality
-            ELSE 'video'
+            WHEN dataset_modality IN ('tabular','text','image','video','audio','geospatial','document','timeseries') THEN dataset_modality
+            ELSE 'tabular'
           END AS modality
         FROM target_version
       ),
@@ -1247,11 +1385,15 @@ function buildCreateSql(
             NULLIF($11::jsonb ->> 'canonicalFormat', ''),
             NULLIF($9, ''),
             CASE modality
+              WHEN 'tabular' THEN 'Iceberg Parquet with zstd compression'
+              WHEN 'text' THEN 'Parquet text records with JSONL mirror'
+              WHEN 'image' THEN 'Lance dataset with media references'
+              WHEN 'video' THEN 'Lance index over MP4 chunks'
               WHEN 'audio' THEN 'WAV/FLAC plus Lance segment index'
               WHEN 'geospatial' THEN 'STAC plus GeoParquet and Cloud Optimized GeoTIFF'
               WHEN 'document' THEN 'Parquet page records plus original PDF references'
               WHEN 'timeseries' THEN 'Iceberg Parquet partitioned by event time and entity'
-              ELSE 'Lance index over MP4 chunks'
+              ELSE 'Iceberg Parquet with zstd compression'
             END
           ),
           COALESCE(
@@ -1261,11 +1403,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'profileSignals', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'row_count,column_types,null_rates,key_uniqueness'
+                    WHEN 'text' THEN 'token_count,language_mix,dedup_rate,encoding_cleanliness'
+                    WHEN 'image' THEN 'count,resolution_histogram,aspect_ratio,format_inventory'
+                    WHEN 'video' THEN 'duration_histogram,fps,codec,resolution'
                     WHEN 'audio' THEN 'duration_histogram,sample_rate,channel_layout'
                     WHEN 'geospatial' THEN 'bounding_box,crs,feature_density'
                     WHEN 'document' THEN 'page_count,layout_type_inventory,ocr_confidence'
                     WHEN 'timeseries' THEN 'sample_rate,gap_distribution,seasonality_fingerprint'
-                    ELSE 'duration_histogram,fps,codec'
+                    ELSE 'row_count,column_types,null_rates'
                   END
                 ),
                 ','
@@ -1281,11 +1427,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'cleaningOperators', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'type_coerce_strict,deduplicate,missing_value_policy'
+                    WHEN 'text' THEN 'utf8_canonicalize,language_filter,near_duplicate_remove'
+                    WHEN 'image' THEN 'exif_strip,orientation_fix,perceptual_dedup'
+                    WHEN 'video' THEN 'temporal_dedup,shot_change_sampling,metadata_strip'
                     WHEN 'audio' THEN 'resample,silence_trim,loudness_normalize'
                     WHEN 'geospatial' THEN 'crs_reconcile,geometry_repair,h3_bin'
                     WHEN 'document' THEN 'ocr_normalize,page_dedup,table_extract'
                     WHEN 'timeseries' THEN 'sample_rate_align,gap_policy_apply,clock_skew_correct'
-                    ELSE 'temporal_dedup,shot_change_sampling,metadata_strip'
+                    ELSE 'type_coerce_strict,deduplicate'
                   END
                 ),
                 ','
@@ -1301,11 +1451,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'privacyTreatments', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'quasi_identifier_review,k_anonymity_check,pseudonymize'
+                    WHEN 'text' THEN 'presidio_scan,ner_scan,span_redaction'
+                    WHEN 'image' THEN 'face_blur,license_plate_blur,exif_gps_strip'
+                    WHEN 'video' THEN 'face_blur,license_plate_blur,audio_track_pii_review'
                     WHEN 'audio' THEN 'voice_biometric_review,speaker_consent_check,metadata_strip'
                     WHEN 'geospatial' THEN 'jurisdiction_embargo_check,coordinate_precision_reduction'
                     WHEN 'document' THEN 'signature_redaction,printed_pii_redaction,source_pdf_access_control'
                     WHEN 'timeseries' THEN 'entity_pseudonymize,location_precision_reduce,blackout_window_apply'
-                    ELSE 'face_blur,license_plate_blur,audio_track_pii_review'
+                    ELSE 'quasi_identifier_review,k_anonymity_check'
                   END
                 ),
                 ','
@@ -1321,11 +1475,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'labelingWidgets', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'grid_cell,row_flag,field_review'
+                    WHEN 'text' THEN 'text_span,classification,relation'
+                    WHEN 'image' THEN 'bounding_box,polygon,mask,keypoint'
+                    WHEN 'video' THEN 'bounding_box,mask,keyframe,temporal_segment'
                     WHEN 'audio' THEN 'audio_segment,transcript_span,event_marker'
                     WHEN 'geospatial' THEN 'polygon,raster_tile,point_class'
                     WHEN 'document' THEN 'page_region,field_extraction,table_cell'
                     WHEN 'timeseries' THEN 'event_window,anomaly_span,regime_marker'
-                    ELSE 'bounding_box,mask,keyframe,temporal_segment'
+                    ELSE 'grid_cell,row_flag'
                   END
                 ),
                 ','
@@ -1341,11 +1499,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'qaDimensions', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'completeness,validity,referential_consistency'
+                    WHEN 'text' THEN 'language_balance,deduplication,pii_residual'
+                    WHEN 'image' THEN 'resolution_quality,class_balance,privacy_residual'
+                    WHEN 'video' THEN 'temporal_coverage,frame_quality,privacy_residual'
                     WHEN 'audio' THEN 'transcript_alignment,speaker_balance,signal_quality'
                     WHEN 'geospatial' THEN 'spatial_coverage,crs_consistency,edge_artifacts'
                     WHEN 'document' THEN 'layout_fidelity,ocr_confidence,redaction_residual'
                     WHEN 'timeseries' THEN 'temporal_continuity,gap_policy_compliance,split_leakage'
-                    ELSE 'temporal_coverage,frame_quality,privacy_residual'
+                    ELSE 'completeness,validity'
                   END
                 ),
                 ','
@@ -1361,11 +1523,15 @@ function buildCreateSql(
                 COALESCE(
                   NULLIF($11::jsonb ->> 'packagingTargets', ''),
                   CASE modality
+                    WHEN 'tabular' THEN 'parquet,csv,snowflake_share,rest_api'
+                    WHEN 'text' THEN 'jsonl,hf_datasets,parquet_shards'
+                    WHEN 'image' THEN 'coco,yolo,lance,webdataset'
+                    WHEN 'video' THEN 'mp4_clips,per_frame_manifest,coco_video'
                     WHEN 'audio' THEN 'wav,flac,jsonl_labels,hf_audio'
                     WHEN 'geospatial' THEN 'stac_catalog,geoparquet,cog'
                     WHEN 'document' THEN 'page_parquet,jsonl_fields,pdf_bundle,rest_query'
                     WHEN 'timeseries' THEN 'time_partitioned_parquet,arrow_ipc,rest_cursor'
-                    ELSE 'mp4_clips,per_frame_manifest,coco_video'
+                    ELSE 'parquet,csv'
                   END
                 ),
                 ','
@@ -1842,6 +2008,53 @@ function buildCreateSql(
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
       FROM inserted CROSS JOIN audit
     `,
+    payment: `
+      WITH target_invoice AS (
+        SELECT id
+        FROM invoice
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_buyer AS (
+        SELECT COALESCE(
+          (
+            SELECT id
+            FROM organization
+            WHERE org_id = $2 AND kind = 'buyer' AND deleted_at IS NULL
+            ORDER BY updated_at DESC
+            LIMIT 1
+          ),
+          $2
+        ) AS id
+      ),
+      inserted AS (
+        INSERT INTO payment (
+          id, org_id, invoice_id, buyer_org_id, stripe_payment_intent_id,
+          amount_cents, currency, receipt, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_invoice.id,
+          target_buyer.id,
+          NULLIF($9, ''),
+          COALESCE(NULLIF($11::jsonb ->> 'amountCents', '')::integer, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'currency', ''), 'USD'),
+          jsonb_strip_nulls(jsonb_build_object(
+            'summary',
+            $3,
+            'receiptHash',
+            NULLIF($11::jsonb ->> 'receiptHash', '')
+          )),
+          $4,
+          $6
+        FROM target_invoice CROSS JOIN target_buyer
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
     payout: `
       WITH target_supplier AS (
         SELECT COALESCE(
@@ -1867,6 +2080,74 @@ function buildCreateSql(
           $4,
           $6
         FROM target_supplier
+        RETURNING id, updated_at
+      ), ${insertAuditCte("operator_record.created")}
+      SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
+      FROM inserted CROSS JOIN audit
+    `,
+    revenue_share: `
+      WITH target_supplier AS (
+        SELECT COALESCE(
+          (
+            SELECT id
+            FROM organization
+            WHERE org_id = $2 AND kind = 'supplier' AND deleted_at IS NULL
+            ORDER BY updated_at DESC
+            LIMIT 1
+          ),
+          $2
+        ) AS id
+      ),
+      target_version AS (
+        SELECT id
+        FROM dataset_version
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY released_at DESC NULLS LAST, updated_at DESC
+        LIMIT 1
+      ),
+      target_contract AS (
+        SELECT id
+        FROM contract
+        WHERE org_id = $2 AND contract_type = 'supplier' AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      target_payout AS (
+        SELECT id
+        FROM payout
+        WHERE org_id = $2 AND deleted_at IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+      ),
+      inserted AS (
+        INSERT INTO revenue_share (
+          id, org_id, supplier_org_id, dataset_version_id, contract_id,
+          payout_id, basis, share_rate, gross_cents, net_cents,
+          currency, state, created_by
+        )
+        SELECT
+          $1,
+          $2,
+          target_supplier.id,
+          target_version.id,
+          target_contract.id,
+          target_payout.id,
+          jsonb_strip_nulls(jsonb_build_object(
+            'label',
+            $3,
+            'summary',
+            COALESCE(NULLIF($11::jsonb ->> 'basisSummary', ''), NULLIF($9, ''))
+          )),
+          COALESCE(NULLIF($11::jsonb ->> 'shareRate', '')::numeric, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'grossCents', '')::integer, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'netCents', '')::integer, 0),
+          COALESCE(NULLIF($11::jsonb ->> 'currency', ''), 'USD'),
+          $4,
+          $6
+        FROM target_supplier
+        LEFT JOIN target_version ON true
+        LEFT JOIN target_contract ON true
+        LEFT JOIN target_payout ON true
         RETURNING id, updated_at
       ), ${insertAuditCte("operator_record.created")}
       SELECT inserted.id, inserted.updated_at, audit.id AS audit_event_id
@@ -2043,6 +2324,8 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "legal_name = $3, display_name = $3, website = COALESCE(NULLIF($8, ''), website), state = $4";
     case "contact":
       return "full_name = $3, role = COALESCE(NULLIF($8, ''), role), signing_authority = ($4 = 'signing_authority')";
+    case "reviewer":
+      return "display_name = $3, reviewer_pool = COALESCE(NULLIF($10::jsonb ->> 'reviewerPool', ''), reviewer_pool), skill_profile = skill_profile || jsonb_strip_nulls(jsonb_build_object('skills', (SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'skills', ''), ''), ',') AS value WHERE trim(value) <> ''))), data_access_policy = data_access_policy || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''), 'controls', (SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'accessPolicy', ''), ''), ',') AS value WHERE trim(value) <> ''))), state = $4";
     case "alert":
       return "title = $3, state = $4";
     case "buyer_opportunity":
@@ -2073,6 +2356,10 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "name = $3, modality = COALESCE(NULLIF($10::jsonb ->> 'modality', ''), NULLIF($8, ''), modality), state = $4";
     case "dataset_version":
       return "version_label = $3, manifest_uri = COALESCE(NULLIF($8, ''), manifest_uri), content_hash = COALESCE(NULLIF($10::jsonb ->> 'contentHash', ''), content_hash), record_count = COALESCE(NULLIF($10::jsonb ->> 'recordCount', '')::bigint, record_count), size_bytes = COALESCE(NULLIF($10::jsonb ->> 'sizeBytes', '')::bigint, size_bytes), qa_score = COALESCE(NULLIF($10::jsonb ->> 'qaScore', '')::numeric, qa_score), state = $4";
+    case "dataset_partition":
+      return "partition_key = $3, layer = COALESCE(NULLIF($10::jsonb ->> 'layer', ''), layer), object_uri = COALESCE(NULLIF($10::jsonb ->> 'objectUri', ''), NULLIF($8, ''), object_uri), content_hash = COALESCE(NULLIF($10::jsonb ->> 'contentHash', ''), content_hash), format = COALESCE(NULLIF($10::jsonb ->> 'format', ''), format), record_count = COALESCE(NULLIF($10::jsonb ->> 'recordCount', '')::bigint, record_count), size_bytes = COALESCE(NULLIF($10::jsonb ->> 'sizeBytes', '')::bigint, size_bytes), provenance_manifest = provenance_manifest || jsonb_strip_nulls(jsonb_build_object('summary', NULLIF($8, ''))), state = $4";
+    case "manifest_artifact":
+      return "artifact_type = COALESCE(NULLIF($10::jsonb ->> 'artifactType', ''), artifact_type), artifact_uri = COALESCE(NULLIF($10::jsonb ->> 'artifactUri', ''), NULLIF($8, ''), artifact_uri), content_hash = COALESCE(NULLIF($10::jsonb ->> 'contentHash', ''), content_hash), metadata = metadata || jsonb_strip_nulls(jsonb_build_object('label', $3, 'summary', NULLIF($10::jsonb ->> 'metadataSummary', ''))), state = $4";
     case "modality_contract":
       return "modality = COALESCE(NULLIF($10::jsonb ->> 'modality', ''), modality), canonical_format = COALESCE(NULLIF($10::jsonb ->> 'canonicalFormat', ''), NULLIF($8, ''), canonical_format), profile_signals = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'profileSignals', ''), ''), ',') AS value WHERE trim(value) <> ''), profile_signals), cleaning_operators = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'cleaningOperators', ''), ''), ',') AS value WHERE trim(value) <> ''), cleaning_operators), privacy_treatments = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'privacyTreatments', ''), ''), ',') AS value WHERE trim(value) <> ''), privacy_treatments), labeling_widgets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'labelingWidgets', ''), ''), ',') AS value WHERE trim(value) <> ''), labeling_widgets), qa_dimensions = COALESCE((SELECT jsonb_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'qaDimensions', ''), ''), ',') AS value WHERE trim(value) <> ''), qa_dimensions), packaging_targets = COALESCE((SELECT array_agg(trim(value)) FROM regexp_split_to_table(COALESCE(NULLIF($10::jsonb ->> 'packagingTargets', ''), ''), ',') AS value WHERE trim(value) <> ''), packaging_targets), state = $4";
     case "qa_report":
@@ -2099,8 +2386,12 @@ function updateAssignments(recordType: OperatorRecordCrudType) {
       return "amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
     case "invoice":
       return "stripe_invoice_id = COALESCE(NULLIF($8, ''), stripe_invoice_id), amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
+    case "payment":
+      return "stripe_payment_intent_id = COALESCE(NULLIF($8, ''), stripe_payment_intent_id), amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), receipt = receipt || jsonb_strip_nulls(jsonb_build_object('summary', $3, 'receiptHash', NULLIF($10::jsonb ->> 'receiptHash', ''))), state = $4";
     case "payout":
       return "amount_cents = COALESCE(NULLIF($10::jsonb ->> 'amountCents', '')::integer, amount_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
+    case "revenue_share":
+      return "basis = basis || jsonb_strip_nulls(jsonb_build_object('label', $3, 'summary', COALESCE(NULLIF($10::jsonb ->> 'basisSummary', ''), NULLIF($8, '')))), share_rate = COALESCE(NULLIF($10::jsonb ->> 'shareRate', '')::numeric, share_rate), gross_cents = COALESCE(NULLIF($10::jsonb ->> 'grossCents', '')::integer, gross_cents), net_cents = COALESCE(NULLIF($10::jsonb ->> 'netCents', '')::integer, net_cents), currency = COALESCE(NULLIF($10::jsonb ->> 'currency', ''), currency), state = $4";
     case "run":
       return "external_run_id = COALESCE(NULLIF($10::jsonb ->> 'externalRunId', ''), NULLIF($3, ''), external_run_id), state = $4, retry_count = COALESCE(NULLIF($10::jsonb ->> 'retryCount', '')::integer, retry_count), started_at = COALESCE(NULLIF($10::jsonb ->> 'startedAt', '')::timestamptz, started_at), finished_at = COALESCE(NULLIF($10::jsonb ->> 'finishedAt', '')::timestamptz, finished_at)";
     case "escalation_case":

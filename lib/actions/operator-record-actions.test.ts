@@ -783,6 +783,48 @@ describe("operator record actions", () => {
     );
   });
 
+  it("creates reviewers with pool and access policy fields", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "rv_01J2REVIEWER",
+        updated_at: "2026-05-10T15:11:00.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "labeling",
+        recordType: "reviewer",
+        title: "Ana Lopez",
+        detail: "EU-only adjudication with no-download review UI.",
+        state: "active",
+        fields: {
+          reviewerPool: "Subject_Matter_Expert",
+          skills: "Document_OCR, Spanish, adjudication",
+          accessPolicy: "No_Download, Watermark",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "rv_01J2REVIEWER",
+        moduleKey: "labeling",
+        recordType: "reviewer",
+        fields: {
+          reviewerPool: "subject_matter_expert",
+          skills: "document_ocr, spanish, adjudication",
+          accessPolicy: "no_download, watermark",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO reviewer");
+    expect(createSql).toContain("$11::jsonb ->> 'reviewerPool'");
+    expect(createSql).toContain("$11::jsonb ->> 'accessPolicy'");
+  });
+
   it("updates QA report scores without replacing the dimensions summary", async () => {
     queryRowsMock.mockResolvedValueOnce([
       {
@@ -905,6 +947,93 @@ describe("operator record actions", () => {
         operatorId: "op_01J2CURRENT",
       })
     );
+  });
+
+  it("creates payments with provider evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "pt_01J2PAYMENT",
+        updated_at: "2026-05-10T15:14:20.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "commercials",
+        recordType: "payment",
+        title: "Pilot payment",
+        detail: "pi_123",
+        state: "succeeded",
+        fields: {
+          amountCents: "250000",
+          currency: "gbp",
+          receiptHash: "sha256:receipt",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "pt_01J2PAYMENT",
+        moduleKey: "commercials",
+        recordType: "payment",
+        fields: {
+          amountCents: "250000",
+          currency: "GBP",
+          receiptHash: "sha256:receipt",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO payment");
+    expect(createSql).toContain("target_invoice");
+    expect(createSql).toContain("$11::jsonb ->> 'receiptHash'");
+  });
+
+  it("creates revenue-share accruals with supplier payout context", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "rs_01J2SHARE",
+        updated_at: "2026-05-10T15:14:40.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "commercials",
+        recordType: "revenue_share",
+        title: "Supplier accrual",
+        detail: "Pilot invoice less platform fee.",
+        state: "approved",
+        fields: {
+          shareRate: "0.3",
+          grossCents: "250000",
+          netCents: "75000",
+          currency: "usd",
+          basisSummary: "Pilot invoice less platform fee.",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "rs_01J2SHARE",
+        moduleKey: "commercials",
+        recordType: "revenue_share",
+        fields: {
+          shareRate: "0.3",
+          grossCents: "250000",
+          netCents: "75000",
+          currency: "USD",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO revenue_share");
+    expect(createSql).toContain("target_supplier");
+    expect(createSql).toContain("$11::jsonb ->> 'shareRate'");
   });
 
   it("creates DSAR requests with validated request type and SLA fields", async () => {
@@ -1040,6 +1169,93 @@ describe("operator record actions", () => {
         operatorId: "op_01J2CURRENT",
       })
     );
+  });
+
+  it("creates dataset partitions with lakehouse location metadata", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "dp_01J2PARTITION",
+        updated_at: "2026-05-10T15:16:20.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "datasets",
+        recordType: "dataset_partition",
+        title: "bronze/receipts/2026-05",
+        detail: "s3://caudals-bronze/receipts/2026-05/raw.parquet",
+        state: "sealed",
+        fields: {
+          layer: "Bronze",
+          objectUri: "s3://caudals-bronze/receipts/2026-05/raw.parquet",
+          contentHash: "sha256:partition",
+          format: "Parquet",
+          recordCount: "1250000",
+          sizeBytes: "536870912",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "dp_01J2PARTITION",
+        moduleKey: "datasets",
+        recordType: "dataset_partition",
+        fields: {
+          layer: "bronze",
+          format: "parquet",
+          recordCount: "1250000",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO dataset_partition");
+    expect(createSql).toContain("target_version");
+    expect(createSql).toContain("$11::jsonb ->> 'objectUri'");
+  });
+
+  it("creates manifest artifacts for release evidence", async () => {
+    queryRowsMock.mockResolvedValueOnce([
+      {
+        id: "ma_01J2MANIFEST",
+        updated_at: "2026-05-10T15:16:40.000Z",
+        audit_event_id: "ae_01J2AUDIT",
+      },
+    ]);
+
+    await expect(
+      createOperatorRecord({
+        moduleKey: "datasets",
+        recordType: "manifest_artifact",
+        title: "Retail receipts Croissant manifest",
+        detail: "s3://datasets/receipts/v2026.05/croissant.jsonld",
+        state: "approved",
+        fields: {
+          artifactType: "Croissant",
+          artifactUri: "s3://datasets/receipts/v2026.05/croissant.jsonld",
+          contentHash: "sha256:croissant",
+          metadataSummary: "Generated by packaging job caudals_reference_build.",
+        },
+      })
+    ).resolves.toMatchObject({
+      ok: true,
+      record: {
+        id: "ma_01J2MANIFEST",
+        moduleKey: "datasets",
+        recordType: "manifest_artifact",
+        fields: {
+          artifactType: "croissant",
+          artifactUri: "s3://datasets/receipts/v2026.05/croissant.jsonld",
+        },
+      },
+    });
+
+    const createSql = queryRowsMock.mock.calls[0]?.[0];
+    expect(createSql).toContain("INSERT INTO manifest_artifact");
+    expect(createSql).toContain("$11::jsonb ->> 'artifactType'");
+    expect(createSql).toContain("$11::jsonb ->> 'metadataSummary'");
   });
 
   it("creates modality contracts with document and time-series contract fields", async () => {

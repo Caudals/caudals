@@ -8,6 +8,9 @@ import {
 describe("operator modality contracts", () => {
   it("defines complete operator contracts for covered production modalities", () => {
     for (const modality of [
+      "tabular",
+      "text",
+      "image",
       "video",
       "audio",
       "geospatial",
@@ -22,6 +25,26 @@ describe("operator modality contracts", () => {
         missing: [],
       });
     }
+  });
+
+  it("captures tabular, text, and image contracts as first-class modalities", () => {
+    expect(getModalityContractTemplate("tabular")).toMatchObject({
+      canonicalFormat: "Iceberg Parquet with zstd compression",
+      profileSignals: expect.arrayContaining(["key_uniqueness"]),
+      privacyTreatments: expect.arrayContaining(["quasi_identifier_review"]),
+      packagingTargets: expect.arrayContaining(["parquet", "csv"]),
+    });
+    expect(getModalityContractTemplate("text")).toMatchObject({
+      profileSignals: expect.arrayContaining(["token_count"]),
+      privacyTreatments: expect.arrayContaining(["spacy_ner_review"]),
+      packagingTargets: expect.arrayContaining(["jsonl", "hf_datasets"]),
+    });
+    expect(getModalityContractTemplate("image")).toMatchObject({
+      canonicalFormat: "Lance dataset with media references",
+      cleaningOperators: expect.arrayContaining(["exif_strip"]),
+      labelingWidgets: expect.arrayContaining(["bounding_box", "mask"]),
+      packagingTargets: expect.arrayContaining(["coco", "yolo"]),
+    });
   });
 
   it("captures document and time-series production gates", () => {

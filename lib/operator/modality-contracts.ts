@@ -1,4 +1,7 @@
 export type ModalityContractModality =
+  | "tabular"
+  | "text"
+  | "image"
   | "video"
   | "audio"
   | "geospatial"
@@ -28,6 +31,9 @@ export type EnrichmentManifestDraft = {
 };
 
 export const modalityContractModalities = [
+  "tabular",
+  "text",
+  "image",
   "video",
   "audio",
   "geospatial",
@@ -39,6 +45,102 @@ export const modalityContractTemplates: Record<
   ModalityContractModality,
   ModalityContractTemplate
 > = {
+  tabular: {
+    modality: "tabular",
+    canonicalFormat: "Iceberg Parquet with zstd compression",
+    profileSignals: [
+      "row_count",
+      "column_types",
+      "null_rates",
+      "cardinality",
+      "key_uniqueness",
+    ],
+    cleaningOperators: [
+      "parse_numeric",
+      "parse_date",
+      "iso_country",
+      "exact_key",
+      "type_coerce_strict",
+    ],
+    privacyTreatments: [
+      "presidio_pattern_scan",
+      "quasi_identifier_review",
+      "hash",
+      "generalize",
+    ],
+    labelingWidgets: ["grid_cell", "row_review", "schema_diff"],
+    qaDimensions: [
+      "completeness",
+      "validity",
+      "consistency",
+      "uniqueness",
+      "privacy_residual",
+    ],
+    packagingTargets: ["parquet", "csv", "snowflake_share", "rest_api"],
+  },
+  text: {
+    modality: "text",
+    canonicalFormat: "Parquet text records plus JSONL mirror",
+    profileSignals: [
+      "token_count",
+      "language_mix",
+      "length_distribution",
+      "dedup_rate",
+      "encoding_cleanliness",
+    ],
+    cleaningOperators: [
+      "utf8_canonicalize",
+      "mojibake_fix",
+      "line_ending_normalize",
+      "embedding_near_dup",
+    ],
+    privacyTreatments: [
+      "spacy_ner_review",
+      "presidio_pattern_scan",
+      "mask",
+      "pseudonymize",
+    ],
+    labelingWidgets: ["text_span", "classification", "relation"],
+    qaDimensions: [
+      "language_coverage",
+      "deduplication",
+      "toxicity_review",
+      "privacy_residual",
+      "contamination_review",
+    ],
+    packagingTargets: ["jsonl", "hf_datasets", "parquet_shards"],
+  },
+  image: {
+    modality: "image",
+    canonicalFormat: "Lance dataset with media references",
+    profileSignals: [
+      "resolution_histogram",
+      "aspect_ratio",
+      "format_inventory",
+      "near_duplicate_rate",
+      "exif_inventory",
+    ],
+    cleaningOperators: [
+      "image_reencode",
+      "exif_strip",
+      "rotation_tag_resolve",
+      "perceptual_hash",
+    ],
+    privacyTreatments: [
+      "face_blur",
+      "license_plate_blur",
+      "gps_exif_strip",
+      "screen_text_review",
+    ],
+    labelingWidgets: ["bounding_box", "polygon", "mask", "keypoint"],
+    qaDimensions: [
+      "image_quality",
+      "annotation_iou",
+      "class_balance",
+      "privacy_residual",
+    ],
+    packagingTargets: ["coco", "yolo", "lance", "webdataset", "tfrecord"],
+  },
   video: {
     modality: "video",
     canonicalFormat: "Lance index over MP4 chunks",
