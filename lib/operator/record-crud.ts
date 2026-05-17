@@ -1955,8 +1955,8 @@ export const operatorRecordFieldDescriptors = {
     {
       key: "runbookKey",
       label: "Runbook key",
-      placeholder: "R-05",
-      help: "Canonical R-01 to R-10 runbook. Blank values are auto-routed.",
+      placeholder: "R-11",
+      help: "Canonical R-01 to R-13 runbook. Blank values are auto-routed.",
       kind: "text",
       maxLength: 4,
       allowedValues: [
@@ -1970,6 +1970,9 @@ export const operatorRecordFieldDescriptors = {
         "R-08",
         "R-09",
         "R-10",
+        "R-11",
+        "R-12",
+        "R-13",
       ],
       caseTransform: "upper",
     },

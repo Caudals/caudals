@@ -67,9 +67,10 @@ authenticated review but stay hidden in production until explicit clearance.
   rolls into build totals, 80% thresholds open alerts, hard budget and LLM/API
   sub-budget overruns require an explicit override reason, and >15% overruns
   flag margin retrospectives.
-- `runbook` and `escalation_case` records back the §24 top-level Escalations
-  operator view. New cases auto-map to canonical R-01..R-10 runbooks, route to
-  the owning on-call queue, open an alert, and emit audit evidence.
+- `runbook` and `escalation_case` records back the section 24 top-level
+  Escalations operator view. New cases auto-map to canonical R-01..R-13
+  runbooks, including security-specific R-11..R-13, route to the owning
+  on-call queue, open an alert, and emit audit evidence.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 

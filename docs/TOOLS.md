@@ -245,11 +245,13 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
 
 ## Escalation Runbooks
 - `db/migrations/025_escalation_runbooks.sql` seeds canonical R-01..R-10
-  runbooks and creates `escalation_case`. Inserts auto-route by kind, open an
-  `alert`, and write an `audit_event` for the selected runbook/on-call team.
+  runbooks and creates `escalation_case`; `027_security_incident_runbooks.sql`
+  adds security-specific R-11..R-13 and routes new security events to R-11.
+  Inserts auto-route by kind, open an `alert`, and write an `audit_event` for
+  the selected runbook/on-call team.
 - Validate changes with a disposable Postgres run of migration `001`, migration
-  `002`, migration `025`, an escalation insert, and
-  `db/rollbacks/025_escalation_runbooks_down.sql` before applying to production.
+  `002`, migration `025`, migration `027`, an escalation insert, and the
+  matching rollback before applying to production.
 
 ## Security Review Library
 - `db/migrations/026_security_review_library.sql` creates
