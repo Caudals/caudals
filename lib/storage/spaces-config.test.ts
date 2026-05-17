@@ -38,6 +38,25 @@ describe("getSpacesRuntimeConfig", () => {
     expect(config.configured).toBe(true);
     expect(config.missing).toEqual([]);
     expect(config.bucket).toBe("caudals");
+    expect(config.forcePathStyle).toBe(false);
+  });
+
+  it("enables path-style S3 requests for private compatible stores", () => {
+    const config = getSpacesRuntimeConfig({
+      env: {
+        DO_SPACES_ACCESS_KEY_ID: "access",
+        DO_SPACES_BUCKET: "caudals",
+        DO_SPACES_ENDPOINT: "http://caudals-object-storage-minio:9000",
+        DO_SPACES_FORCE_PATH_STYLE: "true",
+        DO_SPACES_REGION: "us-east-1",
+        DO_SPACES_SECRET_ACCESS_KEY: "secret",
+        NEXT_PUBLIC_DO_SPACES_CDN_URL:
+          "http://caudals-object-storage-minio:9000/caudals",
+      },
+    });
+
+    expect(config.configured).toBe(true);
+    expect(config.forcePathStyle).toBe(true);
   });
 
   it("reads secret-file fallbacks for sensitive values", () => {
