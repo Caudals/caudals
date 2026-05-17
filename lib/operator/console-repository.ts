@@ -1197,6 +1197,40 @@ const moduleWorkItemsSql = `
     UNION ALL
     SELECT
       'datasets',
+      'dataset_partition',
+      dp.id,
+      dp.layer || ' partition ' || dp.partition_key,
+      dp.state,
+      dp.format || COALESCE(' / ' || dp.record_count::text || ' records', ''),
+      dp.updated_at,
+      CASE
+        WHEN dp.state IN ('quarantined','tombstoned') THEN 'critical'
+        WHEN dp.state IN ('draft','sealed') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review partition'
+    FROM dataset_partition dp
+    WHERE dp.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
+      'manifest_artifact',
+      ma.id,
+      ma.artifact_type || ' artifact',
+      ma.state,
+      ma.artifact_uri,
+      ma.updated_at,
+      CASE
+        WHEN ma.state = 'blocked' THEN 'critical'
+        WHEN ma.state IN ('draft','generated','review') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review manifest artifact'
+    FROM manifest_artifact ma
+    WHERE ma.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'datasets',
       'delta_manifest',
       dm.id,
       'Delta manifest ' || dm.state,
@@ -1308,6 +1342,23 @@ const moduleWorkItemsSql = `
     FROM label_batch lb
     LEFT JOIN build b ON b.id = lb.build_id
     WHERE lb.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'labeling',
+      'reviewer',
+      rv.id,
+      rv.display_name,
+      rv.state,
+      rv.reviewer_pool,
+      rv.updated_at,
+      CASE
+        WHEN rv.state = 'suspended' THEN 'critical'
+        WHEN rv.state = 'candidate' THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review reviewer access'
+    FROM reviewer rv
+    WHERE rv.deleted_at IS NULL
     UNION ALL
     SELECT
       'labeling',
@@ -1462,6 +1513,23 @@ const moduleWorkItemsSql = `
     UNION ALL
     SELECT
       'commercials',
+      'payment',
+      pt.id,
+      'Payment ' || pt.currency || ' ' || round(pt.amount_cents / 100.0)::text,
+      pt.state,
+      COALESCE(pt.stripe_payment_intent_id, pt.invoice_id, 'No invoice'),
+      pt.updated_at,
+      CASE
+        WHEN pt.state IN ('failed','disputed') THEN 'critical'
+        WHEN pt.state IN ('pending','processing') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review payment'
+    FROM payment pt
+    WHERE pt.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'commercials',
       'payout',
       py.id,
       'Payout ' || py.currency || ' ' || round(py.amount_cents / 100.0)::text,
@@ -1472,6 +1540,23 @@ const moduleWorkItemsSql = `
       'Review payout'
     FROM payout py
     WHERE py.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'commercials',
+      'revenue_share',
+      rs.id,
+      'Revenue share ' || rs.currency || ' ' || round(rs.net_cents / 100.0)::text,
+      rs.state,
+      COALESCE(rs.basis ->> 'summary', rs.supplier_org_id),
+      rs.updated_at,
+      CASE
+        WHEN rs.state IN ('held','reversed') THEN 'critical'
+        WHEN rs.state IN ('accrued','approved','payable') THEN 'warning'
+        ELSE 'info'
+      END,
+      'Review revenue share'
+    FROM revenue_share rs
+    WHERE rs.deleted_at IS NULL
     UNION ALL
     SELECT
       'operations',
@@ -1702,6 +1787,28 @@ const moduleWorkItemsSql = `
           FROM dataset_version dv
           WHERE dv.id = raw_work_items.id
         )
+        WHEN record_type = 'dataset_partition' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'layer', dp.layer,
+            'objectUri', dp.object_uri,
+            'contentHash', dp.content_hash,
+            'format', dp.format,
+            'recordCount', dp.record_count,
+            'sizeBytes', dp.size_bytes
+          ))
+          FROM dataset_partition dp
+          WHERE dp.id = raw_work_items.id
+        )
+        WHEN record_type = 'manifest_artifact' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'artifactType', ma.artifact_type,
+            'artifactUri', ma.artifact_uri,
+            'contentHash', ma.content_hash,
+            'metadataSummary', ma.metadata ->> 'summary'
+          ))
+          FROM manifest_artifact ma
+          WHERE ma.id = raw_work_items.id
+        )
         WHEN record_type = 'delta_manifest' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'manifestUri', dm.manifest_uri,
@@ -1803,6 +1910,23 @@ const moduleWorkItemsSql = `
           FROM label_batch lb
           WHERE lb.id = raw_work_items.id
         )
+        WHEN record_type = 'reviewer' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'reviewerPool', rv.reviewer_pool,
+            'skills', array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(
+                COALESCE(rv.skill_profile -> 'skills', '[]'::jsonb)
+              )
+            ), ', '),
+            'accessPolicy', array_to_string(ARRAY(
+              SELECT jsonb_array_elements_text(
+                COALESCE(rv.data_access_policy -> 'controls', '[]'::jsonb)
+              )
+            ), ', ')
+          ))
+          FROM reviewer rv
+          WHERE rv.id = raw_work_items.id
+        )
         WHEN record_type = 'active_learning_loop' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'strategy', alloop.strategy,
@@ -1900,6 +2024,15 @@ const moduleWorkItemsSql = `
           FROM invoice iv
           WHERE iv.id = raw_work_items.id
         )
+        WHEN record_type = 'payment' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'amountCents', pt.amount_cents,
+            'currency', pt.currency,
+            'receiptHash', pt.receipt ->> 'receiptHash'
+          ))
+          FROM payment pt
+          WHERE pt.id = raw_work_items.id
+        )
         WHEN record_type = 'payout' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
             'amountCents', py.amount_cents,
@@ -1907,6 +2040,17 @@ const moduleWorkItemsSql = `
           ))
           FROM payout py
           WHERE py.id = raw_work_items.id
+        )
+        WHEN record_type = 'revenue_share' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'shareRate', rs.share_rate,
+            'grossCents', rs.gross_cents,
+            'netCents', rs.net_cents,
+            'currency', rs.currency,
+            'basisSummary', rs.basis ->> 'summary'
+          ))
+          FROM revenue_share rs
+          WHERE rs.id = raw_work_items.id
         )
         WHEN record_type = 'run' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(
