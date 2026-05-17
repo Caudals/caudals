@@ -34,6 +34,8 @@ authenticated review but stay hidden in production until explicit clearance.
 - Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
   private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
   for the private observability services and container runtime
+- Orchestration services: private Dagster runtime with webserver, daemon, and
+  code-server containers for dataset software-defined assets
 - Operations services: private Marquez/OpenLineage runtime for dataset build
   lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
@@ -165,6 +167,25 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   contain sensitive operational context.
 
 ## Operations Services
+- The private orchestration stack is defined in
+  `infra/orchestration/docker-stack.yml` and runs Dagster on
+  `dokploy-network` without public ingress.
+- Dagster stores run, event-log, and schedule metadata in a dedicated
+  `dagster` PostgreSQL database owned by the dedicated `dagster` role on the
+  private `caudals-postgres` service.
+- The Dagster database password is mounted through the external Docker secret
+  `dagster_postgres_password`; runtime containers read it through
+  `DAGSTER_POSTGRES_PASSWORD_FILE` so the repository and Docker service spec do
+  not store the secret value.
+- The initial code location exposes three reference assets,
+  `bronze_intake_sample`, `silver_profile_report`, and `gold_qa_scorecard`,
+  matching the blueprint's G-1 intake, G-2 profiling, and G-7 QA stages.
+- Dagster is available only on the private Docker network at
+  `http://caudals-orchestration-webserver:3000`; the code server is internal
+  at `caudals-orchestration-code:4000`.
+- `scripts/probe-orchestration-stack.sh` verifies the webserver `/server_info`
+  endpoint, the code-server gRPC healthcheck, and execution of the
+  `caudals_reference_build` reference job.
 - The private operations service stack is defined in
   `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.

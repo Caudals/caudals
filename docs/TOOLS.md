@@ -170,9 +170,9 @@ Install caveat:
   from an ephemeral container attached to `dokploy-network`.
 - `npm run platform:completion-status` runs the VPS-side completion gate for
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
-  private observability readiness, private operations lineage readiness,
-  external alert routing, tracked Sentry auth token leaks, and the
-  current-quarter pentest tracker.
+  private observability readiness, private Dagster orchestration readiness,
+  private operations lineage readiness, external alert routing, tracked Sentry
+  auth token leaks, and the current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
@@ -189,6 +189,40 @@ Install caveat:
   OpenTelemetry peer packages explicit in `package.json`.
 
 ## Operations Runtime
+- The private orchestration stack lives in `infra/orchestration/` and is
+  deployed with `npm run orchestration:deploy`. It runs Dagster webserver,
+  daemon, and code-server containers on `dokploy-network` without public
+  published ports.
+- The Dagster stack uses one pinned local image built from
+  `services/orchestration/Dockerfile`. The deploy script builds that image on
+  the VPS and deploys it with Docker Swarm image resolution disabled so the
+  single-node runtime can run the local image without a registry push.
+- `scripts/deploy-orchestration-stack.sh` creates a root-only generated Dagster
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `dagster_postgres_password`, ensures the dedicated `dagster`
+  role/database on the private `caudals-postgres` service, and deploys the
+  stack. The script must not print the generated password.
+- Provide `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/orchestration/dagster-postgres-password` file.
+- The initial code location exposes reference assets for G-1 intake, G-2
+  profiling, and G-7 QA: `bronze_intake_sample`, `silver_profile_report`, and
+  `gold_qa_scorecard`.
+- `npm run orchestration:probe` verifies the Dagster webserver `/server_info`
+  endpoint, the code-server gRPC healthcheck, and a local execution of the
+  `caudals_reference_build` reference job from the running code container.
+- Useful override variables: `CAUDALS_ORCHESTRATION_STACK_NAME`,
+  `CAUDALS_ORCHESTRATION_NETWORK`, `CAUDALS_DAGSTER_IMAGE`,
+  `CAUDALS_DAGSTER_POSTGRES_SECRET`,
+  `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE`, `CAUDALS_DAGSTER_CODE_SERVICE`,
+  `CAUDALS_DAGSTER_WEBSERVER_SERVICE`, `CAUDALS_DAGSTER_WEBSERVER_URL`,
+  `CAUDALS_ORCHESTRATION_PROBE_ATTEMPTS`,
+  `CAUDALS_ORCHESTRATION_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_ORCHESTRATION_PROBE_MAX_TIME_SECONDS`.
+- Keep Dagster private. Do not publish ports or expose the webserver/API
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
 - The private operations stack lives in `infra/operations/` and is deployed
   with `npm run operations:deploy`. It currently runs Marquez on
   `dokploy-network` without public published ports.
@@ -344,6 +378,10 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run orchestration:deploy`: build and deploy the private Dagster
+  orchestration stack
+- `npm run orchestration:probe`: probe private Dagster health and execute the
+  reference asset job
 - `npm run operations:deploy`: deploy the private Marquez/OpenLineage
   operations stack
 - `npm run operations:probe`: probe private Marquez health and synthetic
@@ -406,8 +444,9 @@ Operational env controls:
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
-- Operations services: Marquez/OpenLineage stack name, private Docker network,
-  Marquez API/admin URLs, and server-only Marquez PostgreSQL secret file
+- Operations services: Dagster orchestration stack/image/service names,
+  Marquez/OpenLineage stack name, private Docker network, Marquez API/admin
+  URLs, and server-only Dagster/Marquez PostgreSQL secret files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

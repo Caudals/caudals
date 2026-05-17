@@ -751,6 +751,16 @@ export function getOperatorServiceReadiness(
         : "Observability review",
     },
     {
+      id: "svc_orchestration_runtime",
+      title: "Orchestration runtime",
+      description:
+        "Dagster runs the private dataset asset orchestrator with reference intake, profiling, and QA assets.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: "orchestration.stack gate",
+    },
+    {
       id: "svc_lineage_runtime",
       title: "Lineage runtime",
       description:
