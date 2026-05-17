@@ -12,6 +12,7 @@ const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = ["/auth/"];
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
+  "/api/user/role",
   "/api/waitlist",
 ]);
 const LANDING_MODE_ALLOWED_API_PREFIXES = ["/api/auth/"];

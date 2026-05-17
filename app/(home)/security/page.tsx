@@ -39,7 +39,7 @@ const postureHighlights = [
     label: "Dataset release controls",
   },
   {
-    value: "R-01/R-10",
+    value: "R-01/R-13",
     label: "Runbook routing",
   },
 ];

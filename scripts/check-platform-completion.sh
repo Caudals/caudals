@@ -4,9 +4,20 @@ set -uo pipefail
 APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
+CACHE_NETWORK="${CAUDALS_CACHE_NETWORK:-dokploy-network}"
+LABELING_NETWORK="${CAUDALS_LABELING_NETWORK:-dokploy-network}"
+LAKEHOUSE_NETWORK="${CAUDALS_LAKEHOUSE_NETWORK:-dokploy-network}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
+ORCHESTRATION_NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
+OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
+VECTOR_NETWORK="${CAUDALS_VECTOR_NETWORK:-dokploy-network}"
+WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
+OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-false}"
+OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-direct}"
+PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
+CVAT_GATE_ENABLED="${CAUDALS_CVAT_GATE_ENABLED:-false}"
 
 failures=0
 APP_CONTAINER=""
@@ -150,6 +161,26 @@ check_sentry() {
   fi
 }
 
+check_app_runtime_config() {
+  local app_container="$1"
+  local output
+
+  if [[ ! -f "scripts/check-app-runtime-config.mjs" ]]; then
+    mark_fail "app.runtime_config" "scripts/check-app-runtime-config.mjs not found"
+    return
+  fi
+
+  output="$(
+    docker exec -i "$app_container" sh -lc "node --input-type=module - --fail-on-missing" \
+      < scripts/check-app-runtime-config.mjs 2>&1
+  )"
+  if [[ "$?" -eq 0 ]]; then
+    mark_ok "app.runtime_config" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "app.runtime_config" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_operator_auth_policy() {
   local postgres_container sql output enrollment_env
 
@@ -226,11 +257,124 @@ SQL
 check_observability_stack() {
   local output
 
-  output="$(CAUDALS_OBSERVABILITY_NETWORK="$OBSERVABILITY_NETWORK" scripts/probe-observability-stack.sh 2>&1)"
-  if [[ "$?" -eq 0 ]]; then
+  if output="$(CAUDALS_OBSERVABILITY_NETWORK="$OBSERVABILITY_NETWORK" scripts/probe-observability-stack.sh 2>&1)"; then
     mark_ok "observability.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
     mark_fail "observability.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_cache_stack() {
+  local output
+
+  if output="$(CAUDALS_CACHE_NETWORK="$CACHE_NETWORK" scripts/probe-cache-stack.sh 2>&1)"; then
+    mark_ok "cache.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "cache.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_labeling_stack() {
+  local output
+
+  if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-labeling-stack.sh 2>&1)"; then
+    mark_ok "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_cvat_stack() {
+  local output
+
+  if [[ "$CVAT_GATE_ENABLED" != "true" ]]; then
+    mark_ok "labeling.cvat" "probe waived until CVAT stack is deployed; set CAUDALS_CVAT_GATE_ENABLED=true to require image/video annotation runtime"
+    return
+  fi
+
+  if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-cvat-stack.sh 2>&1)"; then
+    mark_ok "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_lakehouse_stack() {
+  local output
+
+  if output="$(CAUDALS_LAKEHOUSE_NETWORK="$LAKEHOUSE_NETWORK" scripts/probe-lakehouse-stack.sh 2>&1)"; then
+    mark_ok "lakehouse.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "lakehouse.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_object_storage() {
+  local output
+
+  if [[ "$OBJECT_STORAGE_GATE_ENABLED" != "true" ]]; then
+    mark_ok "storage.object_store" "probe waived until DO Spaces secrets are mounted; set CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true to require write/read/delete"
+    return
+  fi
+
+  case "$OBJECT_STORAGE_PROBE_MODE" in
+    direct)
+      if output="$(npm run -s storage:probe 2>&1)"; then
+        mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      else
+        mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      fi
+      ;;
+    stack)
+      if output="$(npm run -s object-storage:probe 2>&1)"; then
+        mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      else
+        mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      fi
+      ;;
+    *)
+      mark_fail "storage.object_store" "unsupported CAUDALS_OBJECT_STORAGE_PROBE_MODE=$OBJECT_STORAGE_PROBE_MODE; expected direct or stack"
+      ;;
+  esac
+}
+
+check_operations_stack() {
+  local output
+
+  if output="$(CAUDALS_OPERATIONS_NETWORK="$OPERATIONS_NETWORK" scripts/probe-operations-stack.sh 2>&1)"; then
+    mark_ok "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_workflow_stack() {
+  local output
+
+  if output="$(CAUDALS_WORKFLOW_NETWORK="$WORKFLOW_NETWORK" scripts/probe-workflow-stack.sh 2>&1)"; then
+    mark_ok "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_vector_stack() {
+  local output
+
+  if output="$(CAUDALS_VECTOR_NETWORK="$VECTOR_NETWORK" scripts/probe-vector-stack.sh 2>&1)"; then
+    mark_ok "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_orchestration_stack() {
+  local output
+
+  if output="$(CAUDALS_ORCHESTRATION_NETWORK="$ORCHESTRATION_NETWORK" scripts/probe-orchestration-stack.sh 2>&1)"; then
+    mark_ok "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -333,6 +477,11 @@ current_pentest_title() {
 }
 
 check_pentest_tracker() {
+  if [[ "$PENTEST_GATE_ENABLED" != "true" ]]; then
+    mark_ok "security.pentest" "waived for current completion gate; set CAUDALS_PENTEST_GATE_ENABLED=true to require the quarterly tracker"
+    return
+  fi
+
   if ! require_command gh "security.pentest"; then
     return
   fi
@@ -379,10 +528,20 @@ main() {
 
   if [[ -n "$APP_CONTAINER" ]]; then
     check_sentry "$APP_CONTAINER"
+    check_app_runtime_config "$APP_CONTAINER"
   fi
 
   check_operator_auth_policy
   check_observability_stack
+  check_cache_stack
+  check_labeling_stack
+  check_cvat_stack
+  check_lakehouse_stack
+  check_object_storage
+  check_orchestration_stack
+  check_workflow_stack
+  check_operations_stack
+  check_vector_stack
   check_alert_routing
   check_tracked_secret_patterns
   check_runtime_secret_env

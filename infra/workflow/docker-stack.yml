@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  temporal:
+    image: ${CAUDALS_TEMPORAL_IMAGE:-temporalio/server:1.31.0}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-workflow-temporal
+          - caudals-temporal-server
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: temporal
+      POSTGRES_SEEDS: caudals-postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      BIND_ON_IP: 0.0.0.0
+      LOG_LEVEL: info
+    secrets:
+      - temporal_postgres_password
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        cat > /tmp/caudals-temporal-dynamicconfig.yaml <<'YAML'
+        limit.maxIDLength:
+          - value: 255
+            constraints: {}
+        YAML
+        export POSTGRES_PWD="$$(tr -d '\r\n' </run/secrets/temporal_postgres_password)"
+        export SQL_PASSWORD="$$POSTGRES_PWD"
+        export DYNAMIC_CONFIG_FILE_PATH=/tmp/caudals-temporal-dynamicconfig.yaml
+        exec /etc/temporal/entrypoint.sh
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+  ui:
+    image: ${CAUDALS_TEMPORAL_UI_IMAGE:-temporalio/ui:2.49.1}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-workflow-ui
+          - caudals-temporal-ui
+    environment:
+      TEMPORAL_ADDRESS: caudals-workflow-temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/ >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}
+
+secrets:
+  temporal_postgres_password:
+    external: true
+    name: ${CAUDALS_TEMPORAL_POSTGRES_SECRET:-temporal_postgres_password}

@@ -75,6 +75,22 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("reviewer")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "reviewerPool",
+          allowedValues: [
+            "in_house_specialist",
+            "partner_workforce",
+            "subject_matter_expert",
+          ],
+        }),
+        expect.objectContaining({
+          key: "skills",
+          kind: "text",
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("qa_report")).toEqual([
       expect.objectContaining({
         key: "compositeScore",
@@ -333,11 +349,42 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("dataset_partition")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "layer",
+          allowedValues: ["bronze", "silver", "gold"],
+        }),
+        expect.objectContaining({
+          key: "format",
+          allowedValues: expect.arrayContaining(["parquet", "lance", "stac"]),
+        }),
+      ])
+    );
+    expect(getOperatorRecordFieldDescriptors("manifest_artifact")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "artifactType",
+          allowedValues: expect.arrayContaining([
+            "source_manifest",
+            "croissant",
+            "sample_preview",
+          ]),
+        }),
+        expect.objectContaining({
+          key: "artifactUri",
+          kind: "text",
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("modality_contract")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: "modality",
           allowedValues: [
+            "tabular",
+            "text",
+            "image",
             "video",
             "audio",
             "geospatial",
@@ -440,6 +487,34 @@ describe("operator record CRUD metadata", () => {
         }),
       ])
     );
+    expect(getOperatorRecordFieldDescriptors("payment")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "amountCents",
+          kind: "integer",
+          min: 0,
+        }),
+        expect.objectContaining({
+          key: "receiptHash",
+          kind: "text",
+        }),
+      ])
+    );
+    expect(getOperatorRecordFieldDescriptors("revenue_share")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "shareRate",
+          kind: "decimal",
+          min: 0,
+          max: 1,
+        }),
+        expect.objectContaining({
+          key: "netCents",
+          kind: "integer",
+          min: 0,
+        }),
+      ])
+    );
     expect(getOperatorRecordFieldDescriptors("escalation_case")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -452,7 +527,13 @@ describe("operator record CRUD metadata", () => {
         }),
         expect.objectContaining({
           key: "runbookKey",
-          allowedValues: expect.arrayContaining(["R-01", "R-05", "R-10"]),
+          allowedValues: expect.arrayContaining([
+            "R-01",
+            "R-05",
+            "R-10",
+            "R-11",
+            "R-13",
+          ]),
         }),
         expect.objectContaining({
           key: "severity",

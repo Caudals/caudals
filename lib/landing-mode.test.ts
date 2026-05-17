@@ -33,6 +33,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModePagePathAllowed("/auth/security")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/auth/sign-in/email")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/auth/session")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/user/role")).toBe(true);
   });
 
   it("blocks non-public pages", () => {
@@ -81,6 +82,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);
+    expect(isLandingModeRequestAllowed("/api/user/role")).toBe(true);
     expect(isLandingModeRequestAllowed("/catalogue")).toBe(false);
     expect(isLandingModeRequestAllowed("/security")).toBe(false);
     expect(isLandingModeRequestAllowed("/v1/datasets")).toBe(false);

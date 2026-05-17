@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ChevronsUpDown, LogOut, Settings, User } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,8 +30,13 @@ export function NavUser() {
   const pathname = usePathname();
   const toast = useLocaleToast();
   const t = useTranslations();
+  const [mounted, setMounted] = useState(false);
 
-  if (!user) {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !user) {
     return null;
   }
 

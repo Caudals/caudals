@@ -1,0 +1,5 @@
+load_from:
+  - grpc_server:
+      host: caudals-orchestration-code
+      port: 4000
+      location_name: caudals_reference_assets

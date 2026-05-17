@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  minio:
+    image: ${CAUDALS_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1}
+    user: "0"
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-object-storage-minio
+          - caudals-object-storage_minio
+    secrets:
+      - object_storage_access_key
+      - object_storage_secret_key
+    volumes:
+      - minio-data:/data
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export MINIO_ROOT_USER="$$(tr -d '\r\n' </run/secrets/object_storage_access_key)"
+        export MINIO_ROOT_PASSWORD="$$(tr -d '\r\n' </run/secrets/object_storage_secret_key)"
+        exec minio server /data --address ":9000" --console-address ":9001"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 96M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_OBJECT_STORAGE_NETWORK:-dokploy-network}
+
+volumes:
+  minio-data:
+    name: ${CAUDALS_OBJECT_STORAGE_DATA_VOLUME:-caudals-object-storage-minio-data}
+
+secrets:
+  object_storage_access_key:
+    external: true
+    name: ${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET:-caudals_object_storage_access_key_id}
+  object_storage_secret_key:
+    external: true
+    name: ${CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET:-caudals_object_storage_secret_access_key}
