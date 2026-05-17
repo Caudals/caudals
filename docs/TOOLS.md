@@ -336,6 +336,15 @@ Install caveat:
 - `npm run labeling:probe` verifies the private Label Studio HTTP endpoint,
   PostgreSQL migration table, and that neither Label Studio nor PostgreSQL
   publish ports.
+- CVAT image/video annotation is a separate private stack at
+  `infra/labeling/cvat-stack.yml`, deployed with `npm run cvat:deploy`. It
+  follows CVAT's split server/UI/worker runtime shape with PostgreSQL, Redis,
+  Kvrocks, ClickHouse, and OPA on the private Docker network, and deliberately
+  publishes no public ports.
+- `npm run cvat:probe` verifies the private CVAT server API, UI, ClickHouse,
+  Redis/Kvrocks, and port isolation. The platform completion gate keeps this
+  optional until the stack is deployed; set `CAUDALS_CVAT_GATE_ENABLED=true` to
+  require CVAT runtime readiness.
 - Useful override variables: `CAUDALS_LABELING_STACK_NAME`,
   `CAUDALS_LABELING_NETWORK`, `CAUDALS_LABEL_STUDIO_IMAGE`,
   `CAUDALS_LABEL_STUDIO_POSTGRES_IMAGE`,
@@ -343,8 +352,11 @@ Install caveat:
   `CAUDALS_LABEL_STUDIO_SECRET_KEY_SECRET`,
   `CAUDALS_LABEL_STUDIO_POSTGRES_PASSWORD_FILE`,
   `CAUDALS_LABEL_STUDIO_SECRET_KEY_FILE`, `CAUDALS_LABEL_STUDIO_SERVICE`,
-  `CAUDALS_LABEL_STUDIO_URL`, and `CAUDALS_LABELING_PROBE_ATTEMPTS`.
-- Keep Label Studio private. Do not publish ports or expose the workbench
+  `CAUDALS_LABEL_STUDIO_URL`, `CAUDALS_LABELING_PROBE_ATTEMPTS`,
+  `CAUDALS_CVAT_STACK_NAME`, `CAUDALS_CVAT_SERVER_IMAGE`,
+  `CAUDALS_CVAT_UI_IMAGE`, `CAUDALS_CVAT_SERVER_URL`, and
+  `CAUDALS_CVAT_PROBE_ATTEMPTS`.
+- Keep Label Studio and CVAT private. Do not publish ports or expose either workbench
   outside the Docker/Tailscale operations boundary without an explicit security
   review.
 
@@ -568,6 +580,9 @@ Bootstrap:
   workbench stack
 - `npm run labeling:probe`: probe private Label Studio HTTP, PostgreSQL
   migration, and port-isolation readiness
+- `npm run cvat:deploy`: deploy the private CVAT image/video annotation stack
+- `npm run cvat:probe`: probe private CVAT API/UI, backing stores, and
+  port-isolation readiness
 - `npm run orchestration:deploy`: build and deploy the private Dagster
   orchestration stack
 - `npm run orchestration:probe`: probe private Dagster health, execute the

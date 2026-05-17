@@ -17,6 +17,7 @@ ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_aler
 OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-false}"
 OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-direct}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
+CVAT_GATE_ENABLED="${CAUDALS_CVAT_GATE_ENABLED:-false}"
 
 failures=0
 APP_CONTAINER=""
@@ -283,6 +284,21 @@ check_labeling_stack() {
   fi
 }
 
+check_cvat_stack() {
+  local output
+
+  if [[ "$CVAT_GATE_ENABLED" != "true" ]]; then
+    mark_ok "labeling.cvat" "probe waived until CVAT stack is deployed; set CAUDALS_CVAT_GATE_ENABLED=true to require image/video annotation runtime"
+    return
+  fi
+
+  if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-cvat-stack.sh 2>&1)"; then
+    mark_ok "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_lakehouse_stack() {
   local output
 
@@ -519,6 +535,7 @@ main() {
   check_observability_stack
   check_cache_stack
   check_labeling_stack
+  check_cvat_stack
   check_lakehouse_stack
   check_object_storage
   check_orchestration_stack

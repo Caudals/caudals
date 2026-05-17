@@ -1,0 +1,348 @@
+x-cvat-backend-env: &cvat-backend-env
+  CVAT_POSTGRES_HOST: caudals-labeling-cvat-db
+  CVAT_POSTGRES_DBNAME: cvat
+  CVAT_POSTGRES_USER: root
+  CVAT_REDIS_INMEM_HOST: caudals-labeling-cvat-redis-inmem
+  CVAT_REDIS_INMEM_PORT: "6379"
+  CVAT_REDIS_ONDISK_HOST: caudals-labeling-cvat-redis-ondisk
+  CVAT_REDIS_ONDISK_PORT: "6666"
+  CVAT_LOG_IMPORT_ERRORS: "true"
+  CVAT_ALLOW_STATIC_CACHE: "no"
+  CVAT_ANALYTICS: "0"
+  CVAT_BASE_URL: ""
+  DJANGO_MODWSGI_EXTRA_ARGS: ""
+  ALLOWED_HOSTS: "*"
+  ADAPTIVE_AUTO_ANNOTATION: "false"
+  NUMPROCS: "1"
+  SMOKESCREEN_OPTS: ""
+  no_proxy: clickhouse,opa,caudals-labeling-cvat-clickhouse,caudals-labeling-cvat-opa
+
+x-clickhouse-env: &clickhouse-env
+  CLICKHOUSE_HOST: caudals-labeling-cvat-clickhouse
+  CLICKHOUSE_PORT: "8123"
+  CLICKHOUSE_DB: cvat
+  CLICKHOUSE_USER: user
+  CLICKHOUSE_PASSWORD: user
+
+services:
+  cvat-db:
+    image: ${CAUDALS_CVAT_POSTGRES_IMAGE:-postgres:15-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_DB: cvat
+      POSTGRES_PASSWORD_FILE: /run/secrets/cvat_postgres_password
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d cvat -h 127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 32M
+
+  cvat-redis-inmem:
+    image: ${CAUDALS_CVAT_REDIS_IMAGE:-redis:7.2.11-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-redis-inmem
+    command: ["redis-server", "--save", "60", "100", "--appendonly", "yes"]
+    volumes:
+      - cvat-redis-inmem-data:/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 16M
+
+  cvat-redis-ondisk:
+    image: ${CAUDALS_CVAT_KVROCKS_IMAGE:-apache/kvrocks:2.15.0}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-redis-ondisk
+    command: ["--compact-cron", "0 3 * * *"]
+    volumes:
+      - cvat-redis-ondisk-data:/var/lib/kvrocks
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 32M
+
+  cvat-clickhouse:
+    image: ${CAUDALS_CVAT_CLICKHOUSE_IMAGE:-clickhouse/clickhouse-server:23.11-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-clickhouse
+          - clickhouse
+    environment:
+      <<: *clickhouse-env
+    volumes:
+      - cvat-clickhouse-data:/var/lib/clickhouse
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 64M
+
+  cvat-opa:
+    image: ${CAUDALS_CVAT_OPA_IMAGE:-openpolicyagent/opa:1.12.2}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-opa
+          - opa
+    command:
+      - run
+      - --server
+      - --addr=:8181
+      - --log-level=error
+      - --set=services.cvat.url=http://caudals-labeling-cvat-server:8080
+      - --set=bundles.cvat.service=cvat
+      - --set=bundles.cvat.resource=/api/auth/rules
+      - --set=bundles.cvat.polling.min_delay_seconds=5
+      - --set=bundles.cvat.polling.max_delay_seconds=15
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 16M
+
+  cvat-server:
+    image: ${CAUDALS_CVAT_SERVER_IMAGE:-cvat/server:v2.64.0}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-server
+          - cvat-server
+    environment:
+      <<: [*cvat-backend-env, *clickhouse-env]
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-data:/home/django/data
+      - cvat-keys:/home/django/keys
+      - cvat-logs:/home/django/logs
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export CVAT_POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/cvat_postgres_password)"
+        exec ./backend_entrypoint.sh init run server
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/server/about', timeout=5).read(1)\"",
+        ]
+      interval: 15s
+      timeout: 8s
+      retries: 30
+      start_period: 90s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 5
+        window: 3m
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 128M
+
+  cvat-worker-import:
+    image: ${CAUDALS_CVAT_SERVER_IMAGE:-cvat/server:v2.64.0}
+    networks:
+      - dokploy-network
+    environment:
+      <<: *cvat-backend-env
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-data:/home/django/data
+      - cvat-keys:/home/django/keys
+      - cvat-logs:/home/django/logs
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export CVAT_POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/cvat_postgres_password)"
+        exec ./backend_entrypoint.sh run worker import
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 32M
+
+  cvat-worker-export:
+    image: ${CAUDALS_CVAT_SERVER_IMAGE:-cvat/server:v2.64.0}
+    networks:
+      - dokploy-network
+    environment:
+      <<: [*cvat-backend-env, *clickhouse-env]
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-data:/home/django/data
+      - cvat-keys:/home/django/keys
+      - cvat-logs:/home/django/logs
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export CVAT_POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/cvat_postgres_password)"
+        exec ./backend_entrypoint.sh run worker export
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 32M
+
+  cvat-worker-annotation:
+    image: ${CAUDALS_CVAT_SERVER_IMAGE:-cvat/server:v2.64.0}
+    networks:
+      - dokploy-network
+    environment:
+      <<: *cvat-backend-env
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-data:/home/django/data
+      - cvat-keys:/home/django/keys
+      - cvat-logs:/home/django/logs
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export CVAT_POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/cvat_postgres_password)"
+        exec ./backend_entrypoint.sh run worker annotation
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 32M
+
+  cvat-worker-quality:
+    image: ${CAUDALS_CVAT_SERVER_IMAGE:-cvat/server:v2.64.0}
+    networks:
+      - dokploy-network
+    environment:
+      <<: *cvat-backend-env
+    secrets:
+      - cvat_postgres_password
+    volumes:
+      - cvat-data:/home/django/data
+      - cvat-keys:/home/django/keys
+      - cvat-logs:/home/django/logs
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        export CVAT_POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/cvat_postgres_password)"
+        exec ./backend_entrypoint.sh run worker quality_reports
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 32M
+
+  cvat-ui:
+    image: ${CAUDALS_CVAT_UI_IMAGE:-cvat/ui:v2.64.0}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-cvat-ui
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 32M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_LABELING_NETWORK:-dokploy-network}
+
+volumes:
+  cvat-db-data:
+    name: ${CAUDALS_CVAT_DB_VOLUME:-caudals-labeling-cvat-db-data}
+  cvat-redis-inmem-data:
+    name: ${CAUDALS_CVAT_REDIS_INMEM_VOLUME:-caudals-labeling-cvat-redis-inmem-data}
+  cvat-redis-ondisk-data:
+    name: ${CAUDALS_CVAT_REDIS_ONDISK_VOLUME:-caudals-labeling-cvat-redis-ondisk-data}
+  cvat-clickhouse-data:
+    name: ${CAUDALS_CVAT_CLICKHOUSE_VOLUME:-caudals-labeling-cvat-clickhouse-data}
+  cvat-data:
+    name: ${CAUDALS_CVAT_DATA_VOLUME:-caudals-labeling-cvat-data}
+  cvat-keys:
+    name: ${CAUDALS_CVAT_KEYS_VOLUME:-caudals-labeling-cvat-keys}
+  cvat-logs:
+    name: ${CAUDALS_CVAT_LOGS_VOLUME:-caudals-labeling-cvat-logs}
+
+secrets:
+  cvat_postgres_password:
+    external: true
+    name: ${CAUDALS_CVAT_POSTGRES_PASSWORD_SECRET:-caudals_cvat_postgres_password}

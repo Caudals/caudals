@@ -42,6 +42,8 @@
     "object-storage:probe": "bash scripts/probe-object-storage-stack.sh",
     "labeling:deploy": "bash scripts/deploy-labeling-stack.sh",
     "labeling:probe": "bash scripts/probe-labeling-stack.sh",
+    "cvat:deploy": "bash scripts/deploy-cvat-stack.sh",
+    "cvat:probe": "bash scripts/probe-cvat-stack.sh",
     "storage:probe": "tsx scripts/probe-object-storage.ts",
     "operator:security-status": "tsx scripts/check-operator-security-enrollment.ts",
     "observability:configure-alert-routing": "bash scripts/configure-alert-routing.sh",
