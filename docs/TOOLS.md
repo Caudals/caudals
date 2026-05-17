@@ -171,8 +171,9 @@ Install caveat:
 - `npm run platform:completion-status` runs the VPS-side completion gate for
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
   private observability readiness, private Dagster orchestration readiness,
-  private operations lineage readiness, external alert routing, tracked Sentry
-  auth token leaks, and the current-quarter pentest tracker.
+  private Temporal workflow readiness, private operations lineage readiness,
+  external alert routing, tracked Sentry auth token leaks, and the
+  current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
@@ -222,6 +223,35 @@ Install caveat:
   `CAUDALS_ORCHESTRATION_PROBE_CONNECT_TIMEOUT_SECONDS`, and
   `CAUDALS_ORCHESTRATION_PROBE_MAX_TIME_SECONDS`.
 - Keep Dagster private. Do not publish ports or expose the webserver/API
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private workflow stack lives in `infra/workflow/` and is deployed with
+  `npm run workflow:deploy`. It runs Temporal server and Temporal UI on
+  `dokploy-network` without public published ports.
+- `scripts/deploy-workflow-stack.sh` creates a root-only generated Temporal
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `temporal_postgres_password`, ensures the dedicated `temporal`
+  role plus `temporal` and `temporal_visibility` databases on the private
+  `caudals-postgres` service, applies Temporal PostgreSQL schemas with the
+  pinned `temporalio/admin-tools` image, deploys the stack, and creates the
+  `caudals-operations` namespace. The script must not print the generated
+  password.
+- Provide `CAUDALS_TEMPORAL_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/workflow/temporal-postgres-password` file.
+- `npm run workflow:probe` verifies Temporal cluster health, the
+  `caudals-operations` namespace, the private UI endpoint, and that the Temporal
+  services do not publish ports.
+- Useful override variables: `CAUDALS_WORKFLOW_STACK_NAME`,
+  `CAUDALS_WORKFLOW_NETWORK`, `CAUDALS_POSTGRES_SERVICE`,
+  `CAUDALS_TEMPORAL_IMAGE`, `CAUDALS_TEMPORAL_ADMIN_TOOLS_IMAGE`,
+  `CAUDALS_TEMPORAL_UI_IMAGE`, `CAUDALS_TEMPORAL_POSTGRES_SECRET`,
+  `CAUDALS_TEMPORAL_POSTGRES_SECRET_FILE`, `CAUDALS_TEMPORAL_ADDRESS`,
+  `CAUDALS_TEMPORAL_NAMESPACE`, `CAUDALS_TEMPORAL_NAMESPACE_RETENTION`,
+  `CAUDALS_TEMPORAL_SERVER_SERVICE`, `CAUDALS_TEMPORAL_UI_SERVICE`,
+  `CAUDALS_TEMPORAL_UI_URL`, and `CAUDALS_WORKFLOW_PROBE_ATTEMPTS`.
+- Keep Temporal private. Do not publish ports or expose the UI/RPC endpoint
   outside the Docker/Tailscale operations boundary without an explicit security
   review.
 
@@ -390,6 +420,9 @@ Bootstrap:
   orchestration stack
 - `npm run orchestration:probe`: probe private Dagster health, execute the
   reference asset job, and verify Dagster OpenLineage ingestion
+- `npm run workflow:deploy`: deploy the private Temporal durable workflow stack
+- `npm run workflow:probe`: probe private Temporal health, namespace readiness,
+  private UI access, and port isolation
 - `npm run operations:deploy`: deploy the private Marquez/OpenLineage
   operations stack
 - `npm run operations:probe`: probe private Marquez health and synthetic
@@ -453,9 +486,10 @@ Operational env controls:
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
 - Operations services: Dagster orchestration stack/image/service names,
-  Dagster OpenLineage URL/strictness, Marquez/OpenLineage stack name, private
-  Docker network, Marquez API/admin URLs, and server-only Dagster/Marquez
-  PostgreSQL secret files
+  Dagster OpenLineage URL/strictness, Temporal workflow stack/image/service
+  names, Temporal namespace/retention, Marquez/OpenLineage stack name, private
+  Docker network, Marquez API/admin URLs, and server-only Dagster/Temporal/
+  Marquez PostgreSQL secret files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

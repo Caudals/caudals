@@ -7,6 +7,7 @@ BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
 ORCHESTRATION_NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
 OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
+WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
@@ -246,6 +247,16 @@ check_operations_stack() {
   fi
 }
 
+check_workflow_stack() {
+  local output
+
+  if output="$(CAUDALS_WORKFLOW_NETWORK="$WORKFLOW_NETWORK" scripts/probe-workflow-stack.sh 2>&1)"; then
+    mark_ok "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_orchestration_stack() {
   local output
 
@@ -411,6 +422,7 @@ main() {
   check_operator_auth_policy
   check_observability_stack
   check_orchestration_stack
+  check_workflow_stack
   check_operations_stack
   check_alert_routing
   check_tracked_secret_patterns

@@ -771,6 +771,16 @@ export function getOperatorServiceReadiness(
       evidence: "operations.stack gate",
     },
     {
+      id: "svc_workflow_runtime",
+      title: "Workflow durability",
+      description:
+        "Temporal runs the private durable workflow layer for supplier approvals, labeling review, and long-running operator state.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: "workflow.stack gate",
+    },
+    {
       id: "svc_admin_identity",
       title: "Admin identity",
       description:

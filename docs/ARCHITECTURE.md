@@ -36,6 +36,8 @@ authenticated review but stay hidden in production until explicit clearance.
   for the private observability services and container runtime
 - Orchestration services: private Dagster runtime with webserver, daemon, and
   code-server containers for dataset software-defined assets
+- Workflow services: private Temporal runtime and UI for durable supplier,
+  labeling, approval, and long-running operator workflows
 - Operations services: private Marquez/OpenLineage runtime for dataset build
   lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
@@ -187,6 +189,22 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   endpoint, the code-server gRPC healthcheck, execution of the
   `caudals_reference_build` reference job, and Dagster-originated OpenLineage
   ingestion into Marquez.
+- The private workflow stack is defined in `infra/workflow/docker-stack.yml`
+  and runs Temporal server plus Temporal UI on `dokploy-network` without public
+  ingress.
+- Temporal stores persistence in dedicated `temporal` and
+  `temporal_visibility` PostgreSQL databases owned by the dedicated `temporal`
+  role on the private `caudals-postgres` service.
+- The Temporal database password is mounted through the external Docker secret
+  `temporal_postgres_password`; runtime containers read it from the secret file
+  and export it only inside the container process so the repository and Docker
+  service spec do not store the secret value.
+- Durable workflow RPC is available only on the private Docker network at
+  `grpc://caudals-workflow-temporal:7233`; the internal UI is available at
+  `http://caudals-workflow-ui:8080`.
+- `scripts/probe-workflow-stack.sh` verifies Temporal cluster health, the
+  `caudals-operations` namespace, the private UI endpoint, and the absence of
+  published ports.
 - The private operations service stack is defined in
   `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.

@@ -1920,5 +1920,8 @@
   "Commercial operations",
   "Quotes, contracts, invoices, payouts, and private offers are routed through the operator console.",
   "Gate lane, quality, rights checks, and concurrent builds for the active delivery track.",
-  "License grants, consent, DSAR, PII, and retention controls are visible."
+  "License grants, consent, DSAR, PII, and retention controls are visible.",
+  "Workflow durability",
+  "Temporal runs the private durable workflow layer for supplier approvals, labeling review, and long-running operator state.",
+  "workflow.stack gate"
 ]
