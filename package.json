@@ -2,6 +2,9 @@
   "name": "datasets",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "caudals": "./bin/caudals.mjs"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -25,6 +28,7 @@
     "seed": "tsx scripts/seed-database.ts",
     "seed:test-fixtures": "tsx scripts/seed-test-fixtures.ts",
     "fixtures:ensure": "tsx scripts/ensure-test-fixtures.ts",
+    "caudals": "tsx scripts/caudals.ts",
     "migrate:supabase-auth": "tsx scripts/migrate-supabase-auth.ts",
     "migrate:public-funnel": "tsx scripts/migrate-public-funnel-data.ts",
     "platform:completion-status": "bash scripts/check-platform-completion.sh",
