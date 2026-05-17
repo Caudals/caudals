@@ -51,6 +51,16 @@ const ids = {
   datasetVersion: fixtureId("dv", 1),
   previousDatasetVersion: fixtureId("dv", 2),
   timeSeriesDatasetVersion: fixtureId("dv", 3),
+  bronzeDatasetPartition: fixtureId("dp", 1),
+  silverDatasetPartition: fixtureId("dp", 2),
+  goldDatasetPartition: fixtureId("dp", 3),
+  sourceManifestArtifact: fixtureId("ma", 1),
+  profileReportArtifact: fixtureId("ma", 2),
+  qaReportArtifact: fixtureId("ma", 3),
+  packageManifestArtifact: fixtureId("ma", 4),
+  croissantManifestArtifact: fixtureId("ma", 5),
+  lineageManifestArtifact: fixtureId("ma", 6),
+  privacySummaryArtifact: fixtureId("ma", 7),
   modalityContract: fixtureId("mc", 1),
   timeSeriesModalityContract: fixtureId("mc", 2),
   enrichmentManifest: fixtureId("em", 1),
@@ -86,12 +96,12 @@ const fixtureBuilds = [
   {
     id: fixtureId("bd", 1),
     title: "Iberian retail receipts v3",
-    state: "qa",
+    state: "delivered",
     etaOffset: "7 days",
     qScore: 0.91,
     budgetCents: 250000,
     usedCents: 184000,
-    gates: ["pass", "pass", "pass", "pass", "pass", "pass", "review"],
+    gates: ["pass", "pass", "pass", "pass", "pass", "pass", "pass"],
   },
   {
     id: fixtureId("bd", 2),
@@ -1087,6 +1097,242 @@ async function seedBuilds(client: PoolClient) {
   );
 }
 
+async function seedRepresentativeDatasetPartitions(client: PoolClient) {
+  const partitions = [
+    {
+      id: ids.bronzeDatasetPartition,
+      layer: "bronze",
+      partitionKey: "source_date=2026-05-10/source=supplier_receipts",
+      objectUri:
+        "s3://fixture/lakehouse/bronze/receipts/source_date=2026-05-10/raw.parquet",
+      contentHash: "sha256:fixture-bronze-receipts-v1",
+      format: "parquet",
+      recordCount: 50240,
+      sizeBytes: 2097152,
+      state: "sealed",
+      provenance: {
+        buildId: fixtureBuilds[0].id,
+        sourceAssetId: ids.supplierAsset,
+        gate: "G-1",
+        intakeManifestUri: "s3://fixture/manifests/receipt-v1/source-manifest.json",
+        rightsVerified: true,
+      },
+    },
+    {
+      id: ids.silverDatasetPartition,
+      layer: "silver",
+      partitionKey: "source_date=2026-05-10/redaction=v1",
+      objectUri:
+        "s3://fixture/lakehouse/silver/receipts/source_date=2026-05-10/redacted.parquet",
+      contentHash: "sha256:fixture-silver-receipts-v1",
+      format: "parquet",
+      recordCount: 50000,
+      sizeBytes: 1572864,
+      state: "promoted",
+      provenance: {
+        buildId: fixtureBuilds[0].id,
+        upstreamPartitionId: ids.bronzeDatasetPartition,
+        gates: ["G-2", "G-3", "G-4"],
+        piiMapId: ids.piiMap,
+        lineageRunId: "fixture-run-1",
+      },
+    },
+    {
+      id: ids.goldDatasetPartition,
+      layer: "gold",
+      partitionKey: "version=v1.0-fixture/package=buyer_delivery",
+      objectUri:
+        "s3://fixture/lakehouse/gold/receipts/version=v1.0-fixture/package.parquet",
+      contentHash: "sha256:fixture-gold-receipts-v1",
+      format: "parquet",
+      recordCount: 50000,
+      sizeBytes: 1048576,
+      state: "promoted",
+      provenance: {
+        buildId: fixtureBuilds[0].id,
+        upstreamPartitionId: ids.silverDatasetPartition,
+        gates: ["G-5", "G-6", "G-7"],
+        qaReportId: fixtureId("qr", 1),
+        releaseDocumentationBundleId: ids.releaseDocumentationBundle,
+      },
+    },
+  ] as const;
+
+  for (const partition of partitions) {
+    await query(
+      client,
+      `
+        INSERT INTO dataset_partition (
+          id, org_id, dataset_version_id, layer, partition_key, object_uri,
+          content_hash, format, record_count, size_bytes, provenance_manifest,
+          state, created_at, updated_at, created_by
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+          $11::jsonb, $12, $13, $13, $14
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          dataset_version_id = EXCLUDED.dataset_version_id,
+          layer = EXCLUDED.layer,
+          partition_key = EXCLUDED.partition_key,
+          object_uri = EXCLUDED.object_uri,
+          content_hash = EXCLUDED.content_hash,
+          format = EXCLUDED.format,
+          record_count = EXCLUDED.record_count,
+          size_bytes = EXCLUDED.size_bytes,
+          provenance_manifest = EXCLUDED.provenance_manifest,
+          state = EXCLUDED.state,
+          updated_at = EXCLUDED.updated_at,
+          deleted_at = NULL
+      `,
+      [
+        partition.id,
+        ids.tenantOrg,
+        ids.datasetVersion,
+        partition.layer,
+        partition.partitionKey,
+        partition.objectUri,
+        partition.contentHash,
+        partition.format,
+        partition.recordCount,
+        partition.sizeBytes,
+        JSON.stringify(partition.provenance),
+        partition.state,
+        FIXTURE_CREATED_AT,
+        ids.operator,
+      ]
+    );
+  }
+}
+
+async function seedRepresentativeManifestArtifacts(client: PoolClient) {
+  const artifacts = [
+    {
+      id: ids.sourceManifestArtifact,
+      artifactType: "source_manifest",
+      artifactUri: "s3://fixture/manifests/receipt-v1/source-manifest.json",
+      contentHash: "sha256:fixture-source-manifest-v1",
+      state: "approved",
+      metadata: {
+        gate: "G-1",
+        supplierAssetId: ids.supplierAsset,
+        partitionIds: [ids.bronzeDatasetPartition],
+      },
+    },
+    {
+      id: ids.profileReportArtifact,
+      artifactType: "profile_report",
+      artifactUri: "s3://fixture/reports/receipt-v1/profile-report.json",
+      contentHash: "sha256:fixture-profile-report-v1",
+      state: "approved",
+      metadata: {
+        gate: "G-2",
+        completeness: 0.99,
+        schemaDrift: "none",
+      },
+    },
+    {
+      id: ids.qaReportArtifact,
+      artifactType: "qa_report",
+      artifactUri: "s3://fixture/qa/receipt-v1/qa-scorecard.json",
+      contentHash: "sha256:fixture-qa-report-v1",
+      state: "approved",
+      metadata: {
+        gate: "G-6",
+        qaReportId: fixtureId("qr", 1),
+        compositeScore: 0.91,
+        verdict: "reviewed_pass",
+      },
+    },
+    {
+      id: ids.packageManifestArtifact,
+      artifactType: "package_manifest",
+      artifactUri: "s3://fixture/manifests/receipt-v1/package-manifest.json",
+      contentHash: "sha256:fixture-package-manifest-v1",
+      state: "published",
+      metadata: {
+        gate: "G-7",
+        deliveryId: ids.delivery,
+        releaseDocumentationBundleId: ids.releaseDocumentationBundle,
+        partitionIds: [ids.goldDatasetPartition],
+      },
+    },
+    {
+      id: ids.croissantManifestArtifact,
+      artifactType: "croissant",
+      artifactUri: "s3://fixture/manifests/receipt-v1/croissant.jsonld",
+      contentHash: "sha256:fixture-croissant-v1",
+      state: "published",
+      metadata: {
+        releaseDocumentationBundleId: ids.releaseDocumentationBundle,
+        conformsTo: "https://mlcommons.org/croissant/1.0",
+      },
+    },
+    {
+      id: ids.lineageManifestArtifact,
+      artifactType: "lineage_manifest",
+      artifactUri: "s3://fixture/lineage/receipt-v1/openlineage.json",
+      contentHash: "sha256:fixture-lineage-manifest-v1",
+      state: "published",
+      metadata: {
+        namespace: "caudals.fixture",
+        runId: "fixture-run-1",
+        lineageEventId: fixtureId("le", 1),
+      },
+    },
+    {
+      id: ids.privacySummaryArtifact,
+      artifactType: "privacy_summary",
+      artifactUri: "s3://fixture/privacy/receipt-v1/privacy-summary.json",
+      contentHash: "sha256:fixture-privacy-summary-v1",
+      state: "approved",
+      metadata: {
+        gate: "G-4",
+        piiMapId: ids.piiMap,
+        residualRisk: "accepted_by_operator_policy",
+      },
+    },
+  ] as const;
+
+  for (const artifact of artifacts) {
+    await query(
+      client,
+      `
+        INSERT INTO manifest_artifact (
+          id, org_id, dataset_version_id, build_id, artifact_type,
+          artifact_uri, content_hash, metadata, state, created_at, updated_at, created_by
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $10, $11
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          dataset_version_id = EXCLUDED.dataset_version_id,
+          build_id = EXCLUDED.build_id,
+          artifact_type = EXCLUDED.artifact_type,
+          artifact_uri = EXCLUDED.artifact_uri,
+          content_hash = EXCLUDED.content_hash,
+          metadata = EXCLUDED.metadata,
+          state = EXCLUDED.state,
+          updated_at = EXCLUDED.updated_at,
+          deleted_at = NULL
+      `,
+      [
+        artifact.id,
+        ids.tenantOrg,
+        ids.datasetVersion,
+        fixtureBuilds[0].id,
+        artifact.artifactType,
+        artifact.artifactUri,
+        artifact.contentHash,
+        JSON.stringify(artifact.metadata),
+        artifact.state,
+        FIXTURE_CREATED_AT,
+        ids.operator,
+      ]
+    );
+  }
+}
+
 async function seedDatasetAndCommercials(client: PoolClient) {
   await query(
     client,
@@ -1228,6 +1474,8 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       ids.signingKey,
     ]
   );
+
+  await seedRepresentativeDatasetPartitions(client);
 
   await query(
     client,
@@ -1542,11 +1790,13 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         id, org_id, dataset_version_id, catalogue_listing_id,
         documentation_uri, package_manifest, croissant_manifest,
         article10_document, required_documents, hf_mirror,
-        validation_summary, state, generated_at, created_at, updated_at, created_by
+        validation_summary, state, generated_at, published_at,
+        created_at, updated_at, created_by
       )
       VALUES (
         $1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::jsonb,
-        $9::jsonb, $10::jsonb, $11::jsonb, 'review', $12, $12, $12, $13
+        $9::jsonb, $10::jsonb, $11::jsonb, 'published',
+        $12, $12, $12, $12, $13
       )
       ON CONFLICT (id) DO UPDATE SET
         dataset_version_id = EXCLUDED.dataset_version_id,
@@ -1560,6 +1810,7 @@ async function seedDatasetAndCommercials(client: PoolClient) {
         validation_summary = EXCLUDED.validation_summary,
         state = EXCLUDED.state,
         generated_at = EXCLUDED.generated_at,
+        published_at = EXCLUDED.published_at,
         updated_at = EXCLUDED.updated_at,
         deleted_at = NULL
     `,
@@ -1579,6 +1830,8 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       ids.operator,
     ]
   );
+
+  await seedRepresentativeManifestArtifacts(client);
 
   await query(
     client,
@@ -1733,8 +1986,7 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       )
       VALUES (
         $1, $2, $3, $4, $5, 'delta_share',
-        '{"object":"s3://fixture/delivery/receipt-v1.parquet"}'::jsonb,
-        'ready', $6, $6, $7
+        $6::jsonb, 'accepted', $7, $7, $8
       )
       ON CONFLICT (id) DO UPDATE SET
         dataset_version_id = EXCLUDED.dataset_version_id,
@@ -1752,6 +2004,19 @@ async function seedDatasetAndCommercials(client: PoolClient) {
       ids.datasetVersion,
       ids.buyerOrg,
       ids.subscription,
+      JSON.stringify({
+        object: "s3://fixture/delivery/receipt-v1.parquet",
+        packageManifestUri: "s3://fixture/manifests/receipt-v1/package-manifest.json",
+        packageManifestArtifactId: ids.packageManifestArtifact,
+        receiptHash: "sha256:fixture-delivery-receipt-v1",
+        manifestHash: "sha256:fixture-package-manifest-v1",
+        datasetVersionId: ids.datasetVersion,
+        deliveredAt: FIXTURE_CREATED_AT,
+        acceptedAt: FIXTURE_CREATED_AT,
+        acceptedBy: FIXTURE_BUYER_EMAIL,
+        acceptedByOrgId: ids.buyerOrg,
+        signatureKeyId: ids.signingKey,
+      }),
       FIXTURE_CREATED_AT,
       ids.operator,
     ]
@@ -2139,17 +2404,21 @@ async function seedComplianceControlScopes(client: PoolClient) {
       key: "data-protection-dataset-packaging",
       title: "Dataset protection, PII treatment, and release evidence",
       family: "data_protection",
-      state: "evidence_review",
-      status: "partial",
+      state: "ready",
+      status: "implemented",
       soc2: ["CC6.7", "CC6.8", "CC9.2"],
       iso27001: ["A.5.34", "A.8.10", "A.8.11"],
       evidence: [
         { type: "pii_map", id: ids.piiMap },
         { type: "release_documentation_bundle", id: ids.releaseDocumentationBundle },
+        { type: "manifest_artifact", id: ids.packageManifestArtifact },
+        { type: "delivery", id: ids.delivery },
       ],
       linked: [
         { type: "dataset_version", id: ids.datasetVersion },
         { type: "pii_map", id: ids.piiMap },
+        { type: "manifest_artifact", id: ids.packageManifestArtifact },
+        { type: "delivery", id: ids.delivery },
       ],
       boundary:
         "Dataset build artifacts, PII findings, privacy treatments, release docs, and buyer delivery evidence.",
@@ -2240,7 +2509,7 @@ async function seedComplianceControlScopes(client: PoolClient) {
 
 async function seedAudit(client: PoolClient) {
   const baseAuditEvents = [
-    [fixtureId("ae", 1), "build", fixtureBuilds[0].id, "state_transition", { from_state: "labeling", to_state: "qa" }],
+    [fixtureId("ae", 1), "build", fixtureBuilds[0].id, "state_transition", { from_state: "packaging", to_state: "delivered" }],
     [fixtureId("ae", 2), "license_clause", ids.licenseClause, "license_review", { verdict: "approved" }],
     [fixtureId("ae", 3), "dataset_version", ids.datasetVersion, "delivery_signed", { signer: ids.signingKey }],
     [fixtureId("ae", 4), "dsar", ids.dsarRequest, "state_transition", { from_state: "received", to_state: "identity_verified" }],
@@ -2253,8 +2522,12 @@ async function seedAudit(client: PoolClient) {
     [fixtureId("ae", 11), "subscription", ids.subscription, "state_transition", { from_state: "draft", to_state: "active" }],
     [fixtureId("ae", 12), "delta_manifest", ids.deltaManifest, "state_transition", { from_state: "validating", to_state: "ready" }],
     [fixtureId("ae", 13), "modality_contract", ids.timeSeriesModalityContract, "state_transition", { from_state: "draft", to_state: "review" }],
-    [fixtureId("ae", 14), "release_documentation_bundle", ids.releaseDocumentationBundle, "state_transition", { from_state: "generated", to_state: "review" }],
+    [fixtureId("ae", 14), "release_documentation_bundle", ids.releaseDocumentationBundle, "state_transition", { from_state: "approved", to_state: "published" }],
     [fixtureId("ae", 15), "compliance_control_scope", ids.accessControlScope, "state_transition", { from_state: "evidence_review", to_state: "ready" }],
+    [fixtureId("ae", 16), "delivery", ids.delivery, "state_transition", { from_state: "downloaded", to_state: "accepted", accepted_by: FIXTURE_BUYER_EMAIL, package_manifest_artifact_id: ids.packageManifestArtifact }],
+    [fixtureId("ae", 17), "manifest_artifact", ids.packageManifestArtifact, "state_transition", { from_state: "approved", to_state: "published", artifact_type: "package_manifest" }],
+    [fixtureId("ae", 18), "dataset_partition", ids.goldDatasetPartition, "partition_promoted", { layer: "gold", content_hash: "sha256:fixture-gold-receipts-v1" }],
+    [fixtureId("ae", 19), "compliance_control_scope", ids.dataProtectionScope, "state_transition", { from_state: "evidence_review", to_state: "ready", evidence: "representative_delivery_package" }],
   ] as const;
   const buildAuditEvents = fixtureBuilds.map((build, index) => [
     fixtureId("ae", 100 + index),

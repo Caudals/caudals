@@ -22,6 +22,10 @@
 - `/supplier` now loads payout rows and Stripe Connect account status through RLS-scoped Postgres queries behind `SUPPLIER_PORTAL_V1_ENABLED`.
 - Document and time-series modality contracts now extend the operator modality model, creation defaults, and fixtures.
 - Release documentation bundles now generate and store G-7 package manifests, Croissant JSON-LD, Article 10 documentation, required docs, validation evidence, and public HF mirror metadata.
+- Deterministic operator fixtures now include a delivered representative dataset
+  build with all G-1 through G-7 gates passing, bronze/silver/gold partitions,
+  source/profile/QA/privacy/package/Croissant/lineage artifacts, published
+  release documentation, and an accepted buyer delivery receipt.
 - SOC 2 / ISO 27001 scoping now has an operator-owned control register with framework mappings, evidence links, review cadence, readiness states, and audited workflow transitions.
 - Versioned `/v1/*` REST now exposes inline API documentation, public brief
   intake, and buyer-scoped delivery, quote, and subscription actions behind rate
@@ -59,6 +63,9 @@
   `catalogue_deferred` 404, while `/v1` remains directly reachable and documents
   only the current brief-intake and buyer-session API surface unless the future
   catalogue flag is explicitly enabled.
+- The platform completion gate now requires representative dataset-build
+  evidence for pipeline gates, package artifacts, lineage, release docs, and
+  buyer delivery acceptance.
 
 ## Verification
 

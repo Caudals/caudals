@@ -190,7 +190,9 @@ Install caveat:
   private Label Studio labeling-workbench readiness, private lakeFS
   lakehouse-versioning readiness, private Qdrant
   vector-index readiness, private Redis cache/queue readiness,
-  optional object-storage write/read/delete readiness,
+  required object-storage write/read/delete readiness,
+  representative dataset-build evidence for G-1 through G-7, medallion
+  partitions, release artifacts, lineage, and accepted buyer delivery,
   app runtime configuration for Stripe payments and Resend email delivery,
   external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
@@ -601,7 +603,8 @@ Bootstrap:
 - `npm run e2e:auth-smoke`: authenticated admin/buyer/supplier route smoke checks; do not use as a product acceptance signal unless explicitly updating authenticated route behavior
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
-- `npm run seed:test-fixtures`: deterministic fixture seed
+- `npm run seed:test-fixtures`: deterministic fixture seed, including the
+  representative delivered dataset build used by the completion gate
 - `npm run migrate:supabase-auth`: dry-run legacy Supabase Auth to Better Auth
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
@@ -720,7 +723,7 @@ Operational env controls:
 - Resend: API key or secret file, sender addresses, audience/segment IDs
 - Object storage: S3-compatible endpoint, region, bucket, access key or
   secret-file fallback, secret key or secret-file fallback, CDN URL, optional
-  private MinIO stack variables, optional object-storage completion-gate flag
+  private MinIO stack variables, object-storage completion-gate waiver flag
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
