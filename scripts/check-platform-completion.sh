@@ -15,6 +15,7 @@ WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
 OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-false}"
+OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-direct}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
 
 failures=0
@@ -300,11 +301,25 @@ check_object_storage() {
     return
   fi
 
-  if output="$(npm run -s storage:probe 2>&1)"; then
-    mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
-  else
-    mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
-  fi
+  case "$OBJECT_STORAGE_PROBE_MODE" in
+    direct)
+      if output="$(npm run -s storage:probe 2>&1)"; then
+        mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      else
+        mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      fi
+      ;;
+    stack)
+      if output="$(npm run -s object-storage:probe 2>&1)"; then
+        mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      else
+        mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+      fi
+      ;;
+    *)
+      mark_fail "storage.object_store" "unsupported CAUDALS_OBJECT_STORAGE_PROBE_MODE=$OBJECT_STORAGE_PROBE_MODE; expected direct or stack"
+      ;;
+  esac
 }
 
 check_operations_stack() {

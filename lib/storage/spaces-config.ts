@@ -10,6 +10,7 @@ export type SpacesRuntimeConfig = {
   cdnUrl: string;
   configured: boolean;
   endpoint?: string;
+  forcePathStyle: boolean;
   missing: string[];
   region?: string;
   secretAccessKey?: string;
@@ -30,6 +31,11 @@ const REQUIRED_CONFIG_NAMES = [
   "NEXT_PUBLIC_DO_SPACES_CDN_URL",
 ] as const;
 
+function readBooleanConfigValue(name: string, env: EnvMap) {
+  const value = env[name]?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
 function readConfigValue(name: string, env: EnvMap) {
   return getSecretEnvValue(name, {
     emptyFileMessage: `${name}_FILE did not contain a value`,
@@ -47,6 +53,10 @@ export function getSpacesRuntimeConfig({
   const accessKeyId = readConfigValue("DO_SPACES_ACCESS_KEY_ID", env);
   const secretAccessKey = readConfigValue("DO_SPACES_SECRET_ACCESS_KEY", env);
   const cdnUrl = readConfigValue("NEXT_PUBLIC_DO_SPACES_CDN_URL", env);
+  const forcePathStyle = readBooleanConfigValue(
+    "DO_SPACES_FORCE_PATH_STYLE",
+    env
+  );
 
   const values: Record<(typeof REQUIRED_CONFIG_NAMES)[number], string | undefined> = {
     DO_SPACES_ACCESS_KEY_ID: accessKeyId,
@@ -71,6 +81,7 @@ export function getSpacesRuntimeConfig({
     cdnUrl: cdnUrl ?? "",
     configured,
     endpoint,
+    forcePathStyle,
     missing,
     region,
     secretAccessKey,
@@ -87,6 +98,6 @@ export function createSpacesClient(options: SpacesConfigOptions = {}) {
       accessKeyId: config.accessKeyId ?? "",
       secretAccessKey: config.secretAccessKey ?? "",
     },
-    forcePathStyle: false,
+    forcePathStyle: config.forcePathStyle,
   });
 }

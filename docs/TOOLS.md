@@ -175,7 +175,7 @@ Install caveat:
   private Label Studio labeling-workbench readiness, private lakeFS
   lakehouse-versioning readiness, private Qdrant
   vector-index readiness, private Redis cache/queue readiness,
-  optional DigitalOcean Spaces object-storage write/read/delete readiness,
+  optional object-storage write/read/delete readiness,
   app runtime configuration for Stripe payments and Resend email delivery,
   external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
@@ -199,23 +199,39 @@ Install caveat:
   OpenTelemetry peer packages explicit in `package.json`.
 
 ## Operations Runtime
-- DigitalOcean Spaces is the S3-compatible object store for supplier samples,
-  dataset packages, release artifacts, and licensed delivery files.
-- `npm run storage:probe` validates the active Spaces configuration by writing,
-  reading, and deleting a short private object. It requires
+- Caudals uses S3-compatible object storage for supplier samples, dataset
+  packages, release artifacts, and licensed delivery files. The current
+  single-node VPS runtime can use the private MinIO stack; DigitalOcean Spaces
+  remains the managed external target for hosted production.
+- `npm run object-storage:deploy` deploys the private MinIO stack on
+  `dokploy-network`, creates root-only generated credential files under
+  `/root/.caudals/object-storage/`, creates matching Docker secrets, ensures the
+  bucket exists, and wires the app service to `DO_SPACES_*_FILE` secret
+  fallbacks.
+- `npm run object-storage:probe` verifies MinIO private health, bucket
+  existence, write/read/delete behavior, and no published ports from inside the
+  Docker network.
+- `npm run storage:probe` validates any externally reachable active
+  S3-compatible configuration by writing, reading, and deleting a short private
+  object. It requires
   `DO_SPACES_ENDPOINT`, `DO_SPACES_REGION`, `DO_SPACES_BUCKET`,
+  optional `DO_SPACES_FORCE_PATH_STYLE=true` for private compatible stores,
   `DO_SPACES_ACCESS_KEY_ID` or `DO_SPACES_ACCESS_KEY_ID_FILE`,
   `DO_SPACES_SECRET_ACCESS_KEY` or `DO_SPACES_SECRET_ACCESS_KEY_FILE`, and
   `NEXT_PUBLIC_DO_SPACES_CDN_URL`.
 - The platform completion gate reports `storage.object_store` as waived until
-  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` is set. Enable that flag only after
-  the Spaces access key and secret key are mounted as Docker secrets or
-  server-only root-readable files.
-- Useful override variables: `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` and
-  `CAUDALS_OBJECT_STORAGE_PROBE_PREFIX`.
-- Keep Spaces credentials out of plaintext Docker service env. Use
+  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` is set. By default the gate runs
+  `npm run storage:probe`; set `CAUDALS_OBJECT_STORAGE_PROBE_MODE=stack` to
+  require the private MinIO stack probe instead.
+- Useful override variables: `CAUDALS_OBJECT_STORAGE_GATE_ENABLED`,
+  `CAUDALS_OBJECT_STORAGE_PROBE_MODE`, `CAUDALS_OBJECT_STORAGE_PROBE_PREFIX`,
+  `CAUDALS_OBJECT_STORAGE_STACK_NAME`, `CAUDALS_MINIO_IMAGE`,
+  `CAUDALS_MINIO_API_URL`, `CAUDALS_OBJECT_STORAGE_BUCKET`, and
+  `CAUDALS_OBJECT_STORAGE_NETWORK`.
+- Keep object-storage credentials out of plaintext Docker service env. Use
   `DO_SPACES_ACCESS_KEY_ID_FILE` and `DO_SPACES_SECRET_ACCESS_KEY_FILE` for
   production.
+
 - The private lakehouse stack lives in `infra/lakehouse/` and is deployed with
   `npm run lakehouse:deploy`. It runs lakeFS on `dokploy-network` without public
   published ports.
@@ -225,9 +241,8 @@ Install caveat:
   Docker secrets for the server-side values. The script must not print generated
   credential values.
 - The current single-node runtime uses lakeFS local blockstore on a persistent
-  Docker volume. DigitalOcean Spaces remains the production object-store target
-  and is still governed by the separate `storage.object_store` completion gate
-  until Spaces credentials are mounted.
+  Docker volume. Object-storage package and delivery readiness is governed by
+  the separate `storage.object_store` completion gate.
 - `npm run lakehouse:probe` verifies private lakeFS health, API health,
   initialized setup state, and no published ports.
 - Useful override variables: `CAUDALS_LAKEHOUSE_NETWORK`,
@@ -542,6 +557,10 @@ Bootstrap:
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
 - `npm run storage:probe`: probe DigitalOcean Spaces write/read/delete
   readiness using the mounted S3-compatible object-storage configuration
+- `npm run object-storage:deploy`: deploy the private S3-compatible MinIO
+  object-storage stack and wire the app service to Docker secret-file fallbacks
+- `npm run object-storage:probe`: probe private object-storage health,
+  bucket readiness, write/read/delete behavior, and port isolation
 - `npm run cache:deploy`: deploy the private Redis cache/queue stack
 - `npm run cache:probe`: probe private Redis authenticated cache and queue
   stream readiness
@@ -602,11 +621,21 @@ Operational env controls:
 - `DO_SPACES_ENDPOINT`
 - `DO_SPACES_REGION`
 - `DO_SPACES_BUCKET`
+- `DO_SPACES_FORCE_PATH_STYLE` (set `true` for private S3-compatible stores
+  that require path-style addressing)
 - `DO_SPACES_ACCESS_KEY_ID_FILE` (Docker secret-file fallback;
   `DO_SPACES_ACCESS_KEY_ID` wins when both are set)
 - `DO_SPACES_SECRET_ACCESS_KEY_FILE` (Docker secret-file fallback;
   `DO_SPACES_SECRET_ACCESS_KEY` wins when both are set)
 - `NEXT_PUBLIC_DO_SPACES_CDN_URL`
+- `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` (set `true` to require object-store
+  write/read/delete in the platform completion gate)
+- `CAUDALS_OBJECT_STORAGE_PROBE_MODE` (`direct` for external S3-compatible
+  endpoints, `stack` for the private MinIO deployment)
+- `CAUDALS_OBJECT_STORAGE_STACK_NAME` (default `caudals-object-storage`)
+- `CAUDALS_OBJECT_STORAGE_NETWORK` (default `dokploy-network`)
+- `CAUDALS_OBJECT_STORAGE_BUCKET` (default `caudals-storage`)
+- `CAUDALS_MINIO_API_URL` (default `http://caudals-object-storage-minio:9000`)
 - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
   OTLP HTTP headers; do not commit secret values)
@@ -624,9 +653,9 @@ Operational env controls:
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key or secret file, webhook secret or secret file
 - Resend: API key or secret file, sender addresses, audience/segment IDs
-- DO Spaces: endpoint, region, bucket, access key or secret-file fallback,
-  secret key or secret-file fallback, CDN URL, optional object-storage
-  completion-gate flag
+- Object storage: S3-compatible endpoint, region, bucket, access key or
+  secret-file fallback, secret key or secret-file fallback, CDN URL, optional
+  private MinIO stack variables, optional object-storage completion-gate flag
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
