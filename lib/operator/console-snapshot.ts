@@ -781,6 +781,16 @@ export function getOperatorServiceReadiness(
       evidence: "workflow.stack gate",
     },
     {
+      id: "svc_vector_index",
+      title: "Vector index",
+      description:
+        "Qdrant stores private build-time embeddings for similarity search, duplicate discovery, and retrieval-heavy QA workflows.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: "vector.stack gate",
+    },
+    {
       id: "svc_admin_identity",
       title: "Admin identity",
       description:

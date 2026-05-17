@@ -38,6 +38,8 @@ authenticated review but stay hidden in production until explicit clearance.
   code-server containers for dataset software-defined assets
 - Workflow services: private Temporal runtime and UI for durable supplier,
   labeling, approval, and long-running operator workflows
+- Vector services: private Qdrant runtime for build-time embeddings,
+  duplicate discovery, similarity search, and retrieval-heavy QA workflows
 - Operations services: private Marquez/OpenLineage runtime for dataset build
   lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
@@ -205,6 +207,17 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - `scripts/probe-workflow-stack.sh` verifies Temporal cluster health, the
   `caudals-operations` namespace, the private UI endpoint, and the absence of
   published ports.
+- The private vector stack is defined in `infra/vector/docker-stack.yml` and
+  runs Qdrant on `dokploy-network` without public ingress.
+- Qdrant stores build-time vectors on a dedicated Docker volume and reads its
+  API key from the external Docker secret `qdrant_api_key`; the repository and
+  Docker service spec do not store the secret value.
+- Qdrant HTTP is available only on the private Docker network at
+  `http://caudals-vector-qdrant:6333`; gRPC is available internally at
+  `grpc://caudals-vector-qdrant:6334`.
+- `scripts/probe-vector-stack.sh` verifies authenticated Qdrant reachability,
+  creates or updates a probe collection, writes and reads a vector point, and
+  verifies the absence of published ports.
 - The private operations service stack is defined in
   `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.

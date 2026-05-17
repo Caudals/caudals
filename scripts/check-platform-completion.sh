@@ -7,6 +7,7 @@ BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
 ORCHESTRATION_NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
 OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
+VECTOR_NETWORK="${CAUDALS_VECTOR_NETWORK:-dokploy-network}"
 WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
@@ -257,6 +258,16 @@ check_workflow_stack() {
   fi
 }
 
+check_vector_stack() {
+  local output
+
+  if output="$(CAUDALS_VECTOR_NETWORK="$VECTOR_NETWORK" scripts/probe-vector-stack.sh 2>&1)"; then
+    mark_ok "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_orchestration_stack() {
   local output
 
@@ -424,6 +435,7 @@ main() {
   check_orchestration_stack
   check_workflow_stack
   check_operations_stack
+  check_vector_stack
   check_alert_routing
   check_tracked_secret_patterns
   check_runtime_secret_env
