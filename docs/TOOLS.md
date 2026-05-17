@@ -282,6 +282,24 @@ Bootstrap:
 3. Populate required secrets in `.env.local` (PostgreSQL/Better Auth during migration, Stripe, DO Spaces, Resend).
 4. `npm run dev`
 
+## Caudals CLI
+- `npm run caudals -- help`: show the internal operations CLI from blueprint
+  section 24.
+- `npm run caudals -- <command>`: run the CLI through `tsx` from the local
+  checkout.
+- `bin/caudals.mjs <command>`: run the package binary shim; package installs can
+  expose it as `caudals`.
+- Implemented command groups: `build plan`, `build run`, `build replay`,
+  `lineage trace`, `license check`, `pii scan`, `dataset publish`,
+  `delivery sign`, `dsar propagate`, and `fixture seed`.
+- Commands that need external systems fail closed when required configuration is
+  missing. `build run` requires `DAGSTER_URL` unless `--dry-run` is set,
+  `delivery sign` requires explicit private-key material, and live fixture
+  seeding requires `DATABASE_URL`.
+- Keep CLI inputs and outputs file-based for auditability. Do not paste secrets
+  or private keys into docs, terminal transcripts, screenshots, or user-facing
+  summaries.
+
 ## Core Script Catalog
 - `npm run dev`: Next.js dev server
 - `npm run build`: production build
@@ -298,6 +316,7 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run caudals`: Caudals operations CLI; pass command arguments after `--`
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
 ## Useful Route-Level Checks
