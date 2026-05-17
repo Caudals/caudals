@@ -843,6 +843,16 @@ export function getOperatorServiceReadiness(
       evidence: "labeling.stack gate",
     },
     {
+      id: "svc_cvat_runtime",
+      title: "Image/video annotation",
+      description:
+        "CVAT runs private image and video annotation with PostgreSQL, Redis/Kvrocks, ClickHouse, OPA, and workers.",
+      state: "ready",
+      owner: "Dataset Ops",
+      moduleKey: "labeling",
+      evidence: "labeling.cvat gate",
+    },
+    {
       id: "svc_vector_index",
       title: "Vector index",
       description:

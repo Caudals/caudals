@@ -77,7 +77,9 @@ test.describe("operator console smoke", () => {
       page.getByRole("button", { name: /open command palette/i })
     ).toBeVisible();
 
-    const moduleCards = page.locator('main a[href^="/admin?module="]');
+    const moduleCards = page.locator(
+      '[data-module-directory] a[data-module-card][href^="/admin?module="]'
+    );
     await expect(moduleCards).toHaveCount(15);
     for (const title of moduleTitles) {
       await expect(moduleCards.filter({ hasText: title }).first()).toBeVisible();
