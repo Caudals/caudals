@@ -243,11 +243,21 @@ function ModuleCard({
       data-module-card=""
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex min-h-16 min-w-0 items-center justify-between gap-3 overflow-hidden bg-white p-2.5 transition-colors hover:bg-gray-50",
+        "group grid min-h-14 min-w-0 grid-cols-[3px_minmax(0,1fr)_auto] items-stretch gap-0 overflow-hidden bg-white transition-colors hover:bg-gray-50",
         active ? "ring-1 ring-inset ring-gray-950" : ""
       )}
     >
-      <div className="min-w-0">
+      <span
+        className={cn(
+          "h-full w-full bg-transparent",
+          active
+            ? "bg-gray-950"
+            : module.blockedRecords > 0
+              ? "bg-amber-500/70"
+              : "bg-emerald-500/70"
+        )}
+      />
+      <div className="min-w-0 self-center px-2.5 py-2">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-gray-950">
             {t(module.title)}
@@ -260,7 +270,7 @@ function ModuleCard({
           {module.anchorRecords.slice(0, 3).join(" / ")}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2 self-center px-2.5 py-2">
         <span
           className={cn(
             "rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums",
@@ -289,7 +299,7 @@ function ModuleDirectory({
   return (
     <section
       data-module-directory=""
-      className="rounded-xl border border-gray-200 bg-white p-4"
+      className="rounded-xl border border-gray-200 bg-white p-3 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-auto"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -307,7 +317,7 @@ function ModuleDirectory({
           {modules.length} {t("Modules")}
         </Badge>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
         {moduleGroups.map((group) => {
           const groupModules = group.keys
             .map((key) => moduleMap.get(key))
@@ -500,6 +510,26 @@ function FeaturedBuildLane({
           <p className="mt-1 truncate font-mono text-xs text-gray-500">
             {build.id} / {build.buyerBriefId} / {build.supplierOrgId}
           </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge
+              variant="outline"
+              className="rounded-full border-gray-200 bg-gray-50 font-mono text-[10px] text-gray-600"
+            >
+              {build.state}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="rounded-full border-gray-200 bg-gray-50 text-[10px] text-gray-600"
+            >
+              {t("ETA")} {build.eta}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="rounded-full border-emerald-200 bg-emerald-50 text-[10px] text-emerald-700"
+            >
+              {t("QA scorecard")} {build.qScore.toFixed(2)}
+            </Badge>
+          </div>
         </div>
         <div className="min-w-[180px]">
           <p className="text-xs font-medium uppercase text-gray-400">
@@ -759,7 +789,7 @@ function QAScorecard({
         <p className="text-sm font-semibold text-gray-950">{t("QA scorecard")}</p>
       </div>
       <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-gray-950">
+        <span className="text-4xl font-bold text-gray-950">
           {build.qScore.toFixed(2)}
         </span>
         <span className="text-xs font-medium uppercase text-gray-400">
@@ -1062,93 +1092,98 @@ export function OperatorConsole({
 
       <section
         id="console-overview"
-        className="grid min-w-0 scroll-mt-24 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.38fr)] 2xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.82fr)]"
+        className="scroll-mt-24 overflow-hidden rounded-xl border border-gray-200 bg-gray-100"
       >
-        <div className="min-w-0 space-y-4">
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-            <div className="grid min-w-0 grid-cols-2 gap-px lg:grid-cols-4">
-              <Metric
-                label={t("Active blockers")}
-                value={snapshot.triage.blockers}
-                icon={AlertTriangle}
-                tone="amber"
-              />
-              <Metric
-                label={t("Overdue gates")}
-                value={snapshot.triage.overdueGates}
-                icon={Clock3}
-                tone="red"
-              />
-              <Metric
-                label={t("Releases this week")}
-                value={snapshot.triage.releasesThisWeek}
-                icon={CheckCircle2}
-                tone="emerald"
-              />
-              <Metric
-                label={t("Queued jobs")}
-                value={snapshot.triage.queuedJobs}
-                icon={Layers3}
-                tone="blue"
-              />
-            </div>
-          </div>
-          <div className="grid min-w-0 gap-4 min-[1500px]:grid-cols-[minmax(360px,0.72fr)_minmax(0,1.28fr)]">
-            <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
-            <ModuleDirectory
-              activeModule={activeModule}
-              modules={snapshot.modules}
-              t={t}
-            />
-          </div>
+        <div className="grid min-w-0 grid-cols-2 gap-px lg:grid-cols-4">
+          <Metric
+            label={t("Active blockers")}
+            value={snapshot.triage.blockers}
+            icon={AlertTriangle}
+            tone="amber"
+          />
+          <Metric
+            label={t("Overdue gates")}
+            value={snapshot.triage.overdueGates}
+            icon={Clock3}
+            tone="red"
+          />
+          <Metric
+            label={t("Releases this week")}
+            value={snapshot.triage.releasesThisWeek}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <Metric
+            label={t("Queued jobs")}
+            value={snapshot.triage.queuedJobs}
+            icon={Layers3}
+            tone="blue"
+          />
         </div>
-        <ServiceReadinessPanel readiness={snapshot.serviceReadiness} t={t} />
       </section>
 
-      <ModuleWorkspace
-        activeModule={activeModule}
-        activeWorkItems={activeWorkItems}
-        elevationStatus={elevationStatus}
-        securityRoster={securityRoster}
-        serviceReadiness={snapshot.serviceReadiness}
-        showSettingsControls={activeModuleKey === "settings"}
-        t={t}
-      />
-
-      <BuildIntelligence
-        snapshot={snapshot}
-        qaDimensions={qaDimensions}
-        t={t}
-      />
-      <EvidencePlane snapshot={snapshot} t={t} />
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <Route className="h-4 w-4 text-emerald-700" />
-          <p className="mt-3 text-sm font-semibold text-gray-950">
-            {t("Public funnel")}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">
-            {t("LANDING_MODE route policy")}
-          </p>
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[300px_minmax(0,1fr)_360px] 2xl:grid-cols-[320px_minmax(0,1fr)_390px]">
+        <div className="order-2 min-w-0 xl:order-none">
+          <ModuleDirectory
+            activeModule={activeModule}
+            modules={snapshot.modules}
+            t={t}
+          />
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <BadgeCheck className="h-4 w-4 text-emerald-700" />
-          <p className="mt-3 text-sm font-semibold text-gray-950">
-            {t("Dataset governance")}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">
-            {t("G-1 to G-7 release gates")}
-          </p>
+
+        <div className="order-1 min-w-0 space-y-4 xl:order-none">
+          <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
+
+          <ModuleWorkspace
+            activeModule={activeModule}
+            activeWorkItems={activeWorkItems}
+            elevationStatus={elevationStatus}
+            securityRoster={securityRoster}
+            serviceReadiness={snapshot.serviceReadiness}
+            showSettingsControls={activeModuleKey === "settings"}
+            t={t}
+          />
+
+          <BuildIntelligence
+            snapshot={snapshot}
+            qaDimensions={qaDimensions}
+            t={t}
+          />
+          <EvidencePlane snapshot={snapshot} t={t} />
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <Route className="h-4 w-4 text-emerald-700" />
+              <p className="mt-3 text-sm font-semibold text-gray-950">
+                {t("Public funnel")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {t("LANDING_MODE route policy")}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <BadgeCheck className="h-4 w-4 text-emerald-700" />
+              <p className="mt-3 text-sm font-semibold text-gray-950">
+                {t("Dataset governance")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {t("G-1 to G-7 release gates")}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+              <ShieldCheck className="h-4 w-4 text-emerald-700" />
+              <p className="mt-3 text-sm font-semibold text-gray-950">
+                {t("Access and identity")}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {t("JIT audit events")}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <ShieldCheck className="h-4 w-4 text-emerald-700" />
-          <p className="mt-3 text-sm font-semibold text-gray-950">
-            {t("Access and identity")}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">
-            {t("JIT audit events")}
-          </p>
+
+        <div className="order-3 min-w-0 xl:order-none">
+          <ServiceReadinessPanel readiness={snapshot.serviceReadiness} t={t} />
         </div>
       </div>
     </div>
