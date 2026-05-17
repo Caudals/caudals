@@ -29,7 +29,8 @@ authenticated review but stay hidden in production until explicit clearance.
 - UI: Tailwind CSS v4, Radix UI, custom primitives, shadcn/ui
 - Data/Auth target: self-hosted PostgreSQL + Better Auth + Postgres RLS
 - Payments: Stripe is present in the codebase but not part of the current public deployment
-- Storage: DigitalOcean Spaces (S3-compatible)
+- Storage: DigitalOcean Spaces (S3-compatible) for raw samples, canonical
+  package objects, signed uploads, and licensed delivery artifacts
 - Email: Resend
 - Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
   private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
@@ -173,6 +174,17 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   contain sensitive operational context.
 
 ## Operations Services
+- DigitalOcean Spaces is the S3-compatible object store for supplier samples,
+  dataset files, generated packages, and licensed delivery artifacts.
+- The application reads Spaces configuration through direct env vars or Docker
+  secret-file fallbacks for `DO_SPACES_ACCESS_KEY_ID_FILE` and
+  `DO_SPACES_SECRET_ACCESS_KEY_FILE`; plaintext access-key env vars are blocked
+  by the completion gate.
+- `scripts/probe-object-storage.ts` validates the mounted Spaces configuration
+  by writing, reading, and deleting a short private probe object without
+  printing credentials. The production completion gate can require that probe by
+  setting `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` after Spaces credentials are
+  mounted.
 - The private orchestration stack is defined in
   `infra/orchestration/docker-stack.yml` and runs Dagster on
   `dokploy-network` without public ingress.

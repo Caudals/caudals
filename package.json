@@ -34,6 +34,7 @@
     "platform:completion-status": "bash scripts/check-platform-completion.sh",
     "cache:deploy": "bash scripts/deploy-cache-stack.sh",
     "cache:probe": "bash scripts/probe-cache-stack.sh",
+    "storage:probe": "tsx scripts/probe-object-storage.ts",
     "operator:security-status": "tsx scripts/check-operator-security-enrollment.ts",
     "observability:configure-alert-routing": "bash scripts/configure-alert-routing.sh",
     "observability:configure-sentry": "bash scripts/configure-sentry-runtime.sh",

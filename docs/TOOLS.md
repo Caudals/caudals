@@ -173,6 +173,7 @@ Install caveat:
   private observability readiness, private Dagster orchestration readiness,
   private Temporal workflow readiness, private operations lineage readiness,
   private Qdrant vector-index readiness, private Redis cache/queue readiness,
+  optional DigitalOcean Spaces object-storage write/read/delete readiness,
   external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
@@ -191,6 +192,24 @@ Install caveat:
   OpenTelemetry peer packages explicit in `package.json`.
 
 ## Operations Runtime
+- DigitalOcean Spaces is the S3-compatible object store for supplier samples,
+  dataset packages, release artifacts, and licensed delivery files.
+- `npm run storage:probe` validates the active Spaces configuration by writing,
+  reading, and deleting a short private object. It requires
+  `DO_SPACES_ENDPOINT`, `DO_SPACES_REGION`, `DO_SPACES_BUCKET`,
+  `DO_SPACES_ACCESS_KEY_ID` or `DO_SPACES_ACCESS_KEY_ID_FILE`,
+  `DO_SPACES_SECRET_ACCESS_KEY` or `DO_SPACES_SECRET_ACCESS_KEY_FILE`, and
+  `NEXT_PUBLIC_DO_SPACES_CDN_URL`.
+- The platform completion gate reports `storage.object_store` as waived until
+  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` is set. Enable that flag only after
+  the Spaces access key and secret key are mounted as Docker secrets or
+  server-only root-readable files.
+- Useful override variables: `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` and
+  `CAUDALS_OBJECT_STORAGE_PROBE_PREFIX`.
+- Keep Spaces credentials out of plaintext Docker service env. Use
+  `DO_SPACES_ACCESS_KEY_ID_FILE` and `DO_SPACES_SECRET_ACCESS_KEY_FILE` for
+  production.
+
 - The private orchestration stack lives in `infra/orchestration/` and is
   deployed with `npm run orchestration:deploy`. It runs Dagster webserver,
   daemon, and code-server containers on `dokploy-network` without public
@@ -463,6 +482,8 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run storage:probe`: probe DigitalOcean Spaces write/read/delete
+  readiness using the mounted S3-compatible object-storage configuration
 - `npm run cache:deploy`: deploy the private Redis cache/queue stack
 - `npm run cache:probe`: probe private Redis authenticated cache and queue
   stream readiness
@@ -516,6 +537,14 @@ Operational env controls:
 - `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)
 - `STRIPE_SECRET_KEY_FILE` / `STRIPE_WEBHOOK_SECRET_FILE` (Docker secret-file fallbacks; direct env vars win when both are set)
 - `RESEND_API_KEY_FILE` (Docker secret-file fallback; `RESEND_API_KEY` wins when both are set)
+- `DO_SPACES_ENDPOINT`
+- `DO_SPACES_REGION`
+- `DO_SPACES_BUCKET`
+- `DO_SPACES_ACCESS_KEY_ID_FILE` (Docker secret-file fallback;
+  `DO_SPACES_ACCESS_KEY_ID` wins when both are set)
+- `DO_SPACES_SECRET_ACCESS_KEY_FILE` (Docker secret-file fallback;
+  `DO_SPACES_SECRET_ACCESS_KEY` wins when both are set)
+- `NEXT_PUBLIC_DO_SPACES_CDN_URL`
 - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
   OTLP HTTP headers; do not commit secret values)
@@ -533,7 +562,9 @@ Operational env controls:
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key or secret file, webhook secret or secret file
 - Resend: API key or secret file, sender addresses, audience/segment IDs
-- DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
+- DO Spaces: endpoint, region, bucket, access key or secret-file fallback,
+  secret key or secret-file fallback, CDN URL, optional object-storage
+  completion-gate flag
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout

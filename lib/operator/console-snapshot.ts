@@ -670,6 +670,10 @@ function readinessState(ready: boolean): OperatorServiceReadiness["state"] {
   return ready ? "ready" : "review";
 }
 
+function hasEnvOrFile(env: Record<string, string | undefined>, name: string) {
+  return Boolean(env[name] || env[`${name}_FILE`]);
+}
+
 export function getOperatorServiceReadiness(
   env: Record<string, string | undefined> = process.env
 ): OperatorServiceReadiness[] {
@@ -681,6 +685,14 @@ export function getOperatorServiceReadiness(
       env.OTEL_EXPORTER_OTLP_ENDPOINT
   );
   const runtimeMonitoringConfigured = sentryConfigured && tracesConfigured;
+  const objectStorageConfigured = [
+    "DO_SPACES_ENDPOINT",
+    "DO_SPACES_REGION",
+    "DO_SPACES_BUCKET",
+    "DO_SPACES_ACCESS_KEY_ID",
+    "DO_SPACES_SECRET_ACCESS_KEY",
+    "NEXT_PUBLIC_DO_SPACES_CDN_URL",
+  ].every((name) => hasEnvOrFile(env, name));
 
   return [
     {
@@ -737,6 +749,18 @@ export function getOperatorServiceReadiness(
       owner: "Security",
       moduleKey: "settings",
       evidence: "Signing-key registry",
+    },
+    {
+      id: "svc_object_storage",
+      title: "Object storage",
+      description:
+        "DigitalOcean Spaces provides S3-compatible raw sample, package, and licensed delivery object storage.",
+      state: readinessState(objectStorageConfigured),
+      owner: "Platform",
+      moduleKey: "datasets",
+      evidence: objectStorageConfigured
+        ? "storage.object_store gate"
+        : "Spaces credential review",
     },
     {
       id: "svc_observability",

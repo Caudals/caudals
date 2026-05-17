@@ -12,6 +12,7 @@ VECTOR_NETWORK="${CAUDALS_VECTOR_NETWORK:-dokploy-network}"
 WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
+OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-false}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
 
 failures=0
@@ -249,6 +250,21 @@ check_cache_stack() {
   fi
 }
 
+check_object_storage() {
+  local output
+
+  if [[ "$OBJECT_STORAGE_GATE_ENABLED" != "true" ]]; then
+    mark_ok "storage.object_store" "probe waived until DO Spaces secrets are mounted; set CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true to require write/read/delete"
+    return
+  fi
+
+  if output="$(npm run -s storage:probe 2>&1)"; then
+    mark_ok "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "storage.object_store" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_operations_stack() {
   local output
 
@@ -444,6 +460,7 @@ main() {
   check_operator_auth_policy
   check_observability_stack
   check_cache_stack
+  check_object_storage
   check_orchestration_stack
   check_workflow_stack
   check_operations_stack
