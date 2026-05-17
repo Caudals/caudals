@@ -175,8 +175,13 @@ Install caveat:
   private Label Studio labeling-workbench readiness, private Qdrant
   vector-index readiness, private Redis cache/queue readiness,
   optional DigitalOcean Spaces object-storage write/read/delete readiness,
+  app runtime configuration for Stripe payments and Resend email delivery,
   external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
+- `npm run platform:runtime-config -- --fail-on-missing` checks the local
+  Stripe and Resend runtime variables without printing secret values. The
+  platform completion gate runs the same probe inside the deployed app container
+  so Docker secret files are checked in their real mount location.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private

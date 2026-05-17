@@ -693,6 +693,14 @@ export function getOperatorServiceReadiness(
     "DO_SPACES_SECRET_ACCESS_KEY",
     "NEXT_PUBLIC_DO_SPACES_CDN_URL",
   ].every((name) => hasEnvOrFile(env, name));
+  const stripeConfigured =
+    hasEnvOrFile(env, "STRIPE_SECRET_KEY") &&
+    hasEnvOrFile(env, "STRIPE_WEBHOOK_SECRET") &&
+    Boolean(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  const emailConfigured =
+    hasEnvOrFile(env, "RESEND_API_KEY") &&
+    Boolean(env.RESEND_FROM_EMAIL) &&
+    Boolean(env.RESEND_GENERAL_AUDIENCE_ID);
 
   return [
     {
@@ -853,6 +861,26 @@ export function getOperatorServiceReadiness(
       owner: "Commercial Ops",
       moduleKey: "commercials",
       evidence: "Commercial records",
+    },
+    {
+      id: "svc_commercial_payments",
+      title: "Commercial payments",
+      description:
+        "Stripe server, webhook, and publishable key configuration are mounted for invoice and payout workflows.",
+      state: readinessState(stripeConfigured),
+      owner: "Commercial Ops",
+      moduleKey: "commercials",
+      evidence: stripeConfigured ? "app.runtime_config gate" : "Stripe config review",
+    },
+    {
+      id: "svc_email_runtime",
+      title: "Email runtime",
+      description:
+        "Resend API, sender identity, and audience routing are configured for contact and waitlist workflows.",
+      state: readinessState(emailConfigured),
+      owner: "Growth Ops",
+      moduleKey: "leads",
+      evidence: emailConfigured ? "app.runtime_config gate" : "Resend config review",
     },
   ];
 }
