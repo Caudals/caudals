@@ -393,7 +393,7 @@ function WorkItemRow({
       aria-selected={selected}
       data-work-queue-row=""
       onKeyDown={handleRowKeyDown}
-      className="scroll-mt-24 border-t border-gray-100 py-5 outline-hidden transition-colors first:border-t-0 focus:bg-emerald-50/50 focus:ring-2 focus:ring-emerald-500/30"
+      className="min-w-0 scroll-mt-24 border-t border-gray-100 py-5 outline-hidden transition-colors first:border-t-0 focus:bg-emerald-50/50 focus:ring-2 focus:ring-emerald-500/30"
     >
       <div className="grid gap-3 lg:grid-cols-[auto_minmax(0,1fr)_minmax(240px,0.4fr)] lg:items-start">
         <div className="pt-1">
@@ -463,8 +463,8 @@ function WorkItemRow({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.15fr)_minmax(280px,0.85fr)]">
-        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+      <div className="mt-4 grid min-w-0 gap-3 min-[1600px]:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.15fr)_minmax(280px,0.85fr)]">
+        <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 p-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
             <ArrowRight className="h-3.5 w-3.5 text-gray-400" />
             {t("Inline state transition")}
@@ -538,7 +538,7 @@ function WorkItemRow({
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white p-3">
+        <div className="min-w-0 rounded-lg border border-gray-100 bg-white p-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
             <ListChecks className="h-3.5 w-3.5 text-gray-400" />
             {t("Inline record edit")}
@@ -985,16 +985,16 @@ export function OperatorWorkQueue({
   };
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
       <div className="border-b border-gray-100 p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-950">
               {t(module.title)} / {t("Work queue")}
             </p>
             <p className="mt-1 text-sm text-gray-500">{t(module.description)}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex min-w-0 flex-wrap gap-2">
             <button
               type="button"
               onClick={() => handleSavedViewChange(null)}
@@ -1026,8 +1026,8 @@ export function OperatorWorkQueue({
         </div>
       </div>
       <div className="border-b border-gray-100 bg-gray-50/70 p-4">
-        <div className="grid gap-3 xl:grid-cols-2 xl:items-stretch">
-          <div className="rounded-lg border border-gray-200 bg-white p-3">
+        <div className="grid min-w-0 gap-3 min-[1600px]:grid-cols-2 min-[1600px]:items-stretch">
+          <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-gray-950">
               <Plus className="h-3.5 w-3.5 text-gray-400" />
               {t("Create record")}
@@ -1181,7 +1181,7 @@ export function OperatorWorkQueue({
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-3">
+          <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3">
             <div className="flex flex-wrap items-center gap-3">
               <Checkbox
                 aria-label={t("Select all transitionable records")}
@@ -1222,7 +1222,7 @@ export function OperatorWorkQueue({
               ) : null}
             </div>
 
-            <div className="mt-3 grid gap-2 sm:grid-cols-[0.7fr_1fr_auto]">
+            <div className="mt-3 grid min-w-0 gap-2 sm:grid-cols-[0.7fr_1fr_auto]">
               <Select
                 value={resolvedBulkTargetState}
                 onValueChange={setBulkTargetState}
