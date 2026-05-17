@@ -1,10 +1,13 @@
 # Caudals Overview
 
 ## One-Line Description
+
 Caudals is a B2B marketplace and managed data operations company that helps businesses sell proprietary data and helps AI teams buy clean, compliant, ML-ready datasets.
 
 ## Short Description
+
 Caudals connects two sides of the AI data market:
+
 - companies that own useful data and want to monetize it,
 - companies building AI models that need high-quality datasets for training, fine-tuning, evaluation, or enrichment.
 
@@ -13,6 +16,7 @@ Caudals sits in the middle. We source data, validate rights, negotiate access, p
 The long-term product is a B2B data marketplace. The near-term product is a high-touch managed service supported by a landing page, contact form, blog, and private admin dashboard.
 
 ## What Caudals Does
+
 Caudals provides three core capabilities:
 
 1. Data supply creation:
@@ -25,6 +29,7 @@ Caudals provides three core capabilities:
    We package datasets for sale through private offers, custom projects, future marketplace listings, subscriptions, one-off licenses, or recurring data feeds.
 
 ## Platform Model
+
 Caudals has three practical sides:
 
 1. Buyers:
@@ -37,7 +42,9 @@ Caudals has three practical sides:
    The internal team and tooling that qualify leads, verify data rights, manage supplier assets, build datasets, run QA, package listings, manage contracts, and deliver data to buyers.
 
 ## Core Workflows
+
 ### Buyer Workflow
+
 1. Buyer submits a dataset need through the contact form or direct sales channel.
 2. Caudals qualifies the request:
    - AI use case
@@ -63,6 +70,7 @@ Caudals has three practical sides:
 6. Caudals delivers the dataset in agreed ML-ready formats and records acceptance evidence.
 
 ### Supplier Workflow
+
 1. Supplier company offers data or expresses monetization interest.
 2. Caudals evaluates:
    - commercial fit,
@@ -80,7 +88,9 @@ Caudals has three practical sides:
 6. Supplier receives negotiated revenue share when the dataset sells.
 
 ### Internal Admin Workflow
+
 The admin dashboard should become the operational control room for:
+
 - buyer and supplier leads,
 - qualification state,
 - supplier data assets,
@@ -99,6 +109,7 @@ The admin dashboard should become the operational control room for:
 - audit history.
 
 ## Dataset Operations Pipeline
+
 Caudals turns raw data into AI-ready datasets through a staged pipeline:
 
 1. Intake:
@@ -129,11 +140,14 @@ Caudals turns raw data into AI-ready datasets through a staged pipeline:
    Provide schema, data dictionary, quality scorecard, known limitations, lineage/provenance summary, PII/compliance summary, and permitted-use summary.
 
 10. Publication or delivery:
-   Publish a catalog/private-offer listing or deliver directly to the buyer.
+    Publish a catalog/private-offer listing or deliver directly to the buyer.
 
 ## Customer Profiles
+
 ### Buyer Customers
+
 Buyer customers are companies building or improving AI systems. They may be:
+
 - AI startups needing domain-specific training data,
 - enterprise ML teams building internal models,
 - product teams fine-tuning LLMs or vertical AI models,
@@ -142,6 +156,7 @@ Buyer customers are companies building or improving AI systems. They may be:
 - companies needing evaluation datasets, benchmark sets, edge-case datasets, or recurring data feeds.
 
 Buyer pain points:
+
 - hard to find proprietary data,
 - unclear rights and usage terms,
 - generic public datasets are not good enough,
@@ -151,6 +166,7 @@ Buyer pain points:
 - compliance teams need provenance and privacy evidence.
 
 Buyer value proposition:
+
 - faster access to usable datasets,
 - clear rights and permitted use,
 - ML-ready formats,
@@ -159,7 +175,9 @@ Buyer value proposition:
 - ability to request custom datasets.
 
 ### Supplier Customers
+
 Supplier customers are data-rich companies that may not think of themselves as data vendors. They may own:
+
 - transaction data,
 - logistics and route data,
 - industrial or IoT sensor data,
@@ -172,6 +190,7 @@ Supplier customers are data-rich companies that may not think of themselves as d
 - domain-specific historical records.
 
 Supplier pain points:
+
 - valuable data sits unused,
 - selling data requires sales, legal, privacy, packaging, and delivery work,
 - AI buyers require formats and documentation suppliers do not have,
@@ -179,6 +198,7 @@ Supplier pain points:
 - marketplace distribution is hard to operate.
 
 Supplier value proposition:
+
 - monetize data without building a marketplace,
 - keep Caudals responsible for preprocessing and buyer acquisition,
 - receive revenue share on sales,
@@ -186,9 +206,11 @@ Supplier value proposition:
 - reduce legal/privacy ambiguity before publication.
 
 ### Internal Users
+
 Internal Caudals users are operators, founders, sales, data engineers, data scientists, label reviewers, and admins.
 
 Internal needs:
+
 - lead qualification,
 - project scoping,
 - source and supplier tracking,
@@ -200,15 +222,18 @@ Internal needs:
 - auditability.
 
 ## Market Context
+
 AI teams increasingly need differentiated datasets, not just more model access. Public datasets are often too generic, stale, overused, legally ambiguous, or poorly suited to a specific domain. Meanwhile, many companies own valuable data but lack the expertise, buyer network, compliance process, and packaging infrastructure to sell it safely.
 
 Caudals sits between several existing categories:
+
 - Data marketplaces such as AWS Data Exchange, Snowflake Marketplace, Google Cloud Marketplace, Datarade, Databricks Marketplace, and similar platforms.
 - Data labeling and annotation providers such as Scale AI, Appen, AWS SageMaker Ground Truth, and specialist annotation vendors.
 - Data engineering and AI consulting firms that build custom pipelines and data products.
 - Data monetization platforms that help providers package and distribute data products.
 
 Caudals' differentiation is the combination of:
+
 - marketplace demand generation,
 - supplier-side monetization,
 - managed dataset engineering,
@@ -220,26 +245,32 @@ Caudals' differentiation is the combination of:
 The goal is not to be only a listing directory, only a labeling provider, or only a consulting shop. The goal is to become a trusted transaction and operations layer for AI-ready B2B datasets.
 
 ## Pricing and Service Tiers
+
 The current commercial model has three service tiers. These ranges are planning estimates, not fixed public quotes.
 
 ### 1. Dataset Feasibility Study
+
 Purpose:
 Determine whether a dataset can be sourced, built, licensed, cleaned, and delivered with acceptable risk and expected buyer value.
 
 Best for:
+
 - buyers asking whether a dataset is possible,
 - suppliers asking whether their data is marketable,
 - regulated or uncertain data opportunities,
 - projects where scope, rights, or data availability is unclear.
 
 Planning price:
+
 - $1000 fixed fee
 - optionally credited toward a pilot if signed within 30 days
 
 Duration:
+
 - 5-10 business days
 
 Deliverables:
+
 - feasibility memo,
 - source/supplier map,
 - risk register,
@@ -251,10 +282,12 @@ Deliverables:
 - go/no-go recommendation.
 
 ### 2. Small Pilot Dataset Build
+
 Purpose:
 Build a constrained dataset sample that proves quality, usefulness, feasibility, and commercial value before a larger commitment.
 
 Best for:
+
 - buyers who need a model/evaluation spike,
 - suppliers testing monetization potential,
 - one use case or one supplier asset,
@@ -262,14 +295,17 @@ Best for:
 - early private-offer or catalog-listing validation.
 
 Planning price:
+
 - $12,000-$35,000 project fee
 - pass-through costs for third-party data, specialist annotation, legal review, or infrastructure when needed
 - optional 30-50% credit toward the complete build
 
 Duration:
+
 - 2-4 weeks
 
 Typical scope:
+
 - 5,000-50,000 records/items or a constrained modality sample,
 - schema profiling,
 - cleaning,
@@ -281,6 +317,7 @@ Typical scope:
 - delivery in ML-ready format.
 
 Deliverables:
+
 - pilot dataset artifact,
 - schema/data dictionary,
 - sample preview,
@@ -289,10 +326,12 @@ Deliverables:
 - recommendation for complete build, catalog listing, or stop.
 
 ### 3. Complete Dataset Build
+
 Purpose:
 Deliver a production-grade dataset for buyer use, private offer, catalog listing, or recurring data supply.
 
 Best for:
+
 - production buyer delivery,
 - reusable catalog listings,
 - multi-source builds,
@@ -300,15 +339,18 @@ Best for:
 - strategic supplier partnerships.
 
 Planning price:
+
 - starts at $50,000
 - common range: $50,000-$250,000 for focused single-domain builds
 - complex, regulated, multimodal, or recurring programs can exceed $250,000
 
 Duration:
+
 - 6-12 weeks for focused builds
 - 12-20+ weeks for complex, regulated, multimodal, multi-supplier, or recurring programs
 
 Typical scope:
+
 - multi-source sourcing and supplier coordination,
 - contract/licensing workflow,
 - secure ingestion,
@@ -323,6 +365,7 @@ Typical scope:
 - delivery via signed download, S3-compatible storage, API, or warehouse share.
 
 Deliverables:
+
 - production dataset package,
 - schema and data dictionary,
 - lineage/provenance report,
@@ -334,16 +377,23 @@ Deliverables:
 - marketplace listing copy and sample preview.
 
 ## Product Surfaces
+
 ### Live Public Surface
+
 - Homepage/landing page
 - Contact page
 - Blog
 - Waitlist/contact APIs
 
 ### Private Current Surface
+
 - Internal admin access and operational infrastructure
+- Direct-route buyer workspace for authenticated delivery, subscription, integration, billing, scorecard, manifest, and trust-evidence review
+- Direct-route supplier portal for authenticated asset declaration, sample upload, build participation, revenue-share, and Stripe Connect review
+- Direct-route API and security surfaces, published without landing-page entry points while landing mode is active
 
 ### Future Surfaces
+
 - Buyer marketplace/catalog
 - Buyer dataset brief intake
 - Supplier data onboarding
@@ -352,10 +402,14 @@ Deliverables:
 - Catalog listing management
 - Commercial operations dashboard
 
+Landing mode keeps the landing page visually narrow. It should not expose buttons, navigation links, hero CTAs, cards, sitemap promotion, or other public discovery paths to buyer, supplier, API, or security routes. Those routes may still be accessible by direct URL when protected by their normal access controls. Public catalogue datasets and catalogue browsing remain future work outside the current blueprint implementation.
+
 ## Elevator Pitch
+
 Companies need better datasets to build better AI, but the best data is often locked inside other companies, poorly formatted, legally unclear, or not packaged for machine learning. Caudals is the B2B marketplace and managed operations layer that unlocks that data. We help suppliers monetize proprietary datasets, help buyers acquire AI-ready data, and handle the messy middle: sourcing, licensing, preprocessing, cleaning, anonymization, curation, labeling, QA, packaging, and delivery.
 
 ## Longer Pitch
+
 Caudals helps AI teams get the data they actually need. Instead of relying on generic public datasets or building a bespoke sourcing and cleaning operation from scratch, buyers can work with Caudals to define a dataset, validate feasibility, review samples, and receive a production-ready package with schema, quality checks, provenance, and usage rights.
 
 On the supplier side, many companies have valuable operational data but no practical way to sell it. Caudals gives those companies a managed monetization path. We validate rights, process and anonymize the data, package it into AI-ready formats, and connect it with buyers through private offers and future marketplace listings.
@@ -363,6 +417,7 @@ On the supplier side, many companies have valuable operational data but no pract
 Caudals is not just a marketplace directory and not just a labeling vendor. It is the operational layer that makes B2B AI data transactions possible.
 
 ## Useful One-Sentence Variants
+
 - Caudals is a B2B marketplace for AI-ready custom datasets.
 - Caudals helps companies monetize proprietary data and helps AI teams buy datasets they can actually train on.
 - Caudals turns raw company data into compliant, ML-ready datasets for AI builders.

@@ -27,3 +27,17 @@
 - **Decision:** Password-only production operator access is allowed. TOTP and passkeys remain available as optional Better Auth hardening, not `/admin` gates.
 - **Reason:** The current operator-auth policy explicitly removes obligatory MFA/2FA for real admin accounts.
 - **Status:** Active. `db/migrations/024_remove_operator_mfa_requirement.sql` clears required-factor flags and the app ignores the legacy enrollment-enforcement env.
+
+## D-005 · Landing-mode route publication
+
+- **Blueprint section:** §20, §21, §22, §29
+- **Decision:** `LANDING_MODE=true` hides buyer, supplier, API, and security entry points from the landing page and marketing navigation, but it does not block direct route access to `/buyer`, `/supplier`, `/security`, or `/v1/*`.
+- **Reason:** These surfaces need to be published and usable by direct URL while remaining undiscoverable from the public landing experience.
+- **Status:** Active. Route access still depends on each surface's normal auth, authorization, RLS, rate-limit, and audit controls.
+
+## D-006 · Catalogue datasets deferred
+
+- **Blueprint section:** §15, §20, §22, §30 M3
+- **Decision:** Public catalogue datasets, catalogue browsing, sample-preview catalogue flows, and catalogue purchase flows are not part of the current blueprint implementation goal.
+- **Reason:** Catalogue implementation is a separate future goal; the current goal prioritizes the operations platform, buyer/supplier direct routes, API/security routes, delivery, compliance, and service readiness.
+- **Status:** Active. Catalogue-related data may remain as internal/operator support where already present, but public catalogue dataset surfaces should not be treated as required completion criteria.

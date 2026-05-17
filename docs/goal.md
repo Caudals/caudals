@@ -1,129 +1,151 @@
-# Caudals platform implementation
+# Caudals platform goal
 
-Implement the Caudals platform end-to-end as specified in `docs/blueprints/caudals-platform-blueprint.md`. Phase 1 (Operator Console, Postgres + Better Auth migration) is shipped; resume at M2 and drive through to M3. Work autonomously, one slice at a time, until the whole blueprint is live in production.
+## Objective
 
-## Mandatory Read Order (every iteration)
+Implement, extend, verify, and deploy Caudals as a polished B2B AI dataset operations platform: public funnel, private operator console, buyer and supplier workspaces, API/security routes, data operations services, compliance controls, delivery flows, observability, and production deployment. The blueprint is the canonical target, but agents may add, remove, or reshape features when doing so makes the product more complete, functional, trustworthy, maintainable, or commercially useful. Log material deviations in `docs/blueprints/deviations.md`.
+
+Caudals is done when every load-bearing blueprint section is implemented or explicitly deferred with a documented reason, the platform can run representative dataset workflows end-to-end, services are observable and operable from the console or documented CLIs, and production passes the completion gates below.
+
+## Required context
+
+Read in this order:
 
 1. `AGENTS.md`
-2. `docs/blueprints/caudals-platform-blueprint.md` — the canonical spec; all sections are load-bearing
+2. `docs/blueprints/caudals-platform-blueprint.md`
 3. `docs/product-specs/overview.md`
-4. `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/FRONTEND.md`, `docs/TOOLS.md`
-5. `docs/index.md`
-6. `PHASE_1_REPORT.md` and any prior `PHASE_*_REPORT.md` — known gaps feed the next slice
-7. `docs/blueprints/deviations.md`
+4. `docs/ARCHITECTURE.md`
+5. `docs/DESIGN.md`
+6. `docs/FRONTEND.md`
+7. `docs/TOOLS.md`
+8. `docs/index.md`
+9. `docs/product-specs/index.md`
+10. `PHASE_1_REPORT.md`, `PHASE_2_REPORT.md`, `PHASE_3_REPORT.md`, and any newer `PHASE_*_REPORT.md`
+11. `docs/blueprints/deviations.md`
 
-If you find a better choice than the blueprint specifies, deviate, ship it, and log briefly the deviation in `docs/blueprints/deviations.md`. Do not block to ask.
+Use the current code, database migrations, scripts, deployed service state, and phase reports as evidence. Do not rely on stale assumptions when a command or readback is cheap.
 
-## Environment
+## Product contract
 
-You are inside the DigitalOcean VPS that hosts Caudals. Shell access to Docker, Dokploy, self-hosted Postgres, Spaces (S3), Tailscale, GitHub, Stripe sandbox, Resend. Treat the VPS as dev/integration. You may install MCPs, CLIs, toolchains, system packages, Docker images, DB extensions; pick current stable versions. You may spin up containers via Dokploy or `docker compose`, create databases, roles, schemas, migrations, modify any repo file, run builds, lint, typecheck, restart services.
+Preserve the current B2B marketplace and managed-services direction:
 
-## Top-Level Goal
+- Public production surface: landing page, contact intake, blog, required public APIs, auth routes, and `/admin`.
+- Private operator surface: `/admin` is the operations control room and must remain functional, dense, audited, and professionally organized.
+- Published route surfaces: buyer workspace, supplier portal, API routes, and the security page should be implemented and accessible by direct route even when production is in landing mode, with their normal auth, authorization, RLS, rate-limit, and audit controls.
+- Landing-page visibility: landing mode only hides entry points from the public landing experience. Do not add landing-page buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths for buyer, supplier, API, or security routes unless explicitly requested.
+- Catalogue datasets are out of scope for this goal. Do not implement public catalogue datasets, catalogue browsing, sample-preview catalogue flows, marketplace listing publication, or catalogue purchase flows in this blueprint implementation.
+- Marketplace browse, buyer self-service purchasing, supplier self-service publishing, and broad marketplace commerce stay deferred until a future catalogue goal.
+- Every workflow must preserve provenance, rights, consent, privacy, PII handling, auditability, delivery evidence, and payment/webhook idempotency where applicable.
 
-Bring the blueprint to life. The platform is "done" when every section of the blueprint is implemented, observable in production, and exercised by either live operators, live suppliers, live buyers, or scheduled jobs.
+## Production visibility
 
-## Updates
-- Operator-auth policy explicitly allows password-only production admin access.
-  MFA/2FA and passkeys remain optional Better Auth hardening, not release gates.
-- Sentry is installed at code/build-wiring level. A Sentry auth token was
-  redacted from this file; store build-upload auth only in the deployment
-  secret manager, rotate the exposed token, and configure `SENTRY_DSN` or
-  `SENTRY_DSN_FILE` before marking runtime error delivery complete.
+Production runs with `LANDING_MODE=true` and `NEXT_PUBLIC_LANDING_MODE=true`.
 
+- Public navigation must expose only the approved landing-mode Contact/Blog links in the active locale.
+- Public catalogue links, auth buttons, marketplace CTAs, buyer workspace links, supplier portal links, `/security`, and `/v1/*` links must stay visually hidden from the landing page and public marketing navigation in production landing mode.
+- `/admin` must remain reachable through the normal auth route for real operators.
+- Buyer, supplier, API, and security routes should remain route-accessible in landing mode when requested directly, subject to their normal auth and authorization model.
+- Catalogue routes and catalogue dataset surfaces remain unimplemented or blocked until a future goal explicitly covers them.
 
-## Production Deployment Visibility (LANDING_MODE)
+## Execution loop
 
-Production runs with `LANDING_MODE=true` (and `NEXT_PUBLIC_LANDING_MODE=true`). The only publicly reachable surfaces in production are:
+Work in checkpoints, not loose task lists:
 
-- the landing page (`/`),
-- the contact form (`/contact`),
-- the blog (`/blog` and `/blog/*`),
-- the internal admin/auth surfaces (`/admin`, `/auth/*`, `/api/auth/*`),
-- the minimum public API needed by the public surfaces (`/api/analytics/track`, `/api/contact`, `/api/waitlist`).
+1. Inspect current state: repo diff, phase reports, relevant docs, schema, runtime config, deployed service state, and failing gates.
+2. Pick the next smallest checkpoint that advances the blueprint toward the stopping condition.
+3. Implement the checkpoint end-to-end across schema, code, UI, services, tests, docs, deployment, and operator usability as needed.
+4. Validate only the smallest behavior that could silently break production. Prefer targeted checks over broad suites and keep iteration fast.
+5. Visually inspect changed UI (make screenshots and look at them) at the level needed for the risk of the change. Fix layout, alignment, overflow, empty/loading/error states, and console errors before calling a UI checkpoint done.
+6. Deploy finished slices according to the deployment rules below.
+7. Record a short progress entry in the newest `PHASE_*_REPORT.md` or create the next numbered report when the prior phase is complete.
+8. Continue with the next checkpoint unless a stop condition applies.
 
-The public top navbar in production MUST contain exactly **Contacto** and **Blog** — nothing else. This is enforced by `landingModePublicNavigationLinks` in `lib/landing-mode.ts` and the conditional render in `components/ui/header.tsx`.
+Status updates during a `/goal` run should name the current checkpoint, what was verified, what remains, and whether anything is blocked.
 
-Every other surface — buyer workspace (§20), supplier portal (§21), public catalogue (§22, §15), security review page, pricing, trust, docs, the public `/v1` REST surface (§29), self-serve auth flows, marketplace browse, payments UI, etc. — must still be implemented end-to-end per the blueprint, but **must stay hidden in production until each is explicitly cleared for public exposure**. Implementation is not gated by visibility; visibility is gated separately.
+## Implementation checkpoints
 
-When you add a new public-facing surface:
+Use this order unless runtime evidence shows a better next slice.
 
-1. Build it end-to-end per the blueprint as if it were going live (real data, real schema, real auth, real RLS, real audit, real tests).
-2. Do **not** add its route to `LANDING_MODE_ALLOWED_PAGE_PATHS`/`LANDING_MODE_ALLOWED_PAGE_PREFIXES` (or the private equivalents) in `lib/landing-mode.ts`. The middleware must continue to 404/redirect it when `LANDING_MODE=true`.
-3. Do **not** add it to `landingModePublicNavigationLinks` or any other public nav surface.
-4. Do **not** relax the landing-mode gate, the middleware, or the navbar conditional as a shortcut to "preview" the feature.
-5. Verify the surface is reachable with `LANDING_MODE=false` (local/dev/staging) and unreachable + invisible with `LANDING_MODE=true` (production).
-6. Update `e2e/public-routes.spec.ts`: add the new route to the `landingModeEnabled` `blockedRoutes` list so we catch any regression that re-exposes it.
+1. Platform audit and gap map: compare blueprint sections, phase reports, current migrations, routes, scripts, services, and the existing platform completion evidence.
+2. Operations services: ensure Postgres, object storage, Redis/cache, Dagster, Temporal, Label Studio, CVAT, Qdrant, Marquez/OpenLineage, Sentry, OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Stripe sandbox, Resend, and delivery signing are either deployed/probed or explicitly deferred.
+3. Dataset pipeline: make G-1 through G-7 executable from intake through profiling, cleaning, privacy/PII, enrichment, labeling/curation, QA, packaging, release documentation, lineage, and delivery.
+4. Operator console: expose all operational workflows in `/admin`, including state machines, CRUD, bulk actions, command palette, saved views, service health, build controls, cost envelopes, escalations, audit overlays, notes, signing keys, and route-safe settings.
+5. Buyer and supplier workspaces: keep them unlinked from the landing page in landing mode, but make direct-route authenticated review flows useful for deliveries, subscriptions, integrations, billing, manifests, scorecards, supplier asset declaration, build participation, revenue share, and Stripe Connect status.
+6. Public funnel and security readiness: keep landing-page navigation narrow while improving contact/buyer-brief intake, blog, security review, private offers where they support operator workflows, SEO metadata, analytics, and abuse controls.
+7. API and integrations: harden `/v1/*`, tRPC workspaces, webhooks, signed delivery URLs, HMAC/Ed25519 signatures, rate limits, replay protection, and external buyer integration examples.
+8. Compliance and trust: complete license algebra, consent registry, DSAR propagation, EU AI Act Article 10 documentation, Croissant manifests, dataset cards/datasheets, SOC 2/ISO control scoping, incident runbooks, retention, backups, and secret hygiene.
+9. Polish and production readiness: run completion gates, fix defects, visually verify dashboards, confirm route visibility, ensure docs are concise, deploy, and record evidence.
 
-A feature can only be unhidden by an explicit, separate request that names the surface and confirms its readiness. Until then, it ships behind the gate.
+## UI and UX rules
 
-## Sequencing
+Follow `docs/DESIGN.md` and `docs/FRONTEND.md` exactly.
 
-Follow the blueprint's roadmap §30. Treat each milestone as a goal of its own; finish it before starting the next. Within a milestone, sequence slices so the operations spine stays load-bearing first, then catalogue depth, then self-serve surfaces.
+- Build the functional first pass yourself.
+- For non-trivial UI screens such as build detail, lineage browser, command palette, scorecards, buyer workspace, supplier portal, or service dashboards, use Claude Code with the `frontend-design` skill when available.
+- If Claude Code is unavailable, blocked by auth/quota, or returns no usable diff, do a manual design-system review, document the fallback in the phase report, and continue.
+- Every changed UI must be visually inspected enough to catch obvious design regressions. Check the changed surface with realistic data, relevant responsive widths, loading/empty/error states when touched, keyboard focus when interaction changed, no horizontal overflow, no misaligned controls, no clipped text, and no browser console errors.
+- Admin, buyer, and supplier screens should be compact, professional, and operational. Avoid marketing-style hero layouts inside dashboards.
 
-- **M2 — Catalogue & modalities** (§30 M2): pick this up first.
-- **M3 — Self-service & commercial** (§30 M3).
+## Validation gates
 
-Each slice maps to a §section. Wire it to real data, real schema, real auth, real RLS. No mocks past the slice boundary.
+Keep validation minimal and fast. Do not spend most of a `/goal` run on exhaustive checks. Use the existing repo scripts and browser/service probes selectively, based on what changed and what could silently break production.
 
-## What "Done" Means for a Slice
+For each checkpoint:
 
-A slice is done when:
+- Run targeted unit or integration coverage only for the business rule, state transition, RLS path, route visibility rule, service probe, or UI interaction touched.
+- Run type, lint, build, i18n, browser, or service checks only when the checkpoint changed the corresponding contract.
+- Prefer one focused browser inspection over broad visual sweeps unless a shared layout, navigation, auth shell, or dashboard primitive changed.
+- Before deployment, run the smallest smoke path that proves production will boot and the changed route or service works.
+- Record skipped checks only when the skipped check would normally be expected for the changed surface.
+- In general, keep testing minimal and iterate fast.
 
-1. Server actions / tRPC routes with input validation are in place.
-2. Queries respect RLS and the §28 schema; migrations are append-only with a rollback.
-3. UI follows `docs/DESIGN.md` and reuses existing primitives.
-4. State transitions emit `audit_event` per §23.
-5. OpenTelemetry traces, Sentry errors and feature flags are wired.
-6. The slice is reachable in the running deployment on the VPS, exercised once end-to-end.
-7. Minimal tests cover the business-logic edge that would silently break in prod — nothing more.
+## Deployment rules
 
-## Acceptance Criteria — Platform done = all of these
+- Do not create PRs or extra branches for goal slices unless the user explicitly changes this policy.
+- When a slice is complete, commit and push directly to the deployment branch/main according to the current repository deployment setup.
+- Prefer GitHub Actions and Docker Hub for image builds, then let Dokploy pull and deploy. Avoid heavy local Docker builds on the VPS unless necessary.
+- Be careful with VPS CPU, RAM, disk, tmux sessions, and active Codex `/goal` sessions. Do not kill long-running Codex/tmux sessions or production services as a cleanup shortcut.
+- For local builds on the VPS, use heap limits and inspect disk/process state first. Prune only disposable build cache or stopped containers when safe.
+- After deployment, verify route gates, service convergence, production smoke tests, and any changed authenticated flows.
 
-1. Every blueprint section §01–§29 has a corresponding implementation reachable in the deployed product.
-2. §30 milestones M2, M3 are each closed out with a short `PHASE_N_REPORT.md` at the repo root listing what shipped, deviations, and known gaps for the next phase.
-3. §23 state machines for every entity (`buyer_opportunity`, `supplier_opportunity`, `build`, `run`, `label_batch`, `contract`, `delivery`, `dsar`, plus any added in later milestones) are persisted, validated server-side, and audited.
-4. §17 license composition algebra runs live on every build planner and blocks non-composable license combinations.
-5. §25 security posture is real: password-only operator access is allowed by policy, optional MFA/passkeys remain available, JIT elevation is audited, Ed25519 signing keys are generated and encrypted at rest, and secrets are never in code.
-6. §26 observability is real: OTel → Tempo, logs → Loki, metrics → Prom (or the deviation you picked, logged).
-7. §29 public REST surface `/v1/*` is live, versioned, rate-limited, and documented inline.
-8. Buyer workspace (§20), supplier portal (§21) and public marketing/catalogue (§22, §15) are reachable for their respective audiences; AGENTS.md separation between public, admin, supplier and buyer surfaces is preserved.
-9. Typecheck, lint, the minimal test suite and the Playwright smoke pass on CI; production build runs on the VPS via Dokploy at the existing hostnames.
-10. AGENTS.md non-negotiables intact: payments idempotent, no secrets leaked, no destructive op without explicit user confirmation.
-    
-## Design Delegation
+## Secrets and notifications
 
-Follow `docs/DESIGN.md` exactly. For any non-trivial UI screen (build detail, lineage browser, command palette, scorecard view), produce a first pass yourself, then delegate a UX polish pass to Claude Code with the `frontend-design` skill:
+Never commit secrets, tokens, private keys, webhook URLs, DSNs, database URLs, customer data, or unredacted financial data to code, docs, logs, screenshots, or user-facing output.
 
-claude --model claude-opus-4-7 --thinking-budget xhigh --skill frontend-design \
-  "Polish; match docs/DESIGN.md; preserve all data + handlers; return only the diff"
+If human action is required, notify the user in the Codex thread. If Telegram is configured through a server-only environment variable or secret file, send a concise blocker notice through that configured channel. Do not store or paste the bot token in this repository.
 
-## Working Discipline
+## Working discipline
 
-- Plan before coding each slice: write the slice plan as the commit body of the first commit of that slice.
-- Migrations are append-only; never edit a shipped migration. Generate a rollback for each.
-- No silent fallbacks. If a license check, PII gate, RLS query or state-machine transition fails, fail loudly with the reason.
-- Conventional-commit style; one commit per coherent slice; reference the §section it implements.
-- If a tool / MCP / CLI is missing, install it, record it in one line in `docs/TOOLS.md`, continue.
-- **Keep docs concise, brief, and short.** Do not spend time or tokens writing extensive documentation; one paragraph per change is plenty.
-- **Keep tests and validations minimal and short.** Test only what would silently break production. Iterate fast.
-- **Push directly to the deployment branch when a slice is finished. Do not open PRs.** Commits land straight; Dokploy redeploys.
-- Use claude code with frontend-design skill for UI UX design. Make sure the dashboards are professional, polished, and verify the interface visually.
-- Inspect visually the dashboards/consoles once you build them. Make sure every page has a professional UI UX and there are no design bugs. Make sure the design is correct, the elements are not misaligned on the page, and the dashboards are generally user-friendly.
-- **Keep the /catalog route and top nav bar element hidden** (ignore the blueprint). Develop all the logic for the catalog, but keep it hidden in the top menu bar of the page. Remember that LANDING_MODE=true in the deployment.
+- No silent fallbacks. If a license check, PII gate, RLS query, state transition, delivery signature, payment webhook, or service probe fails, fail loudly with the reason.
+- If a tool, MCP, CLI, package, system dependency, or Docker image is missing, install it when safe, add one concise line to `docs/TOOLS.md` only if it becomes part of the recurring workflow, and continue.
+- Keep documentation updates short. Update only docs directly affected by the change.
+- Keep tests focused while iterating. Add or update tests only for behavior that could silently break production.
+- Use structured parsers, typed APIs, migrations, and existing helpers instead of ad hoc string manipulation.
+- Respect existing code patterns and do not revive removed pre-pivot requester/contributor/dashboard/browse surfaces.
+- Preserve password-only production operator access. TOTP and passkeys are optional Better Auth hardening, not release gates.
 
-## Stop and Ask Only If
+## Stop conditions
 
-- A credential, secret or API key is required and not present in the VPS env or vault.
-- A hardware, quota or billing limit blocks progress (GPU pool, Spaces quota, DO plan, etc).
-- A non-reversible decision affects production data outside the current slice (e.g. dropping a tenant's volume, rotating signing keys in active deliveries).
-- Two parts of the blueprint give conflicting instructions and the ambiguity is load-bearing for schema, auth or licensing.
+Pause only when:
 
-Otherwise proceed autonomously. Do not stop for routine implementation choices, refactors, dependency installs or design polish.
+- A required credential, secret, account access, or external approval is missing and cannot be discovered from the VPS environment or configured vault.
+- A hardware, quota, billing, or infrastructure limit blocks safe progress.
+- The next action is irreversible and high risk for production data, keys, buyer/supplier records, billing, or active delivery artifacts.
+- Blueprint/docs conflict in a way that changes schema, auth, rights, licensing, or route exposure materially.
+- A deployment, migration, or cleanup cannot be rolled back with the current evidence.
 
-## Out of Scope (until explicitly scheduled)
+When stopped, record the checkpoint, exact blocker, evidence gathered, safest next action, and any command that should be run after human action.
 
-- Anything contradicting AGENTS.md non-negotiables.
-- Stripe live keys, real money flow with external buyers until §25 / §32 controls are signed off.
-- M4
-- SOC 2 Type II audit work (planned for M4; build the controls, don't drive the audit itself).
-- Cross-region delivery infrastructure until M4.
+## Completion condition
+
+The goal is complete only when all of the following are true:
+
+- Blueprint sections 01-34 are implemented, superseded by a logged deviation, or explicitly deferred with product-owner rationale.
+- Public landing-mode production keeps the landing page visually narrow while allowing direct-route access to buyer, supplier, API, security, auth, and admin surfaces according to their normal access controls.
+- `/admin` can operate the platform: records, state machines, builds, services, pipeline gates, audit, compliance, delivery, cost, and escalation workflows are functional.
+- Buyer, supplier, API, and security surfaces are functional, accessible by direct route, and hidden only from landing-page navigation and marketing entry points.
+- Catalogue datasets and public catalogue browsing are not part of this goal and are not required for completion.
+- A representative dataset build can be planned, run or dry-run through the pipeline, produce lineage and QA/release documentation, package artifacts, and record delivery/acceptance evidence.
+- Required services are deployed or explicitly deferred, private by default, probed, observable, and surfaced to operators.
+- Minimal targeted validation, visual verification for changed UI, route probes for changed route visibility, and relevant service probes pass or have documented external-only waivers.
+- Production is deployed, Dokploy has converged, and deployed smokes pass.
+- The newest phase report records shipped work, validation evidence, production image/service state, known gaps, and deviations.

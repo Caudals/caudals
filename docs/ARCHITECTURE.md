@@ -1,30 +1,40 @@
 # Caudals Architecture
 
 ## System Overview
+
 Caudals is a B2B AI dataset marketplace and managed data operations platform. The public product promise is simple: companies bring proprietary or difficult-to-source data, companies buy AI-ready datasets, and Caudals performs the operational work in between.
 
 Current production scope is deliberately limited:
+
 - Public marketing and demand capture: `/`, `/contact`, `/blog`, `/blog/*`
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
-- Hidden buyer access: `/buyer` for read-only delivery, subscription,
+- Direct-route buyer access: `/buyer` for read-only delivery, subscription,
   integration, billing, scorecard, and manifest review
-- Hidden supplier access: `/supplier` for managed asset declaration, signed
+- Direct-route supplier access: `/supplier` for managed asset declaration, signed
   sample upload, build participation, revenue-share payout, and Stripe Connect
   status review
+- Direct-route API and security surfaces: `/v1/*` and `/security` when protected
+  by their normal route, auth, RLS, rate-limit, and audit controls
 
 Future marketplace scope:
+
 - Supplier company intake for raw data sources and licensing metadata
 - Buyer company intake for dataset requirements and purchase interest
 - Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
 - Marketplace catalog listings for reviewed datasets
 
-While `LANDING_MODE=true`, marketplace and app routes must remain unavailable
-except the private operator auth/admin surface. `/catalogue`, `/security`,
-`/v1/*`, `/buyer`, and `/supplier` are implemented for non-landing or
-authenticated review but stay hidden in production until explicit clearance.
+While `LANDING_MODE=true`, buyer, supplier, API, and security routes remain
+published and accessible by direct URL. Landing mode only removes public
+discovery from the landing page and marketing navigation: no buttons, nav
+links, hero CTAs, cards, sitemap promotion, or other public entry points should
+lead users to `/buyer`, `/supplier`, `/v1/*`, or `/security` unless explicitly
+requested. Catalogue datasets and marketplace browsing are not part of the
+current blueprint implementation and remain blocked or unimplemented until a
+future catalogue goal.
 
 ## Application Stack
+
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
 - UI: Tailwind CSS v4, Radix UI, custom primitives, shadcn/ui
 - Data/Auth target: self-hosted PostgreSQL + Better Auth + Postgres RLS
@@ -50,6 +60,7 @@ authenticated review but stay hidden in production until explicit clearance.
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
 
 ## Code Topology
+
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
@@ -88,24 +99,35 @@ authenticated review but stay hidden in production until explicit clearance.
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 
 ## Runtime Routing and Hostname Behavior
+
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`,
-  explicit public APIs, `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`,
-  and required metadata/assets. All other routes return `404`.
+- In landing mode, the landing page and marketing navigation stay narrow
+  (`/`, `/contact`, `/blog`, `/blog/*`), but `/auth/*`, `/api/auth/*`,
+  `/api/user/role`, `/admin`, `/buyer`, `/supplier`, `/security`, `/v1/*`,
+  explicit public APIs, and required metadata/assets may remain route-accessible
+  according to their normal auth and authorization model.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
 - `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
 - `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
-- `/catalogue` is the M3 curated dataset listing surface. It is read-only, uses only active public `catalogue_listing` rows, and routes access requests to `/contact`; production `LANDING_MODE` keeps it hidden until explicit clearance.
-- `/security` is the M3 security-review surface. It summarizes implemented controls, flags credential-gated readiness items, and routes DPA or questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it hidden until explicit clearance.
+- `/catalogue` and catalogue dataset browsing are future catalogue-goal work and
+  are not required for the current blueprint implementation.
+- `/security` is the security-review surface. It summarizes implemented
+  controls, flags credential-gated readiness items, and routes DPA or
+  questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it
+  unlinked from the landing page but does not block direct route access.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
-- `/v1/*` is the M3 REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions. Production `LANDING_MODE` keeps the surface hidden until explicit clearance.
+- `/v1/*` is the REST surface. `/v1` returns inline endpoint documentation;
+  public intake routes are anonymous and rate-limited, while buyer delivery,
+  subscription, and quote actions require a Better Auth buyer session and emit
+  audited state transitions. Production `LANDING_MODE` keeps it unlinked from
+  the landing page but does not block direct route access.
 - §07 acquisition tooling is executable through `npm run caudals -- intake
-  channels` and `npm run caudals -- intake validate <manifest.json>`. The
+channels` and `npm run caudals -- intake validate <manifest.json>`. The
   channel registry covers object-storage shares, database snapshots, API
   connectors, warehouse shares, public scrapers, SFTP drops, signed uploads,
   email-to-bucket, physical media, and supplier webhooks; validation fails
@@ -120,11 +142,12 @@ authenticated review but stay hidden in production until explicit clearance.
   Connect account status.
 - Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
 - `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
-- Hidden app routes must not be treated as canonical production behavior until
-  the marketplace is rebuilt around B2B buyers, suppliers, and internal
-  operators.
+- Buyer, supplier, API, and security route access must not be confused with
+  landing-page exposure. These surfaces can be published by direct route while
+  remaining absent from landing-page navigation and marketing CTAs.
 
 ## Infrastructure and Deployment
+
 - Production runtime is self-hosted on DigitalOcean VPS.
 - Dokploy manages runtime/deployment.
 - App and orchestration Docker image builds happen in GitHub Actions
@@ -133,7 +156,9 @@ authenticated review but stay hidden in production until explicit clearance.
 - `Dockerfile` uses multi-stage build (`deps` -> `build` -> `runtime`).
 
 ## PostgreSQL Runtime
+
 Target Phase 1 operations context:
+
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
@@ -161,6 +186,7 @@ Legacy Supabase containers, images, volumes, and host filesystem tree were remov
 Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 
 ## Observability
+
 - Sentry initialization is registered through Next.js instrumentation for server,
   edge, and client runtime errors.
 - Sentry is disabled until `SENTRY_DSN` or the server-only
@@ -184,6 +210,7 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   contain sensitive operational context.
 
 ## Operations Services
+
 - Caudals uses an S3-compatible object store for supplier samples, dataset
   files, generated packages, and licensed delivery artifacts. The current
   single-node runtime can deploy a private MinIO service on `dokploy-network`;
@@ -293,19 +320,24 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   ephemeral container attached to the private network.
 
 ## Data and Storage Domains
+
 Current live data domains:
+
 - lead capture: contact and waitlist records
 - content: blog posts and marketing metadata
 - operations: private admin activity, platform settings, audit notes
 
 Future marketplace data domains:
+
 - organizations: supplier companies, buyer companies, contacts, contracts
 - supplier assets: raw data source metadata, rights, consent, provenance, schema profiles
 - dataset build operations: ingestion jobs, cleaning runs, labeling batches, QA reports, acceptance criteria
-- catalog: listing metadata, previews, schemas, quality scores, pricing, delivery artifacts
+- future catalogue: listing metadata, previews, schemas, quality scores,
+  pricing, delivery artifacts once the separate catalogue goal starts
 - commercial operations: buyer inquiries, quotes, subscriptions/licenses, invoices, supplier revenue share
 
 ## Security and Reliability Anchors
+
 - RLS-first access model with scoped service-role usage
 - Durable abuse controls on public APIs
 - Webhook replay/idempotency protections when payment code is active
@@ -315,6 +347,7 @@ Future marketplace data domains:
 - CI quality gates for release confidence
 
 ## Core Lifecycle Flows
+
 1. Public demand capture:
    - visitor reads landing/blog -> submits contact or waitlist -> internal team qualifies the opportunity.
 2. Supplier data monetization:
@@ -325,17 +358,24 @@ Future marketplace data domains:
    - Caudals tracks leads, supplier assets, build status, QA, compliance, pricing, and delivery from a private admin dashboard.
 
 ## Maturity and Drift Watchlist
+
 Mature current areas:
+
 - landing/contact/blog public surface
-- landing-mode route restriction
+- landing-mode landing-page/navigation restriction
 - public intake APIs
 - private infrastructure access hardening
 
 Active drift risks:
-- hidden app, schema, copy, and payments still reflect pre-pivot assumptions
-- marketplace relaunch requires a schema and IA rebuild, not small copy edits on hidden routes
+
+- direct-route buyer/supplier/API/security surfaces must stay protected by auth,
+  authorization, RLS, rate limits, and audit rather than relying on landing-page
+  obscurity
+- marketplace relaunch requires a schema and IA rebuild, not small copy edits on
+  direct-route workspace surfaces
 - public SEO metadata and blog content must stay aligned with B2B dataset operations
 
 ## Linked References
+
 - `product-specs/overview.md`
 - `TOOLS.md`
