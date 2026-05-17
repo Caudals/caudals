@@ -761,6 +761,16 @@ export function getOperatorServiceReadiness(
       evidence: "orchestration.stack gate",
     },
     {
+      id: "svc_cache_queue",
+      title: "Cache and queue",
+      description:
+        "Redis backs private low-latency cache entries, BullMQ-style queue streams, retries, and worker coordination.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: "cache.stack gate",
+    },
+    {
       id: "svc_lineage_runtime",
       title: "Lineage runtime",
       description:

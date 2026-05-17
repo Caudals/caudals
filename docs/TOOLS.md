@@ -172,8 +172,8 @@ Install caveat:
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
   private observability readiness, private Dagster orchestration readiness,
   private Temporal workflow readiness, private operations lineage readiness,
-  private Qdrant vector-index readiness, external alert routing, tracked Sentry
-  auth token leaks, and the
+  private Qdrant vector-index readiness, private Redis cache/queue readiness,
+  external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
@@ -279,6 +279,28 @@ Install caveat:
 - Keep Qdrant private. Do not publish ports or expose the HTTP/gRPC endpoints
   outside the Docker/Tailscale operations boundary without an explicit security
   review.
+
+- The private cache stack lives in `infra/cache/` and is deployed with
+  `npm run cache:deploy`. It runs Redis on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-cache-stack.sh` creates a root-only generated Redis password
+  file when one is not supplied, creates the external Docker secret
+  `redis_password`, pulls the pinned Redis image, and deploys the stack. The
+  script must not print the generated password.
+- Provide `CAUDALS_REDIS_PASSWORD_FILE=/path/to/password` when a pre-existing
+  server-only password file should be used instead of the generated
+  `/root/.caudals/cache/redis-password` file.
+- `npm run cache:probe` verifies authenticated Redis reachability, cache
+  read/write behavior, queue stream append/readiness, and that Redis does not
+  publish ports.
+- Useful override variables: `CAUDALS_CACHE_STACK_NAME`,
+  `CAUDALS_CACHE_NETWORK`, `CAUDALS_REDIS_IMAGE`,
+  `CAUDALS_REDIS_PASSWORD_SECRET`, `CAUDALS_REDIS_PASSWORD_FILE`,
+  `CAUDALS_REDIS_SERVICE`, `CAUDALS_REDIS_HOST`, `CAUDALS_REDIS_PORT`,
+  `CAUDALS_REDIS_PROBE_KEY`, `CAUDALS_REDIS_PROBE_STREAM`, and
+  `CAUDALS_CACHE_PROBE_ATTEMPTS`.
+- Keep Redis private. Do not publish ports or expose the Redis endpoint outside
+  the Docker/Tailscale operations boundary without an explicit security review.
 
 - The private operations stack lives in `infra/operations/` and is deployed
   with `npm run operations:deploy`. It currently runs Marquez on
@@ -441,6 +463,9 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run cache:deploy`: deploy the private Redis cache/queue stack
+- `npm run cache:probe`: probe private Redis authenticated cache and queue
+  stream readiness
 - `npm run orchestration:deploy`: build and deploy the private Dagster
   orchestration stack
 - `npm run orchestration:probe`: probe private Dagster health, execute the
@@ -516,9 +541,9 @@ Operational env controls:
 - Operations services: Dagster orchestration stack/image/service names,
   Dagster OpenLineage URL/strictness, Temporal workflow stack/image/service
   names, Temporal namespace/retention, Qdrant vector stack/image/API-key
-  secret names, Marquez/OpenLineage stack name, private Docker network, Marquez
-  API/admin URLs, and server-only Dagster/Temporal/Marquez PostgreSQL secret
-  files
+  secret names, Redis cache/queue stack/image/password secret names,
+  Marquez/OpenLineage stack name, private Docker network, Marquez API/admin
+  URLs, and server-only Dagster/Temporal/Marquez PostgreSQL secret files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
