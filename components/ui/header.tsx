@@ -10,6 +10,7 @@ import {
   SheetClose,
   SheetContent,
   SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth/provider";
@@ -174,6 +175,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
           >
             <div className="flex h-full flex-col">
               <SheetHeader className="border-b border-gray-100 px-6 pb-5 pt-6">
+                <SheetTitle className="sr-only">{t("Caudals")}</SheetTitle>
                 <Link href="/" className="flex items-center gap-2">
                   <Image
                     src="/caudals_logo_black.svg"
