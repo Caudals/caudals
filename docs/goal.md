@@ -66,21 +66,20 @@ Status updates during a `/goal` run should name the current checkpoint, what was
 Use this order unless runtime evidence shows a better next slice.
 
 1. Platform audit and gap map: compare blueprint sections, phase reports, current migrations, routes, scripts, services, and the existing platform completion evidence.
-2. Operations services: ensure Postgres, object storage, Redis/cache, Dagster, Temporal, Label Studio, CVAT, Qdrant, Marquez/OpenLineage, Sentry, OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Stripe sandbox, Resend, and delivery signing are either deployed/probed or explicitly deferred.
+2. Operations services: ensure Postgres, object storage, Redis/cache, Dagster, Temporal, Label Studio, CVAT, Qdrant, Marquez/OpenLineage, Sentry, OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Stripe sandbox, Resend, and delivery signing are either deployed/probed or explicitly deferred. All the existing operations services should be accesible through the console.
 3. Dataset pipeline: make G-1 through G-7 executable from intake through profiling, cleaning, privacy/PII, enrichment, labeling/curation, QA, packaging, release documentation, lineage, and delivery.
 4. Operator console: expose all operational workflows in `/admin`, including state machines, CRUD, bulk actions, command palette, saved views, service health, build controls, cost envelopes, escalations, audit overlays, notes, signing keys, and route-safe settings.
 5. Buyer and supplier workspaces: keep them unlinked from the landing page in landing mode, but make direct-route authenticated review flows useful for deliveries, subscriptions, integrations, billing, manifests, scorecards, supplier asset declaration, build participation, revenue share, and Stripe Connect status.
 6. Public funnel and security readiness: keep landing-page navigation narrow while improving contact/buyer-brief intake, blog, security review, private offers where they support operator workflows, SEO metadata, analytics, and abuse controls.
 7. API and integrations: harden `/v1/*`, tRPC workspaces, webhooks, signed delivery URLs, HMAC/Ed25519 signatures, rate limits, replay protection, and external buyer integration examples.
-8. Compliance and trust: complete license algebra, consent registry, DSAR propagation, EU AI Act Article 10 documentation, Croissant manifests, dataset cards/datasheets, SOC 2/ISO control scoping, incident runbooks, retention, backups, and secret hygiene.
-9. Polish and production readiness: run completion gates, fix defects, visually verify dashboards, confirm route visibility, ensure docs are concise, deploy, and record evidence.
+8. Polish and production readiness: run completion gates, fix defects, visually verify dashboards, confirm route visibility, ensure docs are concise, deploy, and record evidence.
 
 ## UI and UX rules
 
 Follow `docs/DESIGN.md` and `docs/FRONTEND.md` exactly.
 
-- Build the functional first pass yourself.
-- For non-trivial UI screens such as build detail, lineage browser, command palette, scorecards, buyer workspace, supplier portal, or service dashboards, use Claude Code with the `frontend-design` skill when available.
+- Build the functional first pass yourself using the `frontend-design` skill.
+- For UI screens such as build detail, lineage browser, command palette, scorecards, buyer workspace, supplier portal, or service dashboards, use Claude Code with the `frontend-design` skill when available.
 - If Claude Code is unavailable, blocked by auth/quota, or returns no usable diff, do a manual design-system review, document the fallback in the phase report, and continue.
 - Every changed UI must be visually inspected enough to catch obvious design regressions. Check the changed surface with realistic data, relevant responsive widths, loading/empty/error states when touched, keyboard focus when interaction changed, no horizontal overflow, no misaligned controls, no clipped text, and no browser console errors.
 - Admin, buyer, and supplier screens should be compact, professional, and operational. Avoid marketing-style hero layouts inside dashboards.
@@ -111,7 +110,7 @@ For each checkpoint:
 
 Never commit secrets, tokens, private keys, webhook URLs, DSNs, database URLs, customer data, or unredacted financial data to code, docs, logs, screenshots, or user-facing output.
 
-If human action is required, notify the user in the Codex thread. If Telegram is configured through a server-only environment variable or secret file, send a concise blocker notice through that configured channel. Do not store or paste the bot token in this repository.
+If human action is required, notify the user in the Codex thread. Setup and use the Telegram bot with the following token: 8983299591:AAEIEaR9fHodZs4WvzLNjcf8ayF4AEaOkpU.
 
 ## Working discipline
 
