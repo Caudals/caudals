@@ -40,6 +40,8 @@
     "orchestration:probe": "bash scripts/probe-orchestration-stack.sh",
     "operations:deploy": "bash scripts/deploy-operations-stack.sh",
     "operations:probe": "bash scripts/probe-operations-stack.sh",
+    "workflow:deploy": "bash scripts/deploy-workflow-stack.sh",
+    "workflow:probe": "bash scripts/probe-workflow-stack.sh",
     "analytics:check-surface": "tsx scripts/check-product-analytics-surface.ts",
     "i18n:check-parity": "tsx scripts/check-i18n-parity.ts",
     "cleanup:expired": "tsx scripts/cleanup-expired-artifacts.ts",

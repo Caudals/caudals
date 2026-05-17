@@ -2001,5 +2001,8 @@
   "Commercial operations": "Operaciones comerciales",
   "Quotes, contracts, invoices, payouts, and private offers are routed through the operator console.": "Cotizaciones, contratos, facturas, payouts y ofertas privadas se enrutan por la consola de operador.",
   "Gate lane, quality, rights checks, and concurrent builds for the active delivery track.": "Carril de gates, calidad, controles de derechos y builds concurrentes para la pista de entrega activa.",
-  "License grants, consent, DSAR, PII, and retention controls are visible.": "Grants de licencia, consentimiento, DSAR, PII y controles de retencion estan visibles."
+  "License grants, consent, DSAR, PII, and retention controls are visible.": "Grants de licencia, consentimiento, DSAR, PII y controles de retencion estan visibles.",
+  "Workflow durability": "Durabilidad de workflows",
+  "Temporal runs the private durable workflow layer for supplier approvals, labeling review, and long-running operator state.": "Temporal ejecuta la capa privada de workflows duraderos para aprobaciones de proveedores, revision de etiquetado y estado operativo de larga duracion.",
+  "workflow.stack gate": "Gate workflow.stack"
 }
