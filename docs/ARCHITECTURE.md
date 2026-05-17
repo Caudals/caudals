@@ -122,10 +122,12 @@ future catalogue goal.
   unlinked from the landing page but does not block direct route access.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
 - `/v1/*` is the REST surface. `/v1` returns inline endpoint documentation;
-  public intake routes are anonymous and rate-limited, while buyer delivery,
+  public brief intake is anonymous and rate-limited, while buyer delivery,
   subscription, and quote actions require a Better Auth buyer session and emit
-  audited state transitions. Production `LANDING_MODE` keeps it unlinked from
-  the landing page but does not block direct route access.
+  audited state transitions. Catalogue dataset endpoints under `/v1/datasets/*`
+  are default-404 until a future catalogue rollout explicitly sets
+  `PUBLIC_REST_CATALOGUE_ENABLED=true`. Production `LANDING_MODE` keeps `/v1`
+  unlinked from the landing page but does not block direct route access.
 - §07 acquisition tooling is executable through `npm run caudals -- intake
 channels` and `npm run caudals -- intake validate <manifest.json>`. The
   channel registry covers object-storage shares, database snapshots, API

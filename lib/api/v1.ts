@@ -251,13 +251,21 @@ const approveQuoteSchema = z.object({
 
 const tracer = trace.getTracer("caudals.public_rest_v1");
 
-export const v1EndpointDocs = [
-  {
-    method: "GET",
-    path: "/v1",
-    auth: "none",
-    description: "Inline service descriptor for the versioned Caudals REST API.",
-  },
+type V1EndpointDoc = {
+  method: "GET" | "POST";
+  path: string;
+  auth: "none" | "buyer session";
+  description: string;
+};
+
+const v1DescriptorEndpointDoc: V1EndpointDoc = {
+  method: "GET",
+  path: "/v1",
+  auth: "none",
+  description: "Inline service descriptor for the versioned Caudals REST API.",
+};
+
+const v1CatalogueEndpointDocs: V1EndpointDoc[] = [
   {
     method: "GET",
     path: "/v1/datasets",
@@ -294,6 +302,9 @@ export const v1EndpointDocs = [
     auth: "none",
     description: "Request access to a listed dataset version and route it to operator intake.",
   },
+];
+
+const v1CoreEndpointDocs: V1EndpointDoc[] = [
   {
     method: "POST",
     path: "/v1/briefs",
@@ -354,11 +365,27 @@ export const v1EndpointDocs = [
     auth: "buyer session",
     description: "Pause an active or refreshing buyer subscription and audit the transition.",
   },
-] as const;
+];
 
 export function isPublicRestV1Enabled(env: NodeJS.ProcessEnv = process.env) {
   return env.PUBLIC_REST_V1_ENABLED !== "false";
 }
+
+export function isPublicRestCatalogueEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  return env.PUBLIC_REST_CATALOGUE_ENABLED === "true";
+}
+
+export function getV1EndpointDocs(env: NodeJS.ProcessEnv = process.env) {
+  return [
+    v1DescriptorEndpointDoc,
+    ...(isPublicRestCatalogueEnabled(env) ? v1CatalogueEndpointDocs : []),
+    ...v1CoreEndpointDocs,
+  ];
+}
+
+export const v1EndpointDocs = getV1EndpointDocs();
 
 export function canAcceptDeliveryState(state: string) {
   return ["ready", "sent", "downloaded"].includes(state);
@@ -525,6 +552,30 @@ async function prepareV1Request(
   }
 
   return rateContext;
+}
+
+function v1CatalogueDeferred(context: V1RequestContext) {
+  return v1Error(
+    context,
+    404,
+    "catalogue_deferred",
+    "Public catalogue dataset endpoints are deferred for this deployment.",
+  );
+}
+
+async function prepareV1CatalogueRequest(
+  request: NextRequest,
+  scope: string,
+  mode: "read" | "write",
+): Promise<V1RequestContext | NextResponse> {
+  const context = await prepareV1Request(request, scope, mode);
+  if (context instanceof NextResponse) return context;
+
+  if (!isPublicRestCatalogueEnabled()) {
+    return v1CatalogueDeferred(context);
+  }
+
+  return context;
 }
 
 async function readJsonBody(request: NextRequest) {
@@ -1413,23 +1464,25 @@ async function approveBriefQuote(
 export async function handleV1Docs(request: NextRequest) {
   const context = await prepareV1Request(request, "docs", "read");
   if (context instanceof NextResponse) return context;
+  const catalogueEnabled = isPublicRestCatalogueEnabled();
 
   return v1Json(
     {
       name: "Caudals REST API",
       version: V1_API_VERSION,
-      authentication:
-        "Public catalogue and intake endpoints are anonymous. Buyer delivery, subscription, and quote endpoints require a Better Auth buyer session.",
+      authentication: catalogueEnabled
+        ? "Public catalogue and intake endpoints are anonymous. Buyer delivery, subscription, and quote endpoints require a Better Auth buyer session."
+        : "Public brief intake is anonymous. Catalogue dataset endpoints are deferred. Buyer delivery, subscription, and quote endpoints require a Better Auth buyer session.",
       rateLimits:
         "Read endpoints are limited to 120 requests per 15 minutes per client IP; write endpoints are limited to 30 requests per hour per client IP.",
-      endpoints: v1EndpointDocs,
+      endpoints: getV1EndpointDocs(),
     },
     context,
   );
 }
 
 export async function handleV1Datasets(request: NextRequest) {
-  const context = await prepareV1Request(request, "datasets", "read");
+  const context = await prepareV1CatalogueRequest(request, "datasets", "read");
   if (context instanceof NextResponse) return context;
 
   return withV1Span("v1.datasets.list", {}, async () => {
@@ -1442,7 +1495,11 @@ export async function handleV1Dataset(
   request: NextRequest,
   datasetId: string,
 ) {
-  const context = await prepareV1Request(request, "datasets.detail", "read");
+  const context = await prepareV1CatalogueRequest(
+    request,
+    "datasets.detail",
+    "read",
+  );
   if (context instanceof NextResponse) return context;
   const parsedDatasetId = parseId(context, "dataset", datasetId);
   if (!parsedDatasetId.ok) return parsedDatasetId.response;
@@ -1465,7 +1522,11 @@ export async function handleV1DatasetVersions(
   request: NextRequest,
   datasetId: string,
 ) {
-  const context = await prepareV1Request(request, "datasets.versions", "read");
+  const context = await prepareV1CatalogueRequest(
+    request,
+    "datasets.versions",
+    "read",
+  );
   if (context instanceof NextResponse) return context;
   const parsedDatasetId = parseId(context, "dataset", datasetId);
   if (!parsedDatasetId.ok) return parsedDatasetId.response;
@@ -1489,7 +1550,11 @@ export async function handleV1DatasetVersion(
   datasetId: string,
   versionId: string,
 ) {
-  const context = await prepareV1Request(request, "datasets.version", "read");
+  const context = await prepareV1CatalogueRequest(
+    request,
+    "datasets.version",
+    "read",
+  );
   if (context instanceof NextResponse) return context;
   const parsedDatasetId = parseId(context, "dataset", datasetId);
   if (!parsedDatasetId.ok) return parsedDatasetId.response;
@@ -1521,7 +1586,11 @@ export async function handleV1DatasetSample(
   datasetId: string,
   versionId: string,
 ) {
-  const context = await prepareV1Request(request, "datasets.sample", "read");
+  const context = await prepareV1CatalogueRequest(
+    request,
+    "datasets.sample",
+    "read",
+  );
   if (context instanceof NextResponse) return context;
   const parsedDatasetId = parseId(context, "dataset", datasetId);
   if (!parsedDatasetId.ok) return parsedDatasetId.response;
@@ -1578,7 +1647,11 @@ export async function handleV1DatasetAccessRequest(
   datasetId: string,
   versionId: string,
 ) {
-  const context = await prepareV1Request(request, "datasets.access", "write");
+  const context = await prepareV1CatalogueRequest(
+    request,
+    "datasets.access",
+    "write",
+  );
   if (context instanceof NextResponse) return context;
   const parsedDatasetId = parseId(context, "dataset", datasetId);
   if (!parsedDatasetId.ok) return parsedDatasetId.response;

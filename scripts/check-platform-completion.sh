@@ -71,7 +71,7 @@ check_routes() {
 
   local path status expected
   local -a allowed=("/" "/contact" "/blog")
-  local -a blocked=("/catalog" "/catalogue")
+  local -a blocked=("/catalog" "/catalogue" "/v1/datasets")
 
   for path in "${allowed[@]}"; do
     status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL$path" || true)"
