@@ -120,7 +120,7 @@ CAUDALS_OPERATIONS_NETWORK="$NETWORK" \
 cat <<MSG
 Requested operations stack deployment: $STACK_NAME
 Internal Marquez endpoints:
-  http://${STACK_NAME}_marquez:5000
-  http://${STACK_NAME}_marquez:5001/healthcheck
+  http://caudals-operations-marquez:5000
+  http://caudals-operations-marquez:5001/healthcheck
 Run scripts/probe-operations-stack.sh to verify OpenLineage ingestion.
 MSG

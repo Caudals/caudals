@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
+import os
 from typing import Any
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import dagster as dg
 
@@ -14,6 +17,59 @@ def _stable_json(value: Any) -> str:
 
 def _content_hash(value: Any) -> str:
     return sha256(_stable_json(value).encode("utf-8")).hexdigest()
+
+
+def _emit_openlineage_event(
+    context,
+    *,
+    stage: str,
+    inputs: list[dict[str, str]],
+    outputs: list[dict[str, str]],
+    metadata: dict[str, Any],
+) -> None:
+    lineage_url = os.getenv("OPENLINEAGE_URL")
+    if not lineage_url:
+        context.log.warning("OPENLINEAGE_URL is not configured; skipping lineage event.")
+        return
+
+    event = {
+        "eventType": "COMPLETE",
+        "eventTime": datetime.now(timezone.utc).isoformat(),
+        "run": {
+            "runId": f"{getattr(context, 'run_id', 'unknown')}:{stage}",
+            "facets": {
+                "caudals_build": {
+                    "_producer": "https://caudals.com/internal/dagster-reference-assets",
+                    "_schemaURL": "https://caudals.com/schemas/openlineage/caudals-build.json",
+                    "stage": stage,
+                    "metadata": metadata,
+                }
+            },
+        },
+        "job": {
+            "namespace": "caudals.dagster.reference",
+            "name": stage,
+        },
+        "inputs": inputs,
+        "outputs": outputs,
+        "producer": "https://caudals.com/internal/dagster-reference-assets",
+        "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/definitions/RunEvent",
+    }
+    request = Request(
+        lineage_url,
+        data=_stable_json(event).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urlopen(request, timeout=10) as response:
+            if response.status >= 300:
+                raise RuntimeError(f"OpenLineage ingest returned HTTP {response.status}")
+    except (OSError, RuntimeError, URLError) as error:
+        if os.getenv("OPENLINEAGE_STRICT", "true").lower() in {"1", "true", "yes"}:
+            raise
+        context.log.warning("OpenLineage emission failed: %s", error)
 
 
 @dg.asset(
@@ -53,6 +109,23 @@ def bronze_intake_sample(context) -> dict[str, Any]:
             "content_hash": _content_hash(records),
             "gate": "G-1",
         }
+    )
+    _emit_openlineage_event(
+        context,
+        stage="bronze_intake_sample",
+        inputs=[
+            {
+                "namespace": "caudals.supplier.reference",
+                "name": "iberian_receipts/sample",
+            }
+        ],
+        outputs=[
+            {
+                "namespace": "caudals.bronze",
+                "name": "reference/bronze_intake_sample",
+            }
+        ],
+        metadata={"gate": "G-1", "record_count": len(records)},
     )
     return payload
 
@@ -98,6 +171,27 @@ def silver_profile_report(
             "gate": "G-2",
         }
     )
+    _emit_openlineage_event(
+        context,
+        stage="silver_profile_report",
+        inputs=[
+            {
+                "namespace": "caudals.bronze",
+                "name": "reference/bronze_intake_sample",
+            }
+        ],
+        outputs=[
+            {
+                "namespace": "caudals.silver",
+                "name": "reference/silver_profile_report",
+            }
+        ],
+        metadata={
+            "gate": "G-2",
+            "record_count": report["record_count"],
+            "schema_fingerprint": report["schema_fingerprint"],
+        },
+    )
     return report
 
 
@@ -133,6 +227,28 @@ def gold_qa_scorecard(
             "verdict": scorecard["verdict"],
             "gate": "G-7",
         }
+    )
+    _emit_openlineage_event(
+        context,
+        stage="gold_qa_scorecard",
+        inputs=[
+            {
+                "namespace": "caudals.silver",
+                "name": "reference/silver_profile_report",
+            }
+        ],
+        outputs=[
+            {
+                "namespace": "caudals.gold",
+                "name": "reference/gold_qa_scorecard",
+            }
+        ],
+        metadata={
+            "gate": "G-7",
+            "record_count": scorecard["record_count"],
+            "composite_score": scorecard["composite_score"],
+            "verdict": scorecard["verdict"],
+        },
     )
     return scorecard
 

@@ -7,6 +7,7 @@ CURL_IMAGE="${CAUDALS_ORCHESTRATION_CURL_IMAGE:-curlimages/curl:8.11.1}"
 DAGSTER_CODE_SERVICE="${CAUDALS_DAGSTER_CODE_SERVICE:-${STACK_NAME}_code}"
 DAGSTER_WEBSERVER_SERVICE="${CAUDALS_DAGSTER_WEBSERVER_SERVICE:-${STACK_NAME}_webserver}"
 DAGSTER_WEBSERVER_URL="${CAUDALS_DAGSTER_WEBSERVER_URL:-http://caudals-orchestration-webserver:3000}"
+MARQUEZ_API_URL="${CAUDALS_MARQUEZ_API_URL:-http://caudals-operations-marquez:5000}"
 PROBE_ATTEMPTS="${CAUDALS_ORCHESTRATION_PROBE_ATTEMPTS:-18}"
 PROBE_CONNECT_TIMEOUT_SECONDS="${CAUDALS_ORCHESTRATION_PROBE_CONNECT_TIMEOUT_SECONDS:-5}"
 PROBE_MAX_TIME_SECONDS="${CAUDALS_ORCHESTRATION_PROBE_MAX_TIME_SECONDS:-20}"
@@ -111,6 +112,36 @@ probe_reference_job() {
   fi
 }
 
+probe_lineage_namespace() {
+  local attempt
+
+  printf "dagster.openlineage\t"
+  for attempt in $(seq 1 "$PROBE_ATTEMPTS"); do
+    : >"$OUTPUT_FILE"
+    : >"$ERROR_FILE"
+
+    if docker run --rm --network "$NETWORK" "$CURL_IMAGE" \
+      -fsS \
+      --connect-timeout "$PROBE_CONNECT_TIMEOUT_SECONDS" \
+      --max-time "$PROBE_MAX_TIME_SECONDS" \
+      "$MARQUEZ_API_URL/api/v1/namespaces/caudals.dagster.reference" >"$OUTPUT_FILE" 2>"$ERROR_FILE"; then
+      printf "marquez namespace caudals.dagster.reference present\n"
+      return 0
+    fi
+
+    sleep 5
+  done
+
+  printf "failed after %s attempts" "$PROBE_ATTEMPTS"
+  if [[ -s "$ERROR_FILE" ]]; then
+    printf ": "
+    tr "\n" " " <"$ERROR_FILE" | sed "s/[[:space:]]\\+/ /g" | head -c 240
+  fi
+  printf "\n"
+  return 1
+}
+
 probe_http "dagster.webserver" "$DAGSTER_WEBSERVER_URL/server_info"
 probe_code_container
 probe_reference_job
+probe_lineage_namespace

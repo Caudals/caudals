@@ -184,8 +184,9 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   `http://caudals-orchestration-webserver:3000`; the code server is internal
   at `caudals-orchestration-code:4000`.
 - `scripts/probe-orchestration-stack.sh` verifies the webserver `/server_info`
-  endpoint, the code-server gRPC healthcheck, and execution of the
-  `caudals_reference_build` reference job.
+  endpoint, the code-server gRPC healthcheck, execution of the
+  `caudals_reference_build` reference job, and Dagster-originated OpenLineage
+  ingestion into Marquez.
 - The private operations service stack is defined in
   `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.
@@ -197,9 +198,9 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   container so the repository and Docker service spec do not store the secret
   value.
 - OpenLineage ingestion is available only on the private Docker network at
-  `http://caudals-operations_marquez:5000/api/v1/lineage`; the admin
+  `http://caudals-operations-marquez:5000/api/v1/lineage`; the admin
   healthcheck is available internally at
-  `http://caudals-operations_marquez:5001/healthcheck`.
+  `http://caudals-operations-marquez:5001/healthcheck`.
 - `scripts/probe-operations-stack.sh` verifies the admin healthcheck,
   namespaces API, and a synthetic OpenLineage `COMPLETE` event ingest from an
   ephemeral container attached to the private network.

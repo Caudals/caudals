@@ -4,7 +4,10 @@ services:
   marquez:
     image: marquezproject/marquez:0.50.0
     networks:
-      - dokploy-network
+      dokploy-network:
+        aliases:
+          - caudals-operations-marquez
+          - caudals-operations_marquez
     environment:
       MARQUEZ_PORT: "5000"
       MARQUEZ_ADMIN_PORT: "5001"
