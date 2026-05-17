@@ -167,7 +167,6 @@ const adminNav: NavGroup[] = [
 
 const baseFooterLinks: NavItem[] = [
   { title: "Support", icon: LifeBuoy, href: "" }, // Href resolved dynamically
-  { title: "Settings", icon: Settings, href: "" }, // Href resolved dynamically
   { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
 ];
 
@@ -214,9 +213,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const footerLinks = baseFooterLinks.map(item => {
     if (item.title === "Support") {
       return { ...item, href: "/admin?module=operations" };
-    }
-    if (item.title === "Settings") {
-      return { ...item, href: "/admin?module=settings" };
     }
     return item;
   });

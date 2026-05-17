@@ -170,8 +170,19 @@ Install caveat:
   from an ephemeral container attached to `dokploy-network`.
 - `npm run platform:completion-status` runs the VPS-side completion gate for
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
-  private observability readiness, external alert routing, tracked Sentry auth
-  token leaks, and the current-quarter pentest tracker.
+  private observability readiness, private Dagster orchestration readiness,
+  private Temporal workflow readiness, private operations lineage readiness,
+  private Label Studio labeling-workbench readiness, private lakeFS
+  lakehouse-versioning readiness, private Qdrant
+  vector-index readiness, private Redis cache/queue readiness,
+  optional object-storage write/read/delete readiness,
+  app runtime configuration for Stripe payments and Resend email delivery,
+  external alert routing, tracked Sentry auth token leaks, and the
+  current-quarter pentest tracker.
+- `npm run platform:runtime-config -- --fail-on-missing` checks the local
+  Stripe and Resend runtime variables without printing secret values. The
+  platform completion gate runs the same probe inside the deployed app container
+  so Docker secret files are checked in their real mount location.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
   `CAUDALS_ALERTMANAGER_WEBHOOK_URL` before redeploying to render a private
@@ -186,6 +197,238 @@ Install caveat:
   still require production routing credentials outside the repository.
 - Because this repository uses `npm install --legacy-peer-deps`, keep Sentry's
   OpenTelemetry peer packages explicit in `package.json`.
+
+## Operations Runtime
+- Caudals uses S3-compatible object storage for supplier samples, dataset
+  packages, release artifacts, and licensed delivery files. The current
+  single-node VPS runtime can use the private MinIO stack; DigitalOcean Spaces
+  remains the managed external target for hosted production.
+- `npm run object-storage:deploy` deploys the private MinIO stack on
+  `dokploy-network`, creates root-only generated credential files under
+  `/root/.caudals/object-storage/`, creates matching Docker secrets, ensures the
+  bucket exists, and wires the app service to `DO_SPACES_*_FILE` secret
+  fallbacks.
+- `npm run object-storage:probe` verifies MinIO private health, bucket
+  existence, write/read/delete behavior, and no published ports from inside the
+  Docker network.
+- `npm run storage:probe` validates any externally reachable active
+  S3-compatible configuration by writing, reading, and deleting a short private
+  object. It requires
+  `DO_SPACES_ENDPOINT`, `DO_SPACES_REGION`, `DO_SPACES_BUCKET`,
+  optional `DO_SPACES_FORCE_PATH_STYLE=true` for private compatible stores,
+  `DO_SPACES_ACCESS_KEY_ID` or `DO_SPACES_ACCESS_KEY_ID_FILE`,
+  `DO_SPACES_SECRET_ACCESS_KEY` or `DO_SPACES_SECRET_ACCESS_KEY_FILE`, and
+  `NEXT_PUBLIC_DO_SPACES_CDN_URL`.
+- The platform completion gate reports `storage.object_store` as waived until
+  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` is set. By default the gate runs
+  `npm run storage:probe`; set `CAUDALS_OBJECT_STORAGE_PROBE_MODE=stack` to
+  require the private MinIO stack probe instead.
+- Useful override variables: `CAUDALS_OBJECT_STORAGE_GATE_ENABLED`,
+  `CAUDALS_OBJECT_STORAGE_PROBE_MODE`, `CAUDALS_OBJECT_STORAGE_PROBE_PREFIX`,
+  `CAUDALS_OBJECT_STORAGE_STACK_NAME`, `CAUDALS_MINIO_IMAGE`,
+  `CAUDALS_MINIO_API_URL`, `CAUDALS_OBJECT_STORAGE_BUCKET`, and
+  `CAUDALS_OBJECT_STORAGE_NETWORK`.
+- Keep object-storage credentials out of plaintext Docker service env. Use
+  `DO_SPACES_ACCESS_KEY_ID_FILE` and `DO_SPACES_SECRET_ACCESS_KEY_FILE` for
+  production.
+
+- The private lakehouse stack lives in `infra/lakehouse/` and is deployed with
+  `npm run lakehouse:deploy`. It runs lakeFS on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-lakehouse-stack.sh` creates root-only generated files for the
+  lakeFS PostgreSQL password, auth encryption secret, blockstore signing secret,
+  and initial admin credentials under `/root/.caudals/lakehouse/`, then creates
+  Docker secrets for the server-side values. The script must not print generated
+  credential values.
+- The current single-node runtime uses lakeFS local blockstore on a persistent
+  Docker volume. Object-storage package and delivery readiness is governed by
+  the separate `storage.object_store` completion gate.
+- `npm run lakehouse:probe` verifies private lakeFS health, API health,
+  initialized setup state, and no published ports.
+- Useful override variables: `CAUDALS_LAKEHOUSE_NETWORK`,
+  `CAUDALS_LAKEFS_IMAGE`, `CAUDALS_LAKEFS_POSTGRES_SECRET`,
+  `CAUDALS_LAKEFS_AUTH_ENCRYPT_SECRET`,
+  `CAUDALS_LAKEFS_BLOCKSTORE_SIGNING_SECRET`,
+  `CAUDALS_LAKEFS_ADMIN_ACCESS_KEY_ID_FILE`, and
+  `CAUDALS_LAKEFS_ADMIN_SECRET_ACCESS_KEY_FILE`.
+
+- The private orchestration stack lives in `infra/orchestration/` and is
+  deployed with `npm run orchestration:deploy`. It runs Dagster webserver,
+  daemon, and code-server containers on `dokploy-network` without public
+  published ports.
+- The Dagster stack uses one pinned local image built from
+  `services/orchestration/Dockerfile`. The deploy script builds that image on
+  the VPS and deploys it with Docker Swarm image resolution disabled so the
+  single-node runtime can run the local image without a registry push.
+- `scripts/deploy-orchestration-stack.sh` creates a root-only generated Dagster
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `dagster_postgres_password`, ensures the dedicated `dagster`
+  role/database on the private `caudals-postgres` service, and deploys the
+  stack. The script must not print the generated password.
+- Provide `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/orchestration/dagster-postgres-password` file.
+- The initial code location exposes reference assets for G-1 intake, G-2
+  profiling, and G-7 QA: `bronze_intake_sample`, `silver_profile_report`, and
+  `gold_qa_scorecard`.
+- `npm run orchestration:probe` verifies the Dagster webserver `/server_info`
+  endpoint, the code-server gRPC healthcheck, a local execution of the
+  `caudals_reference_build` reference job from the running code container, and
+  the Marquez namespace created by Dagster-originated OpenLineage events.
+- Useful override variables: `CAUDALS_ORCHESTRATION_STACK_NAME`,
+  `CAUDALS_ORCHESTRATION_NETWORK`, `CAUDALS_DAGSTER_IMAGE`,
+  `CAUDALS_DAGSTER_POSTGRES_SECRET`,
+  `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE`, `CAUDALS_DAGSTER_CODE_SERVICE`,
+  `CAUDALS_DAGSTER_WEBSERVER_SERVICE`, `CAUDALS_DAGSTER_WEBSERVER_URL`,
+  `CAUDALS_OPENLINEAGE_URL`, `CAUDALS_OPENLINEAGE_STRICT`,
+  `CAUDALS_MARQUEZ_API_URL`, `CAUDALS_ORCHESTRATION_PROBE_ATTEMPTS`,
+  `CAUDALS_ORCHESTRATION_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_ORCHESTRATION_PROBE_MAX_TIME_SECONDS`.
+- Keep Dagster private. Do not publish ports or expose the webserver/API
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private workflow stack lives in `infra/workflow/` and is deployed with
+  `npm run workflow:deploy`. It runs Temporal server and Temporal UI on
+  `dokploy-network` without public published ports.
+- `scripts/deploy-workflow-stack.sh` creates a root-only generated Temporal
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `temporal_postgres_password`, ensures the dedicated `temporal`
+  role plus `temporal` and `temporal_visibility` databases on the private
+  `caudals-postgres` service, applies Temporal PostgreSQL schemas with the
+  pinned `temporalio/admin-tools` image, deploys the stack, and creates the
+  `caudals-operations` namespace. The script must not print the generated
+  password.
+- Provide `CAUDALS_TEMPORAL_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/workflow/temporal-postgres-password` file.
+- `npm run workflow:probe` verifies Temporal cluster health, the
+  `caudals-operations` namespace, the private UI endpoint, and that the Temporal
+  services do not publish ports.
+- Useful override variables: `CAUDALS_WORKFLOW_STACK_NAME`,
+  `CAUDALS_WORKFLOW_NETWORK`, `CAUDALS_POSTGRES_SERVICE`,
+  `CAUDALS_TEMPORAL_IMAGE`, `CAUDALS_TEMPORAL_ADMIN_TOOLS_IMAGE`,
+  `CAUDALS_TEMPORAL_UI_IMAGE`, `CAUDALS_TEMPORAL_POSTGRES_SECRET`,
+  `CAUDALS_TEMPORAL_POSTGRES_SECRET_FILE`, `CAUDALS_TEMPORAL_ADDRESS`,
+  `CAUDALS_TEMPORAL_NAMESPACE`, `CAUDALS_TEMPORAL_NAMESPACE_RETENTION`,
+  `CAUDALS_TEMPORAL_SERVER_SERVICE`, `CAUDALS_TEMPORAL_UI_SERVICE`,
+  `CAUDALS_TEMPORAL_UI_URL`, and `CAUDALS_WORKFLOW_PROBE_ATTEMPTS`.
+- Keep Temporal private. Do not publish ports or expose the UI/RPC endpoint
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private labeling stack lives in `infra/labeling/` and is deployed with
+  `npm run labeling:deploy`. It runs Label Studio plus dedicated PostgreSQL on
+  `dokploy-network` without public published ports.
+- Label Studio uses PostgreSQL rather than SQLite for production reviewer
+  projects, annotations, and exports. The stack keeps task files and app state
+  on dedicated Docker volumes.
+- `scripts/deploy-labeling-stack.sh` creates root-only generated files for the
+  Label Studio PostgreSQL password and Django secret key when existing
+  server-only files are not supplied, creates the external Docker secrets
+  `label_studio_postgres_password` and `label_studio_secret_key`, pulls pinned
+  images, and deploys the stack. The script must not print generated secret
+  values.
+- Provide `CAUDALS_LABEL_STUDIO_POSTGRES_PASSWORD_FILE=/path/to/password` and
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_FILE=/path/to/key` when pre-existing
+  server-only files should be used instead of generated files in
+  `/root/.caudals/labeling/`.
+- `npm run labeling:probe` verifies the private Label Studio HTTP endpoint,
+  PostgreSQL migration table, and that neither Label Studio nor PostgreSQL
+  publish ports.
+- CVAT image/video annotation is a separate private stack at
+  `infra/labeling/cvat-stack.yml`, deployed with `npm run cvat:deploy`. It
+  follows CVAT's split server/UI/worker runtime shape with PostgreSQL, Redis,
+  Kvrocks, ClickHouse, and OPA on the private Docker network, and deliberately
+  publishes no public ports.
+- `npm run cvat:probe` verifies the private CVAT server API, UI, ClickHouse,
+  Redis/Kvrocks, and port isolation. The platform completion gate keeps this
+  optional until the stack is deployed; set `CAUDALS_CVAT_GATE_ENABLED=true` to
+  require CVAT runtime readiness.
+- Useful override variables: `CAUDALS_LABELING_STACK_NAME`,
+  `CAUDALS_LABELING_NETWORK`, `CAUDALS_LABEL_STUDIO_IMAGE`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_IMAGE`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_SECRET`,
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_SECRET`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_PASSWORD_FILE`,
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_FILE`, `CAUDALS_LABEL_STUDIO_SERVICE`,
+  `CAUDALS_LABEL_STUDIO_URL`, `CAUDALS_LABELING_PROBE_ATTEMPTS`,
+  `CAUDALS_CVAT_STACK_NAME`, `CAUDALS_CVAT_SERVER_IMAGE`,
+  `CAUDALS_CVAT_UI_IMAGE`, `CAUDALS_CVAT_SERVER_URL`, and
+  `CAUDALS_CVAT_PROBE_ATTEMPTS`.
+- Keep Label Studio and CVAT private. Do not publish ports or expose either workbench
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private vector stack lives in `infra/vector/` and is deployed with
+  `npm run vector:deploy`. It runs Qdrant on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-vector-stack.sh` creates a root-only generated Qdrant API key
+  file when one is not supplied, creates the external Docker secret
+  `qdrant_api_key`, pulls the pinned Qdrant image, and deploys the stack. The
+  script must not print the generated API key.
+- Provide `CAUDALS_QDRANT_API_KEY_FILE=/path/to/key` when a pre-existing
+  server-only key file should be used instead of the generated
+  `/root/.caudals/vector/qdrant-api-key` file.
+- `npm run vector:probe` verifies Qdrant authenticated reachability, probe
+  collection creation, point write/read behavior, and that Qdrant does not
+  publish ports.
+- Useful override variables: `CAUDALS_VECTOR_STACK_NAME`,
+  `CAUDALS_VECTOR_NETWORK`, `CAUDALS_QDRANT_IMAGE`,
+  `CAUDALS_QDRANT_API_KEY_SECRET`, `CAUDALS_QDRANT_API_KEY_FILE`,
+  `CAUDALS_QDRANT_SERVICE`, `CAUDALS_QDRANT_URL`,
+  `CAUDALS_QDRANT_PROBE_COLLECTION`, `CAUDALS_VECTOR_PROBE_ATTEMPTS`,
+  `CAUDALS_VECTOR_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_VECTOR_PROBE_MAX_TIME_SECONDS`.
+- Keep Qdrant private. Do not publish ports or expose the HTTP/gRPC endpoints
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private cache stack lives in `infra/cache/` and is deployed with
+  `npm run cache:deploy`. It runs Redis on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-cache-stack.sh` creates a root-only generated Redis password
+  file when one is not supplied, creates the external Docker secret
+  `redis_password`, pulls the pinned Redis image, and deploys the stack. The
+  script must not print the generated password.
+- Provide `CAUDALS_REDIS_PASSWORD_FILE=/path/to/password` when a pre-existing
+  server-only password file should be used instead of the generated
+  `/root/.caudals/cache/redis-password` file.
+- `npm run cache:probe` verifies authenticated Redis reachability, cache
+  read/write behavior, queue stream append/readiness, and that Redis does not
+  publish ports.
+- Useful override variables: `CAUDALS_CACHE_STACK_NAME`,
+  `CAUDALS_CACHE_NETWORK`, `CAUDALS_REDIS_IMAGE`,
+  `CAUDALS_REDIS_PASSWORD_SECRET`, `CAUDALS_REDIS_PASSWORD_FILE`,
+  `CAUDALS_REDIS_SERVICE`, `CAUDALS_REDIS_HOST`, `CAUDALS_REDIS_PORT`,
+  `CAUDALS_REDIS_PROBE_KEY`, `CAUDALS_REDIS_PROBE_STREAM`, and
+  `CAUDALS_CACHE_PROBE_ATTEMPTS`.
+- Keep Redis private. Do not publish ports or expose the Redis endpoint outside
+  the Docker/Tailscale operations boundary without an explicit security review.
+
+- The private operations stack lives in `infra/operations/` and is deployed
+  with `npm run operations:deploy`. It currently runs Marquez on
+  `dokploy-network` without public published ports.
+- `scripts/deploy-operations-stack.sh` creates a root-only generated Marquez
+  PostgreSQL password file when one is not supplied, creates the external
+  Docker secret `marquez_postgres_password`, ensures the dedicated `marquez`
+  role/database on the private `caudals-postgres` service, and deploys the
+  stack. The script must not print the generated password.
+- Provide `CAUDALS_MARQUEZ_POSTGRES_SECRET_FILE=/path/to/password` when a
+  pre-existing server-only password file should be used instead of the generated
+  `/root/.caudals/operations/marquez-postgres-password` file.
+- `npm run operations:probe` verifies Marquez admin health, the namespaces API,
+  and a synthetic OpenLineage `COMPLETE` event ingest from an ephemeral curl
+  container on the private network.
+- Useful override variables: `CAUDALS_OPERATIONS_STACK_NAME`,
+  `CAUDALS_OPERATIONS_NETWORK`, `CAUDALS_POSTGRES_SERVICE`,
+  `CAUDALS_MARQUEZ_POSTGRES_SECRET`, `CAUDALS_MARQUEZ_SERVICE`,
+  `CAUDALS_MARQUEZ_API_URL`, `CAUDALS_MARQUEZ_ADMIN_URL`,
+  `CAUDALS_OPERATIONS_PROBE_ATTEMPTS`,
+  `CAUDALS_OPERATIONS_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_OPERATIONS_PROBE_MAX_TIME_SECONDS`.
+- Keep Marquez private. Do not publish ports or expose the lineage API outside
+  the Docker/Tailscale operations boundary without an explicit security review.
 
 ## Stripe CLI Usage Pattern
 1. Use only for local/test webhook simulation.
@@ -245,11 +488,13 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
 
 ## Escalation Runbooks
 - `db/migrations/025_escalation_runbooks.sql` seeds canonical R-01..R-10
-  runbooks and creates `escalation_case`. Inserts auto-route by kind, open an
-  `alert`, and write an `audit_event` for the selected runbook/on-call team.
+  runbooks and creates `escalation_case`; `027_security_incident_runbooks.sql`
+  adds security-specific R-11..R-13 and routes new security events to R-11.
+  Inserts auto-route by kind, open an `alert`, and write an `audit_event` for
+  the selected runbook/on-call team.
 - Validate changes with a disposable Postgres run of migration `001`, migration
-  `002`, migration `025`, an escalation insert, and
-  `db/rollbacks/025_escalation_runbooks_down.sql` before applying to production.
+  `002`, migration `025`, migration `027`, an escalation insert, and the
+  matching rollback before applying to production.
 
 ## Security Review Library
 - `db/migrations/026_security_review_library.sql` creates
@@ -282,6 +527,30 @@ Bootstrap:
 3. Populate required secrets in `.env.local` (PostgreSQL/Better Auth during migration, Stripe, DO Spaces, Resend).
 4. `npm run dev`
 
+## Caudals CLI
+- `npm run caudals -- help`: show the internal operations CLI from blueprint
+  section 24.
+- `npm run caudals -- <command>`: run the CLI through `tsx` from the local
+  checkout.
+- `bin/caudals.mjs <command>`: run the package binary shim; package installs can
+  expose it as `caudals`.
+- Implemented command groups: `build plan`, `build run`, `build replay`,
+  `lineage trace`, `license check`, `pii scan`, `dataset publish`,
+  `delivery sign`, `dsar propagate`, and `fixture seed`.
+- Commands that need external systems fail closed when required configuration is
+  missing. `build run` requires `DAGSTER_URL` unless `--dry-run` is set,
+  launches Dagster through GraphQL, and defaults to the private orchestration
+  code location (`caudals_reference_assets`), repository (`__repository__`), and
+  job (`caudals_reference_build`). Override the selector with `--location`,
+  `--repository`, `--job`, or the matching `DAGSTER_*` environment variables.
+  `DAGSTER_URL` must be reachable from the caller, so use the private Docker
+  network hostname from an attached container or an approved operations tunnel.
+  `delivery sign` requires explicit private-key material, and live fixture
+  seeding requires `DATABASE_URL`.
+- Keep CLI inputs and outputs file-based for auditability. Do not paste secrets
+  or private keys into docs, terminal transcripts, screenshots, or user-facing
+  summaries.
+
 ## Core Script Catalog
 - `npm run dev`: Next.js dev server
 - `npm run build`: production build
@@ -298,6 +567,37 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run storage:probe`: probe DigitalOcean Spaces write/read/delete
+  readiness using the mounted S3-compatible object-storage configuration
+- `npm run object-storage:deploy`: deploy the private S3-compatible MinIO
+  object-storage stack and wire the app service to Docker secret-file fallbacks
+- `npm run object-storage:probe`: probe private object-storage health,
+  bucket readiness, write/read/delete behavior, and port isolation
+- `npm run cache:deploy`: deploy the private Redis cache/queue stack
+- `npm run cache:probe`: probe private Redis authenticated cache and queue
+  stream readiness
+- `npm run labeling:deploy`: deploy the private Label Studio labeling
+  workbench stack
+- `npm run labeling:probe`: probe private Label Studio HTTP, PostgreSQL
+  migration, and port-isolation readiness
+- `npm run cvat:deploy`: deploy the private CVAT image/video annotation stack
+- `npm run cvat:probe`: probe private CVAT API/UI, backing stores, and
+  port-isolation readiness
+- `npm run orchestration:deploy`: build and deploy the private Dagster
+  orchestration stack
+- `npm run orchestration:probe`: probe private Dagster health, execute the
+  reference asset job, and verify Dagster OpenLineage ingestion
+- `npm run workflow:deploy`: deploy the private Temporal durable workflow stack
+- `npm run workflow:probe`: probe private Temporal health, namespace readiness,
+  private UI access, and port isolation
+- `npm run operations:deploy`: deploy the private Marquez/OpenLineage
+  operations stack
+- `npm run operations:probe`: probe private Marquez health and synthetic
+  OpenLineage ingestion
+- `npm run vector:deploy`: deploy the private Qdrant vector-index stack
+- `npm run vector:probe`: probe private Qdrant authenticated collection and
+  point read/write readiness
+- `npm run caudals`: Caudals operations CLI; pass command arguments after `--`
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
 ## Useful Route-Level Checks
@@ -333,11 +633,33 @@ Operational env controls:
 - `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)
 - `STRIPE_SECRET_KEY_FILE` / `STRIPE_WEBHOOK_SECRET_FILE` (Docker secret-file fallbacks; direct env vars win when both are set)
 - `RESEND_API_KEY_FILE` (Docker secret-file fallback; `RESEND_API_KEY` wins when both are set)
+- `DO_SPACES_ENDPOINT`
+- `DO_SPACES_REGION`
+- `DO_SPACES_BUCKET`
+- `DO_SPACES_FORCE_PATH_STYLE` (set `true` for private S3-compatible stores
+  that require path-style addressing)
+- `DO_SPACES_ACCESS_KEY_ID_FILE` (Docker secret-file fallback;
+  `DO_SPACES_ACCESS_KEY_ID` wins when both are set)
+- `DO_SPACES_SECRET_ACCESS_KEY_FILE` (Docker secret-file fallback;
+  `DO_SPACES_SECRET_ACCESS_KEY` wins when both are set)
+- `NEXT_PUBLIC_DO_SPACES_CDN_URL`
+- `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` (set `true` to require object-store
+  write/read/delete in the platform completion gate)
+- `CAUDALS_OBJECT_STORAGE_PROBE_MODE` (`direct` for external S3-compatible
+  endpoints, `stack` for the private MinIO deployment)
+- `CAUDALS_OBJECT_STORAGE_STACK_NAME` (default `caudals-object-storage`)
+- `CAUDALS_OBJECT_STORAGE_NETWORK` (default `dokploy-network`)
+- `CAUDALS_OBJECT_STORAGE_BUCKET` (default `caudals-storage`)
+- `CAUDALS_MINIO_API_URL` (default `http://caudals-object-storage-minio:9000`)
 - `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (set to Tempo OTLP HTTP in production)
 - `OTEL_EXPORTER_OTLP_TRACES_HEADERS` / `OTEL_EXPORTER_OTLP_HEADERS` (optional
   OTLP HTTP headers; do not commit secret values)
 - `OTEL_STDOUT_ENABLED` (default disabled; set `true` for short-lived stdout spans)
 - `OTEL_SERVICE_NAME` (default `caudals-web`)
+- `CAUDALS_OPERATIONS_STACK_NAME` (default `caudals-operations`)
+- `CAUDALS_OPERATIONS_NETWORK` (default `dokploy-network`)
+- `CAUDALS_MARQUEZ_POSTGRES_SECRET_FILE` (optional server-only password file
+  used by `npm run operations:deploy`)
 - `TEST_FIXTURE_MAX_AGE_HOURS` (default `168`)
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
@@ -346,11 +668,21 @@ Operational env controls:
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key or secret file, webhook secret or secret file
 - Resend: API key or secret file, sender addresses, audience/segment IDs
-- DO Spaces: endpoint, region, bucket, access key, secret, CDN URL
+- Object storage: S3-compatible endpoint, region, bucket, access key or
+  secret-file fallback, secret key or secret-file fallback, CDN URL, optional
+  private MinIO stack variables, optional object-storage completion-gate flag
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
+- Operations services: Dagster orchestration stack/image/service names,
+  Dagster OpenLineage URL/strictness, Temporal workflow stack/image/service
+  names, Temporal namespace/retention, Label Studio labeling stack/image/secret
+  names, Qdrant vector stack/image/API-key secret names, Redis cache/queue
+  stack/image/password secret names,
+  Marquez/OpenLineage stack name, private Docker network, Marquez API/admin
+  URLs, and server-only Dagster/Temporal/Marquez/Label Studio PostgreSQL secret
+  files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

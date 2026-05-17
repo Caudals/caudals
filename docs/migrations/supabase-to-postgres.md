@@ -17,6 +17,9 @@ Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, 
 - Added `db/migrations/025_escalation_runbooks.sql` for section 24 escalation
   operations: canonical R-01..R-10 runbooks, top-level escalation cases,
   automatic runbook/on-call routing, alerts, and audit evidence.
+- Added `db/migrations/027_security_incident_runbooks.sql` for section 25
+  incident response: security-specific R-11..R-13 runbooks and new
+  `security_event` auto-routing to R-11.
 - Added `db/migrations/026_security_review_library.sql` for the M3 security
   review library: published questionnaire answers, DPA review-path notes, and
   security packet items backing `/security`.

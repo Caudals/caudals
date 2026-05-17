@@ -1,0 +1,129 @@
+version: "3.8"
+
+x-dagster-env: &dagster-env
+  DAGSTER_POSTGRES_HOST: caudals-postgres
+  DAGSTER_POSTGRES_PORT: "5432"
+  DAGSTER_POSTGRES_DB: dagster
+  DAGSTER_POSTGRES_USER: dagster
+  DAGSTER_POSTGRES_PASSWORD_FILE: /run/secrets/dagster_postgres_password
+  DAGSTER_LOCAL_ARTIFACT_STORAGE_DIR: /opt/dagster/storage
+  DAGSTER_COMPUTE_LOG_DIR: /opt/dagster/storage/compute_logs
+  OPENLINEAGE_URL: ${CAUDALS_OPENLINEAGE_URL:-http://caudals-operations-marquez:5000/api/v1/lineage}
+  OPENLINEAGE_STRICT: ${CAUDALS_OPENLINEAGE_STRICT:-true}
+
+services:
+  code:
+    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-orchestration-code
+          - caudals-orchestration_code
+    environment:
+      <<: *dagster-env
+      DAGSTER_CURRENT_IMAGE: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    secrets:
+      - dagster_postgres_password
+    command:
+      - dagster
+      - code-server
+      - start
+      - -h
+      - 0.0.0.0
+      - -p
+      - "4000"
+      - -f
+      - /opt/dagster/app/definitions.py
+      - --location-name
+      - caudals_reference_assets
+    healthcheck:
+      test: ["CMD", "dagster", "api", "grpc-health-check", "-p", "4000"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+
+  webserver:
+    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-orchestration-webserver
+          - caudals-orchestration_webserver
+    environment:
+      <<: *dagster-env
+    secrets:
+      - dagster_postgres_password
+    command:
+      - dagster-webserver
+      - -h
+      - 0.0.0.0
+      - -p
+      - "3000"
+      - -w
+      - /opt/dagster/dagster_home/workspace.yaml
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/server_info"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+
+  daemon:
+    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    networks:
+      - dokploy-network
+    environment:
+      <<: *dagster-env
+    secrets:
+      - dagster_postgres_password
+    command:
+      - dagster-daemon
+      - run
+      - -w
+      - /opt/dagster/dagster_home/workspace.yaml
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}
+
+secrets:
+  dagster_postgres_password:
+    external: true

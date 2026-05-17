@@ -29,11 +29,24 @@ authenticated review but stay hidden in production until explicit clearance.
 - UI: Tailwind CSS v4, Radix UI, custom primitives, shadcn/ui
 - Data/Auth target: self-hosted PostgreSQL + Better Auth + Postgres RLS
 - Payments: Stripe is present in the codebase but not part of the current public deployment
-- Storage: DigitalOcean Spaces (S3-compatible)
+- Storage: DigitalOcean Spaces (S3-compatible) for raw samples, canonical
+  package objects, signed uploads, and licensed delivery artifacts
 - Email: Resend
 - Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
   private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
   for the private observability services and container runtime
+- Orchestration services: private Dagster runtime with webserver, daemon, and
+  code-server containers for dataset software-defined assets
+- Workflow services: private Temporal runtime and UI for durable supplier,
+  labeling, approval, and long-running operator workflows
+- Labeling services: private Label Studio runtime backed by PostgreSQL for
+  reviewer projects, annotation work, and exports
+- Vector services: private Qdrant runtime for build-time embeddings,
+  duplicate discovery, similarity search, and retrieval-heavy QA workflows
+- Cache/queue services: private Redis runtime for low-latency cache entries,
+  BullMQ-style queue streams, retries, and worker coordination
+- Operations services: private Marquez/OpenLineage runtime for dataset build
+  lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
 
 ## Code Topology
@@ -67,9 +80,10 @@ authenticated review but stay hidden in production until explicit clearance.
   rolls into build totals, 80% thresholds open alerts, hard budget and LLM/API
   sub-budget overruns require an explicit override reason, and >15% overruns
   flag margin retrospectives.
-- `runbook` and `escalation_case` records back the §24 top-level Escalations
-  operator view. New cases auto-map to canonical R-01..R-10 runbooks, route to
-  the owning on-call queue, open an alert, and emit audit evidence.
+- `runbook` and `escalation_case` records back the section 24 top-level
+  Escalations operator view. New cases auto-map to canonical R-01..R-13
+  runbooks, including security-specific R-11..R-13, route to the owning
+  on-call queue, open an alert, and emit audit evidence.
 - `db/migrations/*`: target self-hosted PostgreSQL schema history
 - `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
 
@@ -78,8 +92,8 @@ authenticated review but stay hidden in production until explicit clearance.
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
 - In landing mode, the allowlist is `/`, `/contact`, `/blog`, `/blog/*`,
-  explicit public APIs, `/auth/*`, `/api/auth/*`, `/admin`, and required
-  metadata/assets. All other routes return `404`.
+  explicit public APIs, `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`,
+  and required metadata/assets. All other routes return `404`.
 - Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
 - `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
@@ -160,6 +174,106 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - OpenTelemetry stdout export remains opt-in via `OTEL_STDOUT_ENABLED=true`
   for bounded diagnostics; it should not be enabled permanently if logs may
   contain sensitive operational context.
+
+## Operations Services
+- DigitalOcean Spaces is the S3-compatible object store for supplier samples,
+  dataset files, generated packages, and licensed delivery artifacts.
+- The application reads Spaces configuration through direct env vars or Docker
+  secret-file fallbacks for `DO_SPACES_ACCESS_KEY_ID_FILE` and
+  `DO_SPACES_SECRET_ACCESS_KEY_FILE`; plaintext access-key env vars are blocked
+  by the completion gate.
+- `scripts/probe-object-storage.ts` validates the mounted Spaces configuration
+  by writing, reading, and deleting a short private probe object without
+  printing credentials. The production completion gate can require that probe by
+  setting `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` after Spaces credentials are
+  mounted.
+- The private orchestration stack is defined in
+  `infra/orchestration/docker-stack.yml` and runs Dagster on
+  `dokploy-network` without public ingress.
+- Dagster stores run, event-log, and schedule metadata in a dedicated
+  `dagster` PostgreSQL database owned by the dedicated `dagster` role on the
+  private `caudals-postgres` service.
+- The Dagster database password is mounted through the external Docker secret
+  `dagster_postgres_password`; runtime containers read it through
+  `DAGSTER_POSTGRES_PASSWORD_FILE` so the repository and Docker service spec do
+  not store the secret value.
+- The initial code location exposes three reference assets,
+  `bronze_intake_sample`, `silver_profile_report`, and `gold_qa_scorecard`,
+  matching the blueprint's G-1 intake, G-2 profiling, and G-7 QA stages.
+- Dagster is available only on the private Docker network at
+  `http://caudals-orchestration-webserver:3000`; the code server is internal
+  at `caudals-orchestration-code:4000`.
+- `scripts/probe-orchestration-stack.sh` verifies the webserver `/server_info`
+  endpoint, the code-server gRPC healthcheck, execution of the
+  `caudals_reference_build` reference job, and Dagster-originated OpenLineage
+  ingestion into Marquez.
+- The private workflow stack is defined in `infra/workflow/docker-stack.yml`
+  and runs Temporal server plus Temporal UI on `dokploy-network` without public
+  ingress.
+- Temporal stores persistence in dedicated `temporal` and
+  `temporal_visibility` PostgreSQL databases owned by the dedicated `temporal`
+  role on the private `caudals-postgres` service.
+- The Temporal database password is mounted through the external Docker secret
+  `temporal_postgres_password`; runtime containers read it from the secret file
+  and export it only inside the container process so the repository and Docker
+  service spec do not store the secret value.
+- Durable workflow RPC is available only on the private Docker network at
+  `grpc://caudals-workflow-temporal:7233`; the internal UI is available at
+  `http://caudals-workflow-ui:8080`.
+- `scripts/probe-workflow-stack.sh` verifies Temporal cluster health, the
+  `caudals-operations` namespace, the private UI endpoint, and the absence of
+  published ports.
+- The private labeling stack is defined in `infra/labeling/docker-stack.yml`
+  and runs Label Studio plus a dedicated PostgreSQL database on
+  `dokploy-network` without public ingress.
+- Label Studio persists reviewer projects, annotations, and exports on a
+  dedicated Docker volume and uses PostgreSQL instead of SQLite for production
+  labeling throughput.
+- The Label Studio PostgreSQL password and Django `SECRET_KEY` are mounted
+  through external Docker secrets; runtime containers read the values from
+  secret files so the repository and Docker service spec do not store them.
+- Label Studio is available only on the private Docker network at
+  `http://caudals-labeling-label-studio:8080`.
+- `scripts/probe-labeling-stack.sh` verifies the private Label Studio HTTP
+  endpoint, PostgreSQL migrations, and the absence of published ports.
+- The private vector stack is defined in `infra/vector/docker-stack.yml` and
+  runs Qdrant on `dokploy-network` without public ingress.
+- Qdrant stores build-time vectors on a dedicated Docker volume and reads its
+  API key from the external Docker secret `qdrant_api_key`; the repository and
+  Docker service spec do not store the secret value.
+- Qdrant HTTP is available only on the private Docker network at
+  `http://caudals-vector-qdrant:6333`; gRPC is available internally at
+  `grpc://caudals-vector-qdrant:6334`.
+- `scripts/probe-vector-stack.sh` verifies authenticated Qdrant reachability,
+  creates or updates a probe collection, writes and reads a vector point, and
+  verifies the absence of published ports.
+- The private cache stack is defined in `infra/cache/docker-stack.yml` and runs
+  Redis on `dokploy-network` without public ingress.
+- Redis stores append-only queue/cache state on a dedicated Docker volume and
+  reads its password from the external Docker secret `redis_password`; the
+  repository and Docker service spec do not store the secret value.
+- Redis is available only on the private Docker network at
+  `redis://caudals-cache-redis:6379`.
+- `scripts/probe-cache-stack.sh` verifies authenticated Redis reachability,
+  cache key read/write, queue stream append/readiness, and the absence of
+  published ports.
+- The private operations service stack is defined in
+  `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
+  public ingress.
+- Marquez stores OpenLineage events in a dedicated `marquez` PostgreSQL
+  database owned by the dedicated `marquez` role on the private
+  `caudals-postgres` service.
+- The Marquez database password is mounted through the external Docker secret
+  `marquez_postgres_password`; the runtime config is generated inside the
+  container so the repository and Docker service spec do not store the secret
+  value.
+- OpenLineage ingestion is available only on the private Docker network at
+  `http://caudals-operations-marquez:5000/api/v1/lineage`; the admin
+  healthcheck is available internally at
+  `http://caudals-operations-marquez:5001/healthcheck`.
+- `scripts/probe-operations-stack.sh` verifies the admin healthcheck,
+  namespaces API, and a synthetic OpenLineage `COMPLETE` event ingest from an
+  ephemeral container attached to the private network.
 
 ## Data and Storage Domains
 Current live data domains:

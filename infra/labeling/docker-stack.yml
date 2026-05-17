@@ -1,0 +1,112 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: ${CAUDALS_LABEL_STUDIO_POSTGRES_IMAGE:-postgres:16-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-postgres
+    secrets:
+      - label_studio_postgres_password
+    environment:
+      POSTGRES_DB: labelstudio
+      POSTGRES_USER: labelstudio
+      POSTGRES_PASSWORD_FILE: /run/secrets/label_studio_postgres_password
+    volumes:
+      - label-studio-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U labelstudio -d labelstudio -h 127.0.0.1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 96M
+
+  label-studio:
+    image: ${CAUDALS_LABEL_STUDIO_IMAGE:-heartexlabs/label-studio:1.21.0}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-labeling-label-studio
+          - caudals-labeling-studio
+    secrets:
+      - label_studio_postgres_password
+      - label_studio_secret_key
+    environment:
+      DJANGO_DB: default
+      JSON_LOG: "True"
+      LABEL_STUDIO_BASE_DATA_DIR: /label-studio/data
+      LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED: "false"
+      LABEL_STUDIO_PORT: "8080"
+      POSTGRE_HOST: caudals-labeling-postgres
+      POSTGRE_NAME: labelstudio
+      POSTGRE_PORT: "5432"
+      POSTGRE_USER: labelstudio
+    volumes:
+      - label-studio-data:/label-studio/data
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        export PATH="/label-studio/.venv/bin:$${PATH}"
+        export POSTGRE_PASSWORD="$$(tr -d '\r\n' </run/secrets/label_studio_postgres_password)"
+        export SECRET_KEY="$$(tr -d '\r\n' </run/secrets/label_studio_secret_key)"
+        exec label-studio start --no-browser --port 8080
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=5).read(1)\"",
+        ]
+      interval: 15s
+      timeout: 8s
+      retries: 24
+      start_period: 45s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 5
+        window: 3m
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_LABELING_NETWORK:-dokploy-network}
+
+volumes:
+  label-studio-data:
+    name: ${CAUDALS_LABEL_STUDIO_DATA_VOLUME:-caudals-labeling-label-studio-data}
+  label-studio-postgres-data:
+    name: ${CAUDALS_LABEL_STUDIO_POSTGRES_VOLUME:-caudals-labeling-postgres-data}
+
+secrets:
+  label_studio_postgres_password:
+    external: true
+    name: ${CAUDALS_LABEL_STUDIO_POSTGRES_SECRET:-label_studio_postgres_password}
+  label_studio_secret_key:
+    external: true
+    name: ${CAUDALS_LABEL_STUDIO_SECRET_KEY_SECRET:-label_studio_secret_key}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   User,
   Settings,
@@ -35,8 +36,28 @@ export function UserMenu() {
   const toast = useLocaleToast();
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  const userInitials = user?.user_metadata?.full_name
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || !user) {
+    return (
+      <Button
+        variant="ghost"
+        className="relative h-9 w-9 rounded-full"
+        disabled
+        aria-label="User menu"
+      >
+        <Avatar className="h-9 w-9">
+          <AvatarFallback>U</AvatarFallback>
+        </Avatar>
+      </Button>
+    );
+  }
+
+  const userInitials = user.user_metadata?.full_name
     ?.split(" ")
     .map((n: string) => n[0])
     .join("")
@@ -66,8 +87,8 @@ export function UserMenu() {
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
             <AvatarImage
-              src={user?.user_metadata?.avatar_url ?? undefined}
-              alt={user?.email || "User"}
+              src={user.user_metadata?.avatar_url ?? undefined}
+              alt={user.email || "User"}
             />
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
@@ -77,10 +98,10 @@ export function UserMenu() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.user_metadata?.full_name || t("User")}
+              {user.user_metadata?.full_name || t("User")}
             </p>
             <p className="text-xs leading-none text-slate-500">
-              {user?.email}
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>

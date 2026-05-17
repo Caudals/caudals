@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  qdrant:
+    image: ${CAUDALS_QDRANT_IMAGE:-qdrant/qdrant:v1.17.1}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-vector-qdrant
+          - caudals-vector
+    environment:
+      QDRANT__SERVICE__HOST: 0.0.0.0
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__SERVICE__ENABLE_CORS: "false"
+    secrets:
+      - qdrant_api_key
+    volumes:
+      - qdrant-storage:/qdrant/storage
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        export QDRANT__SERVICE__API_KEY="$$(tr -d '\r\n' </run/secrets/qdrant_api_key)"
+        exec ./entrypoint.sh --disable-telemetry
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/6333'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_VECTOR_NETWORK:-dokploy-network}
+
+volumes:
+  qdrant-storage:
+    name: ${CAUDALS_QDRANT_STORAGE_VOLUME:-caudals-vector-qdrant-storage}
+
+secrets:
+  qdrant_api_key:
+    external: true
+    name: ${CAUDALS_QDRANT_API_KEY_SECRET:-qdrant_api_key}

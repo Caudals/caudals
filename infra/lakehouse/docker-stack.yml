@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  lakefs:
+    image: ${CAUDALS_LAKEFS_IMAGE:-treeverse/lakefs:1.81.0}
+    user: "0"
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-lakehouse-lakefs
+          - caudals-lakehouse_lakefs
+    environment:
+      LAKEFS_LISTEN_ADDRESS: "0.0.0.0:8000"
+      LAKEFS_DATABASE_TYPE: postgres
+      LAKEFS_LOGGING_FORMAT: json
+      LAKEFS_LOGGING_LEVEL: INFO
+      LAKEFS_STATS_ENABLED: "false"
+      LAKEFS_USAGE_REPORT_ENABLED: "false"
+      LAKEFS_BLOCKSTORE_TYPE: local
+      LAKEFS_BLOCKSTORE_LOCAL_PATH: /lakefs/data
+      POSTGRES_HOST: caudals-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: lakefs
+      POSTGRES_USER: lakefs
+    secrets:
+      - lakefs_postgres_password
+      - lakefs_auth_encrypt_secret
+      - lakefs_blockstore_signing_secret
+    volumes:
+      - lakefs-data:/lakefs/data
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - |
+        chown -R lakefs:lakefs /lakefs/data
+        export POSTGRES_PASSWORD="$$(tr -d '\r\n' </run/secrets/lakefs_postgres_password)"
+        export LAKEFS_AUTH_ENCRYPT_SECRET_KEY="$$(tr -d '\r\n' </run/secrets/lakefs_auth_encrypt_secret)"
+        export LAKEFS_BLOCKSTORE_SIGNING_SECRET_KEY="$$(tr -d '\r\n' </run/secrets/lakefs_blockstore_signing_secret)"
+        export LAKEFS_DATABASE_POSTGRES_CONNECTION_STRING="postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:$${POSTGRES_PORT}/$${POSTGRES_DB}?sslmode=disable"
+        exec su lakefs -s /bin/sh -c '/app/lakefs run'
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -T 5 -O /dev/null http://127.0.0.1:8000/_health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_LAKEHOUSE_NETWORK:-dokploy-network}
+
+volumes:
+  lakefs-data:
+    name: ${CAUDALS_LAKEFS_DATA_VOLUME:-caudals-lakehouse-lakefs-data}
+
+secrets:
+  lakefs_postgres_password:
+    external: true
+    name: ${CAUDALS_LAKEFS_POSTGRES_SECRET:-lakefs_postgres_password}
+  lakefs_auth_encrypt_secret:
+    external: true
+    name: ${CAUDALS_LAKEFS_AUTH_ENCRYPT_SECRET:-lakefs_auth_encrypt_secret}
+  lakefs_blockstore_signing_secret:
+    external: true
+    name: ${CAUDALS_LAKEFS_BLOCKSTORE_SIGNING_SECRET:-lakefs_blockstore_signing_secret}
