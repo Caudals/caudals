@@ -95,7 +95,7 @@
 - Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
 - tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
-- Latest post-deferral platform completion gate readback passes Sentry runtime delivery, Alertmanager external routing, route, `/v1/datasets` catalogue-deferral, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, object-storage/CVAT waivers, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
+- Latest post-deferral platform completion gate readback passes Sentry runtime delivery, Alertmanager external routing, route, `/v1/datasets` catalogue-deferral, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, enforced CVAT readiness, enforced object-storage write/read/delete, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
 - Landing-mode direct-route correction validation passed focused route/SEO unit
   tests, typecheck, targeted lint, i18n parity, heap-bounded production build,
   GitHub CI, Docker image build, Docker deployment, production
@@ -113,6 +113,6 @@
 - Fresh VPS readback passes Sentry runtime delivery and Alertmanager external routing; the completion gate treats the current-quarter pentest tracker as waived unless `CAUDALS_PENTEST_GATE_ENABLED=true`.
 - The current service plane has private probes and operator readiness coverage
   for Marquez/OpenLineage, Dagster, Temporal, Label Studio, CVAT, Redis,
-  Qdrant, lakeFS, object storage, and observability. Treat the full service
-  plane as complete only after the latest direct `main` deployment converges and
-  `npm run platform:completion-status` passes against the deployed image.
+  Qdrant, lakeFS, object storage, and observability. The default platform
+  completion gate now enforces CVAT readiness plus object-storage
+  write/read/delete instead of treating them as waivers.

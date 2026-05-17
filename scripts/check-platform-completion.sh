@@ -14,10 +14,10 @@ VECTOR_NETWORK="${CAUDALS_VECTOR_NETWORK:-dokploy-network}"
 WORKFLOW_NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
-OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-false}"
-OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-direct}"
+OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-true}"
+OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-stack}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
-CVAT_GATE_ENABLED="${CAUDALS_CVAT_GATE_ENABLED:-false}"
+CVAT_GATE_ENABLED="${CAUDALS_CVAT_GATE_ENABLED:-true}"
 
 failures=0
 APP_CONTAINER=""
@@ -430,7 +430,7 @@ check_cvat_stack() {
   local output
 
   if [[ "$CVAT_GATE_ENABLED" != "true" ]]; then
-    mark_ok "labeling.cvat" "probe waived until CVAT stack is deployed; set CAUDALS_CVAT_GATE_ENABLED=true to require image/video annotation runtime"
+    mark_ok "labeling.cvat" "probe waived because CAUDALS_CVAT_GATE_ENABLED is not true"
     return
   fi
 
@@ -455,7 +455,7 @@ check_object_storage() {
   local output
 
   if [[ "$OBJECT_STORAGE_GATE_ENABLED" != "true" ]]; then
-    mark_ok "storage.object_store" "probe waived until DO Spaces secrets are mounted; set CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true to require write/read/delete"
+    mark_ok "storage.object_store" "probe waived because CAUDALS_OBJECT_STORAGE_GATE_ENABLED is not true"
     return
   fi
 
