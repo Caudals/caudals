@@ -254,6 +254,120 @@ SQL
   mark_ok "security.operator_auth_policy" "password-only operator access allowed total=$total optional_mfa_enabled=$mfa_enabled optional_passkeys=$passkey_users"
 }
 
+check_blueprint_schema() {
+  local postgres_container sql output schema_error
+
+  postgres_container="$(first_service_container "$POSTGRES_SERVICE")"
+  if [[ -z "$postgres_container" ]]; then
+    mark_fail "data.blueprint_schema" "no running container for service $POSTGRES_SERVICE"
+    return
+  fi
+
+  read -r -d "" sql <<'SQL'
+WITH required_tables(table_name) AS (
+  VALUES
+    ('reviewer'),
+    ('dataset_partition'),
+    ('manifest_artifact'),
+    ('payment'),
+    ('revenue_share')
+),
+missing_tables AS (
+  SELECT table_name
+  FROM required_tables
+  WHERE to_regclass(format('public.%I', table_name)) IS NULL
+),
+modality_constraint AS (
+  SELECT pg_get_constraintdef(c.oid) AS definition
+  FROM pg_constraint c
+  JOIN pg_class rel ON rel.oid = c.conrelid
+  WHERE rel.relname = 'modality_contract'
+    AND c.conname = 'modality_contract_modality_check'
+)
+SELECT jsonb_build_object(
+  'missing_tables', COALESCE((SELECT jsonb_agg(table_name ORDER BY table_name) FROM missing_tables), '[]'::jsonb),
+  'modality_contract_all_types', COALESCE((
+    SELECT bool_and(definition ILIKE '%' || modality || '%')
+    FROM modality_constraint
+    CROSS JOIN (VALUES
+      ('tabular'),
+      ('text'),
+      ('image'),
+      ('video'),
+      ('audio'),
+      ('geospatial'),
+      ('document'),
+      ('timeseries')
+    ) AS required_modalities(modality)
+  ), false)
+);
+SQL
+
+  output="$(
+    docker exec "$postgres_container" psql \
+      -U caudals_app \
+      -d caudals \
+      -v ON_ERROR_STOP=1 \
+      -At \
+      -c "$sql" 2>&1
+  )"
+
+  if [[ "$?" -ne 0 ]]; then
+    mark_fail "data.blueprint_schema" "$(printf "%s" "$output" | tr "\n" " ")"
+    return
+  fi
+
+  if schema_error="$(node -e '
+    const status = JSON.parse(process.argv[1]);
+    if (status.missing_tables.length || !status.modality_contract_all_types) {
+      process.stderr.write(JSON.stringify(status));
+      process.exit(1);
+    }
+  ' "$output" 2>&1)"; then
+    mark_ok "data.blueprint_schema" "load-bearing records present and modality_contract accepts all eight modalities"
+  else
+    mark_fail "data.blueprint_schema" "$schema_error"
+  fi
+}
+
+check_blueprint_tool_contracts() {
+  local output
+
+  if ! require_command node "tools.blueprint_contracts"; then
+    return
+  fi
+
+  if output="$(npm run -s caudals -- intake channels --format json 2>&1)"; then
+    if node -e '
+      const payload = JSON.parse(process.argv[1]);
+      const channels = new Set((payload.channels ?? []).map((channel) => channel.channel));
+      const required = [
+        "object_storage_share",
+        "database_snapshot",
+        "api_connector",
+        "warehouse_share",
+        "public_scraper",
+        "sftp",
+        "signed_upload_url",
+        "email_to_bucket",
+        "physical_media",
+        "webhook",
+      ];
+      const missing = required.filter((channel) => !channels.has(channel));
+      if (missing.length) {
+        process.stderr.write(`missing intake channels: ${missing.join(",")}`);
+        process.exit(1);
+      }
+    ' "$output" 2>/tmp/caudals-blueprint-tool-contracts.err; then
+      mark_ok "tools.blueprint_contracts" "§07 intake channel contracts present"
+    else
+      mark_fail "tools.blueprint_contracts" "$(cat /tmp/caudals-blueprint-tool-contracts.err 2>/dev/null || printf "%s" "$output")"
+    fi
+  else
+    mark_fail "tools.blueprint_contracts" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_observability_stack() {
   local output
 
@@ -532,6 +646,8 @@ main() {
   fi
 
   check_operator_auth_policy
+  check_blueprint_schema
+  check_blueprint_tool_contracts
   check_observability_stack
   check_cache_stack
   check_labeling_stack

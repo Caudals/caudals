@@ -5,6 +5,17 @@ import path from "node:path";
 import { z } from "zod";
 
 import {
+  evaluateIntakeManifest,
+  intakeChannelContracts,
+  intakeChannels,
+  refreshDeclarations,
+  isDatasetModality,
+  sensitivityFlags,
+  piiDetectorPool,
+  planDatasetOperations,
+  scanTextForPii,
+} from "@/lib/operator/dataset-operations";
+import {
   buildReleaseDocumentationBundle,
   type ReleaseDocumentationInput,
 } from "@/lib/operator/release-documentation";
@@ -40,25 +51,6 @@ const gatePlan = [
   { key: "G-7", label: "QA", requiredEvidence: "release_documentation_bundle" },
 ] as const;
 
-const piiRecognizers = [
-  {
-    type: "email",
-    pattern: /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
-  },
-  {
-    type: "phone",
-    pattern: /(?:\+?\d[\s().-]?){8,}\d/g,
-  },
-  {
-    type: "iban",
-    pattern: /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/gi,
-  },
-  {
-    type: "credit_card",
-    pattern: /\b(?:\d[ -]*?){13,19}\b/g,
-  },
-] as const;
-
 const buildBriefSchema = z.object({
   id: z.string().min(2),
   title: z.string().min(2),
@@ -89,6 +81,27 @@ const dsarTicketSchema = z.object({
 const licenseCheckSchema = z.object({
   grants: z.array(z.record(z.string(), z.unknown())).min(1),
   requestedUse: z.record(z.string(), z.unknown()).default({}),
+});
+
+const intakeManifestSchema = z.object({
+  intakeId: z.string().min(1).optional(),
+  supplierAssetId: z.string().min(1).optional(),
+  channel: z.enum(intakeChannels).optional(),
+  receivedAt: z.string().min(1).optional(),
+  receivedBy: z.string().min(1).optional(),
+  contractRef: z.string().min(1).optional(),
+  jurisdiction: z.string().min(1).optional(),
+  objectUri: z.string().min(1).optional(),
+  bytes: z.number().int().optional(),
+  sha256: z.string().min(1).optional(),
+  signedBySupplier: z.boolean().optional(),
+  caudalsSignature: z.string().min(1).optional(),
+  chainOfCustody: z.array(z.string().min(1)).optional(),
+  permittedUseDeclaration: z.record(z.string(), z.unknown()).optional(),
+  sensitivityFlag: z.enum(sensitivityFlags).optional(),
+  refreshDeclaration: z.enum(refreshDeclarations).optional(),
+  retentionPosture: z.record(z.string(), z.unknown()).optional(),
+  evidence: z.record(z.string(), z.unknown()).optional(),
 });
 
 const lineageEventSchema = z.object({
@@ -123,6 +136,8 @@ Usage:
   caudals <command> [args]
 
 Commands:
+  intake channels [--format json|text]
+  intake validate <manifest.json> [--out file]
   build plan <brief.json> [--out file] [--format json|yaml]
   build run <plan.yaml|plan.json> [--dry-run] [--job name] [--location name] [--repository name]
   build replay <build_id> --manifest manifest.yaml|manifest.json [--expected-hash sha256]
@@ -563,6 +578,65 @@ async function commandLicenseCheck(args: ParsedArgs, cwd: string, io: CliIo) {
   return result.blocked ? 2 : 0;
 }
 
+async function commandIntakeChannels(args: ParsedArgs, cwd: string, io: CliIo) {
+  const contracts = intakeChannels.map((channel) => intakeChannelContracts[channel]);
+  const format = asStringFlag(args, "format") ?? "text";
+
+  if (format === "json") {
+    await writeOrPrint(
+      toJson({
+        command: "intake channels",
+        ok: true,
+        channels: contracts,
+      }),
+      args,
+      cwd,
+      io
+    );
+    return 0;
+  }
+
+  await writeOrPrint(
+    `${contracts
+      .map(
+        (contract) =>
+          `${contract.channel}\t${contract.mode}\t${contract.label}\tconfig=${contract.requiredConfig.join(",")}`
+      )
+      .join("\n")}\n`,
+    args,
+    cwd,
+    io
+  );
+  return 0;
+}
+
+async function commandIntakeValidate(args: ParsedArgs, cwd: string, io: CliIo) {
+  const file = args.positional[2];
+  if (!file) throw new Error("intake validate requires <manifest.json>");
+
+  const manifest = intakeManifestSchema.parse(await readJson(cwd, file));
+  const evaluation = evaluateIntakeManifest(manifest);
+
+  await writeOrPrint(
+    toJson({
+      command: "intake validate",
+      ok: evaluation.ok,
+      manifest: {
+        intakeId: manifest.intakeId ?? null,
+        supplierAssetId: manifest.supplierAssetId ?? null,
+        channel: manifest.channel ?? null,
+        objectUri: manifest.objectUri ?? null,
+      },
+      evaluation,
+    }),
+    args,
+    cwd,
+    io
+  );
+
+  return evaluation.ok ? 0 : 2;
+}
+
 async function commandBuildPlan(
   args: ParsedArgs,
   cwd: string,
@@ -595,6 +669,14 @@ async function commandBuildPlan(
     return 2;
   }
 
+  const operationsPlan = isDatasetModality(input.modality)
+    ? planDatasetOperations({
+        modality: input.modality,
+        targetFormats: input.targetFormats,
+        profileSignals: Object.keys(input.profile ?? {}),
+      })
+    : null;
+
   const manifest = {
     apiVersion: "caudals.io/build-plan/v1",
     kind: "BuildPlan",
@@ -612,6 +694,7 @@ async function commandBuildPlan(
       profile: input.profile ?? {},
       costEnvelope: input.costEnvelope ?? {},
       composedLicense: licenseResult?.composed ?? null,
+      operationsPlan,
     },
   };
 
@@ -770,15 +853,7 @@ async function commandPiiScan(args: ParsedArgs, cwd: string, io: CliIo) {
   if (!file) throw new Error("pii scan requires <asset-file>");
 
   const content = await readTextFile(cwd, file);
-  const findings = piiRecognizers.flatMap((recognizer) => {
-    const matches = Array.from(content.matchAll(recognizer.pattern));
-    return matches.slice(0, 25).map((match) => ({
-      type: recognizer.type,
-      start: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
-      sample: match[0].slice(0, 4).padEnd(Math.min(match[0].length, 12), "*"),
-    }));
-  });
+  const findings = scanTextForPii(content);
 
   await writeOrPrint(
     toJson({
@@ -787,7 +862,7 @@ async function commandPiiScan(args: ParsedArgs, cwd: string, io: CliIo) {
       findings,
       summary: {
         totalFindings: findings.length,
-        recognizers: piiRecognizers.map((recognizer) => recognizer.type),
+        recognizers: piiDetectorPool.map((recognizer) => recognizer.id),
       },
     }),
     args,
@@ -944,6 +1019,14 @@ export async function runCaudalsCli(
     if (!scope || scope === "help" || scope === "--help" || scope === "-h") {
       io.stdout(helpText);
       return 0;
+    }
+
+    if (scope === "intake" && command === "channels") {
+      return await commandIntakeChannels(args, cwd, io);
+    }
+
+    if (scope === "intake" && command === "validate") {
+      return await commandIntakeValidate(args, cwd, io);
     }
 
     if (scope === "license" && command === "check") {
