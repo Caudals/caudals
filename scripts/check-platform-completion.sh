@@ -5,6 +5,7 @@ APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 CACHE_NETWORK="${CAUDALS_CACHE_NETWORK:-dokploy-network}"
+LABELING_NETWORK="${CAUDALS_LABELING_NETWORK:-dokploy-network}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
 ORCHESTRATION_NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
 OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
@@ -250,6 +251,16 @@ check_cache_stack() {
   fi
 }
 
+check_labeling_stack() {
+  local output
+
+  if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-labeling-stack.sh 2>&1)"; then
+    mark_ok "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_object_storage() {
   local output
 
@@ -460,6 +471,7 @@ main() {
   check_operator_auth_policy
   check_observability_stack
   check_cache_stack
+  check_labeling_stack
   check_object_storage
   check_orchestration_stack
   check_workflow_stack

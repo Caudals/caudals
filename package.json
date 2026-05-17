@@ -34,6 +34,8 @@
     "platform:completion-status": "bash scripts/check-platform-completion.sh",
     "cache:deploy": "bash scripts/deploy-cache-stack.sh",
     "cache:probe": "bash scripts/probe-cache-stack.sh",
+    "labeling:deploy": "bash scripts/deploy-labeling-stack.sh",
+    "labeling:probe": "bash scripts/probe-labeling-stack.sh",
     "storage:probe": "tsx scripts/probe-object-storage.ts",
     "operator:security-status": "tsx scripts/check-operator-security-enrollment.ts",
     "observability:configure-alert-routing": "bash scripts/configure-alert-routing.sh",
