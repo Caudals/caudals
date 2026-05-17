@@ -771,6 +771,16 @@ export function getOperatorServiceReadiness(
         : "Spaces credential review",
     },
     {
+      id: "svc_lakehouse_versioning",
+      title: "Lakehouse versioning",
+      description:
+        "lakeFS runs private Git-like dataset versioning with Postgres metadata and a persistent blockstore.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "datasets",
+      evidence: "lakehouse.stack gate",
+    },
+    {
       id: "svc_observability",
       title: "Runtime monitoring",
       description:
