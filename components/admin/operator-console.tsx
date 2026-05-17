@@ -157,17 +157,17 @@ function Metric({
   }[tone];
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
       <div
         className={cn(
-          "mb-4 flex h-9 w-9 items-center justify-center rounded-md border",
+          "mb-3 flex h-8 w-8 items-center justify-center rounded-md border sm:h-9 sm:w-9",
           toneClassName
         )}
       >
         <Icon className="h-4 w-4" />
       </div>
-      <p className="text-2xl font-bold text-gray-950">{value}</p>
-      <p className="mt-1 text-xs font-medium uppercase text-gray-400">
+      <p className="tabular-nums text-2xl font-bold text-gray-950">{value}</p>
+      <p className="mt-1 text-[10px] font-bold uppercase leading-3 text-gray-400 sm:text-xs">
         {label}
       </p>
     </div>
@@ -187,44 +187,33 @@ function ModuleCard({
     <a
       href={`/admin?module=${module.key}`}
       className={cn(
-        "group block rounded-lg border bg-white p-3 transition-colors hover:border-gray-400",
+        "group flex min-h-16 min-w-0 items-center justify-between gap-3 overflow-hidden rounded-md border bg-white p-2.5 transition-colors hover:border-gray-400",
         active ? "border-gray-950 ring-1 ring-gray-950/10" : "border-gray-200"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <p className="truncate text-sm font-semibold text-gray-950">
             {t(module.title)}
           </p>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-            {t(module.description)}
-          </p>
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-500">
+            {module.totalRecords}
+          </span>
         </div>
-        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition-colors group-hover:text-gray-700" />
+        <p className="mt-1 truncate font-mono text-[11px] text-gray-500">
+          {module.anchorRecords.slice(0, 3).join(" / ")}
+        </p>
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {module.anchorRecords.slice(0, 3).map((record) => (
-          <Badge
-            key={record}
-            variant="outline"
-            className="rounded-md border-gray-200 bg-gray-50 px-1.5 font-mono text-[10px] text-gray-600"
-          >
-            {record}
-          </Badge>
-        ))}
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-xs">
-        <span className="font-medium text-gray-700">
-          {module.totalRecords} {t("records")}
-        </span>
+      <div className="flex shrink-0 items-center gap-2">
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 font-medium",
+            "rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums",
             moduleHealthClassName(module.blockedRecords)
           )}
         >
-          {module.blockedRecords} {t("blocked")}
+          {module.blockedRecords}
         </span>
+        <ArrowRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-700" />
       </div>
     </a>
   );
@@ -259,18 +248,21 @@ function ModuleDirectory({
           {modules.length} {t("Modules")}
         </Badge>
       </div>
-      <div className="mt-4 space-y-5">
+      <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
         {moduleGroups.map((group) => (
-          <div key={group.title}>
-            <div className="mb-2">
-              <p className="text-xs font-bold uppercase text-gray-950">
+          <div
+            key={group.title}
+            className="min-w-0 rounded-lg border border-gray-100 bg-gray-50/70 p-3"
+          >
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-950">
                 {t(group.title)}
               </p>
-              <p className="mt-0.5 text-xs leading-5 text-gray-500">
+              <p className="mt-1 text-xs leading-5 text-gray-500">
                 {t(group.description)}
               </p>
             </div>
-            <div className="grid gap-2">
+            <div className="mt-3 grid gap-1.5">
               {group.keys.map((key) => {
                 const moduleSummary = moduleMap.get(key);
 
@@ -301,7 +293,7 @@ function ServiceReadinessPanel({
   const readyCount = readiness.filter((item) => item.state === "ready").length;
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 min-[1600px]:sticky min-[1600px]:top-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -325,7 +317,7 @@ function ServiceReadinessPanel({
           <div
             id={item.id}
             key={item.id}
-            className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto]"
+            className="grid gap-3 py-2.5 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto]"
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +334,7 @@ function ServiceReadinessPanel({
                   {readinessLabel(item.state, t)}
                 </Badge>
               </div>
-              <p className="mt-1 text-xs leading-5 text-gray-500">
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
                 {t(item.description)}
               </p>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-500">
@@ -386,16 +378,16 @@ function FeaturedBuildLane({
   );
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-col gap-4 min-[1700px]:flex-row min-[1700px]:items-start min-[1700px]:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-emerald-700" />
-            <p className="text-sm font-semibold text-gray-950">
+            <p className="min-w-0 text-sm font-semibold text-gray-950">
               {t("Build detail")} / {build.title}
             </p>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 truncate font-mono text-xs text-gray-500">
             {build.id} / {build.buyerBriefId} / {build.supplierOrgId}
           </p>
         </div>
@@ -485,25 +477,16 @@ function ModuleWorkspace({
         </div>
       </div>
 
-      <div className="grid gap-4">
-        <div className="min-w-0 space-y-4">
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0">
           <OperatorWorkQueue
             key={`${activeModule.key}-work-${activeModule.totalRecords}`}
             module={activeModule}
             initialItems={activeWorkItems}
           />
-          {showSettingsControls ? (
-            <div className="grid gap-4 xl:grid-cols-2">
-              <OperatorSecurityRosterCard roster={securityRoster} t={t} />
-              {elevationStatus ? (
-                <OperatorElevationCard initialStatus={elevationStatus} />
-              ) : null}
-              <OperatorSigningKeyCard />
-            </div>
-          ) : null}
         </div>
 
-        <aside className="rounded-xl border border-gray-200 bg-white p-4">
+        <aside className="h-fit rounded-xl border border-gray-200 bg-white p-4 2xl:sticky 2xl:top-4">
           <div className="flex items-center gap-2">
             <LockKeyhole className="h-4 w-4 text-emerald-700" />
             <p className="text-sm font-semibold text-gray-950">
@@ -572,6 +555,15 @@ function ModuleWorkspace({
           </div>
         </aside>
       </div>
+      {showSettingsControls ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <OperatorSecurityRosterCard roster={securityRoster} t={t} />
+          {elevationStatus ? (
+            <OperatorElevationCard initialStatus={elevationStatus} />
+          ) : null}
+          <OperatorSigningKeyCard />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -594,19 +586,19 @@ function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
   return (
     <div
       id={build.id}
-      className="grid scroll-mt-24 gap-3 border-t border-gray-100 py-4 first:border-t-0 lg:grid-cols-[1.4fr_0.7fr_1fr] lg:items-center"
+      className="grid min-w-0 scroll-mt-24 gap-3 border-t border-gray-100 py-4 first:border-t-0 lg:grid-cols-[1.4fr_0.7fr_1fr] lg:items-center"
     >
-      <div>
+      <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-gray-950">{build.title}</p>
           <Badge
             variant="outline"
-            className="rounded-full border-gray-200 font-mono text-[10px]"
+            className="max-w-full truncate rounded-full border-gray-200 font-mono text-[10px]"
           >
             {build.id}
           </Badge>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 truncate font-mono text-xs text-gray-500">
           {build.buyerBriefId} / {build.supplierOrgId} / {t("ETA")} {build.eta}
         </p>
       </div>
@@ -760,8 +752,8 @@ function BuildIntelligence({
           {snapshot.builds.length} {t("Builds")}
         </Badge>
       </div>
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-4">
+      <div className="grid min-w-0 gap-4 min-[1500px]:grid-cols-[1.15fr_0.85fr]">
+        <div className="min-w-0 space-y-4">
           <QAScorecard
             build={snapshot.featuredBuild}
             dimensions={qaDimensions}
@@ -769,7 +761,7 @@ function BuildIntelligence({
           />
           <LicensePanel snapshot={snapshot} t={t} />
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-4 flex items-center gap-2">
             <Database className="h-4 w-4 text-emerald-700" />
             <p className="text-sm font-semibold text-gray-950">
@@ -806,8 +798,8 @@ function EvidencePlane({
           )}
         </p>
       </div>
-      <div className="grid items-start gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <div className="grid min-w-0 items-start gap-4 min-[1500px]:grid-cols-[0.8fr_1.2fr]">
+        <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-4 flex items-center gap-2">
             <FileText className="h-4 w-4 text-emerald-700" />
             <p className="text-sm font-semibold text-gray-950">
@@ -835,8 +827,8 @@ function EvidencePlane({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="min-w-0 space-y-4">
+          <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
             <div className="mb-4 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-700" />
               <p className="text-sm font-semibold text-gray-950">
@@ -850,10 +842,10 @@ function EvidencePlane({
                   key={event.id}
                   className="grid scroll-mt-24 gap-1 py-3 text-xs sm:grid-cols-[1fr_0.9fr]"
                 >
-                  <span className="font-mono font-semibold text-gray-950">
+                  <span className="truncate font-mono font-semibold text-gray-950">
                     {event.jobName}
                   </span>
-                  <span className="font-mono text-gray-500">
+                  <span className="truncate font-mono text-gray-500">
                     {event.datasetVersionId}
                   </span>
                   <span className="text-gray-500">{event.namespace}</span>
@@ -863,7 +855,7 @@ function EvidencePlane({
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
             <div className="mb-4 flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-emerald-700" />
               <p className="text-sm font-semibold text-gray-950">
@@ -918,7 +910,7 @@ export function OperatorConsole({
 
   return (
     <div className="space-y-6 pb-12 text-gray-950">
-      <header className="rounded-xl border border-gray-200 bg-white p-5">
+      <header className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-4xl">
             <div className="flex flex-wrap items-center gap-2 text-[13px] font-bold uppercase text-emerald-700">
@@ -927,7 +919,7 @@ export function OperatorConsole({
               <span className="text-gray-300">/</span>
               <span className="text-gray-500">{t("Operations cockpit")}</span>
             </div>
-            <h1 className="mt-3 text-3xl font-bold text-gray-950 sm:text-4xl">
+            <h1 className="mt-3 text-3xl font-normal tracking-tight text-gray-950 sm:text-4xl">
               {t("Operator Console")}
             </h1>
             <p className="mt-3 text-sm leading-6 text-gray-500">
@@ -958,9 +950,9 @@ export function OperatorConsole({
         </div>
       </header>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)]">
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 items-start gap-4 min-[1600px]:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+        <div className="min-w-0 space-y-4">
+          <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
             <Metric
               label={t("Active blockers")}
               value={snapshot.triage.blockers}
@@ -986,12 +978,14 @@ export function OperatorConsole({
               tone="blue"
             />
           </div>
-          <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
-          <ModuleDirectory
-            activeModule={activeModule}
-            modules={snapshot.modules}
-            t={t}
-          />
+          <div className="grid min-w-0 gap-4 min-[1600px]:grid-cols-[minmax(360px,0.72fr)_minmax(0,1.28fr)]">
+            <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
+            <ModuleDirectory
+              activeModule={activeModule}
+              modules={snapshot.modules}
+              t={t}
+            />
+          </div>
         </div>
         <ServiceReadinessPanel readiness={snapshot.serviceReadiness} t={t} />
       </section>

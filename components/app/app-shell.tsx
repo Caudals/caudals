@@ -17,7 +17,7 @@ export function AppShell({ children }: AppShellProps) {
         <AppHeader />
         <main className="relative flex flex-1 overflow-hidden bg-white shadow-sm ring-1 ring-gray-200/50 md:m-2 md:rounded-[16px] lg:m-3">
           <div className="absolute inset-0 overflow-auto">
-            <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-6 p-4 sm:p-6 md:p-8">
+            <div className="mx-auto flex min-h-full w-full max-w-[1560px] flex-col gap-6 p-4 sm:p-6 md:p-8">
               {children}
             </div>
           </div>

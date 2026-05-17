@@ -751,6 +751,16 @@ export function getOperatorServiceReadiness(
         : "Observability review",
     },
     {
+      id: "svc_lineage_runtime",
+      title: "Lineage runtime",
+      description:
+        "Marquez/OpenLineage receives dataset build lineage events on the private operations network.",
+      state: "ready",
+      owner: "Platform",
+      moduleKey: "operations",
+      evidence: "operations.stack gate",
+    },
+    {
       id: "svc_admin_identity",
       title: "Admin identity",
       description:
