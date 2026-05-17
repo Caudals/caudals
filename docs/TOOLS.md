@@ -235,10 +235,11 @@ Install caveat:
   `DO_SPACES_ACCESS_KEY_ID` or `DO_SPACES_ACCESS_KEY_ID_FILE`,
   `DO_SPACES_SECRET_ACCESS_KEY` or `DO_SPACES_SECRET_ACCESS_KEY_FILE`, and
   `NEXT_PUBLIC_DO_SPACES_CDN_URL`.
-- The platform completion gate reports `storage.object_store` as waived until
-  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` is set. By default the gate runs
-  `npm run storage:probe`; set `CAUDALS_OBJECT_STORAGE_PROBE_MODE=stack` to
-  require the private MinIO stack probe instead.
+- The platform completion gate requires `storage.object_store` by default and
+  runs the private MinIO stack write/read/delete probe. Set
+  `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=false` only for a documented external
+  waiver, or set `CAUDALS_OBJECT_STORAGE_PROBE_MODE=direct` to probe a mounted
+  external S3-compatible endpoint instead.
 - Useful override variables: `CAUDALS_OBJECT_STORAGE_GATE_ENABLED`,
   `CAUDALS_OBJECT_STORAGE_PROBE_MODE`, `CAUDALS_OBJECT_STORAGE_PROBE_PREFIX`,
   `CAUDALS_OBJECT_STORAGE_STACK_NAME`, `CAUDALS_MINIO_IMAGE`,
@@ -363,9 +364,9 @@ Install caveat:
   Kvrocks, ClickHouse, and OPA on the private Docker network, and deliberately
   publishes no public ports.
 - `npm run cvat:probe` verifies the private CVAT server API, UI, ClickHouse,
-  Redis/Kvrocks, and port isolation. The platform completion gate keeps this
-  optional until the stack is deployed; set `CAUDALS_CVAT_GATE_ENABLED=true` to
-  require CVAT runtime readiness.
+  Redis/Kvrocks, and port isolation. The platform completion gate requires
+  CVAT runtime readiness by default; set `CAUDALS_CVAT_GATE_ENABLED=false` only
+  for a documented external waiver.
 - Useful override variables: `CAUDALS_LABELING_STACK_NAME`,
   `CAUDALS_LABELING_NETWORK`, `CAUDALS_LABEL_STUDIO_IMAGE`,
   `CAUDALS_LABEL_STUDIO_POSTGRES_IMAGE`,
@@ -689,10 +690,12 @@ Operational env controls:
 - `DO_SPACES_SECRET_ACCESS_KEY_FILE` (Docker secret-file fallback;
   `DO_SPACES_SECRET_ACCESS_KEY` wins when both are set)
 - `NEXT_PUBLIC_DO_SPACES_CDN_URL`
-- `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` (set `true` to require object-store
-  write/read/delete in the platform completion gate)
-- `CAUDALS_OBJECT_STORAGE_PROBE_MODE` (`direct` for external S3-compatible
-  endpoints, `stack` for the private MinIO deployment)
+- `CAUDALS_CVAT_GATE_ENABLED` (default `true`; set `false` only for a
+  documented external waiver)
+- `CAUDALS_OBJECT_STORAGE_GATE_ENABLED` (default `true`; set `false` only for a
+  documented external waiver)
+- `CAUDALS_OBJECT_STORAGE_PROBE_MODE` (default `stack`; use `direct` for
+  external S3-compatible endpoints)
 - `CAUDALS_OBJECT_STORAGE_STACK_NAME` (default `caudals-object-storage`)
 - `CAUDALS_OBJECT_STORAGE_NETWORK` (default `dokploy-network`)
 - `CAUDALS_OBJECT_STORAGE_BUCKET` (default `caudals-storage`)
