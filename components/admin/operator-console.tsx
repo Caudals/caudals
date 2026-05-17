@@ -18,7 +18,6 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { CommandPaletteButton } from "@/components/app/command-palette-button";
 import { OperatorElevationCard } from "@/components/admin/operator-elevation-card";
 import { OperatorSecurityRosterCard } from "@/components/admin/operator-security-roster-card";
 import { OperatorSigningKeyCard } from "@/components/admin/operator-signing-key-card";
@@ -157,7 +156,7 @@ function Metric({
   }[tone];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+    <div className="bg-white p-3 sm:p-4">
       <div
         className={cn(
           "mb-3 flex h-8 w-8 items-center justify-center rounded-md border sm:h-9 sm:w-9",
@@ -293,7 +292,7 @@ function ServiceReadinessPanel({
   const readyCount = readiness.filter((item) => item.state === "ready").length;
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 min-[1600px]:sticky min-[1600px]:top-4">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 xl:sticky xl:top-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -909,7 +908,7 @@ export function OperatorConsole({
   ];
 
   return (
-    <div className="space-y-6 pb-12 text-gray-950">
+    <div className="space-y-4 pb-12 text-gray-950">
       <header className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-4xl">
@@ -941,7 +940,6 @@ export function OperatorConsole({
             >
               {t("Generated")}: {formatGeneratedAt(snapshot.generatedAt)}
             </Badge>
-            <CommandPaletteButton className="flex w-auto justify-between rounded-md bg-white shadow-none md:flex" />
             <Button className="bg-gray-950 text-white shadow-none hover:bg-gray-800">
               <ListChecks className="mr-2 h-4 w-4" />
               {t("Bulk review")} 5
@@ -950,35 +948,37 @@ export function OperatorConsole({
         </div>
       </header>
 
-      <section className="grid min-w-0 items-start gap-4 min-[1600px]:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+      <section className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.38fr)] 2xl:grid-cols-[minmax(0,1.18fr)_minmax(380px,0.82fr)]">
         <div className="min-w-0 space-y-4">
-          <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
-            <Metric
-              label={t("Active blockers")}
-              value={snapshot.triage.blockers}
-              icon={AlertTriangle}
-              tone="amber"
-            />
-            <Metric
-              label={t("Overdue gates")}
-              value={snapshot.triage.overdueGates}
-              icon={Clock3}
-              tone="red"
-            />
-            <Metric
-              label={t("Releases this week")}
-              value={snapshot.triage.releasesThisWeek}
-              icon={CheckCircle2}
-              tone="emerald"
-            />
-            <Metric
-              label={t("Queued jobs")}
-              value={snapshot.triage.queuedJobs}
-              icon={Layers3}
-              tone="blue"
-            />
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+            <div className="grid min-w-0 grid-cols-2 gap-px lg:grid-cols-4">
+              <Metric
+                label={t("Active blockers")}
+                value={snapshot.triage.blockers}
+                icon={AlertTriangle}
+                tone="amber"
+              />
+              <Metric
+                label={t("Overdue gates")}
+                value={snapshot.triage.overdueGates}
+                icon={Clock3}
+                tone="red"
+              />
+              <Metric
+                label={t("Releases this week")}
+                value={snapshot.triage.releasesThisWeek}
+                icon={CheckCircle2}
+                tone="emerald"
+              />
+              <Metric
+                label={t("Queued jobs")}
+                value={snapshot.triage.queuedJobs}
+                icon={Layers3}
+                tone="blue"
+              />
+            </div>
           </div>
-          <div className="grid min-w-0 gap-4 min-[1600px]:grid-cols-[minmax(360px,0.72fr)_minmax(0,1.28fr)]">
+          <div className="grid min-w-0 gap-4 min-[1500px]:grid-cols-[minmax(360px,0.72fr)_minmax(0,1.28fr)]">
             <FeaturedBuildLane build={snapshot.featuredBuild} t={t} />
             <ModuleDirectory
               activeModule={activeModule}
