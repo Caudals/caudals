@@ -172,7 +172,8 @@ Install caveat:
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
   private observability readiness, private Dagster orchestration readiness,
   private Temporal workflow readiness, private operations lineage readiness,
-  private Label Studio labeling-workbench readiness, private Qdrant
+  private Label Studio labeling-workbench readiness, private lakeFS
+  lakehouse-versioning readiness, private Qdrant
   vector-index readiness, private Redis cache/queue readiness,
   optional DigitalOcean Spaces object-storage write/read/delete readiness,
   app runtime configuration for Stripe payments and Resend email delivery,
@@ -215,6 +216,26 @@ Install caveat:
 - Keep Spaces credentials out of plaintext Docker service env. Use
   `DO_SPACES_ACCESS_KEY_ID_FILE` and `DO_SPACES_SECRET_ACCESS_KEY_FILE` for
   production.
+- The private lakehouse stack lives in `infra/lakehouse/` and is deployed with
+  `npm run lakehouse:deploy`. It runs lakeFS on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-lakehouse-stack.sh` creates root-only generated files for the
+  lakeFS PostgreSQL password, auth encryption secret, blockstore signing secret,
+  and initial admin credentials under `/root/.caudals/lakehouse/`, then creates
+  Docker secrets for the server-side values. The script must not print generated
+  credential values.
+- The current single-node runtime uses lakeFS local blockstore on a persistent
+  Docker volume. DigitalOcean Spaces remains the production object-store target
+  and is still governed by the separate `storage.object_store` completion gate
+  until Spaces credentials are mounted.
+- `npm run lakehouse:probe` verifies private lakeFS health, API health,
+  initialized setup state, and no published ports.
+- Useful override variables: `CAUDALS_LAKEHOUSE_NETWORK`,
+  `CAUDALS_LAKEFS_IMAGE`, `CAUDALS_LAKEFS_POSTGRES_SECRET`,
+  `CAUDALS_LAKEFS_AUTH_ENCRYPT_SECRET`,
+  `CAUDALS_LAKEFS_BLOCKSTORE_SIGNING_SECRET`,
+  `CAUDALS_LAKEFS_ADMIN_ACCESS_KEY_ID_FILE`, and
+  `CAUDALS_LAKEFS_ADMIN_SECRET_ACCESS_KEY_FILE`.
 
 - The private orchestration stack lives in `infra/orchestration/` and is
   deployed with `npm run orchestration:deploy`. It runs Dagster webserver,

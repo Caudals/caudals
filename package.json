@@ -35,6 +35,8 @@
     "platform:runtime-config": "node scripts/check-app-runtime-config.mjs",
     "cache:deploy": "bash scripts/deploy-cache-stack.sh",
     "cache:probe": "bash scripts/probe-cache-stack.sh",
+    "lakehouse:deploy": "bash scripts/deploy-lakehouse-stack.sh",
+    "lakehouse:probe": "bash scripts/probe-lakehouse-stack.sh",
     "labeling:deploy": "bash scripts/deploy-labeling-stack.sh",
     "labeling:probe": "bash scripts/probe-labeling-stack.sh",
     "storage:probe": "tsx scripts/probe-object-storage.ts",
