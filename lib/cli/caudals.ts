@@ -124,7 +124,7 @@ Usage:
 
 Commands:
   build plan <brief.json> [--out file] [--format json|yaml]
-  build run <plan.yaml|plan.json> [--dry-run]
+  build run <plan.yaml|plan.json> [--dry-run] [--job name] [--location name] [--repository name]
   build replay <build_id> --manifest manifest.yaml|manifest.json [--expected-hash sha256]
   lineage trace <asset.json> [--format json|text]
   license check <build.json>
@@ -221,6 +221,17 @@ function manifestHash(raw: string, parsed: unknown) {
   return parsed ? sha256(canonicalize(parsed)) : sha256(raw);
 }
 
+function redactUrl(value: string) {
+  try {
+    const url = new URL(value);
+    if (url.username) url.username = "redacted";
+    if (url.password) url.password = "redacted";
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
 async function readBuildManifest(cwd: string, filePath: string) {
   const raw = await readTextFile(cwd, filePath);
   const parsed = tryParseJson(raw);
@@ -251,6 +262,166 @@ function inferBuildIdFromManifest(parsed: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function inferStringPath(value: unknown, pathSegments: string[]) {
+  let cursor = value;
+
+  for (const segment of pathSegments) {
+    if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+
+  return typeof cursor === "string" && cursor.length > 0 ? cursor : undefined;
+}
+
+function normalizeDagsterGraphqlUrl(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.endsWith("/graphql")) return trimmed;
+  return `${trimmed.replace(/\/+$/, "")}/graphql`;
+}
+
+function dagsterMessage(result: Record<string, unknown>) {
+  if (typeof result.message === "string") return result.message;
+
+  const errors = result.errors;
+  if (Array.isArray(errors)) {
+    return errors
+      .map((error) =>
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message?: unknown }).message)
+          : String(error)
+      )
+      .join("; ");
+  }
+
+  return JSON.stringify(result);
+}
+
+async function launchDagsterRun(input: {
+  dagsterUrl: string;
+  repositoryLocationName: string;
+  repositoryName: string;
+  jobName: string;
+  mode: string;
+  tags: Array<{ key: string; value: string }>;
+}) {
+  const graphqlUrl = normalizeDagsterGraphqlUrl(input.dagsterUrl);
+  const response = await fetch(graphqlUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      query: `
+        mutation LaunchCaudalsBuild($executionParams: ExecutionParams!) {
+          launchRun(executionParams: $executionParams) {
+            __typename
+            ... on LaunchRunSuccess {
+              run {
+                runId
+                status
+                pipelineName
+              }
+            }
+            ... on RunConfigValidationInvalid {
+              errors {
+                message
+              }
+            }
+            ... on PipelineNotFoundError {
+              message
+            }
+            ... on InvalidStepError {
+              invalidStepKey
+            }
+            ... on PythonError {
+              message
+            }
+            ... on UnauthorizedError {
+              message
+            }
+            ... on ConflictingExecutionParamsError {
+              message
+            }
+            ... on NoModeProvidedError {
+              message
+            }
+          }
+        }
+      `,
+      variables: {
+        executionParams: {
+          selector: {
+            repositoryLocationName: input.repositoryLocationName,
+            repositoryName: input.repositoryName,
+            jobName: input.jobName,
+          },
+          runConfigData: {},
+          mode: input.mode,
+          executionMetadata: {
+            tags: input.tags,
+          },
+        },
+      },
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        data?: {
+          launchRun?: Record<string, unknown> & {
+            run?: {
+              runId?: string;
+              status?: string;
+              pipelineName?: string;
+            };
+          };
+        };
+        errors?: Array<{ message?: string }>;
+      }
+    | null;
+
+  if (!response.ok) {
+    throw new Error(
+      `Dagster launch request failed with HTTP ${response.status}${
+        payload?.errors?.length
+          ? `: ${payload.errors.map((error) => error.message).join("; ")}`
+          : ""
+      }`
+    );
+  }
+
+  if (payload?.errors?.length) {
+    throw new Error(
+      `Dagster launch failed: ${payload.errors
+        .map((error) => error.message)
+        .join("; ")}`
+    );
+  }
+
+  const result = payload?.data?.launchRun;
+  if (!result) {
+    throw new Error("Dagster launch failed: empty GraphQL response");
+  }
+
+  if (result.__typename !== "LaunchRunSuccess") {
+    throw new Error(
+      `Dagster launch rejected (${String(result.__typename)}): ${dagsterMessage(result)}`
+    );
+  }
+
+  const run = result.run;
+  if (!run?.runId) {
+    throw new Error("Dagster launch failed: success response did not include a run id");
+  }
+
+  return {
+    runId: run.runId,
+    status: run.status ?? "UNKNOWN",
+    pipelineName: run.pipelineName ?? input.jobName,
+    graphqlUrl,
+  };
 }
 
 function looksLikeManifestPath(value: string) {
@@ -458,19 +629,61 @@ async function commandBuildRun(args: ParsedArgs, cwd: string, io: CliIo, env: No
   const plan = await readBuildManifest(cwd, file);
   const dryRun = hasFlag(args, "dry-run");
   const dagsterUrl = env.DAGSTER_URL;
+  const fallbackBuildId = path.basename(file, path.extname(file));
+  const buildId = inferBuildIdFromManifest(plan.parsed, fallbackBuildId);
+  const jobName =
+    asStringFlag(args, "job") ??
+    env.DAGSTER_JOB_NAME ??
+    inferStringPath(plan.parsed, ["spec", "dagsterJob"]) ??
+    inferStringPath(plan.parsed, ["metadata", "dagsterJob"]) ??
+    "caudals_reference_build";
+  const repositoryLocationName =
+    asStringFlag(args, "location") ??
+    env.DAGSTER_REPOSITORY_LOCATION_NAME ??
+    "caudals_reference_assets";
+  const repositoryName =
+    asStringFlag(args, "repository") ?? env.DAGSTER_REPOSITORY_NAME ?? "__repository__";
+  const mode = asStringFlag(args, "mode") ?? env.DAGSTER_MODE ?? "default";
 
   if (!dryRun && !dagsterUrl) {
     throw new Error("DAGSTER_URL is required unless --dry-run is set");
   }
+
+  const tags = [
+    { key: "caudals/command", value: "build run" },
+    { key: "caudals/build_id", value: buildId },
+    { key: "caudals/plan_hash", value: plan.hash },
+    { key: "caudals/manifest_format", value: plan.format },
+  ];
+  const dagsterRun = dryRun
+    ? null
+    : await launchDagsterRun({
+        dagsterUrl: dagsterUrl!,
+        repositoryLocationName,
+        repositoryName,
+        jobName,
+        mode,
+        tags,
+      });
 
   await writeOrPrint(
     toJson({
       command: "build run",
       ok: true,
       dryRun,
-      target: dagsterUrl ?? "dry-run",
+      target: dagsterUrl ? redactUrl(normalizeDagsterGraphqlUrl(dagsterUrl)) : "dry-run",
       manifestFormat: plan.format,
       planHash: plan.hash,
+      buildId,
+      dagster: {
+        repositoryLocationName,
+        repositoryName,
+        jobName,
+        mode,
+        runId: dagsterRun?.runId ?? null,
+        status: dagsterRun?.status ?? null,
+        pipelineName: dagsterRun?.pipelineName ?? null,
+      },
       submitted: !dryRun,
     }),
     args,
