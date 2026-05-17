@@ -66,6 +66,8 @@
 - The platform completion gate now requires representative dataset-build
   evidence for pipeline gates, package artifacts, lineage, release docs, and
   buyer delivery acceptance.
+- The checked-in goal document no longer stores the Telegram notification bot
+  token; operational notification credentials must stay in server-side secrets.
 
 ## Verification
 
@@ -111,6 +113,10 @@
   The GitHub-hosted Docker workflow hit Docker Hub pull-rate limiting; the app
   image was built and pushed from the VPS with the cached base image, then the
   Swarm service converged on the pushed main-equivalent tag.
+- Secret hygiene validation re-ran after redacting the notification credential
+  from `docs/goal.md`; the production completion gate still reports no tracked
+  Sentry auth-token patterns and no plaintext secret env names on the app
+  service.
 - Landing-mode direct-route correction validation passed focused route/SEO unit
   tests, typecheck, targeted lint, i18n parity, heap-bounded production build,
   GitHub CI, Docker image build, Docker deployment, production
@@ -125,6 +131,9 @@
 - Sentry error delivery is enabled through a Docker secret-backed `SENTRY_DSN_FILE`. The Sentry build auth token file is source-map upload auth only, not a runtime DSN; rotate any exposed auth token before enabling uploads. OpenTelemetry traces, Loki logs, and Prometheus metrics are live.
 - External Slack notification routing is configured for Alertmanager from a server-only webhook file. Private Prometheus rules and Alertmanager routing are live.
 - External penetration-test execution is waived for the current completion gate per product-owner direction; #19 is closed as not planned for this gate.
+- The previously checked-in notification bot token was redacted from the
+  current tree; rotate that credential before any future Telegram notifier use
+  because the old value may remain in repository history.
 - Fresh VPS readback passes Sentry runtime delivery and Alertmanager external routing; the completion gate treats the current-quarter pentest tracker as waived unless `CAUDALS_PENTEST_GATE_ENABLED=true`.
 - The current service plane has private probes and operator readiness coverage
   for Marquez/OpenLineage, Dagster, Temporal, Label Studio, CVAT, Redis,

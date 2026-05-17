@@ -102,7 +102,7 @@ For each checkpoint:
 
 Never commit secrets, tokens, private keys, webhook URLs, DSNs, database URLs, customer data, or unredacted financial data to code, docs, logs, screenshots, or user-facing output.
 
-If human action is required, notify the user in the Codex thread. Setup and use the Telegram bot with the following token: 8983299591:AAEIEaR9fHodZs4WvzLNjcf8ayF4AEaOkpU.
+If human action is required, notify the user in the Codex thread. Use the configured Telegram notifier when human action is required; keep bot tokens in server-side secrets, never in this file.
 
 ## Working discipline
 
