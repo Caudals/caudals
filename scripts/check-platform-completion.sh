@@ -5,6 +5,7 @@ APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 OBSERVABILITY_NETWORK="${CAUDALS_OBSERVABILITY_NETWORK:-dokploy-network}"
+ORCHESTRATION_NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
 OPERATIONS_NETWORK="${CAUDALS_OPERATIONS_NETWORK:-dokploy-network}"
 ALERTMANAGER_CONFIG="${CAUDALS_ALERTMANAGER_CONFIG:-infra/observability/alertmanager.yaml}"
 ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_alertmanager}"
@@ -228,8 +229,7 @@ SQL
 check_observability_stack() {
   local output
 
-  output="$(CAUDALS_OBSERVABILITY_NETWORK="$OBSERVABILITY_NETWORK" scripts/probe-observability-stack.sh 2>&1)"
-  if [[ "$?" -eq 0 ]]; then
+  if output="$(CAUDALS_OBSERVABILITY_NETWORK="$OBSERVABILITY_NETWORK" scripts/probe-observability-stack.sh 2>&1)"; then
     mark_ok "observability.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
     mark_fail "observability.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
@@ -239,11 +239,20 @@ check_observability_stack() {
 check_operations_stack() {
   local output
 
-  output="$(CAUDALS_OPERATIONS_NETWORK="$OPERATIONS_NETWORK" scripts/probe-operations-stack.sh 2>&1)"
-  if [[ "$?" -eq 0 ]]; then
+  if output="$(CAUDALS_OPERATIONS_NETWORK="$OPERATIONS_NETWORK" scripts/probe-operations-stack.sh 2>&1)"; then
     mark_ok "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
     mark_fail "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
+check_orchestration_stack() {
+  local output
+
+  if output="$(CAUDALS_ORCHESTRATION_NETWORK="$ORCHESTRATION_NETWORK" scripts/probe-orchestration-stack.sh 2>&1)"; then
+    mark_ok "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -401,6 +410,7 @@ main() {
 
   check_operator_auth_policy
   check_observability_stack
+  check_orchestration_stack
   check_operations_stack
   check_alert_routing
   check_tracked_secret_patterns
