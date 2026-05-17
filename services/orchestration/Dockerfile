@@ -20,6 +20,7 @@ RUN addgroup --system dagster \
 
 COPY dagster.yaml workspace.yaml "$DAGSTER_HOME"/
 COPY definitions.py /opt/dagster/app/definitions.py
+COPY caudals_ops /opt/dagster/app/caudals_ops
 COPY entrypoint.sh /usr/local/bin/caudals-dagster-entrypoint
 
 RUN chmod 0755 /usr/local/bin/caudals-dagster-entrypoint \

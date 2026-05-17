@@ -256,10 +256,14 @@ Install caveat:
   deployed with `npm run orchestration:deploy`. It runs Dagster webserver,
   daemon, and code-server containers on `dokploy-network` without public
   published ports.
-- The Dagster stack uses one pinned local image built from
-  `services/orchestration/Dockerfile`. The deploy script builds that image on
-  the VPS and deploys it with Docker Swarm image resolution disabled so the
-  single-node runtime can run the local image without a registry push.
+- GitHub Actions builds and pushes the Dagster orchestration image from
+  `services/orchestration/Dockerfile` to Docker Hub as
+  `orchestration-latest` and `orchestration-<git-sha>` tags on the configured
+  DockerHub repository. The deploy script pulls the selected image and updates
+  the private Swarm stack with registry auth; set
+  `CAUDALS_DAGSTER_IMAGE=mariomedpar/caudals:orchestration-<git-sha>` for an
+  immutable deployment. Local image builds are opt-in only with
+  `CAUDALS_DAGSTER_BUILD_LOCAL=true`.
 - `scripts/deploy-orchestration-stack.sh` creates a root-only generated Dagster
   PostgreSQL password file when one is not supplied, creates the external
   Docker secret `dagster_postgres_password`, ensures the dedicated `dagster`
@@ -268,9 +272,10 @@ Install caveat:
 - Provide `CAUDALS_DAGSTER_POSTGRES_SECRET_FILE=/path/to/password` when a
   pre-existing server-only password file should be used instead of the generated
   `/root/.caudals/orchestration/dagster-postgres-password` file.
-- The initial code location exposes reference assets for G-1 intake, G-2
-  profiling, and G-7 QA: `bronze_intake_sample`, `silver_profile_report`, and
-  `gold_qa_scorecard`.
+- The code location exposes reference assets for G-1 through G-7:
+  `bronze_intake_sample`, `silver_profile_report`, `silver_clean_partition`,
+  `privacy_pii_map`, `silver_enrichment_manifest`,
+  `labeling_review_manifest`, and `gold_qa_scorecard`.
 - `npm run orchestration:probe` verifies the Dagster webserver `/server_info`
   endpoint, the code-server gRPC healthcheck, a local execution of the
   `caudals_reference_build` reference job from the running code container, and
@@ -588,8 +593,8 @@ Bootstrap:
 - `npm run cvat:deploy`: deploy the private CVAT image/video annotation stack
 - `npm run cvat:probe`: probe private CVAT API/UI, backing stores, and
   port-isolation readiness
-- `npm run orchestration:deploy`: build and deploy the private Dagster
-  orchestration stack
+- `npm run orchestration:deploy`: pull the selected Dagster orchestration
+  image from Docker Hub and deploy the private stack
 - `npm run orchestration:probe`: probe private Dagster health, execute the
   reference asset job, and verify Dagster OpenLineage ingestion
 - `npm run workflow:deploy`: deploy the private Temporal durable workflow stack

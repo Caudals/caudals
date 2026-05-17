@@ -104,6 +104,13 @@ authenticated review but stay hidden in production until explicit clearance.
 - `/security` is the M3 security-review surface. It summarizes implemented controls, flags credential-gated readiness items, and routes DPA or questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it hidden until explicit clearance.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
 - `/v1/*` is the M3 REST surface. `/v1` returns inline endpoint documentation; public catalogue/intake routes are anonymous and rate-limited, while buyer delivery, subscription, and quote actions require a Better Auth buyer session and emit audited state transitions. Production `LANDING_MODE` keeps the surface hidden until explicit clearance.
+- §07 acquisition tooling is executable through `npm run caudals -- intake
+  channels` and `npm run caudals -- intake validate <manifest.json>`. The
+  channel registry covers object-storage shares, database snapshots, API
+  connectors, warehouse shares, public scrapers, SFTP drops, signed uploads,
+  email-to-bucket, physical media, and supplier webhooks; validation fails
+  closed into quarantine when the immutable bronze intake contract is missing
+  required evidence.
 - `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
   read-only, and limited to delivery, subscription, integration, billing,
   scorecard, manifest, and trust evidence.
@@ -120,7 +127,8 @@ authenticated review but stay hidden in production until explicit clearance.
 ## Infrastructure and Deployment
 - Production runtime is self-hosted on DigitalOcean VPS.
 - Dokploy manages runtime/deployment.
-- Docker image builds happen in GitHub Actions (`.github/workflows/deploy.yml`) and publish to Docker Hub.
+- App and orchestration Docker image builds happen in GitHub Actions
+  (`.github/workflows/deploy.yml`) and publish immutable tags to Docker Hub.
 - Deployment pipeline supports push-to-`main` and manual dispatch execution.
 - `Dockerfile` uses multi-stage build (`deps` -> `build` -> `runtime`).
 
@@ -176,17 +184,26 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   contain sensitive operational context.
 
 ## Operations Services
-- DigitalOcean Spaces is the S3-compatible object store for supplier samples,
-  dataset files, generated packages, and licensed delivery artifacts.
-- The application reads Spaces configuration through direct env vars or Docker
-  secret-file fallbacks for `DO_SPACES_ACCESS_KEY_ID_FILE` and
+- Caudals uses an S3-compatible object store for supplier samples, dataset
+  files, generated packages, and licensed delivery artifacts. The current
+  single-node runtime can deploy a private MinIO service on `dokploy-network`;
+  DigitalOcean Spaces remains the external managed-store target for hosted
+  production environments.
+- The private object-storage stack is defined in
+  `infra/object-storage/docker-stack.yml` and runs MinIO without public ingress.
+  `scripts/deploy-object-storage-stack.sh` creates root-only generated access
+  credentials under `/root/.caudals/object-storage/`, stores them as Docker
+  secrets, creates the configured bucket, and wires the app service to
+  `DO_SPACES_*_FILE` secret fallbacks.
+- The application reads object-storage configuration through direct env vars or
+  Docker secret-file fallbacks for `DO_SPACES_ACCESS_KEY_ID_FILE` and
   `DO_SPACES_SECRET_ACCESS_KEY_FILE`; plaintext access-key env vars are blocked
   by the completion gate.
-- `scripts/probe-object-storage.ts` validates the mounted Spaces configuration
-  by writing, reading, and deleting a short private probe object without
-  printing credentials. The production completion gate can require that probe by
-  setting `CAUDALS_OBJECT_STORAGE_GATE_ENABLED=true` after Spaces credentials are
-  mounted.
+- `scripts/probe-object-storage.ts` validates any externally reachable
+  S3-compatible configuration by writing, reading, and deleting a short private
+  probe object without printing credentials. `scripts/probe-object-storage-stack.sh`
+  performs the same write/read/delete check from inside the private Docker
+  network and verifies the stack has no published ports.
 - The private orchestration stack is defined in
   `infra/orchestration/docker-stack.yml` and runs Dagster on
   `dokploy-network` without public ingress.
@@ -197,9 +214,9 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   `dagster_postgres_password`; runtime containers read it through
   `DAGSTER_POSTGRES_PASSWORD_FILE` so the repository and Docker service spec do
   not store the secret value.
-- The initial code location exposes three reference assets,
-  `bronze_intake_sample`, `silver_profile_report`, and `gold_qa_scorecard`,
-  matching the blueprint's G-1 intake, G-2 profiling, and G-7 QA stages.
+- The Dagster code location exposes reference assets for the full G-1 through
+  G-7 blueprint path: intake, profiling, deterministic cleaning, privacy/PII
+  mapping, enrichment, labeling review, and QA/package scorecard.
 - Dagster is available only on the private Docker network at
   `http://caudals-orchestration-webserver:3000`; the code server is internal
   at `caudals-orchestration-code:4000`.

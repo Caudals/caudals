@@ -3,3 +3,4 @@ dagster-webserver==1.13.5
 dagster-graphql==1.13.5
 dagster-postgres==0.29.5
 dagster-docker==0.29.5
+presidio-analyzer==2.2.362

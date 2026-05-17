@@ -5,7 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK_NAME="${CAUDALS_ORCHESTRATION_STACK_NAME:-caudals-orchestration}"
 NETWORK="${CAUDALS_ORCHESTRATION_NETWORK:-dokploy-network}"
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
-DAGSTER_IMAGE="${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}"
+DAGSTER_IMAGE_REPOSITORY="${CAUDALS_DAGSTER_IMAGE_REPOSITORY:-${CAUDALS_DOCKERHUB_REPOSITORY:-mariomedpar/caudals}}"
+DAGSTER_IMAGE="${CAUDALS_DAGSTER_IMAGE:-${DAGSTER_IMAGE_REPOSITORY}:orchestration-latest}"
+DAGSTER_BUILD_LOCAL="${CAUDALS_DAGSTER_BUILD_LOCAL:-false}"
 DAGSTER_SECRET="${CAUDALS_DAGSTER_POSTGRES_SECRET:-dagster_postgres_password}"
 DAGSTER_SECRET_FILE="${CAUDALS_DAGSTER_POSTGRES_SECRET_FILE:-}"
 GENERATED_ORCHESTRATION_DIR="${CAUDALS_GENERATED_ORCHESTRATION_DIR:-/root/.caudals/orchestration}"
@@ -98,6 +100,19 @@ SQL
   echo "Ensured Dagster PostgreSQL role and database."
 }
 
+ensure_dagster_image() {
+  if [[ "$DAGSTER_BUILD_LOCAL" =~ ^(1|true|yes)$ ]]; then
+    docker build \
+      --pull \
+      -t "$DAGSTER_IMAGE" \
+      "$ROOT/services/orchestration"
+    return
+  fi
+
+  docker pull "$DAGSTER_IMAGE" >/dev/null
+  echo "Pulled Dagster image from registry: $DAGSTER_IMAGE"
+}
+
 if ! docker node ls >/dev/null 2>&1; then
   echo "Docker Swarm manager access is required before deploying the orchestration stack." >&2
   exit 1
@@ -111,19 +126,24 @@ fi
 ensure_dagster_password_file
 ensure_dagster_secret
 ensure_dagster_database
-
-docker build \
-  --pull \
-  -t "$DAGSTER_IMAGE" \
-  "$ROOT/services/orchestration"
+ensure_dagster_image
 
 CAUDALS_ORCHESTRATION_NETWORK="$NETWORK" \
 CAUDALS_DAGSTER_IMAGE="$DAGSTER_IMAGE" \
   docker stack deploy \
     --detach=true \
-    --resolve-image=never \
+    --with-registry-auth \
     -c "$ROOT/infra/orchestration/docker-stack.yml" \
     "$STACK_NAME"
+
+for service in code webserver daemon; do
+  docker service update \
+    --force \
+    --image "$DAGSTER_IMAGE" \
+    --with-registry-auth \
+    --detach=true \
+    "${STACK_NAME}_${service}" >/dev/null
+done
 
 cat <<MSG
 Requested orchestration stack deployment: $STACK_NAME
