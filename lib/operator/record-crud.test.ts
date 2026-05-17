@@ -452,7 +452,13 @@ describe("operator record CRUD metadata", () => {
         }),
         expect.objectContaining({
           key: "runbookKey",
-          allowedValues: expect.arrayContaining(["R-01", "R-05", "R-10"]),
+          allowedValues: expect.arrayContaining([
+            "R-01",
+            "R-05",
+            "R-10",
+            "R-11",
+            "R-13",
+          ]),
         }),
         expect.objectContaining({
           key: "severity",

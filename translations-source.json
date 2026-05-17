@@ -1822,7 +1822,7 @@
   "RLS",
   "TOTP",
   "7 gates",
-  "R-01/R-10",
+  "R-01/R-13",
   "Tenant-scoped database access",
   "Optional operator hardening",
   "Dataset release controls",
