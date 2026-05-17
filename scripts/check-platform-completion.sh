@@ -371,77 +371,82 @@ check_representative_build_evidence() {
 WITH scope AS (
   SELECT set_config('app.is_service_role', 'true', true)
 ),
-representative AS (
-  SELECT b.id AS build_id, dv.id AS dataset_version_id
+candidates AS (
+  SELECT b.id AS build_id, dv.id AS dataset_version_id, b.updated_at
   FROM scope, build b
   JOIN dataset_version dv ON dv.build_id = b.id
   WHERE b.deleted_at IS NULL
     AND dv.deleted_at IS NULL
     AND b.state IN ('released','delivered')
     AND dv.state = 'released'
-  ORDER BY b.updated_at DESC, b.id
-  LIMIT 1
 ),
-partition_layers AS (
-  SELECT DISTINCT dp.layer
-  FROM representative r
-  JOIN dataset_partition dp ON dp.dataset_version_id = r.dataset_version_id
-  WHERE dp.deleted_at IS NULL
-    AND dp.state IN ('sealed','promoted')
-),
-artifact_types AS (
-  SELECT DISTINCT ma.artifact_type
-  FROM representative r
-  JOIN manifest_artifact ma ON ma.dataset_version_id = r.dataset_version_id
-  WHERE ma.deleted_at IS NULL
-    AND ma.state IN ('approved','published')
+candidate_status AS (
+  SELECT
+    c.build_id,
+    c.dataset_version_id,
+    c.updated_at,
+    COALESCE((
+      SELECT count(DISTINCT ge.gate_key)
+      FROM gate_event ge
+      WHERE ge.build_id = c.build_id
+        AND ge.verdict = 'pass'
+    ), 0) AS passing_gates,
+    COALESCE((
+      SELECT jsonb_agg(layer ORDER BY layer)
+      FROM (
+        SELECT DISTINCT dp.layer
+        FROM dataset_partition dp
+        WHERE dp.dataset_version_id = c.dataset_version_id
+          AND dp.deleted_at IS NULL
+          AND dp.state IN ('sealed','promoted')
+      ) layers
+    ), '[]'::jsonb) AS partition_layers,
+    COALESCE((
+      SELECT jsonb_agg(artifact_type ORDER BY artifact_type)
+      FROM (
+        SELECT DISTINCT ma.artifact_type
+        FROM manifest_artifact ma
+        WHERE ma.dataset_version_id = c.dataset_version_id
+          AND ma.deleted_at IS NULL
+          AND ma.state IN ('approved','published')
+      ) artifacts
+    ), '[]'::jsonb) AS artifact_types,
+    EXISTS (
+      SELECT 1
+      FROM lineage_event le
+      WHERE le.dataset_version_id = c.dataset_version_id
+    ) AS has_lineage,
+    EXISTS (
+      SELECT 1
+      FROM release_documentation_bundle rd
+      WHERE rd.dataset_version_id = c.dataset_version_id
+        AND rd.deleted_at IS NULL
+        AND rd.state IN ('approved','published')
+        AND rd.validation_summary ->> 'status' = 'pass'
+        AND rd.package_manifest ? 'croissant'
+    ) AS has_release_docs,
+    EXISTS (
+      SELECT 1
+      FROM delivery d
+      WHERE d.dataset_version_id = c.dataset_version_id
+        AND d.deleted_at IS NULL
+        AND d.state = 'accepted'
+        AND d.receipt ?& ARRAY[
+          'object',
+          'acceptedAt',
+          'acceptedBy',
+          'receiptHash',
+          'packageManifestArtifactId'
+        ]
+    ) AS has_accepted_delivery
+  FROM candidates c
 )
 SELECT jsonb_build_object(
-  'build_id', (SELECT build_id FROM representative),
-  'dataset_version_id', (SELECT dataset_version_id FROM representative),
-  'passing_gates', COALESCE((
-    SELECT count(DISTINCT ge.gate_key)
-    FROM representative r
-    JOIN gate_event ge ON ge.build_id = r.build_id
-    WHERE ge.verdict = 'pass'
-  ), 0),
-  'partition_layers', COALESCE((
-    SELECT jsonb_agg(layer ORDER BY layer)
-    FROM partition_layers
-  ), '[]'::jsonb),
-  'artifact_types', COALESCE((
-    SELECT jsonb_agg(artifact_type ORDER BY artifact_type)
-    FROM artifact_types
-  ), '[]'::jsonb),
-  'has_lineage', EXISTS (
-    SELECT 1
-    FROM representative r
-    JOIN lineage_event le ON le.dataset_version_id = r.dataset_version_id
-  ),
-  'has_release_docs', EXISTS (
-    SELECT 1
-    FROM representative r
-    JOIN release_documentation_bundle rd
-      ON rd.dataset_version_id = r.dataset_version_id
-    WHERE rd.deleted_at IS NULL
-      AND rd.state IN ('approved','published')
-      AND rd.validation_summary ->> 'status' = 'pass'
-      AND rd.package_manifest ? 'croissant'
-  ),
-  'has_accepted_delivery', EXISTS (
-    SELECT 1
-    FROM representative r
-    JOIN delivery d ON d.dataset_version_id = r.dataset_version_id
-    WHERE d.deleted_at IS NULL
-      AND d.state = 'accepted'
-      AND d.receipt ?& ARRAY[
-        'object',
-        'acceptedAt',
-        'acceptedBy',
-        'receiptHash',
-        'packageManifestArtifactId'
-      ]
-  )
+  'candidate_count', (SELECT count(*) FROM candidates),
+  'candidates', COALESCE((
+    SELECT jsonb_agg(to_jsonb(candidate_status) ORDER BY updated_at DESC, build_id, dataset_version_id)
+    FROM candidate_status
+  ), '[]'::jsonb)
 );
 SQL
 
@@ -460,40 +465,60 @@ SQL
   fi
 
   if evidence_error="$(node -e '
-    const status = JSON.parse(process.argv[1]);
-    const missing = [];
+    const payload = JSON.parse(process.argv[1]);
+    const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
     const requireValues = (label, actual, expected) => {
       const set = new Set(actual ?? []);
       const absent = expected.filter((value) => !set.has(value));
-      if (absent.length) missing.push(`${label}:${absent.join(",")}`);
+      return absent.length ? `${label}:${absent.join(",")}` : null;
+    };
+    const missingFor = (status) => {
+      const missing = [];
+
+      if (!status.build_id || !status.dataset_version_id) {
+        missing.push("released_or_delivered_build");
+      }
+      if (Number(status.passing_gates ?? 0) < 7) {
+        missing.push(`passing_gates:${status.passing_gates ?? 0}/7`);
+      }
+      for (const missingValue of [
+        requireValues("partition_layers", status.partition_layers, [
+          "bronze",
+          "silver",
+          "gold",
+        ]),
+        requireValues("artifact_types", status.artifact_types, [
+          "source_manifest",
+          "profile_report",
+          "qa_report",
+          "package_manifest",
+          "croissant",
+          "lineage_manifest",
+          "privacy_summary",
+        ]),
+      ]) {
+        if (missingValue) missing.push(missingValue);
+      }
+      if (!status.has_lineage) missing.push("lineage_event");
+      if (!status.has_release_docs) missing.push("release_docs");
+      if (!status.has_accepted_delivery) missing.push("accepted_delivery");
+
+      return missing;
     };
 
-    if (!status.build_id || !status.dataset_version_id) {
-      missing.push("released_or_delivered_build");
+    const complete = candidates.find((candidate) => missingFor(candidate).length === 0);
+    if (complete) {
+      process.exit(0);
     }
-    if (Number(status.passing_gates ?? 0) < 7) {
-      missing.push(`passing_gates:${status.passing_gates ?? 0}/7`);
-    }
-    requireValues("partition_layers", status.partition_layers, [
-      "bronze",
-      "silver",
-      "gold",
-    ]);
-    requireValues("artifact_types", status.artifact_types, [
-      "source_manifest",
-      "profile_report",
-      "qa_report",
-      "package_manifest",
-      "croissant",
-      "lineage_manifest",
-      "privacy_summary",
-    ]);
-    if (!status.has_lineage) missing.push("lineage_event");
-    if (!status.has_release_docs) missing.push("release_docs");
-    if (!status.has_accepted_delivery) missing.push("accepted_delivery");
 
+    const status = candidates[0] ?? {};
+    const missing = missingFor(status);
     if (missing.length) {
-      process.stderr.write(JSON.stringify({ missing, status }));
+      process.stderr.write(JSON.stringify({
+        missing,
+        candidate_count: payload.candidate_count ?? candidates.length,
+        status,
+      }));
       process.exit(1);
     }
   ' "$output" 2>&1)"; then

@@ -103,6 +103,14 @@
 - tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
 - Latest post-deferral platform completion gate readback passes Sentry runtime delivery, Alertmanager external routing, route, `/v1/datasets` catalogue-deferral, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, enforced CVAT readiness, enforced object-storage write/read/delete, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
+- Representative build evidence validation passed shell syntax, diff checks,
+  targeted fixture lint, typecheck, GitHub CI, live Postgres readback for 7/7
+  passing gates, three medallion partitions, seven release artifacts, published
+  release docs, and accepted delivery evidence, plus the production
+  `platform:completion-status` gate with `data.representative_build` passing.
+  The GitHub-hosted Docker workflow hit Docker Hub pull-rate limiting; the app
+  image was built and pushed from the VPS with the cached base image, then the
+  Swarm service converged on the pushed main-equivalent tag.
 - Landing-mode direct-route correction validation passed focused route/SEO unit
   tests, typecheck, targeted lint, i18n parity, heap-bounded production build,
   GitHub CI, Docker image build, Docker deployment, production
