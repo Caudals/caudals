@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildPublicMetadata } from "@/lib/seo";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { getPublicSecurityReviewData } from "@/lib/security/public-security-review";
@@ -80,12 +81,7 @@ export default async function SecurityPage() {
   return (
     <div className="min-h-screen bg-white text-gray-950">
       <Header
-        links={[
-          { href: "/catalogue", label: "Catalogue" },
-          { href: "/security", label: "Security" },
-          { href: "/contact", label: "Contact" },
-          { href: "/blog", label: "Blog" },
-        ]}
+        links={[...landingModePublicNavigationLinks]}
         hideActions
       />
       <main>
@@ -109,9 +105,6 @@ export default async function SecurityPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="rounded-md bg-black px-6 font-bold text-white hover:bg-black/90">
                 <Link href="/contact">{t("Request review materials")}</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-md border-gray-200 px-6 font-bold text-black hover:bg-gray-50">
-                <Link href="/catalogue">{t("Review public catalogue")}</Link>
               </Button>
             </div>
           </div>

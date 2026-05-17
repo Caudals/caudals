@@ -38,7 +38,6 @@ const blockedRoutes = landingModeEnabled
   ? [
       "/about",
       "/browse",
-      "/buyer",
       "/catalog",
       "/catalogue",
       "/collaborate",
@@ -49,11 +48,14 @@ const blockedRoutes = landingModeEnabled
       "/legal/privacy",
       "/legal/terms",
       "/pricing",
-      "/security",
-      "/supplier",
       "/trust",
-      "/v1",
-      "/v1/datasets",
+    ]
+  : [];
+
+const directRoutes = landingModeEnabled
+  ? [
+      { path: "/security", heading: /security posture for ai data buyers/i },
+      { path: "/v1", heading: null },
     ]
   : [];
 
@@ -85,6 +87,36 @@ test.describe("landing mode route blocking", () => {
       const response = await page.goto(path);
 
       expect(response?.status()).toBe(404);
+    });
+  }
+});
+
+test.describe("landing mode direct-route surfaces", () => {
+  test.skip(!landingModeEnabled, "LANDING_MODE is disabled");
+
+  for (const route of directRoutes) {
+    test(`${route.path} remains directly reachable`, async ({ page }) => {
+      const response = await page.goto(route.path);
+
+      expect(response?.status()).toBe(200);
+      if (route.heading) {
+        await expect(page.getByRole("heading", { name: route.heading })).toBeVisible();
+      }
+      if (route.path === "/security") {
+        const links = page.locator("header nav").first().getByRole("link");
+        await expect(links).toHaveCount(2);
+        await expect(links.nth(0)).toHaveAttribute("href", "/contact");
+        await expect(links.nth(1)).toHaveAttribute("href", "/blog");
+      }
+    });
+  }
+
+  for (const path of ["/buyer", "/supplier"]) {
+    test(`${path} redirects anonymous users to sign-in`, async ({ page }) => {
+      const response = await page.goto(path);
+
+      expect(response?.status()).toBe(200);
+      await expect(page).toHaveURL(/\/auth\/sign-in/);
     });
   }
 });

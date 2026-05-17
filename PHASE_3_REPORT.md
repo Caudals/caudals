@@ -2,14 +2,20 @@
 
 ## Current Slice Plan
 
-- Continue M3 after the public catalogue and public buyer-brief intake slices.
-- Buyer Workspace v1 shipped as a read-only expansion of `/buyer`: subscriptions, delivery integrations, and billing visibility, scoped to the authenticated buyer organization.
-- Ship Supplier Portal v1 as a read-only expansion of `/supplier`: revenue-share payout and Stripe Connect status visibility, scoped to the authenticated supplier organization.
-- Keep broader buyer/supplier self-service, purchase flows, payout execution, and hidden marketplace routes unavailable.
+- Continue M3 under the current landing-mode product contract: `/buyer`,
+  `/supplier`, `/security`, and `/v1/*` stay directly route-accessible with
+  their normal controls, while the landing page, marketing navigation, sitemap,
+  robots output, and security-page header avoid public discovery paths to those
+  surfaces.
+- Keep catalogue datasets, public catalogue browsing, catalogue purchase flows,
+  broader buyer/supplier self-service, and payout execution unavailable until a
+  future catalogue goal.
 
 ## Shipped
 
-- Public catalogue at `/catalogue` and public buyer brief intake are already present in the current branch.
+- Public buyer brief intake is present in the current branch. The earlier
+  `/catalogue` implementation remains blocked from landing-mode production and
+  is not a completion requirement under the active catalogue deferral.
 - Buyer Workspace v1 adds buyer-scoped quote, invoice, and delivery-integration fields via `db/migrations/018_buyer_workspace_v1.sql` with rollback coverage.
 - `/buyer` now loads subscription operations, delivery integrations, and billing rows through RLS-scoped Postgres queries behind `BUYER_WORKSPACE_V1_ENABLED`.
 - Supplier Portal v1 adds supplier-scoped payout integration metadata via `db/migrations/019_supplier_payout_workspace.sql` with rollback coverage.
@@ -26,7 +32,10 @@
 - Vulnerability management now has weekly Dependabot checks for npm, GitHub Actions, and Dockerfile base images, Docker Scout scans on published app images, and a quarterly penetration-test tracker workflow.
 - Build cost envelopes now roll append-only cost ledger entries into build totals, alert at 80%, require explicit override reasons above hard build/LLM/API budgets, and flag >15% margin retrospectives.
 - Internal escalation runbooks now have canonical R-01..R-13 records, top-level `escalation_case` routing, automatic alert/audit creation, security-specific R-11..R-13 incident paths, and an Operator Console Escalations module.
-- Public security review is implemented at `/security` for non-landing environments, with buyer-facing control evidence, readiness caveats, and DPA/questionnaire follow-up routed to `/contact`; current production `LANDING_MODE` keeps it hidden until explicit clearance.
+- Public security review is implemented at `/security` as a direct-route surface
+  with buyer-facing control evidence, readiness caveats, and DPA/questionnaire
+  follow-up routed to `/contact`; landing mode hides public discovery but no
+  longer blocks the route.
 - The public security review page is now backed by `security_review_artifact`, an RLS-scoped library of published questionnaire answers, DPA review-path notes, and evidence packet items.
 - Added a VPS-side platform completion gate, `npm run platform:completion-status`, that aggregates the final production checks for landing-mode routing, exact public nav labels, Sentry, operator auth policy, private observability readiness, private operations lineage readiness, external alert routing, tracked Sentry auth-token leaks, and the current-quarter pentest tracker.
 - Alertmanager deployment now supports rendering a private external webhook receiver from `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or `CAUDALS_ALERTMANAGER_WEBHOOK_URL` without committing the credential.
@@ -37,6 +46,11 @@
 - Sentry App Router wiring now includes client navigation transition capture, global error capture, a gated build-time Sentry wrapper, and an ignored local `.env.sentry-build-plugin` file for source-map upload auth.
 - Buyer and supplier workspaces now have authenticated tRPC `buyer.workspace` and `supplier.workspace` procedures backed by the same scoped workspace loaders as the pages. The global role probe now returns `{ role: null }` for authenticated non-operators so buyer/supplier dashboards do not treat expected non-operator sessions as console errors.
 - The Operator Console work queue received a visual polish pass: each row now uses a compact record/status header with balanced transition, edit, and note columns across desktop and mobile.
+- Landing mode now treats `/buyer`, `/supplier`, `/security`, and `/v1/*` as
+  direct-route surfaces instead of proxy-blocked pages, while keeping public
+  navigation locked to Contact/Blog, removing catalogue/security from the
+  landing-mode sitemap/robots promotion path, and removing catalogue discovery
+  from the security page header and hero actions.
 
 ## Verification
 
@@ -68,6 +82,12 @@
 - tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
 - Latest platform completion gate readback on image `mariomedpar/caudals:49d91032f88cf05a11215ba7b7f263410c6ec73f` now passes Sentry runtime delivery, Alertmanager external routing, route, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
+- Landing-mode direct-route correction validation passed focused route/SEO unit
+  tests, typecheck, targeted lint, i18n parity, and heap-bounded production
+  build. A broad local `e2e/public-routes.spec.ts` attempt was stopped because
+  the current shell lacks `DATABASE_URL` for auth-backed pages and unrelated
+  blog routes timed out during dev-server compilation; production route probes
+  should be used after the direct `main` deployment converges.
 
 ## Known Gaps / Next M3 Inputs
 
@@ -75,6 +95,8 @@
 - External Slack notification routing is configured for Alertmanager from a server-only webhook file. Private Prometheus rules and Alertmanager routing are live.
 - External penetration-test execution is waived for the current completion gate per product-owner direction; #19 is closed as not planned for this gate.
 - Fresh VPS readback passes Sentry runtime delivery and Alertmanager external routing; the completion gate treats the current-quarter pentest tracker as waived unless `CAUDALS_PENTEST_GATE_ENABLED=true`.
-- Marquez/OpenLineage is the first production operations-service slice. Dagster,
-  Temporal, and labeling/review runtimes remain future operations-service
-  slices before the blueprint service plane can be considered complete.
+- The current service plane has private probes and operator readiness coverage
+  for Marquez/OpenLineage, Dagster, Temporal, Label Studio, CVAT, Redis,
+  Qdrant, lakeFS, object storage, and observability. Treat the full service
+  plane as complete only after the latest direct `main` deployment converges and
+  `npm run platform:completion-status` passes against the deployed image.
