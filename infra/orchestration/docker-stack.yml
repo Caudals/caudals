@@ -13,7 +13,7 @@ x-dagster-env: &dagster-env
 
 services:
   code:
-    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    image: ${CAUDALS_DAGSTER_IMAGE:-mariomedpar/caudals:orchestration-latest}
     networks:
       dokploy-network:
         aliases:
@@ -21,7 +21,7 @@ services:
           - caudals-orchestration_code
     environment:
       <<: *dagster-env
-      DAGSTER_CURRENT_IMAGE: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+      DAGSTER_CURRENT_IMAGE: ${CAUDALS_DAGSTER_IMAGE:-mariomedpar/caudals:orchestration-latest}
     secrets:
       - dagster_postgres_password
     command:
@@ -56,7 +56,7 @@ services:
           memory: 256M
 
   webserver:
-    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    image: ${CAUDALS_DAGSTER_IMAGE:-mariomedpar/caudals:orchestration-latest}
     networks:
       dokploy-network:
         aliases:
@@ -94,7 +94,7 @@ services:
           memory: 256M
 
   daemon:
-    image: ${CAUDALS_DAGSTER_IMAGE:-caudals-dagster:1.13.5}
+    image: ${CAUDALS_DAGSTER_IMAGE:-mariomedpar/caudals:orchestration-latest}
     networks:
       - dokploy-network
     environment:

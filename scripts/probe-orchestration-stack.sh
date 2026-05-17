@@ -112,6 +112,27 @@ probe_reference_job() {
   fi
 }
 
+probe_privacy_runtime() {
+  local container
+  local output
+
+  printf "dagster.privacy_runtime\t"
+  container="$(first_service_container "$DAGSTER_CODE_SERVICE")"
+  if [[ -z "$container" ]]; then
+    printf "no running container for service %s\n" "$DAGSTER_CODE_SERVICE"
+    return 1
+  fi
+
+  if output="$(docker exec "$container" sh -lc 'cd /opt/dagster/app && python -m caudals_ops.privacy' 2>&1)"; then
+    printf "%s\n" "$(printf "%s" "$output" | tr "\n" " " | sed "s/[[:space:]]\\+/ /g" | head -c 200)"
+  else
+    printf "failed: "
+    printf "%s" "$output" | tr "\n" " " | sed "s/[[:space:]]\\+/ /g" | head -c 300
+    printf "\n"
+    return 1
+  fi
+}
+
 probe_lineage_namespace() {
   local attempt
 
@@ -143,5 +164,6 @@ probe_lineage_namespace() {
 
 probe_http "dagster.webserver" "$DAGSTER_WEBSERVER_URL/server_info"
 probe_code_container
+probe_privacy_runtime
 probe_reference_job
 probe_lineage_namespace
