@@ -172,7 +172,8 @@ Install caveat:
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
   private observability readiness, private Dagster orchestration readiness,
   private Temporal workflow readiness, private operations lineage readiness,
-  private Qdrant vector-index readiness, private Redis cache/queue readiness,
+  private Label Studio labeling-workbench readiness, private Qdrant
+  vector-index readiness, private Redis cache/queue readiness,
   optional DigitalOcean Spaces object-storage write/read/delete readiness,
   external alert routing, tracked Sentry auth token leaks, and the
   current-quarter pentest tracker.
@@ -272,6 +273,37 @@ Install caveat:
   `CAUDALS_TEMPORAL_SERVER_SERVICE`, `CAUDALS_TEMPORAL_UI_SERVICE`,
   `CAUDALS_TEMPORAL_UI_URL`, and `CAUDALS_WORKFLOW_PROBE_ATTEMPTS`.
 - Keep Temporal private. Do not publish ports or expose the UI/RPC endpoint
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private labeling stack lives in `infra/labeling/` and is deployed with
+  `npm run labeling:deploy`. It runs Label Studio plus dedicated PostgreSQL on
+  `dokploy-network` without public published ports.
+- Label Studio uses PostgreSQL rather than SQLite for production reviewer
+  projects, annotations, and exports. The stack keeps task files and app state
+  on dedicated Docker volumes.
+- `scripts/deploy-labeling-stack.sh` creates root-only generated files for the
+  Label Studio PostgreSQL password and Django secret key when existing
+  server-only files are not supplied, creates the external Docker secrets
+  `label_studio_postgres_password` and `label_studio_secret_key`, pulls pinned
+  images, and deploys the stack. The script must not print generated secret
+  values.
+- Provide `CAUDALS_LABEL_STUDIO_POSTGRES_PASSWORD_FILE=/path/to/password` and
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_FILE=/path/to/key` when pre-existing
+  server-only files should be used instead of generated files in
+  `/root/.caudals/labeling/`.
+- `npm run labeling:probe` verifies the private Label Studio HTTP endpoint,
+  PostgreSQL migration table, and that neither Label Studio nor PostgreSQL
+  publish ports.
+- Useful override variables: `CAUDALS_LABELING_STACK_NAME`,
+  `CAUDALS_LABELING_NETWORK`, `CAUDALS_LABEL_STUDIO_IMAGE`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_IMAGE`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_SECRET`,
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_SECRET`,
+  `CAUDALS_LABEL_STUDIO_POSTGRES_PASSWORD_FILE`,
+  `CAUDALS_LABEL_STUDIO_SECRET_KEY_FILE`, `CAUDALS_LABEL_STUDIO_SERVICE`,
+  `CAUDALS_LABEL_STUDIO_URL`, and `CAUDALS_LABELING_PROBE_ATTEMPTS`.
+- Keep Label Studio private. Do not publish ports or expose the workbench
   outside the Docker/Tailscale operations boundary without an explicit security
   review.
 
@@ -487,6 +519,10 @@ Bootstrap:
 - `npm run cache:deploy`: deploy the private Redis cache/queue stack
 - `npm run cache:probe`: probe private Redis authenticated cache and queue
   stream readiness
+- `npm run labeling:deploy`: deploy the private Label Studio labeling
+  workbench stack
+- `npm run labeling:probe`: probe private Label Studio HTTP, PostgreSQL
+  migration, and port-isolation readiness
 - `npm run orchestration:deploy`: build and deploy the private Dagster
   orchestration stack
 - `npm run orchestration:probe`: probe private Dagster health, execute the
@@ -571,10 +607,12 @@ Operational env controls:
   export
 - Operations services: Dagster orchestration stack/image/service names,
   Dagster OpenLineage URL/strictness, Temporal workflow stack/image/service
-  names, Temporal namespace/retention, Qdrant vector stack/image/API-key
-  secret names, Redis cache/queue stack/image/password secret names,
+  names, Temporal namespace/retention, Label Studio labeling stack/image/secret
+  names, Qdrant vector stack/image/API-key secret names, Redis cache/queue
+  stack/image/password secret names,
   Marquez/OpenLineage stack name, private Docker network, Marquez API/admin
-  URLs, and server-only Dagster/Temporal/Marquez PostgreSQL secret files
+  URLs, and server-only Dagster/Temporal/Marquez/Label Studio PostgreSQL secret
+  files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation

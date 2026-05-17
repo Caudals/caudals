@@ -815,6 +815,16 @@ export function getOperatorServiceReadiness(
       evidence: "workflow.stack gate",
     },
     {
+      id: "svc_labeling_runtime",
+      title: "Labeling workbench",
+      description:
+        "Label Studio runs on the private operations network with PostgreSQL-backed reviewer projects and annotation exports.",
+      state: "ready",
+      owner: "Dataset Ops",
+      moduleKey: "labeling",
+      evidence: "labeling.stack gate",
+    },
+    {
       id: "svc_vector_index",
       title: "Vector index",
       description:

@@ -39,6 +39,8 @@ authenticated review but stay hidden in production until explicit clearance.
   code-server containers for dataset software-defined assets
 - Workflow services: private Temporal runtime and UI for durable supplier,
   labeling, approval, and long-running operator workflows
+- Labeling services: private Label Studio runtime backed by PostgreSQL for
+  reviewer projects, annotation work, and exports
 - Vector services: private Qdrant runtime for build-time embeddings,
   duplicate discovery, similarity search, and retrieval-heavy QA workflows
 - Cache/queue services: private Redis runtime for low-latency cache entries,
@@ -221,6 +223,19 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - `scripts/probe-workflow-stack.sh` verifies Temporal cluster health, the
   `caudals-operations` namespace, the private UI endpoint, and the absence of
   published ports.
+- The private labeling stack is defined in `infra/labeling/docker-stack.yml`
+  and runs Label Studio plus a dedicated PostgreSQL database on
+  `dokploy-network` without public ingress.
+- Label Studio persists reviewer projects, annotations, and exports on a
+  dedicated Docker volume and uses PostgreSQL instead of SQLite for production
+  labeling throughput.
+- The Label Studio PostgreSQL password and Django `SECRET_KEY` are mounted
+  through external Docker secrets; runtime containers read the values from
+  secret files so the repository and Docker service spec do not store them.
+- Label Studio is available only on the private Docker network at
+  `http://caudals-labeling-label-studio:8080`.
+- `scripts/probe-labeling-stack.sh` verifies the private Label Studio HTTP
+  endpoint, PostgreSQL migrations, and the absence of published ports.
 - The private vector stack is defined in `infra/vector/docker-stack.yml` and
   runs Qdrant on `dokploy-network` without public ingress.
 - Qdrant stores build-time vectors on a dedicated Docker volume and reads its
