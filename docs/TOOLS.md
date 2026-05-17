@@ -567,6 +567,11 @@ Bootstrap:
   operator-account migration; pass `-- --apply` to write rows
 - `npm run migrate:public-funnel`: dry-run legacy Supabase public-funnel data migration; pass `-- --apply` to write rows
 - `npm run fixtures:ensure`: fixture freshness verification/reseed
+- `npm run caudals -- intake channels --format json`: list the §07 intake
+  channel contracts and required evidence
+- `npm run caudals -- intake validate manifest.json`: validate an immutable
+  bronze intake manifest and fail closed when G-1 evidence should quarantine
+  the intake
 - `npm run storage:probe`: probe DigitalOcean Spaces write/read/delete
   readiness using the mounted S3-compatible object-storage configuration
 - `npm run object-storage:deploy`: deploy the private S3-compatible MinIO

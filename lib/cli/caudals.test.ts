@@ -48,6 +48,8 @@ describe("caudals CLI", () => {
 
     expect(result.exitCode).toBe(0);
     for (const command of [
+      "intake channels",
+      "intake validate",
       "build plan",
       "build run",
       "build replay",
@@ -61,6 +63,79 @@ describe("caudals CLI", () => {
     ]) {
       expect(result.stdout).toContain(command);
     }
+  });
+
+  it("lists the §07 intake channel contracts", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "caudals-cli-"));
+    const result = await runCli(cwd, ["intake", "channels", "--format", "json"]);
+    const body = JSON.parse(result.stdout);
+
+    expect(result.exitCode).toBe(0);
+    expect(body.channels).toHaveLength(10);
+    expect(body.channels).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          channel: "sftp",
+          mode: "push",
+          requiredConfig: expect.arrayContaining(["dropZone"]),
+        }),
+        expect.objectContaining({
+          channel: "api_connector",
+          mode: "pull",
+          guarantees: expect.arrayContaining(["cursor_replay"]),
+        }),
+      ])
+    );
+  });
+
+  it("validates bronze intake manifests and fails closed on quarantine evidence", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "caudals-cli-"));
+    await writeJson(cwd, "intake.json", {
+      intakeId: "in_cli",
+      supplierAssetId: "sa_cli",
+      channel: "webhook",
+      receivedAt: "2026-05-17T12:00:00.000Z",
+      receivedBy: "caudals-ingest-svc-prod-04",
+      contractRef: "ct_cli#cl=4.2",
+      jurisdiction: "EU-ES",
+      objectUri: "s3://caudals-bronze/sa_cli/raw.jsonl",
+      bytes: 4096,
+      sha256: "b".repeat(64),
+      signedBySupplier: true,
+      caudalsSignature: "ed25519:signature",
+      chainOfCustody: ["supplier-webhook", "intake-svc", "bronze-store"],
+      permittedUseDeclaration: { train: true },
+      sensitivityFlag: "PII-PRESENT",
+      refreshDeclaration: "on_event",
+      retentionPosture: { defaultYears: 7, dsar: "propagate" },
+      evidence: {
+        senderIdentity: "supplier-admin@example.com",
+        eventId: "evt_cli",
+        signatureVerified: true,
+      },
+    });
+
+    const accepted = await runCli(cwd, ["intake", "validate", "intake.json"]);
+    const acceptedBody = JSON.parse(accepted.stdout);
+
+    expect(accepted.exitCode).toBe(0);
+    expect(acceptedBody.evaluation.ok).toBe(true);
+    expect(acceptedBody.evaluation.quarantine).toBe(false);
+
+    await writeJson(cwd, "bad-intake.json", {
+      channel: "sftp",
+      sha256: "not-a-sha",
+      signedBySupplier: false,
+    });
+
+    const blocked = await runCli(cwd, ["intake", "validate", "bad-intake.json"]);
+    const blockedBody = JSON.parse(blocked.stdout);
+
+    expect(blocked.exitCode).toBe(2);
+    expect(blockedBody.evaluation.quarantine).toBe(true);
+    expect(blockedBody.evaluation.missing).toEqual(
+      expect.arrayContaining(["contractRef", "evidence.dropEventId"])
+    );
   });
 
   it("blocks non-composable license checks", async () => {
