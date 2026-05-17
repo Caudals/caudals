@@ -40,6 +40,8 @@ authenticated review but stay hidden in production until explicit clearance.
   labeling, approval, and long-running operator workflows
 - Vector services: private Qdrant runtime for build-time embeddings,
   duplicate discovery, similarity search, and retrieval-heavy QA workflows
+- Cache/queue services: private Redis runtime for low-latency cache entries,
+  BullMQ-style queue streams, retries, and worker coordination
 - Operations services: private Marquez/OpenLineage runtime for dataset build
   lineage ingestion and readback
 - CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
@@ -218,6 +220,16 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - `scripts/probe-vector-stack.sh` verifies authenticated Qdrant reachability,
   creates or updates a probe collection, writes and reads a vector point, and
   verifies the absence of published ports.
+- The private cache stack is defined in `infra/cache/docker-stack.yml` and runs
+  Redis on `dokploy-network` without public ingress.
+- Redis stores append-only queue/cache state on a dedicated Docker volume and
+  reads its password from the external Docker secret `redis_password`; the
+  repository and Docker service spec do not store the secret value.
+- Redis is available only on the private Docker network at
+  `redis://caudals-cache-redis:6379`.
+- `scripts/probe-cache-stack.sh` verifies authenticated Redis reachability,
+  cache key read/write, queue stream append/readiness, and the absence of
+  published ports.
 - The private operations service stack is defined in
   `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
   public ingress.

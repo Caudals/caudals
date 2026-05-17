@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  redis:
+    image: ${CAUDALS_REDIS_IMAGE:-redis:7.4.2-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-cache-redis
+          - caudals-cache
+    secrets:
+      - redis_password
+    volumes:
+      - redis-data:/data
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        REDIS_PASSWORD="$$(tr -d '\r\n' </run/secrets/redis_password)"
+        cat >/tmp/redis.conf <<EOF
+        bind 0.0.0.0
+        port 6379
+        protected-mode yes
+        dir /data
+        appendonly yes
+        appendfsync everysec
+        save 60 1000
+        maxmemory 512mb
+        maxmemory-policy allkeys-lru
+        requirepass $${REDIS_PASSWORD}
+        EOF
+        exec redis-server /tmp/redis.conf
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 | grep -Eq 'PONG|NOAUTH'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 128M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_CACHE_NETWORK:-dokploy-network}
+
+volumes:
+  redis-data:
+    name: ${CAUDALS_REDIS_DATA_VOLUME:-caudals-cache-redis-data}
+
+secrets:
+  redis_password:
+    external: true
+    name: ${CAUDALS_REDIS_PASSWORD_SECRET:-redis_password}
