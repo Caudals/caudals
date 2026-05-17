@@ -26,11 +26,11 @@ vi.mock("@/lib/security/structured-logger", () => ({
 }));
 
 import {
-  POST,
   markStripeWebhookEventFailed,
   markStripeWebhookEventProcessed,
   reserveStripeWebhookEvent,
-} from "@/app/(app)/api/webhooks/stripe/route";
+} from "@/lib/stripe/webhook-replay-guard";
+import { POST } from "@/app/(app)/api/webhooks/stripe/route";
 
 function createStripeEvent(overrides: Partial<{ id: string; type: string }> = {}) {
   return {
