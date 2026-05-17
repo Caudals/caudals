@@ -657,7 +657,8 @@ Operational env controls:
 - `PUBLIC_BUYER_BRIEF_TENANT_ORG_ID` (optional public buyer-brief intake RLS scope; defaults to `CAUDALS_TENANT_ORG_ID`)
 - `PUBLIC_BUYER_BRIEF_INTAKE_ENABLED` (default enabled; set `false` to keep `/contact` email-only)
 - `PUBLIC_REST_V1_ENABLED` (default enabled; set `false` to disable `/v1/*`)
-- `PUBLIC_REST_V1_TENANT_ORG_ID` (optional `/v1/*` public catalogue/intake RLS scope; defaults to the public buyer-brief tenant or `CAUDALS_TENANT_ORG_ID`)
+- `PUBLIC_REST_CATALOGUE_ENABLED` (default disabled; set `true` only for a future catalogue rollout that intentionally publishes `/v1/datasets/*`)
+- `PUBLIC_REST_V1_TENANT_ORG_ID` (optional `/v1/*` public intake and future catalogue RLS scope; defaults to the public buyer-brief tenant or `CAUDALS_TENANT_ORG_ID`)
 - `BUYER_WORKSPACE_V1_ENABLED` (default enabled; set `false` to hide read-only subscription, integration, and billing panels on `/buyer`)
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_SECRET_FILE` (Docker secret-file fallback; `BETTER_AUTH_SECRET` wins when both are set)
@@ -764,7 +765,9 @@ Operational env controls:
   from the landing page unless explicitly requested.
 - `/catalogue`, catalogue datasets, public catalogue browsing, sample-preview
   catalogue flows, and catalogue purchase flows are future catalogue-goal work
-  and are not part of the current blueprint implementation.
+  and are not part of the current blueprint implementation. `/v1/datasets/*`
+  stays default-404 unless `PUBLIC_REST_CATALOGUE_ENABLED=true` is explicitly
+  set for that future rollout.
 - `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.

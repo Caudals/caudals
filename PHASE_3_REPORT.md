@@ -23,7 +23,11 @@
 - Document and time-series modality contracts now extend the operator modality model, creation defaults, and fixtures.
 - Release documentation bundles now generate and store G-7 package manifests, Croissant JSON-LD, Article 10 documentation, required docs, validation evidence, and public HF mirror metadata.
 - SOC 2 / ISO 27001 scoping now has an operator-owned control register with framework mappings, evidence links, review cadence, readiness states, and audited workflow transitions.
-- Versioned `/v1/*` REST now exposes inline API documentation, public catalogue/version/sample reads, public brief/access intake, and buyer-scoped delivery, quote, and subscription actions behind rate limits and Better Auth where required.
+- Versioned `/v1/*` REST now exposes inline API documentation, public brief
+  intake, and buyer-scoped delivery, quote, and subscription actions behind rate
+  limits and Better Auth where required. Catalogue dataset endpoints are
+  default-disabled behind the future-catalogue `PUBLIC_REST_CATALOGUE_ENABLED`
+  flag.
 - Private observability now runs on `dokploy-network` with OpenTelemetry traces to Tempo, Docker logs to Loki through Promtail, Prometheus metrics for Tempo/Loki/Promtail/cAdvisor, and internal Grafana datasources.
 - Private operations lineage now runs on `dokploy-network` with Marquez
   receiving OpenLineage events into a dedicated private PostgreSQL
@@ -51,6 +55,10 @@
   navigation locked to Contact/Blog, removing catalogue/security from the
   landing-mode sitemap/robots promotion path, and removing catalogue discovery
   from the security page header and hero actions.
+- Public REST catalogue dataset paths now return a default
+  `catalogue_deferred` 404, while `/v1` remains directly reachable and documents
+  only the current brief-intake and buyer-session API surface unless the future
+  catalogue flag is explicitly enabled.
 
 ## Verification
 
@@ -61,7 +69,7 @@
 - Document/time-series modality coverage passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, operator-console smoke, authenticated role smoke, and core route smoke. Live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke passed for image `mariomedpar/caudals:7baa23ad6720c831784e7bc6047e5ed31fd8e8f9`.
 - Release documentation bundles passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke for image `mariomedpar/caudals:1ba77908a227d9bd0349709682153335902d6527`.
 - SOC 2 / ISO 27001 control scoping passed focused/full Vitest, typecheck, lint, i18n parity, production build, migration rollback/reapply, disposable fixture seed/readback, CI, Docker build, live migration/readback, Docker deployment, route probes, production core route smoke, and production authenticated role smoke.
-- Public REST v1 passed focused/full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, Docker deployment, route probes, live `/v1` descriptor/catalogue/version/header/validation probes, production core route smoke, and production authenticated role smoke.
+- Public REST v1 originally passed focused/full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, Docker deployment, route probes, live `/v1` descriptor/catalogue/version/header/validation probes, production core route smoke, and production authenticated role smoke. The current catalogue-deferral correction passed focused route-doc coverage, typecheck, targeted lint, i18n parity, heap-bounded production build, and local production HTTP probes proving `/v1` returns 200 without catalogue docs while `/v1/datasets` returns `404 catalogue_deferred`.
 - Observability passed focused OpenTelemetry unit tests, full Vitest, typecheck, lint, i18n parity, production build, CI, Docker build, private stack config validation, Docker deployment, private readiness probes, Prometheus `up` scrape readback, Loki app-log readback, Tempo `v1.datasets.list` route-span readback, production route probes, and deployed public browser smoke for image `mariomedpar/caudals:938935446944336fd008f95d193d8c59886340d5`.
 - Operations lineage validation passed shell syntax checks, Docker stack config
   validation, live Marquez stack deployment, Marquez admin health readback,
@@ -70,9 +78,15 @@
 - Build cost-envelope validation passed focused/full Vitest, typecheck, lint, i18n parity, production build, targeted diff checks, disposable migration/rollback validation, disposable SQL behavior checks for soft alerts, hard budget blocking, override alerts, and LLM sub-budget blocking, and live migration/readback.
 - Escalation runbook validation passed focused/full Vitest, typecheck, lint, i18n parity, production build, disposable full-chain migration and rollback checks, fixture seed/readback, direct SQL trigger readback for R-05 routing plus alert/audit creation, and authenticated local production-server operator-console smoke.
 - Security incident runbook validation passed focused operator CRUD/action/workflow tests, typecheck, targeted lint, i18n parity, and disposable migration/rollback/readback proving R-11..R-13 seeds plus `security_event` routing to R-11 with alert/audit evidence.
-- Public security review validation passed route/SEO unit tests, full Vitest, typecheck, lint, i18n parity, heap-bounded production build, and desktop/mobile visual inspection before the route moved behind the landing-mode gate; current landing-mode unit tests assert `/security` remains blocked.
+- Public security review validation passed route/SEO unit tests, full Vitest,
+  typecheck, lint, i18n parity, heap-bounded production build, desktop/mobile
+  visual inspection, and production direct-route probes; landing mode now keeps
+  `/security` unlinked from public navigation while allowing direct access.
 - Security review library validation passed disposable migration/readback/rollback, focused/full Vitest, typecheck, lint, i18n parity, and heap-bounded production build.
-- Platform completion gate validation is intentionally red while external gates remain unfinished; the current run passes route, operator auth policy, and private observability checks and blocks on Sentry, external alert routing, and pentest closure.
+- Platform completion gate validation now passes the current route, Sentry,
+  external alert routing, operator-auth, observability, operations, secret-scan,
+  runtime-secret, and pentest-waiver checks; set
+  `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
 - Private alerting adds Alertmanager and Prometheus rules for scrape failures, host disk pressure, and Prometheus rule/config health. External PagerDuty/on-call routing still requires production contact-point credentials.
 - Sentry runtime helper validation passed no-secret failure handling, disposable Swarm secret/service wiring, lint, typecheck, CI, Docker build, production deployment for image `mariomedpar/caudals:59d48ae6b86ec0cf4d2af9343e4b5f6c3b6f64c2`, landing-mode route probes, and the intentionally red platform completion gate.
 - Landing-mode navigation validation passed focused unit coverage, lint, typecheck, and the full landing-mode public Playwright route suite with the exact `Contacto`/`Blog` top-nav assertion.
@@ -81,13 +95,15 @@
 - Sentry App Router follow-up validation passed lint, typecheck, CI, Docker image build, production deployment for image `mariomedpar/caudals:1097614f0ce06f7e7551ce7bf4fa3894f83e9318`, and the intentionally red platform completion gate.
 - tRPC workspace validation passed focused router, buyer workspace, supplier workspace, and role-probe route tests; typecheck; lint; dashboard screenshots for admin, buyer, supplier, settings, and mobile views; CI; Docker image build; production deployment for image `mariomedpar/caudals:0585d16137848ea922bf400a4d9cdae0c2ff19b7`; and route probes.
 - Work-queue polish validation passed focused operator workflow/action tests, typecheck, lint, i18n parity, and desktop/mobile screenshot inspection with no dashboard console errors or horizontal overflow.
-- Latest platform completion gate readback on image `mariomedpar/caudals:49d91032f88cf05a11215ba7b7f263410c6ec73f` now passes Sentry runtime delivery, Alertmanager external routing, route, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
+- Latest platform completion gate readback on image `mariomedpar/caudals:9bcdd4df8deea15d36b7bbb3ff4c969897a5aafb` passes Sentry runtime delivery, Alertmanager external routing, route, operator-auth, observability-stack, operations-stack, secret-scan, runtime-secret, object-storage/CVAT waivers, and pentest-waiver checks. Set `CAUDALS_PENTEST_GATE_ENABLED=true` to require the quarterly tracker again.
 - Landing-mode direct-route correction validation passed focused route/SEO unit
-  tests, typecheck, targeted lint, i18n parity, and heap-bounded production
-  build. A broad local `e2e/public-routes.spec.ts` attempt was stopped because
-  the current shell lacks `DATABASE_URL` for auth-backed pages and unrelated
-  blog routes timed out during dev-server compilation; production route probes
-  should be used after the direct `main` deployment converges.
+  tests, typecheck, targeted lint, i18n parity, heap-bounded production build,
+  GitHub CI, Docker image build, Docker deployment, production
+  `platform:completion-status`, production `/buyer` and `/supplier` auth
+  redirect probes, `/security` and `/v1` 200 probes, `/catalog` and
+  `/catalogue` 404 probes, exact Contacto/Blog navigation readback, and
+  desktop/mobile `/security` visual checks with no console errors or horizontal
+  overflow.
 
 ## Known Gaps / Next M3 Inputs
 

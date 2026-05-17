@@ -49,6 +49,7 @@ const blockedRoutes = landingModeEnabled
       "/legal/terms",
       "/pricing",
       "/trust",
+      "/v1/datasets",
     ]
   : [];
 

@@ -5,6 +5,8 @@ import {
   canAcceptDeliveryState,
   canDisputeDeliveryState,
   canPauseSubscriptionState,
+  getV1EndpointDocs,
+  isPublicRestCatalogueEnabled,
   isPublicRestV1Enabled,
   v1EndpointDocs,
 } from "@/lib/api/v1";
@@ -21,11 +23,36 @@ describe("public REST v1 contract", () => {
 
   it("documents the versioned API surface inline", () => {
     expect(V1_API_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(v1EndpointDocs.map((endpoint) => endpoint.path)).toContain(
+    const paths = v1EndpointDocs.map((endpoint) => endpoint.path);
+
+    expect(paths).toContain("/v1");
+    expect(paths).toContain("/v1/briefs");
+    expect(paths).toContain("/v1/subscriptions/{id}/pause");
+    expect(paths).not.toContain("/v1/datasets");
+  });
+
+  it("keeps catalogue dataset docs behind an explicit future flag", () => {
+    expect(isPublicRestCatalogueEnabled({} as NodeJS.ProcessEnv)).toBe(false);
+    expect(
+      isPublicRestCatalogueEnabled({
+        PUBLIC_REST_CATALOGUE_ENABLED: "true",
+      } as unknown as NodeJS.ProcessEnv),
+    ).toBe(true);
+
+    const defaultPaths = getV1EndpointDocs({} as NodeJS.ProcessEnv).map(
+      (endpoint) => endpoint.path,
+    );
+    const cataloguePaths = getV1EndpointDocs({
+      PUBLIC_REST_CATALOGUE_ENABLED: "true",
+    } as unknown as NodeJS.ProcessEnv).map((endpoint) => endpoint.path);
+
+    expect(defaultPaths).not.toContain("/v1/datasets");
+    expect(defaultPaths).not.toContain(
       "/v1/datasets/{id}/versions/{versionId}/sample",
     );
-    expect(v1EndpointDocs.map((endpoint) => endpoint.path)).toContain(
-      "/v1/subscriptions/{id}/pause",
+    expect(cataloguePaths).toContain("/v1/datasets");
+    expect(cataloguePaths).toContain(
+      "/v1/datasets/{id}/versions/{versionId}/sample",
     );
   });
 
