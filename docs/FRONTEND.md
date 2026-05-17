@@ -1,27 +1,32 @@
 # Frontend Delivery Contract
 
 ## Scope
+
 Defines implementation rules for frontend work across the public funnel, internal admin dashboard, and future B2B marketplace surfaces.
 
 ## Stack and Constraints
+
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: `/`, `/contact`, `/blog`, `/blog/*`
-- `/catalogue`, `/security`, and `/v1/*` are implemented but hidden while landing mode is active.
-- Keep marketplace, supplier, buyer, and hidden authenticated routes unavailable until explicitly cleared for exposure.
-- `/buyer` is the hidden buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review.
-- `/supplier` is the hidden supplier surface and is limited to managed asset declaration, signed sample upload, build participation, revenue-share payout, and Stripe Connect status review.
+- Current public deployment is landing mode: the landing page and marketing navigation expose only `/`, `/contact`, `/blog`, and `/blog/*`.
+- Landing mode is not a route-publication ban. `/buyer`, `/supplier`, `/security`, and `/v1/*` may be published and accessible by direct URL when protected by their normal auth, authorization, RLS, rate-limit, and audit controls.
+- Landing mode must hide buyer, supplier, API, and security entry points from the landing page: no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths unless explicitly requested.
+- Catalogue datasets, public catalogue browsing, sample-preview catalogue flows, and catalogue purchase flows are out of scope for the current blueprint implementation.
+- `/buyer` is the buyer surface and is limited to read-only delivery, subscription, integration, billing, scorecard, manifest, and trust evidence review.
+- `/supplier` is the supplier surface and is limited to managed asset declaration, signed sample upload, build participation, revenue-share payout, and Stripe Connect status review.
 
 ## Routing and IA Contract
+
 - `LANDING_MODE=true` is the canonical production posture until further notice.
 - Public navigation exposes only Contact and Blog while landing mode remains active.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
-- Do not add new company-facing workflows under hidden app routes.
-- The internal admin dashboard is the only authenticated surface exposed in landing mode; `/buyer` and `/supplier` remain hidden until explicit clearance.
-- Broader buyer/supplier self-service requires a new IA and schema direction before implementation.
+- Do not add landing-page entry points to buyer, supplier, API, or security routes unless explicitly requested.
+- `/buyer`, `/supplier`, `/security`, and `/v1/*` are allowed to be direct-route accessible in landing mode; verify their own access controls rather than blocking them through the landing-mode route gate.
+- Broader buyer/supplier self-service and catalogue commerce require a future IA and schema direction before implementation.
 
 ## Localization Contract
+
 - Supported locales: `en` and `es`.
 - Locale cookie: `NEXT_LOCALE`.
 - Middleware locale detection can use country headers, `Accept-Language`, and IP geolocation fallback.
@@ -31,15 +36,18 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Spain locale (`ES`) should resolve naturally to Spanish copy.
 
 ## Implementation Rules
+
 1. Start from existing design tokens and shared primitives.
-2. Keep current public routes aligned with landing-mode restrictions.
+2. Keep landing-page navigation aligned with landing-mode restrictions while preserving direct-route access for published buyer, supplier, API, and security surfaces.
 3. Prefer incremental, verifiable UI changes.
 4. Avoid parallel component systems.
 5. Preserve keyboard/focus behavior while restyling.
 6. Keep new B2B workflows centered on buyer demand capture, supplier data monetization, dataset operations, and internal admin control.
 
 ## Runtime Review
+
 For frontend changes, use the level of inspection appropriate to the risk of the change:
+
 - local type and lint checks for code edits,
 - browser/devtools inspection for changed routes,
 - console and network review for changed interaction paths,

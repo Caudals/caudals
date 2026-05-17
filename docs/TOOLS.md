@@ -1,7 +1,9 @@
 # Tooling and MCP Reference
 
 ## Agent Access Model
+
 Agents can assume access to:
+
 - local repository source code,
 - product and technical context in `docs/product-specs/overview.md` and `docs/`,
 - self-hosted PostgreSQL through local Docker, Tailscale, SSH, or Dokploy when credentials are available,
@@ -11,6 +13,7 @@ Agents can assume access to:
 When interacting with production-like resources, use read-first diagnostics and minimal-risk mutations.
 
 ## Primary Tooling
+
 - Terminal: build/lint/file ops/repo diagnostics
 - `psql`: SQL migration, rollback, RLS, and schema inspection
 - Docker: local integration checks for PostgreSQL and runtime dependencies
@@ -22,6 +25,7 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
 ## Tool Selection Matrix
+
 - Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database
 - Ad hoc DB inspection/read queries: `psql` over Tailscale/SSH tunnel
 - Local webhook event simulation: Stripe CLI
@@ -31,7 +35,9 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Frontend runtime inspection: browser/devtools tooling
 
 ## PostgreSQL Operational Context
+
 Target Phase 1 runtime:
+
 - VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
@@ -45,16 +51,19 @@ Target Phase 1 runtime:
 - Migration report: `docs/migrations/supabase-to-postgres.md`
 
 Direct SSH runtime inspection is allowed when local context is stale:
+
 - `ssh root@ubuntu-caudals`
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
 If Docker registry access is unavailable, restore the current deployed app image
 from the local archive before rescheduling the app service:
+
 - `sha256sum -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz.sha256`
 - `gunzip -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz | docker load`
 
 ## Private Dashboard Access
+
 - Dokploy and Umami dashboards are not public.
 - Direct Tailscale-only URLs:
   - `http://ubuntu-caudals:7443` for Dokploy
@@ -64,6 +73,7 @@ from the local archive before rescheduling the app service:
   - `http://100.92.160.68:7444`
 
 ## PostgreSQL Migration Usage Pattern
+
 1. Validate SQL on a disposable database before touching a shared database:
    - `docker run --rm --name caudals-sqlcheck -e POSTGRES_PASSWORD=postgres -p 55433:5432 -d pgvector/pgvector:pg16`
    - `PGPASSWORD=postgres psql -h 127.0.0.1 -p 55433 -U postgres -v ON_ERROR_STOP=1 -f db/migrations/<file>.sql`
@@ -74,12 +84,14 @@ from the local archive before rescheduling the app service:
 3. Record verification in `docs/migrations/supabase-to-postgres.md`.
 
 Hard rules:
+
 - Keep schema changes in `db/migrations/*` with matching rollback files in `db/rollbacks/*`.
 - Never expose DB credentials in docs, command output, or captured media.
 - Do not rely on raw public database ports; use SSH tunnels or Tailscale/private access paths only.
 - Do not delete encrypted migration backups unless a newer verified backup exists.
 
 ## Better Auth Migration Pattern
+
 1. Use PostgreSQL as the Better Auth adapter target.
 2. Keep operator sessions cookie-based, httpOnly, SameSite=Lax, rotating, and refresh-on-use.
 3. Allow password-only operator access; keep TOTP and passkeys available as optional hardening.
@@ -88,6 +100,7 @@ Hard rules:
 6. Record JIT-elevation events into `audit_event`.
 
 Current scaffold:
+
 - Server config: `lib/auth/better-auth.ts`
 - Shared auth options/table mapping: `lib/auth/better-auth-options.ts`
 - Client wrapper for future UI migration: `lib/auth/better-auth-client.ts`
@@ -124,10 +137,12 @@ Current scaffold:
 - Legacy account migration: `npm run migrate:supabase-auth -- --apply`
 
 Install caveat:
+
 - Better Auth `1.6.x` has optional peer resolution pressure with this repo's Vitest/Vite stack.
   Use `npm install --legacy-peer-deps` when adding or refreshing Better Auth packages until the Vite peer range is reconciled.
 
 ## Observability Runtime
+
 - Sentry is wired through `instrumentation.ts`, `instrumentation-client.ts`,
   `app/global-error.tsx`, `sentry.server.config.ts`, `sentry.edge.config.ts`, and
   `lib/observability/sentry-config.ts`; server runtime DSN resolution lives in
@@ -199,6 +214,7 @@ Install caveat:
   OpenTelemetry peer packages explicit in `package.json`.
 
 ## Operations Runtime
+
 - Caudals uses S3-compatible object storage for supplier samples, dataset
   packages, release artifacts, and licensed delivery files. The current
   single-node VPS runtime can use the private MinIO stack; DigitalOcean Spaces
@@ -436,6 +452,7 @@ Install caveat:
   the Docker/Tailscale operations boundary without an explicit security review.
 
 ## Stripe CLI Usage Pattern
+
 1. Use only for local/test webhook simulation.
 2. Forward webhooks:
    - `stripe listen --forward-to http://127.0.0.1:3000/api/webhooks/stripe`
@@ -447,22 +464,26 @@ Install caveat:
    - `stripe trigger transfer.failed`
 
 Hard rules:
+
 - Never commit Stripe secrets.
 - Avoid live-mode side effects during local review.
 - Preserve webhook idempotency checks in replay/debugging.
 
 ## Stripe MCP Usage Pattern
+
 1. Prefer `list_*`/search tools before ID-specific fetches.
 2. Treat write operations (`create_refund`, `cancel_subscription`, `update_subscription`) as high-risk.
 3. Redact customer financial data from docs and user-facing output.
 
 ## Browser/Devtools Usage Pattern
+
 1. Navigate to the changed route.
 2. Inspect render and critical interactions.
 3. Check console and failed network requests.
 4. Review responsive behavior when layout changed.
 
 ## GitHub CLI (`gh`) Usage Pattern
+
 1. `gh run list`
 2. `gh run view <run-id>`
 3. `gh run view <run-id> --log-failed`
@@ -471,6 +492,7 @@ Hard rules:
 For failed runs, capture the run ID, failing job, and key error excerpt in the user-facing summary when relevant.
 
 ## Vulnerability Management
+
 - `.github/dependabot.yml` checks npm, GitHub Actions, and Dockerfile base-image
   updates weekly.
 - `.github/workflows/deploy.yml` runs Docker Scout CVE scanning against the
@@ -482,6 +504,7 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   without touching GitHub.
 
 ## Cost Envelope Checks
+
 - `db/migrations/024_build_cost_envelopes.sql` enforces build budget envelopes
   from append-only `cost_entry` rows. Cost entries above the hard build budget,
   LLM sub-budget, or external API sub-budget must carry an override reason; the
@@ -492,6 +515,7 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   `db/rollbacks/024_build_cost_envelopes_down.sql`.
 
 ## Escalation Runbooks
+
 - `db/migrations/025_escalation_runbooks.sql` seeds canonical R-01..R-10
   runbooks and creates `escalation_case`; `027_security_incident_runbooks.sql`
   adds security-specific R-11..R-13 and routes new security events to R-11.
@@ -502,6 +526,7 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   matching rollback before applying to production.
 
 ## Security Review Library
+
 - `db/migrations/026_security_review_library.sql` creates
   `security_review_artifact` and seeds public questionnaire answers, DPA
   review-path notes, and security packet items for `/security`.
@@ -510,29 +535,36 @@ For failed runs, capture the run ID, failing job, and key error excerpt in the u
   `db/rollbacks/026_security_review_library_down.sql`.
 
 ## Localization Guardrail
+
 For translation-impacting work run:
+
 - `npm run i18n:check-parity`
 - optional strict sweep: `npm run i18n:check-parity -- --strict-orphans`
 
 If the parity script is missing, update `lib/i18n/es.json`, `translations-es.json`, and `translations-source.json` manually and verify the JSON parses.
 
 ## Sensitive Data Rule
+
 Never include secrets, tokens, private keys, webhook signing secrets, or unredacted financial data in repository docs or user-facing output.
 
 ## Local Setup Baseline
+
 Prerequisites:
+
 - Node.js `20+`
 - npm `10+`
 - PostgreSQL client tools (`psql`)
 - Docker for disposable migration checks
 
 Bootstrap:
+
 1. `npm install`
 2. `cp .env.example .env.local`
 3. Populate required secrets in `.env.local` (PostgreSQL/Better Auth during migration, Stripe, DO Spaces, Resend).
 4. `npm run dev`
 
 ## Caudals CLI
+
 - `npm run caudals -- help`: show the internal operations CLI from blueprint
   section 24.
 - `npm run caudals -- <command>`: run the CLI through `tsx` from the local
@@ -557,6 +589,7 @@ Bootstrap:
   summaries.
 
 ## Core Script Catalog
+
 - `npm run dev`: Next.js dev server
 - `npm run build`: production build
 - `npm run start`: run built app
@@ -564,7 +597,7 @@ Bootstrap:
 - `npm run lint`: ESLint
 - `npm test -- --run`: Vitest suite
 - `npm run e2e`: Playwright suite
-- `npm run e2e:auth-smoke`: hidden authenticated-route smoke checks; do not use as a product acceptance signal for the B2B pivot unless explicitly updating hidden app code
+- `npm run e2e:auth-smoke`: authenticated admin/buyer/supplier route smoke checks; do not use as a product acceptance signal unless explicitly updating authenticated route behavior
 - `npm run perf:lighthouse`: Lighthouse CI budget check
 - `npm run seed`: seed baseline DB data
 - `npm run seed:test-fixtures`: deterministic fixture seed
@@ -611,11 +644,13 @@ Bootstrap:
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
 ## Useful Route-Level Checks
+
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/smoke.spec.ts --project=chromium`
 - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/public-routes.spec.ts --project=chromium`
-- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for hidden authenticated-route changes
+- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/authenticated-role-smoke.spec.ts --project=chromium` only for authenticated admin, buyer, supplier, API, or route-visibility changes
 
 Operational env controls:
+
 - `DATABASE_URL`
 - `DATABASE_URL_FILE` (Docker secret-file fallback; `DATABASE_URL` wins when both are set)
 - `CAUDALS_TENANT_ORG_ID` (optional public catalogue RLS scope; defaults to the seeded Caudals tenant id)
@@ -674,6 +709,7 @@ Operational env controls:
 - `TEST_FIXTURE_AUTO_RESEED` (default `true`)
 
 ## Environment Variable Categories
+
 - PostgreSQL/Better Auth: `DATABASE_URL` or `DATABASE_URL_FILE`, optional `CAUDALS_TENANT_ORG_ID`, `BETTER_AUTH_SECRET` or `BETTER_AUTH_SECRET_FILE`, `BETTER_AUTH_URL`
 - Legacy migration-only auth/data: active runtime no longer uses Supabase; use `LEGACY_SUPABASE_DATABASE_URL` only for explicit one-off migration reruns from a verified legacy backup/source
 - Stripe: publishable key, secret key or secret file, webhook secret or secret file
@@ -696,29 +732,46 @@ Operational env controls:
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
+
 - `LANDING_MODE=true` is the current public deployment posture.
 - `LANDING_MODE` affects both build-time and runtime behavior.
+- Landing mode is a landing-page visibility mode, not a blanket route gate.
+  Buyer, supplier, API, and security routes may remain published and accessible
+  by direct URL in landing mode when protected by their normal auth,
+  authorization, RLS, rate-limit, and audit controls.
+- Landing mode must keep those surfaces undiscoverable from the landing page:
+  no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other
+  public entry points unless explicitly requested.
 - Build-time: set the GitHub Actions repository secret `LANDING_MODE=true` so `.github/workflows/deploy.yml` passes it into the Docker build. This bakes `NEXT_PUBLIC_LANDING_MODE` into the public bundle.
 - Runtime: keep `LANDING_MODE=true` in Dokploy environment variables as well, or ensure Dokploy does not override the image-level value. The server-side proxy reads runtime `LANDING_MODE`.
 - Local/dev convenience: `next.config.js` mirrors `LANDING_MODE` into `NEXT_PUBLIC_LANDING_MODE` when the public flag is unset, so `.env.local` can activate the landing surface with just `LANDING_MODE=true`.
 - After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
 
 ## Phase 1 Surface Gate
+
 - `/browse` is removed and blocked during Phase 1; public marketing navigation no longer links to a marketplace browse surface.
 - `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned in a later phase.
 - `/supplier` is the managed supplier portal exception; it stays authenticated
   and limited to supplier-owned asset declaration, signed sample upload, build
-  status, revenue-share payout, and Stripe Connect review while `/contributor`
-  remains blocked outside landing mode. It is blocked when `LANDING_MODE=true`.
-- `/catalogue` is the M3 catalogue surface; it stays read-only, shows only
-  active public listings, sends access requests to `/contact`, and is blocked
-  when `LANDING_MODE=true`.
+  status, revenue-share payout, and Stripe Connect review. It may be accessible
+  by direct route when `LANDING_MODE=true`, but must not be linked from the
+  landing page unless explicitly requested.
+- `/buyer` is the managed buyer workspace exception. It may be accessible by
+  direct route when `LANDING_MODE=true`, but must not be linked from the
+  landing page unless explicitly requested.
+- `/security` and `/v1/*` may be accessible by direct route when
+  `LANDING_MODE=true`, subject to their normal controls, but must not be linked
+  from the landing page unless explicitly requested.
+- `/catalogue`, catalogue datasets, public catalogue browsing, sample-preview
+  catalogue flows, and catalogue purchase flows are future catalogue-goal work
+  and are not part of the current blueprint implementation.
 - `/dashboard` is removed and blocked during Phase 1.
 - `/pwa` is removed and blocked during Phase 1; the web app manifest now points to public landing surfaces only.
 - `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned in a later phase.
 - `/admin/*` legacy subroutes are removed and blocked during Phase 1; `/admin` remains the Operator Console.
 
 ## Troubleshooting Quick Hits
+
 - `permission denied for table ...`:
   - confirm `app.current_org_id` and service-role session settings,
   - inspect the table's RLS policy,
