@@ -18,11 +18,16 @@ export default function robots(): MetadataRoute.Robots {
     disallow.push(
       "/about",
       "/browse",
+      "/buyer",
       "/careers",
+      "/catalogue",
       "/docs",
       "/legal/",
       "/pricing",
-      "/trust"
+      "/security",
+      "/supplier",
+      "/trust",
+      "/v1"
     );
   }
 
@@ -32,10 +37,8 @@ export default function robots(): MetadataRoute.Robots {
       allow: [
         "/",
         "/blog/",
-        "/catalogue",
         "/contact",
         "/robots.txt",
-        "/security",
         "/sitemap.xml",
       ],
       disallow,

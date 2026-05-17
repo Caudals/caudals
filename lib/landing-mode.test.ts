@@ -27,26 +27,26 @@ describe("landing mode route allowlist", () => {
     ).toBe(true);
   });
 
-  it("keeps the private admin auth surface reachable", () => {
+  it("keeps private, security, and API direct routes reachable", () => {
     expect(isLandingModePagePathAllowed("/admin")).toBe(true);
     expect(isLandingModePagePathAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModePagePathAllowed("/auth/security")).toBe(true);
+    expect(isLandingModePagePathAllowed("/buyer")).toBe(true);
+    expect(isLandingModePagePathAllowed("/buyer/deliveries")).toBe(true);
+    expect(isLandingModePagePathAllowed("/supplier")).toBe(true);
+    expect(isLandingModePagePathAllowed("/supplier/assets")).toBe(true);
+    expect(isLandingModePagePathAllowed("/security")).toBe(true);
+    expect(isLandingModePagePathAllowed("/security/")).toBe(true);
+    expect(isLandingModePagePathAllowed("/v1")).toBe(true);
+    expect(isLandingModePagePathAllowed("/v1/deliveries")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/auth/sign-in/email")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/auth/session")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/user/role")).toBe(true);
   });
 
-  it("blocks non-public pages", () => {
+  it("blocks catalogue and broader marketing pages", () => {
     expect(isLandingModePagePathAllowed("/catalogue")).toBe(false);
     expect(isLandingModePagePathAllowed("/catalogue/")).toBe(false);
-    expect(isLandingModePagePathAllowed("/security")).toBe(false);
-    expect(isLandingModePagePathAllowed("/security/")).toBe(false);
-    expect(isLandingModePagePathAllowed("/v1")).toBe(false);
-    expect(isLandingModePagePathAllowed("/v1/datasets")).toBe(false);
-    expect(isLandingModePagePathAllowed("/buyer")).toBe(false);
-    expect(isLandingModePagePathAllowed("/buyer/deliveries")).toBe(false);
-    expect(isLandingModePagePathAllowed("/supplier")).toBe(false);
-    expect(isLandingModePagePathAllowed("/supplier/assets")).toBe(false);
     expect(isLandingModePagePathAllowed("/pricing")).toBe(false);
     expect(isLandingModePagePathAllowed("/catalog")).toBe(false);
     expect(isLandingModePagePathAllowed("/collaborate")).toBe(false);
@@ -84,10 +84,10 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/user/role")).toBe(true);
     expect(isLandingModeRequestAllowed("/catalogue")).toBe(false);
-    expect(isLandingModeRequestAllowed("/security")).toBe(false);
-    expect(isLandingModeRequestAllowed("/v1/datasets")).toBe(false);
-    expect(isLandingModeRequestAllowed("/buyer")).toBe(false);
-    expect(isLandingModeRequestAllowed("/supplier")).toBe(false);
+    expect(isLandingModeRequestAllowed("/security")).toBe(true);
+    expect(isLandingModeRequestAllowed("/v1/deliveries")).toBe(true);
+    expect(isLandingModeRequestAllowed("/buyer")).toBe(true);
+    expect(isLandingModeRequestAllowed("/supplier")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/internal/jobs")).toBe(false);
     expect(isLandingModeRequestAllowed("/api/trpc/health")).toBe(false);
   });

@@ -71,7 +71,7 @@ check_routes() {
 
   local path status expected
   local -a allowed=("/" "/contact" "/blog")
-  local -a blocked=("/catalog" "/catalogue" "/security" "/v1" "/buyer" "/supplier")
+  local -a blocked=("/catalog" "/catalogue")
 
   for path in "${allowed[@]}"; do
     status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL$path" || true)"
@@ -87,6 +87,34 @@ check_routes() {
     mark_ok "routing/admin" "returned $status"
   else
     mark_fail "routing/admin" "expected auth redirect, got ${status:-none}"
+  fi
+
+  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/buyer" || true)"
+  if [[ "$status" =~ ^30[12378]$ ]]; then
+    mark_ok "routing/buyer" "returned auth redirect $status"
+  else
+    mark_fail "routing/buyer" "expected auth redirect, got ${status:-none}"
+  fi
+
+  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/supplier" || true)"
+  if [[ "$status" =~ ^30[12378]$ ]]; then
+    mark_ok "routing/supplier" "returned auth redirect $status"
+  else
+    mark_fail "routing/supplier" "expected auth redirect, got ${status:-none}"
+  fi
+
+  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/security" || true)"
+  if [[ "$status" == "200" ]]; then
+    mark_ok "routing/security" "returned 200"
+  else
+    mark_fail "routing/security" "expected 200, got ${status:-none}"
+  fi
+
+  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/v1" || true)"
+  if [[ "$status" == "200" ]]; then
+    mark_ok "routing/v1" "returned 200"
+  else
+    mark_fail "routing/v1" "expected 200, got ${status:-none}"
   fi
 
   for path in "${blocked[@]}"; do
