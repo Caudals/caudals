@@ -172,7 +172,8 @@ Install caveat:
   landing-mode routing and exact public nav labels, Sentry, operator auth policy,
   private observability readiness, private Dagster orchestration readiness,
   private Temporal workflow readiness, private operations lineage readiness,
-  external alert routing, tracked Sentry auth token leaks, and the
+  private Qdrant vector-index readiness, external alert routing, tracked Sentry
+  auth token leaks, and the
   current-quarter pentest tracker.
 - `scripts/deploy-observability-stack.sh` keeps Alertmanager local/no-op by
   default; set `CAUDALS_ALERTMANAGER_WEBHOOK_URL_FILE` or
@@ -252,6 +253,30 @@ Install caveat:
   `CAUDALS_TEMPORAL_SERVER_SERVICE`, `CAUDALS_TEMPORAL_UI_SERVICE`,
   `CAUDALS_TEMPORAL_UI_URL`, and `CAUDALS_WORKFLOW_PROBE_ATTEMPTS`.
 - Keep Temporal private. Do not publish ports or expose the UI/RPC endpoint
+  outside the Docker/Tailscale operations boundary without an explicit security
+  review.
+
+- The private vector stack lives in `infra/vector/` and is deployed with
+  `npm run vector:deploy`. It runs Qdrant on `dokploy-network` without public
+  published ports.
+- `scripts/deploy-vector-stack.sh` creates a root-only generated Qdrant API key
+  file when one is not supplied, creates the external Docker secret
+  `qdrant_api_key`, pulls the pinned Qdrant image, and deploys the stack. The
+  script must not print the generated API key.
+- Provide `CAUDALS_QDRANT_API_KEY_FILE=/path/to/key` when a pre-existing
+  server-only key file should be used instead of the generated
+  `/root/.caudals/vector/qdrant-api-key` file.
+- `npm run vector:probe` verifies Qdrant authenticated reachability, probe
+  collection creation, point write/read behavior, and that Qdrant does not
+  publish ports.
+- Useful override variables: `CAUDALS_VECTOR_STACK_NAME`,
+  `CAUDALS_VECTOR_NETWORK`, `CAUDALS_QDRANT_IMAGE`,
+  `CAUDALS_QDRANT_API_KEY_SECRET`, `CAUDALS_QDRANT_API_KEY_FILE`,
+  `CAUDALS_QDRANT_SERVICE`, `CAUDALS_QDRANT_URL`,
+  `CAUDALS_QDRANT_PROBE_COLLECTION`, `CAUDALS_VECTOR_PROBE_ATTEMPTS`,
+  `CAUDALS_VECTOR_PROBE_CONNECT_TIMEOUT_SECONDS`, and
+  `CAUDALS_VECTOR_PROBE_MAX_TIME_SECONDS`.
+- Keep Qdrant private. Do not publish ports or expose the HTTP/gRPC endpoints
   outside the Docker/Tailscale operations boundary without an explicit security
   review.
 
@@ -427,6 +452,9 @@ Bootstrap:
   operations stack
 - `npm run operations:probe`: probe private Marquez health and synthetic
   OpenLineage ingestion
+- `npm run vector:deploy`: deploy the private Qdrant vector-index stack
+- `npm run vector:probe`: probe private Qdrant authenticated collection and
+  point read/write readiness
 - `npm run caudals`: Caudals operations CLI; pass command arguments after `--`
 - `npm run i18n:check-parity`: EN/ES translation parity checks
 
@@ -487,9 +515,10 @@ Operational env controls:
   export
 - Operations services: Dagster orchestration stack/image/service names,
   Dagster OpenLineage URL/strictness, Temporal workflow stack/image/service
-  names, Temporal namespace/retention, Marquez/OpenLineage stack name, private
-  Docker network, Marquez API/admin URLs, and server-only Dagster/Temporal/
-  Marquez PostgreSQL secret files
+  names, Temporal namespace/retention, Qdrant vector stack/image/API-key
+  secret names, Marquez/OpenLineage stack name, private Docker network, Marquez
+  API/admin URLs, and server-only Dagster/Temporal/Marquez PostgreSQL secret
+  files
 - Optional ops: platform fee percent and Stripe test business URL settings
 
 ## LANDING_MODE Activation
