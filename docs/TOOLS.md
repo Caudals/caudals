@@ -356,6 +356,12 @@ Bootstrap:
   `delivery sign`, `dsar propagate`, and `fixture seed`.
 - Commands that need external systems fail closed when required configuration is
   missing. `build run` requires `DAGSTER_URL` unless `--dry-run` is set,
+  launches Dagster through GraphQL, and defaults to the private orchestration
+  code location (`caudals_reference_assets`), repository (`__repository__`), and
+  job (`caudals_reference_build`). Override the selector with `--location`,
+  `--repository`, `--job`, or the matching `DAGSTER_*` environment variables.
+  `DAGSTER_URL` must be reachable from the caller, so use the private Docker
+  network hostname from an attached container or an approved operations tunnel.
   `delivery sign` requires explicit private-key material, and live fixture
   seeding requires `DATABASE_URL`.
 - Keep CLI inputs and outputs file-based for auditability. Do not paste secrets

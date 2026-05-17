@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createCliTestPrivateKey,
@@ -38,6 +38,10 @@ async function runCli(
 }
 
 describe("caudals CLI", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("lists the blueprint section 24 commands in help output", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "caudals-cli-"));
     const result = await runCli(cwd, ["help"]);
@@ -162,6 +166,105 @@ describe("caudals CLI", () => {
     expect(body.dryRun).toBe(true);
     expect(body.manifestFormat).toBe("yaml");
     expect(body.planHash).toHaveLength(64);
+    expect(body.dagster.jobName).toBe("caudals_reference_build");
+    expect(body.submitted).toBe(false);
+  });
+
+  it("submits build manifests to Dagster GraphQL", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "caudals-cli-"));
+    await writeJson(cwd, "plan.json", {
+      apiVersion: "caudals.io/build-plan/v1",
+      kind: "BuildPlan",
+      metadata: {
+        briefId: "br_cli",
+      },
+      spec: {
+        modality: "tabular",
+      },
+    });
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(
+        JSON.stringify({
+          data: {
+            launchRun: {
+              __typename: "LaunchRunSuccess",
+              run: {
+                runId: "6b37a2a2-cc61-4307-9f67-ca5d26777517",
+                status: "QUEUED",
+                pipelineName: "caudals_reference_build",
+              },
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runCli(
+      cwd,
+      ["build", "run", "plan.json"],
+      {
+        DAGSTER_URL: "http://dagster.local",
+        DAGSTER_REPOSITORY_LOCATION_NAME: "caudals_reference_assets",
+        DAGSTER_REPOSITORY_NAME: "__repository__",
+      }
+    );
+    const body = JSON.parse(result.stdout);
+    const request = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const tags = request.variables.executionParams.executionMetadata.tags;
+
+    expect(result.exitCode).toBe(0);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://dagster.local/graphql",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(request.variables.executionParams.selector).toEqual({
+      repositoryLocationName: "caudals_reference_assets",
+      repositoryName: "__repository__",
+      jobName: "caudals_reference_build",
+    });
+    expect(tags).toEqual(
+      expect.arrayContaining([
+        { key: "caudals/build_id", value: "br_cli" },
+        { key: "caudals/manifest_format", value: "json" },
+      ])
+    );
+    expect(body.submitted).toBe(true);
+    expect(body.dagster.runId).toBe("6b37a2a2-cc61-4307-9f67-ca5d26777517");
+    expect(body.dagster.status).toBe("QUEUED");
+  });
+
+  it("fails closed when Dagster rejects a build run", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "caudals-cli-"));
+    await writeJson(cwd, "plan.json", {
+      metadata: { briefId: "br_missing" },
+      spec: { modality: "tabular" },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            data: {
+              launchRun: {
+                __typename: "PipelineNotFoundError",
+                message: "Job not found",
+              },
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      )
+    );
+
+    const result = await runCli(cwd, ["build", "run", "plan.json"], {
+      DAGSTER_URL: "http://dagster.local/graphql",
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Dagster launch rejected");
+    expect(result.stderr).toContain("Job not found");
   });
 
   it("replays builds from a manifest and verifies hash equality", async () => {
