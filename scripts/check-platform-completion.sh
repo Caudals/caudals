@@ -358,6 +358,151 @@ SQL
   fi
 }
 
+check_representative_build_evidence() {
+  local postgres_container sql output evidence_error
+
+  postgres_container="$(first_service_container "$POSTGRES_SERVICE")"
+  if [[ -z "$postgres_container" ]]; then
+    mark_fail "data.representative_build" "no running container for service $POSTGRES_SERVICE"
+    return
+  fi
+
+  read -r -d "" sql <<'SQL'
+WITH scope AS (
+  SELECT set_config('app.is_service_role', 'true', true)
+),
+representative AS (
+  SELECT b.id AS build_id, dv.id AS dataset_version_id
+  FROM scope, build b
+  JOIN dataset_version dv ON dv.build_id = b.id
+  WHERE b.deleted_at IS NULL
+    AND dv.deleted_at IS NULL
+    AND b.state IN ('released','delivered')
+    AND dv.state = 'released'
+  ORDER BY b.updated_at DESC, b.id
+  LIMIT 1
+),
+partition_layers AS (
+  SELECT DISTINCT dp.layer
+  FROM representative r
+  JOIN dataset_partition dp ON dp.dataset_version_id = r.dataset_version_id
+  WHERE dp.deleted_at IS NULL
+    AND dp.state IN ('sealed','promoted')
+),
+artifact_types AS (
+  SELECT DISTINCT ma.artifact_type
+  FROM representative r
+  JOIN manifest_artifact ma ON ma.dataset_version_id = r.dataset_version_id
+  WHERE ma.deleted_at IS NULL
+    AND ma.state IN ('approved','published')
+)
+SELECT jsonb_build_object(
+  'build_id', (SELECT build_id FROM representative),
+  'dataset_version_id', (SELECT dataset_version_id FROM representative),
+  'passing_gates', COALESCE((
+    SELECT count(DISTINCT ge.gate_key)
+    FROM representative r
+    JOIN gate_event ge ON ge.build_id = r.build_id
+    WHERE ge.verdict = 'pass'
+  ), 0),
+  'partition_layers', COALESCE((
+    SELECT jsonb_agg(layer ORDER BY layer)
+    FROM partition_layers
+  ), '[]'::jsonb),
+  'artifact_types', COALESCE((
+    SELECT jsonb_agg(artifact_type ORDER BY artifact_type)
+    FROM artifact_types
+  ), '[]'::jsonb),
+  'has_lineage', EXISTS (
+    SELECT 1
+    FROM representative r
+    JOIN lineage_event le ON le.dataset_version_id = r.dataset_version_id
+  ),
+  'has_release_docs', EXISTS (
+    SELECT 1
+    FROM representative r
+    JOIN release_documentation_bundle rd
+      ON rd.dataset_version_id = r.dataset_version_id
+    WHERE rd.deleted_at IS NULL
+      AND rd.state IN ('approved','published')
+      AND rd.validation_summary ->> 'status' = 'pass'
+      AND rd.package_manifest ? 'croissant'
+  ),
+  'has_accepted_delivery', EXISTS (
+    SELECT 1
+    FROM representative r
+    JOIN delivery d ON d.dataset_version_id = r.dataset_version_id
+    WHERE d.deleted_at IS NULL
+      AND d.state = 'accepted'
+      AND d.receipt ?& ARRAY[
+        'object',
+        'acceptedAt',
+        'acceptedBy',
+        'receiptHash',
+        'packageManifestArtifactId'
+      ]
+  )
+);
+SQL
+
+  output="$(
+    docker exec "$postgres_container" psql \
+      -U caudals_app \
+      -d caudals \
+      -v ON_ERROR_STOP=1 \
+      -At \
+      -c "$sql" 2>&1
+  )"
+
+  if [[ "$?" -ne 0 ]]; then
+    mark_fail "data.representative_build" "$(printf "%s" "$output" | tr "\n" " ")"
+    return
+  fi
+
+  if evidence_error="$(node -e '
+    const status = JSON.parse(process.argv[1]);
+    const missing = [];
+    const requireValues = (label, actual, expected) => {
+      const set = new Set(actual ?? []);
+      const absent = expected.filter((value) => !set.has(value));
+      if (absent.length) missing.push(`${label}:${absent.join(",")}`);
+    };
+
+    if (!status.build_id || !status.dataset_version_id) {
+      missing.push("released_or_delivered_build");
+    }
+    if (Number(status.passing_gates ?? 0) < 7) {
+      missing.push(`passing_gates:${status.passing_gates ?? 0}/7`);
+    }
+    requireValues("partition_layers", status.partition_layers, [
+      "bronze",
+      "silver",
+      "gold",
+    ]);
+    requireValues("artifact_types", status.artifact_types, [
+      "source_manifest",
+      "profile_report",
+      "qa_report",
+      "package_manifest",
+      "croissant",
+      "lineage_manifest",
+      "privacy_summary",
+    ]);
+    if (!status.has_lineage) missing.push("lineage_event");
+    if (!status.has_release_docs) missing.push("release_docs");
+    if (!status.has_accepted_delivery) missing.push("accepted_delivery");
+
+    if (missing.length) {
+      process.stderr.write(JSON.stringify({ missing, status }));
+      process.exit(1);
+    }
+  ' "$output" 2>&1)"; then
+    mark_ok "data.representative_build" "build evidence includes G-1..G-7, partitions, artifacts, release docs, lineage, and accepted delivery"
+  else
+    mark_fail "data.representative_build" "$evidence_error"
+  fi
+}
+
 check_blueprint_tool_contracts() {
   local output
 
@@ -675,6 +820,7 @@ main() {
 
   check_operator_auth_policy
   check_blueprint_schema
+  check_representative_build_evidence
   check_blueprint_tool_contracts
   check_observability_stack
   check_cache_stack
