@@ -158,6 +158,26 @@ check_sentry() {
   fi
 }
 
+check_app_runtime_config() {
+  local app_container="$1"
+  local output
+
+  if [[ ! -f "scripts/check-app-runtime-config.mjs" ]]; then
+    mark_fail "app.runtime_config" "scripts/check-app-runtime-config.mjs not found"
+    return
+  fi
+
+  output="$(
+    docker exec -i "$app_container" sh -lc "node --input-type=module - --fail-on-missing" \
+      < scripts/check-app-runtime-config.mjs 2>&1
+  )"
+  if [[ "$?" -eq 0 ]]; then
+    mark_ok "app.runtime_config" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  else
+    mark_fail "app.runtime_config" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+  fi
+}
+
 check_operator_auth_policy() {
   local postgres_container sql output enrollment_env
 
@@ -466,6 +486,7 @@ main() {
 
   if [[ -n "$APP_CONTAINER" ]]; then
     check_sentry "$APP_CONTAINER"
+    check_app_runtime_config "$APP_CONTAINER"
   fi
 
   check_operator_auth_policy

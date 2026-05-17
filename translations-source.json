@@ -1936,5 +1936,12 @@
   "workflow.stack gate",
   "Vector index",
   "Qdrant stores private build-time embeddings for similarity search, duplicate discovery, and retrieval-heavy QA workflows.",
-  "vector.stack gate"
+  "vector.stack gate",
+  "Commercial payments",
+  "Stripe server, webhook, and publishable key configuration are mounted for invoice and payout workflows.",
+  "app.runtime_config gate",
+  "Stripe config review",
+  "Email runtime",
+  "Resend API, sender identity, and audience routing are configured for contact and waitlist workflows.",
+  "Resend config review"
 ]

@@ -32,6 +32,7 @@
     "migrate:supabase-auth": "tsx scripts/migrate-supabase-auth.ts",
     "migrate:public-funnel": "tsx scripts/migrate-public-funnel-data.ts",
     "platform:completion-status": "bash scripts/check-platform-completion.sh",
+    "platform:runtime-config": "node scripts/check-app-runtime-config.mjs",
     "cache:deploy": "bash scripts/deploy-cache-stack.sh",
     "cache:probe": "bash scripts/probe-cache-stack.sh",
     "labeling:deploy": "bash scripts/deploy-labeling-stack.sh",

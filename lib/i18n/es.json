@@ -3089,5 +3089,12 @@
   "workflow.stack gate": "Gate workflow.stack",
   "Vector index": "Indice vectorial",
   "Qdrant stores private build-time embeddings for similarity search, duplicate discovery, and retrieval-heavy QA workflows.": "Qdrant almacena embeddings privados de build para busqueda de similitud, deteccion de duplicados y workflows de QA con recuperacion intensiva.",
-  "vector.stack gate": "Gate vector.stack"
+  "vector.stack gate": "Gate vector.stack",
+  "Commercial payments": "Pagos comerciales",
+  "Stripe server, webhook, and publishable key configuration are mounted for invoice and payout workflows.": "La configuracion de servidor Stripe, webhook y clave publicable esta montada para workflows de facturas y payouts.",
+  "app.runtime_config gate": "Gate app.runtime_config",
+  "Stripe config review": "Revision de configuracion de Stripe",
+  "Email runtime": "Runtime de email",
+  "Resend API, sender identity, and audience routing are configured for contact and waitlist workflows.": "La API de Resend, la identidad remitente y el enrutamiento de audiencias estan configurados para workflows de contacto y lista de espera.",
+  "Resend config review": "Revision de configuracion de Resend"
 }
