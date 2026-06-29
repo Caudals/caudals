@@ -19,6 +19,8 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModePagePathAllowed("/")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact")).toBe(true);
     expect(isLandingModePagePathAllowed("/contact/")).toBe(true);
+    expect(isLandingModePagePathAllowed("/book")).toBe(true);
+    expect(isLandingModePagePathAllowed("/book/")).toBe(true);
     expect(isLandingModePagePathAllowed("/blog")).toBe(true);
     expect(
       isLandingModePagePathAllowed(
@@ -77,6 +79,7 @@ describe("landing mode route allowlist", () => {
 
   it("evaluates full request allowlisting", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
+    expect(isLandingModeRequestAllowed("/book")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);

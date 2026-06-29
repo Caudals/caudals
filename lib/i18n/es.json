@@ -3103,5 +3103,14 @@
   "Stripe config review": "Revision de configuracion de Stripe",
   "Email runtime": "Runtime de email",
   "Resend API, sender identity, and audience routing are configured for contact and waitlist workflows.": "La API de Resend, la identidad remitente y el enrutamiento de audiencias estan configurados para workflows de contacto y lista de espera.",
-  "Resend config review": "Revision de configuracion de Resend"
+  "Resend config review": "Revision de configuracion de Resend",
+  "Book a meeting": "Reserva una reunión",
+  "Pick a time that works for you. We'll walk through your data needs, feasibility, and the fastest path to an ML-ready dataset.": "Elige una hora que te venga bien. Repasaremos tus necesidades de datos, la viabilidad y la vía más rápida hacia un conjunto de datos listo para ML.",
+  "Prefer to write first?": "¿Prefieres escribirnos primero?",
+  "Send us a brief": "Envíanos un brief",
+  "or email": "o escríbenos a",
+  "Meeting scheduler": "Programador de reuniones",
+  "Scheduling is being set up": "Estamos configurando la agenda",
+  "Our live scheduler isn't connected yet. Send us a brief and we'll reply within 24 hours to find a time.": "Nuestro calendario en vivo aún no está conectado. Envíanos un brief y te responderemos en menos de 24 horas para encontrar un hueco.",
+  "Prefer to meet live?": "¿Prefieres una reunión en vivo?"
 }

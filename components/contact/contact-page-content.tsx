@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
@@ -29,6 +30,15 @@ export function ContactPageContent({
             {t(
               "Tell us what data your company needs or what data you can offer. We'll get back to you within 24 hours.",
             )}
+          </p>
+          <p className="mt-4 text-sm text-gray-500">
+            {t("Prefer to meet live?")}{" "}
+            <Link
+              href="/book"
+              className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
+            >
+              {t("Book a meeting")}
+            </Link>
           </p>
         </header>
 

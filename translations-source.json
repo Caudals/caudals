@@ -1950,5 +1950,14 @@
   "Stripe config review",
   "Email runtime",
   "Resend API, sender identity, and audience routing are configured for contact and waitlist workflows.",
-  "Resend config review"
+  "Resend config review",
+  "Book a meeting",
+  "Pick a time that works for you. We'll walk through your data needs, feasibility, and the fastest path to an ML-ready dataset.",
+  "Prefer to write first?",
+  "Send us a brief",
+  "or email",
+  "Meeting scheduler",
+  "Scheduling is being set up",
+  "Our live scheduler isn't connected yet. Send us a brief and we'll reply within 24 hours to find a time.",
+  "Prefer to meet live?"
 ]
