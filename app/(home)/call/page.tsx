@@ -4,7 +4,7 @@ import { buildPublicMetadata } from "@/lib/seo";
 // Public Cal.com event slug for the booking embed. Hardcoded so the page works
 // in production without extra env setup; CALCOM_LINK (read at request time, no
 // rebuild needed) overrides it if the event ever changes.
-const DEFAULT_CAL_LINK = "medpar/call";
+const DEFAULT_CAL_LINK = "caudals/call";
 
 export const dynamic = "force-dynamic";
 
