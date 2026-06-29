@@ -9,7 +9,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: public pages are `/`, `/contact`, `/book`, `/blog`, and `/blog/*`. Primary marketing navigation surfaces Contact and Blog; `/book` is a public funnel page reachable by direct link and cross-linked from `/contact`.
+- Current public deployment is landing mode: public pages are `/`, `/contact`, `/call`, `/blog`, and `/blog/*`. Primary marketing navigation surfaces Contact and Blog; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`.
 - Landing mode is not a route-publication ban. `/buyer`, `/supplier`, `/security`, and `/v1/*` may be published and accessible by direct URL when protected by their normal auth, authorization, RLS, rate-limit, and audit controls.
 - Landing mode must hide buyer, supplier, API, and security entry points from the landing page: no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths unless explicitly requested.
 - Catalogue datasets, public catalogue browsing, sample-preview catalogue flows, and catalogue purchase flows are out of scope for the current blueprint implementation.
@@ -21,7 +21,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - `LANDING_MODE=true` is the canonical production posture until further notice.
 - Public navigation exposes only Contact and Blog while landing mode remains active.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
-- `/book` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.
+- `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.
 - Do not add landing-page entry points to buyer, supplier, API, or security routes unless explicitly requested.
 - `/buyer`, `/supplier`, `/security`, and `/v1/*` are allowed to be direct-route accessible in landing mode; verify their own access controls rather than blocking them through the landing-mode route gate.
 - Broader buyer/supplier self-service and catalogue commerce require a future IA and schema direction before implementation.

@@ -1,7 +1,7 @@
 const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   "/",
   "/contact",
-  "/book",
+  "/call",
   "/blog",
 ]);
 const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/"];
