@@ -20,7 +20,7 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
       <Header links={[...landingModePublicNavigationLinks]} hideActions />
-      <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
+      <main className="mx-auto flex w-full max-w-4xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
             {t("Book a meeting")}
@@ -33,13 +33,11 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
         </header>
 
         <section className="w-full" aria-label={t("Meeting scheduler")}>
-          <div className="bg-gray-50/50 p-4 sm:p-6 border border-gray-200 rounded-md">
-            {calLink ? (
-              <BookingEmbed calLink={calLink} />
-            ) : (
-              <SchedulerNotConfigured t={t} />
-            )}
-          </div>
+          {calLink ? (
+            <BookingEmbed calLink={calLink} />
+          ) : (
+            <SchedulerNotConfigured t={t} />
+          )}
 
           <p className="mt-8 text-center text-sm leading-relaxed text-gray-500">
             {t("Prefer to write first?")}{" "}
