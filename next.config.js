@@ -28,6 +28,7 @@ const cspDirectives = [
     "https://analytics.caudals.com",
     "https://va.vercel-scripts.com",
     "https://js.stripe.com",
+    "https://app.cal.com",
   ]
     .filter(Boolean)
     .join(" "),
@@ -41,6 +42,8 @@ const cspDirectives = [
     "https://hooks.stripe.com",
     "https://www.youtube.com",
     "https://www.youtube-nocookie.com",
+    "https://cal.com",
+    "https://app.cal.com",
   ].join(" "),
   "worker-src 'self' blob:",
   ...(!isDev ? ["upgrade-insecure-requests"] : []),
