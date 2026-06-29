@@ -5,8 +5,8 @@ import Cal, { getCalApi } from "@calcom/embed-react";
 
 // One inline scheduler on the page, so a single stable namespace is enough.
 const CAL_NAMESPACE = "caudals-booking";
-// Cal's accent var, mapped to the Caudals brand accent (--ds-accent / emerald-600).
-const CAL_BRAND_COLOR = "#059669";
+// Cal's accent var, mapped to the Caudals teal display accent (--ds-accent-teal / teal-700).
+const CAL_BRAND_COLOR = "#0f766e";
 
 /**
  * Cal's inline embed expects a bare `username/event` slug (resolved against
