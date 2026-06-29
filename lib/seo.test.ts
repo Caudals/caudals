@@ -36,7 +36,7 @@ describe("seo helpers", () => {
     const { getIndexableMarketingRoutes } = await import("@/lib/seo");
 
     expect(getIndexableMarketingRoutes().map((route) => route.pathname)).toEqual(
-      ["/", "/blog", "/book", "/contact"]
+      ["/", "/blog", "/call", "/contact"]
     );
   });
 });

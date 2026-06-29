@@ -4,17 +4,17 @@ import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
-import { BookingEmbed } from "@/components/book/booking-embed";
+import { BookingEmbed } from "@/components/call/booking-embed";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import type { Translator } from "@/lib/i18n/create-translator";
 
-type BookPageContentProps = {
+type CallPageContentProps = {
   /** Public Cal.com booking link (e.g. "caudals/call"). Absent → graceful fallback. */
   calLink?: string;
 };
 
-export function BookPageContent({ calLink }: BookPageContentProps) {
+export function CallPageContent({ calLink }: CallPageContentProps) {
   const t = useTranslations();
 
   return (

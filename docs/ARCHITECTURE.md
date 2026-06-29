@@ -6,7 +6,7 @@ Caudals is a B2B AI dataset marketplace and managed data operations platform. Th
 
 Current production scope is deliberately limited:
 
-- Public marketing and demand capture: `/`, `/contact`, `/book`, `/blog`, `/blog/*`
+- Public marketing and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`
 - Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
 - Direct-route buyer access: `/buyer` for read-only delivery, subscription,
@@ -104,7 +104,7 @@ future catalogue goal.
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - `LANDING_MODE=true` is the current public deployment posture.
 - In landing mode, the public page surface stays narrow
-  (`/`, `/contact`, `/book`, `/blog`, `/blog/*`), but `/auth/*`, `/api/auth/*`,
+  (`/`, `/contact`, `/call`, `/blog`, `/blog/*`), but `/auth/*`, `/api/auth/*`,
   `/api/user/role`, `/admin`, `/buyer`, `/supplier`, `/security`, `/v1/*`,
   explicit public APIs, and required metadata/assets may remain route-accessible
   according to their normal auth and authorization model.
@@ -121,7 +121,7 @@ future catalogue goal.
   questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it
   unlinked from the landing page but does not block direct route access.
 - Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
-- `/book` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/book` stays out of the primary landing navigation but is allowlisted in landing mode and cross-linked from `/contact`.
+- `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/call` stays out of the primary landing navigation but is allowlisted in landing mode and cross-linked from `/contact`.
 - `/v1/*` is the REST surface. `/v1` returns inline endpoint documentation;
   public brief intake is anonymous and rate-limited, while buyer delivery,
   subscription, and quote actions require a Better Auth buyer session and emit

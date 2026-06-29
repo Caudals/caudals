@@ -34,7 +34,7 @@ export function ContactPageContent({
           <p className="mt-4 text-sm text-gray-500">
             {t("Prefer to meet live?")}{" "}
             <Link
-              href="/book"
+              href="/call"
               className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
             >
               {t("Book a meeting")}
