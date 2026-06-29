@@ -20,6 +20,7 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
   { pathname: "/about", changeFrequency: "monthly", priority: 0.7 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
+  { pathname: "/book", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/careers", changeFrequency: "monthly", priority: 0.5 },
   { pathname: "/catalogue", changeFrequency: "weekly", priority: 0.85 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
@@ -36,6 +37,7 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
 const LANDING_MODE_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
+  { pathname: "/book", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
 ];
 
