@@ -1,68 +1,54 @@
 "use client";
 
-import { motion } from "framer-motion";
-import {
-  Truck,
-  ShoppingBag,
-  HeartPulse,
-  Wheat,
-  Landmark,
-  Zap,
-  Factory,
-  Home,
-  RadioTower,
-  Umbrella,
-} from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
+
+const partners = [
+  // Per-logo `scale` evens out heights: FUESCYL·JCyL is very wide (renders short),
+  // Campus Emprendedor is tall — nudge them toward a similar height.
+  { name: "FUESCYL · Junta de Castilla y León", src: "/logos/fuescyl-jcyl.png", scale: "scale-[1.4]" },
+  { name: "Iniciativa Campus Emprendedor", src: "/logos/campus-emprendedor.png", scale: "scale-[0.72]" },
+  { name: "Santander X", src: "/logos/santander-x.png" },
+  { name: "Universidad de Valladolid", src: "/logos/uva.png" },
+  { name: "Fundación UVa", src: "/logos/fundacion-uva.png" },
+  { name: "Ayuntamiento de Valladolid", src: "/logos/ayuntamiento-valladolid.png" },
+  { name: "Consolida Startup", src: "/logos/consolida-startup.png" },
+];
 
 export function SocialProofSection() {
   const t = useTranslations();
-  const industries = [
-    { name: t("Logistics"), caption: t("GPS, routes, fleet telemetry"), icon: Truck },
-    { name: t("Retail"), caption: t("Transactions, inventory, pricing"), icon: ShoppingBag },
-    { name: t("Healthcare"), caption: t("Clinical records, imaging"), icon: HeartPulse },
-    { name: t("Agriculture"), caption: t("Crop yields, sensor data"), icon: Wheat },
-    { name: t("Fintech"), caption: t("Fraud patterns, transactions"), icon: Landmark },
-    { name: t("Energy"), caption: t("Smart grid, consumption logs"), icon: Zap },
-    { name: t("Manufacturing"), caption: t("IoT sensors, quality control"), icon: Factory },
-    { name: t("Real Estate"), caption: t("Valuations, market trends"), icon: Home },
-    { name: t("Telecom"), caption: t("Network traffic, usage data"), icon: RadioTower },
-    { name: t("Insurance"), caption: t("Claims, risk assessments"), icon: Umbrella },
-  ];
 
   return (
     <section className="relative py-24 sm:py-32 bg-white">
-      <div className="relative z-10 mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Industry coverage")}
+            {t("Recognition & partners")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Data from every industry, ready for your AI models")}
+            {t("Recognitions and institutions we've worked with")}
           </h2>
           <p className="text-base text-gray-500 mt-6 leading-relaxed">
             {t(
-              "We work with companies across verticals to source, process, and deliver the datasets your ML team needs.",
+              "Backed by leading institutions, programs, and public organizations across our journey.",
             )}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100 sm:grid-cols-3 lg:grid-cols-5">
-          {industries.map((industry) => {
-            const Icon = industry.icon;
-            return (
-              <div
-                key={industry.name}
-                className="bg-white p-6 flex min-h-[120px] flex-col justify-center transition-colors hover:bg-gray-50/50"
-              >
-                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-teal-50 text-teal-700">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </div>
-                <span className="text-base font-bold text-black mb-1">{industry.name}</span>
-                <span className="text-[11px] text-gray-400 font-bold leading-tight">{industry.caption}</span>
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-10 sm:gap-x-14 sm:gap-y-12">
+          {partners.map((partner) => (
+            <div
+              key={partner.name}
+              className="flex h-16 w-36 items-center justify-center sm:h-20 sm:w-44 lg:w-48"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={partner.src}
+                alt={partner.name}
+                loading="lazy"
+                className={`max-h-full max-w-full object-contain ${partner.scale ?? ""}`}
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>

@@ -1,5 +1,4 @@
-import { MarketingPageLayout } from "@/components/marketing/marketing-page-layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { LegalPage } from "@/components/legal/legal-page";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
@@ -22,8 +21,16 @@ const sections = [
     body: "Buyers must provide clear project requirements and lawful use cases. Suppliers must provide lawful, permissioned, and policy-compliant data access.",
   },
   {
+    title: "Intellectual Property",
+    body: "Caudals retains all rights to the platform and its content. Datasets and deliverables are licensed under the terms agreed in each order or contract.",
+  },
+  {
     title: "Payments and Payouts",
     body: "Funding and payouts are processed through integrated payment providers. Processing timelines, reversals, and disputes follow provider and platform rules.",
+  },
+  {
+    title: "Liability and Governing Law",
+    body: "The platform is provided on an as-is basis to the extent permitted by law. These terms are governed by the laws of Spain, and disputes are subject to the competent courts of Spain.",
   },
   {
     title: "Termination",
@@ -33,20 +40,10 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <MarketingPageLayout
+    <LegalPage
       title="Terms of Service"
       description="Effective date: March 1, 2026. These terms govern use of Caudals products and services."
-    >
-      <Card className="border-border/70">
-        <CardContent className="space-y-6 p-6">
-          {sections.map((section) => (
-            <section key={section.title} className="space-y-2">
-              <h2 className="text-lg font-semibold">{section.title}</h2>
-              <p className="text-sm leading-6 text-slate-500">{section.body}</p>
-            </section>
-          ))}
-        </CardContent>
-      </Card>
-    </MarketingPageLayout>
+      sections={sections}
+    />
   );
 }

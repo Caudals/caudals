@@ -7,6 +7,13 @@ import {
 } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
+const legalLinks = [
+  { href: "/legal/privacy", label: "Privacy Policy" },
+  { href: "/legal/terms", label: "Terms of Service" },
+  { href: "/legal/cookies", label: "Cookie Policy" },
+  { href: "/legal/notice", label: "Legal Notice" },
+] as const;
+
 interface MarketingFooterProps {
   forceLandingMode?: boolean;
 }
@@ -20,7 +27,7 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
-        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-2 lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
           <div>
             <h3 className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
@@ -36,20 +43,41 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
             </Link>
           </div>
           {isLandingMode ? (
-            <div>
-              <h4 className="mb-4 text-sm font-semibold text-slate-900">
-                {t("Explore")}
-              </h4>
-              <ul className="space-y-2 text-sm text-slate-500">
-                {landingModePublicNavigationLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} className="hover:text-foreground">
-                      {t(link.label)}
+            <>
+              <div>
+                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                  {t("Explore")}
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-500">
+                  {landingModePublicNavigationLinks.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="hover:text-foreground">
+                        {t(link.label)}
+                      </Link>
+                    </li>
+                  ))}
+                  <li>
+                    <Link href="/call" className="hover:text-foreground">
+                      {t("Book a meeting")}
                     </Link>
                   </li>
-                ))}
-              </ul>
-            </div>
+                </ul>
+              </div>
+              <div>
+                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                  {t("Legal")}
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-500">
+                  {legalLinks.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="hover:text-foreground">
+                        {t(link.label)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           ) : (
             <>
               <div>

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
+import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { SiteAnalytics } from "@/components/legal/site-analytics";
 import { getServerTranslationBundle } from "@/lib/i18n/server";
 import { TranslationProvider } from "@/lib/i18n/translation-context";
 import { translateReactNode } from "@/lib/i18n/translate-node";
@@ -107,14 +108,9 @@ export default async function RootLayout({
         >
           <ClientLocaleDetector serverLocale={locale} />
           {localizedContent}
+          <CookieConsentBanner />
         </TranslationProvider>
-        {process.env.NODE_ENV === "production" && (
-          <Script
-            src="https://analytics.caudals.com/script.js"
-            data-website-id="180a4b17-a999-474c-bf4b-bd3e96e5057f"
-            strategy="afterInteractive"
-          />
-        )}
+        <SiteAnalytics />
       </body>
     </html>
   );

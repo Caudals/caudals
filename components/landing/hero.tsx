@@ -164,19 +164,7 @@ export function HeroSection() {
       {/* Bottom gradient fade for smooth transition to the next section */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-48 bg-gradient-to-t from-white to-transparent" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center sm:-mt-8 lg:-mt-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="mb-6"
-        >
-          <div className="inline-flex items-center gap-2 rounded-md border border-teal-200/30 bg-white/40 backdrop-blur-md px-4 py-1.5 text-[13px] font-bold text-teal-900 shadow-sm">
-            <div className="h-1.5 w-1.5 rounded-full bg-teal-600 animate-pulse" />
-            <span>{t("B2B data marketplace for AI teams")}</span>
-          </div>
-        </motion.div>
-
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
         <motion.h1
           aria-label={`${heroTitle} ${heroTitleHighlight}`}
           initial={{ opacity: 0, y: 20 }}
