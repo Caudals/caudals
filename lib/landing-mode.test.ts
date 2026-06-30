@@ -27,6 +27,9 @@ describe("landing mode route allowlist", () => {
         "/blog/launching-caudals-clearer-dataset-operations"
       )
     ).toBe(true);
+    expect(isLandingModePagePathAllowed("/legal/privacy")).toBe(true);
+    expect(isLandingModePagePathAllowed("/legal/cookies")).toBe(true);
+    expect(isLandingModePagePathAllowed("/legal/notice")).toBe(true);
   });
 
   it("keeps private, security, and API direct routes reachable", () => {
