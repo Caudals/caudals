@@ -9,6 +9,12 @@
       "autoPort": true
     },
     {
+      "name": "Next.js prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "--port", "4180"],
+      "port": 4180
+    },
+    {
       "name": "Remotion Studio",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "remotion:studio"],
