@@ -162,7 +162,7 @@ channels` and `npm run caudals -- intake validate <manifest.json>`. The
 
 Target Phase 1 operations context:
 
-- VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
+- VPS SSH endpoint over Tailscale: `root@caudals-1`
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
 - App runtime: `caudalsdep-caudals-vgbvxp` on `dokploy-network`, using Docker secret-file envs for Postgres and Better Auth secrets

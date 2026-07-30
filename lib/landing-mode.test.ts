@@ -72,6 +72,9 @@ describe("landing mode route allowlist", () => {
   it("allows required metadata and asset paths", () => {
     expect(isLandingModeStaticAssetPath("/manifest.webmanifest")).toBe(true);
     expect(isLandingModeStaticAssetPath("/favicon.ico")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/material/caudals-buyers-en.pdf")).toBe(
+      true
+    );
     expect(isLandingModeStaticAssetPath("/robots.txt")).toBe(true);
     expect(isLandingModeStaticAssetPath("/sitemap.xml")).toBe(true);
     expect(
@@ -89,6 +92,9 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/user/role")).toBe(true);
+    expect(
+      isLandingModeRequestAllowed("/material/caudals-suppliers-en.pdf")
+    ).toBe(true);
     expect(isLandingModeRequestAllowed("/catalogue")).toBe(false);
     expect(isLandingModeRequestAllowed("/security")).toBe(true);
     expect(isLandingModeRequestAllowed("/v1/deliveries")).toBe(true);

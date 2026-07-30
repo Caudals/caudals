@@ -38,7 +38,7 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 Target Phase 1 runtime:
 
-- VPS SSH endpoint over Tailscale: `root@ubuntu-caudals`
+- VPS SSH endpoint over Tailscale: `root@caudals-1`
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
 - App service: `caudalsdep-caudals-vgbvxp`; database/auth/Stripe/Resend
@@ -52,7 +52,7 @@ Target Phase 1 runtime:
 
 Direct SSH runtime inspection is allowed when local context is stale:
 
-- `ssh root@ubuntu-caudals`
+- `ssh root@caudals-1`
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
@@ -66,11 +66,11 @@ from the local archive before rescheduling the app service:
 
 - Dokploy and Umami dashboards are not public.
 - Direct Tailscale-only URLs:
-  - `http://ubuntu-caudals:7443` for Dokploy
-  - `http://ubuntu-caudals:7444` for Umami
+  - `http://caudals-1:7443` for Dokploy
+  - `http://caudals-1:7444` for Umami
 - IP fallback:
-  - `http://100.92.160.68:7443`
-  - `http://100.92.160.68:7444`
+  - `http://100.118.70.90:7443`
+  - `http://100.118.70.90:7444`
 
 ## PostgreSQL Migration Usage Pattern
 
