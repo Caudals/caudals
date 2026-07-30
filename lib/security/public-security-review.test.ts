@@ -1,11 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getPublicSecurityReviewData } from "@/lib/security/public-security-review";
+import {
+  FALLBACK_PUBLIC_SECURITY_REVIEW,
+  getPublicSecurityReviewData,
+} from "@/lib/security/public-security-review";
 import type { OperatorDbSession, QueryValue } from "@/lib/db/client";
 
 describe("public security review library", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it("reads only published public review artifacts in display order", async () => {
@@ -90,5 +94,39 @@ describe("public security review library", () => {
     ]);
     expect(data.updatedAt).toBe("2026-05-12T12:00:00.000Z");
     expect(data.reviewDueAt).toBe("2026-07-10T12:00:00.000Z");
+  });
+
+  it("returns curated fallback content (does not throw) when the query fails", async () => {
+    // Reproduces the production /security 500: an unguarded DB query throwing
+    // (missing migration 026 table, unreachable/empty DATABASE_URL) previously
+    // propagated out of the server component. It must now degrade gracefully.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const query = async () => {
+      throw new Error(
+        "relation \"security_review_artifact\" does not exist",
+      );
+    };
+
+    const data = await getPublicSecurityReviewData(query);
+
+    expect(data).toEqual(FALLBACK_PUBLIC_SECURITY_REVIEW);
+    expect(data.questionnaire.length).toBeGreaterThan(0);
+    expect(data.reviewPacket.length).toBeGreaterThan(0);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toMatchObject({
+      event: "public_security_review.query_failed",
+    });
+  });
+
+  it("returns curated fallback content when no published artifacts exist", async () => {
+    const query = async <T extends Record<string, unknown>>(): Promise<T[]> =>
+      [] as unknown as T[];
+
+    const data = await getPublicSecurityReviewData(query);
+
+    expect(data).toEqual(FALLBACK_PUBLIC_SECURITY_REVIEW);
+    expect(data.questionnaire.length).toBeGreaterThan(0);
+    expect(data.reviewPacket.length).toBeGreaterThan(0);
   });
 });

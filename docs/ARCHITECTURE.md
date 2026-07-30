@@ -151,7 +151,15 @@ channels` and `npm run caudals -- intake validate <manifest.json>`. The
 
 ## Infrastructure and Deployment
 
-- Production runtime is self-hosted on DigitalOcean VPS.
+- Production runtime is self-hosted on the Hetzner cost-optimized VPS at
+  `168.119.49.95` (`caudals-1`). Cutover from DigitalOcean completed on
+  2026-06-30: Cloudflare proxies the production hostnames to Hetzner, where the
+  Dokploy Traefik terminates TLS (Let's Encrypt) and routes to the local app,
+  Umami, and private stacks on `dokploy-network`.
+- The DigitalOcean VPS remains online and untouched as the rollback origin (app
+  service `1/1`, verified backups retained under `/root/.caudals/backups`).
+  Rollback is a Hetzner-local revert (remove Dokploy Traefik, start HAProxy) and
+  needs no Cloudflare/DNS change.
 - Dokploy manages runtime/deployment.
 - App and orchestration Docker image builds happen in GitHub Actions
   (`.github/workflows/deploy.yml`) and publish immutable tags to Docker Hub.
@@ -162,10 +170,13 @@ channels` and `npm run caudals -- intake validate <manifest.json>`. The
 
 Target Phase 1 operations context:
 
-- VPS SSH endpoint over Tailscale: `root@caudals-1`
+- Target VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
-- App runtime: `caudalsdep-caudals-vgbvxp` on `dokploy-network`, using Docker secret-file envs for Postgres and Better Auth secrets
+- App runtime: `caudalsdep-caudals-vgbvxp` on `dokploy-network`, using Docker
+  secret-file envs for Postgres, Better Auth, Stripe, Resend, Sentry, and
+  object-storage secrets on the Hetzner production service (no plaintext secret
+  env names; stale Supabase runtime envs removed)
 - Required extensions: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
@@ -177,11 +188,15 @@ Target Phase 1 operations context:
   GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
   the Docker publish workflow. A quarterly scheduled GitHub workflow opens or
   updates the penetration-test tracker issue for Security/CTO execution.
-- Migration report: `docs/migrations/supabase-to-postgres.md`
+- Migration reports:
+  - `docs/migrations/supabase-to-postgres.md`
+  - `docs/migrations/digitalocean-to-hetzner-vps-migration.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.
   - Application access goes through server-side typed DB clients and operator-scoped RLS settings.
-  - Public `22/tcp` is closed; SSH administration is restricted to the Tailscale interface.
+  - Public `22/tcp` is closed in the completed production posture; during the
+    Hetzner bootstrap window, temporary key-only public SSH must be removed as
+    soon as Tailscale `caudals@caudals-1` access is verified.
   - Raw database ports are not intended to be reachable from the public internet.
 
 Legacy Supabase containers, images, volumes, and host filesystem tree were removed after verified encrypted backups were written under `/root/.caudals/backups`.
