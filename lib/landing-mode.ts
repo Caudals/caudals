@@ -29,7 +29,7 @@ const LANDING_MODE_ALLOWED_API_PATHS = new Set([
 const LANDING_MODE_ALLOWED_API_PREFIXES = ["/api/auth/"];
 const SITE_VERIFICATION_HTML_PATTERN = /^\/google[a-z0-9]+\.html$/i;
 const STATIC_ASSET_PATH_PATTERN =
-  /\.(?:ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
+  /\.(?:ico|png|jpg|jpeg|svg|gif|webp|pdf|woff|woff2|ttf|eot|txt|xml|webmanifest|splinecode)$/i;
 
 export const landingModePublicNavigationLinks = [
   { href: "/contact", label: "Contacto" },
