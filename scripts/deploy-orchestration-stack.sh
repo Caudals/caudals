@@ -109,6 +109,11 @@ ensure_dagster_image() {
     return
   fi
 
+  if docker image inspect "$DAGSTER_IMAGE" >/dev/null 2>&1; then
+    echo "Using local Dagster image: $DAGSTER_IMAGE"
+    return
+  fi
+
   docker pull "$DAGSTER_IMAGE" >/dev/null
   echo "Pulled Dagster image from registry: $DAGSTER_IMAGE"
 }

@@ -1,0 +1,155 @@
+version: "3.8"
+
+# Postiz — self-hosted social publishing engine for Caudals growth/GTM.
+#
+# Deliberately reuses existing platform infrastructure instead of the upstream
+# compose file's bundled services:
+#   - PostgreSQL  -> caudals-postgres (database `postiz`, role `postiz`)
+#   - Temporal    -> caudals-workflow-temporal (namespace `postiz`)
+# Only Redis is dedicated, so Postiz queue traffic can never be evicted by the
+# shared application cache's allkeys-lru policy.
+#
+# Every secret is delivered through the `postiz_env` Docker secret, an env file
+# sourced at container start. No plaintext secret ever appears in this spec.
+
+services:
+  redis:
+    image: ${CAUDALS_SOCIAL_REDIS_IMAGE:-redis:7.4.2-alpine}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-social-redis
+    secrets:
+      - postiz_redis_password
+    volumes:
+      - social-redis-data:/data
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        REDIS_PASSWORD="$$(tr -d '\r\n' </run/secrets/postiz_redis_password)"
+        cat >/tmp/redis.conf <<EOF
+        bind 0.0.0.0
+        port 6379
+        protected-mode yes
+        dir /data
+        appendonly yes
+        appendfsync everysec
+        save 60 1000
+        maxmemory 128mb
+        maxmemory-policy noeviction
+        requirepass $${REDIS_PASSWORD}
+        EOF
+        exec redis-server /tmp/redis.conf
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 | grep -Eq 'PONG|NOAUTH'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 2m
+      resources:
+        limits:
+          memory: 192M
+        reservations:
+          memory: 32M
+
+  postiz:
+    image: ${CAUDALS_POSTIZ_IMAGE:-ghcr.io/gitroomhq/postiz-app:latest}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-social-postiz
+          - caudals-postiz
+    environment:
+      # Public identity. OAuth callbacks from X/LinkedIn land on these URLs, so
+      # they must match the Traefik router host exactly.
+      MAIN_URL: ${CAUDALS_POSTIZ_PUBLIC_URL:-https://postiz.caudals.com}
+      FRONTEND_URL: ${CAUDALS_POSTIZ_PUBLIC_URL:-https://postiz.caudals.com}
+      NEXT_PUBLIC_BACKEND_URL: ${CAUDALS_POSTIZ_PUBLIC_URL:-https://postiz.caudals.com}/api
+      # In the all-in-one image the Next.js server reaches NestJS over loopback.
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      TEMPORAL_ADDRESS: ${CAUDALS_POSTIZ_TEMPORAL_ADDRESS:-caudals-workflow-temporal:7233}
+      TEMPORAL_NAMESPACE: ${CAUDALS_POSTIZ_TEMPORAL_NAMESPACE:-postiz}
+      IS_GENERAL: "true"
+      RUN_CRON: "true"
+      # Flipped to "true" by the deploy script once the first operator account
+      # exists, so the instance cannot be signed up for by anyone else.
+      DISABLE_REGISTRATION: ${CAUDALS_POSTIZ_DISABLE_REGISTRATION:-false}
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      API_LIMIT: ${CAUDALS_POSTIZ_API_LIMIT:-300}
+      NX_ADD_PLUGINS: "false"
+      # Cap the Node heap so a runaway render cannot push the host into swap.
+      NODE_OPTIONS: --max-old-space-size=896
+    secrets:
+      - postiz_env
+    volumes:
+      - postiz-config:/config
+      - postiz-uploads:/uploads
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        # Secrets arrive as an env file so they never appear in the service
+        # spec, `docker service inspect`, or the Swarm task log.
+        set -a
+        . /run/secrets/postiz_env
+        set +a
+        exec sh -c "nginx && pnpm run pm2"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:5000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 5
+        window: 5m
+      resources:
+        limits:
+          memory: ${CAUDALS_POSTIZ_MEMORY_LIMIT:-2048M}
+        reservations:
+          memory: 512M
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_SOCIAL_NETWORK:-dokploy-network}
+
+volumes:
+  social-redis-data:
+    name: ${CAUDALS_SOCIAL_REDIS_DATA_VOLUME:-caudals-social-redis-data}
+  postiz-config:
+    name: ${CAUDALS_POSTIZ_CONFIG_VOLUME:-caudals-social-postiz-config}
+  postiz-uploads:
+    name: ${CAUDALS_POSTIZ_UPLOADS_VOLUME:-caudals-social-postiz-uploads}
+
+secrets:
+  postiz_env:
+    external: true
+    name: ${CAUDALS_POSTIZ_ENV_SECRET:-postiz_env}
+  postiz_redis_password:
+    external: true
+    name: ${CAUDALS_POSTIZ_REDIS_SECRET:-postiz_redis_password}

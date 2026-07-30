@@ -38,7 +38,7 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 Target Phase 1 runtime:
 
-- VPS SSH endpoint over Tailscale: `root@caudals-1`
+- Target VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
 - App service: `caudalsdep-caudals-vgbvxp`; database/auth/Stripe/Resend
@@ -48,11 +48,14 @@ Target Phase 1 runtime:
 - Required extensions for the operator schema: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Schema migrations: `db/migrations/*`
 - Rollbacks: `db/rollbacks/*`
-- Migration report: `docs/migrations/supabase-to-postgres.md`
+- Migration reports:
+  - `docs/migrations/supabase-to-postgres.md`
+  - `docs/migrations/digitalocean-to-hetzner-vps-migration.md`
 
 Direct SSH runtime inspection is allowed when local context is stale:
 
-- `ssh root@caudals-1`
+- `ssh caudals@caudals-1`
+- `ssh root@168.119.49.95` is disabled on the Hetzner target; avoid routine root probes because denied root attempts can trigger fail2ban during the migration window
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
@@ -62,15 +65,70 @@ from the local archive before rescheduling the app service:
 - `sha256sum -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz.sha256`
 - `gunzip -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz | docker load`
 
+The 2026-06-30 Hetzner migration backup set also contains verified image
+archives for `caudals-postgres:16-pgvector-cron`, `mariomedpar/caudals:latest`,
+and the deployed orchestration image under
+`/root/.caudals/backups/hetzner-migration-20260630T171257Z/images/`.
+
 ## Private Dashboard Access
 
-- Dokploy and Umami dashboards are not public.
-- Direct Tailscale-only URLs:
-  - `http://caudals-1:7443` for Dokploy
-  - `http://caudals-1:7444` for Umami
-- IP fallback:
-  - `http://100.118.70.90:7443`
-  - `http://100.118.70.90:7444`
+Internal dashboards are Tailscale-only and must never be exposed on the public
+interface. On the Hetzner production host (`caudals-1`, Tailscale
+`100.118.70.90`) they are served by the `caudals-dashboards` nginx reverse-proxy
+container, whose published ports bind **only** to the Tailscale IP (so they have
+no public listener); a UFW rule additionally allows `7443:7453` only on
+`tailscale0`. Browse from any Tailnet device at `http://caudals-1:<port>`:
+
+| Port | Dashboard | Upstream service |
+| --- | --- | --- |
+| 7443 | Dokploy | `dokploy:3000` |
+| 7444 | Umami (internal only) | `caudals-umami-znhrpr-umami-1:3000` |
+| 7445 | Grafana | `caudals-observability_grafana:3000` |
+| 7446 | Prometheus | `caudals-observability_prometheus:9090` |
+| 7447 | Alertmanager | `caudals-observability_alertmanager:9093` |
+| 7448 | Temporal UI | `caudals-workflow_ui:8080` |
+| 7449 | Dagster | `caudals-orchestration_webserver:3000` |
+| 7450 | Label Studio | `caudals-labeling_label-studio:8080` |
+| 7451 | lakeFS | `caudals-lakehouse_lakefs:8000` |
+| 7452 | Qdrant (`/dashboard`) | `caudals-vector_qdrant:6333` |
+| 7453 | MinIO console | `caudals-object-storage_minio:9001` |
+
+Proxy config and a redeploy helper live under `/root/.caudals/dashboards/`
+(`nginx.conf`, `redeploy.sh`). To add or change a dashboard, edit `nginx.conf`
+and run `sudo bash /root/.caudals/dashboards/redeploy.sh`.
+
+CVAT (image/video annotation) is not yet wired into this proxy: it is a
+multi-origin app (separate UI + server + OPA) whose UI must reach its API on the
+same origin, so it needs dedicated host-based routing rather than a single
+port-forward. Reach it for now via an ad-hoc tunnel or add a dedicated
+host/path-routed entry later.
+
+The public `analytics.caudals.com` route was removed for security: the Umami
+container's Traefik labels were stripped in
+`/etc/dokploy/compose/caudals-umami-znhrpr/code/docker-compose.yml`, the
+generated `compose-caudals-umami-znhrpr.yml` was deleted, and the container was
+recreated (APP_SECRET preserved). Umami is now reachable only via the internal
+`7444` dashboard. Consequence: the marketing site's client-side Umami tracking
+(`components/legal/site-analytics.tsx` loads
+`https://analytics.caudals.com/script.js`, allowlisted in `next.config.js` CSP)
+no longer resolves; remove those references and redeploy to stop the dead-script
+console errors, or repoint tracking. Custom funnel events fall back to the app's
+own `/api/analytics/track`.
+
+Public routing is otherwise unaffected: only `80/443` (web) and `41641/udp`
+(Tailscale) are open on the public interface.
+
+The DigitalOcean-to-Hetzner migration completed on 2026-06-30. Production now
+runs on the Tailscale hostname `caudals-1` (`168.119.49.95`): Dokploy Traefik
+owns public `80/443`, serves valid Let's Encrypt certs, and routes to the local
+app, Umami, and private stacks. HAProxy is stopped and disabled (config retained
+for rollback). The DigitalOcean VPS remains online as the rollback origin with
+verified canonical backups under `/root/.caudals/backups`
+(`hetzner-migration-20260630T171257Z` and `hetzner-cutover-<ts>`); do not delete
+the droplet or its backups until a human approves decommissioning. Observability
+and Umami analytics history were preserved across the move. Agents may install
+official Cloudflare and Tailscale CLIs or MCPs when scoped credentials are
+available; never print or commit those credentials.
 
 ## PostgreSQL Migration Usage Pattern
 
