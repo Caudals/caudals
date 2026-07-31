@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
     // existed should still get the chance to confirm.
     const newsletter = await subscribeToNewsletter({
       email: emailLower,
-      source: "landing_hero",
+      source: requestBody.source || "landing_hero",
       sourceUrl: referer ?? undefined,
       fullName,
       ip: clientIp,
@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
         emailLower,
         company ?? null,
         useCase ?? null,
-        JSON.stringify(metadata),
+        JSON.stringify({ ...metadata, source: requestBody.source || metadata.source }),
         timestamp,
         timestamp,
       ]
@@ -312,7 +312,7 @@ export async function POST(request: NextRequest) {
   // two saying nearly the same thing.
   const newsletter = await subscribeToNewsletter({
     email: emailLower,
-    source: "landing_hero",
+    source: requestBody.source || "landing_hero",
     sourceUrl: referer ?? undefined,
     fullName,
     ip: clientIp,
@@ -359,7 +359,10 @@ export async function POST(request: NextRequest) {
     // Skipped when the double opt-in email already went out: two "welcome"
     // emails in one minute reads as a broken integration, and the newsletter
     // one is the one that needs a click.
-    const confirmationSent = newsletter.emailSent
+    // Also skip waitlist email if the user subscribed explicitly from the archive.
+    const shouldSkipWaitlistEmail = newsletter.emailSent || requestBody.source === "archive" || requestBody.source === "newsletter";
+    
+    const confirmationSent = shouldSkipWaitlistEmail
       ? true
       : await sendEmailWithFallback({
           resend,
