@@ -29,7 +29,7 @@ export async function generateMetadata({
 
   if (!issue) {
     return buildPublicMetadata({
-      title: "The Data Gap",
+      title: "Data Unfiltered",
       description: "Caudals newsletter.",
       pathname: `/newsletter/${slug}`,
       noIndex: true,
@@ -37,7 +37,7 @@ export async function generateMetadata({
   }
 
   return buildPublicMetadata({
-    title: `${issue.title} — The Data Gap`,
+    title: `${issue.title} — Data Unfiltered`,
     description: issue.dek ?? "Caudals newsletter.",
     pathname: `/newsletter/${issue.slug}`,
   });
@@ -71,7 +71,7 @@ export default async function NewsletterIssuePage({
           href="/newsletter"
           className="mb-8 text-sm text-gray-500 transition hover:text-black"
         >
-          ← The Data Gap
+          ← Data Unfiltered
         </Link>
 
         <header className="mb-10">
