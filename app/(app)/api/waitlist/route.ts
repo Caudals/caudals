@@ -15,12 +15,12 @@ import {
 import { logError, logWarn } from "@/lib/security/structured-logger";
 
 const WAITLIST_IP_RATE_LIMIT = {
-  limit: 10,
+  limit: 50,
   windowMs: 15 * 60 * 1000,
 };
 
 const WAITLIST_EMAIL_RATE_LIMIT = {
-  limit: 4,
+  limit: 20,
   windowMs: 60 * 60 * 1000,
 };
 
