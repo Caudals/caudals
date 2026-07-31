@@ -133,7 +133,7 @@ function HeroWaitlistForm() {
       {!result && !form.formState.errors.email && (
         <p className="mt-2 text-xs text-gray-500 text-center">
           {t(
-            "Early access plus The Data Gap, our biweekly read on AI tools and how we work with data. One click to unsubscribe.",
+            "Early access plus Data Unfiltered, our biweekly read on AI tools and how we work with data. One click to unsubscribe.",
           )}
         </p>
       )}

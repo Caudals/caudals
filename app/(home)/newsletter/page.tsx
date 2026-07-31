@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getServerTranslator();
 
   return buildPublicMetadata({
-    title: t("The Data Gap — Caudals newsletter"),
+    title: t("Data Unfiltered — Caudals newsletter"),
     description: t(
       "A biweekly read for people building with AI, from the team that sources and licenses the data models train on."
     ),
@@ -51,10 +51,10 @@ export default async function NewsletterPage() {
 
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <header className="mb-12">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
             {t("Newsletter")}
           </p>
-          <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">The Data Gap</h1>
+          <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">Data Unfiltered</h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
             {t(
               "Every other Tuesday: AI tools we have actually tested, techniques you can use the same day, and what really happens when you source, license and clean the data models train on."
@@ -79,7 +79,7 @@ export default async function NewsletterPage() {
                     {issue.number ? `Nº ${issue.number} · ` : ""}
                     {formatDate(issue.sent_at, "es")}
                   </p>
-                  <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-blue-700">
+                  <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-emerald-700">
                     {issue.title}
                   </h2>
                   {issue.dek && (
