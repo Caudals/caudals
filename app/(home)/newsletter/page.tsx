@@ -51,9 +51,6 @@ export default async function NewsletterPage() {
 
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <header className="mb-12">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
-            {t("Newsletter")}
-          </p>
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">Data Unfiltered</h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
             {t(
