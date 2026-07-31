@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     logError("waitlist.lookup_failed", { error, email: emailLower });
     return withHeaders(
       NextResponse.json(
-        { error: "Failed to save waitlist entry" },
+        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
         { status: 500 }
       ),
       ipRateHeaders
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
     logError("waitlist.insert_failed", { error, email: emailLower });
     return withHeaders(
       NextResponse.json(
-        { error: "Failed to save waitlist entry" },
+        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
         { status: 500 }
       ),
       ipRateHeaders
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
     logError("waitlist.insert_empty", { email: emailLower });
     return withHeaders(
       NextResponse.json(
-        { error: "Failed to save waitlist entry" },
+        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
         { status: 500 }
       ),
       ipRateHeaders
