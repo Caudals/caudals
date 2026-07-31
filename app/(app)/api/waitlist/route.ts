@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
     logError("waitlist.insert_empty", { email: emailLower });
     return withHeaders(
       NextResponse.json(
-        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
+        { error: "Failed to save waitlist entry", devError: "empty insert" },
         { status: 500 }
       ),
       ipRateHeaders
