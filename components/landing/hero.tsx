@@ -59,7 +59,7 @@ function HeroWaitlistForm() {
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email }),
+        body: JSON.stringify({ email: values.email, source: "newsletter" }),
       });
 
       const payload = await response.json().catch(() => null);
@@ -76,21 +76,16 @@ function HeroWaitlistForm() {
       const data = (payload ?? {}) as WaitlistResponse;
       setResult(data);
 
-      if (data.alreadyRegistered) {
-        toast.info(t(data.message ?? "You're already on the waitlist!"));
+      if (data.newsletter === "already_subscribed") {
+        toast.info(t("You're already subscribed! We'll keep the updates coming."));
       } else {
         toast.success(
-          t(
-            data.message ??
-              (data.emailSent
-                ? "You're on the waitlist! Check your inbox for a confirmation email."
-                : "You're on the waitlist! We'll be in touch soon."),
-          ),
+          t("Almost there — click the link in your inbox to confirm.")
         );
       }
       form.reset();
     } catch (error) {
-      console.error("Failed to submit waitlist form", error);
+      console.error("Failed to submit newsletter form", error);
       toast.error(t("We couldn't save your request. Please try again."));
     }
   }
@@ -107,8 +102,8 @@ function HeroWaitlistForm() {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder={t("Enter your email")}
-                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-36 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
+                    placeholder={t("Your email address")}
+                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-32 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
                     {...field}
                   />
                 </FormControl>
@@ -121,7 +116,7 @@ function HeroWaitlistForm() {
             disabled={isSubmitting}
             className="absolute right-1 h-10 rounded-full bg-black px-5 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90 disabled:opacity-70"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Request access")}
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Subscribe")}
           </Button>
         </form>
       </Form>
@@ -131,24 +126,17 @@ function HeroWaitlistForm() {
         </p>
       )}
       {!result && !form.formState.errors.email && (
-        <p className="mt-2 text-xs text-gray-500 text-center">
-          {t(
-            "Early access plus Data Unfiltered, our biweekly read on AI tools and how we work with data. One click to unsubscribe.",
-          )}
+        <p className="mt-3 text-[13px] text-gray-500 text-center">
+          {t("Subscribe to Data Unfiltered, our biweekly read on AI tools and data. One click to unsubscribe.")}
         </p>
       )}
       {result && !form.formState.errors.email && (
-        <p className="mt-2 text-sm text-teal-700 font-medium text-center">
+        <p className="mt-3 text-sm text-teal-700 font-medium text-center">
           {result.newsletter === "pending"
             ? t("Almost there — click the link in your inbox to confirm.")
-            : result.alreadyRegistered
-              ? t("You're already on the list—we'll keep the updates coming.")
-              : result.emailSent
-                ? t(
-                    result.message ??
-                      "You're on the waitlist! Check your inbox for a confirmation email.",
-                  )
-                : t("Thanks for joining! We'll reach out soon with next steps.")}
+            : result.newsletter === "already_subscribed"
+              ? t("You're already subscribed! We'll keep the updates coming.")
+              : t("Thanks for subscribing! We'll keep the updates coming.")}
         </p>
       )}
     </div>
