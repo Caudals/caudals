@@ -202,13 +202,7 @@ export async function POST(request: NextRequest) {
     existingRecord = existingRows[0];
   } catch (error) {
     logError("waitlist.lookup_failed", { error, email: emailLower });
-    return withHeaders(
-      NextResponse.json(
-        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
-        { status: 500 }
-      ),
-      ipRateHeaders
-    );
+    // Continue execution to allow newsletter subscription even if waitlist DB is down
   }
 
   const timestamp = new Date().toISOString();
@@ -304,24 +298,12 @@ export async function POST(request: NextRequest) {
     insertedRecord = insertedRows[0];
   } catch (error) {
     logError("waitlist.insert_failed", { error, email: emailLower });
-    return withHeaders(
-      NextResponse.json(
-        { error: "Failed to save waitlist entry", devError: error instanceof Error ? error.message : String(error) },
-        { status: 500 }
-      ),
-      ipRateHeaders
-    );
+    // Continue execution to allow newsletter subscription even if waitlist DB is down
   }
 
-  if (!insertedRecord) {
+  if (!insertedRecord && !existingRecord) {
     logError("waitlist.insert_empty", { email: emailLower });
-    return withHeaders(
-      NextResponse.json(
-        { error: "Failed to save waitlist entry", devError: "empty insert" },
-        { status: 500 }
-      ),
-      ipRateHeaders
-    );
+    // We still continue to ensure newsletter signup works
   }
 
   // The hero box is now the entry point for both the waitlist and the
