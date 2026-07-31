@@ -26,8 +26,8 @@ const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = [
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
+  "/api/newsletter",
   "/api/user/role",
-  "/api/waitlist",
 ]);
 const LANDING_MODE_ALLOWED_API_PREFIXES = ["/api/auth/"];
 const SITE_VERIFICATION_HTML_PATTERN = /^\/google[a-z0-9]+\.html$/i;

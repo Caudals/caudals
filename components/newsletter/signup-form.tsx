@@ -9,9 +9,8 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 /**
  * Subscribe box for the archive pages.
  *
- * Posts to the same `/api/waitlist` route the hero uses, so there is one server
- * path that records interest and starts the double opt-in — with `source`
- * telling the two apart in the CRM.
+ * Posts to the same `/api/newsletter` route the hero uses, so there is one
+ * server path onto the list — with `source` telling the two apart in the CRM.
  */
 
 interface Props {
@@ -32,7 +31,7 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
     setState("sending");
 
     try {
-      const response = await fetch("/api/waitlist", {
+      const response = await fetch("/api/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, source, website }),
@@ -48,7 +47,7 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
   if (state === "done") {
     return (
       <p className="text-base font-medium text-teal-700">
-        {t("Almost there — click the link in your inbox to confirm.")}
+        {t("You're subscribed! The next issue lands in your inbox.")}
       </p>
     );
   }
