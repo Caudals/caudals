@@ -207,6 +207,33 @@ export async function POST(request: NextRequest) {
 
   const timestamp = new Date().toISOString();
 
+  // If this is purely a newsletter signup (archive or hero explicitly asking for newsletter only),
+  // skip all the waitlist database logic and waitlist confirmation emails.
+  const isNewsletterOnly = requestBody.source === "archive" || requestBody.source === "newsletter";
+
+  if (isNewsletterOnly) {
+    const newsletter = await subscribeToNewsletter({
+      email: emailLower,
+      source: requestBody.source,
+      sourceUrl: referer ?? undefined,
+      fullName,
+      ip: clientIp,
+      userAgent: userAgent ?? undefined,
+    });
+
+    return withHeaders(
+      NextResponse.json({
+        success: true,
+        message: newsletter.emailSent
+          ? "Almost there — click the link in your inbox to confirm."
+          : "Thanks for subscribing!",
+        emailSent: newsletter.emailSent,
+        newsletter: newsletter.status,
+      }),
+      ipRateHeaders
+    );
+  }
+
   if (existingRecord) {
     try {
       await queryRows(
