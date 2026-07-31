@@ -34,6 +34,8 @@ interface WaitlistResponse {
   message?: string;
   alreadyRegistered?: boolean;
   emailSent?: boolean;
+  /** Double opt-in state for The Data Gap; the same box now does both. */
+  newsletter?: "pending" | "already_subscribed" | "unavailable";
 }
 
 function HeroWaitlistForm() {
@@ -128,16 +130,25 @@ function HeroWaitlistForm() {
           {form.formState.errors.email.message ? t(form.formState.errors.email.message) : ""}
         </p>
       )}
+      {!result && !form.formState.errors.email && (
+        <p className="mt-2 text-xs text-gray-500 text-center">
+          {t(
+            "Early access plus The Data Gap, our biweekly read on AI tools and how we work with data. One click to unsubscribe.",
+          )}
+        </p>
+      )}
       {result && !form.formState.errors.email && (
         <p className="mt-2 text-sm text-teal-700 font-medium text-center">
-          {result.alreadyRegistered
-            ? t("You're already on the list—we'll keep the updates coming.")
-            : result.emailSent
-              ? t(
-                  result.message ??
-                    "You're on the waitlist! Check your inbox for a confirmation email.",
-                )
-              : t("Thanks for joining! We'll reach out soon with next steps.")}
+          {result.newsletter === "pending"
+            ? t("Almost there — click the link in your inbox to confirm.")
+            : result.alreadyRegistered
+              ? t("You're already on the list—we'll keep the updates coming.")
+              : result.emailSent
+                ? t(
+                    result.message ??
+                      "You're on the waitlist! Check your inbox for a confirmation email.",
+                  )
+                : t("Thanks for joining! We'll reach out soon with next steps.")}
         </p>
       )}
     </div>
