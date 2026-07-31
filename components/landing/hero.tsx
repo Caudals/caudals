@@ -19,7 +19,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { waitlistFormSchema, type WaitlistFormValues } from "@/lib/validators/waitlist";
+import {
+  newsletterFormSchema,
+  type NewsletterFormValues,
+} from "@/lib/validators/newsletter";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import {
   Form,
@@ -29,21 +32,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-interface WaitlistResponse {
+interface NewsletterResponse {
   success: boolean;
-  message?: string;
-  alreadyRegistered?: boolean;
   emailSent?: boolean;
-  /** Double opt-in state for The Data Gap; the same box now does both. */
-  newsletter?: "pending" | "already_subscribed" | "unavailable";
+  /** Single opt-in: `confirmed` the moment the address reaches the list. */
+  newsletter?: "confirmed" | "already_subscribed";
 }
 
-function HeroWaitlistForm() {
-  const [result, setResult] = useState<WaitlistResponse | null>(null);
+function HeroNewsletterForm() {
+  const [result, setResult] = useState<NewsletterResponse | null>(null);
   const toast = useLocaleToast();
   const t = useTranslations();
-  const form = useForm<WaitlistFormValues>({
-    resolver: zodResolver(waitlistFormSchema),
+  const form = useForm<NewsletterFormValues>({
+    resolver: zodResolver(newsletterFormSchema),
     defaultValues: {
       email: "",
     },
@@ -52,14 +53,14 @@ function HeroWaitlistForm() {
 
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit(values: WaitlistFormValues) {
+  async function onSubmit(values: NewsletterFormValues) {
     try {
       setResult(null);
 
-      const response = await fetch("/api/waitlist", {
+      const response = await fetch("/api/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email, source: "newsletter" }),
+        body: JSON.stringify({ email: values.email, source: "landing_hero" }),
       });
 
       const payload = await response.json().catch(() => null);
@@ -73,15 +74,13 @@ function HeroWaitlistForm() {
         throw new Error(payload?.error || payload?.message || "Something went wrong");
       }
 
-      const data = (payload ?? {}) as WaitlistResponse;
+      const data = (payload ?? {}) as NewsletterResponse;
       setResult(data);
 
       if (data.newsletter === "already_subscribed") {
         toast.info(t("You're already subscribed! We'll keep the updates coming."));
       } else {
-        toast.success(
-          t("Almost there — click the link in your inbox to confirm.")
-        );
+        toast.success(t("You're subscribed! The next issue lands in your inbox."));
       }
       form.reset();
     } catch (error) {
@@ -132,11 +131,9 @@ function HeroWaitlistForm() {
       )}
       {result && !form.formState.errors.email && (
         <p className="mt-3 text-sm text-teal-700 font-medium text-center">
-          {result.newsletter === "pending"
-            ? t("Almost there — click the link in your inbox to confirm.")
-            : result.newsletter === "already_subscribed"
-              ? t("You're already subscribed! We'll keep the updates coming.")
-              : t("Thanks for subscribing! We'll keep the updates coming.")}
+          {result.newsletter === "already_subscribed"
+            ? t("You're already subscribed! We'll keep the updates coming.")
+            : t("You're subscribed! The next issue lands in your inbox.")}
         </p>
       )}
     </div>
@@ -193,7 +190,7 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="mt-10 w-full"
         >
-          <HeroWaitlistForm />
+          <HeroNewsletterForm />
         </motion.div>
 
         <motion.div

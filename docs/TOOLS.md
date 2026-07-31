@@ -782,6 +782,9 @@ Operational env controls:
 - Object storage: S3-compatible endpoint, region, bucket, access key or
   secret-file fallback, secret key or secret-file fallback, CDN URL, optional
   private MinIO stack variables, object-storage completion-gate waiver flag
+- Newsletter (leads CRM project): `LEADS_SUPABASE_URL`, `LEADS_SUPABASE_ANON_KEY`
+  or their `_FILE` variants. Runtime-only, server-side only — see
+  "Newsletter Signup Wiring" below
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
@@ -795,6 +798,25 @@ Operational env controls:
   URLs, and server-only Dagster/Temporal/Marquez/Label Studio PostgreSQL secret
   files
 - Optional ops: platform fee percent and Stripe test business URL settings
+
+## Newsletter Signup Wiring
+
+- The hero box and `/newsletter` both post to `/api/newsletter`. That route only
+  rate-limits and validates; the subscriber record, the consent trail and the
+  welcome email belong to the `newsletter-subscribe` edge function in the leads
+  Supabase project (ref `fjvgurgizjbpfqesuoec`).
+- Signup is **single opt-in**: the RPC writes a `confirmed` subscriber straight
+  away and the email is a receipt with no button. `newsletter-confirm` is kept
+  only so confirmation links already sitting in inboxes still work.
+- Required Dokploy runtime environment variables: `LEADS_SUPABASE_URL` and
+  `LEADS_SUPABASE_ANON_KEY` (the leads project's URL and anon key). Without both,
+  `/api/newsletter` answers `502` and logs `newsletter.subscribe_unavailable`.
+- Do **not** rename these to `NEXT_PUBLIC_*`. Next.js inlines `NEXT_PUBLIC_`
+  variables at build time in the server bundle too, so the CI-built image would
+  bake in `undefined` and every signup would fail regardless of the container's
+  runtime environment. That is exactly how the signup box shipped dead once.
+- Resend credentials for the welcome email live in the leads project
+  (`supabase secrets list`), not in this app.
 
 ## LANDING_MODE Activation
 

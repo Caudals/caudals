@@ -16,11 +16,25 @@ import { getSecretEnvValue } from "@/lib/env/secrets";
 
 const REVALIDATE_SECONDS = 300;
 
+/**
+ * Both call sites are server-side (archive pages and the subscribe route), so
+ * the config is read from plain, non-public env names.
+ *
+ * This is not cosmetic. Next.js inlines `process.env.NEXT_PUBLIC_*` at *build*
+ * time, in the server bundle too — reading the config through those names meant
+ * the production image, built by CI without them, had `undefined` compiled in
+ * and every signup silently took the "newsletter unavailable" branch no matter
+ * what the container's runtime environment said. The `NEXT_PUBLIC_` names are
+ * still honoured as a fallback for existing local setups.
+ */
 function config() {
-  const url = process.env.NEXT_PUBLIC_LEADS_SUPABASE_URL?.replace(/\/+$/, "");
+  const url = (
+    getSecretEnvValue("LEADS_SUPABASE_URL") ??
+    process.env.NEXT_PUBLIC_LEADS_SUPABASE_URL
+  )?.replace(/\/+$/, "");
   const anonKey =
-    process.env.NEXT_PUBLIC_LEADS_SUPABASE_ANON_KEY ??
-    getSecretEnvValue("LEADS_SUPABASE_ANON_KEY");
+    getSecretEnvValue("LEADS_SUPABASE_ANON_KEY") ??
+    process.env.NEXT_PUBLIC_LEADS_SUPABASE_ANON_KEY;
 
   return { url, anonKey };
 }
@@ -120,12 +134,15 @@ export async function getPublishedIssue(
 }
 
 export interface SubscribeResult {
-  status: "pending" | "already_subscribed" | "unavailable";
+  status: "confirmed" | "already_subscribed" | "unavailable";
   emailSent?: boolean;
 }
 
 /**
- * Server-side only: asks the leads project to start a double opt-in.
+ * Server-side only: subscribes the address in the leads project.
+ *
+ * Single opt-in — the edge function confirms the subscriber on the spot and the
+ * email it sends is a receipt, not a gate.
  *
  * Never returns whether the address was already on the list in a way a caller
  * could use to enumerate subscribers — the edge function answers the same shape
@@ -141,7 +158,15 @@ export async function subscribeToNewsletter(input: {
   userAgent?: string;
 }): Promise<SubscribeResult> {
   const { url, anonKey } = config();
-  if (!url || !anonKey) return { status: "unavailable" };
+  if (!url || !anonKey) {
+    // Loud on purpose: this is a misconfiguration, not a visitor error, and the
+    // previous silence is what let a dead signup box look healthy in production.
+    console.error("newsletter.subscribe_unconfigured", {
+      hasUrl: Boolean(url),
+      hasAnonKey: Boolean(anonKey),
+    });
+    return { status: "unavailable" };
+  }
 
   try {
     const response = await fetch(`${url}/functions/v1/newsletter-subscribe`, {
@@ -166,7 +191,11 @@ export async function subscribeToNewsletter(input: {
     });
 
     if (!response.ok) {
-      console.error("newsletter.subscribe_failed", response.status);
+      console.error(
+        "newsletter.subscribe_failed",
+        response.status,
+        (await response.text().catch(() => "")).slice(0, 300)
+      );
       return { status: "unavailable" };
     }
 
@@ -176,7 +205,7 @@ export async function subscribeToNewsletter(input: {
     };
 
     return {
-      status: payload.status === "already_subscribed" ? "already_subscribed" : "pending",
+      status: payload.status === "already_subscribed" ? "already_subscribed" : "confirmed",
       emailSent: payload.email_sent ?? false,
     };
   } catch (error) {
