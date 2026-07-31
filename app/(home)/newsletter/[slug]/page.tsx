@@ -54,13 +54,23 @@ export default async function NewsletterIssuePage({
 
   if (!issue) notFound();
 
-  const sent = issue.sent_at
-    ? new Date(issue.sent_at).toLocaleDateString("es-ES", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : "";
+  let sent = "";
+  if (issue.sent_at) {
+    try {
+      const date = new Date(issue.sent_at);
+      if (!isNaN(date.getTime())) {
+        sent = date.toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      }
+    } catch {
+      sent = "";
+    }
+  }
+
+  const blocks = Array.isArray(issue.blocks) ? issue.blocks : [];
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
@@ -88,7 +98,7 @@ export default async function NewsletterIssuePage({
         </header>
 
         <article>
-          {issue.blocks.map((block) => (
+          {blocks.map((block) => (
             <NewsletterBlockView key={block.id} block={block} />
           ))}
         </article>

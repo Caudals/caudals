@@ -57,7 +57,7 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
       {!compact && (
         <div>
           <p className="text-lg font-semibold text-slate-900">
-            {t("Get it every other Tuesday")}
+            {t("Get it every week")}
           </p>
           <p className="mt-1 text-sm text-slate-600">
             {t("No spam, no link roundups. One click to unsubscribe, always.")}

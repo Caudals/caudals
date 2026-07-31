@@ -141,8 +141,9 @@ export function NewsletterBlockView({ block }: { block: NewsletterBlock }) {
       );
 
     case "link_list": {
-      const items = Array.isArray(content["items"])
-        ? (content["items"] as Array<Record<string, unknown>>)
+      const rawItems = content["items"];
+      const items = Array.isArray(rawItems)
+        ? rawItems.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
         : [];
       return (
         <ul className="my-5 list-disc space-y-2 pl-5 text-[1rem] leading-relaxed text-slate-700">
