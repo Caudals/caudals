@@ -126,7 +126,7 @@ function HeroNewsletterForm() {
       )}
       {!result && !form.formState.errors.email && (
         <p className="mt-3 text-[13px] text-gray-500 text-center">
-          {t("Subscribe to Data Unfiltered, our biweekly read on AI tools and data. One click to unsubscribe.")}
+          {t("Subscribe to Data Unfiltered, our weekly read on AI tools and data. One click to unsubscribe.")}
         </p>
       )}
       {result && !form.formState.errors.email && (

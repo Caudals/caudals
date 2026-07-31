@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPublicMetadata({
     title: t("Data Unfiltered — Caudals newsletter"),
     description: t(
-      "A biweekly read for people building with AI, from the team that sources and licenses the data models train on."
+      "A weekly read for people building with AI, from the team that sources and licenses the data models train on."
     ),
     pathname: "/newsletter",
   });
@@ -57,7 +57,7 @@ export default async function NewsletterPage() {
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">Data Unfiltered</h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
             {t(
-              "Every other Tuesday: AI tools we have actually tested, techniques you can use the same day, and what really happens when you source, license and clean the data models train on."
+              "Every week: AI tools we have actually tested, techniques you can use the same day, and what really happens when you source, license and clean the data models train on."
             )}
           </p>
         </header>
