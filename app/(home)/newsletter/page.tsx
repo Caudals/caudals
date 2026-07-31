@@ -1,0 +1,98 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { MarketingFooter } from "@/components/marketing/footer";
+import { Header } from "@/components/ui/header";
+import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
+import { getPublishedIssues } from "@/lib/newsletter/client";
+import { getServerTranslator } from "@/lib/i18n/server";
+import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
+import { buildPublicMetadata } from "@/lib/seo";
+
+/**
+ * The public archive.
+ *
+ * Two jobs, in this order: convert a reader into a subscriber, and give every
+ * issue a permanent URL. The second one is the slower and larger of the two —
+ * a couple of years of issues is a body of technical writing that search and
+ * AI assistants can cite, which is the loop described in
+ * `docs/growth/05-NEWSLETTER.md` §6.
+ */
+
+export const revalidate = 300;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getServerTranslator();
+
+  return buildPublicMetadata({
+    title: t("The Data Gap — Caudals newsletter"),
+    description: t(
+      "A biweekly read for people building with AI, from the team that sources and licenses the data models train on."
+    ),
+    pathname: "/newsletter",
+  });
+}
+
+function formatDate(value: string | null, locale: string) {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString(locale === "en" ? "en-GB" : "es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+export default async function NewsletterPage() {
+  const t = await getServerTranslator();
+  const issues = await getPublishedIssues();
+
+  return (
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+
+      <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
+        <header className="mb-12">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
+            {t("Newsletter")}
+          </p>
+          <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">The Data Gap</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
+            {t(
+              "Every other Tuesday: AI tools we have actually tested, techniques you can use the same day, and what really happens when you source, license and clean the data models train on."
+            )}
+          </p>
+        </header>
+
+        <section className="mb-16 rounded-2xl border border-gray-200 bg-gray-50/60 p-6 sm:p-8">
+          <NewsletterSignupForm source="archive" />
+        </section>
+
+        <section className="flex flex-col divide-y divide-gray-200">
+          {issues.length === 0 ? (
+            <p className="italic text-gray-500">
+              {t("The first issue is on its way. Subscribe above and you will get it.")}
+            </p>
+          ) : (
+            issues.map((issue) => (
+              <article key={issue.id} className="py-7 first:pt-0">
+                <Link href={`/newsletter/${issue.slug}`} className="group block">
+                  <p className="mb-2 text-sm text-gray-500">
+                    {issue.number ? `Nº ${issue.number} · ` : ""}
+                    {formatDate(issue.sent_at, "es")}
+                  </p>
+                  <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-blue-700">
+                    {issue.title}
+                  </h2>
+                  {issue.dek && (
+                    <p className="mt-2 text-base leading-relaxed text-gray-600">{issue.dek}</p>
+                  )}
+                </Link>
+              </article>
+            ))
+          )}
+        </section>
+      </main>
+
+      <MarketingFooter forceLandingMode />
+    </div>
+  );
+}

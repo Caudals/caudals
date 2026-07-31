@@ -12,6 +12,7 @@ describe("landing mode route allowlist", () => {
     expect(landingModePublicNavigationLinks).toEqual([
       { href: "/contact", label: "Contacto" },
       { href: "/blog", label: "Blog" },
+      { href: "/newsletter", label: "Newsletter" },
     ]);
   });
 
@@ -26,6 +27,12 @@ describe("landing mode route allowlist", () => {
       isLandingModePagePathAllowed(
         "/blog/launching-caudals-clearer-dataset-operations"
       )
+    ).toBe(true);
+    // The newsletter archive: the index and every issue's permanent URL.
+    expect(isLandingModePagePathAllowed("/newsletter")).toBe(true);
+    expect(isLandingModePagePathAllowed("/newsletter/")).toBe(true);
+    expect(
+      isLandingModePagePathAllowed("/newsletter/2026-08-04-el-hueco-de-datos")
     ).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/privacy")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/cookies")).toBe(true);

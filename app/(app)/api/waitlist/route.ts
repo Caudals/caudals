@@ -6,6 +6,7 @@ import { generatePrefixedUlid } from "@/lib/db/ids";
 import { queryRows } from "@/lib/db/client";
 import { waitlistFormSchema } from "@/lib/validators/waitlist";
 import { ensureAudienceContact } from "@/lib/resend/subscribers";
+import { subscribeToNewsletter } from "@/lib/newsletter/client";
 import {
   buildRateLimitHeaders,
   consumeRateLimit,
@@ -248,11 +249,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Already on the waitlist, but possibly not on the newsletter — the box
+    // does both jobs now, and someone who signed up before the newsletter
+    // existed should still get the chance to confirm.
+    const newsletter = await subscribeToNewsletter({
+      email: emailLower,
+      source: "landing_hero",
+      sourceUrl: referer ?? undefined,
+      fullName,
+      ip: clientIp,
+      userAgent: userAgent ?? undefined,
+    });
+
     return withHeaders(
       NextResponse.json({
         success: true,
         message: "You're already on the waitlist!",
         alreadyRegistered: true,
+        newsletter: newsletter.status,
       }),
       ipRateHeaders
     );
@@ -310,6 +324,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // The hero box is now the entry point for both the waitlist and the
+  // newsletter. The newsletter's double opt-in email doubles as the waitlist
+  // confirmation when it goes out, so the visitor gets one email rather than
+  // two saying nearly the same thing.
+  const newsletter = await subscribeToNewsletter({
+    email: emailLower,
+    source: "landing_hero",
+    sourceUrl: referer ?? undefined,
+    fullName,
+    ip: clientIp,
+    userAgent: userAgent ?? undefined,
+  });
+
   const resendFrom = process.env.RESEND_FROM_EMAIL;
   const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
@@ -319,6 +346,7 @@ export async function POST(request: NextRequest) {
       NextResponse.json({
         success: true,
         message: "You're on the waitlist! We'll be in touch soon.",
+        newsletter: newsletter.status,
       }),
       ipRateHeaders
     );
@@ -346,26 +374,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const confirmationSent = await sendEmailWithFallback({
-      resend,
-      fallbackFrom: resendFallbackFrom,
-      payload: {
-        from: resendFrom,
-        to: emailLower,
-        subject: "You're on the Caudals waitlist!",
-        react: WaitlistConfirmationEmail({
-          fullName,
-          company,
-          useCase,
-        }),
-      },
-      primaryErrorEvent: "waitlist.confirmation_send_failed",
-      fallbackErrorEvent: "waitlist.confirmation_fallback_failed",
-      fallbackUsedEvent: "waitlist.confirmation_fallback_used",
-      logContext: {
-        email: emailLower,
-      },
-    });
+    // Skipped when the double opt-in email already went out: two "welcome"
+    // emails in one minute reads as a broken integration, and the newsletter
+    // one is the one that needs a click.
+    const confirmationSent = newsletter.emailSent
+      ? true
+      : await sendEmailWithFallback({
+          resend,
+          fallbackFrom: resendFallbackFrom,
+          payload: {
+            from: resendFrom,
+            to: emailLower,
+            subject: "You're on the Caudals waitlist!",
+            react: WaitlistConfirmationEmail({
+              fullName,
+              company,
+              useCase,
+            }),
+          },
+          primaryErrorEvent: "waitlist.confirmation_send_failed",
+          fallbackErrorEvent: "waitlist.confirmation_fallback_failed",
+          fallbackUsedEvent: "waitlist.confirmation_fallback_used",
+          logContext: {
+            email: emailLower,
+          },
+        });
 
     if (!confirmationSent) {
       return withHeaders(
@@ -373,6 +406,7 @@ export async function POST(request: NextRequest) {
           success: true,
           message: "You're on the waitlist! We'll be in touch soon.",
           emailSent: false,
+          newsletter: newsletter.status,
         }),
         ipRateHeaders
       );
@@ -420,6 +454,7 @@ ${useCase ? `<p><strong>Use case:</strong> ${useCase}</p>` : ""}
         success: true,
         message: "You're on the waitlist! We'll be in touch soon.",
         emailSent: false,
+        newsletter: newsletter.status,
       }),
       ipRateHeaders
     );
@@ -428,8 +463,11 @@ ${useCase ? `<p><strong>Use case:</strong> ${useCase}</p>` : ""}
   return withHeaders(
     NextResponse.json({
       success: true,
-      message: "You're on the waitlist! Check your inbox for a confirmation email.",
+      message: newsletter.emailSent
+        ? "Almost there — click the link in your inbox to confirm."
+        : "You're on the waitlist! Check your inbox for a confirmation email.",
       emailSent: true,
+      newsletter: newsletter.status,
     }),
     ipRateHeaders
   );
