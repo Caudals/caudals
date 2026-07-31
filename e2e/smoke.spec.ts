@@ -9,7 +9,7 @@ test.describe("core role smoke", () => {
     await page.goto("/");
     await expect(page.locator("main h1").first()).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /request access|solicitar acceso/i })
+      page.getByRole("button", { name: /subscribe|suscribirse/i })
     ).toBeVisible();
   });
 
