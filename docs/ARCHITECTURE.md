@@ -397,3 +397,7 @@ Active drift risks:
 
 - `product-specs/overview.md`
 - `TOOLS.md`
+- [Caudals Leads architecture](https://github.com/Caudals/leads/blob/main/docs/ARCHITECTURE.md) — the
+  separate Leads CRM runtime, which shares private `caudals-postgres` and
+  `dokploy-network` conventions but owns its dedicated `caudals_leads` database
+  and application schema.
