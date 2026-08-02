@@ -12,6 +12,7 @@ describe("landing mode route allowlist", () => {
     expect(landingModePublicNavigationLinks).toEqual([
       { href: "/contact", label: "Contacto" },
       { href: "/blog", label: "Blog" },
+      { href: "/newsletter", label: "Newsletter" },
     ]);
   });
 
@@ -26,6 +27,12 @@ describe("landing mode route allowlist", () => {
       isLandingModePagePathAllowed(
         "/blog/launching-caudals-clearer-dataset-operations"
       )
+    ).toBe(true);
+    // The newsletter archive: the index and every issue's permanent URL.
+    expect(isLandingModePagePathAllowed("/newsletter")).toBe(true);
+    expect(isLandingModePagePathAllowed("/newsletter/")).toBe(true);
+    expect(
+      isLandingModePagePathAllowed("/newsletter/2026-08-04-el-hueco-de-datos")
     ).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/privacy")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/cookies")).toBe(true);
@@ -62,7 +69,8 @@ describe("landing mode route allowlist", () => {
 
   it("allows only explicit public APIs", () => {
     expect(isLandingModeApiPathAllowed("/api/contact")).toBe(true);
-    expect(isLandingModeApiPathAllowed("/api/waitlist")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/newsletter")).toBe(true);
+    expect(isLandingModeApiPathAllowed("/api/waitlist")).toBe(false);
     expect(isLandingModeApiPathAllowed("/api/analytics/track")).toBe(true);
     expect(isLandingModeApiPathAllowed("/api/collaborations")).toBe(false);
     expect(isLandingModeApiPathAllowed("/api/trpc/health")).toBe(false);
@@ -87,7 +95,7 @@ describe("landing mode route allowlist", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
     expect(isLandingModeRequestAllowed("/call")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
-    expect(isLandingModeRequestAllowed("/api/waitlist")).toBe(true);
+    expect(isLandingModeRequestAllowed("/api/newsletter")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);
     expect(isLandingModeRequestAllowed("/auth/sign-in")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/auth/session")).toBe(true);

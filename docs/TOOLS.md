@@ -782,6 +782,8 @@ Operational env controls:
 - Object storage: S3-compatible endpoint, region, bucket, access key or
   secret-file fallback, secret key or secret-file fallback, CDN URL, optional
   private MinIO stack variables, object-storage completion-gate waiver flag
+- Newsletter (Leads CRM): optional `LEADS_NEWSLETTER_API_URL` override. The
+  default is `https://leads.caudals.com/api/newsletter`; it is not a secret.
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
@@ -795,6 +797,17 @@ Operational env controls:
   URLs, and server-only Dagster/Temporal/Marquez/Label Studio PostgreSQL secret
   files
 - Optional ops: platform fee percent and Stripe test business URL settings
+
+## Newsletter Signup Wiring
+
+- The hero box and `/newsletter` both post to `/api/newsletter`. That route only
+  rate-limits and validates; the subscriber record, the consent trail and the
+  confirmation email belong to the public Leads Node API.
+- Signup is **double opt-in**: the API creates a `pending` subscriber and only
+  the signed confirmation link makes the address eligible for delivery.
+- The archive reads the same narrow Leads API. Neither this site nor its bundle
+  receives a PostgreSQL connection, Supabase key or Resend credential.
+- Resend credentials live in the secret-backed Leads service, not in this app.
 
 ## LANDING_MODE Activation
 
