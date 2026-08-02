@@ -9,6 +9,7 @@ This directory is the persistent reference set for Caudals' product, architectur
 - `FRONTEND.md`: frontend implementation contract.
 - `TOOLS.md`: operational tooling, setup commands, and troubleshooting.
 - `product-specs/`: B2B dataset marketplace and managed services product contract.
+- `product-specs/content-publishing-contract.md`: versioned interface between the Leads Content Suite and the public MDX blog.
 - `blueprints/`: generated product blueprints and exports.
 - `migrations/`: platform migration reports and cutover evidence.
 - [Caudals Leads](https://github.com/Caudals/leads) (`../leads`): satellite repository for the
@@ -28,6 +29,7 @@ This directory is the persistent reference set for Caudals' product, architectur
 | `docs/FRONTEND.md` | frontend implementation contract | frontend routing, UI, or i18n contract changes |
 | `docs/TOOLS.md` | operational tooling and setup runbook | tooling workflows, setup, or troubleshooting changes |
 | `docs/product-specs/*.md` | product behavior contracts and startup context | behavior/product contract changes |
+| `docs/product-specs/content-publishing-contract.md` | Leads-to-site blog path, frontmatter, MDX and release contract | blog loader, route, components, or publisher changes |
 | `docs/blueprints/*` | generated strategic/product artifacts | explicit blueprint generation or export updates |
 | `docs/migrations/*` | migration reports, verification, and decommission gates | platform/data/auth/storage migrations |
 
