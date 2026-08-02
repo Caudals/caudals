@@ -11,8 +11,12 @@ This directory is the persistent reference set for Caudals' product, architectur
 - `product-specs/`: B2B dataset marketplace and managed services product contract.
 - `blueprints/`: generated product blueprints and exports.
 - `migrations/`: platform migration reports and cutover evidence.
-- [Caudals Leads](https://github.com/Caudals/leads): satellite repository for the internal
-  B2B Leads CRM, outreach, Growth OS, social and newsletter operations.
+- [Caudals Leads](https://github.com/Caudals/leads) (`../leads`): satellite repository for the
+  internal B2B Leads CRM, outreach, prospecting, social and newsletter operations.
+  Start at `../leads/AGENTS.md`; it indexes `docs/ARCHITECTURE.md`,
+  `docs/OPERATIONS.md`, `docs/OUTREACH.md`, `docs/CONTENT.md`,
+  `docs/PROSPECTING.md` and `docs/GROWTH.md`. It shares this host, network and
+  PostgreSQL service but owns its own schema.
 
 ## Read/Write Matrix
 | Path | Purpose | Update Trigger |
