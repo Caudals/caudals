@@ -28,6 +28,22 @@ Current deployment scope is intentionally narrow:
 
 Marketplace browse, catalogue datasets, catalogue purchase flows, and broad marketplace commerce remain deferred until a future catalogue goal.
 
+## Sibling Repository — Caudals Leads
+
+`../leads` (github.com/Caudals/leads) is the satellite repo for the internal B2B
+Leads CRM: companies/contacts, cold-outreach sequences, AI prospecting intake,
+social publishing, the *The Data Gap* newsletter, and the blog pipeline that
+commits into this repo. It runs on the same Hetzner host (`caudals-1`) and the
+same `dokploy-network`, with its own `caudals_leads` database inside the shared
+`caudals-postgres` service, plus the private `growth-social` execution service.
+
+- This repo owns the platform: VPS, `caudals-postgres`, Docker secrets, Swarm
+  stack conventions, Postiz, Temporal, Dagster.
+- `../leads` owns the CRM schema and behaviour, and holds no platform contract.
+- Start there at `../leads/AGENTS.md`; it indexes its own docs.
+- Read it before changing shared infrastructure, the newsletter public archive,
+  the blog content path, or anything that consumes `leads.caudals.com`.
+
 ## Read Order Before Non-Trivial Work
 
 1. `AGENTS.md`
