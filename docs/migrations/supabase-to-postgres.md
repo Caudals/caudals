@@ -4,8 +4,10 @@
 
 Complete for Phase 1. The private `caudals-postgres` target is live on the VPS, the app service is cut over to it, public-funnel rows have been migrated, and legacy Supabase containers/images/volumes plus the host `/supabase` tree have been removed. Verified encrypted database and filesystem backups are staged under `/root/.caudals/backups`; off-host Spaces upload was not possible because Spaces credentials are not present on the VPS.
 
-The separate Caudals Leads satellite has its own migration and cutover runbook
-in the [Caudals Leads migration document](https://github.com/Caudals/leads/blob/main/docs/POSTGRES_MIGRATION.md).
+The separate Caudals Leads satellite completed its production cutover on
+2026-08-02. Its private PostgreSQL import, Node/Better Auth runtime, Growth
+service cutover, rollback assets, and provider webhooks are documented in the
+[Caudals Leads migration document](https://github.com/Caudals/leads/blob/main/docs/POSTGRES_MIGRATION.md).
 It uses the same private PostgreSQL service but a dedicated `caudals_leads`
 database and must not be folded into the main application schema.
 
