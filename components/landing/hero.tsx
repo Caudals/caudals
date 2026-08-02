@@ -19,7 +19,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { waitlistFormSchema, type WaitlistFormValues } from "@/lib/validators/waitlist";
+import {
+  newsletterFormSchema,
+  type NewsletterFormValues,
+} from "@/lib/validators/newsletter";
 import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import {
   Form,
@@ -29,19 +32,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-interface WaitlistResponse {
+interface NewsletterResponse {
   success: boolean;
-  message?: string;
-  alreadyRegistered?: boolean;
   emailSent?: boolean;
+  /** Double opt-in: new addresses remain pending until the email link is used. */
+  newsletter?: "pending" | "already_subscribed";
 }
 
-function HeroWaitlistForm() {
-  const [result, setResult] = useState<WaitlistResponse | null>(null);
+function HeroNewsletterForm() {
+  const [result, setResult] = useState<NewsletterResponse | null>(null);
   const toast = useLocaleToast();
   const t = useTranslations();
-  const form = useForm<WaitlistFormValues>({
-    resolver: zodResolver(waitlistFormSchema),
+  const form = useForm<NewsletterFormValues>({
+    resolver: zodResolver(newsletterFormSchema),
     defaultValues: {
       email: "",
     },
@@ -50,14 +53,14 @@ function HeroWaitlistForm() {
 
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit(values: WaitlistFormValues) {
+  async function onSubmit(values: NewsletterFormValues) {
     try {
       setResult(null);
 
-      const response = await fetch("/api/waitlist", {
+      const response = await fetch("/api/newsletter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email }),
+        body: JSON.stringify({ email: values.email, source: "landing_hero" }),
       });
 
       const payload = await response.json().catch(() => null);
@@ -71,24 +74,17 @@ function HeroWaitlistForm() {
         throw new Error(payload?.error || payload?.message || "Something went wrong");
       }
 
-      const data = (payload ?? {}) as WaitlistResponse;
+      const data = (payload ?? {}) as NewsletterResponse;
       setResult(data);
 
-      if (data.alreadyRegistered) {
-        toast.info(t(data.message ?? "You're already on the waitlist!"));
+      if (data.newsletter === "already_subscribed") {
+        toast.info(t("You're already subscribed! We'll keep the updates coming."));
       } else {
-        toast.success(
-          t(
-            data.message ??
-              (data.emailSent
-                ? "You're on the waitlist! Check your inbox for a confirmation email."
-                : "You're on the waitlist! We'll be in touch soon."),
-          ),
-        );
+        toast.success(t("Check your inbox to confirm your subscription."));
       }
       form.reset();
     } catch (error) {
-      console.error("Failed to submit waitlist form", error);
+      console.error("Failed to submit newsletter form", error);
       toast.error(t("We couldn't save your request. Please try again."));
     }
   }
@@ -105,8 +101,8 @@ function HeroWaitlistForm() {
                 <FormControl>
                   <Input
                     type="email"
-                    placeholder={t("Enter your email")}
-                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-36 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
+                    placeholder={t("Your email address")}
+                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-32 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
                     {...field}
                   />
                 </FormControl>
@@ -119,7 +115,7 @@ function HeroWaitlistForm() {
             disabled={isSubmitting}
             className="absolute right-1 h-10 rounded-full bg-black px-5 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90 disabled:opacity-70"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Request access")}
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Subscribe")}
           </Button>
         </form>
       </Form>
@@ -128,16 +124,16 @@ function HeroWaitlistForm() {
           {form.formState.errors.email.message ? t(form.formState.errors.email.message) : ""}
         </p>
       )}
+      {!result && !form.formState.errors.email && (
+        <p className="mt-3 text-[13px] text-gray-500 text-center">
+          {t("Subscribe to Data Unfiltered, our fortnightly read on AI tools and data. One click to unsubscribe.")}
+        </p>
+      )}
       {result && !form.formState.errors.email && (
-        <p className="mt-2 text-sm text-teal-700 font-medium text-center">
-          {result.alreadyRegistered
-            ? t("You're already on the list—we'll keep the updates coming.")
-            : result.emailSent
-              ? t(
-                  result.message ??
-                    "You're on the waitlist! Check your inbox for a confirmation email.",
-                )
-              : t("Thanks for joining! We'll reach out soon with next steps.")}
+        <p className="mt-3 text-sm text-teal-700 font-medium text-center">
+          {result.newsletter === "already_subscribed"
+            ? t("You're already subscribed! We'll keep the updates coming.")
+            : t("Check your inbox to confirm your subscription.")}
         </p>
       )}
     </div>
@@ -194,7 +190,7 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="mt-10 w-full"
         >
-          <HeroWaitlistForm />
+          <HeroNewsletterForm />
         </motion.div>
 
         <motion.div

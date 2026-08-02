@@ -3,8 +3,11 @@ const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   "/contact",
   "/call",
   "/blog",
+  // The newsletter archive is a public marketing surface, like the blog: every
+  // issue is a permanent page that AI assistants and search can cite.
+  "/newsletter",
 ]);
-const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/", "/legal/"];
+const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/", "/legal/", "/newsletter/"];
 const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
   "/auth",
@@ -23,8 +26,8 @@ const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PREFIXES = [
 const LANDING_MODE_ALLOWED_API_PATHS = new Set([
   "/api/analytics/track",
   "/api/contact",
+  "/api/newsletter",
   "/api/user/role",
-  "/api/waitlist",
 ]);
 const LANDING_MODE_ALLOWED_API_PREFIXES = ["/api/auth/"];
 const SITE_VERIFICATION_HTML_PATTERN = /^\/google[a-z0-9]+\.html$/i;
@@ -34,6 +37,7 @@ const STATIC_ASSET_PATH_PATTERN =
 export const landingModePublicNavigationLinks = [
   { href: "/contact", label: "Contacto" },
   { href: "/blog", label: "Blog" },
+  { href: "/newsletter", label: "Newsletter" },
 ] as const;
 
 function normalizePathname(pathname: string) {
