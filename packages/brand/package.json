@@ -1,0 +1,11 @@
+{
+  "name": "@caudals/brand",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./tokens.css": "./tokens.css",
+    "./manifest.json": "./manifest.json"
+  }
+}

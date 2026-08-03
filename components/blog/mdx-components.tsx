@@ -159,16 +159,6 @@ export const mdxComponents = {
       {...props}
     />
   ),
-  iframe: ({ className, ...props }: ComponentPropsWithoutRef<"iframe">) => (
-    <div className={cn(`${blogMediaFrameClassName} overflow-hidden`, className)}>
-      <iframe
-        className="block aspect-video w-full"
-        loading="lazy"
-        referrerPolicy="strict-origin-when-cross-origin"
-        {...props}
-      />
-    </div>
-  ),
   YouTube: YouTubeEmbed,
   DataBudgetCalculator,
   DataSourceQuiz,

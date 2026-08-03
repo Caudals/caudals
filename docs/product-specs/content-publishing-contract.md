@@ -17,8 +17,8 @@ CRM is the source of truth for workflow, approvals, scheduling and provenance.
 - Slug: lowercase ASCII and hyphens; use the same slug for translations
 
 The loader may fall back to the default locale when a translation is missing.
-The production workflow should nevertheless treat the English and Spanish
-files as one translation group so their release status is visible.
+V2 production releases use `translation_group_id` and require exactly one
+English and one Spanish file with the same slug before the atomic commit.
 
 ## Frontmatter
 
@@ -69,18 +69,29 @@ frontmatter. The publisher owns frontmatter and the site owns components.
 
 ## Publication workflow
 
-The current scheduled path selects approved articles. For every publication,
-the CRM publisher:
+The current scheduled path selects approved, hash-bound variants. For every
+publication, the CRM publisher:
 
 1. Refuses an empty MDX body or excerpt.
 2. Renders frontmatter according to this contract.
-3. Creates or updates the locale file through GitHub on the configured branch.
-4. Records commit SHA and `/blog/{slug}` in the CRM.
-5. Marks the related campaign beat published.
+3. Requires the paired `en`/`es` translation group and matching slug.
+4. Creates both blobs, one Git tree and one commit, then advances the configured
+   branch with a non-force compare-and-swap update.
+5. Records the same commit SHA, `/blog/{slug}` and `committed` deployment state
+   for both locales.
+6. Reconciles GitHub Actions as `committed → building → deployed` or `failed`.
 
-The next contract version should add a preflight check that compiles the exact
-MDX against the target revision, an atomic translation/asset bundle, build and
-deployment status, and a preview rendered by this application.
+This repository enforces the same deterministic contract when content is read,
+when `npm run blog:preflight` is executed and before the production image is
+built. Preflight checks required frontmatter, locale/slug pairing and category
+parity, the MDX component allowlist, imports/exports, unsafe HTML, links,
+private-route discovery, headings, image alt text and a 250 kB source budget.
+The site build remains the renderer/compiler compatibility test.
+
+Shared editorial brand tokens and the machine-readable voice/primitive manifest
+live in `packages/brand/`. `app/globals.css` consumes the CSS token package; the
+Leads database stores the corresponding immutable brand version used by media
+projects and prompt bundles.
 
 ## Change protocol
 

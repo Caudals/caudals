@@ -20,6 +20,7 @@ import type {
   BlogPost,
   BlogPostSummary,
 } from "@/lib/blog/types";
+import { assertBlogSource } from "@/lib/blog/preflight";
 
 const BLOG_CONTENT_ROOT = path.join(process.cwd(), "content", "blog");
 const BLOG_FILE_EXTENSION = ".mdx";
@@ -127,7 +128,7 @@ async function getFilePathForSlug(locale: Locale, slug: string) {
 
 function extractHeadings(source: string): BlogHeading[] {
   const headings: BlogHeading[] = [];
-  const lines = source.split("\n");
+  const lines = source.split(/\r?\n/);
   let insideCodeFence = false;
 
   for (const line of lines) {
@@ -169,6 +170,7 @@ function extractHeadings(source: string): BlogHeading[] {
 async function readPostSummaryFromFile(filePath: string, locale: Locale) {
   const slug = path.basename(filePath, BLOG_FILE_EXTENSION);
   const source = await fs.readFile(filePath, "utf8");
+  assertBlogSource(source, { slug, locale });
   const { data, content } = matter(source);
   const frontmatter = parseFrontmatter(data, slug);
 
@@ -212,6 +214,7 @@ export async function getBlogPost(slug: string, locale?: Locale) {
   }
 
   const source = await fs.readFile(filePath, "utf8");
+  assertBlogSource(source, { slug, locale: resolvedLocale });
   const { data, content: rawContent } = matter(source);
   const frontmatter = parseFrontmatter(data, slug);
   const headings = extractHeadings(rawContent);
