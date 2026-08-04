@@ -24,7 +24,7 @@ traefik_dir="${CAUDALS_TRAEFIK_DYNAMIC_DIR:-/etc/dokploy/traefik/dynamic}"
 backup_root="${CAUDALS_APP_BACKUP_DIR:-/root/.caudals/backups}"
 
 required=(
-  DATABASE_URL NEXT_PUBLIC_APP_URL
+  NEXT_PUBLIC_APP_URL
 )
 missing=()
 for key in "${required[@]}"; do
@@ -96,14 +96,14 @@ cat >"$route_tmp" <<'EOF'
 http:
   routers:
     caudals-app-web:
-      rule: Host(`caudals.com`, `www.caudals.com`)
+      rule: Host(`caudals.com`) || Host(`www.caudals.com`)
       service: caudals-app
       middlewares:
         - redirect-to-https
       entryPoints:
         - web
     caudals-app-websecure:
-      rule: Host(`caudals.com`, `www.caudals.com`)
+      rule: Host(`caudals.com`) || Host(`www.caudals.com`)
       service: caudals-app
       entryPoints:
         - websecure
