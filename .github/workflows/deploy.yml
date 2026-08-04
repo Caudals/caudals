@@ -149,5 +149,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no caudals@caudals-1 << 'INNEREOF'
             cd /home/caudals/caudals
             git pull origin main
+            sudo CAUDALS_APP_BUILD_LOCAL=false scripts/deploy-app-stack.sh
             sudo scripts/deploy-orchestration-stack.sh
           INNEREOF
