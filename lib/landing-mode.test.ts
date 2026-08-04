@@ -34,6 +34,8 @@ describe("landing mode route allowlist", () => {
     expect(
       isLandingModePagePathAllowed("/newsletter/2026-08-04-el-hueco-de-datos")
     ).toBe(true);
+    expect(isLandingModePagePathAllowed("/equipo")).toBe(true);
+    expect(isLandingModePagePathAllowed("/equipo/alonso-sandoval")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/privacy")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/cookies")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/notice")).toBe(true);
@@ -85,6 +87,10 @@ describe("landing mode route allowlist", () => {
     );
     expect(isLandingModeStaticAssetPath("/robots.txt")).toBe(true);
     expect(isLandingModeStaticAssetPath("/sitemap.xml")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/post-sitemap.xml")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/page-sitemap.xml")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/author-sitemap.xml")).toBe(true);
+    expect(isLandingModeStaticAssetPath("/llms.txt")).toBe(true);
     expect(
       isLandingModeStaticAssetPath("/googlef901b912f9aefdea.html")
     ).toBe(true);
@@ -94,6 +100,7 @@ describe("landing mode route allowlist", () => {
   it("evaluates full request allowlisting", () => {
     expect(isLandingModeRequestAllowed("/blog")).toBe(true);
     expect(isLandingModeRequestAllowed("/call")).toBe(true);
+    expect(isLandingModeRequestAllowed("/equipo/mario-medrano-paredes")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/contact")).toBe(true);
     expect(isLandingModeRequestAllowed("/api/newsletter")).toBe(true);
     expect(isLandingModeRequestAllowed("/admin")).toBe(true);

@@ -6,8 +6,14 @@ const LANDING_MODE_ALLOWED_PAGE_PATHS = new Set([
   // The newsletter archive is a public marketing surface, like the blog: every
   // issue is a permanent page that AI assistants and search can cite.
   "/newsletter",
+  "/equipo",
 ]);
-const LANDING_MODE_ALLOWED_PAGE_PREFIXES = ["/blog/", "/legal/", "/newsletter/"];
+const LANDING_MODE_ALLOWED_PAGE_PREFIXES = [
+  "/blog/",
+  "/equipo/",
+  "/legal/",
+  "/newsletter/",
+];
 const LANDING_MODE_ALLOWED_PRIVATE_PAGE_PATHS = new Set([
   "/admin",
   "/auth",

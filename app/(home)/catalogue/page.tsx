@@ -13,9 +13,9 @@ function firstSearchParam(value: string | string[] | undefined) {
 }
 
 export const metadata = buildPublicMetadata({
-  title: "Dataset catalogue | Caudals",
+  title: "Catálogo de datasets para IA",
   description:
-    "Browse curated AI-ready dataset listings with quality, licensing, privacy, freshness, and sample-preview evidence.",
+    "Explora datasets preparados para IA con información de calidad, licencia, privacidad, procedencia, actualización y muestras disponibles.",
   pathname: "/catalogue",
 });
 

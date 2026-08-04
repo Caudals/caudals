@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Security Baseline",
+  title: "Controles básicos de seguridad",
   description:
-    "Caudals baseline controls for abuse prevention, upload security, and webhook safety.",
+    "Controles de Caudals para prevenir abusos, proteger subidas de archivos, aislar accesos y procesar webhooks de forma segura e idempotente.",
   pathname: "/docs/security-baseline",
 });
 

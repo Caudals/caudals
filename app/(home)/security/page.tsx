@@ -20,9 +20,9 @@ import { getPublicSecurityReviewData } from "@/lib/security/public-security-revi
 export const dynamic = "force-dynamic";
 
 export const metadata = buildPublicMetadata({
-  title: "Security | Caudals",
+  title: "Seguridad y cumplimiento",
   description:
-    "Public security and compliance posture for Caudals buyers reviewing AI dataset operations.",
+    "Controles públicos de seguridad, gobernanza, trazabilidad, privacidad y cumplimiento para empresas que evalúan las operaciones de datasets de Caudals.",
   pathname: "/security",
 });
 

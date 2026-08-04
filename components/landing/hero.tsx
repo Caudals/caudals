@@ -332,11 +332,11 @@ function HeroPreview() {
           </div>
         </aside>
 
-        <main className="p-6 sm:p-8 ">
+        <div className="p-6 sm:p-8 ">
           <div className="flex flex-col items-start gap-1">
-            <h3 className="text-base font-medium tracking-tight text-gray-900 text-left">
+            <p className="text-base font-medium tracking-tight text-gray-900 text-left">
               {t("Operational overview")}
-            </h3>
+            </p>
             <p className="mt-0.5 text-xs text-gray-500 text-left">{t("Last 30 days")}</p>
           </div>
      
@@ -374,9 +374,9 @@ function HeroPreview() {
 
           <div className="mt-8">
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-sm font-medium tracking-tight text-gray-900">
+              <p className="text-sm font-medium tracking-tight text-gray-900">
                 {t("Catalog")}
-              </h4>
+              </p>
               <div className="flex items-center gap-2">
                 <div className="relative hidden sm:block">
                   <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -439,7 +439,7 @@ function HeroPreview() {
         
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

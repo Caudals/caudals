@@ -9,9 +9,9 @@ const DEFAULT_CAL_LINK = "caudals/call";
 export const dynamic = "force-dynamic";
 
 export const metadata = buildPublicMetadata({
-  title: "Book a meeting | Caudals",
+  title: "Reserva una reunión sobre tu dataset",
   description:
-    "Schedule a 30-minute call with the Caudals data operations team to scope your dataset needs, feasibility, and timeline.",
+    "Reserva una llamada de 30 minutos con Caudals para revisar las necesidades de datos de tu proyecto de IA, su viabilidad, alcance y calendario.",
   pathname: "/call",
 });
 

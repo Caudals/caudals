@@ -29,9 +29,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
         <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
           <div>
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">
+            <p className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
-            </h3>
+            </p>
             <p className="text-sm text-slate-500">
               {t("Build production-grade datasets to train tailored AI models")}
             </p>
@@ -45,9 +45,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
           {isLandingMode ? (
             <>
               <div>
-                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                <p className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Explore")}
-                </h4>
+                </p>
                 <ul className="space-y-2 text-sm text-slate-500">
                   {landingModePublicNavigationLinks.map((link) => (
                     <li key={link.href}>
@@ -57,6 +57,11 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                     </li>
                   ))}
                   <li>
+                    <Link href="/equipo" className="hover:text-foreground">
+                      {t("Equipo")}
+                    </Link>
+                  </li>
+                  <li>
                     <Link href="/call" className="hover:text-foreground">
                       {t("Book a meeting")}
                     </Link>
@@ -64,9 +69,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                 </ul>
               </div>
               <div>
-                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                <p className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Legal")}
-                </h4>
+                </p>
                 <ul className="space-y-2 text-sm text-slate-500">
                   {legalLinks.map((link) => (
                     <li key={link.href}>
@@ -81,9 +86,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
           ) : (
             <>
               <div>
-                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                <p className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Product")}
-                </h4>
+                </p>
                 <ul className="space-y-2 text-sm text-slate-500">
                   <li>
                     <Link href="/contact" className="hover:text-foreground">
@@ -108,9 +113,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                 </ul>
               </div>
               <div>
-                <h4 className="mb-4 text-sm font-semibold text-slate-900">
+                <p className="mb-4 text-sm font-semibold text-slate-900">
                   {t("Company")}
-                </h4>
+                </p>
                 <ul className="space-y-2 text-sm text-slate-500">
                   <li>
                     <Link href="/about" className="hover:text-foreground">
@@ -138,9 +143,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
           )}
           {!isLandingMode ? (
             <div>
-              <h4 className="mb-4 text-sm font-semibold text-slate-900">
+              <p className="mb-4 text-sm font-semibold text-slate-900">
                 {t("Legal")}
-              </h4>
+              </p>
               <ul className="space-y-2 text-sm text-slate-500">
                 <li>
                   <Link href="/legal/privacy" className="hover:text-foreground">

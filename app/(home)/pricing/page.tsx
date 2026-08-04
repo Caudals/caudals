@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildPublicMetadata({
-  title: "Pricing",
+  title: "Precios para construir datasets de IA",
   description:
-    "Simple plans for dataset operations, contributor programs, and enterprise governance.",
+    "Opciones para estudiar la viabilidad, construir un dataset piloto o ejecutar un programa completo de datos para entrenamiento y evaluación de IA.",
   pathname: "/pricing",
 });
 

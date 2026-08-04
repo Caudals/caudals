@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Careers",
-  description: "Careers and hiring information for Caudals.",
+  title: "Trabaja en Caudals",
+  description: "Oportunidades para trabajar en Caudals construyendo operaciones, software y datasets de calidad para inteligencia artificial.",
   pathname: "/careers",
 });
 

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Documentation",
+  title: "Documentación de Caudals",
   description:
-    "Operational guides for launching, reviewing, and scaling datasets on Caudals.",
+    "Guías operativas para definir, obtener, revisar, documentar y escalar datasets de entrenamiento y evaluación para inteligencia artificial.",
   pathname: "/docs",
 });
 

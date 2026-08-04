@@ -1,46 +1,49 @@
 import type { MetadataRoute } from "next";
-import { isLandingModeEnabledServer } from "@/lib/landing-mode";
 import { buildMarketingUrl } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   const disallow = [
-    "/admin/",
+    "/admin",
     "/api/",
-    "/auth/",
-    "/contributor/",
-    "/dashboard/",
-    "/pwa/",
-    "/requester/",
+    "/auth",
+    "/buyer",
+    "/catalogue",
+    "/contributor",
+    "/dashboard",
+    "/docs",
+    "/pwa",
+    "/requester",
+    "/security",
+    "/supplier",
+    "/v1",
     "/*?topic=*",
   ];
 
-  if (isLandingModeEnabledServer()) {
-    disallow.push(
-      "/about",
-      "/browse",
-      "/buyer",
-      "/careers",
-      "/catalogue",
-      "/docs",
-      "/legal/",
-      "/pricing",
-      "/security",
-      "/supplier",
-      "/trust",
-      "/v1"
-    );
-  }
+  // These explicit groups counter managed bot-specific rules that some edge
+  // providers prepend to robots.txt. Public content is crawlable; private and
+  // route-only product surfaces remain excluded.
+  const aiCrawlerUserAgents = [
+    "Amazonbot",
+    "Applebot-Extended",
+    "Bytespider",
+    "CCBot",
+    "ChatGPT-User",
+    "ClaudeBot",
+    "Claude-SearchBot",
+    "Claude-User",
+    "cohere-ai",
+    "Google-Extended",
+    "GPTBot",
+    "meta-externalagent",
+    "OAI-SearchBot",
+    "PerplexityBot",
+    "Perplexity-User",
+  ];
 
   return {
     rules: {
-      userAgent: "*",
-      allow: [
-        "/",
-        "/blog/",
-        "/contact",
-        "/robots.txt",
-        "/sitemap.xml",
-      ],
+      userAgent: ["*", ...aiCrawlerUserAgents],
+      allow: "/",
       disallow,
     },
     sitemap: buildMarketingUrl("/sitemap.xml"),

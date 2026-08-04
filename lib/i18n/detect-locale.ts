@@ -77,6 +77,14 @@ export function detectPreferredLocale({
     return countryLocale;
   }
 
+  // Crawlers and other non-browser clients commonly omit Accept-Language.
+  // Spanish is the canonical public fallback until locale-specific URLs and
+  // hreflang alternates are introduced.
+  if (!header?.trim()) {
+    console.log("[i18n] No language header, using canonical Spanish locale");
+    return "es";
+  }
+
   // Priority 2: Accept-Language header
   const headerLocale = detectLocaleFromHeader(header);
   if (headerLocale !== defaultLocale) {
