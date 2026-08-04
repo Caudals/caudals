@@ -1,0 +1,60 @@
+version: "3.8"
+
+# Production App runtime. Traefik routing is kept in a dynamic file because the
+# same service must be reachable publicly and by other services over the private
+# overlay network. No application port is published on the host.
+
+services:
+  app:
+    image: ${CAUDALS_APP_IMAGE:?CAUDALS_APP_IMAGE is required}
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-app
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    secrets:
+      - app_runtime_env
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 2m
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 45s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+      labels:
+        - "traefik.enable=false"
+
+networks:
+  dokploy-network:
+    external: true
+    name: ${CAUDALS_APP_NETWORK:-dokploy-network}
+
+secrets:
+  app_runtime_env:
+    external: true
+    name: ${CAUDALS_APP_ENV_SECRET:?CAUDALS_APP_ENV_SECRET is required}
