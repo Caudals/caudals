@@ -2,8 +2,8 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Privacy Policy",
-  description: "How Caudals collects, uses, and protects personal data.",
+  title: "Política de privacidad",
+  description: "Cómo recoge, utiliza, protege y conserva Caudals los datos personales, las bases jurídicas del tratamiento y los derechos de las personas usuarias.",
   pathname: "/legal/privacy",
 });
 

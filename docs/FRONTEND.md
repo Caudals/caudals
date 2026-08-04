@@ -9,7 +9,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: public pages are `/`, `/contact`, `/call`, `/blog`, and `/blog/*`. Primary marketing navigation surfaces Contact and Blog; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`.
+- Current public deployment is landing mode: public pages are `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, and `/legal/*`. Primary marketing navigation surfaces Contact, Blog, and Newsletter; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`, while `/equipo` is linked from the public footer.
 - Landing mode is not a route-publication ban. `/buyer`, `/supplier`, `/security`, and `/v1/*` may be published and accessible by direct URL when protected by their normal auth, authorization, RLS, rate-limit, and audit controls.
 - Landing mode must hide buyer, supplier, API, and security entry points from the landing page: no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths unless explicitly requested.
 - Catalogue datasets, public catalogue browsing, sample-preview catalogue flows, and catalogue purchase flows are out of scope for the current blueprint implementation.
@@ -19,7 +19,8 @@ Defines implementation rules for frontend work across the public funnel, interna
 ## Routing and IA Contract
 
 - `LANDING_MODE=true` is the canonical production posture until further notice.
-- Public navigation exposes only Contact and Blog while landing mode remains active.
+- Public primary navigation exposes Contact, Blog, and Newsletter while landing mode remains active. The footer may additionally expose Team, meeting booking, and legal pages.
+- Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml`, `/page-sitemap.xml`, and `/author-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files must list public content only.
 - `/contact` is the M3 public buyer-brief intake surface as well as the general contact path. Buyer-focused submissions should keep the same quiet form treatment, capture structured dataset requirements, and avoid exposing broader self-serve purchase flows.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.
 - Do not add landing-page entry points to buyer, supplier, API, or security routes unless explicitly requested.
@@ -32,6 +33,7 @@ Defines implementation rules for frontend work across the public funnel, interna
 - Locale cookie: `NEXT_LOCALE`.
 - Middleware locale detection can use country headers, `Accept-Language`, and IP geolocation fallback.
 - Spain (`ES`) is treated as a strong signal for Spanish locale routing.
+- Requests without an `Accept-Language` header use Spanish as the canonical public fallback so crawlers receive metadata and content in the same language. Explicit English browser preferences still resolve to English outside Spain.
 - Use translation pipeline (`t()`, `getServerTranslator()`, `translateReactNode`) for all user-visible strings.
 - Do not ship new hardcoded user-facing English strings in public or admin components.
 - Spain locale (`ES`) should resolve naturally to Spanish copy.

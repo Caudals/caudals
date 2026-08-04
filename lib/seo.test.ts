@@ -41,11 +41,30 @@ describe("seo helpers", () => {
         "/blog",
         "/call",
         "/contact",
+        "/equipo",
         "/legal/cookies",
         "/legal/notice",
         "/legal/privacy",
         "/legal/terms",
+        "/newsletter",
       ]
     );
+  });
+
+  it("places the brand after the page phrase in social titles", async () => {
+    const { buildPublicMetadata } = await import("@/lib/seo");
+    const metadata = buildPublicMetadata({
+      title: "Contacto para datasets de IA",
+      description: "Descripción de prueba.",
+      pathname: "/contact",
+    });
+
+    expect(metadata.title).toBe("Contacto para datasets de IA");
+    expect(metadata.openGraph).toMatchObject({
+      title: "Contacto para datasets de IA | Caudals",
+    });
+    expect(metadata.twitter).toMatchObject({
+      title: "Contacto para datasets de IA | Caudals",
+    });
   });
 });

@@ -2,9 +2,9 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Legal Notice",
+  title: "Aviso legal",
   description:
-    "Legal notice and ownership information for the Caudals website under Spanish LSSI-CE.",
+    "Aviso legal, titularidad, propiedad intelectual y condiciones de uso del sitio web de Caudals conforme a la legislación española y la LSSI-CE.",
   pathname: "/legal/notice",
 });
 

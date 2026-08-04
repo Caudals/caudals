@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!post) {
     return buildPublicMetadata({
       title: "Blog",
-      description: "Dataset operations notes from Caudals.",
+      description: "Guías sobre operaciones, calidad y preparación de datasets para IA.",
       pathname: "/blog",
       noIndex: true,
     });
@@ -57,7 +57,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     url: buildMarketingUrl(`/blog/${post.slug}`),
-    author: { "@type": "Organization", name: post.author },
+    image: buildMarketingUrl("/brand.png"),
+    author: {
+      "@type": "Organization",
+      "@id": `${buildMarketingUrl("/")}#organization`,
+      name: post.author,
+      url: buildMarketingUrl("/equipo"),
+    },
     datePublished: post.publishedAt,
     dateModified: post.publishedAt,
     description: post.excerpt,
@@ -68,6 +74,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     mainEntityOfPage: buildMarketingUrl(`/blog/${post.slug}`),
     publisher: {
       "@type": "Organization",
+      "@id": `${buildMarketingUrl("/")}#organization`,
       name: "Caudals",
       logo: {
         "@type": "ImageObject",

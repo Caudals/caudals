@@ -2,8 +2,8 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Terms of Service",
-  description: "Terms governing access and use of the Caudals platform.",
+  title: "Términos del servicio",
+  description: "Condiciones que regulan el acceso y uso de Caudals, las responsabilidades de compradores y proveedores, las licencias, los pagos y la legislación aplicable.",
   pathname: "/legal/terms",
 });
 

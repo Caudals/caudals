@@ -2,8 +2,8 @@ import { LegalPage } from "@/components/legal/legal-page";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Cookie Policy",
-  description: "How Caudals uses cookies and similar technologies.",
+  title: "Política de cookies",
+  description: "Cómo utiliza Caudals las cookies esenciales, las analíticas opcionales y otras tecnologías similares, y cómo puedes gestionar tus preferencias.",
   pathname: "/legal/cookies",
 });
 

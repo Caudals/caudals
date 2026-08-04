@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "Trust Center",
+  title: "Centro de confianza",
   description:
-    "Security controls, governance model, commercial controls, and support SLAs for Caudals.",
+    "Controles de seguridad, gobernanza de datos, trazabilidad comercial y compromisos operativos para evaluar la fiabilidad de Caudals.",
   pathname: "/trust",
 });
 

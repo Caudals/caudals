@@ -21,13 +21,10 @@ import { buildPublicMetadata } from "@/lib/seo";
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getServerTranslator();
-
   return buildPublicMetadata({
-    title: t("Data Unfiltered — Caudals newsletter"),
-    description: t(
-      "A weekly read for people building with AI, from the team that sources and licenses the data models train on."
-    ),
+    title: "Data Unfiltered, la newsletter de Caudals",
+    description:
+      "Análisis periódico sobre herramientas de IA y sobre cómo se obtienen, licencian, limpian y evalúan los datos con los que se entrenan los modelos.",
     pathname: "/newsletter",
   });
 }

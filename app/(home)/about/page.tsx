@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export const metadata = buildPublicMetadata({
-  title: "About",
+  title: "Sobre Caudals",
   description:
-    "Caudals builds dependable AI dataset operations with accountable human workflows.",
+    "Caudals obtiene, licencia y prepara datasets a medida para IA mediante operaciones trazables, controles de calidad y revisión humana responsable.",
   pathname: "/about",
 });
 

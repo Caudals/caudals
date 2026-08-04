@@ -5,14 +5,14 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Caudals",
     short_name: "Caudals",
     description:
-      "B2B marketplace and managed services layer for AI-ready training datasets.",
+      "Marketplace B2B y servicio gestionado de datasets listos para entrenar y evaluar modelos de inteligencia artificial.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     background_color: "#FFFFFF",
     theme_color: "#050914",
     orientation: "portrait",
-    lang: "en",
+    lang: "es",
     categories: ["productivity", "business"],
     icons: [
       {
@@ -36,14 +36,14 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       {
-        name: "Contact Caudals",
+        name: "Contactar con Caudals",
         url: "/contact",
-        description: "Start a buyer or supplier conversation",
+        description: "Solicita un dataset o propón datos para monetización",
       },
       {
-        name: "Read the Blog",
+        name: "Leer el blog",
         url: "/blog",
-        description: "Read Caudals updates and operating notes",
+        description: "Guías de Caudals sobre inteligencia artificial y operaciones de datasets",
       },
     ],
   };

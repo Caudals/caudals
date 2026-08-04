@@ -8,7 +8,7 @@ import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
 import { getPublishedIssue, getPublishedIssues } from "@/lib/newsletter/client";
 import { getServerTranslator } from "@/lib/i18n/server";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
-import { buildPublicMetadata } from "@/lib/seo";
+import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 /** One issue, permanently. Only issues that were actually sent are readable. */
 
@@ -30,7 +30,7 @@ export async function generateMetadata({
   if (!issue) {
     return buildPublicMetadata({
       title: "Data Unfiltered",
-      description: "Caudals newsletter.",
+      description: "Newsletter de Caudals sobre inteligencia artificial y datos.",
       pathname: `/newsletter/${slug}`,
       noIndex: true,
     });
@@ -38,8 +38,13 @@ export async function generateMetadata({
 
   return buildPublicMetadata({
     title: `${issue.title} — Data Unfiltered`,
-    description: issue.dek ?? "Caudals newsletter.",
+    description: issue.dek ?? "Newsletter de Caudals sobre inteligencia artificial y datos.",
     pathname: `/newsletter/${issue.slug}`,
+    type: "article",
+    publishedTime: issue.sent_at ?? undefined,
+    modifiedTime: issue.sent_at ?? undefined,
+    authors: ["Equipo de Caudals"],
+    section: "Data Unfiltered",
   });
 }
 
@@ -71,6 +76,35 @@ export default async function NewsletterIssuePage({
   }
 
   const blocks = Array.isArray(issue.blocks) ? issue.blocks : [];
+  const articleStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${buildMarketingUrl(`/newsletter/${issue.slug}`)}#article`,
+    url: buildMarketingUrl(`/newsletter/${issue.slug}`),
+    headline: issue.title,
+    description: issue.dek ?? "Newsletter de Caudals sobre inteligencia artificial y datos.",
+    datePublished: issue.sent_at ?? undefined,
+    dateModified: issue.sent_at ?? undefined,
+    inLanguage: "es",
+    image: buildMarketingUrl("/brand.png"),
+    author: {
+      "@type": "Organization",
+      "@id": `${buildMarketingUrl("/")}#organization`,
+      name: "Equipo de Caudals",
+      url: buildMarketingUrl("/equipo"),
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": `${buildMarketingUrl("/")}#organization`,
+      name: "Caudals",
+      url: buildMarketingUrl("/"),
+      logo: {
+        "@type": "ImageObject",
+        url: buildMarketingUrl("/apple-touch-icon.png"),
+      },
+    },
+    mainEntityOfPage: buildMarketingUrl(`/newsletter/${issue.slug}`),
+  };
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
@@ -113,6 +147,11 @@ export default async function NewsletterIssuePage({
           <NewsletterSignupForm source="archive_issue" compact />
         </section>
       </main>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleStructuredData) }}
+      />
 
       <MarketingFooter forceLandingMode />
     </div>
