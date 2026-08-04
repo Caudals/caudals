@@ -16,9 +16,15 @@
     },
     {
       "name": "Leads CRM dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "/Users/mario/Documents/leads", "run", "dev"],
-      "port": 5173
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/mario/Documents/leads && exec npx tsx watch server/index.ts"],
+      "port": 8080
+    },
+    {
+      "name": "Growth Social dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/mario/Documents/leads/services/growth-social && exec npx tsx watch --env-file=.env.local.dev src/index.ts"],
+      "port": 8082
     },
     {
       "name": "Remotion Studio",
