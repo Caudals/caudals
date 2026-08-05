@@ -64,7 +64,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-start gap-8 px-6 sm:px-8 lg:px-12">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-8 px-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-90">
           <Image
             src="/caudals_logo_black.svg"
