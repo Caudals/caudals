@@ -4,7 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK_NAME="${CAUDALS_LAKEHOUSE_STACK_NAME:-caudals-lakehouse}"
 NETWORK="${CAUDALS_LAKEHOUSE_NETWORK:-dokploy-network}"
-POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
+# The Swarm service name is `<stack>_<service>`. `caudals-postgres` alone is
+# the stack namespace and the network alias the compose files connect to —
+# it matches no `com.docker.swarm.service.name` label, so every lookup below
+# came back empty and the deploy died on "No running container found".
+POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres_db}"
 LAKEFS_IMAGE="${CAUDALS_LAKEFS_IMAGE:-treeverse/lakefs:1.81.0}"
 CURL_IMAGE="${CAUDALS_LAKEHOUSE_CURL_IMAGE:-curlimages/curl:8.11.1}"
 LAKEFS_API_URL="${CAUDALS_LAKEFS_API_URL:-http://caudals-lakehouse-lakefs:8000}"

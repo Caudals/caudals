@@ -2,7 +2,11 @@
 set -uo pipefail
 
 APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
-POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
+# The Swarm service name is `<stack>_<service>`. `caudals-postgres` alone is
+# the stack namespace and the network alias the compose files connect to —
+# it matches no `com.docker.swarm.service.name` label, so every lookup below
+# came back empty and the deploy died on "No running container found".
+POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres_db}"
 BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
 CACHE_NETWORK="${CAUDALS_CACHE_NETWORK:-dokploy-network}"
 LABELING_NETWORK="${CAUDALS_LABELING_NETWORK:-dokploy-network}"
