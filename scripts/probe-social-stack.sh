@@ -12,7 +12,11 @@ REDIS_SERVICE="${CAUDALS_SOCIAL_REDIS_SERVICE:-${STACK_NAME}_redis}"
 POSTIZ_HOST="${CAUDALS_POSTIZ_HOST:-caudals-social-postiz}"
 POSTIZ_PORT="${CAUDALS_POSTIZ_PORT:-5000}"
 PUBLIC_HOST="${CAUDALS_POSTIZ_PUBLIC_HOST:-postiz.caudals.com}"
-POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres}"
+# The Swarm service name is `<stack>_<service>`. `caudals-postgres` alone is
+# the stack namespace and the network alias the compose files connect to —
+# it matches no `com.docker.swarm.service.name` label, so every lookup below
+# came back empty and the deploy died on "No running container found".
+POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres_db}"
 CURL_IMAGE="${CAUDALS_SOCIAL_PROBE_IMAGE:-curlimages/curl:8.11.1}"
 PROBE_ATTEMPTS="${CAUDALS_SOCIAL_PROBE_ATTEMPTS:-30}"
 PROBE_DELAY="${CAUDALS_SOCIAL_PROBE_DELAY:-10}"
