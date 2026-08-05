@@ -105,11 +105,6 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                       {t("Documentation")}
                     </Link>
                   </li>
-                  <li>
-                    <Link href="/trust" className="hover:text-foreground">
-                      {t("Trust center")}
-                    </Link>
-                  </li>
                 </ul>
               </div>
               <div>

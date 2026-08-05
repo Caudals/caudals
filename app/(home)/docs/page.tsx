@@ -29,12 +29,6 @@ const guideCards = [
     href: "/auth/sign-in",
   },
   {
-    title: "Trust Center",
-    description:
-      "Security posture, governance model, payout transparency, and support SLA targets.",
-    href: "/trust",
-  },
-  {
     title: "Security Baseline",
     description: "Rate limiting, upload guardrails, webhook replay safety, and security headers overview.",
     href: "/docs/security-baseline",
