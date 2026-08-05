@@ -35,7 +35,6 @@ const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
   { pathname: "/pricing", changeFrequency: "monthly", priority: 0.75 },
   { pathname: "/security", changeFrequency: "monthly", priority: 0.78 },
-  { pathname: "/trust", changeFrequency: "monthly", priority: 0.75 },
 ];
 
 const LANDING_MODE_MARKETING_ROUTES: IndexableMarketingRoute[] = [

@@ -13,7 +13,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useAuth } from "@/lib/auth/provider";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -29,14 +28,13 @@ interface HeaderProps {
 }
 
 const DEFAULT_LINKS = [
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Contacto" },
   { href: "/blog", label: "Blog" },
-  { href: "/trust", label: "Trust" },
+  { href: "/newsletter", label: "Newsletter" },
 ];
 const REQUEST_ACCESS_CTA = "/contact";
 
 export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
-  const { user, loading, userRole } = useAuth();
   const t = useTranslations();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -47,83 +45,15 @@ export function Header({ links, translucent = false, hideActions = false }: Head
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  
+
   const isLandingMode = landingModePublicEnabled || hideActions;
-  
+
   const navLinks =
     links && links.length > 0
       ? links
       : isLandingMode
         ? [...landingModePublicNavigationLinks]
         : DEFAULT_LINKS;
-
-  const dashboardHref = user && userRole ? "/admin" : "/";
-
-  const renderDesktopActions = () => {
-    if (isLandingMode) {
-      return null;
-    }
-
-    if (loading) {
-      return (
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-24 animate-pulse rounded-md bg-muted/60" />
-          <div className="h-9 w-24 animate-pulse rounded-md bg-muted/60" />
-        </div>
-      );
-    }
-
-    return user ? (
-      <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-            <Link href={dashboardHref}>{t("Dashboard")}</Link>
-          </Button>
-        ) : (
-          <>
-            <Button size="sm" asChild variant="outline" className="rounded-md px-5 border-gray-200 text-black hover:bg-gray-50">
-              <Link href="/auth/sign-in">{t("Sign in")}</Link>
-            </Button>
-            <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-              <Link href={REQUEST_ACCESS_CTA}>{t("Request access")}</Link>
-            </Button>
-          </>
-        );
-  };
-
-  const renderMobileActions = () => {
-    if (isLandingMode) {
-      return null;
-    }
-
-    if (loading) {
-      return (
-        <div className="flex flex-col gap-3">
-          <div className="h-10 w-full animate-pulse rounded-md bg-muted/60" />
-          <div className="h-10 w-full animate-pulse rounded-md bg-muted/60" />
-        </div>
-      );
-    }
-
-    return user ? (
-      <SheetClose asChild>
-        <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
-          <Link href={dashboardHref}>{t("Dashboard")}</Link>
-        </Button>
-      </SheetClose>
-    ) : (
-      <>
-        <SheetClose asChild>
-          <Button size="sm" variant="outline" asChild className="w-full rounded-md border-gray-200 text-black">
-            <Link href="/auth/sign-in">{t("Sign in")}</Link>
-          </Button>
-        </SheetClose>
-        <SheetClose asChild>
-          <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
-            <Link href={REQUEST_ACCESS_CTA}>{t("Request access")}</Link>
-          </Button>
-        </SheetClose>
-      </>
-    );
-  };
 
   return (
     <header
@@ -134,8 +64,8 @@ export function Header({ links, translucent = false, hideActions = false }: Head
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-6 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-90">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-start gap-8 px-6 sm:px-8 lg:px-12">
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-90">
           <Image
             src="/caudals_logo_black.svg"
             alt={t("Caudals logo")}
@@ -148,7 +78,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
             {t("Caudals")}
           </span>
         </Link>
-        <nav className="hidden items-center gap-10 md:flex">
+        <nav className="hidden items-center gap-8 md:flex">
           {navLinks.map(({ href, label }) => (
             <Link
               key={href}
@@ -158,13 +88,13 @@ export function Header({ links, translucent = false, hideActions = false }: Head
               {t(label)}
             </Link>
           ))}
-
-          <div className="ml-4 h-6 w-px bg-gray-100" />
-          {renderDesktopActions()}
+          <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
+            <Link href={REQUEST_ACCESS_CTA}>{t("Comenzar")}</Link>
+          </Button>
         </nav>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="ml-auto md:hidden">
               <Menu className="h-5 w-5" />
               <span className="sr-only">{t("Toggle menu")}</span>
             </Button>
@@ -201,14 +131,13 @@ export function Header({ links, translucent = false, hideActions = false }: Head
                       </Link>
                     </SheetClose>
                   ))}
+                  <SheetClose asChild>
+                    <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
+                      <Link href={REQUEST_ACCESS_CTA}>{t("Comenzar")}</Link>
+                    </Button>
+                  </SheetClose>
                 </div>
               </ScrollArea>
-
-              {!isLandingMode && (
-                <div className="flex flex-col gap-3 border-t border-gray-100 px-6 py-8">
-                  {renderMobileActions()}
-                </div>
-              )}
             </div>
           </SheetContent>
         </Sheet>

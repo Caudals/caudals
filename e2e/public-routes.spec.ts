@@ -26,7 +26,6 @@ const publicRoutes = landingModeEnabled
       { path: "/pricing", heading: /plans built for production dataset delivery/i },
       { path: "/security", heading: /security posture for ai data buyers/i },
       { path: "/docs", heading: /guides to run reliable data operations/i },
-      { path: "/trust", heading: /evaluate caudals reliability before you launch/i },
       { path: "/about", heading: /dataset platform designed for operational trust/i },
       { path: "/contact", heading: /talk with caudals/i },
       { path: "/legal/privacy", heading: /privacy policy/i },
@@ -48,7 +47,6 @@ const blockedRoutes = landingModeEnabled
       "/legal/privacy",
       "/legal/terms",
       "/pricing",
-      "/trust",
       "/v1/datasets",
     ]
   : [];
@@ -72,15 +70,19 @@ test.describe("public route health", () => {
 test.describe("landing mode route blocking", () => {
   test.skip(!landingModeEnabled, "LANDING_MODE is disabled");
 
-  test("top navigation exposes only Contacto and Blog", async ({ page }) => {
+  test("top navigation exposes Contacto, Blog, Newsletter and Comenzar CTA", async ({ page }) => {
     await page.goto("/");
 
     const links = page.locator("header nav").first().getByRole("link");
-    await expect(links).toHaveCount(2);
+    await expect(links).toHaveCount(4);
     await expect(links.nth(0)).toHaveText("Contacto");
     await expect(links.nth(0)).toHaveAttribute("href", "/contact");
     await expect(links.nth(1)).toHaveText("Blog");
     await expect(links.nth(1)).toHaveAttribute("href", "/blog");
+    await expect(links.nth(2)).toHaveText("Newsletter");
+    await expect(links.nth(2)).toHaveAttribute("href", "/newsletter");
+    await expect(links.nth(3)).toHaveText("Comenzar");
+    await expect(links.nth(3)).toHaveAttribute("href", "/contact");
   });
 
   for (const path of blockedRoutes) {
@@ -105,9 +107,11 @@ test.describe("landing mode direct-route surfaces", () => {
       }
       if (route.path === "/security") {
         const links = page.locator("header nav").first().getByRole("link");
-        await expect(links).toHaveCount(2);
+        await expect(links).toHaveCount(4);
         await expect(links.nth(0)).toHaveAttribute("href", "/contact");
         await expect(links.nth(1)).toHaveAttribute("href", "/blog");
+        await expect(links.nth(2)).toHaveAttribute("href", "/newsletter");
+        await expect(links.nth(3)).toHaveAttribute("href", "/contact");
       }
     });
   }

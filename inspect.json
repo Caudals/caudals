@@ -1,0 +1,236 @@
+[
+    {
+        "Id": "63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf",
+        "Created": "2026-08-04T09:11:08.177143054Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "npm",
+            "run",
+            "start"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 389420,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-08-04T09:11:08.481932035Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:8c8c7252efb893655aaf9a142591ed1c0592009a68dcdc8d8f7ed5bc732f025c",
+        "ResolvConfPath": "/var/lib/docker/containers/63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf/hostname",
+        "HostsPath": "/var/lib/docker/containers/63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf/hosts",
+        "LogPath": "/var/lib/docker/containers/63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf/63c4020576fdab74ccd821b46f0c0b4da0c1df68a80e2b8ab0325bc68a1e1caf-json.log",
+        "Name": "/caudalsdep-caudals-vgbvxp.1.9s4fzx3gvxpynk3kwd7iuwqln",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "bridge",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "default",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "63c4020576fd",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "3000/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "COLLABORATION_NOTIFICATION_EMAIL=mariomedpar@gmail.com",
+                "LANDING_MODE=true",
+                "NEXT_PUBLIC_APP_URL=",
+                "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SFWtdIupz5XPKAEhWgUykEaCWc8cqEt2G1WF5Snm5YVw9JnxvtUFkxODoZgPQoy5KSw9Q3cJyzj1aqzkPRhhF4Z00sPLhTRZm",
+                "NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE3OTk1MzU2MDB9.Wk5SwVZ-iilthkPhf9wSe-C45hCWfFV89SHwZGpFgCg",
+                "NEXT_PUBLIC_SUPABASE_URL=https://supabase.caudals.com",
+                "NODE_ENV=production",
+                "PORT=3000",
+                "RESEND_API_KEY=re_LdHPyHzg_MijktYC3bCshzARsj4Zobzu3",
+                "RESEND_FROM_EMAIL=contact@mail.caudals.com",
+                "RESEND_GENERAL_AUDIENCE_ID=956ec1a9-f085-42d6-813c-b6018d76feaf",
+                "STRIPE_SECRET_KEY=sk_test_51SFWtdIupz5XPKAEy1VOzF6TnwRPUtIUzArrnenD3qQlcWSCciLl4LoSTyVvL2THdAjr59WXra57CHEtnRwpQxd100cvSXziyT",
+                "STRIPE_WEBHOOK_SECRET=whsec_8bgXwNZvIp9OfQbbZ5XGDRIlYfhOKP6n",
+                "SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTYwMH0.lEGtxqqiMrWpPihsto2G2RWNgzE3LTbzr7U4ExJF23U",
+                "CALCOM_LINK=caudals/call",
+                "LEADS_SUPABASE_URL=https://fjvgurgizjbpfqesuoec.supabase.co",
+                "LEADS_SUPABASE_ANON_KEY=sb_publishable_AvkkWvc9WK0feU0tLTgM8g_dRrJ1IdN",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=20.20.2",
+                "YARN_VERSION=1.22.22",
+                "npm_config_update_notifier=false",
+                "CI=true"
+            ],
+            "Cmd": [
+                "npm",
+                "run",
+                "start"
+            ],
+            "Image": "mariomedpar/caudals:0b65d4c2245670447cbcba7861cf6423b04469f9",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.swarm.node.id": "8ekxsy1gdlvdxbs86ay769zcu",
+                "com.docker.swarm.service.id": "fzit75t80nwmu8zioxnr071i3",
+                "com.docker.swarm.service.name": "caudalsdep-caudals-vgbvxp",
+                "com.docker.swarm.task": "",
+                "com.docker.swarm.task.id": "9s4fzx3gvxpynk3kwd7iuwqln",
+                "com.docker.swarm.task.name": "caudalsdep-caudals-vgbvxp.1.9s4fzx3gvxpynk3kwd7iuwqln"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "609b6c3bc33ad544cdafa7623b12ca6b6aac750e22e2b9de1307678885f700e9",
+            "SandboxKey": "/var/run/docker/netns/609b6c3bc33a",
+            "Ports": {
+                "3000/tcp": null
+            },
+            "Networks": {
+                "dokploy-network": {
+                    "IPAMConfig": {
+                        "IPv4Address": "10.0.1.85"
+                    },
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "g22ostnopt42suc8zp23z2zp1",
+                    "EndpointID": "8d5bb2c45628028fae125f58aee23ea7a885616a0aeb7a80656262d028dc5db2",
+                    "Gateway": "",
+                    "IPAddress": "10.0.1.85",
+                    "MacAddress": "02:42:0a:00:01:55",
+                    "IPPrefixLen": 24,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "caudalsdep-caudals-vgbvxp.1.9s4fzx3gvxpynk3kwd7iuwqln",
+                        "63c4020576fd"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:2cd30dc95cee52fdfe3763c3f480cc068290c23625dd0b3e6fd60e8695de7259",
+            "size": 2769,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]
