@@ -13,7 +13,7 @@ fi
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 stack="${CAUDALS_APP_STACK_NAME:-caudals-app}"
 network="${CAUDALS_APP_NETWORK:-dokploy-network}"
-base_image="${CAUDALS_APP_IMAGE:-alonsosandoval/caudals:latest}"
+base_image="${CAUDALS_APP_IMAGE:-mariomedpar/caudals:latest}"
 build_local="${CAUDALS_APP_BUILD_LOCAL:-true}"
 build_tag="${CAUDALS_APP_BUILD_TAG:-$(git -C "$root" rev-parse HEAD)}"
 versioned_image="${base_image%:*}:$build_tag"
