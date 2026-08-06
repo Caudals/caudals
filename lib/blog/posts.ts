@@ -169,17 +169,22 @@ function extractHeadings(source: string): BlogHeading[] {
 
 async function readPostSummaryFromFile(filePath: string, locale: Locale) {
   const slug = path.basename(filePath, BLOG_FILE_EXTENSION);
-  const source = await fs.readFile(filePath, "utf8");
-  assertBlogSource(source, { slug, locale });
-  const { data, content } = matter(source);
-  const frontmatter = parseFrontmatter(data, slug);
+  try {
+    const source = await fs.readFile(filePath, "utf8");
+    assertBlogSource(source, { slug, locale });
+    const { data, content } = matter(source);
+    const frontmatter = parseFrontmatter(data, slug);
 
-  return {
-    ...frontmatter,
-    locale,
-    readTimeMinutes: estimateReadTimeMinutes(content),
-    slug,
-  } satisfies BlogPostSummary;
+    return {
+      ...frontmatter,
+      locale,
+      readTimeMinutes: estimateReadTimeMinutes(content),
+      slug,
+    } satisfies BlogPostSummary;
+  } catch (error) {
+    console.error(`[Blog Engine] Failed to read post summary for "${slug}" in locale "${locale}":`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
 export async function getBlogPosts(locale?: Locale) {
@@ -213,30 +218,35 @@ export async function getBlogPost(slug: string, locale?: Locale) {
     return null;
   }
 
-  const source = await fs.readFile(filePath, "utf8");
-  assertBlogSource(source, { slug, locale: resolvedLocale });
-  const { data, content: rawContent } = matter(source);
-  const frontmatter = parseFrontmatter(data, slug);
-  const headings = extractHeadings(rawContent);
-  const { content } = await compileMDX({
-    source: rawContent,
-    components: mdxComponents,
-    options: {
-      parseFrontmatter: false,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm],
+  try {
+    const source = await fs.readFile(filePath, "utf8");
+    assertBlogSource(source, { slug, locale: resolvedLocale });
+    const { data, content: rawContent } = matter(source);
+    const frontmatter = parseFrontmatter(data, slug);
+    const headings = extractHeadings(rawContent);
+    const { content } = await compileMDX({
+      source: rawContent,
+      components: mdxComponents,
+      options: {
+        parseFrontmatter: false,
+        mdxOptions: {
+          remarkPlugins: [remarkGfm],
+        },
       },
-    },
-  });
+    });
 
-  return {
-    ...frontmatter,
-    content,
-    headings,
-    locale: resolvedLocale,
-    readTimeMinutes: estimateReadTimeMinutes(rawContent),
-    slug,
-  } satisfies BlogPost;
+    return {
+      ...frontmatter,
+      content,
+      headings,
+      locale: resolvedLocale,
+      readTimeMinutes: estimateReadTimeMinutes(rawContent),
+      slug,
+    } satisfies BlogPost;
+  } catch (error) {
+    console.error(`[Blog Engine] Failed to read post for "${slug}" in locale "${resolvedLocale}":`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
 export async function getAdjacentBlogPosts(slug: string, locale?: Locale) {
