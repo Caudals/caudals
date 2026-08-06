@@ -32,7 +32,7 @@ const getAskAiLinks = (prompt: string) => {
     },
     {
       name: "Gemini",
-      href: `https://gemini.google.com/app?q=${encodedPrompt}`,
+      href: `https://www.google.com/search?udm=50&aep=11&atvm=2&q=${encodedPrompt}`,
       icon: "/icons/ai/gemini.svg",
       bgClass: "bg-black",
     },
