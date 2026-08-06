@@ -23,30 +23,35 @@ const getAskAiLinks = (prompt: string) => {
       href: `https://chatgpt.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/chatgpt.svg",
       bgClass: "bg-black",
+      filterClass: "brightness-0 invert",
     },
     {
       name: "Claude",
       href: `https://claude.ai/new?q=${encodedPrompt}`,
       icon: "/icons/ai/claude.svg",
       bgClass: "bg-[#e58a75]",
+      filterClass: "brightness-0 invert",
     },
     {
       name: "Gemini",
       href: `https://www.google.com/search?udm=50&aep=11&atvm=2&q=${encodedPrompt}`,
       icon: "/icons/ai/gemini.svg",
       bgClass: "bg-black",
+      filterClass: "",
     },
     {
       name: "Perplexity",
       href: `https://www.perplexity.ai/search?q=${encodedPrompt}`,
       icon: "/icons/ai/perplexity.svg",
       bgClass: "bg-[#214346]",
+      filterClass: "",
     },
     {
       name: "Grok",
       href: `https://grok.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/grok.svg",
       bgClass: "bg-black",
+      filterClass: "brightness-0 invert",
     },
   ];
 };
@@ -104,6 +109,7 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                       alt={item.name}
                       width={26}
                       height={26}
+                      className={item.filterClass}
                     />
                   </Link>
                 ))}
