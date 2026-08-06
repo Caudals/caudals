@@ -22,26 +22,31 @@ const getAskAiLinks = (prompt: string) => {
       name: "ChatGPT",
       href: `https://chatgpt.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/chatgpt.svg",
+      bgClass: "bg-black",
     },
     {
       name: "Claude",
       href: `https://claude.ai/new?q=${encodedPrompt}`,
       icon: "/icons/ai/claude.svg",
+      bgClass: "bg-[#e58a75]",
     },
     {
       name: "Gemini",
       href: `https://gemini.google.com/app?q=${encodedPrompt}`,
       icon: "/icons/ai/gemini.svg",
+      bgClass: "bg-black",
     },
     {
       name: "Perplexity",
       href: `https://www.perplexity.ai/search?q=${encodedPrompt}`,
       icon: "/icons/ai/perplexity.svg",
+      bgClass: "bg-[#214346]",
     },
     {
       name: "Grok",
       href: `https://grok.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/grok.svg",
+      bgClass: "bg-black",
     },
   ];
 };
@@ -57,7 +62,7 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
   const isLandingMode = landingModePublicEnabled || forceLandingMode;
   
   const aiPrompt = t(
-    "Act as an AI industry analyst. What is Caudals (https://caudals.com)? Explain their role as a B2B marketplace and managed services layer for AI training datasets. How do they connect companies monetizing proprietary data with AI teams buying ML-ready datasets? Provide a clear, detailed summary.",
+    "What is Caudals? Explain its usefulness for obtaining AI training datasets and giving a second life to unused data. Provide a clear and detailed summary based on its website: https://caudals.com.",
   );
   const aiLinks = getAskAiLinks(aiPrompt);
 
@@ -90,16 +95,15 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md hover:border-slate-300 active:scale-95"
+                    className={`group flex h-[46px] w-[46px] items-center justify-center rounded-[14px] transition-transform duration-200 hover:scale-105 active:scale-95 ${item.bgClass}`}
                     title={`${t("Ask AI about Caudals")} en ${item.name}`}
                   >
                     <span className="sr-only">{item.name}</span>
                     <Image
                       src={item.icon}
                       alt={item.name}
-                      width={20}
-                      height={20}
-                      className="opacity-90 group-hover:opacity-100 transition-opacity"
+                      width={26}
+                      height={26}
                     />
                   </Link>
                 ))}
