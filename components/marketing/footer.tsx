@@ -56,7 +56,9 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
   // Only use simplified footer when deploy is in landing mode (set at build time)
   const isLandingMode = landingModePublicEnabled || forceLandingMode;
   
-  const aiPrompt = t("Ask AI about Caudals prompt");
+  const aiPrompt = t(
+    "Act as an AI industry analyst. What is Caudals (https://caudals.com)? Explain their role as a B2B marketplace and managed services layer for AI training datasets. How do they connect companies monetizing proprietary data with AI teams buying ML-ready datasets? Provide a clear, detailed summary.",
+  );
   const aiLinks = getAskAiLinks(aiPrompt);
 
   return (
