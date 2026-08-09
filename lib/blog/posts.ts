@@ -21,6 +21,12 @@ import type {
   BlogPostSummary,
 } from "@/lib/blog/types";
 import { assertBlogSource } from "@/lib/blog/preflight";
+import {
+  getPublishedBlogPost,
+  getPublishedBlogPosts,
+  type PublishedBlogArticle,
+  type PublishedBlogRecord,
+} from "@/lib/blog/client";
 
 const BLOG_CONTENT_ROOT = path.join(process.cwd(), "content", "blog");
 const BLOG_FILE_EXTENSION = ".mdx";
@@ -187,6 +193,67 @@ async function readPostSummaryFromFile(filePath: string, locale: Locale) {
   }
 }
 
+function remoteFrontmatter(post: PublishedBlogRecord): BlogFrontmatter {
+  return parseFrontmatter({
+    title: post.title,
+    excerpt: post.excerpt,
+    publishedAt: post.publishedAt.slice(0, 10),
+    author: post.author,
+    authorRole: post.authorRole,
+    category: post.category,
+    categoryKey: post.categoryKey,
+    tags: post.tags,
+    featured: post.featured,
+    coverVariant: post.coverVariant,
+  }, post.slug);
+}
+
+function remoteSummary(post: PublishedBlogRecord, locale: Locale): BlogPostSummary | null {
+  try {
+    return {
+      ...remoteFrontmatter(post),
+      locale,
+      readTimeMinutes: typeof post.readTimeMinutes === "number" && post.readTimeMinutes > 0
+        ? post.readTimeMinutes
+        : 1,
+      slug: post.slug,
+    };
+  } catch (error) {
+    console.error(`[Blog Engine] Rejected archive summary "${post.slug}":`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+async function compileRemotePost(post: PublishedBlogArticle, locale: Locale): Promise<BlogPost | null> {
+  try {
+    const frontmatter = remoteFrontmatter(post);
+    // Apply the exact same publishing contract to database content as to
+    // repository MDX before handing it to the compiler.
+    const source = matter.stringify(post.bodyMdx, frontmatter);
+    assertBlogSource(source, { slug: post.slug, locale });
+    const headings = extractHeadings(post.bodyMdx);
+    const { content } = await compileMDX({
+      source: post.bodyMdx,
+      components: mdxComponents,
+      options: {
+        parseFrontmatter: false,
+        mdxOptions: { remarkPlugins: [remarkGfm] },
+      },
+    });
+    return {
+      ...frontmatter,
+      content,
+      headings,
+      locale,
+      readTimeMinutes: post.readTimeMinutes ?? estimateReadTimeMinutes(post.bodyMdx),
+      slug: post.slug,
+    };
+  } catch (error) {
+    console.error(`[Blog Engine] Rejected archive post "${post.slug}":`, error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
 export async function getBlogPosts(locale?: Locale) {
   const resolvedLocale = locale ?? (await getRequestLocale());
   const primarySlugs = await getSlugsForLocale(resolvedLocale);
@@ -194,24 +261,42 @@ export async function getBlogPosts(locale?: Locale) {
     resolvedLocale === defaultLocale ? [] : await getSlugsForLocale(defaultLocale);
   const allSlugs = Array.from(new Set([...primarySlugs, ...fallbackSlugs]));
 
-  const posts = await Promise.all(
-    allSlugs.map(async (slug) => {
-      const filePath = await getFilePathForSlug(resolvedLocale, slug);
-      if (!filePath) {
-        return null;
-      }
+  const [posts, published] = await Promise.all([
+    Promise.all(
+      allSlugs.map(async (slug) => {
+        const filePath = await getFilePathForSlug(resolvedLocale, slug);
+        if (!filePath) {
+          return null;
+        }
 
-      return readPostSummaryFromFile(filePath, resolvedLocale);
-    }),
-  );
+        return readPostSummaryFromFile(filePath, resolvedLocale);
+      }),
+    ),
+    getPublishedBlogPosts(resolvedLocale),
+  ]);
 
-  return posts
-    .filter((post): post is BlogPostSummary => post !== null)
+  const merged = new Map<string, BlogPostSummary>();
+  for (const post of posts) {
+    if (post) merged.set(post.slug, post);
+  }
+  // The CMS is authoritative for matching slugs, allowing an editorial update
+  // to become visible without modifying or rebuilding this repository.
+  for (const record of published) {
+    const post = remoteSummary(record, resolvedLocale);
+    if (post) merged.set(post.slug, post);
+  }
+
+  return [...merged.values()]
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
 }
 
 export async function getBlogPost(slug: string, locale?: Locale) {
   const resolvedLocale = locale ?? (await getRequestLocale());
+  const published = await getPublishedBlogPost(slug, resolvedLocale);
+  if (published) {
+    const compiled = await compileRemotePost(published, resolvedLocale);
+    if (compiled) return compiled;
+  }
   const filePath = await getFilePathForSlug(resolvedLocale, slug);
 
   if (!filePath) {
@@ -260,6 +345,12 @@ export async function getAdjacentBlogPosts(slug: string, locale?: Locale) {
 }
 
 export async function getAllBlogSlugs() {
-  const slugSets = await Promise.all(locales.map((locale) => getSlugsForLocale(locale)));
-  return Array.from(new Set(slugSets.flat())).sort();
+  const [slugSets, published] = await Promise.all([
+    Promise.all(locales.map((locale) => getSlugsForLocale(locale))),
+    Promise.all(locales.map((locale) => getPublishedBlogPosts(locale))),
+  ]);
+  return Array.from(new Set([
+    ...slugSets.flat(),
+    ...published.flat().map((post) => post.slug),
+  ])).sort();
 }

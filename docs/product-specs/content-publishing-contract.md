@@ -5,22 +5,24 @@ Owner: main-site blog (`caudals`)
 Producer: Content Suite in the `leads` repository
 
 This is the interface between the internal content system and the public blog.
-The site is the source of truth for the file format and rendering behavior; the
-CRM is the source of truth for workflow, approvals, scheduling and provenance.
+The site is the source of truth for rendering behavior; Leads is the headless
+CMS and source of truth for workflow, content, approvals, scheduling and
+provenance. Bundled MDX is a resilience and hand-authored-content fallback.
 
-## File identity
+## Public identity
 
-- Path: `content/blog/{locale}/{slug}.mdx`
+- Content API: `GET https://leads.caudals.com/api/blog?locale={locale}` and
+  `GET https://leads.caudals.com/api/blog/{slug}?locale={locale}`
+- Static fallback: `content/blog/{locale}/{slug}.mdx`
 - Locales: `en`, `es`
 - Public URL: `/blog/{slug}`
 - Locale selection: request locale/cookie, not a locale URL prefix
 - Slug: lowercase ASCII and hyphens; use the same slug for translations
 
-The loader may fall back to the default locale when a translation is missing.
-V2 production releases use `translation_group_id` and require exactly one
-English and one Spanish file with the same slug before the atomic commit.
+Both API and file loaders may fall back to English when a translation is
+missing. A translation group containing both locales must use the same slug.
 
-## Frontmatter
+## Metadata
 
 Required:
 
@@ -44,10 +46,9 @@ featured: false
 coverVariant: "signal" # signal | grid | ledger
 ```
 
-Unknown fields are ignored by the renderer. The Content Suite currently adds
-`source`, `sourceLocale`, `sourcePillar`, `sourceReadingMinutes` and
-`sourceHeroImage` for provenance. Those fields are not a public presentation
-contract.
+The API exposes equivalent camel-case JSON plus `bodyMdx`, `updatedAt`,
+`readTimeMinutes` and optional `heroUrl`. It never exposes workflow rows,
+prompts, credentials or unpublished content.
 
 ## MDX body
 
@@ -69,21 +70,24 @@ frontmatter. The publisher owns frontmatter and the site owns components.
 
 ## Publication workflow
 
-The current scheduled path selects approved, hash-bound variants. For every
-publication, the CRM publisher:
+The scheduled path selects approved, hash-bound variants. For every
+publication, Leads:
 
 1. Refuses an empty MDX body or excerpt.
 2. Renders frontmatter according to this contract.
-3. Requires the paired `en`/`es` translation group and matching slug.
-4. Creates both blobs, one Git tree and one commit, then advances the configured
-   branch with a non-force compare-and-swap update.
-5. Records the same commit SHA, `/blog/{slug}` and `committed` deployment state
-   for both locales.
-6. Reconciles GitHub Actions as `committed → building → deployed` or `failed`.
+3. Validates every available locale and matching slugs in a bilingual group.
+4. Atomically marks the rows `published`/`deployed` with `/blog/{slug}`.
+5. Exposes only those published rows through the cacheable public API.
 
-This repository enforces the same deterministic contract when content is read,
-when `npm run blog:preflight` is executed and before the production image is
-built. Preflight checks required frontmatter, locale/slug pairing and category
+The Next.js server fetches the API with a 60-second revalidation window, merges
+CMS results over bundled files by slug, and compiles remote MDX through the same
+allowlist and preflight contract. If Leads is unreachable or rejects a remote
+article, established bundled articles continue to render. Publishing a new
+article does not push Git, start GitHub Actions or rebuild the site image.
+
+This repository enforces the same deterministic contract when API or file
+content is read, when `npm run blog:preflight` is executed and before a site
+image is built. File preflight checks required frontmatter, locale/slug pairing and category
 parity, the MDX component allowlist, imports/exports, unsafe HTML, links,
 private-route discovery, headings, image alt text and a 250 kB source budget.
 The site build remains the renderer/compiler compatibility test.
@@ -102,7 +106,7 @@ components must update:
 2. this document;
 3. `services/growth-social/src/content/blog.ts` in `leads`;
 4. the blog-writer prompt/output schema and its build eval;
-5. at least one paired fixture in `content/blog/en` and `content/blog/es`.
+5. paired fixtures when the static fallback contract changes.
 
-The site build is the final compatibility test. A GitHub commit alone does not
-mean an article is deployed successfully.
+The site build remains the fallback compatibility test. A CMS article is live
+when its API row is published and passes request-time preflight.
