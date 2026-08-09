@@ -345,7 +345,9 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 Current live data domains:
 
 - lead capture: contact and waitlist records
-- content: blog posts and marketing metadata
+- content: bundled blog fallback and marketing metadata; newly approved blog
+  posts are read from the narrow public Leads archive API with 60-second
+  server-side revalidation, so publication does not rebuild this application
 - operations: private admin activity, platform settings, audit notes
 
 Future marketplace data domains:
