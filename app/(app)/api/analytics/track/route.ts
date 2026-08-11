@@ -11,6 +11,7 @@ import {
   consumeRateLimit,
   getClientIpFromHeaders,
 } from "@/lib/security/rate-limit";
+import { recordAttributionConversion } from "@/lib/analytics/attribution-server";
 
 const trackEventSchema = z.object({
   eventName: z.enum(PRODUCT_EVENT_NAMES),
@@ -79,6 +80,23 @@ export async function POST(request: NextRequest) {
     userRole: operatorSession?.operator.role ?? null,
     source: "client",
   });
+
+  const parentEventId = payload?.["attribution_parent_event_id"];
+  const visitorId = payload?.["attribution_visitor_id"];
+  const shortCode = payload?.["attribution_short_code"];
+  if (
+    ["funnel_signup", "funnel_dataset_created", "funnel_fund"].includes(eventName) &&
+    typeof parentEventId === "string" && typeof visitorId === "string" && typeof shortCode === "string"
+  ) {
+    await recordAttributionConversion({
+      parentEventId,
+      visitorId,
+      shortCode,
+      landingUrl: path ?? null,
+      referrerUrl: request.headers.get("referer"),
+      eventName,
+    });
+  }
 
   return withHeaders(NextResponse.json({ ok: true }), ipRateHeaders);
 }

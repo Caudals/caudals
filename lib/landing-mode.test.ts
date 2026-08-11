@@ -34,6 +34,7 @@ describe("landing mode route allowlist", () => {
     expect(
       isLandingModePagePathAllowed("/newsletter/2026-08-04-el-hueco-de-datos")
     ).toBe(true);
+    expect(isLandingModePagePathAllowed("/r/content-link-123")).toBe(true);
     expect(isLandingModePagePathAllowed("/equipo")).toBe(true);
     expect(isLandingModePagePathAllowed("/equipo/alonso-sandoval")).toBe(true);
     expect(isLandingModePagePathAllowed("/legal/privacy")).toBe(true);

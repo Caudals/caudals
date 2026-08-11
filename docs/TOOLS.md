@@ -784,6 +784,12 @@ Operational env controls:
   private MinIO stack variables, object-storage completion-gate waiver flag
 - Newsletter (Leads CRM): optional `LEADS_NEWSLETTER_API_URL` override. The
   default is `https://leads.caudals.com/api/newsletter`; it is not a secret.
+- Content attribution (Leads CRM): optional `LEADS_ATTRIBUTION_API_URL`
+  override. The default is
+  `https://leads.caudals.com/api/attribution/public`; it is not a secret.
+  Stable content links use `/r/<short-code>`, record a first-party click in the
+  CRM, append UTM fields, and carry only opaque journey IDs into the landing
+  session. The public site never assigns a CRM identity.
 - Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout

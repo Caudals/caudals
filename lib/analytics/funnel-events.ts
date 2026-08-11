@@ -1,3 +1,5 @@
+import { readAttributionJourney } from "@/lib/analytics/attribution";
+
 export const FUNNEL_EVENT_NAMES = [
   "funnel_visit",
   "funnel_signup",
@@ -86,6 +88,12 @@ export async function trackProductEvent(
   }
 
   const metadata = sanitizePayload(payload);
+  const attribution = readAttributionJourney();
+  if (attribution) {
+    metadata["attribution_parent_event_id"] = attribution.parentEventId;
+    metadata["attribution_visitor_id"] = attribution.visitorId;
+    metadata["attribution_short_code"] = attribution.shortCode;
+  }
   const sessionId = getSessionId();
   const requestBody = JSON.stringify({
     eventName,
