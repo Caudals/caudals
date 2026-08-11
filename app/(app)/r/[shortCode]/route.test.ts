@@ -30,4 +30,32 @@ describe("first-party attribution redirect", () => {
     );
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
+
+  it("uses the trusted forwarded public origin when an invalid code reaches Next through the proxy", async () => {
+    const response = await GET(
+      new NextRequest("http://localhost:3000/r/bad", {
+        headers: {
+          host: "localhost:3000",
+          "x-forwarded-host": "caudals.com",
+          "x-forwarded-proto": "https",
+        },
+      }),
+      { params: Promise.resolve({ shortCode: "bad" }) },
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://caudals.com/");
+  });
+
+  it("never trusts an arbitrary forwarded host for fallback redirects", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    const response = await GET(
+      new NextRequest("http://localhost:3000/r/content-link-123", {
+        headers: { "x-forwarded-host": "attacker.example", "x-forwarded-proto": "https" },
+      }),
+      { params: Promise.resolve({ shortCode: "content-link-123" }) },
+    );
+
+    expect(response.headers.get("location")).toBe("https://caudals.com/");
+  });
 });

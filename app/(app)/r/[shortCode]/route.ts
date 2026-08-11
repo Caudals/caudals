@@ -14,13 +14,23 @@ function attributionApiBase() {
     "https://leads.caudals.com/api/attribution/public").replace(/\/$/, "");
 }
 
+function publicSiteOrigin(request: NextRequest) {
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost ?? request.headers.get("host")?.split(",")[0]?.trim();
+  if (host === "caudals.com" || host === "www.caudals.com") {
+    const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    return `${forwardedProtocol === "http" ? "http" : "https"}://${host}`;
+  }
+  return "https://caudals.com";
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ shortCode: string }> },
 ) {
   const { shortCode } = await context.params;
   if (!CODE.test(shortCode)) {
-    return NextResponse.redirect(new URL("/", request.url), 302);
+    return NextResponse.redirect(new URL("/", publicSiteOrigin(request)), 302);
   }
 
   const visitorId = randomUUID();
@@ -36,7 +46,7 @@ export async function GET(
   }).catch(() => null);
 
   if (!resolved?.event_id || !resolved.destination_url) {
-    return NextResponse.redirect(new URL("/", request.url), 302);
+    return NextResponse.redirect(new URL("/", publicSiteOrigin(request)), 302);
   }
 
   const destination = new URL(resolved.destination_url);
