@@ -65,6 +65,10 @@ ${authorLinks}
 - [Política de privacidad](${buildMarketingUrl("/legal/privacy")}): tratamiento y protección de datos personales.
 - [Aviso legal](${buildMarketingUrl("/legal/notice")}): titularidad y condiciones legales del sitio.
 
+## Acceso para agentes
+
+Todas las páginas públicas admiten negociación de contenido: una petición con la cabecera \`Accept: text/markdown\` devuelve el contenido en Markdown limpio en lugar de HTML. La respuesta incluye \`Content-Type: text/markdown\`, \`Vary: Accept\` y \`x-markdown-tokens\` con una estimación de tokens.
+
 ## Contacto
 
 - Correo: hello@caudals.com

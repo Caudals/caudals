@@ -10,6 +10,9 @@ export default function robots(): MetadataRoute.Robots {
     "/catalogue",
     "/contributor",
     "/dashboard",
+    // Internal renderer behind Accept: text/markdown negotiation. Agents reach
+    // it via the canonical URLs, so it must not be crawled directly.
+    "/markdown-for-agents",
     "/docs",
     "/pwa",
     "/requester",
