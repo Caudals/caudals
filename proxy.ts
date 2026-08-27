@@ -6,6 +6,10 @@ import {
 } from "@/lib/landing-mode";
 import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import {
+  MARKDOWN_ROUTE_PREFIX,
+  prefersMarkdown,
+} from "@/lib/markdown/negotiation";
+import {
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
   type Locale,
@@ -243,6 +247,22 @@ export async function proxy(request: NextRequest) {
     !hasBetterAuthSessionCookie(request)
   ) {
     return redirectAnonymousPrivateRequest(request);
+  }
+
+  // Content negotiation for agents: a request that explicitly prefers
+  // `text/markdown` is rewritten to the markdown renderer. This sits after the
+  // 404 and authentication gates above so markdown cannot reach a surface that
+  // HTML could not, and before locale handling because the renderer resolves
+  // its own locale.
+  if (
+    !matchesAppOnlyPath(pathname) &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith(MARKDOWN_ROUTE_PREFIX) &&
+    prefersMarkdown(request.headers.get("accept"))
+  ) {
+    const markdownUrl = request.nextUrl.clone();
+    markdownUrl.pathname = `${MARKDOWN_ROUTE_PREFIX}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(markdownUrl);
   }
 
   if (isMarketingHost && matchesAppOnlyPath(pathname) && primaryAppHost) {
