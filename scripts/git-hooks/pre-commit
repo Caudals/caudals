@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Blocks a commit that would introduce a secret.
+# Installed by scripts/install-git-hooks.sh; bypass with `git commit --no-verify`.
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+config="$repo_root/.gitleaks.toml"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  # Warn rather than block: a hard failure here just teaches everyone to reach
+  # for --no-verify, and CI still catches the leak before it reaches main.
+  printf '\033[33m[secret-scan] gitleaks not installed — staged changes were NOT scanned.\033[0m\n' >&2
+  printf '  brew install gitleaks   (or: https://github.com/gitleaks/gitleaks/releases)\n' >&2
+  exit 0
+fi
+
+# --staged scans the index, so it catches the secret before it becomes a commit.
+if ! gitleaks git "$repo_root" \
+      --staged \
+      --config "$config" \
+      --redact \
+      --no-banner \
+      --exit-code 1; then
+  cat >&2 <<'MSG'
+
+[secret-scan] Commit blocked: a staged change looks like a secret.
+
+  Values are redacted above. If it is a real credential:
+    1. Remove it from the staged files.
+    2. Rotate it — assume it is already burned.
+    3. Load it from the environment or a Docker secret instead.
+
+  If it is a false positive, add a narrow allowlist entry to .gitleaks.toml,
+  or append  gitleaks:allow  to the end of that specific line.
+
+  Deliberate override (leaves the leak unscanned):  git commit --no-verify
+MSG
+  exit 1
+fi

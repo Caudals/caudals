@@ -1,0 +1,80 @@
+# Secret scanning config for Caudals.
+#
+# GitHub's native secret scanning is unavailable here: the org is on the free
+# plan and both repos are private, which puts it behind paid Secret Protection.
+# This config drives gitleaks as the replacement. See .github/workflows/secret-scan.yml.
+
+# Start from the upstream ruleset (AWS, GCP, Stripe, GitHub, Slack, private keys...)
+# and layer on the providers this stack actually uses.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key"
+regex = '''re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{20,}'''
+keywords = ["re_"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase service_role JWT (bypasses RLS)"
+# HS256 header + a payload whose base64 contains "service_role".
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]*c2VydmljZV9yb2xl[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{20,}'''
+keywords = ["eyJhbGciOiJIUzI1NiI"]
+
+[[rules]]
+id = "supabase-publishable-key"
+description = "Supabase publishable/secret key (new sb_ format)"
+regex = '''sb_(publishable|secret)_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_publishable_", "sb_secret_"]
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook signing secret"
+regex = '''whsec_[A-Za-z0-9]{24,}'''
+keywords = ["whsec_"]
+
+[[rules]]
+id = "docker-inspect-env-dump"
+description = "Committed `docker inspect` output containing a runtime env block"
+# This is the exact shape that leaked the production Resend key in inspect.json.
+regex = '''"Env"\s*:\s*\[[^\]]*(API_KEY|SECRET|SERVICE_ROLE|PASSWORD|TOKEN)='''
+keywords = ["\"Env\""]
+
+[[rules]]
+id = "dotenv-assignment"
+description = "Secret-looking KEY=VALUE assignment outside an example file"
+regex = '''(?i)\b[A-Z0-9_]*(API_KEY|SECRET_KEY|SERVICE_ROLE_KEY|ACCESS_TOKEN|PRIVATE_KEY|PASSWORD)\s*=\s*['"]?[A-Za-z0-9_\-\.\/\+]{16,}['"]?'''
+keywords = ["API_KEY=", "SECRET_KEY=", "SERVICE_ROLE_KEY=", "ACCESS_TOKEN=", "PRIVATE_KEY=", "PASSWORD="]
+
+[allowlist]
+description = "Paths that legitimately contain placeholder or public values"
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)\.env\.sample$''',
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)node_modules/''',
+  '''(^|/)docs/.*\.md$''',
+  # Build output. Never committed, but keeps a manual `gitleaks dir .` readable.
+  '''(^|/)\.next/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''',
+]
+
+# Note: .env.local is deliberately NOT allowlisted. It is gitignored, so the
+# git and --staged scans that gate commits never see it, but a manual
+# `gitleaks dir .` will still report it -- which is the correct answer to
+# "does a file on this machine hold live credentials?".
+regexes = [
+  # Publishable-by-design values.
+  '''pk_test_[A-Za-z0-9]+''',
+  '''pk_live_[A-Za-z0-9]+''',
+  '''NEXT_PUBLIC_[A-Z0-9_]*=''',
+  # Obvious placeholders.
+  '''(?i)(your|my|the)[-_]?(super)?[-_]?secret''',
+  '''(?i)(xxx+|placeholder|changeme|example|dummy|redacted|\.\.\.)''',
+]
