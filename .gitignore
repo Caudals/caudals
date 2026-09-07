@@ -63,3 +63,7 @@ docs/logs/validations/#*.png
 c-design/*
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Raw `docker inspect` output — dumps the full runtime env, including secrets.
+inspect.json
+*.inspect.json
