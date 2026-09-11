@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-APP_SERVICE="${CAUDALS_APP_SERVICE:-caudalsdep-caudals-vgbvxp}"
+APP_SERVICE="${CAUDALS_APP_SERVICE:-caudals-app_app}"
 # The Swarm service name is `<stack>_<service>`. `caudals-postgres` alone is
 # the stack namespace and the network alias the compose files connect to —
 # it matches no `com.docker.swarm.service.name` label, so every lookup below
 # came back empty and the deploy died on "No running container found".
 POSTGRES_SERVICE="${CAUDALS_POSTGRES_SERVICE:-caudals-postgres_db}"
-BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://app.caudals.com}"
+BASE_URL="${CAUDALS_COMPLETION_BASE_URL:-https://caudals.com}"
 CACHE_NETWORK="${CAUDALS_CACHE_NETWORK:-dokploy-network}"
 LABELING_NETWORK="${CAUDALS_LABELING_NETWORK:-dokploy-network}"
 LAKEHOUSE_NETWORK="${CAUDALS_LAKEHOUSE_NETWORK:-dokploy-network}"
@@ -21,7 +21,10 @@ ALERTMANAGER_SERVICE="${CAUDALS_ALERTMANAGER_SERVICE:-caudals-observability_aler
 OBJECT_STORAGE_GATE_ENABLED="${CAUDALS_OBJECT_STORAGE_GATE_ENABLED:-true}"
 OBJECT_STORAGE_PROBE_MODE="${CAUDALS_OBJECT_STORAGE_PROBE_MODE:-stack}"
 PENTEST_GATE_ENABLED="${CAUDALS_PENTEST_GATE_ENABLED:-false}"
-CVAT_GATE_ENABLED="${CAUDALS_CVAT_GATE_ENABLED:-true}"
+# The legacy dataset-build platform (its eight private stacks, schema,
+# intake-channel contracts and G-1..G-7 build evidence) is frozen and no longer
+# part of the evaluation product, so it is only checked on request.
+LEGACY_STACKS_GATE_ENABLED="${CAUDALS_LEGACY_STACKS_GATE_ENABLED:-false}"
 
 failures=0
 APP_CONTAINER=""
@@ -286,12 +289,12 @@ SQL
   mark_ok "security.operator_auth_policy" "password-only operator access allowed total=$total optional_mfa_enabled=$mfa_enabled optional_passkeys=$passkey_users"
 }
 
-check_blueprint_schema() {
+check_legacy_dataset_schema() {
   local postgres_container sql output schema_error
 
   postgres_container="$(first_service_container "$POSTGRES_SERVICE")"
   if [[ -z "$postgres_container" ]]; then
-    mark_fail "data.blueprint_schema" "no running container for service $POSTGRES_SERVICE"
+    mark_fail "legacy.dataset_schema" "no running container for service $POSTGRES_SERVICE"
     return
   fi
 
@@ -345,7 +348,7 @@ SQL
   )"
 
   if [[ "$?" -ne 0 ]]; then
-    mark_fail "data.blueprint_schema" "$(printf "%s" "$output" | tr "\n" " ")"
+    mark_fail "legacy.dataset_schema" "$(printf "%s" "$output" | tr "\n" " ")"
     return
   fi
 
@@ -356,18 +359,18 @@ SQL
       process.exit(1);
     }
   ' "$output" 2>&1)"; then
-    mark_ok "data.blueprint_schema" "load-bearing records present and modality_contract accepts all eight modalities"
+    mark_ok "legacy.dataset_schema" "load-bearing records present and modality_contract accepts all eight modalities"
   else
-    mark_fail "data.blueprint_schema" "$schema_error"
+    mark_fail "legacy.dataset_schema" "$schema_error"
   fi
 }
 
-check_representative_build_evidence() {
+check_legacy_dataset_build() {
   local postgres_container sql output evidence_error
 
   postgres_container="$(first_service_container "$POSTGRES_SERVICE")"
   if [[ -z "$postgres_container" ]]; then
-    mark_fail "data.representative_build" "no running container for service $POSTGRES_SERVICE"
+    mark_fail "legacy.dataset_build" "no running container for service $POSTGRES_SERVICE"
     return
   fi
 
@@ -464,7 +467,7 @@ SQL
   )"
 
   if [[ "$?" -ne 0 ]]; then
-    mark_fail "data.representative_build" "$(printf "%s" "$output" | tr "\n" " ")"
+    mark_fail "legacy.dataset_build" "$(printf "%s" "$output" | tr "\n" " ")"
     return
   fi
 
@@ -526,16 +529,16 @@ SQL
       process.exit(1);
     }
   ' "$output" 2>&1)"; then
-    mark_ok "data.representative_build" "build evidence includes G-1..G-7, partitions, artifacts, release docs, lineage, and accepted delivery"
+    mark_ok "legacy.dataset_build" "build evidence includes G-1..G-7, partitions, artifacts, release docs, lineage, and accepted delivery"
   else
-    mark_fail "data.representative_build" "$evidence_error"
+    mark_fail "legacy.dataset_build" "$evidence_error"
   fi
 }
 
-check_blueprint_tool_contracts() {
+check_legacy_intake_channels() {
   local output
 
-  if ! require_command node "tools.blueprint_contracts"; then
+  if ! require_command node "legacy.intake_channels"; then
     return
   fi
 
@@ -560,13 +563,13 @@ check_blueprint_tool_contracts() {
         process.stderr.write(`missing intake channels: ${missing.join(",")}`);
         process.exit(1);
       }
-    ' "$output" 2>/tmp/caudals-blueprint-tool-contracts.err; then
-      mark_ok "tools.blueprint_contracts" "§07 intake channel contracts present"
+    ' "$output" 2>/tmp/caudals-legacy-intake-channels.err; then
+      mark_ok "legacy.intake_channels" "legacy intake channel contracts present"
     else
-      mark_fail "tools.blueprint_contracts" "$(cat /tmp/caudals-blueprint-tool-contracts.err 2>/dev/null || printf "%s" "$output")"
+      mark_fail "legacy.intake_channels" "$(cat /tmp/caudals-legacy-intake-channels.err 2>/dev/null || printf "%s" "$output")"
     fi
   else
-    mark_fail "tools.blueprint_contracts" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.intake_channels" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -584,9 +587,9 @@ check_cache_stack() {
   local output
 
   if output="$(CAUDALS_CACHE_NETWORK="$CACHE_NETWORK" scripts/probe-cache-stack.sh 2>&1)"; then
-    mark_ok "cache.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.cache" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "cache.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.cache" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -594,24 +597,19 @@ check_labeling_stack() {
   local output
 
   if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-labeling-stack.sh 2>&1)"; then
-    mark_ok "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.labeling" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "labeling.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.labeling" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
 check_cvat_stack() {
   local output
 
-  if [[ "$CVAT_GATE_ENABLED" != "true" ]]; then
-    mark_ok "labeling.cvat" "probe waived because CAUDALS_CVAT_GATE_ENABLED is not true"
-    return
-  fi
-
   if output="$(CAUDALS_LABELING_NETWORK="$LABELING_NETWORK" scripts/probe-cvat-stack.sh 2>&1)"; then
-    mark_ok "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "labeling.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.cvat" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -619,9 +617,9 @@ check_lakehouse_stack() {
   local output
 
   if output="$(CAUDALS_LAKEHOUSE_NETWORK="$LAKEHOUSE_NETWORK" scripts/probe-lakehouse-stack.sh 2>&1)"; then
-    mark_ok "lakehouse.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.lakehouse" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "lakehouse.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.lakehouse" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -658,9 +656,9 @@ check_operations_stack() {
   local output
 
   if output="$(CAUDALS_OPERATIONS_NETWORK="$OPERATIONS_NETWORK" scripts/probe-operations-stack.sh 2>&1)"; then
-    mark_ok "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.operations" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "operations.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.operations" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -668,9 +666,9 @@ check_workflow_stack() {
   local output
 
   if output="$(CAUDALS_WORKFLOW_NETWORK="$WORKFLOW_NETWORK" scripts/probe-workflow-stack.sh 2>&1)"; then
-    mark_ok "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.workflow" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "workflow.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.workflow" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -678,9 +676,9 @@ check_vector_stack() {
   local output
 
   if output="$(CAUDALS_VECTOR_NETWORK="$VECTOR_NETWORK" scripts/probe-vector-stack.sh 2>&1)"; then
-    mark_ok "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.vector" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "vector.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.vector" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
 }
 
@@ -688,10 +686,29 @@ check_orchestration_stack() {
   local output
 
   if output="$(CAUDALS_ORCHESTRATION_NETWORK="$ORCHESTRATION_NETWORK" scripts/probe-orchestration-stack.sh 2>&1)"; then
-    mark_ok "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_ok "legacy.orchestration" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   else
-    mark_fail "orchestration.stack" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
+    mark_fail "legacy.orchestration" "$(printf "%s" "$output" | tr "\n" "; " | sed "s/[[:space:]]\\+/ /g")"
   fi
+}
+
+check_legacy_platform() {
+  if [[ "$LEGACY_STACKS_GATE_ENABLED" != "true" ]]; then
+    mark_ok "legacy" "legacy stack and dataset-build checks skipped; set CAUDALS_LEGACY_STACKS_GATE_ENABLED=true to require them"
+    return
+  fi
+
+  check_legacy_dataset_schema
+  check_legacy_dataset_build
+  check_legacy_intake_channels
+  check_cache_stack
+  check_labeling_stack
+  check_cvat_stack
+  check_lakehouse_stack
+  check_orchestration_stack
+  check_workflow_stack
+  check_operations_stack
+  check_vector_stack
 }
 
 check_alert_routing() {
@@ -848,23 +865,13 @@ main() {
   fi
 
   check_operator_auth_policy
-  check_blueprint_schema
-  check_representative_build_evidence
-  check_blueprint_tool_contracts
   check_observability_stack
-  check_cache_stack
-  check_labeling_stack
-  check_cvat_stack
-  check_lakehouse_stack
   check_object_storage
-  check_orchestration_stack
-  check_workflow_stack
-  check_operations_stack
-  check_vector_stack
   check_alert_routing
   check_tracked_secret_patterns
   check_runtime_secret_env
   check_pentest_tracker
+  check_legacy_platform
 
   if [[ "$failures" -gt 0 ]]; then
     printf "summary\tblocked\t%d completion gate(s) still failing\n" "$failures"

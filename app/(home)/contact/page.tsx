@@ -1,5 +1,6 @@
 import { ContactPageContent } from "@/components/contact/contact-page-content";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
+import { parseRequestedOffer } from "@/lib/validators/evaluation-request";
 
 type ContactPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -9,20 +10,10 @@ function firstSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function readPrefixedId(value: string | undefined, prefix: string) {
-  if (!value) {
-    return undefined;
-  }
-
-  return new RegExp(`^${prefix}_[0-9A-HJKMNP-TV-Z]{10,}$`).test(value)
-    ? value
-    : undefined;
-}
-
 export const metadata = buildPublicMetadata({
-  title: "Contacto para datasets de IA",
+  title: "Solicita una evaluación de tu asistente de IA",
   description:
-    "Cuéntanos qué dataset necesita tu equipo de IA o qué datos quiere monetizar tu empresa. Revisaremos viabilidad, derechos, calidad, alcance y plazos.",
+    "Cuéntanos qué sistema de IA tienes, qué responde y quién es responsable. Te respondemos en 24 horas con el mejor punto de partida: un Reality Check gratuito o una evaluación piloto.",
   pathname: "/contact",
 });
 
@@ -31,9 +22,9 @@ const contactStructuredData = {
   "@type": "ContactPage",
   "@id": `${buildMarketingUrl("/contact")}#page`,
   url: buildMarketingUrl("/contact"),
-  name: "Contacto para datasets de IA",
+  name: "Solicitar una evaluación de IA",
   description:
-    "Canal de contacto para solicitar datasets a medida o proponer datos empresariales para su monetización.",
+    "Canal para solicitar un Reality Check gratuito o una evaluación de un asistente, chatbot o agente de IA.",
   mainEntity: {
     "@type": "Organization",
     "@id": `${buildMarketingUrl("/")}#organization`,
@@ -49,8 +40,7 @@ export default async function ContactPage({ searchParams }: ContactPageProps) {
   return (
     <>
       <ContactPageContent
-        catalogueListingId={readPrefixedId(firstSearchParam(params.dataset), "cl")}
-        requestedDatasetId={readPrefixedId(firstSearchParam(params.brief), "ds")}
+        requestedOffer={parseRequestedOffer(firstSearchParam(params.offer))}
       />
       <script
         type="application/ld+json"

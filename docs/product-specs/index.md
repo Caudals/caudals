@@ -1,8 +1,13 @@
 # Product Specs Index
 
 ## Specs
-- `overview.md`: canonical startup/product briefing for Caudals' B2B AI dataset marketplace and managed services model.
+- `overview.md`: canonical product brief — the idea, offers and pricing, what we evaluate, customers, sources of ground truth, custom datasets, the freelance expert network, market context.
+- `evals.md`: evaluation product contract — artifacts, case schema, tiers, running modes, grading, metrics, failure causes, reports, expert-built data rules, data handling.
+- `go-to-market.md`: customer-acquisition playbook — finding and accessing targets, the Reality Check play and its rules of engagement, first 30 days, marketing engine, 90-day gates, metrics, operating cadence, risks.
+- `content-publishing-contract.md`: Leads-to-site blog publishing interface.
 
 ## Update Policy
-- Update `overview.md` when business direction, product surfaces, service tiers, or marketplace assumptions change.
-- Keep low-level implementation details in `docs/ARCHITECTURE.md` and code-level docs.
+- `overview.md`: business direction, offers, pricing, sectors, expert network or scope change.
+- `evals.md`: case schema, tiers, grading, metrics, deliverable format or expert QA rules change.
+- `go-to-market.md`: targeting, outreach rules, gates or cadence change.
+- Keep implementation details in `docs/ARCHITECTURE.md` and code-level docs.

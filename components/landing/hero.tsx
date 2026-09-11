@@ -1,177 +1,69 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   ArrowUpRight,
-  Database,
-  LayoutDashboard,
-  Search,
-  Settings,
-  SlidersHorizontal,
-  Wallet,
-  Workflow,
+  ClipboardCheck,
+  History,
+  Layers,
+  ListChecks,
+  SearchX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSplineScene } from "@/components/landing/hero-spline-scene";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import { cn } from "@/lib/utils";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
-import {
-  newsletterFormSchema,
-  type NewsletterFormValues,
-} from "@/lib/validators/newsletter";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-
-interface NewsletterResponse {
-  success: boolean;
-  emailSent?: boolean;
-  /** Double opt-in: new addresses remain pending until the email link is used. */
-  newsletter?: "pending" | "already_subscribed";
-}
-
-function HeroNewsletterForm() {
-  const [result, setResult] = useState<NewsletterResponse | null>(null);
-  const toast = useLocaleToast();
-  const t = useTranslations();
-  const form = useForm<NewsletterFormValues>({
-    resolver: zodResolver(newsletterFormSchema),
-    defaultValues: {
-      email: "",
-    },
-    mode: "onSubmit",
-  });
-
-  const isSubmitting = form.formState.isSubmitting;
-
-  async function onSubmit(values: NewsletterFormValues) {
-    try {
-      setResult(null);
-
-      const response = await fetch("/api/newsletter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email, source: "landing_hero" }),
-      });
-
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        if (response.status === 422 && payload?.details?.fieldErrors?.email?.[0]) {
-          form.setError("email", { type: "server", message: payload.details.fieldErrors.email[0] });
-          toast.error(t("Please enter a valid email address."));
-          return;
-        }
-        throw new Error(payload?.error || payload?.message || "Something went wrong");
-      }
-
-      const data = (payload ?? {}) as NewsletterResponse;
-      setResult(data);
-
-      if (data.newsletter === "already_subscribed") {
-        toast.info(t("You're already subscribed! We'll keep the updates coming."));
-      } else {
-        toast.success(t("Check your inbox to confirm your subscription."));
-      }
-      form.reset();
-    } catch (error) {
-      console.error("Failed to submit newsletter form", error);
-      toast.error(t("We couldn't save your request. Please try again."));
-    }
-  }
-
-  return (
-    <div className="w-full max-w-md mx-auto">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="relative flex items-center">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="w-full space-y-0">
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder={t("Your email address")}
-                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-32 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
-                    {...field}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isSubmitting}
-            className="absolute right-1 h-10 rounded-full bg-black px-5 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90 disabled:opacity-70"
-          >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Subscribe")}
-          </Button>
-        </form>
-      </Form>
-      {form.formState.errors.email && (
-        <p className="mt-2 text-sm text-red-500 font-medium text-center">
-          {form.formState.errors.email.message ? t(form.formState.errors.email.message) : ""}
-        </p>
-      )}
-      {!result && !form.formState.errors.email && (
-        <p className="mt-3 text-[13px] text-gray-500 text-center">
-          {t("Subscribe to Data Unfiltered, our fortnightly read on AI tools and data. One click to unsubscribe.")}
-        </p>
-      )}
-      {result && !form.formState.errors.email && (
-        <p className="mt-3 text-sm text-teal-700 font-medium text-center">
-          {result.newsletter === "already_subscribed"
-            ? t("You're already subscribed! We'll keep the updates coming.")
-            : t("Check your inbox to confirm your subscription.")}
-        </p>
-      )}
-    </div>
-  );
+/** Splits "text *accent* text" so each locale picks its own serif-italic word. */
+function splitAccent(sentence: string) {
+  const match = /^(.*?)\*(.+?)\*(.*)$/.exec(sentence);
+  return match
+    ? { before: match[1], accent: match[2], after: match[3] }
+    : { before: sentence, accent: "", after: "" };
 }
 
 export function HeroSection() {
   const t = useTranslations();
-
-  const heroHighlights = [
-    t("Enterprise-grade processing"),
-    t("GDPR-compliant pipelines"),
-    t("Revenue share for suppliers"),
-  ];
-  const heroTitle = t("Professional datasets for AI");
-  const heroTitleHighlight = t("tailored");
+  const headline = splitAccent(t("We measure AI against what your experts *know*."));
 
   return (
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center bg-white px-6 pt-16 pb-24 sm:px-8 lg:px-12 lg:pt-24 lg:pb-32">
       <div className="pointer-events-none absolute inset-0 z-0 opacity-85 overflow-hidden">
         <HeroSplineScene />
       </div>
-      
+
       {/* Bottom gradient fade for smooth transition to the next section */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-48 bg-gradient-to-t from-white to-transparent" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white/60 px-3.5 py-1.5 text-[13px] font-bold text-teal-700 backdrop-blur-sm"
+        >
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600"
+          />
+          {t("Independent AI evaluation")}
+        </motion.p>
+
         <motion.h1
-          aria-label={`${heroTitle} ${heroTitleHighlight}`}
+          aria-label={`${headline.before}${headline.accent}${headline.after}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-          className="text-balance text-5xl font-normal tracking-tight text-black sm:text-7xl lg:text-8xl"
+          className="mt-8 text-balance text-5xl font-normal tracking-tight text-black sm:text-7xl lg:text-8xl"
         >
-          {heroTitle}{" "}
-          <span className="font-serif italic text-teal-700/90">{heroTitleHighlight}</span>
+          {headline.before}
+          {headline.accent ? (
+            <span className="font-serif italic text-teal-700/90">{headline.accent}</span>
+          ) : null}
+          {headline.after}
         </motion.h1>
-
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -180,7 +72,7 @@ export function HeroSection() {
           className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl"
         >
           {t(
-            "We source, process, and deliver ML-ready datasets so your team can build models faster.",
+            "The future of AI won't be decided by how much it can answer, but by how often it gets it right. We test your assistant against your own documents and experts, and show you the evidence.",
           )}
         </motion.p>
 
@@ -188,29 +80,33 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="mt-10 w-full"
+          className="mt-10 flex flex-col items-center gap-4"
         >
-          <HeroNewsletterForm />
+          <Button
+            asChild
+            size="lg"
+            className="h-12 rounded-full bg-black px-7 text-base font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90"
+          >
+            <Link href="/contact?offer=reality-check">
+              {t("Get a free Reality Check")}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <p className="max-w-md text-[13px] leading-relaxed text-gray-500">
+            {t("Forty questions from your own public documentation, report in 48 hours.")}{" "}
+            <Link
+              href="/call"
+              className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
+            >
+              {t("Or book a 30-minute call.")}
+            </Link>
+          </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-          className="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-medium text-gray-400"
-        >
-          {heroHighlights.map((highlight) => (
-            <div key={highlight} className="flex items-center gap-2.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-teal-600/40" />
-              <span className="text-gray-900">{highlight}</span>
-            </div>
-          ))}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
           className="mt-16 w-full"
         >
           <HeroPreview />
@@ -220,46 +116,117 @@ export function HeroSection() {
   );
 }
 
+type Verdict = "correct" | "partial" | "wrong";
+
+const verdictStyles: Record<Verdict, { label: string; dot: string; text: string }> = {
+  correct: { label: "Correct", dot: "bg-teal-600", text: "text-teal-700" },
+  partial: { label: "Partial", dot: "bg-amber-500", text: "text-amber-700" },
+  wrong: { label: "Wrong", dot: "bg-red-600", text: "text-red-700" },
+};
+
+type PreviewStat = {
+  label: string;
+  value: string;
+  unit?: string;
+  basis: string;
+  delta?: string;
+  tone: "accent" | "danger" | "neutral";
+};
+
+const toneStyles: Record<PreviewStat["tone"], { tile: string; value: string }> = {
+  accent: { tile: "border-teal-100 bg-teal-50/40", value: "text-teal-800" },
+  danger: { tile: "border-red-100 bg-red-50/40", value: "text-red-700" },
+  neutral: { tile: "border-gray-100 bg-white/60", value: "text-gray-900" },
+};
+
+type PreviewCase = {
+  question: string;
+  verdict: Verdict;
+  critical?: boolean;
+  why: string;
+  source?: string;
+  sourceNote?: string;
+};
+
+const caseGrid =
+  "grid grid-cols-[minmax(0,1fr)_auto] gap-4 sm:grid-cols-[minmax(0,1.8fr)_0.7fr_1fr] md:grid-cols-[minmax(0,1.7fr)_0.6fr_0.9fr_1fr]";
+
+/** An illustrative scorecard, drawn with the report's own evidence conventions. */
 function HeroPreview() {
   const t = useTranslations();
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", active: true },
-    { icon: Database, label: "Catalog" },
-    { icon: Workflow, label: "Pipelines" },
-    { icon: Wallet, label: "Billing" },
-    { icon: Settings, label: "Settings" },
+    { icon: ClipboardCheck, label: "Scorecard", active: true },
+    { icon: ListChecks, label: "Cases" },
+    { icon: Layers, label: "Failure causes" },
+    { icon: SearchX, label: "Coverage gaps" },
+    { icon: History, label: "Runs" },
   ];
 
-  const stats = [
-    { label: "Supplier Companies", value: "142", delta: "+18", accent: false },
-    { label: "Quality score", value: "98.4", unit: "%", delta: "+0.6", accent: true },
-    { label: "Datasets Delivered", value: "1,284", delta: "+24", accent: false },
+  const stats: PreviewStat[] = [
+    {
+      label: "Correct answers",
+      value: "61%",
+      basis: "± 8 points · 150 cases",
+      delta: "+6 since run 1",
+      tone: "accent",
+    },
+    {
+      label: "Critical failures",
+      value: "4",
+      unit: "of 26",
+      basis: "Prices, limits and deadlines",
+      tone: "danger",
+    },
+    {
+      label: "Confident but wrong",
+      value: "14",
+      unit: "cases",
+      basis: "No hedging and no source",
+      tone: "neutral",
+    },
   ];
 
-  const datasets = [
+  const cases: PreviewCase[] = [
     {
-      name: "Retail Transaction Patterns",
-      sector: "E-commerce",
-      records: "2.4M",
-      status: "available" as const,
+      question: "Waiting period for childbirth, Salud Plus",
+      verdict: "wrong",
+      critical: true,
+      why: "Invented answer",
+      source: "CG Salud Plus §4.2",
     },
     {
-      name: "Fleet GPS Routes — Spain",
-      sector: "Logistics",
-      records: "840K",
-      status: "in_progress" as const,
+      question: "Dental cover when travelling abroad",
+      verdict: "wrong",
+      why: "Knowledge gap",
+      sourceNote: "Not in your documents",
     },
     {
-      name: "Crop Yield Records 2020-25",
-      sector: "Agriculture",
-      records: "1.1M",
-      status: "available" as const,
+      question: "Cancelling within 14 days of signing",
+      verdict: "partial",
+      why: "Retrieval miss",
+      source: "CG Salud Plus §9.1",
     },
+    {
+      question: "Price quote for a 45-year-old",
+      verdict: "correct",
+      why: "Escalated to an agent",
+      sourceNote: "Out of scope",
+    },
+  ];
+
+  const suiteComposition = [
+    { label: "{{count}} everyday", count: 100, width: "w-[67%]", dot: "bg-teal-600/85" },
+    { label: "{{count}} critical", count: 26, width: "w-[17%]", dot: "bg-red-500/70" },
+    { label: "{{count}} out of scope", count: 24, width: "w-[16%]", dot: "bg-gray-300" },
   ];
 
   return (
-    <div className="group relative mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-gray-200/70 bg-white/85 shadow-[0_48px_120px_-56px_rgba(15,23,42,0.55)] backdrop-blur-2xl">
+    <div
+      role="img"
+      aria-label={t("Illustrative example of an evaluation report")}
+      className="group relative mx-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-gray-200/70 bg-white/85 text-left shadow-[0_48px_120px_-56px_rgba(15,23,42,0.55)] backdrop-blur-2xl"
+    >
       <div className="flex items-center justify-between border-b border-gray-100 bg-white/40 px-5 py-3.5">
         <div className="flex items-center gap-4">
           <div className="flex gap-1.5">
@@ -268,37 +235,29 @@ function HeroPreview() {
             <div className="h-2 w-2 rounded-full bg-gray-200" />
           </div>
           <div className="hidden h-3.5 w-px bg-gray-200/80 sm:block" />
-          <div className="hidden items-baseline gap-2 sm:flex">
-            <span className="text-xs text-gray-400">{t("Operational overview")}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-[11px] text-gray-400 sm:inline">
-            {t("Synced 2 min ago")}
+          <span className="hidden text-xs text-gray-400 sm:inline">
+            {t("Evaluation report")}
           </span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-[10px] font-medium tracking-tight text-gray-500">
-            MM
-          </div>
         </div>
+        <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-500">
+          {t("Illustrative example")}
+        </span>
       </div>
 
       <div className="grid lg:grid-cols-[14rem_1fr]">
-        <aside className="hidden border-r border-gray-100 bg-white/30 px-3 py-6 text-left lg:block">
-          <div className="px-3 text-[11px] font-medium text-gray-400">{t("Workspace")}</div>
-          <nav className="mt-3 space-y-0.5">
+        <aside className="hidden border-r border-gray-100 bg-white/30 px-3 py-6 lg:block">
+          <div className="px-3 text-[11px] font-medium text-gray-400">{t("Project")}</div>
+          <div className="mt-3 space-y-0.5">
             {navItems.map((item) => (
               <div
                 key={item.label}
-                className={`flex h-9 items-center gap-3 rounded-md px-3 text-[13px] transition-colors ${
-                  item.active
-                    ? "bg-teal-50/70 text-teal-900"
-                    : "text-gray-500 hover:bg-gray-50/70 hover:text-gray-900"
-                }`}
+                className={cn(
+                  "flex h-9 items-center gap-3 rounded-md px-3 text-[13px]",
+                  item.active ? "bg-teal-50/70 text-teal-900" : "text-gray-500",
+                )}
               >
                 <item.icon
-                  className={`h-4 w-4 ${
-                    item.active ? "text-teal-700" : "text-gray-400"
-                  }`}
+                  className={cn("h-4 w-4", item.active ? "text-teal-700" : "text-gray-400")}
                 />
                 <span className="font-medium">{t(item.label)}</span>
                 {item.active && (
@@ -306,137 +265,132 @@ function HeroPreview() {
                 )}
               </div>
             ))}
-          </nav>
+          </div>
 
           <div className="mx-1 mt-8 rounded-lg border border-gray-100 bg-gray-50/40 p-4">
             <div className="flex items-baseline justify-between">
-              <span className="text-[11px] font-medium text-gray-500">
-                {t("Datasets")}
+              <span className="text-[11px] font-medium text-gray-500">{t("Suite v3")}</span>
+              <span className="text-[11px] tabular-nums text-gray-500">
+                {t("{{count}} cases", { count: 150 })}
               </span>
-              <span className="text-base font-normal tracking-tight text-gray-900">24</span>
             </div>
             <div className="mt-3 flex h-1 overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full w-[71%] bg-teal-600/85" />
-              <div className="h-full w-[29%] bg-gray-200" />
+              {suiteComposition.map((tier) => (
+                <div key={tier.label} className={cn("h-full", tier.width, tier.dot)} />
+              ))}
             </div>
-            <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
-                {t("17 delivered")}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
-                {t("7 in progress")}
-              </span>
+            <div className="mt-3 space-y-1.5 text-[11px] text-gray-500">
+              {suiteComposition.map((tier) => (
+                <span key={tier.label} className="flex items-center gap-1.5 tabular-nums">
+                  <span className={cn("h-1.5 w-1.5 rounded-full", tier.dot)} />
+                  {t(tier.label, { count: tier.count })}
+                </span>
+              ))}
             </div>
           </div>
         </aside>
 
-        <div className="p-6 sm:p-8 ">
+        <div className="p-6 sm:p-8">
           <div className="flex flex-col items-start gap-1">
-            <p className="text-base font-medium tracking-tight text-gray-900 text-left">
-              {t("Operational overview")}
+            <p className="text-base font-medium tracking-tight text-gray-900">
+              {t("Customer assistant · Health insurance")}
             </p>
-            <p className="mt-0.5 text-xs text-gray-500 text-left">{t("Last 30 days")}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{t("Run 2 · suite v3")}</p>
           </div>
-     
 
           <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className={`rounded-xl border p-5 text-left ${
-                  stat.accent
-                    ? "border-teal-100 bg-teal-50/40"
-                    : "border-gray-100 bg-white/60"
-                }`}
+                className={cn("rounded-xl border p-5", toneStyles[stat.tone].tile)}
               >
                 <div className="text-xs font-medium text-gray-500">{t(stat.label)}</div>
-                <div className="mt-2 flex items-baseline gap-1">
+                <div className="mt-2 flex items-baseline gap-1.5">
                   <span
-                    className={`text-[26px] font-normal leading-none tracking-tight ${
-                      stat.accent ? "text-teal-800" : "text-gray-900"
-                    }`}
+                    className={cn(
+                      "text-[26px] font-normal leading-none tracking-tight tabular-nums",
+                      toneStyles[stat.tone].value,
+                    )}
                   >
                     {stat.value}
                   </span>
-                  {stat.unit && (
-                    <span className="text-base font-normal text-gray-500">{stat.unit}</span>
-                  )}
+                  {stat.unit ? (
+                    <span className="text-sm text-gray-500">{t(stat.unit)}</span>
+                  ) : null}
                 </div>
-                <div className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-teal-700">
-                  <ArrowUpRight className="h-3 w-3" strokeWidth={2.25} />
-                  {stat.delta}
+                <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500">
+                  {stat.delta ? (
+                    <span className="inline-flex items-center gap-1 font-medium text-teal-700">
+                      <ArrowUpRight className="h-3 w-3" strokeWidth={2.25} />
+                      {t(stat.delta)}
+                    </span>
+                  ) : null}
+                  <span className="tabular-nums">{t(stat.basis)}</span>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-8">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium tracking-tight text-gray-900">
-                {t("Catalog")}
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="relative hidden sm:block">
-                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-                  <div className="flex h-7 w-44 items-center rounded-md border border-gray-200/80 bg-white pl-8 pr-3 text-[12px] text-gray-400">
-                    {t("Search datasets")}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="inline-flex h-7 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-[12px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:text-gray-900"
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  {t("Filters")}
-                </button>
-              </div>
-            </div>
-
+            <p className="text-sm font-medium tracking-tight text-gray-900">
+              {t("Critical failures first")}
+            </p>
             <div className="mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white/50">
-              <div className="grid grid-cols-[2fr_1.1fr_0.8fr_0.9fr] gap-4 border-b border-gray-100 px-5 py-2.5 text-[11px] font-medium text-gray-500 bg-gray-50/40">
-                <span className="text-left">{t("Dataset")}</span>
-                <span className="text-left">{t("Sector")}</span>
-                <span className="text-left">{t("Records")}</span>
-                <span className="text-left">{t("Status")}</span>
+              <div
+                className={cn(
+                  caseGrid,
+                  "border-b border-gray-100 bg-gray-50/40 px-5 py-2.5 text-[11px] font-medium text-gray-500",
+                )}
+              >
+                <span>{t("Question")}</span>
+                <span>{t("Verdict")}</span>
+                <span className="hidden sm:block">{t("Why")}</span>
+                <span className="hidden md:block">{t("Source")}</span>
               </div>
               <ul className="divide-y divide-gray-100">
-                {datasets.map((row) => {
-                  const isAvailable = row.status === "available";
+                {cases.map((row) => {
+                  const verdict = verdictStyles[row.verdict];
                   return (
                     <li
-                      key={row.name}
-                      className="grid grid-cols-[2fr_1.1fr_0.8fr_0.9fr] items-center gap-4 px-5 py-3.5 transition-colors hover:bg-gray-50/40"
+                      key={row.question}
+                      className={cn(
+                        caseGrid,
+                        "items-center px-5 py-3.5",
+                        row.critical && "bg-red-50/40",
+                      )}
                     >
-                      <span className="truncate text-[13px] font-medium text-gray-900 text-left">
-                        {t(row.name)}
-                      </span>
-                      <span className="truncate text-[12px] text-gray-500 text-left">
-                        {t(row.sector)}
-                      </span>
-                      <span className="text-[12px] font-medium tabular-nums text-gray-700 text-left">
-                        {row.records}
-                      </span>
-                      <div className="flex items-center justify-start gap-1.5">
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            isAvailable ? "bg-teal-600" : "bg-amber-500"
-                          }`}
-                        />
-                        <span
-                          className={`text-[11px] font-medium ${
-                            isAvailable ? "text-teal-700" : "text-amber-700"
-                          }`}
-                        >
-                          {isAvailable ? t("Available") : t("In progress")}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[13px] font-medium text-gray-900">
+                          {t(row.question)}
                         </span>
-                      </div>
+                        {row.critical ? (
+                          <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-red-700">
+                            {t("Critical")}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className={cn("h-1.5 w-1.5 rounded-full", verdict.dot)} />
+                        <span className={cn("text-[11px] font-bold", verdict.text)}>
+                          {t(verdict.label)}
+                        </span>
+                      </span>
+                      <span className="hidden truncate text-[12px] text-gray-500 sm:block">
+                        {t(row.why)}
+                      </span>
+                      <span className="hidden min-w-0 md:block">
+                        {row.source ? (
+                          <span className="inline-block max-w-full truncate rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-gray-600">
+                            {row.source}
+                          </span>
+                        ) : row.sourceNote ? (
+                          <span className="text-[11px] text-gray-400">{t(row.sourceNote)}</span>
+                        ) : null}
+                      </span>
                     </li>
                   );
                 })}
               </ul>
-        
             </div>
           </div>
         </div>

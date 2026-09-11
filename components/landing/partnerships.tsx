@@ -2,35 +2,35 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Flame, Globe2, Target } from "lucide-react";
+import { ArrowRight, FileText, Globe2, MessagesSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const highlights = [
   {
-    icon: Target,
-    title: "Discovery call",
-    description:
-      "Tell us what data you want to sell, what dataset you need, or how AI can transform your business. We'll map the opportunity in 30 minutes.",
-  },
-  {
     icon: Globe2,
-    title: "Pilot project",
+    title: "Public, like a customer",
     description:
-      "Start with a single dataset purchase, a data listing, or a consulting engagement. No long-term commitment until you see results.",
+      "We use your public interface at human pace with fictional personas. No accounts, no personal data and no load testing.",
   },
   {
-    icon: Flame,
-    title: "Fast execution",
+    icon: FileText,
+    title: "A report you can use",
     description:
-      "From first call to delivered dataset in under two weeks. We move fast because your models can't wait.",
+      "Your score, the failure categories and seven annotated transcripts, each next to the source it contradicts.",
+  },
+  {
+    icon: MessagesSquare,
+    title: "A 30-minute readout",
+    description:
+      "We walk you through the failures. If you want to go further, the next step is a Pilot Evaluation.",
   },
 ];
 
 const contactMetrics = [
-  { label: "First reply", value: "24h" },
-  { label: "Pilot delivery", value: "<2 weeks" },
-  { label: "Commitment", value: "Zero" },
+  { label: "First reply", value: "24 h" },
+  { label: "Report", value: "48 h" },
+  { label: "Cost", value: "Free" },
 ];
 
 export function ContactSection() {
@@ -47,16 +47,14 @@ export function ContactSection() {
             viewport={{ once: true, margin: "-80px" }}
           >
             <p className="text-[13px] font-bold text-teal-600 mb-4">
-              {t("Contact")}
+              {t("Start here")}
             </p>
             <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-8 leading-tight">
-              {t(
-                "Sell your data, get the dataset you need, or let us build your AI",
-              )}
+              {t("Start with a free Reality Check")}
             </h2>
             <p className="text-lg text-gray-500 mb-12 leading-relaxed">
               {t(
-                "Whether you want to monetize your company's data, acquire training datasets, or need end-to-end AI consulting, start with a quick conversation. We'll scope the opportunity and move fast.",
+                "Send us the link to your assistant. We ask it forty questions whose answers are in your own public documentation and send you a six-page report within 48 hours. No access, no contract and no sales pitch inside.",
               )}
             </p>
 
@@ -64,14 +62,14 @@ export function ContactSection() {
               {contactMetrics.map((metric) => (
                 <div key={metric.label}>
                   <p className="text-[10px] font-bold text-gray-400 mb-2">{t(metric.label)}</p>
-                  <p className="text-2xl font-normal text-black">{t(metric.value)}</p>
+                  <p className="text-2xl font-normal text-black tabular-nums">{t(metric.value)}</p>
                 </div>
               ))}
             </div>
 
             <Button size="lg" asChild className="h-12 rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]">
-              <Link href="/contact">
-                {t("Start the conversation")}
+              <Link href="/contact?offer=reality-check">
+                {t("Request a Reality Check")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -107,7 +105,7 @@ export function ContactSection() {
             >
               <p>
                 {t(
-                  "Looking for a specific dataset? Want to sell your company's data? Need AI consulting? Just reach out — we'll route you to the right person.",
+                  "Is your system internal? We can run our probe inside your network or score past conversations instead.",
                 )}
               </p>
             </motion.div>

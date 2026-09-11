@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
   Accordion,
   AccordionContent,
@@ -11,34 +10,39 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 
 const faqs = [
   {
-    question: "What kind of data can I buy through Caudals?",
+    question: "What do you evaluate?",
     answer:
-      "Any structured or unstructured data useful for training AI models: transaction records, GPS routes, sensor data, medical records, satellite imagery, text corpora, and more. We source from companies across logistics, retail, healthcare, agriculture, fintech, and other verticals.",
+      "Text and document AI systems: customer assistants and chatbots on the web, in apps or on WhatsApp, voice and IVR agents, internal assistants over policies and manuals, document triage and extraction pipelines, and AI features inside products. We focus on systems where a wrong answer costs money.",
   },
   {
-    question: "How do you ensure data quality?",
+    question: "Who decides what the correct answer is?",
     answer:
-      "Every dataset passes through our automated QA pipeline: schema validation, deduplication, PII detection, format standardization, and completeness scoring. We also do manual review for custom-sourced datasets. Quality scores are published per dataset.",
+      "Your documentation and your expert. Every case cites the document it comes from, and your domain expert signs off the answer key in a structured 90-minute session before we run anything, so the results can't be disputed later.",
   },
   {
-    question: "Is the data GDPR compliant?",
+    question: "Do you need access to our systems?",
     answer:
-      "Yes. We handle PII detection and anonymization as part of processing. Every transaction includes a data processing agreement (DPA) and clear licensing terms. Supplier agreements cover ownership warranties and compliance responsibilities.",
+      "No. We can test a public interface the way a customer would, you can run our probe inside your own network and send back a signed results file, or we can score a sample of past conversations. We never need to hold production credentials.",
   },
   {
-    question: "How does it work for data suppliers?",
+    question: "What happens to our documents and data?",
     answer:
-      "Upload your data or connect your sources. We preprocess, anonymize, and list it in our catalog. When a buyer purchases access, you earn 60-70% revenue share. You control licensing terms and can set exclusivity preferences.",
+      "Personal data is redacted as soon as we receive it, content is processed on EU infrastructure, and every paid engagement has an NDA and a data-processing agreement. The golden set is yours. We delete everything 12 months after the engagement ends, or sooner if you ask.",
   },
   {
-    question: "How long does custom dataset sourcing take?",
+    question: "How is this different from an evaluation platform?",
     answer:
-      "Catalog datasets are available immediately. For custom requests, we typically deliver within 1-3 weeks depending on scope, number of suppliers involved, and data volume.",
+      "Evaluation platforms are tools for developers who already have a test set. We write the test set: questions from your documents, your customers and your experts, graded with deterministic checks, a calibrated AI judge and human review.",
   },
   {
-    question: "What formats do you deliver in?",
+    question: "Do you certify our AI or make it AI Act compliant?",
     answer:
-      "We standardize all data to ML-ready formats: Parquet, JSON-Lines, CSV, or TFRecords. Buyers can also access data through our S3-compatible API for programmatic integration.",
+      "No. We measure and produce evidence: a scored, reproducible record of how your system behaves. That record is useful supporting documentation, but it is not a certification or a conformity assessment.",
+  },
+  {
+    question: "What happens after the report?",
+    answer:
+      "The evaluation can keep running with a monthly subscription: new questions, new data and regression alerts every month. When it shows missing or contradictory knowledge, we build the data that closes the gap, and a re-run proves the score moved.",
   },
 ];
 
@@ -51,7 +55,7 @@ export function FAQSection() {
         <div className="mb-16 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">{t("FAQ")}</p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
-            {t("Common questions about our data marketplace")}
+            {t("What teams ask before an evaluation")}
           </h2>
         </div>
 

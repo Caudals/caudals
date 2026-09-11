@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Caudals",
     short_name: "Caudals",
     description:
-      "Marketplace B2B y servicio gestionado de datasets listos para entrenar y evaluar modelos de inteligencia artificial.",
+      "Evaluación independiente de asistentes y agentes de IA, con conjuntos de pruebas validados por los expertos de cada empresa.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -38,12 +38,12 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Contactar con Caudals",
         url: "/contact",
-        description: "Solicita un dataset o propón datos para monetización",
+        description: "Solicita un Reality Check gratuito o una evaluación de tu asistente de IA",
       },
       {
         name: "Leer el blog",
         url: "/blog",
-        description: "Guías de Caudals sobre inteligencia artificial y operaciones de datasets",
+        description: "Notas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables",
       },
     ],
   };

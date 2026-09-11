@@ -7,24 +7,24 @@ export function StatsSection() {
   const t = useTranslations();
   const stats = [
     {
-      value: "50+",
-      label: "Datasets available",
-      description: "Preprocessed, validated datasets across logistics, retail, healthcare, agriculture, and more.",
+      value: "48 h",
+      label: "Reality Check",
+      description: "Forty questions to your public assistant, with the report two days later.",
     },
     {
-      value: "10+",
-      label: "Industries covered",
-      description: "Cross-sector sourcing from companies across Europe and Latin America.",
+      value: "150–300",
+      label: "Cases in a pilot",
+      description: "Drawn from your documentation, real customer questions and your expert.",
     },
     {
-      value: "98%",
-      label: "Quality score",
-      description: "Average completeness and consistency score across our processed catalog.",
+      value: "90 min",
+      label: "With your expert",
+      description: "One structured session defines what a correct answer is.",
     },
     {
-      value: "<2w",
-      label: "Custom delivery",
-      description: "From dataset brief to validated, ML-ready delivery for custom sourcing requests.",
+      value: "2 weeks",
+      label: "To a live readout",
+      description: "From kickoff to the report, presented to your team.",
     },
   ];
 
@@ -33,15 +33,13 @@ export function StatsSection() {
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Platform numbers")}
+            {t("What to expect")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Trusted by companies building the next generation of AI")}
+            {t("Small enough to start this month")}
           </h2>
           <p className="text-base text-gray-500 mt-6 leading-relaxed">
-            {t(
-              "Every dataset is processed through automated QA pipelines and manual validation before reaching our catalog.",
-            )}
+            {t("No platform to adopt. We do the work and hand you the evidence.")}
           </p>
         </div>
 
@@ -56,7 +54,7 @@ export function StatsSection() {
               className="flex flex-col items-start"
             >
               <div className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-4 tabular-nums">
-                {stat.value}
+                {t(stat.value)}
               </div>
               <p className="text-sm font-bold text-black mb-2 uppercase tracking-wide">
                 {t(stat.label)}

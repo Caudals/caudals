@@ -1,17 +1,16 @@
 # Docs Index
 
-This directory is the persistent reference set for Caudals' product, architecture, design, frontend, product-spec, and tooling contracts.
+Persistent reference set for Caudals' product direction, architecture, design, frontend and tooling contracts.
 
 ## Structure
-- `product-specs/overview.md`: portable startup briefing for humans, ChatGPT, Claude, coding agents, and collaborators.
-- `ARCHITECTURE.md`: technical system contract and deployment/runtime model.
-- `DESIGN.md`: design system and UI governance.
+- `product-specs/overview.md`: canonical product brief for humans, AI assistants, coding agents and collaborators.
+- `product-specs/evals.md`: evaluation product contract and quality rules for expert-built data.
+- `product-specs/go-to-market.md`: customer-acquisition playbook.
+- `product-specs/content-publishing-contract.md`: interface between the Leads Content Suite and the public MDX blog.
+- `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
+- `DESIGN.md`: design system and UI governance, including evaluation reports.
 - `FRONTEND.md`: frontend implementation contract.
-- `TOOLS.md`: operational tooling, setup commands, and troubleshooting.
-- `product-specs/`: B2B dataset marketplace and managed services product contract.
-- `product-specs/content-publishing-contract.md`: versioned interface between the Leads Content Suite and the public MDX blog.
-- `blueprints/`: generated product blueprints and exports.
-- `migrations/`: platform migration reports and cutover evidence.
+- `TOOLS.md`: operational tooling, setup commands and troubleshooting.
 - [Caudals Leads](https://github.com/Caudals/leads) (`../leads`): satellite repository for the
   internal B2B Leads CRM, outreach, prospecting, social and newsletter operations.
   Start at `../leads/AGENTS.md`; it indexes `docs/ARCHITECTURE.md`,
@@ -23,15 +22,14 @@ This directory is the persistent reference set for Caudals' product, architectur
 | Path | Purpose | Update Trigger |
 | --- | --- | --- |
 | `AGENTS.md` | repository agent instructions | agent operating rules change |
-| `docs/product-specs/overview.md` | portable product brief and business direction | product direction changes |
+| `docs/product-specs/overview.md` | product brief: offers, customers, custom datasets, expert network | direction, offers, pricing, sectors, expert network or scope change |
+| `docs/product-specs/evals.md` | evaluation method, deliverable contract and expert-built data rules | case schema, tiers, grading, metrics, report format or expert QA change |
+| `docs/product-specs/go-to-market.md` | acquisition playbook, rules of engagement, gates | targeting, outreach rules, gates or cadence change |
+| `docs/product-specs/content-publishing-contract.md` | Leads-to-site blog path, frontmatter, MDX and release contract | blog loader, route, components, or publisher changes |
 | `docs/ARCHITECTURE.md` | technical system contract and deployment/runtime model | architecture/runtime changes |
 | `docs/DESIGN.md` | design system and UI governance | design contract changes |
 | `docs/FRONTEND.md` | frontend implementation contract | frontend routing, UI, or i18n contract changes |
 | `docs/TOOLS.md` | operational tooling and setup runbook | tooling workflows, setup, or troubleshooting changes |
-| `docs/product-specs/*.md` | product behavior contracts and startup context | behavior/product contract changes |
-| `docs/product-specs/content-publishing-contract.md` | Leads-to-site blog path, frontmatter, MDX and release contract | blog loader, route, components, or publisher changes |
-| `docs/blueprints/*` | generated strategic/product artifacts | explicit blueprint generation or export updates |
-| `docs/migrations/*` | migration reports, verification, and decommission gates | platform/data/auth/storage migrations |
 
 ## Governance Canon
-`docs/product-specs/overview.md` is the canonical product direction. Supporting docs should align to it and avoid reintroducing obsolete workflow assumptions.
+`docs/product-specs/overview.md` is the canonical product direction; supporting docs align to it. Marketplace, supplier-portal, catalogue and non-text modality work is out of scope and must not be reintroduced as current direction.

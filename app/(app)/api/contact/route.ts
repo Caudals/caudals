@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
-import { collaborationFormSchema } from "@/lib/validators/collaboration";
+import { evaluationRequestFormSchema } from "@/lib/validators/evaluation-request";
 import { ContactInquiryEmail } from "@/emails/contact-inquiry";
 import { getSecretEnvValue } from "@/lib/env/secrets";
-import { routePublicBuyerBriefIntake } from "@/lib/public/buyer-brief-intake";
+import { routePublicEvaluationRequestIntake } from "@/lib/public/evaluation-request-intake";
 import {
   addContactEmailToSegment,
   ensureAudienceContact,
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const parsed = collaborationFormSchema.safeParse(payload);
+  const parsed = evaluationRequestFormSchema.safeParse(payload);
 
   if (!parsed.success) {
     return withHeaders(
@@ -137,24 +137,24 @@ export async function POST(request: NextRequest) {
   const resendFallbackFrom = process.env.RESEND_FALLBACK_FROM_EMAIL;
 
   let audienceContactReady = false;
-  let buyerBriefRouting: Awaited<
-    ReturnType<typeof routePublicBuyerBriefIntake>
+  let evaluationRequestRouting: Awaited<
+    ReturnType<typeof routePublicEvaluationRequestIntake>
   > | null = null;
 
   try {
-    buyerBriefRouting = await routePublicBuyerBriefIntake(data, {
+    evaluationRequestRouting = await routePublicEvaluationRequestIntake(data, {
       clientIp,
       referer,
       userAgent,
     });
   } catch (error) {
-    logError("contact.buyer_brief_routing_failed", {
+    logError("contact.evaluation_request_routing_failed", {
       error,
       email: normalizedWorkEmail,
     });
     return withHeaders(
       NextResponse.json(
-        { error: "We couldn't route your brief. Please try again." },
+        { error: "We couldn't record your request. Please try again." },
         { status: 500 }
       ),
       ipRateHeaders
@@ -210,13 +210,13 @@ export async function POST(request: NextRequest) {
   const baseEmailPayload = {
     to: notificationEmail,
     reply_to: normalizedWorkEmail,
-    subject: `New contact inquiry: ${data.organization}`,
+    subject: `New evaluation request: ${data.organization}`,
     react: ContactInquiryEmail({
       ...data,
       submittedAt,
       userAgent,
       referer,
-      buyerBriefRouting,
+      evaluationRequestRouting,
     }),
     tags: [{ name: "source", value: "contact-form" }],
   };

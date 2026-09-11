@@ -2,423 +2,160 @@
 
 ## One-Line Description
 
-Caudals is a B2B marketplace and managed data operations company that helps businesses sell proprietary data and helps AI teams buy clean, compliant, ML-ready datasets.
-
-## Short Description
-
-Caudals connects two sides of the AI data market:
-
-- companies that own useful data and want to monetize it,
-- companies building AI models that need high-quality datasets for training, fine-tuning, evaluation, or enrichment.
-
-Caudals sits in the middle. We source data, validate rights, negotiate access, preprocess raw files, clean and normalize schemas, anonymize sensitive fields, curate and label records, run quality checks, package the dataset in ML-ready formats, and publish or deliver the dataset to buyers.
-
-The long-term product is a B2B data marketplace. The near-term product is a high-touch managed service supported by a landing page, contact form, blog, and private admin dashboard.
-
-## What Caudals Does
-
-Caudals provides three core capabilities:
-
-1. Data supply creation:
-   We identify and onboard companies with proprietary data that could be valuable for AI training or evaluation.
-
-2. Dataset operations:
-   We transform raw company data into usable AI datasets through preprocessing, cleaning, deduplication, anonymization, enrichment, curation, labeling, formatting, QA, and documentation.
-
-3. Dataset commercialization:
-   We package datasets for sale through private offers, custom projects, future marketplace listings, subscriptions, one-off licenses, or recurring data feeds.
-
-## Platform Model
-
-Caudals has three practical sides:
-
-1. Buyers:
-   Companies that need datasets to train, fine-tune, evaluate, benchmark, or enrich AI systems.
+Caudals tests whether a company's AI system actually answers correctly, delivers the evidence in a scored report, and grows each evaluation — month by month, with freelance domain experts — into a complete, custom dataset.
 
-2. Suppliers:
-   Companies that own valuable data and want to monetize it without building their own marketplace, sales pipeline, privacy workflow, delivery infrastructure, or AI data operations team.
+## The Idea
 
-3. Caudals operations:
-   The internal team and tooling that qualify leads, verify data rights, manage supplier assets, build datasets, run QA, package listings, manage contracts, and deliver data to buyers.
+Caudals is an AI data company. The goal has not changed: build high-quality, domain-specific datasets that make AI systems reliable. What changed in September 2026 is how we enter the market — through evaluation, starting with pilot projects.
 
-## Core Workflows
+Leading with datasets failed for structural reasons:
 
-### Buyer Workflow
+- A dataset is an input. Most companies cannot name their data gap; they can say their AI is unreliable.
+- The smallest unit we sold (a feasibility study, then a €12k+ pilot) was too large for an unknown vendor and produced nothing tangible before signature.
+- Buyers with budget asked for data we could not source or process; smaller buyers did not know what a dataset was.
 
-1. Buyer submits a dataset need through the contact form or direct sales channel.
-2. Caudals qualifies the request:
-   - AI use case
-   - data modality
-   - industry
-   - geography
-   - freshness
-   - volume
-   - format
-   - budget
-   - timeline
-   - sensitivity and compliance constraints
-3. Caudals determines the best path:
-   - existing or future catalog dataset,
-   - supplier-led build,
-   - public-data enrichment,
-   - custom data sourcing,
-   - feasibility study,
-   - pilot dataset build,
-   - full dataset build.
-4. Caudals provides samples, schemas, quality reports, licensing terms, and delivery options.
-5. Buyer purchases or continues into a larger build.
-6. Caudals delivers the dataset in agreed ML-ready formats and records acceptance evidence.
+Evaluation removes all three blockers. The raw material is the customer's own system, documents and experts. The first artifact exists before the first sales conversation. The customer never has to learn the word "dataset" — we show them the questions their AI gets wrong.
 
-### Supplier Workflow
+> We don't start by selling you data. We show you exactly where your AI is wrong — then we build the data that fixes it.
 
-1. Supplier company offers data or expresses monetization interest.
-2. Caudals evaluates:
-   - commercial fit,
-   - buyer demand,
-   - rights and permitted uses,
-   - PII or sensitive data risk,
-   - uniqueness,
-   - freshness,
-   - schema quality,
-   - update cadence,
-   - licensing constraints.
-3. Caudals scopes ingestion and transformation.
-4. Caudals builds a pilot or complete dataset.
-5. Caudals prepares a private offer or marketplace listing.
-6. Supplier receives negotiated revenue share when the dataset sells.
+## How It Works
 
-### Internal Admin Workflow
-
-The admin dashboard should become the operational control room for:
+1. **Evaluate.** Build a golden test set from the customer's documentation, real customer questions and a structured session with its domain expert. Run it against their AI system and score every answer.
+2. **Report.** Deliver a scorecard, a failure analysis by cause, the coverage gaps, prioritised fixes and an estimated exposure — in a live readout.
+3. **Subscribe.** Re-run monthly. Add new questions and new data every month. Track regressions.
+4. **Build.** Our freelance domain experts build the custom datasets that close the gaps: expanded evaluation sets, domain Q&A, knowledge-base content, reasoning and preference data.
 
-- buyer and supplier leads,
-- qualification state,
-- supplier data assets,
-- source access,
-- data rights,
-- provenance,
-- PII status,
-- dataset build stage,
-- blockers,
-- QA score,
-- catalog listing readiness,
-- pricing,
-- quotes and contracts,
-- invoices and payments,
-- supplier revenue share,
-- audit history.
+Each step sells the next. The report names the gaps; the gaps size the subscription and the dataset build; every month adds data to an asset the customer keeps.
 
-## Dataset Operations Pipeline
+## Offers and Pricing
 
-Caudals turns raw data into AI-ready datasets through a staged pipeline:
+| Offer | Price | Time | Scope | Deliverable |
+| --- | --- | --- | --- | --- |
+| Reality Check | Free | 48 h | 40 questions against a publicly reachable system, answers keyed to the company's own public documentation | 6-page PDF: score, failure categories, seven annotated transcripts, one page on what a full evaluation covers |
+| Pilot Evaluation | €1,500 for the first three founding customers, then €2,400 | 2 weeks (target 10 working days) | 150–300 cases from documentation, real questions and one 90-minute expert session; one target system | Scorecard, ~20-page report, JSONL golden set, live readout |
+| Full Evaluation | €4,900 | 9–12 days | 300+ cases; two targets (current vs candidate model or vendor); adversarial and multilingual packs on authorised systems | Pilot deliverables plus a side-by-side comparison |
+| Monthly Subscription | €890/month, 12-month term; Plus €1,690/month | Ongoing | Monthly re-run, ~25 new cases and new data each month, regression alerts, quarterly review. Plus adds weekly runs, a CI webhook that gates the vendor's deploys, and named escalation | Monthly scorecard, diff against last run, newly broken cases, growing golden set |
+| Dataset Build | €8,000–€25,000, expert costs included | 4–8 weeks | A custom dataset built by our freelance domain experts to close what the evaluation exposed (see "Custom Datasets") | Dataset, schema, data dictionary, per-item provenance, QA scorecard and a re-run proving the score moved |
+| AI Act Evidence Pack | €3,900 | 5 days | 2027 add-on assembled from existing run history | Article 10/15 supporting documentation — evidence, not certification |
 
-1. Intake:
-   Receive files, database exports, API access, warehouse shares, or source documentation.
+Commercial rules:
 
-2. Rights and risk review:
-   Verify ownership, consent, permitted use, AI-training rights, privacy obligations, and licensing boundaries.
+- Publish the pilot price on the website. Show dataset builds as "from €8,000".
+- The founding offer is used three times only: €1,500 in exchange for a named case study (approved by the customer), a 20-minute recorded conversation and two peer introductions, all written into the contract.
+- Price steps are decided in advance: €2,400 after three founding customers, €3,200 after ten.
+- Pitch the subscription at the first delivery. It is cancellable in the first 90 days.
+- Discount one-off work, never the subscription.
+- Bill one-off work 50% on signature and 50% on delivery; bill subscriptions monthly in advance.
+- Credit the pilot against a dataset build signed within 60 days.
+- Fixed offers only. Never bill by the hour.
+- Fallback for "not this quarter": a €600 suite covering only the failures the Reality Check found.
 
-3. Profiling:
-   Inspect schema, formats, missingness, duplicates, distributions, field types, volumes, and source quality.
+## What We Evaluate
 
-4. Cleaning:
-   Standardize values, remove duplicates, fix malformed records, normalize units, repair encoding issues, and handle missing data.
+Text and document AI systems:
 
-5. Privacy handling:
-   Detect PII, minimize sensitive fields, anonymize or pseudonymize when needed, and document privacy assumptions.
+- customer-facing assistants and chatbots (web, app, WhatsApp),
+- voice and IVR agents,
+- internal assistants (HR policy, sales enablement, technical support over manuals),
+- document triage, classification and extraction pipelines,
+- AI features inside products (quote assistants, clause analysers, valuation explanations).
 
-6. Enrichment:
-   Add public data, derived features, taxonomy mappings, geocoding, categories, or domain-specific metadata when useful.
+**Qualify on consequence, not existence.** Evaluate systems where a wrong answer costs money: insurance coverage and waiting periods, banking fees and eligibility, energy and telco tariffs, airline refund rights, dosage and interactions, technical specifications. Skip low-stakes widgets: order tracking, store hours, bookings, generic lead capture.
 
-7. Labeling and curation:
-   Define ontology, label records, review edge cases, sample for quality, and resolve ambiguous examples.
+**Public systems open the door; internal systems carry the budget.** A public assistant is often a small share of a company's AI spend. Its evaluation earns the meeting where we find the internal systems.
 
-8. Packaging:
-   Deliver in formats such as CSV, Parquet, JSONL, COCO, YOLO, TFRecords, signed downloads, S3-compatible storage, API, or warehouse share.
+## Who We Sell To
 
-9. QA and documentation:
-   Provide schema, data dictionary, quality scorecard, known limitations, lineage/provenance summary, PII/compliance summary, and permitted-use summary.
+- **Sector one — insurance:** insurers, health insurers, mutuals and brokers. High-volume questions with objectively correct answers, dense documentation, compliance-literate buyers.
+- **Sector two — industrial after-sales and technical support:** automotive suppliers, machinery, components and agrifood equipment around Valladolid and Castilla y León. Unambiguous answers (part numbers, torque specs, intervals); physical proximity is an advantage.
+- **Reserve sectors:** legal and asesorías; utilities and energy retail; private healthcare groups (warm introductions only).
+- **Size and buyer:** 50–500 employees. The buyer owns the AI system — Atención al Cliente, Transformación Digital, Canal Digital, Postventa/Servicio Técnico, Calidad or Operaciones — and can sign €2,400 without a committee.
+- **Trigger:** the company launched or announced an AI system in the last 18 months.
+- **Channel partners:** Spanish AI and data integrators and agencies that build these systems. We are their independent test layer, white-labelled or on referral.
+- **Not now:** AI startups as evaluation customers, IBEX-35 companies and large banks, public-administration tenders, and anyone with nothing deployed.
+- **Next segment:** Spanish AI product companies (vertical SaaS, insurtech, legaltech, healthtech) that train their own models and buy expert-built training data directly.
 
-10. Publication or delivery:
-    Publish a catalog/private-offer listing or deliver directly to the buyer.
+Target definition: *Spanish insurance and industrial companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
 
-## Customer Profiles
+## Where Ground Truth Comes From
 
-### Buyer Customers
+We build the machinery that extracts expertise and makes it checkable.
 
-Buyer customers are companies building or improving AI systems. They may be:
+1. **The customer's documents** are the answer key for anything written down.
+2. **The customer's expert** defines what "correct" means in a structured 90-minute session and signs off the answer key, so results cannot be disputed later.
+3. **Our freelance domain experts** write and review cases — especially the monthly subscription additions and the sector-generic libraries — and build the custom datasets.
 
-- AI startups needing domain-specific training data,
-- enterprise ML teams building internal models,
-- product teams fine-tuning LLMs or vertical AI models,
-- computer vision teams needing image/video datasets,
-- logistics, retail, healthcare, agriculture, manufacturing, finance, telecom, energy, insurance, or real estate teams with predictive-modeling needs,
-- companies needing evaluation datasets, benchmark sets, edge-case datasets, or recurring data feeds.
+## Custom Datasets
 
-Buyer pain points:
+The evaluation shows what data is missing; our freelance domain experts build it; a re-run proves it worked.
 
-- hard to find proprietary data,
-- unclear rights and usage terms,
-- generic public datasets are not good enough,
-- internal data teams are too slow or overloaded,
-- labeling vendors do not solve sourcing or licensing,
-- data quality issues waste model-training cycles,
-- compliance teams need provenance and privacy evidence.
+1. **Scope** — failure causes and coverage gaps define the dataset: type, volume, schema and acceptance criteria.
+2. **Specify** — Caudals writes the task guidelines and gold items, and assigns vetted experts.
+3. **Build** — experts produce the items; a second expert or a Caudals reviewer checks every one.
+4. **Assure** — agreement, gold accuracy and provenance are measured per batch; rejected items are reworked.
+5. **Deliver** — dataset, schema, data dictionary, per-item provenance and QA scorecard.
+6. **Prove** — re-run the evaluation and show the score moved.
 
-Buyer value proposition:
+| Dataset | How experts build it | Used for |
+| --- | --- | --- |
+| Expanded evaluation sets | New cases, reference answers and edge cases every month | Regression testing, benchmarks |
+| Domain Q&A | Question/answer pairs grounded in documentation and professional practice | Few-shot libraries, fine-tuning |
+| Knowledge-base content | Writing the missing or contradictory documentation the evaluation exposed | Retrieval (RAG) corpora |
+| Reasoning and solution traces | Solving real cases step by step | Fine-tuning, reasoning evaluation |
+| Preference data | Ranking and correcting candidate answers | Preference tuning (RLHF, DPO) |
+| Labelled domain examples | Classifying real tickets, claims or documents | Classifiers, routing, extraction |
 
-- faster access to usable datasets,
-- clear rights and permitted use,
-- ML-ready formats,
-- quality reports and samples before commitment,
-- lower operational burden,
-- ability to request custom datasets.
+How the data grows:
 
-### Supplier Customers
+- Subscriptions add roughly 25 cases a month per customer — expert-authored and mined from customer logs — so each evaluation set grows into a full evaluation dataset.
+- Every item is tagged `customer_specific` or `sector_generic`. Sector-generic items that Caudals owns (authored by our experts from public or licensed sources) accumulate into reusable sector datasets that make each new customer cheaper to serve and can later be licensed. Customer data and customer-specific items are never reused or licensed.
 
-Supplier customers are data-rich companies that may not think of themselves as data vendors. They may own:
+## Freelance Domain Experts
 
-- transaction data,
-- logistics and route data,
-- industrial or IoT sensor data,
-- retail and e-commerce behavior data,
-- agricultural or environmental data,
-- geospatial data,
-- B2B operational data,
-- support, document, or text datasets,
-- images, video, or inspection records,
-- domain-specific historical records.
+We hire freelance domain experts to build custom datasets — the model AfterQuery and Mercor run for frontier labs, sized for the Spanish mid-market. Caudals owns the specification, tooling, review and quality; the experts bring the domain knowledge.
 
-Supplier pain points:
+- **Profiles:** practising or recently retired professionals — peritos de seguros, claims handlers and underwriters; técnicos de mantenimiento and after-sales engineers; abogados and asesores fiscales; nurses and doctors.
+- **Roster:** 5–15 vetted experts per active sector, recruited once and reused across every customer in that sector. A managed roster, not an open marketplace.
+- **Recruiting:** colegios profesionales and sector associations, LinkedIn, Universidad de Valladolid and other alumni networks, freelance platforms, and referrals from customers' own experts.
+- **Vetting:** credentials check plus a paid trial task graded against gold items; only experts above the agreement threshold join.
+- **Pay:** per task or per accepted item, benchmarked at roughly €30–€60/hour. Expert cost is included in every dataset-build quote.
+- **Contracts:** a freelance services agreement with IP assignment (to Caudals for sector-generic work, to the customer for customer-specific work), confidentiality, and data-processing terms whenever they handle customer material. Experts invoice as autónomos or through their company and are engaged per deliverable, not on fixed schedules, to avoid false self-employment (*falso autónomo*) risk.
+- **Access:** experts see only the redacted material their task needs.
 
-- valuable data sits unused,
-- selling data requires sales, legal, privacy, packaging, and delivery work,
-- AI buyers require formats and documentation suppliers do not have,
-- compliance and reputational risk are unclear,
-- marketplace distribution is hard to operate.
+Quality rules for expert work are in `evals.md` → Expert-Built Data.
 
-Supplier value proposition:
+## Out of Scope
 
-- monetize data without building a marketplace,
-- keep Caudals responsible for preprocessing and buyer acquisition,
-- receive revenue share on sales,
-- get data quality and packaging handled,
-- reduce legal/privacy ambiguity before publication.
+- Two-sided marketplace, catalogue browsing and purchase, supplier revenue share, Stripe Connect payouts.
+- Sourcing or reselling third-party data.
+- Image, video, audio, geospatial and sensor data; deals needing more than a few gigabytes of processing.
+- Commodity labelling at volume, generic AI consulting or integration, and a self-serve evaluation SaaS for developers. We build expert-authored, domain-specific data, not generic annotation.
+- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, claims handling, industrial troubleshooting) as a public portfolio piece.
 
-### Internal Users
+## Market Context (2026)
 
-Internal Caudals users are operators, founders, sales, data engineers, data scientists, label reviewers, and admins.
-
-Internal needs:
-
-- lead qualification,
-- project scoping,
-- source and supplier tracking,
-- rights and PII tracking,
-- dataset build tracking,
-- QA review,
-- catalog publication workflow,
-- commercial operations,
-- auditability.
-
-## Market Context
-
-AI teams increasingly need differentiated datasets, not just more model access. Public datasets are often too generic, stale, overused, legally ambiguous, or poorly suited to a specific domain. Meanwhile, many companies own valuable data but lack the expertise, buyer network, compliance process, and packaging infrastructure to sell it safely.
-
-Caudals sits between several existing categories:
-
-- Data marketplaces such as AWS Data Exchange, Snowflake Marketplace, Google Cloud Marketplace, Datarade, Databricks Marketplace, and similar platforms.
-- Data labeling and annotation providers such as Scale AI, Appen, AWS SageMaker Ground Truth, and specialist annotation vendors.
-- Data engineering and AI consulting firms that build custom pipelines and data products.
-- Data monetization platforms that help providers package and distribute data products.
-
-Caudals' differentiation is the combination of:
-
-- marketplace demand generation,
-- supplier-side monetization,
-- managed dataset engineering,
-- rights/provenance/privacy review,
-- custom dataset builds,
-- future catalog listings,
-- revenue share for suppliers.
-
-The goal is not to be only a listing directory, only a labeling provider, or only a consulting shop. The goal is to become a trusted transaction and operations layer for AI-ready B2B datasets.
-
-## Pricing and Service Tiers
-
-The current commercial model has three service tiers. These ranges are planning estimates, not fixed public quotes.
-
-### 1. Dataset Feasibility Study
-
-Purpose:
-Determine whether a dataset can be sourced, built, licensed, cleaned, and delivered with acceptable risk and expected buyer value.
-
-Best for:
-
-- buyers asking whether a dataset is possible,
-- suppliers asking whether their data is marketable,
-- regulated or uncertain data opportunities,
-- projects where scope, rights, or data availability is unclear.
-
-Planning price:
-
-- $1000 fixed fee
-- optionally credited toward a pilot if signed within 30 days
-
-Duration:
-
-- 5-10 business days
-
-Deliverables:
-
-- feasibility memo,
-- source/supplier map,
-- risk register,
-- target schema,
-- quality criteria,
-- rough build plan,
-- cost range,
-- timeline,
-- go/no-go recommendation.
-
-### 2. Small Pilot Dataset Build
-
-Purpose:
-Build a constrained dataset sample that proves quality, usefulness, feasibility, and commercial value before a larger commitment.
-
-Best for:
-
-- buyers who need a model/evaluation spike,
-- suppliers testing monetization potential,
-- one use case or one supplier asset,
-- one to three data sources,
-- early private-offer or catalog-listing validation.
-
-Planning price:
-
-- $12,000-$35,000 project fee
-- pass-through costs for third-party data, specialist annotation, legal review, or infrastructure when needed
-- optional 30-50% credit toward the complete build
-
-Duration:
-
-- 2-4 weeks
-
-Typical scope:
-
-- 5,000-50,000 records/items or a constrained modality sample,
-- schema profiling,
-- cleaning,
-- deduplication,
-- normalization,
-- PII screening/anonymization,
-- lightweight enrichment or labeling,
-- QA scorecard,
-- delivery in ML-ready format.
-
-Deliverables:
-
-- pilot dataset artifact,
-- schema/data dictionary,
-- sample preview,
-- QA and rights summary,
-- known limitations,
-- recommendation for complete build, catalog listing, or stop.
-
-### 3. Complete Dataset Build
-
-Purpose:
-Deliver a production-grade dataset for buyer use, private offer, catalog listing, or recurring data supply.
-
-Best for:
-
-- production buyer delivery,
-- reusable catalog listings,
-- multi-source builds,
-- recurring data programs,
-- strategic supplier partnerships.
-
-Planning price:
-
-- starts at $50,000
-- common range: $50,000-$250,000 for focused single-domain builds
-- complex, regulated, multimodal, or recurring programs can exceed $250,000
-
-Duration:
-
-- 6-12 weeks for focused builds
-- 12-20+ weeks for complex, regulated, multimodal, multi-supplier, or recurring programs
-
-Typical scope:
-
-- multi-source sourcing and supplier coordination,
-- contract/licensing workflow,
-- secure ingestion,
-- cleaning and standardization,
-- anonymization,
-- enrichment,
-- ontology and labeling workflow,
-- QA sampling,
-- train/validation/test split strategy where needed,
-- quality scoring,
-- catalog/private-offer packaging,
-- delivery via signed download, S3-compatible storage, API, or warehouse share.
-
-Deliverables:
-
-- production dataset package,
-- schema and data dictionary,
-- lineage/provenance report,
-- rights and permitted-use summary,
-- PII/compliance summary,
-- QA scorecard,
-- acceptance evidence,
-- refresh/update plan when applicable,
-- marketplace listing copy and sample preview.
+- **Evaluation is where AI data money moved.** Frontier labs now spend heavily on evaluation, RL environments and expert-built data; Mercor acquired Sepal AI in February 2026, and Scale, Surge, Turing and Centific sell evaluation alongside human data. The mid-market is unserved: too small for the giants, too unglamorous for product-led startups.
+- **Deployment outran reliability.** 2026 surveys put enterprise agent piloting near 78% with production below 15%, and roughly half of programmes stuck in proof-of-concept, citing reliability.
+- **Spain adopts fast and measures badly.** INE: 21.1% of companies with 10+ employees use AI, up from 12.4%. YouGov/IONOS: 35% plan AI budget in 2026, up from 22%. There is no independent referee.
+- **Regulation is dated, and later than widely assumed.** The EU Digital Omnibus (Regulation (EU) 2026/1744, in force 27 July 2026) moved Annex III high-risk obligations to 2 December 2027 and Annex I to 2 August 2028. Spain's draft Organic Law on AI governance (AESIA in A Coruña, sandboxes, fines up to €35m or 7% of turnover) was in parliament through mid-2026. Use regulation as timing — "arrive at 2027 with eighteen months of run history" — never as fear.
+- **Public funding has a trap.** Kit Consulting pays SMEs €12,000–€24,000 advisory vouchers including AI, but accredited advisers need at least €100,000 annual turnover. Partner with accredited advisers and subcontract under their vouchers instead of applying.
+- **Competition.** Evaluation platforms (Braintrust, LangSmith, Arize, Opik, Langfuse and others) are self-serve developer tools in a consolidating category; consultancies will productise evaluation within about two years. Our edge: expert-signed answer keys written in Spanish, a vetted Spanish expert roster, sector case libraries, a published methodology and local presence.
 
 ## Product Surfaces
 
-### Live Public Surface
+- **Live public:** `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/equipo`, `/legal`.
+- **Private:** `/admin` Operator Console.
+- **Planned evaluation surfaces:** operator case authoring and grading queue, restricted expert workspace, customer evaluation dashboard, printable report view, and the public `/proof` demo. See `docs/ARCHITECTURE.md`.
+- **Legacy direct routes (frozen):** `/buyer`, `/supplier`, `/v1/*`, `/security` — deployed and protected, maintained but not extended or marketed.
 
-- Homepage/landing page
-- Contact page
-- Blog
-- Waitlist/contact APIs
+## Pitches
 
-### Private Current Surface
+**Elevator pitch.** Companies are deploying AI assistants faster than they can check them. Caudals builds a test set from each company's own documentation and experts, measures exactly where its AI answers wrong and why, and hands over the evidence in a report a director can act on. Every month the test set grows with new questions and new data, and the gaps it exposes become custom datasets built by our domain experts.
 
-- Internal admin access and operational infrastructure
-- Direct-route buyer workspace for authenticated delivery, subscription, integration, billing, scorecard, manifest, and trust-evidence review
-- Direct-route supplier portal for authenticated asset declaration, sample upload, build participation, revenue-share, and Stripe Connect review
-- Direct-route API and security surfaces, published without landing-page entry points while landing mode is active
+One-line variants:
 
-### Future Surfaces
-
-- Buyer marketplace/catalog
-- Buyer dataset brief intake
-- Supplier data onboarding
-- Supplier asset management
-- Dataset build dashboard
-- Catalog listing management
-- Commercial operations dashboard
-
-Landing mode keeps the landing page visually narrow. It should not expose buttons, navigation links, hero CTAs, cards, sitemap promotion, or other public discovery paths to buyer, supplier, API, or security routes. Those routes may still be accessible by direct URL when protected by their normal access controls. Public catalogue datasets and catalogue browsing remain future work outside the current blueprint implementation.
-
-## Elevator Pitch
-
-Companies need better datasets to build better AI, but the best data is often locked inside other companies, poorly formatted, legally unclear, or not packaged for machine learning. Caudals is the B2B marketplace and managed operations layer that unlocks that data. We help suppliers monetize proprietary datasets, help buyers acquire AI-ready data, and handle the messy middle: sourcing, licensing, preprocessing, cleaning, anonymization, curation, labeling, QA, packaging, and delivery.
-
-## Longer Pitch
-
-Caudals helps AI teams get the data they actually need. Instead of relying on generic public datasets or building a bespoke sourcing and cleaning operation from scratch, buyers can work with Caudals to define a dataset, validate feasibility, review samples, and receive a production-ready package with schema, quality checks, provenance, and usage rights.
-
-On the supplier side, many companies have valuable operational data but no practical way to sell it. Caudals gives those companies a managed monetization path. We validate rights, process and anonymize the data, package it into AI-ready formats, and connect it with buyers through private offers and future marketplace listings.
-
-Caudals is not just a marketplace directory and not just a labeling vendor. It is the operational layer that makes B2B AI data transactions possible.
-
-## Useful One-Sentence Variants
-
-- Caudals is a B2B marketplace for AI-ready custom datasets.
-- Caudals helps companies monetize proprietary data and helps AI teams buy datasets they can actually train on.
-- Caudals turns raw company data into compliant, ML-ready datasets for AI builders.
-- Caudals intermediates B2B data transactions and handles sourcing, licensing, cleaning, curation, labeling, QA, and delivery.
+- Caudals tells you whether your AI answers correctly — with proof.
+- We show you where your AI is wrong, then our domain experts build the data that fixes it.
+- Independent evaluation for AI assistants, in Spanish, with answer keys signed off by your own experts.
+- Custom datasets written by practising professionals, not generic annotators.
+- Homepage (ES): "Sabemos si tu asistente de IA responde bien. Con pruebas."

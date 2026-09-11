@@ -6,16 +6,13 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
 import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
+import type { EvaluationRequestOffer } from "@/lib/validators/evaluation-request";
 
 type ContactPageContentProps = {
-  catalogueListingId?: string;
-  requestedDatasetId?: string;
+  requestedOffer?: EvaluationRequestOffer;
 };
 
-export function ContactPageContent({
-  catalogueListingId,
-  requestedDatasetId,
-}: ContactPageContentProps) {
+export function ContactPageContent({ requestedOffer }: ContactPageContentProps) {
   const t = useTranslations();
 
   return (
@@ -24,11 +21,11 @@ export function ContactPageContent({
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
-            {t("Talk with Caudals")}
+            {t("Request an evaluation")}
           </h1>
           <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed">
             {t(
-              "Tell us what data your company needs or what data you can offer. We'll get back to you within 24 hours.",
+              "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Reality Check.",
             )}
           </p>
           <p className="mt-4 text-sm text-gray-500">
@@ -43,10 +40,7 @@ export function ContactPageContent({
         </header>
 
         <section className="w-full">
-          <ContactForm
-            catalogueListingId={catalogueListingId}
-            requestedDatasetId={requestedDatasetId}
-          />
+          <ContactForm requestedOffer={requestedOffer} />
         </section>
       </main>
       <MarketingFooter forceLandingMode />

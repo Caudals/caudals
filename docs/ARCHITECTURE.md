@@ -2,101 +2,104 @@
 
 ## System Overview
 
-Caudals is a B2B AI dataset marketplace and managed data operations platform. The public product promise is simple: companies bring proprietary or difficult-to-source data, companies buy AI-ready datasets, and Caudals performs the operational work in between.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). The application today is a public marketing and demand-capture site plus a private Operator Console. The first evaluation pilots are delivered manually; the in-app evaluation product is specified below as planned work, with `product-specs/evals.md` as its contract.
 
-Current production scope is deliberately limited:
+Current production scope:
 
-- Public marketing, authority, and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, `/legal/*`
-- Public APIs required by that funnel: `/api/contact`, `/api/waitlist`, `/api/analytics/track`
-- Private operator access: `/auth/*`, `/api/auth/*`, and `/admin`
-- Direct-route buyer access: `/buyer` for read-only delivery, subscription,
-  integration, billing, scorecard, and manifest review
-- Direct-route supplier access: `/supplier` for managed asset declaration, signed
-  sample upload, build participation, revenue-share payout, and Stripe Connect
-  status review
-- Direct-route API and security surfaces: `/v1/*` and `/security` when protected
-  by their normal route, auth, RLS, rate-limit, and audit controls
+- Public marketing, authority and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, `/legal/*`
+- Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
+- Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
+- Legacy direct routes (frozen): `/buyer`, `/supplier`, `/v1/*`, `/security`. They stay deployed and protected by their normal route, auth, RLS, rate-limit and audit controls; they are maintained, not extended.
 
-Future marketplace scope:
-
-- Supplier company intake for raw data sources and licensing metadata
-- Buyer company intake for dataset requirements and purchase interest
-- Caudals-operated pipelines for preprocessing, cleaning, PII handling, curation, labeling, packaging, and quality scoring
-- Marketplace catalog listings for reviewed datasets
-
-While `LANDING_MODE=true`, buyer, supplier, API, and security routes remain
-published and accessible by direct URL. Landing mode only removes public
-discovery from the landing page and marketing navigation: no buttons, nav
-links, hero CTAs, cards, sitemap promotion, or other public entry points should
-lead users to `/buyer`, `/supplier`, `/v1/*`, or `/security` unless explicitly
-requested. Catalogue datasets and marketplace browsing are not part of the
-current blueprint implementation and remain blocked or unimplemented until a
-future catalogue goal.
+While `LANDING_MODE=true`, direct routes remain reachable by URL. Landing mode only removes public discovery from the landing page and marketing navigation: no buttons, nav links, hero CTAs, cards, sitemap promotion or other entry points to `/buyer`, `/supplier`, `/v1/*` or `/security` unless explicitly requested. Catalogue browsing and marketplace commerce are out of scope.
 
 ## Application Stack
 
 - Framework: Next.js App Router (`next@16`), React 19, TypeScript
-- UI: Tailwind CSS v4, Radix UI, custom primitives, shadcn/ui
-- Data/Auth target: self-hosted PostgreSQL + Better Auth + Postgres RLS
-- Payments: Stripe is present in the codebase but not part of the current public deployment
-- Storage: DigitalOcean Spaces (S3-compatible) for raw samples, canonical
-  package objects, signed uploads, and licensed delivery artifacts
+- UI: Tailwind CSS v4, Radix UI, shadcn/ui, custom primitives
+- Data/Auth: self-hosted PostgreSQL + Better Auth + Postgres RLS
+- Storage: S3-compatible object storage — private MinIO on the VPS, with DigitalOcean Spaces as the external managed target (`DO_SPACES_*` variable names serve both)
 - Email: Resend
-- Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to
-  private Tempo, Docker logs to Loki through Promtail, and Prometheus metrics
-  for the private observability services and container runtime
-- Orchestration services: private Dagster runtime with webserver, daemon, and
-  code-server containers for dataset software-defined assets
-- Workflow services: private Temporal runtime and UI for durable supplier,
-  labeling, approval, and long-running operator workflows
-- Labeling services: private Label Studio runtime backed by PostgreSQL for
-  reviewer projects, annotation work, and exports
-- Vector services: private Qdrant runtime for build-time embeddings,
-  duplicate discovery, similarity search, and retrieval-heavy QA workflows
-- Cache/queue services: private Redis runtime for low-latency cache entries,
-  BullMQ-style queue streams, retries, and worker coordination
-- Operations services: private Marquez/OpenLineage runtime for dataset build
-  lineage ingestion and readback
-- CI/CD: GitHub Actions -> Docker Hub -> Dokploy on DigitalOcean VPS
+- Payments: Stripe is present in the codebase but not part of the current public deployment
+- Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to private Tempo, Docker logs to Loki through Promtail, Prometheus metrics with Alertmanager rules, internal Grafana
+- CI/CD: GitHub Actions → Docker Hub → Dokploy on the Hetzner VPS
+- Legacy private stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis, Marquez) are frozen and shut down; see "Legacy Private Stacks".
 
 ## Code Topology
 
 - `app/(home)/*`: marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
-- `app/(app)/*`: hidden authenticated app, admin dashboard, and APIs
-- `app/(buyer)/*`: relaunched B2B buyer workspace routes; currently `/buyer`
-  only, read-only, and focused on deliveries, subscriptions, integrations,
-  billing, scorecards, manifests, and trust evidence
-- `app/(supplier)/*`: relaunched supplier portal routes; currently `/supplier`
-  only, limited to managed onboarding, asset declaration, sample upload, build
-  progress, revenue-share payout, and Stripe Connect status review
-- `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password,
-  reset-password, organization/team, and optional TOTP/passkey hardening
+- `app/(app)/*`: hidden authenticated app, Operator Console (`/admin`) and APIs
+- `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password, reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
-- `lib/operator/*`: operator-console domain workflows, license composition, and snapshot fixtures
-- `modality_contract` records cover video, audio, geospatial, document, and
-  time-series build contracts; document uses page-level Parquet plus source
-  references, while time-series uses event-time/entity partitioned Parquet.
-- `release_documentation_bundle` records store G-7 package evidence for each
-  released dataset version: required docs, Croissant JSON-LD, Article 10 data
-  governance notes, validation status, and public HF mirror metadata.
-- `compliance_control_scope` records store SOC 2 / ISO 27001 control scope,
-  framework mappings, owner, evidence links, review cadence, and readiness state
-  for operator-managed governance review.
-- `security_review_artifact` records store published public questionnaire
-  answers, DPA review-path notes, and evidence-packet items that back the M3
-  `/security` page.
-- Build cost envelopes are enforced from append-only `cost_entry` rows: spend
-  rolls into build totals, 80% thresholds open alerts, hard budget and LLM/API
-  sub-budget overruns require an explicit override reason, and >15% overruns
-  flag margin retrospectives.
-- `runbook` and `escalation_case` records back the section 24 top-level
-  Escalations operator view. New cases auto-map to canonical R-01..R-13
-  runbooks, including security-specific R-11..R-13, route to the owning
-  on-call queue, open an alert, and emit audit evidence.
-- `db/migrations/*`: target self-hosted PostgreSQL schema history
-- `db/rollbacks/*`: rollback SQL for new PostgreSQL migrations
+- `lib/public/*`: public funnel logic, including `/contact` intake (`buyer-brief-intake.ts`)
+- `lib/security/*`: public API abuse controls (rate limiting)
+- `lib/operator/*`: Operator Console domain modules. Record CRUD and the console repository are shared infrastructure; the dataset-build modules (dataset operations, active learning, cleanlab, license composition, modality contracts, release documentation, sample-preview gating, subscription delivery, compliance controls) are frozen.
+- `app/(buyer)/*`, `app/(supplier)/*`, `lib/buyer/*`, `lib/supplier/*`, `lib/api/v1.ts`: legacy direct-route surfaces (frozen)
+- `lib/cli/*`, `scripts/caudals.ts`, `bin/caudals.mjs`: legacy operations CLI (frozen)
+- `db/migrations/*` and `db/rollbacks/*`: PostgreSQL schema history; every migration ships a rollback
+- Planned: `app/(eval)/*`, `app/(app)/admin/eval/*`, `lib/eval/*`
+
+Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `contact`, `buyer_opportunity` and `dataset_brief` are still written by `/contact` until intake is repositioned to evaluation requests. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
+
+## Evaluation Product Architecture (planned)
+
+Status: not implemented. The first three pilots are delivered manually; build Phase 1 only after the third paying customer.
+
+### Phase 0 — manual delivery
+
+- Suite in a spreadsheet, exported as CSV.
+- A runner script of roughly 150 lines calls the target and writes results JSONL.
+- Grading: deterministic checks, an LLM judge and two human reviewers.
+- Analysis in spreadsheet pivots (cause × topic × tier); the report is written as HTML and rendered to PDF with brand tokens.
+- Expert work runs in shared spreadsheets under the provenance and access rules of `evals.md` → Expert-Built Data.
+
+### Phase 1 — in-app product
+
+```
+app/(eval)/proof/              public self-serve demo, no signup
+app/(eval)/e/[projectId]/      customer dashboard (magic link): runs, cases, report
+app/(app)/admin/eval/          operator console: authoring, grading queue, expert review, run control
+lib/eval/targets/              adapters: http, openai-compatible, widget, manual, self-run import
+lib/eval/graders/              deterministic checks, LLM judge, human queue
+lib/eval/runner.ts             queue consumer
+lib/eval/report.ts             report data assembly
+```
+
+Eight domain tables in the existing PostgreSQL, with RLS by `org_id`, plus an `eval_job` queue table:
+
+| Table | Purpose |
+| --- | --- |
+| `eval_project` | Customer engagement: org, sector, locale, status |
+| `eval_target` | System under test: kind (`http`, `openai`, `widget`, `manual`, `self_run`), config, auth reference, rate limit, label |
+| `eval_case` | Versioned case following the `evals.md` schema: source, tier, scope, author, reviewer, sign-off |
+| `eval_run` | One execution: target, suite version, timings, model fingerprint, summary |
+| `eval_result` | One row per case per run: response, retrieved context, latency, tokens, cost, score, grounded/confident/refused, grader, rationale, cause |
+| `eval_review` | Human override of a result; always wins |
+| `eval_finding` | Report finding: severity, category, body, linked cases |
+| `eval_report` | Report version, PDF object key, publish time, share token |
+
+Invariants:
+
+- `eval_result` rows are immutable once a run completes; corrections go to `eval_review`.
+- Suite versions are frozen per run; judge model versions are pinned per suite version.
+- Every run stores a `model_fingerprint`.
+- Customer content is redacted at ingest and processed on EU infrastructure.
+
+Runner and integrations:
+
+- One Node worker on the VPS consumes `eval_job` with `FOR UPDATE SKIP LOCKED`. It deliberately does not use Temporal or Dagster: a run is a few hundred HTTP calls.
+- Per-target rate limits (default 6 requests/minute with jitter against third-party production), three retries with exponential backoff, timeouts recorded as results.
+- Self-run probe: a packaged CLI/container that executes a frozen suite inside the customer's network and emits a signed results JSONL for import, so Caudals never holds production credentials.
+- Provider layer: at least two model providers behind a thin abstraction (judge ensembling, vendor-swap detection); tokens and cost logged per result.
+- Case deduplication by embedding similarity uses pgvector in the existing database; no separate vector service.
+
+`/proof` demo: a public documentation URL or PDF (≤10 MB, 30 pages) → 12 cited test questions → answers from the visitor's endpoint, pasted manually, or from a baseline model → scorecard with failing cases → offer of a Reality Check. IP rate limits, 24-hour content retention, daily model-spend cap.
+
+Reports are assembled from run data, rendered HTML → PDF, and stored in object storage with run archives and JSONL exports.
+
+Expert work: freelance domain experts get restricted accounts to author and review cases and dataset items. Access is scoped to the redacted material of their assigned tasks, and every item records author, reviewer and guideline version. Expert, task and dataset-item tables are added when custom dataset builds move in-app.
 
 ## Runtime Routing and Hostname Behavior
 
@@ -109,48 +112,38 @@ future catalogue goal.
   `/api/user/role`, `/admin`, `/buyer`, `/supplier`, `/security`, `/v1/*`,
   explicit public APIs, and required metadata/assets may remain route-accessible
   according to their normal auth and authorization model.
-- Outside landing mode, Phase 1 returns `404` for all removed pre-pivot self-serve route groups.
-- `/browse` is removed and blocked during Phase 1; public navigation and sitemap output no longer expose a marketplace browse surface.
-- `/contributor` is removed and blocked during Phase 1; contributor self-service will be redesigned after operator workflows are load-bearing.
-- `/dashboard` is removed and blocked during Phase 1; app-host root requests are routed to `/admin`.
-- `/pwa` is removed and blocked during Phase 1; the manifest no longer links to private companion routes.
-- `/requester` is removed and blocked during Phase 1; buyer/requester self-service will be redesigned after operator workflows are load-bearing.
-- `/catalogue` and catalogue dataset browsing are future catalogue-goal work and
-  are not required for the current blueprint implementation.
-- `/security` is the security-review surface. It summarizes implemented
-  controls, flags credential-gated readiness items, and routes DPA or
-  questionnaire follow-up to `/contact`; production `LANDING_MODE` keeps it
-  unlinked from the landing page but does not block direct route access.
-- Public buyer brief intake now runs through `/contact`: buyer-focused submissions create `contact`, `buyer_opportunity`, and `dataset_brief` rows under the Caudals tenant, emit `audit_event` state-transition records, and then send the existing operator notification email.
+- Removed legacy self-serve route groups return `404`: `/browse`,
+  `/contributor`, `/dashboard` (app-host root requests go to `/admin`), `/pwa`
+  (the manifest links public surfaces only) and `/requester`. Legacy `/admin/*`
+  subroutes are removed; `/admin` is the Operator Console.
+- `/catalogue` and catalogue dataset browsing are not published. `/v1/datasets/*`
+  is default-404 unless `PUBLIC_REST_CATALOGUE_ENABLED=true`.
+- `/contact` is the general contact and intake path. It currently records
+  structured dataset briefs: submissions create `contact`, `buyer_opportunity`
+  and `dataset_brief` rows under the Caudals tenant, emit `audit_event`
+  state-transition records and send the operator notification email.
+  Repositioning it to evaluation requests is pending.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/call` stays out of the primary landing navigation but is allowlisted in landing mode and cross-linked from `/contact`.
 - `/equipo` and `/equipo/*` are public founder/author authority pages. They may link to an approved, redacted university credential PDF when the corresponding file exists under `public/material/`; missing credentials must not produce broken links or unsupported structured-data claims.
-- `/sitemap.xml` is the public sitemap index and points to post, page, and author subsitemaps. `/llms.txt` is the curated public AI-readable index. Neither surface may expose private routes, authenticated workspaces, unpublished catalogue URLs, or operational APIs.
-- `/v1/*` is the REST surface. `/v1` returns inline endpoint documentation;
-  public brief intake is anonymous and rate-limited, while buyer delivery,
-  subscription, and quote actions require a Better Auth buyer session and emit
-  audited state transitions. Catalogue dataset endpoints under `/v1/datasets/*`
-  are default-404 until a future catalogue rollout explicitly sets
-  `PUBLIC_REST_CATALOGUE_ENABLED=true`. Production `LANDING_MODE` keeps `/v1`
-  unlinked from the landing page but does not block direct route access.
-- §07 acquisition tooling is executable through `npm run caudals -- intake
-channels` and `npm run caudals -- intake validate <manifest.json>`. The
-  channel registry covers object-storage shares, database snapshots, API
-  connectors, warehouse shares, public scrapers, SFTP drops, signed uploads,
-  email-to-bucket, physical media, and supplier webhooks; validation fails
-  closed into quarantine when the immutable bronze intake contract is missing
-  required evidence.
-- `/buyer` is the new B2B buyer workspace entrypoint. It is authenticated,
-  read-only, and limited to delivery, subscription, integration, billing,
-  scorecard, manifest, and trust evidence.
-- `/supplier` is the new B2B supplier portal entrypoint. It is authenticated
-  and limited to supplier-owned asset declarations, signed sample uploads,
-  build participation status, revenue-share payout visibility, and Stripe
-  Connect account status.
-- Legacy admin subroutes under `/admin/*` have been removed and blocked; `/admin` remains the Operator Console.
+- `/sitemap.xml` is the public sitemap index and points to post, page, and author subsitemaps. `/llms.txt` is the curated public AI-readable index. Neither may expose private routes, authenticated workspaces, direct-route surfaces or operational APIs.
+- `/security` is the legacy security-review surface (frozen). It summarizes
+  implemented controls, flags credential-gated readiness items, and routes DPA
+  or questionnaire follow-up to `/contact`; it stays unlinked from the landing
+  page.
+- `/v1/*` is the legacy REST surface (frozen). `/v1` returns inline endpoint
+  documentation; public brief intake is anonymous and rate-limited, while buyer
+  delivery, subscription and quote actions require a Better Auth buyer session
+  and emit audited state transitions.
+- `/buyer` (read-only delivery, subscription, integration, billing, scorecard,
+  manifest and trust evidence) and `/supplier` (asset declarations, signed
+  sample uploads, build participation, payout visibility, Stripe Connect status)
+  are authenticated legacy surfaces (frozen). `SUPPLIER_PORTAL_ENABLED=false`
+  hides `/supplier`; `BUYER_WORKSPACE_V1_ENABLED=false` hides the buyer
+  subscription, integration and billing panels.
 - `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
-- Buyer, supplier, API, and security route access must not be confused with
-  landing-page exposure. These surfaces can be published by direct route while
-  remaining absent from landing-page navigation and marketing CTAs.
+- Direct-route access must not be confused with landing-page exposure: these
+  surfaces can be reachable by URL while remaining absent from landing-page
+  navigation and marketing CTAs.
 
 ## Infrastructure and Deployment
 
@@ -164,22 +157,22 @@ channels` and `npm run caudals -- intake validate <manifest.json>`. The
   Rollback is a Hetzner-local revert (remove Dokploy Traefik, start HAProxy) and
   needs no Cloudflare/DNS change.
 - Dokploy manages runtime/deployment.
-- App and orchestration Docker image builds happen in GitHub Actions
-  (`.github/workflows/deploy.yml`) and publish immutable tags to Docker Hub.
+- App Docker images are built in GitHub Actions
+  (`.github/workflows/deploy.yml`), published to Docker Hub with immutable
+  tags and rolled out to the `caudals-app` Swarm stack over Tailscale SSH. The
+  workflow no longer builds or deploys the legacy Dagster image.
 - Deployment pipeline supports push-to-`main` and manual dispatch execution.
 - `Dockerfile` uses multi-stage build (`deps` -> `build` -> `runtime`).
 
 ## PostgreSQL Runtime
 
-Target Phase 1 operations context:
-
-- Target VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+- VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
-- App runtime: `caudalsdep-caudals-vgbvxp` on `dokploy-network`, using Docker
-  secret-file envs for Postgres, Better Auth, Stripe, Resend, Sentry, and
-  object-storage secrets on the Hetzner production service (no plaintext secret
-  env names; stale Supabase runtime envs removed)
+- App runtime: Swarm service `caudals-app_app` (stack `caudals-app`,
+  `infra/app-stack.yml`) on `dokploy-network`, receiving its runtime env as the
+  `app_runtime_env_<digest>` Docker secret (no plaintext secret env names on
+  the service; stale Supabase runtime envs removed)
 - Required extensions: `pgcrypto`, `citext`, `pg_stat_statements`, `vector`, `pg_trgm`, `pg_cron`
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
@@ -191,9 +184,6 @@ Target Phase 1 operations context:
   GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
   the Docker publish workflow. A quarterly scheduled GitHub workflow opens or
   updates the penetration-test tracker issue for Security/CTO execution.
-- Migration reports:
-  - `docs/migrations/supabase-to-postgres.md`
-  - `docs/migrations/digitalocean-to-hetzner-vps-migration.md`
 - Public routing contract:
   - PostgreSQL has no public ingress.
   - Application access goes through server-side typed DB clients and operator-scoped RLS settings.
@@ -230,13 +220,13 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   for bounded diagnostics; it should not be enabled permanently if logs may
   contain sensitive operational context.
 
-## Operations Services
+## Object Storage
 
-- Caudals uses an S3-compatible object store for supplier samples, dataset
-  files, generated packages, and licensed delivery artifacts. The current
-  single-node runtime can deploy a private MinIO service on `dokploy-network`;
-  DigitalOcean Spaces remains the external managed-store target for hosted
-  production environments.
+- Caudals uses an S3-compatible object store for evaluation reports, run
+  archives, JSONL exports, custom datasets, customer document uploads and
+  existing legacy artifacts. The single-node runtime deploys a private MinIO
+  service on `dokploy-network`; DigitalOcean Spaces remains the external
+  managed-store target for hosted environments.
 - The private object-storage stack is defined in
   `infra/object-storage/docker-stack.yml` and runs MinIO without public ingress.
   `scripts/deploy-object-storage-stack.sh` creates root-only generated access
@@ -252,112 +242,53 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   probe object without printing credentials. `scripts/probe-object-storage-stack.sh`
   performs the same write/read/delete check from inside the private Docker
   network and verifies the stack has no published ports.
-- The private orchestration stack is defined in
-  `infra/orchestration/docker-stack.yml` and runs Dagster on
-  `dokploy-network` without public ingress.
-- Dagster stores run, event-log, and schedule metadata in a dedicated
-  `dagster` PostgreSQL database owned by the dedicated `dagster` role on the
-  private `caudals-postgres` service.
-- The Dagster database password is mounted through the external Docker secret
-  `dagster_postgres_password`; runtime containers read it through
-  `DAGSTER_POSTGRES_PASSWORD_FILE` so the repository and Docker service spec do
-  not store the secret value.
-- The Dagster code location exposes reference assets for the full G-1 through
-  G-7 blueprint path: intake, profiling, deterministic cleaning, privacy/PII
-  mapping, enrichment, labeling review, and QA/package scorecard.
-- Dagster is available only on the private Docker network at
-  `http://caudals-orchestration-webserver:3000`; the code server is internal
-  at `caudals-orchestration-code:4000`.
-- `scripts/probe-orchestration-stack.sh` verifies the webserver `/server_info`
-  endpoint, the code-server gRPC healthcheck, execution of the
-  `caudals_reference_build` reference job, and Dagster-originated OpenLineage
-  ingestion into Marquez.
-- The private workflow stack is defined in `infra/workflow/docker-stack.yml`
-  and runs Temporal server plus Temporal UI on `dokploy-network` without public
-  ingress.
-- Temporal stores persistence in dedicated `temporal` and
-  `temporal_visibility` PostgreSQL databases owned by the dedicated `temporal`
-  role on the private `caudals-postgres` service.
-- The Temporal database password is mounted through the external Docker secret
-  `temporal_postgres_password`; runtime containers read it from the secret file
-  and export it only inside the container process so the repository and Docker
-  service spec do not store the secret value.
-- Durable workflow RPC is available only on the private Docker network at
-  `grpc://caudals-workflow-temporal:7233`; the internal UI is available at
-  `http://caudals-workflow-ui:8080`.
-- `scripts/probe-workflow-stack.sh` verifies Temporal cluster health, the
-  `caudals-operations` namespace, the private UI endpoint, and the absence of
-  published ports.
-- The private labeling stack is defined in `infra/labeling/docker-stack.yml`
-  and runs Label Studio plus a dedicated PostgreSQL database on
-  `dokploy-network` without public ingress.
-- Label Studio persists reviewer projects, annotations, and exports on a
-  dedicated Docker volume and uses PostgreSQL instead of SQLite for production
-  labeling throughput.
-- The Label Studio PostgreSQL password and Django `SECRET_KEY` are mounted
-  through external Docker secrets; runtime containers read the values from
-  secret files so the repository and Docker service spec do not store them.
-- Label Studio is available only on the private Docker network at
-  `http://caudals-labeling-label-studio:8080`.
-- `scripts/probe-labeling-stack.sh` verifies the private Label Studio HTTP
-  endpoint, PostgreSQL migrations, and the absence of published ports.
-- The private vector stack is defined in `infra/vector/docker-stack.yml` and
-  runs Qdrant on `dokploy-network` without public ingress.
-- Qdrant stores build-time vectors on a dedicated Docker volume and reads its
-  API key from the external Docker secret `qdrant_api_key`; the repository and
-  Docker service spec do not store the secret value.
-- Qdrant HTTP is available only on the private Docker network at
-  `http://caudals-vector-qdrant:6333`; gRPC is available internally at
-  `grpc://caudals-vector-qdrant:6334`.
-- `scripts/probe-vector-stack.sh` verifies authenticated Qdrant reachability,
-  creates or updates a probe collection, writes and reads a vector point, and
-  verifies the absence of published ports.
-- The private cache stack is defined in `infra/cache/docker-stack.yml` and runs
-  Redis on `dokploy-network` without public ingress.
-- Redis stores append-only queue/cache state on a dedicated Docker volume and
-  reads its password from the external Docker secret `redis_password`; the
-  repository and Docker service spec do not store the secret value.
-- Redis is available only on the private Docker network at
-  `redis://caudals-cache-redis:6379`.
-- `scripts/probe-cache-stack.sh` verifies authenticated Redis reachability,
-  cache key read/write, queue stream append/readiness, and the absence of
-  published ports.
-- The private operations service stack is defined in
-  `infra/operations/docker-stack.yml` and runs on `dokploy-network` without
-  public ingress.
-- Marquez stores OpenLineage events in a dedicated `marquez` PostgreSQL
-  database owned by the dedicated `marquez` role on the private
-  `caudals-postgres` service.
-- The Marquez database password is mounted through the external Docker secret
-  `marquez_postgres_password`; the runtime config is generated inside the
-  container so the repository and Docker service spec do not store the secret
-  value.
-- OpenLineage ingestion is available only on the private Docker network at
-  `http://caudals-operations-marquez:5000/api/v1/lineage`; the admin
-  healthcheck is available internally at
-  `http://caudals-operations-marquez:5001/healthcheck`.
-- `scripts/probe-operations-stack.sh` verifies the admin healthcheck,
-  namespaces API, and a synthetic OpenLineage `COMPLETE` event ingest from an
-  ephemeral container attached to the private network.
+
+## Legacy Private Stacks
+
+Eight legacy dataset-build stacks were deployed as private Swarm stacks on
+`dokploy-network`: Dagster (`infra/orchestration/`), Temporal
+(`infra/workflow/`), Label Studio and CVAT (`infra/labeling/`), lakeFS
+(`infra/lakehouse/`), Qdrant (`infra/vector/`), Redis (`infra/cache/`) and
+Marquez (`infra/operations/`). They are frozen and shut down:
+
+- None is deployed on `caudals-1` (the Dagster services were removed on
+  2026-09-10) and their images were pruned on 2026-09-11. If one is restored,
+  it must not publish ports.
+- The live public funnel does not call them, and new evaluation code must not
+  depend on them. App-code references are limited to Operator Console snapshot
+  data, the legacy CLI and frozen operator/supplier modules.
+- Dagster, Temporal, Marquez and lakeFS keep dedicated databases inside
+  `caudals-postgres`; those databases, the stacks' named volumes and their
+  Docker secrets are retained.
+- `npm run platform:completion-status` checks their readiness and the legacy
+  dataset-build evidence only with `CAUDALS_LEGACY_STACKS_GATE_ENABLED=true`.
+  CI no longer builds or deploys Dagster. Deploy scripts remain one-command
+  restores.
+
+Runbook details, secrets and dashboard ports are in `docs/TOOLS.md` → Legacy Private Stacks.
 
 ## Data and Storage Domains
 
-Current live data domains:
+Current:
 
-- lead capture: contact and waitlist records
+- lead capture: contact and dataset-brief records from `/contact`; newsletter
+  subscribers live in the Leads CRM behind `/api/newsletter`
 - content: bundled blog fallback and marketing metadata; newly approved blog
   posts are read from the narrow public Leads archive API with 60-second
   server-side revalidation, so publication does not rebuild this application
-- operations: private admin activity, platform settings, audit notes
+- operations: Operator Console records, platform settings, audit notes and `audit_event`
+- legacy domains (frozen): buyer and supplier organisations and workspaces,
+  supplier assets, dataset-build operations, labelling batches, release
+  documentation, delivery and subscription records
 
-Future marketplace data domains:
+Planned evaluation and dataset domains:
 
-- organizations: supplier companies, buyer companies, contacts, contracts
-- supplier assets: raw data source metadata, rights, consent, provenance, schema profiles
-- dataset build operations: ingestion jobs, cleaning runs, labeling batches, QA reports, acceptance criteria
-- future catalogue: listing metadata, previews, schemas, quality scores,
-  pricing, delivery artifacts once the separate catalogue goal starts
-- commercial operations: buyer inquiries, quotes, subscriptions/licenses, invoices, supplier revenue share
+- projects and targets
+- versioned cases and sector-generic case libraries
+- runs and immutable results, human reviews
+- findings and reports
+- freelance experts, tasks, item reviews and QA metrics for custom datasets
+- customer uploads, run archives, golden-set exports and custom datasets in object storage
 
 ## Security and Reliability Anchors
 
@@ -365,20 +296,20 @@ Future marketplace data domains:
 - Durable abuse controls on public APIs
 - Webhook replay/idempotency protections when payment code is active
 - Upload/path validation guardrails
-- Dataset rights, provenance, PII handling, and licensing auditability
+- Provenance and auditability for every case, run, review, report and dataset item; results are immutable
+- Customer content: PII redacted at ingest, EU processing, named sub-processors, retention and deletion per `product-specs/evals.md`
+- Freelance experts: least-privilege access to redacted task material only
+- No adversarial inputs against any system without its owner's written authorisation
 - Error capture and opt-in stdout tracing without default PII transmission
 - CI quality gates for release confidence
 
 ## Core Lifecycle Flows
 
-1. Public demand capture:
-   - visitor reads landing/blog -> submits contact or waitlist -> internal team qualifies the opportunity.
-2. Supplier data monetization:
-   - company offers data -> Caudals validates rights and feasibility -> Caudals ingests/processes/curates -> dataset is listed or matched privately.
-3. Buyer dataset acquisition:
-   - company describes dataset need -> Caudals finds or builds dataset -> buyer reviews preview/QA report -> license and delivery complete.
-4. Internal operations:
-   - Caudals tracks leads, supplier assets, build status, QA, compliance, pricing, and delivery from a private admin dashboard.
+1. Demand capture: a visitor reads the landing page, blog or newsletter → contacts us, books a call or (planned) tries `/proof` → operators qualify the opportunity in the Leads CRM.
+2. Reality Check: operators pick a qualifying public system → run a 40-case probe under the rules of engagement → send a teaser → deliver the free report and readout.
+3. Pilot or Full Evaluation: kickoff → documents, real questions and expert session → suite authored and signed off → runs (hosted, self-run or output-only) → grading and review → report, live readout and JSONL export.
+4. Subscription: monthly (or weekly) runs → new cases and new data, including expert-authored cases → regression report.
+5. Custom dataset build: coverage gaps and failure causes scope the dataset → freelance domain experts build it under Caudals guidelines and double review → dataset with provenance and QA scorecard → a re-run proves the score moved.
 
 ## Maturity and Drift Watchlist
 
@@ -387,20 +318,23 @@ Mature current areas:
 - landing/contact/blog public surface
 - landing-mode landing-page/navigation restriction
 - public intake APIs
-- private infrastructure access hardening
+- private infrastructure access hardening and observability
 
 Active drift risks:
 
-- direct-route buyer/supplier/API/security surfaces must stay protected by auth,
-  authorization, RLS, rate limits, and audit rather than relying on landing-page
-  obscurity
-- marketplace relaunch requires a schema and IA rebuild, not small copy edits on
-  direct-route workspace surfaces
-- public SEO metadata and blog content must stay aligned with B2B dataset operations
+- public copy, `/contact` intake fields, `/llms.txt` and SEO metadata must stay
+  aligned with the evaluation positioning; `/contact` still records dataset briefs
+- the observability and object-storage stacks are not deployed on `caudals-1`
+  (as of 2026-09-11); the completion gate reports them until they are
+  redeployed or explicitly waived
+- legacy direct-route surfaces must stay protected by auth, authorization, RLS,
+  rate limits and audit rather than landing-page obscurity
+- evaluation code must not grow on frozen marketplace modules or legacy stacks
 
 ## Linked References
 
 - `product-specs/overview.md`
+- `product-specs/evals.md`
 - `TOOLS.md`
 - [Caudals Leads architecture](https://github.com/Caudals/leads/blob/main/docs/ARCHITECTURE.md) — the
   separate Leads CRM runtime, which shares private `caudals-postgres` and

@@ -2,9 +2,9 @@ import type { Metadata, MetadataRoute } from "next";
 import { isLandingModeEnabledServer } from "@/lib/landing-mode";
 
 export const SITE_NAME = "Caudals";
-export const DEFAULT_SITE_TITLE = "Datasets profesionales para IA a medida | Caudals";
+export const DEFAULT_SITE_TITLE = "Evaluación independiente de asistentes de IA | Caudals";
 export const DEFAULT_SITE_DESCRIPTION =
-  "Caudals consigue, licencia, limpia y entrega datasets a medida para entrenar y evaluar modelos de IA, con calidad, procedencia y cumplimiento verificables.";
+  "Caudals evalúa asistentes, chatbots y agentes de IA con preguntas sacadas de tu propia documentación y respuestas validadas por tus expertos. Informe con puntuación y evidencias.";
 
 const DEFAULT_SOCIAL_IMAGE_PATH = "/brand.png";
 const DEFAULT_MARKETING_HOSTNAME = "caudals.com";

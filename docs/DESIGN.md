@@ -1,6 +1,6 @@
 # Caudals Design System
 
-Single source of truth for the visual + interaction language across every surface: public landing, contact, blog, internal admin, future buyer workspace, future supplier portal. Light-mode only. Anything not specified here defers to `app/globals.css` (tokens) and `c-design/Caudals Design System/` (recipes, previews, UI kits).
+Single source of truth for the visual + interaction language across every surface: public landing, contact, blog, internal admin, evaluation dashboards and reports, and the `/proof` demo. Light-mode only. Anything not specified here defers to `app/globals.css` (tokens) and `c-design/Caudals Design System/` (recipes, previews, UI kits).
 
 ## Agent Instructions
 When building or refactoring any UI:
@@ -10,17 +10,17 @@ When building or refactoring any UI:
 4. **Black CTAs, emerald/teal accents.** Primary actions are never teal. Teal is reserved for status, eyebrows, focus, the italic display word, and soft pills.
 5. **No emoji, no purple-blue gradients, no harsh shadows, no inner shadows, no parallax beyond the hero Spline scene.**
 6. **No webfonts.** Native SF / system stack; serif via `"New York", "Iowa", Georgia, serif` for the italic accent only.
-7. Dense admin/marketplace screens must stay readable under time pressure — favor hairline dividers (`gap-px bg-gray-100`) over heavy borders.
+7. Dense admin and evaluation screens must stay readable under time pressure — favor hairline dividers (`gap-px bg-gray-100`) over heavy borders.
 
 ## Scope
-- **In scope:** landing, contact, blog, `/admin/*`, future `/buyer/*`, future `/supplier/*`, responsive (mobile · tablet · desktop), all server-rendered pages, PWA shells.
-- **Out of scope:** dark mode (deferred), schema/domain contract changes, hidden authenticated surfaces still using pre-pivot UI (delete or rebuild per AGENTS.md).
+- **In scope:** landing, contact, blog, `/admin/*`, planned evaluation surfaces (operator authoring and grading, restricted expert workspace, customer dashboard, `/proof`), evaluation report PDFs, responsive (mobile · tablet · desktop), all server-rendered pages, PWA shells.
+- **Out of scope:** dark mode (deferred), schema/domain contract changes, legacy surfaces (`/buyer`, `/supplier`) — fix defects only, no redesign.
 
 ## Experience Principles
-1. **Editorial calm.** Enterprise data should feel precise, quiet, serious. Headings are `font-normal` (400), not bold — boldness is reserved for labels.
+1. **Editorial calm.** Evidence should feel precise, quiet, serious. Headings are `font-normal` (400), not bold — boldness is reserved for labels.
 2. **Typography is the hero.** One serif italic word inside an otherwise neutral display headline (`font-serif italic text-teal-700/90`) is the signature.
 3. **Content breathes.** Public sections use `py-24 sm:py-32`, container `max-w-5xl`, side gutters `px-6 sm:px-8 lg:px-12`.
-4. **Trust is operational.** Rights, provenance, PII, QA, freshness, and license state must be visible in admin/marketplace UI — surface them as chips/dots, not buried fields.
+4. **Trust is operational.** Source citation, suite version, run, verdict, grader and reviewer must be visible on every case and result — surface them as chips/dots, not buried fields.
 5. **Motion is deliberate.** One `cubic-bezier(0.22, 1, 0.36, 1)` ease everywhere. Entrance reveals are `opacity 0→1, y 20→0, 500–800ms`, staggered `0.05–0.1s`. No bounces, no springs.
 
 ## Foundation Tokens
@@ -80,7 +80,7 @@ Single source: `app/globals.css` (production) mirrored in `c-design/Caudals Desi
 ## Typography
 - **Family:** `-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, …`. No webfont loaded — Inter substitutes silently on non-Apple devices.
 - **Serif accent:** `"New York", "Iowa", Georgia, serif` — used **only** italic, **only** for one or two words inside a display headline, **only** in `text-teal-700/90`.
-- **Mono:** `ui-monospace, SFMono-Regular, Menlo, …` — dataset value chips, console mockups.
+- **Mono:** `ui-monospace, SFMono-Regular, Menlo, …` — citation and case-ID chips, console mockups.
 - **Display weight is 400** (`font-normal`) with tight tracking (`-0.02em` to `-0.03em`). Bold (700) is reserved for: eyebrows, labels, button copy, table column headers, status pills, card H3.
 - **Hierarchy:**
   - Hero: `text-5xl sm:text-7xl lg:text-8xl` (48 → 72 → 96), `font-normal tracking-tight text-black`.
@@ -88,12 +88,12 @@ Single source: `app/globals.css` (production) mirrored in `c-design/Caudals Desi
   - Card H3: `text-lg font-bold text-black`.
   - Body: `text-base leading-relaxed text-gray-500` (long form) / `text-sm` (cards) / `text-xs` (meta).
   - Eyebrow: `text-[13px] font-bold text-teal-600 mb-4`.
-  - Overline / micro-label: `text-[10px]–text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400` (column headers, "LIVE", "AVAILABLE", "DATA MARKETPLACE CONSOLE").
+  - Overline / micro-label: `text-[10px]–text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400` (column headers, "LIVE", "AVAILABLE", "EVALUATION CONSOLE").
 - **Tabular nums** on every number in a list, table, stat tile, or financial column.
 
 ## Layout System
 - **Public canvas:** `bg-white`. Alternating very-light bands `bg-gray-50/50` may be used between sections, but the current landing is mostly pure white.
-- **Section container:** `mx-auto max-w-5xl px-6 sm:px-8 lg:px-12` (marketing copy), `max-w-7xl` (header, dataset/catalog grids), `max-w-4xl` (FAQ-like long-form).
+- **Section container:** `mx-auto max-w-5xl px-6 sm:px-8 lg:px-12` (marketing copy), `max-w-7xl` (header, wide tables and grids), `max-w-4xl` (FAQ-like long-form).
 - **Section rhythm:** `py-24 sm:py-32` for content; `py-32 sm:py-48` for the closing CTA.
 - **Header:** `h-16` sticky, transparent at top, **translucent on scroll** (`bg-white/40 backdrop-blur-[22px]`) with a subtle bottom border.
 - **Hero:** Spline 3D scene full-bleed at `opacity-85`, white→transparent fade (`bg-gradient-to-t from-white to-transparent`) handing off to the next section. Centered copy, eyebrow chip with pulsing teal dot, huge display headline with one italic serif word, waitlist input/button as a single pill, glass-card "console" preview below.
@@ -116,8 +116,17 @@ Single source: `app/globals.css` (production) mirrored in `c-design/Caudals Desi
 - **Tables:** white surface, **horizontal hairlines only** (`divide-gray-100`), header row in gray-50/40, column headers in overline style (`text-[11px] font-medium text-gray-500`). Tabular nums on numeric columns.
 - **Feature/capability tile:** 48×48 `rounded-md bg-gray-50 text-gray-400`, hover flips to `bg-teal-50 text-teal-600`, 24×24 lucide icon.
 - **Step badge:** 40×40 `rounded-md bg-teal-50 text-teal-600`, 20×20 icon, `group-hover:scale-110`.
-- **Dataset card** (`components/browse/dataset-card-improved.tsx`): `aspect-[16/9]` photographic image, `rounded-xl border border-slate-200 bg-white shadow-sm`, image scales `1.05` on hover inside `overflow-hidden`. Real photography only — never illustration, AI gradients, or stock vectors.
+- **Score figure:** display weight 400 with tabular nums, always shown with its basis — an interval (`61% ± 8`) or a count (`4 of 26`). Never a bare percentage for must-pass results.
+- **Verdict chip:** pass / partial / fail as a 1.5×1.5 dot plus 11px bold label in teal / amber / red. Must-pass failures use the danger-soft fill and sort first.
+- **Case row:** question, response excerpt, verdict, failure cause, source citation (mono chip), grader and reviewer, on horizontal hairlines.
 - **Overlays** (dropdown, popover, dialog, sheet): forced opaque white via `globals.css` `[data-slot="*-content"]` rule. The pattern: blur = floating UI; opaque = settled UI.
+
+## Evaluation Reports (PDF)
+- Same tokens on a white A4 page: near-black type, three-tier gray, one emerald accent, serif italic only for a single cover word.
+- Structure through kicker labels, hairline tables and generous spacing — no heavy borders or fills.
+- Callouts carry meaning by color: emerald for recommended actions, amber for cautions, red only for must-pass incidents.
+- The customer's name leads the cover; Caudals appears once, small, on the last page.
+- Render HTML to PDF with Playwright Chromium (`page.pdf`, A4, `printBackground: true`) with a quiet footer carrying page numbers.
 
 ## Iconography
 - **Library:** `lucide-react` only (`iconLibrary: "lucide"` in `components.json`). Stroke `2`, default size `h-4 w-4` on buttons. Icons take `currentColor`; never filled, never colorized.
@@ -135,7 +144,7 @@ Single source: `app/globals.css` (production) mirrored in `c-design/Caudals Desi
 3px ring at `--ds-accent` (`#059669`) with `ring-offset-2`. Always visible. Inputs: `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]`.
 
 ## Content & Copy Hooks (visual contract)
-Design choices assume Caudals voice: confident, plain, business-class, sentence case for buttons/labels/nav/headings, ALL CAPS only inside `letter-spacing: 0.12em` micro-labels, no exclamation marks, no hype words. Hero highlight is always **one serif italic teal word**. Trust signals are **concrete numbers** (`98.4%`, `2.4M records`, `<2w`, `1–3 weeks`).
+Design choices assume Caudals voice: confident, plain, business-class, sentence case for buttons/labels/nav/headings, ALL CAPS only inside `letter-spacing: 0.12em` micro-labels, no exclamation marks, no hype words. Hero highlight is always **one serif italic teal word**. Trust signals are **concrete numbers** (`61% ± 8`, `4 of 26 critical questions`, `48 h`, `2 weeks`).
 
 Strings ship through `t()` for `en` + `es`. Never hardcode English in app/marketing/auth/PWA.
 
@@ -150,7 +159,7 @@ A UI change is ready when:
 7. **No heavy shadows**, no purple-blue gradients, no emoji, no webfont add.
 8. **Overlays opaque**, hero/header allowed blur.
 9. **Motion uses `--ease-soft-spring`**, durations match the bands above.
-10. **Trust state surfaced** on any record that has rights, provenance, PII, QA, freshness, or license fields.
+10. **Evidence state surfaced** on every case and result: source, suite version, verdict, grader, reviewer.
 
 ## References
 - `app/globals.css` — production token source.

@@ -10,6 +10,7 @@ import { ContactSection } from "@/components/landing/partnerships";
 import { PricingSection } from "@/components/landing/pricing";
 import { SocialProofSection } from "@/components/landing/social-proof";
 import { StatsSection } from "@/components/landing/stats";
+import { UseCasesSection } from "@/components/landing/use-cases";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { Header } from "@/components/ui/header";
 
@@ -27,6 +28,10 @@ export function HomePageClient() {
 
           <div id="how-it-works" className="bg-white">
             <HowItWorksSection />
+          </div>
+
+          <div id="what-we-evaluate" className="bg-white">
+            <UseCasesSection />
           </div>
 
           <div id="features" className="bg-white">

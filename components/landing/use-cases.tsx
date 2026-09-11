@@ -1,122 +1,93 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Brain, MessageSquare, Mic, Video, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { BookOpen, Boxes, FileText, MessageSquare, Phone } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
+
+const systems = [
+  {
+    icon: MessageSquare,
+    title: "Customer assistants and chatbots",
+    description: "On your website, in your app or on WhatsApp.",
+  },
+  {
+    icon: Phone,
+    title: "Voice and IVR agents",
+    description: "The ones that answer your phone lines.",
+  },
+  {
+    icon: BookOpen,
+    title: "Internal assistants",
+    description: "Over HR policy, sales material or technical manuals.",
+  },
+  {
+    icon: FileText,
+    title: "Document pipelines",
+    description: "Triage, classification and extraction.",
+  },
+  {
+    icon: Boxes,
+    title: "AI features in your product",
+    description: "Quote assistants, clause analysers and valuation explanations.",
+  },
+];
 
 export function UseCasesSection() {
   const t = useTranslations();
 
-  const useCases = [
-    {
-      icon: Brain,
-      category: t("Computer Vision"),
-      title: t("Image classification & object detection"),
-      description: t(
-        "Collect labeled images for training models across industries—from medical imaging to autonomous vehicles.",
-      ),
-      tag: t("Popular"),
-    },
-    {
-      icon: MessageSquare,
-      category: t("Natural Language"),
-      title: t("Text annotation & sentiment analysis"),
-      description: t(
-        "Build datasets for NLP tasks including named entity recognition, intent classification, and conversational AI.",
-      ),
-      tag: t("Trending"),
-    },
-    {
-      icon: Mic,
-      category: t("Speech & Audio"),
-      title: t("Voice data collection"),
-      description: t(
-        "Gather diverse voice samples across languages, accents, and demographics for speech recognition models.",
-      ),
-      tag: null,
-    },
-    {
-      icon: Video,
-      category: t("Video Analysis"),
-      title: t("Action recognition & tracking"),
-      description: t(
-        "Collect video data with temporal annotations for activity recognition and video understanding models.",
-      ),
-      tag: null,
-    },
-    {
-      icon: MapPin,
-      category: t("Geospatial"),
-      title: t("Location-based data"),
-      description: t(
-        "Build datasets with geographic context for mapping, navigation, and location-aware applications.",
-      ),
-      tag: null,
-    },
-    {
-      icon: Brain,
-      category: t("Multimodal"),
-      title: t("Cross-modal datasets"),
-      description: t(
-        "Create datasets that combine multiple data types for advanced AI systems that understand the world holistically.",
-      ),
-      tag: t("New"),
-    },
-  ];
-
   return (
-    <section className="relative py-24">
-      <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="mb-16 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            {t("Built for every AI use case")}
+    <section className="py-24 sm:py-32 bg-white">
+      <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
+        <div className="mb-16 max-w-3xl">
+          <p className="text-[13px] font-bold text-teal-600 mb-4">
+            {t("What we evaluate")}
+          </p>
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
+            {t("Systems where a wrong answer costs money")}
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-slate-500">
+          <p className="mt-6 text-base leading-relaxed text-gray-500">
             {t(
-              "From computer vision to conversational AI—we provide the collection flows, contributor training, and review workflows tailored to your modality.",
+              "We test text and document AI: the assistants your customers talk to and the ones your teams rely on.",
             )}
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {useCases.map((useCase, index) => (
+        <div className="grid gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100 sm:grid-cols-2 lg:grid-cols-3">
+          {systems.map((system, index) => (
             <motion.div
-              key={useCase.title}
+              key={system.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: index * 0.05 }}
+              viewport={{ once: true, margin: "-60px" }}
+              className="group flex flex-col items-start bg-white p-8"
             >
-              <Card className="group relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-white/85 p-6 shadow-sm backdrop-blur transition-transform hover:-translate-y-1 py-0 gap-0">
-                <CardContent className="p-0">
-                  <div className="mb-4 flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary transition-transform group-hover:scale-110">
-                      <useCase.icon className="h-6 w-6" />
-                    </div>
-                    {useCase.tag && (
-                      <Badge
-                        variant="outline"
-                        className="border-primary/20 bg-primary/5 text-primary"
-                      >
-                        {useCase.tag}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mb-1 text-xs font-semibold uppercase text-primary/80">
-                    {useCase.category}
-                  </div>
-                  <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                    {useCase.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-slate-500">
-                    {useCase.description}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-md bg-gray-50 text-gray-400 transition-colors group-hover:bg-teal-50 group-hover:text-teal-600">
+                <system.icon className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-black mb-2">{t(system.title)}</h3>
+              <p className="text-sm leading-relaxed text-gray-500">
+                {t(system.description)}
+              </p>
             </motion.div>
           ))}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: systems.length * 0.05 }}
+            viewport={{ once: true, margin: "-60px" }}
+            className="flex flex-col items-start bg-gray-50/60 p-8"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-4">
+              {t("Questions that matter")}
+            </p>
+            <p className="text-sm leading-relaxed text-gray-600">
+              {t(
+                "Coverage and waiting periods, banking fees and eligibility, energy and telecom tariffs, refund rights, dosage and interactions, technical specifications.",
+              )}
+            </p>
+          </motion.div>
         </div>
       </div>
     </section>

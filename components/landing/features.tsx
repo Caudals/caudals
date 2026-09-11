@@ -3,50 +3,50 @@
 import { motion } from "framer-motion";
 import {
   Database,
+  History,
+  KeyRound,
+  Languages,
   ShieldCheck,
-  Zap,
-  Activity,
-  BarChart3,
-  Globe2,
+  Workflow,
 } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const capabilities = [
   {
-    icon: Database,
-    title: "Any data type, any format",
-    description:
-      "Tabular, image, text, audio, sensor, and geospatial data. We convert everything to ML-ready formats like Parquet, JSON-Lines, and TFRecords.",
-  },
-  {
-    icon: Globe2,
-    title: "Cross-industry sourcing",
-    description:
-      "Need data from logistics, healthcare, retail, or agriculture? We source from companies across verticals and combine it with public datasets.",
-  },
-  {
     icon: ShieldCheck,
-    title: "GDPR and compliance built-in",
+    title: "Answer keys your experts sign",
     description:
-      "PII detection, automated anonymization, data processing agreements, and full audit trails keep your legal team confident.",
+      "Every case cites your own documentation, and your expert signs off the answer key before anything runs.",
   },
   {
-    icon: Zap,
-    title: "Delivery in days, not months",
+    icon: Workflow,
+    title: "Every failure has a cause",
     description:
-      "Catalog datasets available immediately. Custom sourced datasets delivered in 1-3 weeks with quality validation included.",
+      "Knowledge gap, retrieval miss, invented answer or outdated document: you know whether to fix the documentation or the system.",
   },
   {
-    icon: Activity,
-    title: "Quality scores on every dataset",
+    icon: Languages,
+    title: "Written in Spanish",
     description:
-      "Completeness, consistency, freshness, and accuracy metrics published per dataset. Preview samples before buying.",
+      "Cases are written the way your customers ask, with typos, regional phrasing, mixed Spanish and English, and co-official languages where they matter.",
   },
   {
-    icon: BarChart3,
-    title: "Transparent pricing",
+    icon: KeyRound,
+    title: "No credentials needed",
     description:
-      "Pay per dataset or subscribe for ongoing access. Suppliers earn revenue share on every sale. No hidden fees.",
+      "We test public interfaces as a customer would, you run our probe inside your network, or we score past conversations.",
+  },
+  {
+    icon: History,
+    title: "Runs you can reproduce",
+    description:
+      "Every run keeps its suite version, model fingerprint and grader, so a silent model change by your vendor shows up in the numbers.",
+  },
+  {
+    icon: Database,
+    title: "A test set you own",
+    description:
+      "You keep the golden set as JSONL, and it grows every month with new questions and new data.",
   },
 ];
 
@@ -58,10 +58,10 @@ export function FeaturesSection() {
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Capabilities")}
+            {t("Why Caudals")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl">
-            {t("Everything your AI team needs to get training data")}
+            {t("Evidence, not opinions")}
           </h2>
         </div>
 

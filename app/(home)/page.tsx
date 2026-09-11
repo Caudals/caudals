@@ -1,11 +1,39 @@
 import { HomePageClient } from "@/components/landing/home-page-client";
 import { CAUDALS_AUTHORS } from "@/lib/authors";
+import { createTranslator } from "@/lib/i18n/create-translator";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import {
+  EVALUATION_OFFERS,
+  type EvaluationOffer,
+} from "@/lib/public/evaluation-offers";
 import {
   buildMarketingUrl,
   buildPublicMetadata,
   DEFAULT_SITE_DESCRIPTION,
   SITE_NAME,
 } from "@/lib/seo";
+
+// Structured data is published in Spanish, like the rest of the canonical metadata.
+const es = createTranslator("es", getDictionary("es"));
+
+function offerPriceSpecification(offer: EvaluationOffer) {
+  const base = { priceCurrency: "EUR", valueAddedTaxIncluded: false };
+
+  if (offer.billing === "monthly") {
+    return {
+      "@type": "UnitPriceSpecification",
+      price: offer.amountEur,
+      unitText: "mes",
+      ...base,
+    };
+  }
+
+  if (offer.billing === "from") {
+    return { "@type": "PriceSpecification", minPrice: offer.amountEur, ...base };
+  }
+
+  return { "@type": "PriceSpecification", price: offer.amountEur, ...base };
+}
 
 const homePageStructuredData = {
   "@context": "https://schema.org",
@@ -35,11 +63,11 @@ const homePageStructuredData = {
         url: buildMarketingUrl(`/equipo/${author.slug}`),
       })),
       knowsAbout: [
-        "datasets para inteligencia artificial",
-        "obtención y licencia de datos",
-        "calidad y procedencia de datos",
-        "anonimización y preparación de datos",
-        "datos para entrenamiento y evaluación de modelos",
+        "evaluación de asistentes y agentes de IA",
+        "conjuntos de pruebas validados por expertos",
+        "análisis de fallos de sistemas de IA",
+        "calidad y trazabilidad de respuestas de IA",
+        "datos de dominio para IA",
       ],
       logo: {
         "@type": "ImageObject",
@@ -69,7 +97,7 @@ const homePageStructuredData = {
       "@type": "WebPage",
       "@id": `${buildMarketingUrl("/")}#webpage`,
       url: buildMarketingUrl("/"),
-      name: "Datasets profesionales para IA a medida",
+      name: "Evaluación independiente de asistentes de IA",
       description: DEFAULT_SITE_DESCRIPTION,
       isPartOf: {
         "@id": `${buildMarketingUrl("/")}#website`,
@@ -84,14 +112,26 @@ const homePageStructuredData = {
     {
       "@type": "Service",
       "@id": `${buildMarketingUrl("/")}#service`,
-      name: "Obtención y preparación de datasets para inteligencia artificial",
-      serviceType: "Datasets a medida para entrenamiento, fine-tuning y evaluación de IA",
+      name: "Evaluación de asistentes y agentes de IA",
+      serviceType:
+        "Evaluación independiente de sistemas de IA con conjuntos de pruebas validados por expertos",
       description: DEFAULT_SITE_DESCRIPTION,
       provider: {
         "@id": `${buildMarketingUrl("/")}#organization`,
       },
       areaServed: "Worldwide",
       url: buildMarketingUrl("/"),
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: es("Offers and pricing"),
+        itemListElement: EVALUATION_OFFERS.map((offer) => ({
+          "@type": "Offer",
+          name: es(offer.name),
+          description: es(offer.summary),
+          url: buildMarketingUrl("/#pricing"),
+          priceSpecification: offerPriceSpecification(offer),
+        })),
+      },
     },
   ],
 };

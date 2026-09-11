@@ -1,17 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentProps } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ArrowRight } from "lucide-react";
 import {
-  collaborationFormSchema,
-  type CollaborationFormValues,
-  collaborationFocusAreas,
-  collaborationTeamSizes,
-  collaborationIndustries,
-  collaborationDatasetModalities,
-} from "@/lib/validators/collaboration";
+  evaluationCompanySizes,
+  evaluationOwnerRoleLabels,
+  evaluationOwnerRoles,
+  evaluationRequestFormSchema,
+  evaluationRequestOfferLabels,
+  evaluationRequestOffers,
+  evaluationSectorLabels,
+  evaluationSectors,
+  evaluationSystemStageLabels,
+  evaluationSystemStages,
+  evaluationSystemTypeLabels,
+  evaluationSystemTypes,
+  type EvaluationRequestFormValues,
+  type EvaluationRequestOffer,
+} from "@/lib/validators/evaluation-request";
 import {
   Form,
   FormControl,
@@ -27,65 +35,19 @@ import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { cn } from "@/lib/utils";
 
-const focusAreaLabels: Record<
-  (typeof collaborationFocusAreas)[number],
-  string
-> = {
-  "sell-data": "Monetize company data",
-  "buy-dataset": "Acquire a catalogue dataset",
-  "custom-dataset": "Build a custom dataset",
-  "ai-consulting": "AI consulting",
-};
-
-const industryLabels: Record<
-  (typeof collaborationIndustries)[number],
-  string
-> = {
-  logistics: "Logistics & Transportation",
-  retail: "Retail & E-commerce",
-  healthcare: "Healthcare & Life Sciences",
-  agriculture: "Agriculture & Agritech",
-  fintech: "Fintech & Banking",
-  energy: "Energy & Utilities",
-  manufacturing: "Manufacturing & IoT",
-  "real-estate": "Real Estate & PropTech",
-  telecom: "Telecom & Networks",
-  insurance: "Insurance",
-  other: "Other",
-};
-
-const modalityLabels: Record<
-  (typeof collaborationDatasetModalities)[number],
-  string
-> = {
-  tabular: "Tabular",
-  text: "Text",
-  image: "Image",
-  video: "Video",
-  audio: "Audio",
-  geospatial: "Geospatial",
-  timeseries: "Time series",
-  document: "Document",
-};
-
-const defaultValues: Partial<CollaborationFormValues> = {
+const defaultValues: Partial<EvaluationRequestFormValues> = {
   fullName: "",
   workEmail: "",
   organization: "",
   organizationWebsite: "",
-  focusArea: undefined,
-  industry: undefined,
-  teamSize: undefined,
-  datasetModality: undefined,
-  geography: "",
-  freshness: "",
-  volume: "",
-  budgetRange: "",
-  timeline: "",
-  targetFormats: "",
-  sensitivityConstraints: "",
-  catalogueListingId: undefined,
-  requestedDatasetId: undefined,
+  companySize: undefined,
+  systemType: undefined,
+  systemStage: undefined,
+  sector: undefined,
+  ownerRole: undefined,
+  systemAnswers: "",
+  systemUrl: "",
+  requestedOffer: undefined,
   message: "",
 };
 
@@ -95,37 +57,107 @@ const minimalInputClass =
 const minimalSelectClass =
   "w-full border-0 border-b border-gray-300 rounded-none px-0 py-2 bg-transparent focus-visible:ring-0 focus-visible:border-black text-base shadow-none appearance-none outline-none";
 
-type ContactFormProps = {
-  catalogueListingId?: string;
-  requestedDatasetId?: string;
+type SelectOption = { value: string; label: string };
+
+type SelectFieldName =
+  | "systemType"
+  | "systemStage"
+  | "sector"
+  | "ownerRole"
+  | "companySize"
+  | "requestedOffer";
+
+type SelectInputProps = Omit<ComponentProps<"select">, "value" | "onChange"> & {
+  options: readonly SelectOption[];
+  placeholder: string;
+  value?: string;
+  onValueChange: (value: string | undefined) => void;
 };
 
-export function ContactForm({
-  catalogueListingId,
-  requestedDatasetId,
-}: ContactFormProps) {
+/** Native select in the form's underline style; the empty option clears the value. */
+function SelectInput({
+  options,
+  placeholder,
+  value,
+  onValueChange,
+  className,
+  ...props
+}: SelectInputProps) {
+  return (
+    <select
+      {...props}
+      className={cn(minimalSelectClass, !value && "text-gray-400", className)}
+      value={value ?? ""}
+      onChange={(event) => onValueChange(event.target.value || undefined)}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value} className="text-black">
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+type ContactFormProps = {
+  requestedOffer?: EvaluationRequestOffer;
+};
+
+export function ContactForm({ requestedOffer }: ContactFormProps) {
   const [isComplete, setIsComplete] = useState(false);
   const toast = useLocaleToast();
   const t = useTranslations();
-  const formDefaults = useMemo<Partial<CollaborationFormValues>>(
-    () => ({
-      ...defaultValues,
-      focusArea:
-        catalogueListingId || requestedDatasetId ? "buy-dataset" : undefined,
-      catalogueListingId,
-      requestedDatasetId,
-    }),
-    [catalogueListingId, requestedDatasetId],
+  const formDefaults = useMemo<Partial<EvaluationRequestFormValues>>(
+    () => ({ ...defaultValues, requestedOffer }),
+    [requestedOffer],
   );
-  const form = useForm<CollaborationFormValues>({
-    resolver: zodResolver(collaborationFormSchema),
+  const form = useForm<EvaluationRequestFormValues>({
+    resolver: zodResolver(evaluationRequestFormSchema),
     defaultValues: formDefaults,
     mode: "onBlur",
   });
 
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit(values: CollaborationFormValues) {
+  function optionsFrom<T extends string>(
+    values: readonly T[],
+    labels: Record<T, string>,
+  ): SelectOption[] {
+    return values.map((value) => ({ value, label: t(labels[value]) }));
+  }
+
+  function renderSelectField(
+    name: SelectFieldName,
+    label: string,
+    placeholder: string,
+    options: readonly SelectOption[],
+  ) {
+    return (
+      <FormField
+        control={form.control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="space-y-1">
+            <FormLabel className="text-sm font-medium text-black">{label}</FormLabel>
+            <FormControl>
+              <SelectInput
+                name={field.name}
+                onBlur={field.onBlur}
+                value={field.value}
+                onValueChange={field.onChange}
+                placeholder={placeholder}
+                options={options}
+              />
+            </FormControl>
+            <FormMessage className="text-xs" />
+          </FormItem>
+        )}
+      />
+    );
+  }
+
+  async function onSubmit(values: EvaluationRequestFormValues) {
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -143,7 +175,7 @@ export function ContactForm({
           if (detail?.fieldErrors) {
             Object.entries(detail.fieldErrors).forEach(([field, messages]) => {
               if (messages?.length) {
-                form.setError(field as keyof CollaborationFormValues, {
+                form.setError(field as keyof EvaluationRequestFormValues, {
                   type: "server",
                   message: messages[0],
                 });
@@ -174,10 +206,10 @@ export function ContactForm({
     return (
       <div className="py-8 text-center">
         <h2 className="text-2xl font-normal tracking-tight text-black mb-4">
-          {t("Message sent")}
+          {t("Request sent")}
         </h2>
         <p className="text-base text-gray-600 leading-relaxed mb-8">
-          {t("We'll review your inquiry and reply within 24 hours.")}
+          {t("We'll review your system and reply within 24 hours with the right starting point.")}
         </p>
         <div className="space-y-4 pt-8 border-t border-gray-200">
           <p className="text-base text-gray-600">
@@ -194,7 +226,7 @@ export function ContactForm({
             className="text-sm font-medium text-black hover:underline decoration-1 underline-offset-4"
             onClick={() => setIsComplete(false)}
           >
-            {t("Send another message")}
+            {t("Send another request")}
           </button>
         </div>
       </div>
@@ -205,9 +237,6 @@ export function ContactForm({
     <div className="bg-gray-50/50 p-8 sm:p-10 border border-gray-200 rounded-md">
       <Form {...form}>
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
-          <input type="hidden" {...form.register("catalogueListingId")} />
-          <input type="hidden" {...form.register("requestedDatasetId")} />
-
           <div className="grid gap-8 md:grid-cols-2">
             <FormField
               control={form.control}
@@ -291,289 +320,105 @@ export function ContactForm({
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="focusArea"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-sm font-medium text-black">
-                  {t("What are you looking for?")}
-                </FormLabel>
-                <FormControl>
-                  <select
-                    className={minimalSelectClass}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  >
-                    <option value="" disabled hidden>
-                      {t("Select an option")}
-                    </option>
-                    {collaborationFocusAreas.map((area) => (
-                      <option key={area} value={area}>
-                        {t(focusAreaLabels[area])}
-                      </option>
-                    ))}
-                  </select>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid gap-8 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="industry"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("Industry (optional)")}
-                  </FormLabel>
-                  <FormControl>
-                    <select
-                      className={minimalSelectClass}
-                      value={field.value ?? "none"}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === "none" ? undefined : e.target.value,
-                        )
-                      }
-                    >
-                      <option value="none">{t("Select industry")}</option>
-                      {collaborationIndustries.map((ind) => (
-                        <option key={ind} value={ind}>
-                          {t(industryLabels[ind])}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="teamSize"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("Company size (optional)")}
-                  </FormLabel>
-                  <FormControl>
-                    <select
-                      className={minimalSelectClass}
-                      value={field.value ?? "none"}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value === "none" ? undefined : e.target.value,
-                        )
-                      }
-                    >
-                      <option value="none">{t("Select size")}</option>
-                      {collaborationTeamSizes.map((size) => (
-                        <option key={size} value={size}>
-                          {t("{{range}} employees", { range: size })}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="space-y-6 border-t border-gray-200 pt-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                  {t("Buyer brief")}
-                </p>
-                <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
-                  {t("Dataset requirements")}
-                </h2>
-              </div>
-              {catalogueListingId || requestedDatasetId ? (
-                <span className="inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
-                  {t("Catalogue request")}
-                </span>
-              ) : null}
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="datasetModality"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Dataset type")}
-                    </FormLabel>
-                    <FormControl>
-                      <select
-                        className={minimalSelectClass}
-                        value={field.value ?? ""}
-                        onChange={(e) =>
-                          field.onChange(e.target.value || undefined)
-                        }
-                      >
-                        <option value="">{t("Select type")}</option>
-                        {collaborationDatasetModalities.map((modality) => (
-                          <option key={modality} value={modality}>
-                            {t(modalityLabels[modality])}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="geography"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Geography")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("EU, US, global")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="freshness"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Freshness")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("Daily, monthly, 24 mo")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="volume"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Volume")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("50k rows or 2 TB")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="budgetRange"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Budget range")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("$25k-$75k")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="timeline"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Timeline")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("Pilot in 30 days")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+          <div className="space-y-8 border-t border-gray-200 pt-8">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                {t("Your AI system")}
+              </p>
+              <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
+                {t("What should we evaluate?")}
+              </h2>
             </div>
 
             <div className="grid gap-8 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="targetFormats"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Target formats")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("Parquet, JSONL, Snowflake")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+              {renderSelectField(
+                "systemType",
+                t("Type of system"),
+                t("Select a type"),
+                optionsFrom(evaluationSystemTypes, evaluationSystemTypeLabels),
+              )}
+              {renderSelectField(
+                "systemStage",
+                t("Where is it today? (optional)"),
+                t("Select a stage"),
+                optionsFrom(evaluationSystemStages, evaluationSystemStageLabels),
+              )}
+            </div>
 
-              <FormField
-                control={form.control}
-                name="sensitivityConstraints"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-sm font-medium text-black">
-                      {t("Sensitivity constraints")}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t("PII, PHI, regulated regions")}
-                        className={minimalInputClass}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+            <div className="grid gap-8 md:grid-cols-2">
+              {renderSelectField(
+                "sector",
+                t("Sector"),
+                t("Select a sector"),
+                optionsFrom(evaluationSectors, evaluationSectorLabels),
+              )}
+              {renderSelectField(
+                "ownerRole",
+                t("Who owns the system?"),
+                t("Select a team"),
+                optionsFrom(evaluationOwnerRoles, evaluationOwnerRoleLabels),
+              )}
+            </div>
+
+            <FormField
+              control={form.control}
+              name="systemAnswers"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("What does it answer?")}
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={3}
+                      placeholder={t(
+                        "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
+                      )}
+                      className={cn(minimalInputClass, "resize-none")}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="systemUrl"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm font-medium text-black">
+                    {t("Where can we see it? (optional)")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://company.com/assistant"
+                      className={minimalInputClass}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid gap-8 md:grid-cols-2">
+              {renderSelectField(
+                "companySize",
+                t("Company size (optional)"),
+                t("Select size"),
+                evaluationCompanySizes.map((size) => ({
+                  value: size,
+                  label: t("{{range}} employees", { range: size }),
+                })),
+              )}
+              {renderSelectField(
+                "requestedOffer",
+                t("What would you like to start with? (optional)"),
+                t("Select an option"),
+                optionsFrom(evaluationRequestOffers, evaluationRequestOfferLabels),
+              )}
             </div>
           </div>
 
@@ -583,13 +428,13 @@ export function ContactForm({
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm font-medium text-black">
-                  {t("Tell us about your project")}
+                  {t("Anything else we should know? (optional)")}
                 </FormLabel>
                 <FormControl>
                   <Textarea
-                    rows={4}
+                    rows={3}
                     placeholder={t(
-                      "Describe what you need: the data you want to sell, the dataset you're looking for, or the AI project you want to build. Include details like data type, industry, volume, and timeline.",
+                      "How you test it today, recent complaints, a deadline you're working to…",
                     )}
                     className={cn(minimalInputClass, "resize-none")}
                     {...field}
@@ -612,7 +457,7 @@ export function ContactForm({
               </>
             ) : (
               <>
-                {t("Send message")}
+                {t("Send request")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}

@@ -79,56 +79,8 @@ jobs:
           path: docker-scout.sarif
           retention-days: 30
 
-  build-orchestration:
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push orchestration image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/orchestration
-          file: ./services/orchestration/Dockerfile
-          pull: true
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:orchestration-latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:orchestration-${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:orchestration-buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:orchestration-buildcache,mode=max
-
-      - name: Scan orchestration image vulnerabilities
-        uses: docker/scout-action@v1
-        with:
-          command: cves
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:orchestration-${{ github.sha }}
-          only-severities: critical,high
-          sarif-file: docker-scout-orchestration.sarif
-
-      - name: Upload orchestration Docker Scout SARIF artifact
-        if: ${{ always() && hashFiles('docker-scout-orchestration.sarif') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-scout-orchestration-sarif
-          path: docker-scout-orchestration.sarif
-          retention-days: 30
-
   deploy-to-vps:
-    needs: [build-and-push, build-orchestration]
+    needs: [build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Tailscale
@@ -150,5 +102,4 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             sudo CAUDALS_APP_BUILD_LOCAL=false scripts/deploy-app-stack.sh
-            sudo scripts/deploy-orchestration-stack.sh
           INNEREOF

@@ -1,33 +1,19 @@
 import * as React from "react";
-import type { PublicBuyerBriefRoutingResult } from "@/lib/public/buyer-brief-intake";
-import type { CollaborationFormValues } from "@/lib/validators/collaboration";
+import type { PublicEvaluationRequestRoutingResult } from "@/lib/public/evaluation-request-intake";
+import {
+  evaluationOwnerRoleLabels,
+  evaluationRequestOfferLabels,
+  evaluationSectorLabels,
+  evaluationSystemStageLabels,
+  evaluationSystemTypeLabels,
+  type EvaluationRequestFormValues,
+} from "@/lib/validators/evaluation-request";
 
-const focusAreaLabels: Record<CollaborationFormValues["focusArea"], string> = {
-  "sell-data": "Wants to sell company data",
-  "buy-dataset": "Wants to acquire a pre-made dataset",
-  "custom-dataset": "Needs a custom dataset built",
-  "ai-consulting": "AI consulting & model training",
-};
-
-const industryLabels: Record<string, string> = {
-  logistics: "Logistics & Transportation",
-  retail: "Retail & E-commerce",
-  healthcare: "Healthcare & Life Sciences",
-  agriculture: "Agriculture & Agritech",
-  fintech: "Fintech & Banking",
-  energy: "Energy & Utilities",
-  manufacturing: "Manufacturing & IoT",
-  "real-estate": "Real Estate & PropTech",
-  telecom: "Telecom & Networks",
-  insurance: "Insurance",
-  other: "Other",
-};
-
-type ContactInquiryEmailProps = CollaborationFormValues & {
+type ContactInquiryEmailProps = EvaluationRequestFormValues & {
   submittedAt: string;
   userAgent?: string | null;
   referer?: string | null;
-  buyerBriefRouting?: PublicBuyerBriefRoutingResult | null;
+  evaluationRequestRouting?: PublicEvaluationRequestRoutingResult | null;
 };
 
 export function ContactInquiryEmail({
@@ -35,22 +21,19 @@ export function ContactInquiryEmail({
   workEmail,
   organization,
   organizationWebsite,
+  companySize,
+  systemType,
+  systemStage,
+  sector,
+  ownerRole,
+  systemAnswers,
+  systemUrl,
+  requestedOffer,
   message,
-  focusArea,
-  industry,
-  teamSize,
-  datasetModality,
-  geography,
-  freshness,
-  volume,
-  budgetRange,
-  timeline,
-  targetFormats,
-  sensitivityConstraints,
   submittedAt,
   userAgent,
   referer,
-  buyerBriefRouting,
+  evaluationRequestRouting,
 }: ContactInquiryEmailProps) {
   const submitted = new Date(submittedAt);
   const formattedDate = submitted.toLocaleString("en-US", {
@@ -88,7 +71,7 @@ export function ContactInquiryEmail({
           <tr>
             <td>
               <p style={{ fontSize: 14, color: "#64748b", marginBottom: 8 }}>
-                New contact inquiry
+                New evaluation request
               </p>
               <h1 style={{ fontSize: 24, color: "#0f172a", marginBottom: 16 }}>
                 {organization} &middot; {fullName}
@@ -103,28 +86,30 @@ export function ContactInquiryEmail({
               >
                 <InfoRow label="Contact" value={`${fullName} — ${workEmail}`} />
                 <InfoRow label="Company" value={organization} />
-                <InfoRow label="Interest" value={focusAreaLabels[focusArea]} />
-                {industry ? <InfoRow label="Industry" value={industryLabels[industry] ?? industry} /> : null}
-                {teamSize ? <InfoRow label="Company size" value={teamSize} /> : null}
-                {datasetModality ? (
-                  <InfoRow label="Dataset type" value={datasetModality} />
+                {companySize ? (
+                  <InfoRow label="Company size" value={`${companySize} employees`} />
                 ) : null}
-                {budgetRange ? <InfoRow label="Budget" value={budgetRange} /> : null}
-                {timeline ? <InfoRow label="Timeline" value={timeline} /> : null}
-                {geography ? <InfoRow label="Geography" value={geography} /> : null}
-                {freshness ? <InfoRow label="Freshness" value={freshness} /> : null}
-                {volume ? <InfoRow label="Volume" value={volume} /> : null}
-                {targetFormats ? (
-                  <InfoRow label="Target formats" value={targetFormats} />
+                <InfoRow label="System" value={evaluationSystemTypeLabels[systemType]} />
+                {systemStage ? (
+                  <InfoRow label="Stage" value={evaluationSystemStageLabels[systemStage]} />
                 ) : null}
-                {buyerBriefRouting?.status === "routed" ? (
+                <InfoRow label="Sector" value={evaluationSectorLabels[sector]} />
+                <InfoRow label="Owner" value={evaluationOwnerRoleLabels[ownerRole]} />
+                {requestedOffer ? (
                   <InfoRow
-                    label="Operator queue"
-                    value={`${buyerBriefRouting.buyerOpportunityId} / ${buyerBriefRouting.datasetBriefId}`}
+                    label="Wants to start with"
+                    value={evaluationRequestOfferLabels[requestedOffer]}
                   />
                 ) : null}
+                {systemUrl ? <InfoRow label="System URL" value={systemUrl} /> : null}
                 {organizationWebsite ? (
                   <InfoRow label="Website" value={organizationWebsite} />
+                ) : null}
+                {evaluationRequestRouting?.status === "routed" ? (
+                  <InfoRow
+                    label="Operator queue"
+                    value={evaluationRequestRouting.buyerOpportunityId}
+                  />
                 ) : null}
                 <InfoRow label="Submitted" value={formattedDate} />
               </div>
@@ -137,40 +122,13 @@ export function ContactInquiryEmail({
                   border: "1px solid #e2e8f0",
                 }}
               >
-                <p
-                  style={{
-                    fontSize: 13,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.6,
-                    color: "#94a3b8",
-                    marginBottom: 8,
-                  }}
-                >
-                  Inquiry notes
-                </p>
-                <p
-                  style={{
-                    fontSize: 15,
-                    color: "#0f172a",
-                    lineHeight: 1.6,
-                    whiteSpace: "pre-wrap",
-                    margin: 0,
-                  }}
-                >
-                  {message}
-                </p>
-                {sensitivityConstraints ? (
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "#475569",
-                      lineHeight: 1.5,
-                      whiteSpace: "pre-wrap",
-                      margin: "16px 0 0 0",
-                    }}
-                  >
-                    Sensitivity notes: {sensitivityConstraints}
-                  </p>
+                <NoteLabel>What it answers</NoteLabel>
+                <NoteBody>{systemAnswers}</NoteBody>
+                {message ? (
+                  <>
+                    <NoteLabel style={{ marginTop: 16 }}>Notes</NoteLabel>
+                    <NoteBody>{message}</NoteBody>
+                  </>
                 ) : null}
               </div>
               {(userAgent || referer) && (
@@ -206,6 +164,45 @@ export function ContactInquiryEmail({
         Caudals • Contact inbox
       </p>
     </div>
+  );
+}
+
+function NoteLabel({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <p
+      style={{
+        fontSize: 13,
+        textTransform: "uppercase",
+        letterSpacing: 0.6,
+        color: "#94a3b8",
+        margin: "0 0 8px 0",
+        ...style,
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function NoteBody({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        fontSize: 15,
+        color: "#0f172a",
+        lineHeight: 1.6,
+        whiteSpace: "pre-wrap",
+        margin: 0,
+      }}
+    >
+      {children}
+    </p>
   );
 }
 
