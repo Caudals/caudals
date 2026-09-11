@@ -9,9 +9,8 @@ Current production scope:
 - Public marketing, authority and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
-- Legacy direct routes (frozen): `/buyer`, `/supplier`, `/v1/*`, `/security`. They stay deployed and protected by their normal route, auth, RLS, rate-limit and audit controls; they are maintained, not extended.
 
-While `LANDING_MODE=true`, direct routes remain reachable by URL. Landing mode only removes public discovery from the landing page and marketing navigation: no buttons, nav links, hero CTAs, cards, sitemap promotion or other entry points to `/buyer`, `/supplier`, `/v1/*` or `/security` unless explicitly requested. Catalogue browsing and marketplace commerce are out of scope.
+The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; they return `404`. There is no landing-mode flag: the routes above are the whole app.
 
 ## Application Stack
 
@@ -33,7 +32,7 @@ While `LANDING_MODE=true`, direct routes remain reachable by URL. Landing mode o
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password, reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
-- `lib/public/*`: public funnel logic, including `/contact` intake (`buyer-brief-intake.ts`)
+- `lib/public/*`: public funnel logic: the `/contact` evaluation-request intake (`evaluation-request-intake.ts`) and the published offers (`evaluation-offers.ts`)
 - `lib/security/*`: public API abuse controls (rate limiting)
 - `lib/operator/*`: Operator Console domain modules. Record CRUD and the console repository are shared infrastructure; the dataset-build modules (dataset operations, active learning, cleanlab, license composition, modality contracts, release documentation, sample-preview gating, subscription delivery, compliance controls) are frozen.
 - `app/(buyer)/*`, `app/(supplier)/*`, `lib/buyer/*`, `lib/supplier/*`, `lib/api/v1.ts`: legacy direct-route surfaces (frozen)
@@ -41,7 +40,7 @@ While `LANDING_MODE=true`, direct routes remain reachable by URL. Landing mode o
 - `db/migrations/*` and `db/rollbacks/*`: PostgreSQL schema history; every migration ships a rollback
 - Planned: `app/(eval)/*`, `app/(app)/admin/eval/*`, `lib/eval/*`
 
-Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `contact`, `buyer_opportunity` and `dataset_brief` are still written by `/contact` until intake is repositioned to evaluation requests. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
+Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`, which only the frozen `/v1` brief intake still creates. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
 
 ## Evaluation Product Architecture (planned)
 
@@ -105,45 +104,25 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
-- `LANDING_MODE=true` is the current public deployment posture.
-- In landing mode, the public page surface stays narrow
-  (`/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`,
-  `/newsletter/*`, `/equipo`, `/equipo/*`, `/legal/*`), but `/auth/*`, `/api/auth/*`,
-  `/api/user/role`, `/admin`, `/buyer`, `/supplier`, `/security`, `/v1/*`,
-  explicit public APIs, and required metadata/assets may remain route-accessible
-  according to their normal auth and authorization model.
+- The public page surface is `/`, `/contact`, `/call`, `/blog`, `/blog/*`,
+  `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*` and `/legal/*`;
+  `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`, the funnel APIs and
+  required metadata/assets are the only other routes.
 - Removed legacy self-serve route groups return `404`: `/browse`,
   `/contributor`, `/dashboard` (app-host root requests go to `/admin`), `/pwa`
   (the manifest links public surfaces only) and `/requester`. Legacy `/admin/*`
   subroutes are removed; `/admin` is the Operator Console.
-- `/catalogue` and catalogue dataset browsing are not published. `/v1/datasets/*`
-  is default-404 unless `PUBLIC_REST_CATALOGUE_ENABLED=true`.
-- `/contact` is the general contact and intake path. It currently records
-  structured dataset briefs: submissions create `contact`, `buyer_opportunity`
-  and `dataset_brief` rows under the Caudals tenant, emit `audit_event`
-  state-transition records and send the operator notification email.
-  Repositioning it to evaluation requests is pending.
-- `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/call` stays out of the primary landing navigation but is allowlisted in landing mode and cross-linked from `/contact`.
+- `/contact` is the general contact and intake path for evaluation requests.
+  Submissions create `contact`, `buyer_opportunity` and `evaluation_request`
+  rows under the Caudals tenant (system type, stage, sector, owner role, what
+  the system answers, requested offer, URLs), emit `audit_event` state
+  transitions for the opportunity and the request, and send the operator
+  notification email. `PUBLIC_BUYER_BRIEF_INTAKE_ENABLED=false`
+  keeps it email-only.
+- `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/call` stays out of the primary landing navigation and is cross-linked from `/contact`.
 - `/equipo` and `/equipo/*` are public founder/author authority pages. They may link to an approved, redacted university credential PDF when the corresponding file exists under `public/material/`; missing credentials must not produce broken links or unsupported structured-data claims.
 - `/sitemap.xml` is the public sitemap index and points to post, page, and author subsitemaps. `/llms.txt` is the curated public AI-readable index. Neither may expose private routes, authenticated workspaces, direct-route surfaces or operational APIs.
-- `/security` is the legacy security-review surface (frozen). It summarizes
-  implemented controls, flags credential-gated readiness items, and routes DPA
-  or questionnaire follow-up to `/contact`; it stays unlinked from the landing
-  page.
-- `/v1/*` is the legacy REST surface (frozen). `/v1` returns inline endpoint
-  documentation; public brief intake is anonymous and rate-limited, while buyer
-  delivery, subscription and quote actions require a Better Auth buyer session
-  and emit audited state transitions.
-- `/buyer` (read-only delivery, subscription, integration, billing, scorecard,
-  manifest and trust evidence) and `/supplier` (asset declarations, signed
-  sample uploads, build participation, payout visibility, Stripe Connect status)
-  are authenticated legacy surfaces (frozen). `SUPPLIER_PORTAL_ENABLED=false`
-  hides `/supplier`; `BUYER_WORKSPACE_V1_ENABLED=false` hides the buyer
-  subscription, integration and billing panels.
-- `/api/auth/*` is the Better Auth operator identity endpoint and remains available with `/auth/*` while `LANDING_MODE=true`.
-- Direct-route access must not be confused with landing-page exposure: these
-  surfaces can be reachable by URL while remaining absent from landing-page
-  navigation and marketing CTAs.
+- `/api/auth/*` is the Better Auth operator identity endpoint, used with `/auth/*` for Operator Console sign-in.
 
 ## Infrastructure and Deployment
 
@@ -271,7 +250,7 @@ Runbook details, secrets and dashboard ports are in `docs/TOOLS.md` → Legacy P
 
 Current:
 
-- lead capture: contact and dataset-brief records from `/contact`; newsletter
+- lead capture: `contact`, `buyer_opportunity` and `evaluation_request` records from `/contact`; newsletter
   subscribers live in the Leads CRM behind `/api/newsletter`
 - content: bundled blog fallback and marketing metadata; newly approved blog
   posts are read from the narrow public Leads archive API with 60-second
@@ -322,8 +301,9 @@ Mature current areas:
 
 Active drift risks:
 
-- public copy, `/contact` intake fields, `/llms.txt` and SEO metadata must stay
-  aligned with the evaluation positioning; `/contact` still records dataset briefs
+- public copy, `/contact` intake fields, `/llms.txt`, agent markdown and SEO
+  metadata must stay aligned with the evaluation positioning and read prices
+  from `lib/public/evaluation-offers.ts`
 - the observability and object-storage stacks are not deployed on `caudals-1`
   (as of 2026-09-11); the completion gate reports them until they are
   redeployed or explicitly waived

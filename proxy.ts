@@ -1,9 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isBetterAuthSessionCookieName } from "@/lib/auth/session-cookie";
-import {
-  isLandingModeEnabledServer,
-  isLandingModeRequestAllowed,
-} from "@/lib/landing-mode";
 import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import {
   MARKDOWN_ROUTE_PREFIX,
@@ -24,15 +20,11 @@ const APP_ONLY_PATH_PREFIXES = [
   "/contributor",
   "/admin",
   "/auth",
-  "/buyer",
-  "/supplier",
   "/pwa",
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
 const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
-const BUYER_WORKSPACE_PATH_PREFIXES = ["/buyer"];
-const SUPPLIER_PORTAL_PATH_PREFIXES = ["/supplier"];
 
 type HostConfig = {
   hostname: string;
@@ -121,28 +113,6 @@ function redirectAnonymousAdminRequest(request: NextRequest) {
   return NextResponse.redirect(redirectUrl);
 }
 
-function redirectAnonymousPrivateRequest(request: NextRequest) {
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = "/auth/sign-in";
-  redirectUrl.searchParams.set(
-    "next",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`
-  );
-  return NextResponse.redirect(redirectUrl);
-}
-
-function matchesBuyerWorkspacePath(pathname: string) {
-  return BUYER_WORKSPACE_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
-
-function matchesSupplierPortalPath(pathname: string) {
-  return SUPPLIER_PORTAL_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
-
 function rewriteWithState(
   request: NextRequest,
   sourceResponse: NextResponse,
@@ -207,21 +177,6 @@ export async function proxy(request: NextRequest) {
   );
   const isMarketingHost = marketingHostnames.includes(hostname);
 
-  const landingMode = isLandingModeEnabledServer();
-
-  if (landingMode && !isLandingModeRequestAllowed(pathname)) {
-    if (pathname.startsWith("/api")) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
-    }
-
-    return new NextResponse("Not Found", {
-      status: 404,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-    });
-  }
-
   if (shouldBlockPhaseOneHiddenSurface(pathname)) {
     return new NextResponse("Not Found", {
       status: 404,
@@ -233,20 +188,6 @@ export async function proxy(request: NextRequest) {
 
   if (ADMIN_ROOT_PATHS.has(pathname) && !hasBetterAuthSessionCookie(request)) {
     return redirectAnonymousAdminRequest(request);
-  }
-
-  if (
-    matchesBuyerWorkspacePath(pathname) &&
-    !hasBetterAuthSessionCookie(request)
-  ) {
-    return redirectAnonymousPrivateRequest(request);
-  }
-
-  if (
-    matchesSupplierPortalPath(pathname) &&
-    !hasBetterAuthSessionCookie(request)
-  ) {
-    return redirectAnonymousPrivateRequest(request);
   }
 
   // Content negotiation for agents: a request that explicitly prefers
@@ -272,7 +213,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const treatAppRootAsAdmin = !landingMode && isAppHost && pathname === "/";
+  const treatAppRootAsAdmin = isAppHost && pathname === "/";
 
   const response = NextResponse.next({ request });
   const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);

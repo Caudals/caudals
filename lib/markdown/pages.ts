@@ -1,6 +1,9 @@
 import "server-only";
 
 import type { Metadata } from "next";
+import { createTranslator } from "@/lib/i18n/create-translator";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
 import { buildMarketingUrl, getIndexableMarketingRoutes } from "@/lib/seo";
 
 /**
@@ -10,19 +13,21 @@ import { buildMarketingUrl, getIndexableMarketingRoutes } from "@/lib/seo";
  */
 const STATIC_PAGE_LOADERS: Record<string, () => Promise<{ metadata?: Metadata }>> = {
   "/": () => import("@/app/(home)/page"),
-  "/about": () => import("@/app/(home)/about/page"),
   "/call": () => import("@/app/(home)/call/page"),
-  "/careers": () => import("@/app/(home)/careers/page"),
-  "/catalogue": () => import("@/app/(home)/catalogue/page"),
   "/contact": () => import("@/app/(home)/contact/page"),
-  "/docs": () => import("@/app/(home)/docs/page"),
-  "/docs/security-baseline": () => import("@/app/(home)/docs/security-baseline/page"),
   "/legal/cookies": () => import("@/app/(home)/legal/cookies/page"),
   "/legal/notice": () => import("@/app/(home)/legal/notice/page"),
   "/legal/privacy": () => import("@/app/(home)/legal/privacy/page"),
   "/legal/terms": () => import("@/app/(home)/legal/terms/page"),
-  "/pricing": () => import("@/app/(home)/pricing/page"),
-  "/security": () => import("@/app/(home)/security/page"),
+};
+
+/**
+ * Body sections for pages whose metadata alone would undersell them. The home
+ * page carries the evaluation model and its prices, rendered from the same
+ * source as the landing page so the two cannot disagree.
+ */
+const STATIC_PAGE_BODIES: Record<string, () => string> = {
+  "/": () => renderEvaluationOverviewMarkdown(createTranslator("es", getDictionary("es"))),
 };
 
 export function isStaticMarkdownPage(pathname: string) {
@@ -67,6 +72,7 @@ export async function renderStaticPageMarkdown(pathname: string) {
   const sections = [
     `# ${title}`,
     description,
+    STATIC_PAGE_BODIES[pathname]?.(),
     "## Otras páginas",
     relatedLinks(pathname),
     `---\n\nCanonical URL: ${buildMarketingUrl(pathname)}`,

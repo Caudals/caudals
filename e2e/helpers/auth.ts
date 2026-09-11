@@ -2,8 +2,6 @@ import { expect, type Page } from "@playwright/test";
 import { isBetterAuthSessionCookieName } from "../../lib/auth/session-cookie";
 
 export const FIXTURE_OPERATOR_EMAIL = "fixture.admin@caudals.local";
-export const FIXTURE_BUYER_EMAIL = "buyer.fixture@caudals.local";
-export const FIXTURE_SUPPLIER_EMAIL = "supplier.fixture@caudals.local";
 
 const FIXTURE_PASSWORD =
   process.env.TEST_FIXTURE_PASSWORD ?? "CaudalsFixture123!";
@@ -42,23 +40,5 @@ export async function signInAsFixtureOperator(
   email = FIXTURE_OPERATOR_EMAIL
 ) {
   await page.goto("/auth/sign-in");
-  await submitFixtureSignIn(page, email);
-}
-
-export async function signInAsFixtureBuyer(
-  page: Page,
-  email = FIXTURE_BUYER_EMAIL
-) {
-  await page.goto("/buyer");
-  await expect(page).toHaveURL(/\/auth\/sign-in/);
-  await submitFixtureSignIn(page, email);
-}
-
-export async function signInAsFixtureSupplier(
-  page: Page,
-  email = FIXTURE_SUPPLIER_EMAIL
-) {
-  await page.goto("/supplier");
-  await expect(page).toHaveURL(/\/auth\/sign-in/);
   await submitFixtureSignIn(page, email);
 }

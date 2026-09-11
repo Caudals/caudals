@@ -1158,7 +1158,7 @@ export function OperatorConsole({
                 {t("Public funnel")}
               </p>
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                {t("LANDING_MODE route policy")}
+                {t("Landing routes only")}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4">

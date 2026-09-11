@@ -7,7 +7,6 @@ import { Header } from "@/components/ui/header";
 import { normalizeTopicKey } from "@/lib/blog/shared";
 import { getBlogPosts } from "@/lib/blog/posts";
 import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildPublicMetadata } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +22,7 @@ export async function generateMetadata({
     ...buildPublicMetadata({
       title: t("Blog"),
       description: t(
-        "Clear signal for dataset operations, product launches, and engineering notes from Caudals."
+        "Notes on how to evaluate AI systems and the data that makes them reliable."
       ),
       pathname: "/blog",
       noIndex: Boolean(normalizeTopicKey(topic)),
@@ -55,7 +54,7 @@ export default async function BlogPage({
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
       <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-16">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
@@ -96,7 +95,7 @@ export default async function BlogPage({
           )}
         </section>
       </main>
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { Header } from "@/components/ui/header";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildPublicMetadata } from "@/lib/seo";
 
 /**
@@ -44,7 +43,7 @@ export default async function NewsletterPage() {
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <header className="mb-12">
@@ -86,7 +85,7 @@ export default async function NewsletterPage() {
         </section>
       </main>
 
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

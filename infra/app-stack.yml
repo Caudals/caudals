@@ -16,6 +16,14 @@ services:
       PORT: "3000"
     secrets:
       - app_runtime_env
+    # Nothing in the image reads the runtime secret, so the start command
+    # exports it before starting Next.js. A missing file makes `.` exit the
+    # shell, so the task fails and the update rolls back instead of serving
+    # without configuration. `docker exec` does not inherit this environment.
+    command:
+      - sh
+      - -c
+      - set -a; . /run/secrets/app_runtime_env; set +a; exec npm run start
     healthcheck:
       test:
         [

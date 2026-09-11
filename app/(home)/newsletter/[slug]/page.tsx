@@ -7,7 +7,6 @@ import { NewsletterBlockView } from "@/components/newsletter/blocks";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
 import { getPublishedIssue, getPublishedIssues } from "@/lib/newsletter/client";
 import { getServerTranslator } from "@/lib/i18n/server";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 /** One issue, permanently. Only issues that were actually sent are readable. */
@@ -108,7 +107,7 @@ export default async function NewsletterIssuePage({
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
 
       <main className="mx-auto flex w-full max-w-2xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <Link
@@ -153,7 +152,7 @@ export default async function NewsletterIssuePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleStructuredData) }}
       />
 
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

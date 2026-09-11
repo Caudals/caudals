@@ -20,18 +20,14 @@ Caudals is an AI data company that starts with evaluation. We begin with pilot p
 Current deployment scope is intentionally narrow:
 
 - public landing page, contact form, meeting booking, blog, newsletter, team and legal pages,
-- private Operator Console (`/admin`),
-- legacy direct-route surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`), frozen but kept deployed behind their normal auth, authorization, RLS, rate-limit and audit controls.
+- private Operator Console (`/admin`) and its sign-in (`/auth/*`).
 
-`LANDING_MODE=true` is a landing-page visibility rule, not a route-publication ban. Direct routes may be reachable by URL, but the landing page must not expose buttons, nav links, hero CTAs, marketing cards, sitemap promotion or other discovery paths to them unless explicitly requested.
+There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; do not reintroduce them.
 
 ## Frozen Scope
 
 Maintain these so they keep working; do not extend or market them:
 
-- two-sided marketplace, catalogue browsing and purchase flows,
-- supplier portal, supplier revenue share and Stripe Connect payouts,
-- buyer workspace self-service,
 - non-text modalities (image, video, audio, geospatial, sensor),
 - the legacy dataset-build Operator Console modules and CLI,
 - legacy private stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis, Marquez). New evaluation code must not depend on them.

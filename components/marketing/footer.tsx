@@ -2,10 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import {
-  landingModePublicEnabled,
-  landingModePublicNavigationLinks,
-} from "@/lib/landing-mode";
+import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const legalLinks = [
@@ -51,31 +48,24 @@ const getAskAiLinks = (prompt: string) => {
   ];
 };
 
-interface MarketingFooterProps {
-  forceLandingMode?: boolean;
-}
-
-export function MarketingFooter({ forceLandingMode = false }: MarketingFooterProps) {
+export function MarketingFooter() {
   const t = useTranslations();
-  
-  // Only use simplified footer when deploy is in landing mode (set at build time)
-  const isLandingMode = landingModePublicEnabled || forceLandingMode;
-  
+
   const aiPrompt = t(
-    "What is Caudals? Explain its usefulness for obtaining AI training datasets and giving a second life to unused data. Provide a clear and detailed summary based on its website: https://caudals.com.",
+    "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their own documentation and experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
   );
   const aiLinks = getAskAiLinks(aiPrompt);
 
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
-        <div className={`grid gap-8 ${isLandingMode ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <p className="mb-4 text-lg font-semibold text-slate-900">
               {t("Caudals")}
             </p>
             <p className="text-sm text-slate-500">
-              {t("Build production-grade datasets to train tailored AI models")}
+              {t("Independent evaluation for AI assistants, with answer keys signed off by your own experts.")}
             </p>
             <Link
               href="mailto:hello@caudals.com"
@@ -110,124 +100,44 @@ export function MarketingFooter({ forceLandingMode = false }: MarketingFooterPro
               </div>
             </div>
           </div>
-          {isLandingMode ? (
-            <>
-              <div>
-                <p className="mb-4 text-sm font-semibold text-slate-900">
-                  {t("Explore")}
-                </p>
-                <ul className="space-y-2 text-sm text-slate-500">
-                  {landingModePublicNavigationLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link href={link.href} className="hover:text-foreground">
-                        {t(link.label)}
-                      </Link>
-                    </li>
-                  ))}
-                  <li>
-                    <Link href="/equipo" className="hover:text-foreground">
-                      {t("Equipo")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/call" className="hover:text-foreground">
-                      {t("Book a meeting")}
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <p className="mb-4 text-sm font-semibold text-slate-900">
-                  {t("Legal")}
-                </p>
-                <ul className="space-y-2 text-sm text-slate-500">
-                  {legalLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link href={link.href} className="hover:text-foreground">
-                        {t(link.label)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <p className="mb-4 text-sm font-semibold text-slate-900">
-                  {t("Product")}
-                </p>
-                <ul className="space-y-2 text-sm text-slate-500">
-                  <li>
-                    <Link href="/contact" className="hover:text-foreground">
-                      {t("Contact")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/pricing" className="hover:text-foreground">
-                      {t("Pricing")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/docs" className="hover:text-foreground">
-                      {t("Documentation")}
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <p className="mb-4 text-sm font-semibold text-slate-900">
-                  {t("Company")}
-                </p>
-                <ul className="space-y-2 text-sm text-slate-500">
-                  <li>
-                    <Link href="/about" className="hover:text-foreground">
-                      {t("About")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/blog" className="hover:text-foreground">
-                      {t("Blog")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/careers" className="hover:text-foreground">
-                      {t("Careers")}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/contact" className="hover:text-foreground">
-                      {t("Contact")}
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </>
-          )}
-          {!isLandingMode ? (
-            <div>
-              <p className="mb-4 text-sm font-semibold text-slate-900">
-                {t("Legal")}
-              </p>
-              <ul className="space-y-2 text-sm text-slate-500">
-                <li>
-                  <Link href="/legal/privacy" className="hover:text-foreground">
-                    {t("Privacy Policy")}
+          <div>
+            <p className="mb-4 text-sm font-semibold text-slate-900">
+              {t("Explore")}
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500">
+              {publicNavigationLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="hover:text-foreground">
+                    {t(link.label)}
                   </Link>
                 </li>
-                <li>
-                  <Link href="/legal/terms" className="hover:text-foreground">
-                    {t("Terms of Service")}
+              ))}
+              <li>
+                <Link href="/equipo" className="hover:text-foreground">
+                  {t("Equipo")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/call" className="hover:text-foreground">
+                  {t("Book a meeting")}
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="mb-4 text-sm font-semibold text-slate-900">
+              {t("Legal")}
+            </p>
+            <ul className="space-y-2 text-sm text-slate-500">
+              {legalLinks.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="hover:text-foreground">
+                    {t(link.label)}
                   </Link>
                 </li>
-                <li>
-                  <Link href="/legal/cookies" className="hover:text-foreground">
-                    {t("Cookie Policy")}
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          ) : null}
+              ))}
+            </ul>
+          </div>
         </div>
 
 

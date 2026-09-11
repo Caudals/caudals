@@ -57,42 +57,6 @@ function sourceFor(result) {
   return result.present ? result.source : "missing";
 }
 
-function buildStripeStatus() {
-  const secretKey = readSecret("STRIPE_SECRET_KEY");
-  const webhookSecret = readSecret("STRIPE_WEBHOOK_SECRET");
-  const publishableKey = readPlain("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-  const missing = [];
-  const invalidFormat = [];
-
-  if (!secretKey.present) {
-    missing.push("STRIPE_SECRET_KEY");
-  } else if (!secretKey.value.startsWith("sk_")) {
-    invalidFormat.push("STRIPE_SECRET_KEY");
-  }
-
-  if (!webhookSecret.present) {
-    missing.push("STRIPE_WEBHOOK_SECRET");
-  } else if (!webhookSecret.value.startsWith("whsec_")) {
-    invalidFormat.push("STRIPE_WEBHOOK_SECRET");
-  }
-
-  if (!publishableKey.present) {
-    missing.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-  } else if (!publishableKey.value.startsWith("pk_")) {
-    invalidFormat.push("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
-  }
-
-  return {
-    ready: missing.length === 0 && invalidFormat.length === 0,
-    secretKeySource: sourceFor(secretKey),
-    webhookSecretSource: sourceFor(webhookSecret),
-    publishableKeySource: sourceFor(publishableKey),
-    missing,
-    invalidFormat,
-    readErrors: [secretKey.error, webhookSecret.error].filter(Boolean),
-  };
-}
-
 function buildEmailStatus() {
   const apiKey = readSecret("RESEND_API_KEY");
   const fromEmail = readPlain("RESEND_FROM_EMAIL");
@@ -145,23 +109,12 @@ function buildEmailStatus() {
 }
 
 const status = {
-  stripe: buildStripeStatus(),
   email: buildEmailStatus(),
 };
 
 if (json) {
   console.log(JSON.stringify(status, null, 2));
 } else {
-  console.log(
-    [
-      `stripe ready=${status.stripe.ready}`,
-      `secret_source=${status.stripe.secretKeySource}`,
-      `webhook_source=${status.stripe.webhookSecretSource}`,
-      `publishable_key=${status.stripe.publishableKeySource}`,
-      `missing=${status.stripe.missing.join(",") || "none"}`,
-      `invalid_format=${status.stripe.invalidFormat.join(",") || "none"}`,
-    ].join(" ")
-  );
   console.log(
     [
       `email ready=${status.email.ready}`,
@@ -176,11 +129,8 @@ if (json) {
   );
 }
 
-if (failOnMissing && (!status.stripe.ready || !status.email.ready)) {
-  for (const readError of [
-    ...status.stripe.readErrors,
-    ...status.email.readErrors,
-  ]) {
+if (failOnMissing && !status.email.ready) {
+  for (const readError of status.email.readErrors) {
     console.error(readError);
   }
 

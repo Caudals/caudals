@@ -799,6 +799,7 @@ const moduleCountsSql = `
       (SELECT count(*)::int FROM alert WHERE state = 'open' AND severity = 'critical' AND deleted_at IS NULL) AS blocked_records
     UNION ALL SELECT 'leads',
       (SELECT count(*)::int FROM buyer_opportunity WHERE deleted_at IS NULL) +
+      (SELECT count(*)::int FROM evaluation_request WHERE deleted_at IS NULL) +
       (SELECT count(*)::int FROM supplier_opportunity WHERE deleted_at IS NULL),
       (SELECT count(*)::int FROM buyer_opportunity WHERE state = 'closed_lost' AND deleted_at IS NULL) +
       (SELECT count(*)::int FROM supplier_opportunity WHERE state = 'terminated' AND deleted_at IS NULL)
@@ -998,6 +999,19 @@ const moduleWorkItemsSql = `
       'Advance buyer stage'
     FROM buyer_opportunity bo
     WHERE bo.deleted_at IS NULL
+    UNION ALL
+    SELECT
+      'leads',
+      'evaluation_request',
+      er.id,
+      er.organization_name || ' · ' || replace(er.system_type, '-', ' '),
+      er.state,
+      left(er.system_answers, 160),
+      er.updated_at,
+      CASE WHEN er.state = 'new' THEN 'warning' ELSE 'info' END,
+      'Review evaluation request'
+    FROM evaluation_request er
+    WHERE er.deleted_at IS NULL
     UNION ALL
     SELECT
       'leads',
@@ -1720,6 +1734,19 @@ const moduleWorkItemsSql = `
           ))
           FROM license_clause lc
           WHERE lc.id = raw_work_items.id
+        )
+        WHEN record_type = 'evaluation_request' THEN (
+          SELECT jsonb_strip_nulls(jsonb_build_object(
+            'sector', er.sector,
+            'ownerRole', er.owner_role,
+            'systemStage', er.system_stage,
+            'requestedOffer', er.requested_offer,
+            'systemUrl', er.system_url,
+            'companySize', er.company_size,
+            'buyerOpportunityId', er.buyer_opportunity_id
+          ))
+          FROM evaluation_request er
+          WHERE er.id = raw_work_items.id
         )
         WHEN record_type = 'dataset_brief' THEN (
           SELECT jsonb_strip_nulls(jsonb_build_object(

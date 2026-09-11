@@ -29,7 +29,7 @@ const highlights = [
 
 const contactMetrics = [
   { label: "First reply", value: "24 h" },
-  { label: "Report", value: "48 h" },
+  { label: "Report ready in", value: "48 h" },
   { label: "Cost", value: "Free" },
 ];
 

@@ -1,5 +1,4 @@
 import type { Metadata, MetadataRoute } from "next";
-import { isLandingModeEnabledServer } from "@/lib/landing-mode";
 
 export const SITE_NAME = "Caudals";
 export const DEFAULT_SITE_TITLE = "Evaluación independiente de asistentes de IA | Caudals";
@@ -17,27 +16,7 @@ export type IndexableMarketingRoute = {
   priority: number;
 };
 
-const FULL_PUBLIC_MARKETING_ROUTES: IndexableMarketingRoute[] = [
-  { pathname: "/", changeFrequency: "weekly", priority: 1 },
-  { pathname: "/about", changeFrequency: "monthly", priority: 0.7 },
-  { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
-  { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
-  { pathname: "/careers", changeFrequency: "monthly", priority: 0.5 },
-  { pathname: "/catalogue", changeFrequency: "weekly", priority: 0.85 },
-  { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
-  { pathname: "/docs", changeFrequency: "monthly", priority: 0.65 },
-  { pathname: "/docs/security-baseline", changeFrequency: "monthly", priority: 0.6 },
-  { pathname: "/equipo", changeFrequency: "monthly", priority: 0.7 },
-  { pathname: "/legal/cookies", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/notice", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
-  { pathname: "/pricing", changeFrequency: "monthly", priority: 0.75 },
-  { pathname: "/security", changeFrequency: "monthly", priority: 0.78 },
-];
-
-const LANDING_MODE_MARKETING_ROUTES: IndexableMarketingRoute[] = [
+const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
@@ -160,11 +139,7 @@ export function getDefaultSocialImageUrl() {
 }
 
 export function getIndexableMarketingRoutes() {
-  const routes = isLandingModeEnabledServer()
-    ? LANDING_MODE_MARKETING_ROUTES
-    : FULL_PUBLIC_MARKETING_ROUTES;
-
-  return routes.map((route) => ({ ...route }));
+  return MARKETING_ROUTES.map((route) => ({ ...route }));
 }
 
 export function buildPublicMetadata({

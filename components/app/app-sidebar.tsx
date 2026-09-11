@@ -167,7 +167,6 @@ const adminNav: NavGroup[] = [
 
 const baseFooterLinks: NavItem[] = [
   { title: "Support", icon: LifeBuoy, href: "" }, // Href resolved dynamically
-  { title: "Documentation", icon: BookOpen, href: "/docs", external: true },
 ];
 
 function parseHref(href: string): { path: string; params: URLSearchParams } {

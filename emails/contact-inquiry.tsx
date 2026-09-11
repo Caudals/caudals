@@ -108,7 +108,7 @@ export function ContactInquiryEmail({
                 {evaluationRequestRouting?.status === "routed" ? (
                   <InfoRow
                     label="Operator queue"
-                    value={evaluationRequestRouting.buyerOpportunityId}
+                    value={`${evaluationRequestRouting.buyerOpportunityId} / ${evaluationRequestRouting.evaluationRequestId}`}
                   />
                 ) : null}
                 <InfoRow label="Submitted" value={formattedDate} />

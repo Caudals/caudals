@@ -45,7 +45,13 @@ Runtime:
   `infra/app-stack.yml`, deployed by `scripts/deploy-app-stack.sh`). Its
   runtime env, including database, Stripe and Resend secrets, is mounted as the
   `app_runtime_env_<digest>` Docker secret at `/run/secrets/app_runtime_env`,
-  built from root-only `/root/.caudals/app/credentials.env`. The per-secret
+  built from root-only `/root/.caudals/app/credentials.env`. The service's
+  start command (`command` in `infra/app-stack.yml`) sources that file with
+  `set -a` before `npm run start`, and `scripts/deploy-app-stack.sh` refuses a
+  credentials file that does not source cleanly. `docker exec` does not inherit
+  that environment: ad-hoc commands must source `/run/secrets/app_runtime_env`
+  themselves, and the completion gate's app probes replay the live
+  `next-server` process environment instead. The per-secret
   `*_FILE` fallbacks (`DATABASE_URL_FILE`, `BETTER_AUTH_SECRET_FILE`,
   `STRIPE_SECRET_KEY_FILE`, `STRIPE_WEBHOOK_SECRET_FILE`,
   `RESEND_API_KEY_FILE`) remain supported.
@@ -604,14 +610,13 @@ Operational env controls:
   Stable content links use `/r/<short-code>`, record a first-party click in the
   CRM, append UTM fields, and carry only opaque journey IDs into the landing
   session. The public site never assigns a CRM identity.
-- Routing/deploy: app hostnames, marketing hostnames, public app URL, `LANDING_MODE`
+- Routing/deploy: app hostnames, marketing hostnames, public app URL
 - Observability: Sentry DSN/environment/release/sample rates,
   OpenTelemetry OTLP trace export to Tempo, and opt-in OpenTelemetry stdout
   export
 - Legacy private stacks (frozen): stack, image, service and secret names for
   Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis and Marquez; see
   each `scripts/deploy-*-stack.sh`
-- Optional ops (frozen marketplace payments): platform fee percent and Stripe test business URL settings
 
 ## Newsletter Signup Wiring
 
@@ -624,21 +629,10 @@ Operational env controls:
   receives a PostgreSQL connection, Supabase key or Resend credential.
 - Resend credentials live in the secret-backed Leads service, not in this app.
 
-## LANDING_MODE Activation
+## Public Surface Release Checks
 
-- `LANDING_MODE=true` is the current public deployment posture.
-- `LANDING_MODE` affects both build-time and runtime behavior.
-- Landing mode is a landing-page visibility mode, not a blanket route gate.
-  Buyer, supplier, API, and security routes may remain published and accessible
-  by direct URL in landing mode when protected by their normal auth,
-  authorization, RLS, rate-limit, and audit controls.
-- Landing mode must keep those surfaces undiscoverable from the landing page:
-  no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other
-  public entry points unless explicitly requested.
-- Build-time: set the GitHub Actions repository secret `LANDING_MODE=true` so `.github/workflows/deploy.yml` passes it into the Docker build. This bakes `NEXT_PUBLIC_LANDING_MODE` into the public bundle.
-- Runtime: keep `LANDING_MODE=true` in Dokploy environment variables as well, or ensure Dokploy does not override the image-level value. The server-side proxy reads runtime `LANDING_MODE`.
-- Local/dev convenience: `next.config.js` mirrors `LANDING_MODE` into `NEXT_PUBLIC_LANDING_MODE` when the public flag is unset, so `.env.local` can activate the landing surface with just `LANDING_MODE=true`.
-- After changing the flag, trigger a fresh image build and let Dokploy pull/redeploy that image. Changing only Dokploy envs is not enough for client-rendered navigation copy; changing only the GitHub secret is not enough if Dokploy overrides runtime envs.
+- There is no landing-mode flag. The public site is the landing page and its
+  funnel; the removed marketplace pages simply do not exist in the build.
 - Cloudflare managed crawler controls can prepend bot-specific rules to the application's `/robots.txt`. After changing crawler policy, verify the production response itself—not only `app/robots.ts`—and configure Cloudflare AI crawler controls so they do not contradict the application's public-content allow rules for search and AI discovery bots.
 - SEO/GEO release checks should fetch `/robots.txt`, `/sitemap.xml`, every referenced subsitemap, and `/llms.txt` through the public Cloudflare hostname, then confirm that private routes remain absent.
 
@@ -648,17 +642,10 @@ Operational env controls:
   `/pwa` (the web app manifest points to public landing surfaces only),
   `/requester`, and legacy `/admin/*` subroutes. `/admin` remains the Operator
   Console.
-- `/buyer` and `/supplier` are frozen authenticated surfaces; `/supplier` is
-  limited to supplier-owned asset declaration, signed sample upload, build
-  status, payout and Stripe Connect review. Both may be reachable by direct
-  route when `LANDING_MODE=true` but must not be linked from the landing page
-  unless explicitly requested.
-- `/security` and `/v1/*` may be reachable by direct route when
-  `LANDING_MODE=true`, subject to their normal controls, but must not be linked
-  from the landing page unless explicitly requested.
-- `/catalogue`, catalogue browsing, sample-preview and purchase flows are out
-  of scope. `/v1/datasets/*` stays default-404 unless
-  `PUBLIC_REST_CATALOGUE_ENABLED=true`.
+- The pre-pivot marketplace surfaces were deleted and return `404`: `/buyer`,
+  `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`,
+  `/careers`, `/catalogue`, plus the Stripe webhook, uploads and tRPC API
+  routes. `scripts/check-platform-completion.sh` (`check_routes`) asserts it.
 
 ## Troubleshooting Quick Hits
 

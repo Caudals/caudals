@@ -7,7 +7,6 @@ import { Header } from "@/components/ui/header";
 import { getAdjacentBlogPosts, getAllBlogSlugs, getBlogPost } from "@/lib/blog/posts";
 import { formatBlogDate, formatReadTime } from "@/lib/blog/shared";
 import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 export async function generateStaticParams() {
@@ -85,7 +84,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
       <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-24 sm:px-8 lg:px-12 lg:pt-32">
         <Link
           href="/blog"
@@ -157,7 +156,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

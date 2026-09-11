@@ -9,8 +9,6 @@ const isDev = process.env.NODE_ENV !== "production";
 const sentrySourceMapUploadEnabled =
   process.env.SENTRY_SOURCE_MAP_UPLOAD === "true" &&
   Boolean(process.env.SENTRY_AUTH_TOKEN);
-const landingModePublicFlag =
-  process.env.NEXT_PUBLIC_LANDING_MODE ?? process.env.LANDING_MODE ?? "false";
 
 const cspDirectives = [
   "default-src 'self'",
@@ -27,7 +25,6 @@ const cspDirectives = [
     isDev ? "'unsafe-eval'" : "",
     "https://analytics.caudals.com",
     "https://va.vercel-scripts.com",
-    "https://js.stripe.com",
     "https://app.cal.com",
   ]
     .filter(Boolean)
@@ -38,8 +35,6 @@ const cspDirectives = [
   ].join(" "),
   [
     "frame-src 'self'",
-    "https://js.stripe.com",
-    "https://hooks.stripe.com",
     "https://www.youtube.com",
     "https://www.youtube-nocookie.com",
     "https://cal.com",
@@ -86,10 +81,6 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  env: {
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_LANDING_MODE: landingModePublicFlag,
-  },
   images: {
     remotePatterns,
     unoptimized: true, // Required for self-hosting (Dokploy) - images are served directly without optimization

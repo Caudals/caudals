@@ -26,7 +26,7 @@ function splitAccent(sentence: string) {
 
 export function HeroSection() {
   const t = useTranslations();
-  const headline = splitAccent(t("We measure AI against what your experts *know*."));
+  const headline = splitAccent(t("We make machines answer to *experts*."));
 
   return (
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center bg-white px-6 pt-16 pb-24 sm:px-8 lg:px-12 lg:pt-24 lg:pb-32">
@@ -72,7 +72,7 @@ export function HeroSection() {
           className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl"
         >
           {t(
-            "The future of AI won't be decided by how much it can answer, but by how often it gets it right. We test your assistant against your own documents and experts, and show you the evidence.",
+            "The future of AI won't be measured in answers, it will be measured in right answers.",
           )}
         </motion.p>
 
@@ -93,7 +93,9 @@ export function HeroSection() {
             </Link>
           </Button>
           <p className="max-w-md text-[13px] leading-relaxed text-gray-500">
-            {t("Forty questions from your own public documentation, report in 48 hours.")}{" "}
+            {t(
+              "We put forty questions from your own documentation to your assistant. Report in 48 hours, free.",
+            )}{" "}
             <Link
               href="/call"
               className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"

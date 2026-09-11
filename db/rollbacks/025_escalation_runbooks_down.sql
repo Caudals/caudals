@@ -1,12 +1,21 @@
 -- Rollback for db/migrations/025_escalation_runbooks.sql.
+--
+-- One transaction, so the guard still holds when psql runs without
+-- ON_ERROR_STOP.
+
+BEGIN;
 
 DO $$
+DECLARE
+  active_rows bigint := 0;
 BEGIN
-  IF to_regclass('public.escalation_case') IS NOT NULL AND EXISTS (
-    SELECT 1
-    FROM escalation_case
-    WHERE deleted_at IS NULL
-  ) THEN
+  -- Dynamic SQL: a static reference would fail to plan once the table is gone.
+  IF to_regclass('public.escalation_case') IS NOT NULL THEN
+    EXECUTE 'SELECT count(*) FROM escalation_case WHERE deleted_at IS NULL'
+      INTO active_rows;
+  END IF;
+
+  IF active_rows > 0 THEN
     RAISE EXCEPTION
       'Rollback blocked: active escalation_case rows exist. Resolve, archive, or export them before dropping escalation runbooks.';
   END IF;
@@ -33,3 +42,5 @@ DROP INDEX IF EXISTS escalation_case_org_state_idx;
 
 DROP TABLE IF EXISTS escalation_case;
 DROP TABLE IF EXISTS runbook;
+
+COMMIT;

@@ -1,13 +1,26 @@
 -- Rollback for db/migrations/027_security_incident_runbooks.sql.
+--
+-- One transaction, so the guard still holds when psql runs without
+-- ON_ERROR_STOP.
+
+BEGIN;
 
 DO $$
+DECLARE
+  active_rows bigint := 0;
 BEGIN
-  IF to_regclass('public.escalation_case') IS NOT NULL AND EXISTS (
-    SELECT 1
-    FROM escalation_case
-    WHERE runbook_key IN ('R-11', 'R-12', 'R-13')
-      AND deleted_at IS NULL
-  ) THEN
+  -- Dynamic SQL: a static reference would fail to plan once the table is gone.
+  IF to_regclass('public.escalation_case') IS NOT NULL THEN
+    EXECUTE $sql$
+      SELECT count(*)
+      FROM escalation_case
+      WHERE runbook_key IN ('R-11', 'R-12', 'R-13')
+        AND deleted_at IS NULL
+    $sql$
+      INTO active_rows;
+  END IF;
+
+  IF active_rows > 0 THEN
     RAISE EXCEPTION
       'Rollback blocked: active security escalation cases reference R-11..R-13.';
   END IF;
@@ -31,3 +44,5 @@ $$;
 
 DELETE FROM runbook
 WHERE key IN ('R-11', 'R-12', 'R-13');
+
+COMMIT;

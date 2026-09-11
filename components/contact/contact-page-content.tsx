@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import type { EvaluationRequestOffer } from "@/lib/validators/evaluation-request";
 
@@ -17,7 +16,7 @@ export function ContactPageContent({ requestedOffer }: ContactPageContentProps) 
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
@@ -43,7 +42,7 @@ export function ContactPageContent({ requestedOffer }: ContactPageContentProps) 
           <ContactForm requestedOffer={requestedOffer} />
         </section>
       </main>
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

@@ -149,7 +149,7 @@ export const operatorModuleSummaries: OperatorModuleSummary[] = [
     key: "leads",
     title: "Leads & Opportunities",
     description: "Buyer and supplier qualification, scoping, and stage transitions.",
-    anchorRecords: ["buyer_opportunity", "supplier_opportunity"],
+    anchorRecords: ["buyer_opportunity", "evaluation_request", "supplier_opportunity"],
     totalRecords: 31,
     blockedRecords: 4,
     savedViews: ["Unqualified", "Feasibility", "Stale NDA"],
@@ -678,7 +678,6 @@ export function getOperatorServiceReadiness(
   env: Record<string, string | undefined> = process.env
 ): OperatorServiceReadiness[] {
   const postgresBacked = env.OPERATOR_CONSOLE_DATA_SOURCE === "postgres";
-  const publicRoutesLocked = env.LANDING_MODE === "true";
   const sentryConfigured = Boolean(env.SENTRY_DSN_FILE || env.SENTRY_DSN);
   const tracesConfigured = Boolean(
     env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
@@ -693,10 +692,6 @@ export function getOperatorServiceReadiness(
     "DO_SPACES_SECRET_ACCESS_KEY",
     "NEXT_PUBLIC_DO_SPACES_CDN_URL",
   ].every((name) => hasEnvOrFile(env, name));
-  const stripeConfigured =
-    hasEnvOrFile(env, "STRIPE_SECRET_KEY") &&
-    hasEnvOrFile(env, "STRIPE_WEBHOOK_SECRET") &&
-    Boolean(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
   const emailConfigured =
     hasEnvOrFile(env, "RESEND_API_KEY") &&
     Boolean(env.RESEND_FROM_EMAIL) &&
@@ -707,13 +702,11 @@ export function getOperatorServiceReadiness(
       id: "svc_public_funnel",
       title: "Public funnel",
       description:
-        "Landing, blog, contact, and security pages stay public while app routes remain private.",
-      state: readinessState(publicRoutesLocked),
+        "Only the landing, blog, newsletter, contact and legal pages are public; the operator console stays private.",
+      state: "ready",
       owner: "Growth Ops",
       moduleKey: "pipeline",
-      evidence: publicRoutesLocked
-        ? "LANDING_MODE route policy"
-        : "Route policy review",
+      evidence: "Landing routes only",
     },
     {
       id: "svc_operator_data",
@@ -881,16 +874,6 @@ export function getOperatorServiceReadiness(
       owner: "Commercial Ops",
       moduleKey: "commercials",
       evidence: "Commercial records",
-    },
-    {
-      id: "svc_commercial_payments",
-      title: "Commercial payments",
-      description:
-        "Stripe server, webhook, and publishable key configuration are mounted for invoice and payout workflows.",
-      state: readinessState(stripeConfigured),
-      owner: "Commercial Ops",
-      moduleKey: "commercials",
-      evidence: stripeConfigured ? "app.runtime_config gate" : "Stripe config review",
     },
     {
       id: "svc_email_runtime",

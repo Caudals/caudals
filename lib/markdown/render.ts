@@ -82,7 +82,7 @@ export async function renderBlogIndexMarkdown(locale: Locale) {
     )
     .join("\n");
 
-  return `# Blog de Caudals\n\nGuías técnicas y operativas sobre recopilación, calidad, fine-tuning, RLHF y operaciones de datasets.\n\n${
+  return `# Blog de Caudals\n\nNotas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables.\n\n${
     entries || "_No hay artículos publicados._"
   }${canonicalFooter("/blog")}`;
 }

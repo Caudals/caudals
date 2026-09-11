@@ -9,18 +9,17 @@ Implementation rules for the public funnel, the internal Operator Console, and t
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope
-- Current public deployment is landing mode: public pages are `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, and `/legal/*`. Primary marketing navigation surfaces Contact, Blog, and Newsletter; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`, while `/equipo` is linked from the public footer.
-- Landing mode is not a route-publication ban. `/buyer`, `/supplier`, `/security`, and `/v1/*` may be reachable by direct URL when protected by their normal auth, authorization, RLS, rate-limit, and audit controls.
-- Landing mode hides those entry points from the landing page: no buttons, nav links, hero CTAs, marketing cards, sitemap promotion, or other public discovery paths unless explicitly requested.
-- `/buyer` (read-only delivery, subscription, integration, billing, scorecard, manifest and trust evidence) and `/supplier` (asset declaration, signed sample upload, build participation, payout and Stripe Connect status) are legacy surfaces, frozen: fix defects, do not add features.
-- Catalogue browsing, sample-preview and purchase flows are out of scope; `/catalogue` and `/v1/datasets/*` stay unpublished.
+- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, and `/legal/*`. Primary marketing navigation surfaces Contact, Blog, and Newsletter; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`, while `/equipo` is linked from the public footer.
+- The only private surface is the Operator Console (`/admin`) with its sign-in (`/auth/*`).
+- The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 
 ## Routing and IA Contract
 
-- `LANDING_MODE=true` is the canonical production posture until further notice.
-- Public primary navigation exposes Contact, Blog, and Newsletter while landing mode remains active. The footer may additionally expose Team, meeting booking, and legal pages.
+- There is no landing-mode flag; the public route set above is what the app builds.
+- Public primary navigation exposes Contact, Blog, and Newsletter (`lib/navigation/public-links.ts`). The footer may additionally expose Team, meeting booking, and legal pages.
 - Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml`, `/page-sitemap.xml`, and `/author-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files list public content only.
-- `/contact` is the general contact and intake path. It currently records structured dataset briefs (`lib/public/buyer-brief-intake.ts`); repositioning its copy and fields to evaluation requests (system type, sector, owner role, what the system answers) is pending and keeps the same quiet form treatment.
+- `/contact` is the general contact and intake path. It records evaluation requests (`lib/validators/evaluation-request.ts`, `lib/public/evaluation-request-intake.ts`): system type, stage, sector, owner role, what the system answers, an optional URL and the offer to start from. Hero and pricing links pass `?offer=<id>` to preselect that offer. Keep the quiet form treatment.
+- Public offers live in `lib/public/evaluation-offers.ts`, shared by the landing page, `/llms.txt`, agent markdown and home structured data. The pricing section shows three offers: only the free Reality Check has a price; the Pilot Evaluation and the monthly subscription read "Personalized" and are quoted on scope.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.
 - Planned `/proof`: public, no signup; it becomes the landing page's primary evidence CTA when it ships. It must enforce IP rate limits, 24-hour upload retention and a daily model-spend cap, and state plainly what is processed and where.
 - Planned customer dashboard (`/e/[projectId]`): magic-link access, read-only, scoped to one customer project, never linked or listed publicly.

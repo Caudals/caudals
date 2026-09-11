@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
     steps:
       - name: Checkout repository
@@ -54,9 +53,7 @@ jobs:
           push: true
           platforms: linux/amd64
           build-args: |
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
-            LANDING_MODE=${{ secrets.LANDING_MODE || 'false' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

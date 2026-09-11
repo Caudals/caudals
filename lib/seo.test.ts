@@ -30,9 +30,7 @@ describe("seo helpers", () => {
     expect(getAppSiteOrigin()).toBe("https://app.caudals.com");
   });
 
-  it("limits indexable marketing routes in landing mode", async () => {
-    process.env.LANDING_MODE = "true";
-
+  it("indexes only the public landing routes", async () => {
     const { getIndexableMarketingRoutes } = await import("@/lib/seo");
 
     expect(getIndexableMarketingRoutes().map((route) => route.pathname)).toEqual(

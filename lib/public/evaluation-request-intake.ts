@@ -38,7 +38,12 @@ type RoutePublicEvaluationRequestDeps = {
 
 export type PublicEvaluationRequestRoutingResult =
   | { status: "disabled" }
-  | { status: "routed"; contactId: string; buyerOpportunityId: string };
+  | {
+      status: "routed";
+      contactId: string;
+      buyerOpportunityId: string;
+      evaluationRequestId: string;
+    };
 
 /**
  * `/contact` has always been switched by PUBLIC_BUYER_BRIEF_INTAKE_ENABLED and
@@ -69,33 +74,17 @@ export function buildEvaluationRequestSummary(data: EvaluationRequestFormValues)
   return lines.filter((line): line is string => line !== null).join("\n");
 }
 
-/**
- * Structured copy of the request, kept on the audit transition until
- * evaluation requests have a table of their own. Free text stays in the
- * opportunity use case.
- */
-function buildAuditMetadata(
-  data: EvaluationRequestFormValues,
-  context: RoutePublicEvaluationRequestContext,
-  submittedAt: string,
-) {
+/** Structured request fields, as recorded on the request's audit transition. */
+function buildStructuredRequest(data: EvaluationRequestFormValues) {
   return {
-    from_state: null,
-    to_state: "new",
-    source: "public_contact",
-    request_type: "evaluation_request",
-    evaluation_request: {
-      system_type: data.systemType,
-      system_stage: data.systemStage ?? null,
-      sector: data.sector,
-      owner_role: data.ownerRole,
-      requested_offer: data.requestedOffer ?? null,
-      company_size: data.companySize ?? null,
-      organization_website: data.organizationWebsite ?? null,
-      system_url: data.systemUrl ?? null,
-      submitted_at: submittedAt,
-      referer: context.referer ?? null,
-    },
+    system_type: data.systemType,
+    system_stage: data.systemStage ?? null,
+    sector: data.sector,
+    owner_role: data.ownerRole,
+    requested_offer: data.requestedOffer ?? null,
+    company_size: data.companySize ?? null,
+    organization_website: data.organizationWebsite ?? null,
+    system_url: data.systemUrl ?? null,
   };
 }
 
@@ -124,7 +113,9 @@ export async function routePublicEvaluationRequestIntake(
     ) => withOperatorDbSession(session, callback));
   const contactId = generateId("co");
   const buyerOpportunityId = generateId("bo");
-  const auditId = generateId("ae");
+  const evaluationRequestId = generateId("er");
+  const opportunityAuditId = generateId("ae");
+  const requestAuditId = generateId("ae");
   const submittedAt = now.toISOString();
   const tracer = trace.getTracer("caudals-web");
 
@@ -180,16 +171,71 @@ export async function routePublicEvaluationRequestIntake(
 
             await client.query(
               `
+                INSERT INTO evaluation_request (
+                  id, org_id, buyer_opportunity_id, contact_id, organization_name,
+                  organization_website, company_size, system_type, system_stage,
+                  sector, owner_role, system_answers, system_url, requested_offer,
+                  notes, source, state, created_at, updated_at
+                )
+                VALUES (
+                  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                  $15, $16::jsonb, 'new', $17, $17
+                )
+              `,
+              [
+                evaluationRequestId,
+                tenantOrgId,
+                buyerOpportunityId,
+                contactId,
+                data.organization,
+                data.organizationWebsite ?? null,
+                data.companySize ?? null,
+                data.systemType,
+                data.systemStage ?? null,
+                data.sector,
+                data.ownerRole,
+                data.systemAnswers,
+                data.systemUrl ?? null,
+                data.requestedOffer ?? null,
+                data.message ?? null,
+                JSON.stringify({
+                  channel: "public_contact",
+                  referer: context.referer ?? null,
+                  submitted_at: submittedAt,
+                }),
+                submittedAt,
+              ],
+            );
+
+            await client.query(
+              `
                 INSERT INTO audit_event (
                   id, org_id, action, target_type, target_id, metadata, created_at
                 )
-                VALUES ($1, $2, 'state_transition', 'buyer_opportunity', $3, $4::jsonb, $5)
+                VALUES
+                  ($1, $2, 'state_transition', 'buyer_opportunity', $3, $4::jsonb, $8),
+                  ($5, $2, 'state_transition', 'evaluation_request', $6, $7::jsonb, $8)
               `,
               [
-                auditId,
+                opportunityAuditId,
                 tenantOrgId,
                 buyerOpportunityId,
-                JSON.stringify(buildAuditMetadata(data, context, submittedAt)),
+                JSON.stringify({
+                  from_state: null,
+                  to_state: "new",
+                  source: "public_contact",
+                  request_type: "evaluation_request",
+                  evaluation_request_id: evaluationRequestId,
+                }),
+                requestAuditId,
+                evaluationRequestId,
+                JSON.stringify({
+                  from_state: null,
+                  to_state: "new",
+                  source: "public_contact",
+                  buyer_opportunity_id: buyerOpportunityId,
+                  evaluation_request: buildStructuredRequest(data),
+                }),
                 submittedAt,
               ],
             );
@@ -201,6 +247,7 @@ export async function routePublicEvaluationRequestIntake(
           status: "routed" as const,
           contactId,
           buyerOpportunityId,
+          evaluationRequestId,
         };
       } catch (error) {
         span.recordException(error as Error);

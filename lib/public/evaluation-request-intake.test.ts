@@ -44,7 +44,7 @@ describe("public evaluation request intake", () => {
     expect(runInSession).not.toHaveBeenCalled();
   });
 
-  it("routes a request into contact, opportunity and audit rows without a dataset brief", async () => {
+  it("records contact, opportunity, evaluation request and both audit transitions", async () => {
     const queries: Array<{ sql: string; values?: unknown[] }> = [];
     const sessionSeen: unknown[] = [];
     const ids: string[] = [];
@@ -75,17 +75,21 @@ describe("public evaluation request intake", () => {
       },
     );
 
+    const [contactId, buyerOpportunityId, evaluationRequestId] = ids;
     expect(result).toEqual({
       status: "routed",
-      contactId: ids[0],
-      buyerOpportunityId: ids[1],
+      contactId,
+      buyerOpportunityId,
+      evaluationRequestId,
     });
+    expect(evaluationRequestId).toMatch(/^er_/);
     expect(sessionSeen).toEqual([
       { orgId: "or_01J20000000000000000000001", serviceRole: true },
     ]);
     expect(queries.map((query) => query.sql)).toEqual([
       expect.stringContaining("INSERT INTO contact"),
       expect.stringContaining("INSERT INTO buyer_opportunity"),
+      expect.stringContaining("INSERT INTO evaluation_request"),
       expect.stringContaining("INSERT INTO audit_event"),
     ]);
     expect(queries.some((query) => query.sql.includes("dataset_brief"))).toBe(false);
@@ -99,22 +103,81 @@ describe("public evaluation request intake", () => {
     expect(queries[1]?.values?.[3]).toBe("Evaluation request from Mutua Ejemplo");
     expect(String(queries[1]?.values?.[4])).toContain("Owner: Customer service");
 
-    const metadata = JSON.parse(String(queries[2]?.values?.[3]));
-    expect(metadata).toMatchObject({
+    const requestValues = queries[2]?.values ?? [];
+    expect(requestValues.slice(0, 15)).toEqual([
+      evaluationRequestId,
+      "or_01J20000000000000000000001",
+      buyerOpportunityId,
+      contactId,
+      "Mutua Ejemplo",
+      "https://mutua.example",
+      "200-500",
+      "customer-assistant",
+      "live",
+      "insurance",
+      "customer-service",
+      "Coverage, waiting periods and claims for our health policies.",
+      "https://mutua.example/asistente",
+      "reality-check",
+      "We launched it in March and have no test suite yet.",
+    ]);
+    expect(JSON.parse(String(requestValues[15]))).toEqual({
+      channel: "public_contact",
+      referer: "https://caudals.com/contact?offer=reality-check",
+      submitted_at: "2026-09-11T08:00:00.000Z",
+    });
+
+    const auditValues = queries[3]?.values ?? [];
+    expect(auditValues[2]).toBe(buyerOpportunityId);
+    expect(JSON.parse(String(auditValues[3]))).toMatchObject({
       to_state: "new",
-      source: "public_contact",
       request_type: "evaluation_request",
+      evaluation_request_id: evaluationRequestId,
+    });
+    expect(auditValues[5]).toBe(evaluationRequestId);
+    const requestAudit = JSON.parse(String(auditValues[6]));
+    expect(requestAudit).toMatchObject({
+      to_state: "new",
+      buyer_opportunity_id: buyerOpportunityId,
       evaluation_request: {
         system_type: "customer-assistant",
-        system_stage: "live",
         sector: "insurance",
         owner_role: "customer-service",
         requested_offer: "reality-check",
-        submitted_at: "2026-09-11T08:00:00.000Z",
-        referer: "https://caudals.com/contact?offer=reality-check",
       },
     });
-    expect(JSON.stringify(metadata)).not.toContain("lucia@mutua.example");
+    expect(JSON.stringify(requestAudit)).not.toContain("lucia@mutua.example");
+  });
+
+  it("stores missing optional fields as nulls", async () => {
+    const queries: Array<{ sql: string; values?: unknown[] }> = [];
+
+    await routePublicEvaluationRequestIntake(
+      makeEvaluationRequest({
+        organizationWebsite: undefined,
+        companySize: undefined,
+        systemStage: undefined,
+        systemUrl: undefined,
+        requestedOffer: undefined,
+        message: undefined,
+      }),
+      {},
+      {
+        env: { NODE_ENV: "test" },
+        runInSession: async (_session, callback) =>
+          callback({
+            query: async (sql, values) => {
+              queries.push({ sql, values });
+              return { rows: [] };
+            },
+          }),
+      },
+    );
+
+    const requestValues = queries[2]?.values ?? [];
+    for (const index of [5, 6, 8, 12, 13, 14]) {
+      expect(requestValues[index], `value ${index}`).toBeNull();
+    }
   });
 
   it("summarises only the fields the requester filled in", () => {

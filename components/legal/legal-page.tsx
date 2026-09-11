@@ -1,6 +1,5 @@
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { getServerTranslator } from "@/lib/i18n/server";
 
 type LegalSection = {
@@ -22,7 +21,7 @@ export async function LegalPage({ title, description, sections }: LegalPageProps
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-24">
         <header className="mb-12 border-b border-gray-200 pb-10">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
@@ -46,7 +45,7 @@ export async function LegalPage({ title, description, sections }: LegalPageProps
           ))}
         </div>
       </main>
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

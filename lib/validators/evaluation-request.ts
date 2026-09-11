@@ -41,7 +41,6 @@ export const evaluationCompanySizes = ["1-49", "50-199", "200-500", "501+"] as c
 export const evaluationRequestOffers = [
   "reality-check",
   "pilot-evaluation",
-  "full-evaluation",
   "monthly-subscription",
   "not-sure",
 ] as const;
@@ -83,7 +82,7 @@ export const evaluationOwnerRoleLabels: Record<EvaluationOwnerRole, string> = {
   "after-sales": "After-sales or technical support",
   "quality-operations": "Quality or operations",
   "it-data": "IT, data or AI team",
-  management: "Management",
+  management: "Senior management",
   integrator: "An external integrator or agency",
   other: "Other",
 };
@@ -97,7 +96,6 @@ export const evaluationSystemStageLabels: Record<EvaluationSystemStage, string> 
 export const evaluationRequestOfferLabels: Record<EvaluationRequestOffer, string> = {
   "reality-check": "Free Reality Check",
   "pilot-evaluation": "Pilot Evaluation",
-  "full-evaluation": "Full Evaluation",
   "monthly-subscription": "Monthly subscription",
   "not-sure": "Not sure yet",
 };

@@ -1,6 +1,9 @@
 import { CAUDALS_AUTHORS } from "@/lib/authors";
 import { getBlogPosts } from "@/lib/blog/posts";
+import { createTranslator } from "@/lib/i18n/create-translator";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getPublishedIssues } from "@/lib/newsletter/client";
+import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
 import { buildMarketingUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
@@ -14,6 +17,8 @@ export async function GET() {
     getBlogPosts("es"),
     getPublishedIssues(20),
   ]);
+  // Offers and prices come from the same source strings as the landing page.
+  const t = createTranslator("es", getDictionary("es"));
 
   const blogLinks = posts
     .map(
@@ -34,19 +39,22 @@ export async function GET() {
 
   const body = `# Caudals
 
-> Caudals es una empresa y marketplace B2B de datasets para inteligencia artificial. Ayuda a empresas a monetizar datos propios y a equipos de IA a obtener datasets limpios, documentados, licenciados y listos para entrenamiento, fine-tuning y evaluación.
+> Caudals evalúa los asistentes, chatbots y agentes de IA de las empresas con un conjunto de pruebas construido a partir de su propia documentación y validado por sus propios expertos. Entrega un informe con puntuación y evidencias, repite la evaluación cada mes y convierte los fallos que encuentra en los datos que los corrigen.
 
-Caudals se ocupa de la obtención de datos, revisión de derechos, negociación con proveedores, limpieza, normalización, anonimización, enriquecimiento, etiquetado, control de calidad, documentación y entrega. La empresa opera desde España y trabaja con necesidades de datos internacionales.
+Caudals es una empresa de datos para IA con sede en Valladolid (España). Evalúa sistemas de IA de texto y documentos (asistentes y chatbots para clientes en web, app o WhatsApp, agentes de voz e IVR, asistentes internos, procesamiento de documentos y funciones de IA dentro de productos) y se centra en sistemas en los que una respuesta equivocada cuesta dinero: coberturas y carencias, comisiones, tarifas, derechos de reembolso o especificaciones técnicas. Cada caso cita el documento del que sale y el experto de la empresa valida las respuestas correctas antes de ejecutar nada. Los casos se escriben en español, tal como preguntan los clientes.
 
-## Servicios principales
+Caudals mide y aporta evidencias: no certifica sistemas de IA ni realiza evaluaciones de conformidad con el Reglamento Europeo de IA.
 
-- [Datasets profesionales para IA](${buildMarketingUrl("/")}): descripción de los servicios de obtención, preparación y entrega de datasets a medida.
-- [Contacto](${buildMarketingUrl("/contact")}): canal para solicitar un dataset, proponer datos para monetización o definir un proyecto piloto.
-- [Reservar una reunión](${buildMarketingUrl("/call")}): reunión de descubrimiento para revisar viabilidad, fuentes, calidad, derechos y plazos.
+${renderEvaluationOverviewMarkdown(t)}
+
+## Empezar
+
+- [Solicitar una evaluación](${buildMarketingUrl("/contact")}): formulario para pedir un Reality Check gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
+- [Reservar una llamada](${buildMarketingUrl("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 
 ## Conocimiento y publicaciones
 
-- [Blog de Caudals](${buildMarketingUrl("/blog")}): guías técnicas y operativas sobre recopilación, calidad, fine-tuning, RLHF y operaciones de datasets.
+- [Blog de Caudals](${buildMarketingUrl("/blog")}): notas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables.
 ${blogLinks || "- El archivo de artículos se publicará en esta sección."}
 
 ## Newsletter

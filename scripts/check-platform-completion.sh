@@ -53,6 +53,42 @@ first_service_container() {
     | head -n 1
 }
 
+# `docker exec` starts from the image's environment, not the one the app's
+# start command loads from /run/secrets/app_runtime_env (infra/app-stack.yml).
+# App probes therefore replay the live next-server's own environment, so they
+# check what the server actually runs with, and a start command that stops
+# loading the secret fails them instead of being masked by a probe that
+# sources the file itself.
+APP_SERVER_ENV_RUNNER='
+const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
+const pid = fs.readdirSync("/proc").find((entry) => {
+  try {
+    return /^\d+$/.test(entry) && fs.readFileSync(`/proc/${entry}/cmdline`, "utf8").startsWith("next-server");
+  } catch {
+    return false;
+  }
+});
+if (!pid) {
+  console.error("no next-server process in the app container");
+  process.exit(1);
+}
+const env = {};
+for (const entry of fs.readFileSync(`/proc/${pid}/environ`, "utf8").split("\0")) {
+  const separator = entry.indexOf("=");
+  if (separator > 0) env[entry.slice(0, separator)] = entry.slice(separator + 1);
+}
+const [command, ...args] = process.argv.slice(1);
+const result = spawnSync(command, args, { env, stdio: "inherit" });
+process.exit(result.status ?? 1);
+'
+
+app_exec_with_server_env() {
+  local app_container="$1"
+  shift
+  docker exec -i "$app_container" node -e "$APP_SERVER_ENV_RUNNER" -- "$@"
+}
+
 check_deployed_service() {
   local image
 
@@ -77,8 +113,13 @@ check_routes() {
   fi
 
   local path status expected
-  local -a allowed=("/" "/contact" "/blog")
-  local -a blocked=("/catalog" "/catalogue" "/v1/datasets")
+  # The public site is the landing page and its funnel; everything else,
+  # including the removed marketplace pages and dashboards, must 404.
+  local -a allowed=("/" "/contact" "/call" "/blog" "/newsletter" "/equipo")
+  local -a blocked=(
+    "/about" "/buyer" "/careers" "/catalog" "/catalogue" "/docs" "/pricing"
+    "/security" "/supplier" "/v1" "/v1/datasets"
+  )
 
   for path in "${allowed[@]}"; do
     status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL$path" || true)"
@@ -94,34 +135,6 @@ check_routes() {
     mark_ok "routing/admin" "returned $status"
   else
     mark_fail "routing/admin" "expected auth redirect, got ${status:-none}"
-  fi
-
-  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/buyer" || true)"
-  if [[ "$status" =~ ^30[12378]$ ]]; then
-    mark_ok "routing/buyer" "returned auth redirect $status"
-  else
-    mark_fail "routing/buyer" "expected auth redirect, got ${status:-none}"
-  fi
-
-  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/supplier" || true)"
-  if [[ "$status" =~ ^30[12378]$ ]]; then
-    mark_ok "routing/supplier" "returned auth redirect $status"
-  else
-    mark_fail "routing/supplier" "expected auth redirect, got ${status:-none}"
-  fi
-
-  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/security" || true)"
-  if [[ "$status" == "200" ]]; then
-    mark_ok "routing/security" "returned 200"
-  else
-    mark_fail "routing/security" "expected 200, got ${status:-none}"
-  fi
-
-  status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/v1" || true)"
-  if [[ "$status" == "200" ]]; then
-    mark_ok "routing/v1" "returned 200"
-  else
-    mark_fail "routing/v1" "expected 200, got ${status:-none}"
   fi
 
   for path in "${blocked[@]}"; do
@@ -188,7 +201,10 @@ check_sentry() {
   local app_container="$1"
   local output
 
-  output="$(docker exec "$app_container" sh -lc "node scripts/check-sentry-config.mjs --fail-on-disabled" 2>&1)"
+  output="$(
+    app_exec_with_server_env "$app_container" \
+      node scripts/check-sentry-config.mjs --fail-on-disabled </dev/null 2>&1
+  )"
   if [[ "$?" -eq 0 ]]; then
     mark_ok "observability.sentry" "$output"
   else
@@ -206,7 +222,8 @@ check_app_runtime_config() {
   fi
 
   output="$(
-    docker exec -i "$app_container" sh -lc "node --input-type=module - --fail-on-missing" \
+    app_exec_with_server_env "$app_container" \
+      node --input-type=module - --fail-on-missing \
       < scripts/check-app-runtime-config.mjs 2>&1
   )"
   if [[ "$?" -eq 0 ]]; then
@@ -225,13 +242,16 @@ check_operator_auth_policy() {
     return
   fi
 
-  enrollment_env="$(
-    docker service inspect "$APP_SERVICE" \
-      --format '{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' \
-      2>/dev/null \
-      | awk -F= '$1 == "OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT" {print substr($0, index($0, "=") + 1)}' \
-      | tail -n 1
-  )"
+  # Read from the live server, which sees both the service env and the runtime
+  # secret; the service spec alone misses a value set in the secret.
+  enrollment_env=""
+  if [[ -n "$APP_CONTAINER" ]]; then
+    enrollment_env="$(
+      app_exec_with_server_env "$APP_CONTAINER" node -e \
+        'process.stdout.write(process.env.OPERATOR_CONSOLE_REQUIRE_SECURITY_ENROLLMENT ?? "")' \
+        </dev/null 2>/dev/null
+    )"
+  fi
 
   read -r -d "" sql <<'SQL'
 WITH operator_status AS (

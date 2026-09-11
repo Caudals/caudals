@@ -36,6 +36,15 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   exit 1
 fi
 
+# The service's start command sources this file with sh (infra/app-stack.yml),
+# so refuse to ship one that does not load cleanly. Output is discarded because
+# shell errors echo fragments of the offending line, which may be a value.
+if ! env -i sh -euc 'set -a; . "$1"' sh "$credentials" >/dev/null 2>&1; then
+  echo "$credentials does not source cleanly with sh." >&2
+  echo "Re-store the offending values with sudo scripts/set-app-credentials.sh KEY" >&2
+  exit 1
+fi
+
 docker node ls >/dev/null
 docker network inspect "$network" >/dev/null
 

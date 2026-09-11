@@ -7,7 +7,6 @@ import { notFound } from "next/navigation";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { Header } from "@/components/ui/header";
 import { CAUDALS_AUTHORS, getCaudalsAuthor } from "@/lib/authors";
-import { landingModePublicNavigationLinks } from "@/lib/landing-mode";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -97,7 +96,7 @@ export default async function AuthorPage({
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <Header links={[...landingModePublicNavigationLinks]} hideActions />
+      <Header />
       <main lang="es" className="mx-auto w-full max-w-3xl px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <Link
           href="/equipo"
@@ -166,7 +165,7 @@ export default async function AuthorPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(personStructuredData) }}
       />
-      <MarketingFooter forceLandingMode />
+      <MarketingFooter />
     </div>
   );
 }

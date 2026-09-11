@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-const landingModeEnabled =
-  process.env.LANDING_MODE === "true" ||
-  process.env.NEXT_PUBLIC_LANDING_MODE === "true";
-
 test.describe("core role smoke", () => {
   test("public landing loads", async ({ page }) => {
     await page.goto("/");
@@ -36,20 +32,6 @@ test.describe("core role smoke", () => {
 
   test("admin route redirects anonymous users to sign-in", async ({ page }) => {
     await page.goto("/admin");
-
-    await expect(page).toHaveURL(/\/auth\/sign-in/);
-  });
-
-  test("buyer workspace redirects anonymous users to sign-in", async ({ page }) => {
-    test.skip(landingModeEnabled, "buyer surface is hidden when LANDING_MODE=true");
-    await page.goto("/buyer");
-
-    await expect(page).toHaveURL(/\/auth\/sign-in/);
-  });
-
-  test("supplier portal redirects anonymous users to sign-in", async ({ page }) => {
-    test.skip(landingModeEnabled, "supplier surface is hidden when LANDING_MODE=true");
-    await page.goto("/supplier");
 
     await expect(page).toHaveURL(/\/auth\/sign-in/);
   });

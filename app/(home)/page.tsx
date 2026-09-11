@@ -16,23 +16,11 @@ import {
 // Structured data is published in Spanish, like the rest of the canonical metadata.
 const es = createTranslator("es", getDictionary("es"));
 
+// Quoted offers publish no price; only the free Reality Check carries one.
 function offerPriceSpecification(offer: EvaluationOffer) {
-  const base = { priceCurrency: "EUR", valueAddedTaxIncluded: false };
-
-  if (offer.billing === "monthly") {
-    return {
-      "@type": "UnitPriceSpecification",
-      price: offer.amountEur,
-      unitText: "mes",
-      ...base,
-    };
-  }
-
-  if (offer.billing === "from") {
-    return { "@type": "PriceSpecification", minPrice: offer.amountEur, ...base };
-  }
-
-  return { "@type": "PriceSpecification", price: offer.amountEur, ...base };
+  return offer.pricing === "free"
+    ? { "@type": "PriceSpecification", price: 0, priceCurrency: "EUR" }
+    : undefined;
 }
 
 const homePageStructuredData = {

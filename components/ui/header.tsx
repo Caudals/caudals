@@ -15,26 +15,17 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  landingModePublicEnabled,
-  landingModePublicNavigationLinks,
-} from "@/lib/landing-mode";
+import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 interface HeaderProps {
   links?: Array<{ label: string; href: string }>;
   translucent?: boolean;
-  hideActions?: boolean;
 }
 
-const DEFAULT_LINKS = [
-  { href: "/contact", label: "Contacto" },
-  { href: "/blog", label: "Blog" },
-  { href: "/newsletter", label: "Newsletter" },
-];
 const REQUEST_ACCESS_CTA = "/contact";
 
-export function Header({ links, translucent = false, hideActions = false }: HeaderProps) {
+export function Header({ links, translucent = false }: HeaderProps) {
   const t = useTranslations();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -46,14 +37,7 @@ export function Header({ links, translucent = false, hideActions = false }: Head
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isLandingMode = landingModePublicEnabled || hideActions;
-
-  const navLinks =
-    links && links.length > 0
-      ? links
-      : isLandingMode
-        ? [...landingModePublicNavigationLinks]
-        : DEFAULT_LINKS;
+  const navLinks = links && links.length > 0 ? links : publicNavigationLinks;
 
   return (
     <header
