@@ -237,7 +237,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
     <div className="bg-gray-50/50 p-8 sm:p-10 border border-gray-200 rounded-md">
       <Form {...form}>
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2 items-start">
             <FormField
               control={form.control}
               name="fullName"
@@ -279,7 +279,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
             />
           </div>
 
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid gap-8 md:grid-cols-2 items-start">
               <FormField
                 control={form.control}
                 name="organization"
@@ -317,7 +317,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
                 </h2>
               </div>
 
-              <div className="grid gap-8 md:grid-cols-2">
+              <div className="grid gap-8 md:grid-cols-2 items-start">
                 {renderSelectField(
                   "systemType",
                   t("Type of system"),
@@ -355,7 +355,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
                 )}
               />
 
-              <div className="grid gap-8 md:grid-cols-2">
+              <div className="grid gap-8 md:grid-cols-2 items-start">
                 {renderSelectField(
                   "requestedOffer",
                   t("What would you like to start with? (optional)"),
