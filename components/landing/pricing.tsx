@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const planCtas: Record<EvaluationOfferId, { label: string; featured: boolean }> = {
-  "reality-check": { label: "Request a Initial Diagnostic", featured: false },
+  "reality-check": { label: "Request an Initial Diagnostic", featured: false },
   "pilot-evaluation": { label: "Start a pilot", featured: true },
   "monthly-subscription": { label: "Ask about the subscription", featured: false },
 };

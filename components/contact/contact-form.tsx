@@ -279,148 +279,91 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
             />
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="organization"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("Company")}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t("Acme Corp")}
-                      className={minimalInputClass}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="organizationWebsite"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("Website (optional)")}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://company.com"
-                      className={minimalInputClass}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="space-y-8 border-t border-gray-200 pt-8">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                {t("Your AI system")}
-              </p>
-              <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
-                {t("What should we evaluate?")}
-              </h2>
-            </div>
-
             <div className="grid gap-8 md:grid-cols-2">
-              {renderSelectField(
-                "systemType",
-                t("Type of system"),
-                t("Select a type"),
-                optionsFrom(evaluationSystemTypes, evaluationSystemTypeLabels),
-              )}
-              {renderSelectField(
-                "systemStage",
-                t("Where is it today? (optional)"),
-                t("Select a stage"),
-                optionsFrom(evaluationSystemStages, evaluationSystemStageLabels),
-              )}
-            </div>
-
-            <div className="grid gap-8 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="organization"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("Company")}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t("Acme Corp")}
+                        className={minimalInputClass}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
               {renderSelectField(
                 "sector",
                 t("Sector"),
                 t("Select a sector"),
                 optionsFrom(evaluationSectors, evaluationSectorLabels),
               )}
-              {renderSelectField(
-                "ownerRole",
-                t("Who owns the system?"),
-                t("Select a team"),
-                optionsFrom(evaluationOwnerRoles, evaluationOwnerRoleLabels),
-              )}
             </div>
 
-            <FormField
-              control={form.control}
-              name="systemAnswers"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("What does it answer?")}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={3}
-                      placeholder={t(
-                        "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
-                      )}
-                      className={cn(minimalInputClass, "resize-none")}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-8 border-t border-gray-200 pt-8">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                  {t("Your AI system")}
+                </p>
+                <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
+                  {t("What should we evaluate?")}
+                </h2>
+              </div>
 
-            <FormField
-              control={form.control}
-              name="systemUrl"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel className="text-sm font-medium text-black">
-                    {t("Where can we see it? (optional)")}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://company.com/assistant"
-                      className={minimalInputClass}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
+              <div className="grid gap-8 md:grid-cols-2">
+                {renderSelectField(
+                  "systemType",
+                  t("Type of system"),
+                  t("Select a type"),
+                  optionsFrom(evaluationSystemTypes, evaluationSystemTypeLabels),
+                )}
+                {renderSelectField(
+                  "ownerRole",
+                  t("Who owns the system?"),
+                  t("Select a team"),
+                  optionsFrom(evaluationOwnerRoles, evaluationOwnerRoleLabels),
+                )}
+              </div>
 
-            <div className="grid gap-8 md:grid-cols-2">
-              {renderSelectField(
-                "companySize",
-                t("Company size (optional)"),
-                t("Select size"),
-                evaluationCompanySizes.map((size) => ({
-                  value: size,
-                  label: t("{{range}} employees", { range: size }),
-                })),
-              )}
-              {renderSelectField(
-                "requestedOffer",
-                t("What would you like to start with? (optional)"),
-                t("Select an option"),
-                optionsFrom(evaluationRequestOffers, evaluationRequestOfferLabels),
-              )}
+              <FormField
+                control={form.control}
+                name="systemAnswers"
+                render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-sm font-medium text-black">
+                      {t("What does it answer?")}
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={3}
+                        placeholder={t(
+                          "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
+                        )}
+                        className={cn(minimalInputClass, "resize-none")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid gap-8 md:grid-cols-2">
+                {renderSelectField(
+                  "requestedOffer",
+                  t("What would you like to start with? (optional)"),
+                  t("Select an option"),
+                  optionsFrom(evaluationRequestOffers, evaluationRequestOfferLabels),
+                )}
+              </div>
             </div>
-          </div>
 
           <FormField
             control={form.control}
