@@ -114,7 +114,7 @@ export function MarketingFooter() {
               ))}
               <li>
                 <Link href="/equipo" className="hover:text-foreground">
-                  {t("Equipo")}
+                  {t("Team")}
                 </Link>
               </li>
               <li>

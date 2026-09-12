@@ -8,7 +8,7 @@ export function StatsSection() {
   const stats = [
     {
       value: "48 h",
-      label: "Reality Check",
+      label: "Initial Diagnostic",
       description: "Forty questions to your public assistant, with the report two days later.",
     },
     {
@@ -35,10 +35,10 @@ export function StatsSection() {
           <p className="text-[13px] font-bold text-teal-600 mb-4">
             {t("What to expect")}
           </p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl text-balance">
             {t("Small enough to start this month")}
           </h2>
-          <p className="text-base text-gray-500 mt-6 leading-relaxed">
+          <p className="text-base text-gray-500 mt-6 leading-relaxed text-balance">
             {t("No platform to adopt. We do the work and hand you the evidence.")}
           </p>
         </div>

@@ -38,7 +38,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Contactar con Caudals",
         url: "/contact",
-        description: "Solicita un Reality Check gratuito o una evaluación de tu asistente de IA",
+        description: "Solicita un Diagnóstico inicial gratuito o una evaluación de tu asistente de IA",
       },
       {
         name: "Leer el blog",

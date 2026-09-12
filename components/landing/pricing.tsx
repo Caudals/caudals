@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const planCtas: Record<EvaluationOfferId, { label: string; featured: boolean }> = {
-  "reality-check": { label: "Request a Reality Check", featured: false },
+  "reality-check": { label: "Request a Initial Diagnostic", featured: false },
   "pilot-evaluation": { label: "Start a pilot", featured: true },
   "monthly-subscription": { label: "Ask about the subscription", featured: false },
 };
@@ -26,12 +26,12 @@ export function PricingSection() {
           <p className="text-[13px] font-bold text-teal-600 mb-4">
             {t("Pricing")}
           </p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight text-balance">
             {t("Free to start. Never billed by the hour.")}
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-gray-500">
+          <p className="mt-6 text-base leading-relaxed text-gray-500 text-balance">
             {t(
-              "The Reality Check is free. Pilots and subscriptions are quoted on the scope of your system, with a fixed price agreed before we start.",
+              "The Initial Diagnostic is free. Pilots and subscriptions are quoted on the scope of your system, with a fixed price agreed before we start.",
             )}
           </p>
         </div>

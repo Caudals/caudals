@@ -63,7 +63,7 @@ export type EvaluationOffer = {
 export const EVALUATION_OFFERS: readonly EvaluationOffer[] = [
   {
     id: "reality-check",
-    name: "Reality Check",
+    name: "Initial Diagnostic",
     price: "Free",
     pricing: "free",
     duration: "48 hours",
@@ -125,7 +125,7 @@ export function renderEvaluationOverviewMarkdown(t: Translator) {
     `## ${t("Offers and pricing")}`,
     offers,
     t(
-      "The Reality Check is free. Pilots and subscriptions are quoted on your scope before we start, and we never bill by the hour.",
+      "The Initial Diagnostic is free. Pilots and subscriptions are quoted on your scope before we start, and we never bill by the hour.",
     ),
   ].join("\n\n");
 }

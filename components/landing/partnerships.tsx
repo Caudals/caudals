@@ -49,8 +49,8 @@ export function ContactSection() {
             <p className="text-[13px] font-bold text-teal-600 mb-4">
               {t("Start here")}
             </p>
-            <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-8 leading-tight">
-              {t("Start with a free Reality Check")}
+            <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-8 leading-tight text-balance">
+              {t("Start with a free Initial Diagnostic")}
             </h2>
             <p className="text-lg text-gray-500 mb-12 leading-relaxed">
               {t(
@@ -69,7 +69,7 @@ export function ContactSection() {
 
             <Button size="lg" asChild className="h-12 rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]">
               <Link href="/contact?offer=reality-check">
-                {t("Request a Reality Check")}
+                {t("Request an Initial Diagnostic")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -90,7 +90,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-black mb-2">{t(highlight.title)}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
+                  <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
                     {t(highlight.description)}
                   </p>
                 </div>

@@ -94,7 +94,7 @@ export const evaluationSystemStageLabels: Record<EvaluationSystemStage, string> 
 };
 
 export const evaluationRequestOfferLabels: Record<EvaluationRequestOffer, string> = {
-  "reality-check": "Free Reality Check",
+  "reality-check": "Free Initial Diagnostic",
   "pilot-evaluation": "Pilot Evaluation",
   "monthly-subscription": "Monthly subscription",
   "not-sure": "Not sure yet",

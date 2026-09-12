@@ -28,10 +28,10 @@ export function HowItWorksSection() {
           <p className="text-[13px] font-bold text-teal-600 mb-4">
             {t("How it works")}
           </p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Evidence first. Everything else follows.")}
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl text-balance">
+            {t("Driven entirely by evidence.")}
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-gray-500">
+          <p className="mt-6 text-base leading-relaxed text-gray-500 text-balance">
             {t(
               "Each step leaves you with something you keep, and tells you whether the next one is worth doing.",
             )}

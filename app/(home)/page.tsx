@@ -16,7 +16,7 @@ import {
 // Structured data is published in Spanish, like the rest of the canonical metadata.
 const es = createTranslator("es", getDictionary("es"));
 
-// Quoted offers publish no price; only the free Reality Check carries one.
+// Quoted offers publish no price; only the free Initial Diagnostic carries one.
 function offerPriceSpecification(offer: EvaluationOffer) {
   return offer.pricing === "free"
     ? { "@type": "PriceSpecification", price: 0, priceCurrency: "EUR" }

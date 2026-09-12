@@ -26,7 +26,7 @@ function splitAccent(sentence: string) {
 
 export function HeroSection() {
   const t = useTranslations();
-  const headline = splitAccent(t("We make machines answer to *experts*."));
+  const headline = splitAccent(t("We teach machines the *nuances* of human judgement."));
 
   return (
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center bg-white px-6 pt-16 pb-24 sm:px-8 lg:px-12 lg:pt-24 lg:pb-32">
@@ -38,25 +38,12 @@ export function HeroSection() {
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-48 bg-gradient-to-t from-white to-transparent" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="inline-flex items-center gap-2 rounded-full border border-gray-200/80 bg-white/60 px-3.5 py-1.5 text-[13px] font-bold text-teal-700 backdrop-blur-sm"
-        >
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-600"
-          />
-          {t("Independent AI evaluation")}
-        </motion.p>
-
         <motion.h1
           aria-label={`${headline.before}${headline.accent}${headline.after}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-          className="mt-8 text-balance text-5xl font-normal tracking-tight text-black sm:text-7xl lg:text-8xl"
+          className="mt-8 text-balance text-4xl font-normal tracking-tight text-black sm:text-6xl lg:text-7xl"
         >
           {headline.before}
           {headline.accent ? (
@@ -69,10 +56,10 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-600 sm:text-xl"
+          className="mt-6 max-w-2xl text-balance text-lg leading-relaxed text-gray-600 sm:text-xl"
         >
           {t(
-            "The future of AI won't be measured in answers, it will be measured in right answers.",
+            "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
           )}
         </motion.p>
 
@@ -88,17 +75,18 @@ export function HeroSection() {
             className="h-12 rounded-full bg-black px-7 text-base font-bold text-white transition-all hover:scale-[1.02] hover:bg-black/90"
           >
             <Link href="/contact?offer=reality-check">
-              {t("Get a free Reality Check")}
+              {t("Get a free Initial Diagnostic")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <p className="max-w-md text-[13px] leading-relaxed text-gray-500">
             {t(
               "We put forty questions from your own documentation to your assistant. Report in 48 hours, free.",
-            )}{" "}
+            )}
+            <br />
             <Link
               href="/call"
-              className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
+              className="mt-1 inline-block font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
             >
               {t("Or book a 30-minute call.")}
             </Link>

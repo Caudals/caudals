@@ -26,13 +26,13 @@ const capabilities = [
   },
   {
     icon: Languages,
-    title: "Written in Spanish",
+    title: "Real-world language and edge cases",
     description:
-      "Cases are written the way your customers ask, with typos, regional phrasing, mixed Spanish and English, and co-official languages where they matter.",
+      "Cases reflect how real customers write: typos, regional phrasing, industry jargon, and mixed Spanish and English where relevant.",
   },
   {
     icon: KeyRound,
-    title: "No credentials needed",
+    title: "No production credentials needed",
     description:
       "We test public interfaces as a customer would, you run our probe inside your network, or we score past conversations.",
   },
@@ -60,8 +60,8 @@ export function FeaturesSection() {
           <p className="text-[13px] font-bold text-teal-600 mb-4">
             {t("Why Caudals")}
           </p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl">
-            {t("Evidence, not opinions")}
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl text-balance">
+            {t("We deliver verifiable evidence")}
           </h2>
         </div>
 
@@ -81,7 +81,7 @@ export function FeaturesSection() {
               <h3 className="text-lg font-bold text-black mb-3">
                 {t(capability.title)}
               </h3>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-[260px]">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {t(capability.description)}
               </p>
             </motion.div>

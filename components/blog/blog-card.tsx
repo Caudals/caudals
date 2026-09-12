@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBlogDate } from "@/lib/blog/shared";
+import { formatBlogDate, formatReadTime } from "@/lib/blog/shared";
 import type { BlogPostSummary } from "@/lib/blog/types";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ export function BlogPostCard({ className, post }: BlogPostCardProps) {
         <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
           <span className="font-medium text-gray-900">{post.category}</span>
           <span>&middot;</span>
-          <span>{post.readTimeMinutes} min read</span>
+          <span>{formatReadTime(post.readTimeMinutes, post.locale)}</span>
         </div>
       </div>
       <div className="text-sm text-gray-500 whitespace-nowrap">

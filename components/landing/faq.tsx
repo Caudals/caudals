@@ -54,7 +54,7 @@ export function FAQSection() {
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">{t("FAQ")}</p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl leading-tight text-balance">
             {t("What teams ask before an evaluation")}
           </h2>
         </div>

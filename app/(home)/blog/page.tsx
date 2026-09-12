@@ -91,7 +91,7 @@ export default async function BlogPage({
               <BlogPostCard key={post.slug} post={post} />
             ))
           ) : (
-            <p className="text-gray-500 italic">No entries found.</p>
+            <p className="text-gray-500 italic">{t("No entries found.")}</p>
           )}
         </section>
       </main>

@@ -140,10 +140,10 @@ export function CTASection() {
           <p className="text-[13px] font-bold text-teal-600">
             {t("Get started")}
           </p>
-          <h2 className="text-5xl font-normal tracking-tight text-black sm:text-7xl max-w-3xl leading-[1.1]">
+          <h2 className="text-5xl font-normal tracking-tight text-black sm:text-7xl max-w-3xl leading-[1.1] text-balance">
             {t("Find out what your AI gets wrong before your customers do")}
           </h2>
-          <p className="mx-auto max-w-2xl text-lg text-gray-500 leading-relaxed">
+          <p className="mx-auto max-w-2xl text-lg text-gray-500 leading-relaxed text-balance">
             {t(
               "Send us the link to your assistant, or tell us about an internal one. We reply within 24 hours with the right starting point.",
             )}
@@ -151,7 +151,7 @@ export function CTASection() {
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center mt-4">
             <Button size="lg" className="h-14 min-w-[240px] rounded-md bg-black text-white hover:bg-black/90 text-base font-bold transition-all hover:scale-[1.02]" asChild>
               <Link href="/contact?offer=reality-check">
-                {t("Get a free Reality Check")}
+                {t("Get a free Initial Diagnostic")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

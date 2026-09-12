@@ -73,7 +73,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
             </Link>
           ))}
           <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-            <Link href={REQUEST_ACCESS_CTA}>{t("Comenzar")}</Link>
+            <Link href={REQUEST_ACCESS_CTA}>{t("Get started")}</Link>
           </Button>
         </nav>
         <Sheet>
@@ -117,7 +117,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
                   ))}
                   <SheetClose asChild>
                     <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
-                      <Link href={REQUEST_ACCESS_CTA}>{t("Comenzar")}</Link>
+                      <Link href={REQUEST_ACCESS_CTA}>{t("Get started")}</Link>
                     </Button>
                   </SheetClose>
                 </div>

@@ -13,7 +13,7 @@ function firstSearchParam(value: string | string[] | undefined) {
 export const metadata = buildPublicMetadata({
   title: "Solicita una evaluación de tu asistente de IA",
   description:
-    "Cuéntanos qué sistema de IA tienes, qué responde y quién es responsable. Te respondemos en 24 horas con el mejor punto de partida: un Reality Check gratuito o una evaluación piloto.",
+    "Cuéntanos qué sistema de IA tienes, qué responde y quién es responsable. Te respondemos en 24 horas con el mejor punto de partida: un Diagnóstico inicial gratuito o una evaluación piloto.",
   pathname: "/contact",
 });
 
@@ -24,7 +24,7 @@ const contactStructuredData = {
   url: buildMarketingUrl("/contact"),
   name: "Solicitar una evaluación de IA",
   description:
-    "Canal para solicitar un Reality Check gratuito o una evaluación de un asistente, chatbot o agente de IA.",
+    "Canal para solicitar un Diagnóstico inicial gratuito o una evaluación de un asistente, chatbot o agente de IA.",
   mainEntity: {
     "@type": "Organization",
     "@id": `${buildMarketingUrl("/")}#organization`,

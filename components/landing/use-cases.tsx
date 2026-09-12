@@ -42,10 +42,10 @@ export function UseCasesSection() {
           <p className="text-[13px] font-bold text-teal-600 mb-4">
             {t("What we evaluate")}
           </p>
-          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
+          <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl text-balance">
             {t("Systems where a wrong answer costs money")}
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-gray-500">
+          <p className="mt-6 text-base leading-relaxed text-gray-500 text-balance">
             {t(
               "We test text and document AI: the assistants your customers talk to and the ones your teams rely on.",
             )}

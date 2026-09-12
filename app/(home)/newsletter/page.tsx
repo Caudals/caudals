@@ -4,7 +4,7 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { Header } from "@/components/ui/header";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
 import { getPublishedIssues } from "@/lib/newsletter/client";
-import { getServerTranslator } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
 import { buildPublicMetadata } from "@/lib/seo";
 
 /**
@@ -38,6 +38,7 @@ function formatDate(value: string | null, locale: string) {
 }
 
 export default async function NewsletterPage() {
+  const locale = await getRequestLocale();
   const t = await getServerTranslator();
   const issues = await getPublishedIssues();
 
@@ -70,7 +71,7 @@ export default async function NewsletterPage() {
                 <Link href={`/newsletter/${issue.slug}`} className="group block">
                   <p className="mb-2 text-sm text-gray-500">
                     {issue.number ? `Nº ${issue.number} · ` : ""}
-                    {formatDate(issue.sent_at, "es")}
+                    {formatDate(issue.sent_at, locale)}
                   </p>
                   <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-emerald-700">
                     {issue.title}

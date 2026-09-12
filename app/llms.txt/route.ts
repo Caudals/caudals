@@ -49,7 +49,7 @@ ${renderEvaluationOverviewMarkdown(t)}
 
 ## Empezar
 
-- [Solicitar una evaluación](${buildMarketingUrl("/contact")}): formulario para pedir un Reality Check gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
+- [Solicitar una evaluación](${buildMarketingUrl("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
 - [Reservar una llamada](${buildMarketingUrl("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 
 ## Conocimiento y publicaciones

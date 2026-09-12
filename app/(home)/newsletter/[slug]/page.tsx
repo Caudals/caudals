@@ -6,7 +6,7 @@ import { Header } from "@/components/ui/header";
 import { NewsletterBlockView } from "@/components/newsletter/blocks";
 import { NewsletterSignupForm } from "@/components/newsletter/signup-form";
 import { getPublishedIssue, getPublishedIssues } from "@/lib/newsletter/client";
-import { getServerTranslator } from "@/lib/i18n/server";
+import { getRequestLocale, getServerTranslator } from "@/lib/i18n/server";
 import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 
 /** One issue, permanently. Only issues that were actually sent are readable. */
@@ -53,6 +53,7 @@ export default async function NewsletterIssuePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const locale = await getRequestLocale();
   const t = await getServerTranslator();
   const issue = await getPublishedIssue(slug);
 
@@ -63,7 +64,7 @@ export default async function NewsletterIssuePage({
     try {
       const date = new Date(issue.sent_at);
       if (!isNaN(date.getTime())) {
-        sent = date.toLocaleDateString("es-ES", {
+        sent = date.toLocaleDateString(locale === "en" ? "en-GB" : "es-ES", {
           day: "numeric",
           month: "long",
           year: "numeric",

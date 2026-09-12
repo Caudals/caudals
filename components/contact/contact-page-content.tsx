@@ -19,12 +19,12 @@ export function ContactPageContent({ requestedOffer }: ContactPageContentProps) 
       <Header />
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-12 text-center">
-          <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
+          <h1 className="text-4xl font-normal tracking-tight sm:text-5xl text-balance">
             {t("Request an evaluation")}
           </h1>
-          <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed">
+          <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed text-balance">
             {t(
-              "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Reality Check.",
+              "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Initial Diagnostic.",
             )}
           </p>
           <p className="mt-4 text-sm text-gray-500">
