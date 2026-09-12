@@ -2569,7 +2569,7 @@
   "Tell us what you&apos;re building so we can design a tailored collaboration plan.": "Cuéntenos qué está creando para que podamos diseñar un plan de colaboración personalizado.",
   "Tell us what you're building so we can design a tailored collaboration plan.": "Cuéntanos qué estás construyendo para diseñar un plan de colaboración a medida.",
   "Tell us what you're evaluating": "Cuéntanos qué estás evaluando",
-  "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Initial Diagnostic.": "Cuéntanos qué sistema de IA utilizas y qué responde. Te contestaremos en 24 horas con el punto de partida adecuado, a menudo un diagnóstico inicial gratuito.",
+  "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point.": "Cuéntanos qué sistema de IA utilizas y qué responde. Te contestaremos en 24 horas con el punto de partida adecuado.",
   "Template: Contributor incentive calculator (Google Sheet)": "Plantilla: Calculadora de incentivos para contribuyentes (Hoja de Google)",
   "Temporal runs the private durable workflow layer for supplier approvals, labeling review, and long-running operator state.": "Temporal ejecuta la capa privada de workflows duraderos para aprobaciones de proveedores, revision de etiquetado y estado operativo de larga duracion.",
   "Tenant-scoped database access": "Acceso a base de datos segmentado por tenant",

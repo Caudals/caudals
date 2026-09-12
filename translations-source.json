@@ -1753,7 +1753,7 @@
   "Tell us what you need to collect, validate, or launch. We will review the scope, timing, and operational shape behind the request.",
   "Tell us what you&apos;re building so we can design a tailored collaboration plan.",
   "Tell us what you're evaluating",
-  "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Initial Diagnostic.",
+  "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point.",
   "Template: Contributor incentive calculator (Google Sheet)",
   "Temporal runs the private durable workflow layer for supplier approvals, labeling review, and long-running operator state.",
   "Tenant-scoped database access",

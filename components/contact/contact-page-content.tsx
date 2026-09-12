@@ -24,7 +24,7 @@ export function ContactPageContent({ requestedOffer }: ContactPageContentProps) 
           </h1>
           <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed text-balance">
             {t(
-              "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point, often a free Initial Diagnostic.",
+              "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point.",
             )}
           </p>
           <p className="mt-4 text-sm text-gray-500">
