@@ -38,7 +38,7 @@ export function YouTubeEmbed({
   }, [startAt, videoId]);
 
   return (
-    <div className={cn(`${blogMediaFrameClassName} overflow-hidden bg-white`, className)}>
+    <div className={cn(`${blogMediaFrameClassName} overflow-hidden bg-background`, className)}>
       <div className="relative aspect-video bg-black">
         {isActive ? (
           <iframe

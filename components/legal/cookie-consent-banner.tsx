@@ -51,7 +51,7 @@ export function CookieConsentBanner() {
           <div
             role="dialog"
             aria-label={t("Cookie notice")}
-            className="mx-auto flex max-w-5xl flex-col gap-4 rounded-xl border border-gray-200 bg-white/95 p-5 shadow-[var(--ds-shadow-overlay)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
+            className="mx-auto flex max-w-5xl flex-col gap-4 rounded-xl border border-black/[0.08] bg-background/95 p-5 shadow-[var(--ds-shadow-overlay)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
           >
             <p className="text-sm leading-relaxed text-gray-600">
               {t(
@@ -70,7 +70,7 @@ export function CookieConsentBanner() {
               <Button
                 variant="outline"
                 onClick={() => choose("rejected")}
-                className="rounded-md border-gray-200 px-5 font-bold text-black hover:bg-gray-50"
+                className="rounded-md border border-black/[0.12] px-5 font-bold text-black hover:bg-black/5"
               >
                 {t("Decline")}
               </Button>

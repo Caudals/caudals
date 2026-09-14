@@ -1,34 +1,46 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, Boxes, FileText, MessageSquare, Phone } from "lucide-react";
+import {
+  AudioWaveform,
+  Bot,
+  FileStack,
+  Layers,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 
 const systems = [
   {
-    icon: MessageSquare,
+    icon: Bot,
     title: "Customer assistants and chatbots",
     description: "On your website, in your app or on WhatsApp.",
   },
   {
-    icon: Phone,
+    icon: AudioWaveform,
     title: "Voice and IVR agents",
     description: "The ones that answer your phone lines.",
   },
   {
-    icon: BookOpen,
+    icon: Layers,
     title: "Internal assistants",
     description: "Over HR policy, sales material or technical manuals.",
   },
   {
-    icon: FileText,
+    icon: FileStack,
     title: "Document pipelines",
     description: "Triage, classification and extraction.",
   },
   {
-    icon: Boxes,
+    icon: Sparkles,
     title: "AI features in your product",
     description: "Quote assistants, clause analysers and valuation explanations.",
+  },
+  {
+    icon: Settings2,
+    title: "Technical support and after-sales",
+    description: "Machinery manuals, part numbers and workshop procedures.",
   },
 ];
 
@@ -36,7 +48,7 @@ export function UseCasesSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
@@ -52,7 +64,7 @@ export function UseCasesSection() {
           </p>
         </div>
 
-        <div className="grid gap-px overflow-hidden rounded-xl border border-gray-100 bg-gray-100 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-px overflow-hidden rounded-xl border border-black/[0.08] bg-black/[0.08] sm:grid-cols-2 lg:grid-cols-3 shadow-sm">
           {systems.map((system, index) => (
             <motion.div
               key={system.title}
@@ -60,34 +72,17 @@ export function UseCasesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
               viewport={{ once: true, margin: "-60px" }}
-              className="group flex flex-col items-start bg-white p-8"
+              className="group flex flex-col items-start bg-background p-8"
             >
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-md bg-gray-50 text-gray-400 transition-colors group-hover:bg-teal-50 group-hover:text-teal-600">
-                <system.icon className="h-6 w-6" />
+              <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] text-neutral-700 transition-all duration-300 group-hover:border-black/[0.18] group-hover:bg-black/[0.06] group-hover:text-black group-hover:-translate-y-0.5">
+                <system.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
               </div>
               <h3 className="text-lg font-bold text-black mb-2">{t(system.title)}</h3>
-              <p className="text-sm leading-relaxed text-gray-500">
+              <p className="text-sm leading-relaxed text-gray-500 transition-colors duration-300 group-hover:text-gray-700">
                 {t(system.description)}
               </p>
             </motion.div>
           ))}
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: systems.length * 0.05 }}
-            viewport={{ once: true, margin: "-60px" }}
-            className="flex flex-col items-start bg-gray-50/60 p-8"
-          >
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-4">
-              {t("Questions that matter")}
-            </p>
-            <p className="text-sm leading-relaxed text-gray-600">
-              {t(
-                "Coverage and waiting periods, banking fees and eligibility, energy and telecom tariffs, refund rights, dosage and interactions, technical specifications.",
-              )}
-            </p>
-          </motion.div>
         </div>
       </div>
     </section>

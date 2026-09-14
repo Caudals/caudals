@@ -211,7 +211,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
         <p className="text-base text-gray-600 leading-relaxed mb-8">
           {t("We'll review your system and reply within 24 hours with the right starting point.")}
         </p>
-        <div className="space-y-4 pt-8 border-t border-gray-200">
+        <div className="space-y-4 pt-8 border-t border-black/[0.08]">
           <p className="text-base text-gray-600">
             {t("If you want to add more context in the meantime, email us at")}{" "}
             <a
@@ -234,7 +234,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
   }
 
   return (
-    <div className="bg-gray-50/50 p-8 sm:p-10 border border-gray-200 rounded-md">
+    <div className="bg-background p-8 sm:p-10 border border-black/[0.08] rounded-xl shadow-xs">
       <Form {...form}>
         <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="grid gap-8 md:grid-cols-2 items-start">
@@ -307,7 +307,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               )}
             </div>
 
-            <div className="space-y-8 border-t border-gray-200 pt-8">
+            <div className="space-y-8 border-t border-black/[0.08] pt-8">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
                   {t("Your AI system")}

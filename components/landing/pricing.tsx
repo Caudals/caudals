@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import {
@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const planCtas: Record<EvaluationOfferId, { label: string; featured: boolean }> = {
-  "reality-check": { label: "Request an Initial Diagnostic", featured: false },
+  "reality-check": { label: "Initial Diagnostic", featured: false },
   "pilot-evaluation": { label: "Start a pilot", featured: true },
   "monthly-subscription": { label: "Ask about the subscription", featured: false },
 };
@@ -20,7 +20,7 @@ export function PricingSection() {
   const t = useTranslations();
 
   return (
-    <section id="pricing" className="py-24 sm:py-32 bg-gray-50/50">
+    <section id="pricing" className="py-24 sm:py-32 bg-background border-t border-black/[0.08]">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
@@ -36,17 +36,17 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="grid gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 shadow-sm lg:grid-cols-3">
+        <div className="grid gap-px overflow-hidden rounded-xl border border-black/[0.08] bg-black/[0.08] shadow-sm lg:grid-cols-3">
           {EVALUATION_OFFERS.map((offer) => {
             const cta = planCtas[offer.id];
             return (
-              <div key={offer.id} className="flex flex-col bg-white p-8 sm:p-10">
+              <div key={offer.id} className="group flex flex-col bg-background p-8 sm:p-10">
                 <div className="mb-8">
-                  <span className="mb-4 inline-flex rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-bold text-gray-500">
+                  <span className="mb-4 inline-flex rounded-full bg-black/[0.03] border border-black/[0.08] px-2.5 py-1 text-[11px] font-bold text-gray-600 transition-colors duration-300 group-hover:border-black/[0.18] group-hover:bg-black/[0.06] group-hover:text-black">
                     {t(offer.duration)}
                   </span>
                   <h3 className="text-xl font-bold text-black mb-3">{t(offer.name)}</h3>
-                  <p className="text-sm leading-relaxed text-gray-500 lg:min-h-[7.5rem]">
+                  <p className="text-sm leading-relaxed text-gray-500 lg:min-h-[7.5rem] transition-colors duration-300 group-hover:text-gray-700">
                     {t(offer.summary)}
                   </p>
                 </div>
@@ -60,8 +60,8 @@ export function PricingSection() {
                 <ul className="space-y-4 mb-10 flex-1">
                   {offer.includes.map((item) => (
                     <li key={item} className="flex items-start gap-3">
-                      <Check className="h-4 w-4 text-teal-500 mt-0.5 shrink-0" />
-                      <span className="text-sm text-gray-600">{t(item)}</span>
+                      <Check className="h-4 w-4 text-teal-600 mt-0.5 shrink-0 transition-transform duration-300 group-hover:scale-110" />
+                      <span className="text-sm text-gray-600 transition-colors duration-300 group-hover:text-gray-800">{t(item)}</span>
                     </li>
                   ))}
                 </ul>
@@ -69,14 +69,21 @@ export function PricingSection() {
                 <Button
                   variant={cta.featured ? "default" : "outline"}
                   className={cn(
-                    "h-11 w-full rounded-md text-sm font-bold transition-all",
+                    "h-11 w-full rounded-md text-sm font-bold transition-all duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]",
+                    "group-hover:-translate-y-1 group-hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
                     cta.featured
-                      ? "bg-black text-white hover:bg-black/90"
-                      : "border-gray-200 text-black hover:bg-gray-50"
+                      ? "bg-black text-white hover:bg-neutral-900 group-hover:bg-neutral-900 group-hover:shadow-lg group-hover:shadow-black/15"
+                      : "border-black/[0.14] bg-white text-black hover:bg-black hover:text-white hover:border-black group-hover:bg-black group-hover:text-white group-hover:border-black"
                   )}
                   asChild
                 >
-                  <Link href={`/contact?offer=${offer.id}`}>{t(cta.label)}</Link>
+                  <Link
+                    href={`/contact?offer=${offer.id}`}
+                    className="inline-flex w-full items-center justify-center gap-2"
+                  >
+                    <span>{t(cta.label)}</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-1.5" />
+                  </Link>
                 </Button>
               </div>
             );

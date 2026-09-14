@@ -20,7 +20,7 @@ export async function LegalPage({ title, description, sections }: LegalPageProps
   const t = await getServerTranslator();
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
       <Header />
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-24">
         <header className="mb-12 border-b border-gray-200 pb-10">

@@ -31,7 +31,7 @@ const teamStructuredData = {
 
 export default function TeamPage() {
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-background text-black">
       <Header />
       <main lang="es" className="mx-auto w-full max-w-5xl px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="max-w-3xl">
@@ -46,16 +46,16 @@ export default function TeamPage() {
 
         <section className="mt-16 grid gap-6 md:grid-cols-2" aria-label="Fundadores de Caudals">
           {CAUDALS_AUTHORS.map((author) => (
-            <article key={author.slug} className="rounded-2xl border border-gray-200 p-7">
+            <article key={author.slug} className="group rounded-2xl border border-black/[0.08] bg-background p-7 shadow-xs">
               <p className="text-sm font-medium text-teal-700">{author.role}</p>
-              <h2 className="mt-2 text-2xl font-medium tracking-tight">{author.name}</h2>
-              <p className="mt-4 leading-relaxed text-gray-600">{author.headline}</p>
+              <h2 className="mt-2 text-2xl font-medium tracking-tight text-black">{author.name}</h2>
+              <p className="mt-4 leading-relaxed text-gray-600 transition-colors duration-300 group-hover:text-gray-800">{author.headline}</p>
               <Link
                 href={`/equipo/${author.slug}`}
-                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-900 hover:text-teal-700"
+                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-gray-900 group-hover:text-teal-700 transition-colors duration-300"
               >
                 Ver perfil
-                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
               </Link>
             </article>
           ))}

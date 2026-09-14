@@ -37,7 +37,7 @@ export function ContactSection() {
   const t = useTranslations();
 
   return (
-    <section id="contact" className="py-24 sm:py-32 bg-gray-50/50">
+    <section id="contact" className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="grid gap-20 lg:grid-cols-2 lg:items-start">
           <motion.div
@@ -58,24 +58,32 @@ export function ContactSection() {
               )}
             </p>
 
-            <div className="grid grid-cols-3 gap-8 mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 mb-16">
+              <Button size="lg" asChild className="h-12 px-8 rounded-md bg-black text-white hover:bg-black/90 text-sm font-bold shadow-sm">
+                <Link href="/contact?offer=diagnostic">
+                  {t("Request free diagnostic")}
+                </Link>
+              </Button>
+              <Button size="lg" variant="ghost" asChild className="h-12 px-8 rounded-md text-black hover:bg-black/5 text-sm font-bold">
+                <Link href="/call">
+                  {t("Or book a 30-min call")}
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 pt-12 border-t border-black/[0.08]">
               {contactMetrics.map((metric) => (
                 <div key={metric.label}>
-                  <p className="text-[10px] font-bold text-gray-400 mb-2">{t(metric.label)}</p>
-                  <p className="text-2xl font-normal text-black tabular-nums">{t(metric.value)}</p>
+                  <p className="text-2xl font-normal tracking-tight text-black sm:text-3xl mb-1">
+                    {t(metric.value)}
+                  </p>
+                  <p className="text-xs text-gray-500 font-medium">{t(metric.label)}</p>
                 </div>
               ))}
             </div>
-
-            <Button size="lg" asChild className="h-12 rounded-md bg-black px-8 text-base font-bold text-white hover:bg-black/90 transition-all hover:scale-[1.02]">
-              <Link href="/contact?offer=reality-check">
-                {t("Request an Initial Diagnostic")}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </motion.div>
 
-          <div className="space-y-12">
+          <div className="space-y-8 lg:pt-16">
             {highlights.map((highlight, index) => (
               <motion.div
                 key={highlight.title}
@@ -85,12 +93,12 @@ export function ContactSection() {
                 viewport={{ once: true, margin: "-70px" }}
                 className="flex gap-6 group"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white border border-gray-100 text-gray-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors shadow-sm">
-                  <highlight.icon className="h-6 w-6" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] text-neutral-700 transition-all duration-300 group-hover:border-black/[0.18] group-hover:bg-black/[0.06] group-hover:text-black group-hover:-translate-y-0.5">
+                  <highlight.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-black mb-2">{t(highlight.title)}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                  <p className="text-sm text-gray-500 leading-relaxed max-w-sm transition-colors duration-300 group-hover:text-gray-700">
                     {t(highlight.description)}
                   </p>
                 </div>
@@ -101,7 +109,7 @@ export function ContactSection() {
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="p-6 rounded-xl border border-gray-100 bg-white/50 text-sm text-gray-400 leading-relaxed"
+              className="p-6 rounded-xl border border-black/[0.08] bg-black/[0.02] text-sm text-gray-600 leading-relaxed"
             >
               <p>
                 {t(

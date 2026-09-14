@@ -52,12 +52,12 @@ export function TestimonialsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.08 }}
               viewport={{ once: true, margin: "-60px" }}
-              className="flex h-full flex-col gap-6 rounded-[1.6rem] border border-border/40 bg-white/80 p-6 text-left shadow-sm backdrop-blur-xl"
+              className="group flex h-full flex-col gap-6 rounded-[1.6rem] border border-black/[0.08] bg-background p-6 text-left shadow-sm"
             >
-              <Quote className="h-6 w-6 text-[#7f8cff]" />
-              <p className="text-base leading-relaxed text-slate-500">{testimonial.quote}</p>
+              <Quote className="h-6 w-6 text-teal-600 transition-transform duration-300 group-hover:scale-110" />
+              <p className="text-base leading-relaxed text-slate-500 transition-colors duration-300 group-hover:text-slate-700">{testimonial.quote}</p>
               <div className="mt-auto space-y-1">
-                <p className="text-sm font-semibold text-foreground">{testimonial.name}</p>
+                <p className="text-sm font-semibold text-foreground transition-colors duration-300 group-hover:text-black">{testimonial.name}</p>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
                   {testimonial.role}
                 </p>

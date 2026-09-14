@@ -43,7 +43,7 @@ export default async function NewsletterPage() {
   const issues = await getPublishedIssues();
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
       <Header />
 
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
@@ -56,7 +56,7 @@ export default async function NewsletterPage() {
           </p>
         </header>
 
-        <section className="mb-16 rounded-2xl border border-gray-200 bg-gray-50/60 p-6 sm:p-8">
+        <section className="mb-16 rounded-2xl border border-black/[0.08] bg-background p-6 sm:p-8 shadow-xs">
           <NewsletterSignupForm source="archive" />
         </section>
 

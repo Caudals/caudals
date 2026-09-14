@@ -107,7 +107,7 @@ export default async function NewsletterIssuePage({
   };
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
       <Header />
 
       <main className="mx-auto flex w-full max-w-2xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
@@ -137,7 +137,7 @@ export default async function NewsletterIssuePage({
           ))}
         </article>
 
-        <section className="mt-16 rounded-2xl border border-gray-200 bg-gray-50/60 p-6 sm:p-8">
+        <section className="mt-16 rounded-2xl border border-black/[0.08] bg-background p-6 sm:p-8 shadow-xs">
           <p className="mb-1 text-lg font-semibold text-slate-900">
             {t("Someone forwarded you this?")}
           </p>

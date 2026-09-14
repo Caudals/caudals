@@ -87,7 +87,7 @@ function NewsletterInlineForm() {
                     type="email"
                     aria-label={t("Your email address")}
                     placeholder={t("Your email address")}
-                    className="h-12 w-full rounded-full border border-gray-200/80 bg-white/60 px-5 pr-32 text-sm shadow-sm backdrop-blur-sm transition-all focus-visible:border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-200 hover:border-gray-300"
+                    className="h-12 w-full rounded-full border border-black/[0.12] bg-background px-5 pr-32 text-sm shadow-xs transition-all focus-visible:border-teal-600 focus-visible:ring-1 focus-visible:ring-teal-600 hover:border-black/[0.2] text-gray-900 placeholder:text-gray-400"
                     {...field}
                   />
                 </FormControl>
@@ -134,7 +134,7 @@ export function CTASection() {
   ];
 
   return (
-    <section className="py-32 sm:py-48 bg-white border-t border-gray-100">
+    <section className="py-32 sm:py-48 bg-background border-t border-black/[0.08]">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12 text-center">
         <div className="flex flex-col items-center gap-8">
           <p className="text-[13px] font-bold text-teal-600">
@@ -158,13 +158,13 @@ export function CTASection() {
             <Button
               size="lg"
               variant="outline"
-              className="h-14 min-w-[240px] rounded-md border-gray-200 text-black hover:bg-gray-50 text-base font-bold transition-all"
+              className="h-14 min-w-[240px] rounded-md border-black/[0.12] text-black hover:bg-black/5 text-base font-bold transition-all"
               asChild
             >
               <Link href="/call">{t("Book a 30-minute call")}</Link>
             </Button>
           </div>
-          <div className="flex flex-col items-center justify-center gap-6 mt-12 text-sm font-medium text-gray-400 sm:flex-row sm:gap-10">
+          <div className="flex flex-col items-center justify-center gap-6 mt-12 text-sm font-medium text-gray-500 sm:flex-row sm:gap-10">
             {assurances.map((assurance) => (
               <div key={assurance} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-teal-500" />
@@ -172,7 +172,7 @@ export function CTASection() {
               </div>
             ))}
           </div>
-          <div className="mt-16 w-full border-t border-gray-100 pt-16">
+          <div className="mt-16 w-full border-t border-black/[0.08] pt-16">
             <NewsletterInlineForm />
           </div>
         </div>

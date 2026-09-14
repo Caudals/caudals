@@ -81,8 +81,8 @@ export function EvalDatasetPlanner() {
   const rec = getRecommendation(task, maturity);
 
   return (
-    <div className="my-10 border border-gray-200 rounded-xl overflow-hidden bg-white">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+    <div className="my-10 border border-black/[0.08] rounded-xl overflow-hidden bg-background shadow-xs">
+      <div className="px-6 py-4 border-b border-black/[0.08] bg-black/[0.02]">
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           Interactive · Eval Dataset Planner
         </p>
@@ -103,7 +103,7 @@ export function EvalDatasetPlanner() {
                   "text-left rounded-lg border px-4 py-3 transition-all duration-150",
                   task === t.value
                     ? "border-emerald-600 bg-emerald-50"
-                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                    : "border-black/[0.08] bg-background hover:border-black/[0.18] hover:bg-black/[0.015]"
                 )}
               >
                 <p className={cn("text-sm font-medium", task === t.value ? "text-emerald-700" : "text-gray-900")}>
@@ -129,7 +129,7 @@ export function EvalDatasetPlanner() {
                   "text-left rounded-lg border px-4 py-3 transition-all duration-150",
                   maturity === m.value
                     ? "border-emerald-600 bg-emerald-50"
-                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                    : "border-black/[0.08] bg-background hover:border-black/[0.18] hover:bg-black/[0.015]"
                 )}
               >
                 <p className={cn("text-sm font-medium", maturity === m.value ? "text-emerald-700" : "text-gray-900")}>
@@ -142,8 +142,8 @@ export function EvalDatasetPlanner() {
         </div>
 
         {/* Results */}
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-5 py-3 border-b border-gray-200">
+        <div className="rounded-lg border border-black/[0.08] overflow-hidden bg-background">
+          <div className="bg-black/[0.02] px-5 py-3 border-b border-black/[0.08]">
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
               Recommended dataset size
             </p>
@@ -175,7 +175,7 @@ export function EvalDatasetPlanner() {
               <ul className="mt-4 space-y-2">
                 {rec.notes.map((note, i) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600">
-                    <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                    <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full bg-black/[0.04] flex items-center justify-center text-[10px] font-bold text-gray-600">
                       {i + 1}
                     </span>
                     {note}

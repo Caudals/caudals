@@ -60,9 +60,9 @@ export function ActiveLearningLoop() {
   }
 
   return (
-    <div className="my-10 border border-gray-200 rounded-xl overflow-hidden bg-white">
+    <div className="my-10 border border-black/[0.08] rounded-xl overflow-hidden bg-background shadow-xs">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+      <div className="px-6 py-4 border-b border-black/[0.08] bg-black/[0.02]">
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           Interactive · Active Learning Loop
         </p>
@@ -86,7 +86,7 @@ export function ActiveLearningLoop() {
                         ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
                         : isDone
                           ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                          : "border-gray-200 bg-white text-gray-400 hover:border-gray-300"
+                          : "border-black/[0.12] bg-background text-neutral-400 hover:border-black/[0.25]"
                     )}
                   >
                     {isDone ? (
@@ -121,7 +121,7 @@ export function ActiveLearningLoop() {
                     <div
                       className={cn(
                         "h-px w-full transition-colors duration-300",
-                        i < activeStep ? "bg-emerald-400" : "bg-gray-200"
+                        i < activeStep ? "bg-emerald-400" : "bg-black/[0.08]"
                       )}
                     />
                   </div>
@@ -133,7 +133,7 @@ export function ActiveLearningLoop() {
       </div>
 
       {/* Detail card */}
-      <div className="mx-6 mb-6 mt-4 rounded-lg border border-gray-100 bg-gray-50 p-5">
+      <div className="mx-6 mb-6 mt-4 rounded-lg border border-black/[0.08] bg-black/[0.02] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700 mb-1">
@@ -153,7 +153,7 @@ export function ActiveLearningLoop() {
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
+      <div className="flex items-center justify-between border-t border-black/[0.08] px-6 py-4">
         <button
           onClick={prev}
           disabled={activeStep === 0}

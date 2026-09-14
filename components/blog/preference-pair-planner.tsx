@@ -110,8 +110,8 @@ export function PreferencePairPlanner() {
   const result = getEstimate(scope, stage, profile);
 
   return (
-    <div className="my-10 border border-gray-200 rounded-none bg-white">
-      <div className="border-b border-gray-200 px-6 py-4">
+    <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
+      <div className="border-b border-black/[0.08] px-6 py-4">
         <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
           Preference pair estimator
         </p>
@@ -128,10 +128,10 @@ export function PreferencePairPlanner() {
               <button
                 key={s}
                 onClick={() => setScope(s)}
-                className={`text-left px-4 py-3 border text-sm transition-colors ${
+                className={`text-left px-4 py-3 border text-sm transition-colors rounded-lg ${
                   scope === s
                     ? "border-black bg-gray-900 text-white"
-                    : "border-gray-200 text-gray-700 hover:border-gray-400"
+                    : "border-black/[0.12] text-gray-700 hover:border-black/[0.25]"
                 }`}
               >
                 {SCOPE_LABELS[s]}
@@ -150,10 +150,10 @@ export function PreferencePairPlanner() {
               <button
                 key={s}
                 onClick={() => setStage(s)}
-                className={`text-left px-4 py-3 border text-sm transition-colors ${
+                className={`text-left px-4 py-3 border text-sm transition-colors rounded-lg ${
                   stage === s
                     ? "border-black bg-gray-900 text-white"
-                    : "border-gray-200 text-gray-700 hover:border-gray-400"
+                    : "border-black/[0.12] text-gray-700 hover:border-black/[0.25]"
                 }`}
               >
                 {STAGE_LABELS[s]}
@@ -172,10 +172,10 @@ export function PreferencePairPlanner() {
               <button
                 key={a}
                 onClick={() => setProfile(a)}
-                className={`text-left px-4 py-3 border text-sm transition-colors ${
+                className={`text-left px-4 py-3 border text-sm transition-colors rounded-lg ${
                   profile === a
                     ? "border-black bg-gray-900 text-white"
-                    : "border-gray-200 text-gray-700 hover:border-gray-400"
+                    : "border-black/[0.12] text-gray-700 hover:border-black/[0.25]"
                 }`}
               >
                 {ANNOTATOR_LABELS[a]}
@@ -186,7 +186,7 @@ export function PreferencePairPlanner() {
       </div>
 
       {/* Result */}
-      <div className="border-t border-gray-200 px-6 py-6 bg-gray-50">
+      <div className="border-t border-black/[0.08] px-6 py-6 bg-black/[0.02]">
         <div className="mb-6">
           <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">
             Estimated comparison pairs

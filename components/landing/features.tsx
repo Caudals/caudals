@@ -54,7 +54,7 @@ export function FeaturesSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
@@ -75,13 +75,13 @@ export function FeaturesSection() {
               viewport={{ once: true, margin: "-60px" }}
               className="group flex flex-col items-start"
             >
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-md bg-gray-50 text-gray-400 group-hover:bg-teal-50 group-hover:text-teal-600 transition-colors">
-                <capability.icon className="h-6 w-6" />
+              <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] text-neutral-700 transition-all duration-300 group-hover:border-black/[0.18] group-hover:bg-black/[0.06] group-hover:text-black group-hover:-translate-y-0.5">
+                <capability.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
               </div>
               <h3 className="text-lg font-bold text-black mb-3">
                 {t(capability.title)}
               </h3>
-              <p className="text-sm text-gray-500 leading-relaxed">
+              <p className="text-sm text-gray-500 leading-relaxed transition-colors duration-300 group-hover:text-gray-700">
                 {t(capability.description)}
               </p>
             </motion.div>

@@ -1,10 +1,10 @@
 :root {
-  --ds-canvas: #f9fafb;
-  --ds-sidebar-bg: #f9fafb;
-  --ds-surface: #ffffff;
-  --ds-surface-muted: #f9fafb;
-  --ds-border-soft: #f3f4f6;
-  --ds-border-strong: #e5e7eb;
+  --ds-canvas: #fbfaf8;
+  --ds-sidebar-bg: #fbfaf8;
+  --ds-surface: #fbfaf8;
+  --ds-surface-muted: #f4f4f2;
+  --ds-border-soft: rgba(0, 0, 0, 0.06);
+  --ds-border-strong: rgba(0, 0, 0, 0.12);
   --ds-text-primary: #111827;
   --ds-text-secondary: #6b7280;
   --ds-text-tertiary: #9ca3af;

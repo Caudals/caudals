@@ -10,7 +10,7 @@ type BlogPostCardProps = {
 
 export function BlogPostCard({ className, post }: BlogPostCardProps) {
   return (
-    <article className={cn("group flex flex-col items-start justify-between sm:flex-row sm:items-baseline gap-4 py-8 border-t border-gray-200 first:border-t-0", className)}>
+    <article className={cn("group flex flex-col items-start justify-between sm:flex-row sm:items-baseline gap-4 py-8 border-t border-black/[0.08] first:border-t-0", className)}>
       <div className="flex-1">
         <Link href={`/blog/${post.slug}`} className="block">
           <h3 className="text-2xl font-normal tracking-tight text-black group-hover:underline decoration-1 underline-offset-4">

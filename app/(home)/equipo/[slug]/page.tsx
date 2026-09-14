@@ -95,7 +95,7 @@ export default async function AuthorPage({
   };
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-background text-black">
       <Header />
       <main lang="es" className="mx-auto w-full max-w-3xl px-6 pb-24 pt-16 sm:px-8 lg:pt-20">
         <Link

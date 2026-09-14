@@ -2,27 +2,27 @@
 
 import { motion } from "framer-motion";
 import {
-  ClipboardCheck,
-  Database,
-  FileSearch,
-  RefreshCw,
+  BarChart3,
+  Blocks,
+  FlaskConical,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/use-translations";
 import { EVALUATION_STEPS, type EvaluationStepId } from "@/lib/public/evaluation-offers";
 
 const stepIcons: Record<EvaluationStepId, LucideIcon> = {
-  evaluate: FileSearch,
-  report: ClipboardCheck,
-  subscribe: RefreshCw,
-  build: Database,
+  evaluate: FlaskConical,
+  report: BarChart3,
+  subscribe: Repeat,
+  build: Blocks,
 };
 
 export function HowItWorksSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-24 sm:py-32 bg-white overflow-hidden">
+    <section className="py-24 sm:py-32 bg-background overflow-hidden">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12 text-center">
         <div className="mb-16 mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
@@ -38,7 +38,7 @@ export function HowItWorksSection() {
           </p>
         </div>
 
-        <div className="grid gap-px bg-gray-100 border border-gray-100 rounded-xl overflow-hidden sm:grid-cols-2 lg:grid-cols-4 text-left">
+        <div className="grid gap-px bg-black/[0.08] border border-black/[0.08] rounded-xl overflow-hidden sm:grid-cols-2 lg:grid-cols-4 text-left shadow-sm">
           {EVALUATION_STEPS.map((step, index) => {
             const Icon = stepIcons[step.id];
             return (
@@ -48,16 +48,16 @@ export function HowItWorksSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
                 viewport={{ once: true, margin: "-60px" }}
-                className="bg-white p-8 flex flex-col items-start group hover:bg-gray-50/50 transition-colors"
+                className="bg-background p-8 flex flex-col items-start group"
               >
-                <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-md bg-teal-50 text-teal-600 transition-transform group-hover:scale-110">
-                  <Icon className="h-5 w-5" />
+                <div className="mb-6 flex h-11 w-11 items-center justify-center rounded-lg border border-black/[0.08] bg-black/[0.03] text-neutral-700 transition-all duration-300 group-hover:border-black/[0.18] group-hover:bg-black/[0.06] group-hover:text-black group-hover:-translate-y-0.5">
+                  <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
                 </div>
-                <p className="text-[10px] font-bold text-teal-600 mb-2">
+                <p className="text-[11px] font-medium font-mono text-neutral-500 uppercase tracking-wider mb-2 transition-colors duration-300 group-hover:text-black">
                   {t("Step 0{{index}}", { index: index + 1 })}
                 </p>
                 <h3 className="text-lg font-bold text-black mb-3">{t(step.label)}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
+                <p className="text-sm text-gray-500 leading-relaxed transition-colors duration-300 group-hover:text-gray-700">
                   {t(step.description)}
                 </p>
               </motion.div>

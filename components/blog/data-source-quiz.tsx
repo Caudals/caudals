@@ -132,9 +132,9 @@ export function DataSourceQuiz() {
   const progress = isIntro ? 0 : isResult ? 100 : Math.round(((step - 1) / total) * 100);
 
   return (
-    <div className="my-10 border border-gray-200 bg-white">
+    <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-black/[0.08] px-6 py-4">
         <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
           Interactive tool
         </p>
@@ -145,7 +145,7 @@ export function DataSourceQuiz() {
 
       {/* Progress bar */}
       {!isIntro && (
-        <div className="h-px w-full bg-gray-100">
+        <div className="h-px w-full bg-black/[0.06]">
           <div
             className="h-px bg-black transition-all duration-300"
             style={{ width: `${progress}%` }}
@@ -188,7 +188,7 @@ export function DataSourceQuiz() {
               </button>
               <button
                 onClick={() => handleAnswer(false)}
-                className="border border-gray-200 px-8 py-2 text-sm font-medium text-gray-500 hover:border-gray-400 hover:text-black transition-colors"
+                className="border border-black/[0.12] px-8 py-2 text-sm font-medium text-gray-500 hover:border-black/[0.25] hover:text-black transition-colors"
               >
                 No
               </button>
@@ -218,7 +218,7 @@ export function DataSourceQuiz() {
               ))}
             </div>
 
-            <div className="border-t border-gray-100 pt-6 mb-6">
+            <div className="border-t border-black/[0.08] pt-6 mb-6">
               <p className="text-sm text-gray-500 leading-relaxed">{recommendation.cta}</p>
             </div>
 

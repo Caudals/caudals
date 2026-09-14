@@ -19,7 +19,7 @@ const getAskAiLinks = (prompt: string) => {
       name: "ChatGPT",
       href: `https://chatgpt.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/chatgpt.svg",
-      bgClass: "bg-black",
+      bgClass: "bg-neutral-900",
     },
     {
       name: "Claude",
@@ -31,7 +31,7 @@ const getAskAiLinks = (prompt: string) => {
       name: "Gemini",
       href: `https://www.google.com/search?udm=50&aep=11&atvm=2&q=${encodedPrompt}`,
       icon: "/icons/ai/gemini.svg",
-      bgClass: "bg-black",
+      bgClass: "bg-neutral-900",
     },
     {
       name: "Perplexity",
@@ -43,7 +43,7 @@ const getAskAiLinks = (prompt: string) => {
       name: "Grok",
       href: `https://grok.com/?q=${encodedPrompt}`,
       icon: "/icons/ai/grok.svg",
-      bgClass: "bg-black",
+      bgClass: "bg-neutral-900",
     },
   ];
 };
@@ -57,7 +57,7 @@ export function MarketingFooter() {
   const aiLinks = getAskAiLinks(aiPrompt);
 
   return (
-    <footer className="border-t border-border/60 bg-background">
+    <footer className="border-t border-black/[0.08] bg-background">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:px-8 lg:px-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
@@ -69,7 +69,7 @@ export function MarketingFooter() {
             </p>
             <Link
               href="mailto:hello@caudals.com"
-              className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-foreground"
+              className="mt-3 block text-sm font-medium text-slate-900 transition-colors hover:text-black"
             >
               hello@caudals.com
             </Link>
@@ -107,18 +107,18 @@ export function MarketingFooter() {
             <ul className="space-y-2 text-sm text-slate-500">
               {publicNavigationLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-foreground">
+                  <Link href={link.href} className="hover:text-black">
                     {t(link.label)}
                   </Link>
                 </li>
               ))}
               <li>
-                <Link href="/equipo" className="hover:text-foreground">
+                <Link href="/equipo" className="hover:text-black">
                   {t("Team")}
                 </Link>
               </li>
               <li>
-                <Link href="/call" className="hover:text-foreground">
+                <Link href="/call" className="hover:text-black">
                   {t("Book a meeting")}
                 </Link>
               </li>
@@ -131,7 +131,7 @@ export function MarketingFooter() {
             <ul className="space-y-2 text-sm text-slate-500">
               {legalLinks.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-foreground">
+                  <Link href={link.href} className="hover:text-black">
                     {t(link.label)}
                   </Link>
                 </li>
@@ -140,8 +140,7 @@ export function MarketingFooter() {
           </div>
         </div>
 
-
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-black/[0.08] pt-8 sm:flex-row">
           <p className="text-sm text-slate-500">
             {t("© {{year}} Caudals. All rights reserved.", {
               year: new Date().getFullYear(),
@@ -150,7 +149,7 @@ export function MarketingFooter() {
           <div className="flex gap-6">
             <Link
               href="https://x.com/caudalshq"
-              className="text-slate-500 transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-black"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -165,7 +164,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://github.com/Caudals"
-              className="text-slate-500 transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-black"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -184,7 +183,7 @@ export function MarketingFooter() {
             </Link>
             <Link
               href="https://www.linkedin.com/company/caudals/"
-              className="text-slate-500 transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-black"
               target="_blank"
               rel="noopener noreferrer"
             >

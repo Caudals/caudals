@@ -50,7 +50,7 @@ export function FAQSection() {
   const t = useTranslations();
 
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-4xl px-6 sm:px-8 lg:px-12">
         <div className="mb-16 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">{t("FAQ")}</p>
@@ -59,14 +59,14 @@ export function FAQSection() {
           </h2>
         </div>
 
-        <Accordion type="single" collapsible className="border-t border-gray-100">
+        <Accordion type="single" collapsible className="border-t border-black/[0.08]">
           {faqs.map((faq, index) => (
             <AccordionItem
               key={faq.question}
               value={`faq-${index}`}
-              className="border-b border-gray-100 py-2"
+              className="border-b border-black/[0.08] py-2"
             >
-              <AccordionTrigger className="text-left text-lg font-bold text-black hover:text-teal-600 transition-colors py-6">
+              <AccordionTrigger className="text-left text-lg font-bold text-black hover:text-teal-600 hover:no-underline transition-colors py-6">
                 {t(faq.question)}
               </AccordionTrigger>
               <AccordionContent className="text-base leading-relaxed text-gray-500 pb-8">
@@ -76,8 +76,8 @@ export function FAQSection() {
           ))}
         </Accordion>
 
-        <div className="mt-16 p-8 rounded-2xl bg-gray-50 text-center">
-          <p className="text-sm text-gray-500 leading-relaxed">
+        <div className="mt-16 p-8 rounded-2xl bg-black/[0.02] border border-black/[0.08] text-center">
+          <p className="text-sm text-gray-600 leading-relaxed">
             {t(
               "Have a different question? Contact us and we'll get back to you within 24 hours.",
             )}

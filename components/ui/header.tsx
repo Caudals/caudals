@@ -44,8 +44,8 @@ export function Header({ links, translucent = false }: HeaderProps) {
       className={cn(
         "sticky top-0 z-50 w-full transition-all duration-300",
         isScrolled
-          ? "border-b border-white/35 bg-white/40 backdrop-blur-[22px] shadow-[0_18px_40px_-30px_rgba(15,23,42,0.32)]"
-          : "border-b border-transparent bg-transparent",
+          ? "bg-background/40 backdrop-blur-[22px]"
+          : "bg-transparent",
       )}
     >
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-8 px-6 sm:px-8 lg:px-12">
@@ -67,7 +67,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
             <Link
               key={href}
               href={href}
-              className="text-[14px] font-medium text-gray-500 transition-colors hover:text-black"
+              className="text-[14px] font-medium text-gray-600 transition-colors hover:text-black"
             >
               {t(label)}
             </Link>
@@ -78,17 +78,17 @@ export function Header({ links, translucent = false }: HeaderProps) {
         </nav>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-auto md:hidden">
+            <Button variant="ghost" size="icon" className="ml-auto md:hidden text-black hover:bg-black/5">
               <Menu className="h-5 w-5" />
               <span className="sr-only">{t("Toggle menu")}</span>
             </Button>
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="bg-white px-0 pb-0 pt-0 text-black"
+            className="bg-background px-0 pb-0 pt-0 text-black border-l border-black/[0.08]"
           >
             <div className="flex h-full flex-col">
-              <SheetHeader className="border-b border-gray-100 px-6 pb-5 pt-6">
+              <SheetHeader className="border-b border-black/[0.08] px-6 pb-5 pt-6">
                 <SheetTitle className="sr-only">{t("Caudals")}</SheetTitle>
                 <Link href="/" className="flex items-center gap-2">
                   <Image
@@ -109,14 +109,14 @@ export function Header({ links, translucent = false }: HeaderProps) {
                     <SheetClose asChild key={href}>
                       <Link
                         href={href}
-                        className="text-lg font-bold text-gray-500 hover:text-black"
+                        className="text-lg font-bold text-gray-600 hover:text-black"
                       >
                         {t(label)}
                       </Link>
                     </SheetClose>
                   ))}
                   <SheetClose asChild>
-                    <Button size="sm" asChild className="w-full rounded-md bg-black text-white">
+                    <Button size="sm" asChild className="w-full rounded-md bg-black text-white hover:bg-black/90">
                       <Link href={REQUEST_ACCESS_CTA}>{t("Get started")}</Link>
                     </Button>
                   </SheetClose>

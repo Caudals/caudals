@@ -82,7 +82,7 @@ export const mdxComponents = {
   ),
   code: ({ className, ...props }: ComponentPropsWithoutRef<"code">) => (
     <code
-      className={cn("rounded-sm bg-gray-100 px-1.5 py-0.5 text-[0.85em] font-mono text-black", className)}
+      className={cn("rounded-sm bg-black/[0.04] px-1.5 py-0.5 text-[0.85em] font-mono text-black", className)}
       {...props}
     />
   ),
@@ -101,7 +101,7 @@ export const mdxComponents = {
     />
   ),
   hr: ({ className, ...props }: ComponentPropsWithoutRef<"hr">) => (
-    <hr className={cn("my-12 border-t border-gray-200", className)} {...props} />
+    <hr className={cn("my-12 border-t border-black/[0.08]", className)} {...props} />
   ),
   li: ({ className, ...props }: ComponentPropsWithoutRef<"li">) => (
     <li className={cn("pl-2 text-lg leading-relaxed text-black mb-2", className)} {...props} />
@@ -114,7 +114,7 @@ export const mdxComponents = {
   ),
   pre: ({ className, ...props }: ComponentPropsWithoutRef<"pre">) => (
     <pre
-      className={cn("my-8 overflow-x-auto rounded-none border border-gray-200 bg-gray-50 p-6 text-sm text-black", className)}
+      className={cn("my-8 overflow-x-auto rounded-xl border border-black/[0.08] bg-background p-6 text-sm text-black shadow-xs", className)}
       {...props}
     />
   ),
@@ -127,7 +127,7 @@ export const mdxComponents = {
     </div>
   ),
   tbody: ({ className, ...props }: ComponentPropsWithoutRef<"tbody">) => (
-    <tbody className={cn("divide-y divide-gray-200", className)} {...props} />
+    <tbody className={cn("divide-y divide-black/[0.08]", className)} {...props} />
   ),
   td: ({ className, ...props }: ComponentPropsWithoutRef<"td">) => (
     <td className={cn("py-4 pr-4 align-top text-black", className)} {...props} />
