@@ -91,7 +91,7 @@ export function HeroSection() {
               <br />
               <Link
                 href="/call"
-                className="mt-1 inline-block font-medium text-black transition-colors duration-300 hover:text-neutral-600"
+                className="mt-1 inline-block font-medium text-black underline decoration-1 underline-offset-4 transition-colors duration-300 hover:text-neutral-600"
               >
                 {t("Or book a 30-minute call.")}
               </Link>

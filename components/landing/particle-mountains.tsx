@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
 import { useHeavyVisualsDisabled } from "@/lib/hooks/use-heavy-visuals-disabled";
@@ -23,8 +23,13 @@ interface ParticleMountainsProps {
  * to the sides, the view climbs into the sky, and the terrain thins until every
  * particle has dissolved by the time the hero has scrolled away.
  */
+const noopSubscribe = () => () => {};
+
 export function ParticleMountains({ className, trackRef }: ParticleMountainsProps) {
   const disabled = useHeavyVisualsDisabled({ respectReducedMotion: false });
+  // The heavy-visuals probe reports "disabled" on the server, so without this the static
+  // SVG fallback flashes as dotted lines until hydration picks the real scene.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   return (
     <div
@@ -34,10 +39,10 @@ export function ParticleMountains({ className, trackRef }: ParticleMountainsProp
       )}
       aria-hidden="true"
     >
-      {disabled ? <StaticLandscape /> : <ParticleCanvas trackRef={trackRef} />}
+      {!hydrated ? null : disabled ? <StaticLandscape /> : <ParticleCanvas trackRef={trackRef} />}
 
       {/* Atmospheric fades to seamlessly blend with the canvas */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[9svh] bg-gradient-to-t from-background via-background/70 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent sm:w-28" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent sm:w-28" />
     </div>
@@ -111,6 +116,9 @@ const VERTEX_SHADER = `
       thinStart = 0.42; thinEnd = 0.76;
     } else if (aLayer < 2.8) {
       thinStart = 0.38; thinEnd = 0.72;
+    } else if (aLayer > 3.05 && aLayer < 3.2) {
+      // Zenith stars: the deep sky the climb flies into, last to dissolve
+      thinStart = 0.84; thinEnd = 0.95;
     } else if (aLayer > 3.2 && aLayer < 3.4) {
       // Sky dust: the haze clears as the flight rises out of it
       thinStart = 0.50; thinEnd = 0.84;
@@ -123,6 +131,11 @@ const VERTEX_SHADER = `
     float dropout = mix(thinStart, thinEnd, randSeed);
     float dissolve = 1.0 - smoothstep(dropout - 0.07, dropout + 0.02, uScrollProgress);
     dissolve *= 1.0 - smoothstep(0.93, 0.98, uScrollProgress);
+    if (aLayer > 3.05 && aLayer < 3.2) {
+      // Staggered fade-in so the sky keeps filling with stars as the camera nears it
+      float arrive = mix(0.34, 0.66, fract(aPhase * 3.7311 + 0.519));
+      dissolve *= smoothstep(arrive - 0.06, arrive + 0.08, uScrollProgress);
+    }
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     float camDist = -mvPosition.z;
@@ -143,12 +156,16 @@ const VERTEX_SHADER = `
 
     gl_Position = projectionMatrix * mvPosition;
 
-    // Sky particles step back behind the copy so they never veil the text
+    // Particles step back behind the copy so they never veil the text. Sky layers clear a
+    // generous band; terrain only thins right where a summit would touch the last line.
+    float fromTop = 0.5 - 0.5 * gl_Position.y / gl_Position.w;
     if (aLayer > 2.3) {
-      float fromTop = 0.5 - 0.5 * gl_Position.y / gl_Position.w;
       float behindCopy = 1.0 - smoothstep(uCopyBottom - 0.01, uCopyBottom + 0.07, fromTop);
       float mask = isStar ? 0.45 : 1.0;
       vAlpha *= 1.0 - behindCopy * uCopyVisible * mask;
+    } else {
+      float behindCopy = 1.0 - smoothstep(uCopyBottom - 0.04, uCopyBottom + 0.01, fromTop);
+      vAlpha *= 1.0 - behindCopy * uCopyVisible * 0.8;
     }
 
     float sizeAttenuation = 250.0 / max(0.85, camDist);
@@ -254,7 +271,10 @@ function getRestingShift(camera: THREE.PerspectiveCamera, framing: Framing, copy
 
   const crest = REFERENCE_CREST.clone().project(camera);
   const crestFromTop = (1 - crest.y) / 2;
-  return THREE.MathUtils.clamp(copyBottom + 0.05 - crestFromTop, 0, 0.4);
+  // Short or narrow stages can't fit the ridges under tall copy; cap the drop so the
+  // hills keep at least a third of the frame and let the copy mask handle any overlap.
+  const target = Math.min(copyBottom + 0.05, 0.64);
+  return THREE.MathUtils.clamp(target - crestFromTop, 0, 0.4);
 }
 
 function ParticleCanvas({ trackRef }: { trackRef?: RefObject<HTMLElement | null> }) {
@@ -276,6 +296,14 @@ function ParticleCanvas({ trackRef }: { trackRef?: RefObject<HTMLElement | null>
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
     renderer.setClearColor(0x000000, 0);
+    // setSize(..., false) leaves CSS sizing to us: pin the canvas to the stage, otherwise on
+    // high-DPI screens it displays at drawing-buffer size and the hills fall below the fold.
+    renderer.domElement.style.display = "block";
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    // Fade the canvas in after its first frame instead of popping in over the page
+    renderer.domElement.style.opacity = "0";
+    renderer.domElement.style.transition = "opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1)";
     host.appendChild(renderer.domElement);
 
     const uniforms = {
@@ -421,8 +449,8 @@ function ParticleCanvas({ trackRef }: { trackRef?: RefObject<HTMLElement | null>
       const copyBottom = copy ? (copy.offsetTop + copy.offsetHeight) / height : 0.55;
       restingShift = getRestingShift(camera, framing, Math.min(copyBottom, 0.74));
       uniforms.uCopyBottom.value = copyBottom;
-      uniforms.uDensity.value = width < 640 ? 0.2 : width < 1024 ? 0.55 : 1;
-      uniforms.uSizeScale.value = width < 640 ? 0.8 : 1;
+      uniforms.uDensity.value = width < 640 ? 0.44 : width < 1024 ? 0.72 : 1;
+      uniforms.uSizeScale.value = width < 640 ? 0.9 : 1;
       uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
       measureTrack();
     };
@@ -460,6 +488,7 @@ function ParticleCanvas({ trackRef }: { trackRef?: RefObject<HTMLElement | null>
     let lastTime = startTime;
     let drewFinalFrame = false;
     let stageHidden = false;
+    let revealed = false;
 
     const animate = (currentTime: number) => {
       animationFrameId = requestAnimationFrame(animate);
@@ -597,6 +626,10 @@ function ParticleCanvas({ trackRef }: { trackRef?: RefObject<HTMLElement | null>
       }
 
       renderer.render(scene, camera);
+      if (!revealed) {
+        revealed = true;
+        renderer.domElement.style.opacity = "1";
+      }
     };
 
     animationFrameId = requestAnimationFrame(animate);
@@ -697,7 +730,7 @@ function generateTerrainData() {
   };
 
   // 1A. Foreground Crest Spine (Dense, continuous fine stipple line)
-  const fgSpineCount = 900;
+  const fgSpineCount = 1100;
   for (let i = 0; i < fgSpineCount; i++) {
     const t = i / (fgSpineCount - 1);
     const x = (t - 0.5) * 26 + (Math.random() - 0.5) * 0.06;
@@ -720,10 +753,10 @@ function generateTerrainData() {
   }
 
   // 1B. Foreground Surface Stippling with directional shading
-  const fgTarget = 11000;
+  const fgTarget = 13200;
   let fgGenerated = 0;
   let fgAttempts = 0;
-  while (fgGenerated < fgTarget && fgAttempts < 40000) {
+  while (fgGenerated < fgTarget && fgAttempts < 70000) {
     fgAttempts++;
     const x = (Math.random() - 0.5) * 27;
     const dz = -0.5 + Math.random() * 2.2;
@@ -803,7 +836,7 @@ function generateTerrainData() {
   };
 
   // 2A. Midground Crest & Arêtes (Continuous fine stipple spine)
-  const mgSpineCount = 1050;
+  const mgSpineCount = 1280;
   for (let i = 0; i < mgSpineCount; i++) {
     const t = i / (mgSpineCount - 1);
     const x = (t - 0.5) * 29 + (Math.random() - 0.5) * 0.08;
@@ -828,10 +861,10 @@ function generateTerrainData() {
   }
 
   // 2B. Midground Surface Stipples with rock strata & couloir shading
-  const mgTarget = 15000;
+  const mgTarget = 17600;
   let mgGenerated = 0;
   let mgAttempts = 0;
-  while (mgGenerated < mgTarget && mgAttempts < 50000) {
+  while (mgGenerated < mgTarget && mgAttempts < 90000) {
     mgAttempts++;
     const x = (Math.random() - 0.5) * 30;
     const dz = -0.7 + Math.random() * 2.2;
@@ -909,7 +942,7 @@ function generateTerrainData() {
   };
 
   // 3A. Background Crest Spine
-  const bgSpineCount = 950;
+  const bgSpineCount = 1150;
   for (let i = 0; i < bgSpineCount; i++) {
     const t = i / (bgSpineCount - 1);
     const x = (t - 0.5) * 33 + (Math.random() - 0.5) * 0.10;
@@ -931,10 +964,10 @@ function generateTerrainData() {
   }
 
   // 3B. Background Surface Stipples
-  const bgTarget = 12000;
+  const bgTarget = 14000;
   let bgGenerated = 0;
   let bgAttempts = 0;
-  while (bgGenerated < bgTarget && bgAttempts < 45000) {
+  while (bgGenerated < bgTarget && bgAttempts < 80000) {
     bgAttempts++;
     const x = (Math.random() - 0.5) * 34;
     const dz = -0.8 + Math.random() * 2.2;
@@ -1046,6 +1079,54 @@ function generateTerrainData() {
       alpha,
       phase: Math.random() * 6.28,
       layer: 3.0,
+      r: col.r,
+      g: col.g,
+      b: col.b,
+    });
+  }
+
+  /* ==========================================================================
+   * 5B. ZENITH STARS (Layer 3.1) — The Sky The Flight Climbs Into
+   * Spread through the frustum of the camera's final climbing pose, so the frame
+   * keeps gaining stars as it approaches the sky instead of emptying out.
+   * ========================================================================== */
+  const zenithEye = new THREE.Vector3(0, 2.75, 2.2);
+  const zenithForward = new THREE.Vector3(0, 1.25, -8.5).normalize();
+  const zenithRight = new THREE.Vector3(1, 0, 0);
+  const zenithUp = new THREE.Vector3().crossVectors(zenithRight, zenithForward).normalize();
+  const zenithCount = 900;
+  for (let i = 0; i < zenithCount; i++) {
+    const depth = 5 + Math.pow(Math.random(), 0.8) * 13;
+    const across = (Math.random() - 0.5) * 2 * depth * 0.78;
+    const upward = (Math.random() - 0.35) * 2 * depth * 0.42;
+    const point = zenithEye
+      .clone()
+      .addScaledVector(zenithForward, depth)
+      .addScaledVector(zenithRight, across)
+      .addScaledVector(zenithUp, upward);
+
+    // Keep clear of the ridges so zenith stars only ever read as sky
+    const terrainY = Math.max(
+      fgHeight(point.x, fgCrestZ(point.x)),
+      mgHeight(point.x, mgCrestZ(point.x)),
+      bgHeight(point.x, bgCrestZ(point.x))
+    );
+    if (point.y < terrainY + 0.6) continue;
+
+    const rnd = Math.random();
+    const size =
+      rnd < 0.8 ? 0.046 + Math.random() * 0.028 : rnd < 0.96 ? 0.08 + Math.random() * 0.03 : 0.115 + Math.random() * 0.035;
+    const alpha = rnd < 0.8 ? 0.5 + Math.random() * 0.35 : 0.75 + Math.random() * 0.25;
+    const col = Math.random() < 0.1 ? cTealAccent : rnd >= 0.96 ? cInkDark : cStar;
+
+    points.push({
+      x: point.x,
+      y: point.y,
+      z: point.z,
+      size,
+      alpha,
+      phase: Math.random() * 6.28,
+      layer: 3.1,
       r: col.r,
       g: col.g,
       b: col.b,

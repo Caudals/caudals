@@ -58,13 +58,13 @@ export function ContactSection() {
               )}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-16">
-              <Button size="lg" asChild className="h-12 px-8 rounded-md bg-black text-white hover:bg-black/90 text-sm font-bold shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-16">
+              <Button size="lg" asChild className="h-12 px-6 rounded-md bg-black text-white hover:bg-black/90 text-sm font-bold shadow-sm">
                 <Link href="/contact?offer=diagnostic">
                   {t("Request free diagnostic")}
                 </Link>
               </Button>
-              <Button size="lg" variant="ghost" asChild className="h-12 px-8 rounded-md text-black hover:bg-black/5 text-sm font-bold">
+              <Button size="lg" variant="ghost" asChild className="h-12 px-5 rounded-md text-black hover:bg-black/5 text-sm font-bold">
                 <Link href="/call">
                   {t("Or book a 30-min call")}
                 </Link>
