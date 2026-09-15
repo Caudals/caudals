@@ -15,7 +15,7 @@ describe("TypewriterSubtitle", () => {
 
   it("renders Spanish accented characters and punctuation", () => {
     const text =
-      "Medimos dónde falla tu IA y movilizamos a profesionales de cada sector para crear los datos que resuelven sus errores";
+      "Medimos dónde falla tu IA y movilizamos a profesionales de cada sector para crear los datos que lo resuelven";
     const html = renderToStaticMarkup(
       React.createElement(TypewriterSubtitle, { text })
     );
@@ -23,7 +23,7 @@ describe("TypewriterSubtitle", () => {
     expect(html).toContain(`<span class="sr-only">${text}</span>`);
     expect(html).toContain("dónde");
     expect(html).toContain("Medimos");
-    expect(html).toContain("errores");
+    expect(html).toContain("resuelven");
   });
 
   it("renders the text with transparent ghost and caret", () => {

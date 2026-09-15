@@ -60,7 +60,7 @@ export function HeroSection() {
 
           <motion.p
             aria-label={t(
-              "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
+              "We test where your AI fails, and deploy practicing domain experts to build the data that resolves it.",
             )}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -69,7 +69,7 @@ export function HeroSection() {
           >
             <TypewriterSubtitle
               text={t(
-                "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
+                "We test where your AI fails, and deploy practicing domain experts to build the data that resolves it.",
               )}
             />
           </motion.p>
