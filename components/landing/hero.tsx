@@ -9,6 +9,7 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 import { useHeavyVisualsDisabled } from "@/lib/hooks/use-heavy-visuals-disabled";
 import { cn } from "@/lib/utils";
 import { ParticleMountains } from "@/components/landing/particle-mountains";
+import { TypewriterSubtitle } from "@/components/landing/typewriter-subtitle";
 
 /** Splits "text *accent* text" so each locale picks its own serif-italic word. */
 function splitAccent(sentence: string) {
@@ -58,14 +59,19 @@ export function HeroSection() {
           </motion.h1>
 
           <motion.p
+            aria-label={t(
+              "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
+            )}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            className="mt-6 max-w-2xl text-balance text-base leading-relaxed text-gray-600 sm:text-lg lg:text-xl"
+            className="mt-6 max-w-2xl text-pretty text-base leading-relaxed text-gray-600 sm:text-lg lg:text-xl"
           >
-            {t(
-              "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
-            )}
+            <TypewriterSubtitle
+              text={t(
+                "We test where your AI fails, and deploy practicing domain experts to build the data that fixes it.",
+              )}
+            />
           </motion.p>
 
           <motion.div
