@@ -133,6 +133,12 @@ export default function HomePage() {
   return (
     <>
       <HomePageClient />
+      <elevenlabs-convai agent-id="agent_3401m2p68kvye268fk176pmg8ech"></elevenlabs-convai>
+      <script
+        src="https://unpkg.com/@elevenlabs/convai-widget-embed"
+        async
+        type="text/javascript"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

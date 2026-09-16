@@ -19,13 +19,16 @@ const cspDirectives = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "media-src 'self' data: blob:",
+  "media-src 'self' data: blob: https:",
   [
     "script-src 'self' 'unsafe-inline'",
     isDev ? "'unsafe-eval'" : "",
     "https://analytics.caudals.com",
     "https://va.vercel-scripts.com",
     "https://app.cal.com",
+    "https://unpkg.com",
+    "https://elevenlabs.io",
+    "https://cdn.jsdelivr.net",
   ]
     .filter(Boolean)
     .join(" "),
@@ -39,8 +42,9 @@ const cspDirectives = [
     "https://www.youtube-nocookie.com",
     "https://cal.com",
     "https://app.cal.com",
+    "https://elevenlabs.io",
   ].join(" "),
-  "worker-src 'self' blob:",
+  "worker-src 'self' blob: https://cdn.jsdelivr.net",
   ...(!isDev ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
@@ -56,7 +60,7 @@ const securityHeaders = [
   {
     key: "Permissions-Policy",
     value:
-      "camera=(), microphone=(), geolocation=(), browsing-topics=(), interest-cohort=()",
+      "camera=(), microphone=(self), geolocation=(), browsing-topics=(), interest-cohort=()",
   },
   {
     key: "Strict-Transport-Security",
