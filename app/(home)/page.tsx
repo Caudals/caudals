@@ -135,6 +135,11 @@ export default function HomePage() {
       <HomePageClient />
       <elevenlabs-convai agent-id="agent_3401m2p68kvye268fk176pmg8ech"></elevenlabs-convai>
       <script
+        dangerouslySetInnerHTML={{
+          __html: `window.addEventListener("elevenlabs-convai:call",function(e){if(e&&e.detail&&e.detail.config){e.detail.config.workletPaths={rawAudioProcessor:"/elevenlabs/rawAudioProcessor.worklet.js",audioConcatProcessor:"/elevenlabs/audioConcatProcessor.worklet.js"};}});`,
+        }}
+      />
+      <script
         src="https://unpkg.com/@elevenlabs/convai-widget-embed"
         async
         type="text/javascript"

@@ -17,11 +17,11 @@ const cspDirectives = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "media-src 'self' data: blob: https:",
   [
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' blob: data:",
     isDev ? "'unsafe-eval'" : "",
     "https://analytics.caudals.com",
     "https://va.vercel-scripts.com",
@@ -44,7 +44,7 @@ const cspDirectives = [
     "https://app.cal.com",
     "https://elevenlabs.io",
   ].join(" "),
-  "worker-src 'self' blob: https://cdn.jsdelivr.net",
+  "worker-src 'self' blob: data: https://cdn.jsdelivr.net",
   ...(!isDev ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 

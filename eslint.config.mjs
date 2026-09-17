@@ -9,6 +9,7 @@ const config = [
       "c-design/**",
       "out/**",
       "build/**",
+      "public/**",
       "next-env.d.ts",
     ],
   },
