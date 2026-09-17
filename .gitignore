@@ -67,3 +67,5 @@ c-design/*
 # Raw `docker inspect` output — dumps the full runtime env, including secrets.
 inspect.json
 *.inspect.json
+
+*.pdf

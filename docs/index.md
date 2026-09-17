@@ -4,7 +4,6 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 
 ## Structure
 - `product-specs/overview.md`: canonical product brief for humans, AI assistants, coding agents and collaborators.
-- `product-specs/evals.md`: evaluation product contract and quality rules for expert-built data.
 - `product-specs/go-to-market.md`: customer-acquisition playbook.
 - `product-specs/content-publishing-contract.md`: interface between the Leads Content Suite and the public MDX blog.
 - `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
@@ -23,7 +22,6 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 | --- | --- | --- |
 | `AGENTS.md` | repository agent instructions | agent operating rules change |
 | `docs/product-specs/overview.md` | product brief: offers, customers, custom datasets, expert network | direction, offers, pricing, sectors, expert network or scope change |
-| `docs/product-specs/evals.md` | evaluation method, deliverable contract and expert-built data rules | case schema, tiers, grading, metrics, report format or expert QA change |
 | `docs/product-specs/go-to-market.md` | acquisition playbook, rules of engagement, gates | targeting, outreach rules, gates or cadence change |
 | `docs/product-specs/content-publishing-contract.md` | Leads-to-site blog path, frontmatter, MDX and release contract | blog loader, route, components, or publisher changes |
 | `docs/ARCHITECTURE.md` | technical system contract and deployment/runtime model | architecture/runtime changes |

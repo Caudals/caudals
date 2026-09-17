@@ -122,8 +122,6 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 - **Contracts:** a freelance services agreement with IP assignment (to Caudals for sector-generic work, to the customer for customer-specific work), confidentiality, and data-processing terms whenever they handle customer material. Experts invoice as autónomos or through their company and are engaged per deliverable, not on fixed schedules, to avoid false self-employment (*falso autónomo*) risk.
 - **Access:** experts see only the redacted material their task needs.
 
-Quality rules for expert work are in `evals.md` → Expert-Built Data.
-
 ## Out of Scope
 
 - Two-sided marketplace, catalogue browsing and purchase, supplier revenue share, Stripe Connect payouts.

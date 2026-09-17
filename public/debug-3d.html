@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caudals 3D Scene & Sky Artifacts Playground</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #fbfaf8;
+      color: #111827;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      transition: background-color 0.3s ease;
+    }
+
+    body.dark-theme {
+      background-color: #090d16;
+      color: #f3f4f6;
+    }
+
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Ambient atmospheric edge overlays */
+    .edge-fade-top {
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 50px;
+      background: linear-gradient(to bottom, rgba(251, 250, 248, 0.6), transparent);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .edge-fade-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0; height: 50px;
+      background: linear-gradient(to top, rgba(251, 250, 248, 0.8), transparent);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Floating glassmorphism control panel */
+    #panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 380px;
+      max-height: calc(100vh - 32px);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.10);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px;
+      font-size: 13px;
+    }
+
+    body.dark-theme #panel {
+      background: rgba(17, 24, 39, 0.85);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    body.dark-theme .panel-header {
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(13, 148, 136, 0.12);
+      color: #0f766e;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      margin-top: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    body.dark-theme .section-title {
+      color: #9ca3af;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .button-group.single {
+      grid-template-columns: 1fr;
+    }
+
+    button {
+      background: #111827;
+      color: #ffffff;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    button:hover {
+      background: #1f2937;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: rgba(0, 0, 0, 0.04);
+      color: #111827;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-theme button.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #f3f4f6;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    button.secondary:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-theme button.secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    button.active-toggle {
+      background: #0d9488 !important;
+      color: #ffffff !important;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #4b5563;
+      font-weight: 500;
+    }
+
+    body.dark-theme .control-label {
+      color: #9ca3af;
+    }
+
+    .control-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    body.dark-theme .control-value {
+      color: #f3f4f6;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      border-radius: 5px;
+      background: #e5e7eb;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    body.dark-theme input[type="range"] {
+      background: #374151;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #111827;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    body.dark-theme input[type="range"]::-webkit-slider-thumb {
+      background: #0d9488;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Live HUD banner */
+    #hud {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      z-index: 100;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #374151;
+      pointer-events: none;
+    }
+
+    body.dark-theme #hud {
+      background: rgba(17, 24, 39, 0.85);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #d1d5db;
+    }
+
+    .hud-accent {
+      color: #0d9488;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="edge-fade-top"></div>
+  <div class="edge-fade-bottom"></div>
+  <div id="canvas-container"></div>
+
+  <!-- Realtime flight telemetry HUD -->
+  <div id="hud">
+    <div><strong>FLIGHT TELEMETRY</strong></div>
+    <div>Camera Z: <span id="hud-camz" class="hud-accent">7.90</span></div>
+    <div>Altitude Y: <span id="hud-camy" class="hud-accent">0.82</span></div>
+    <div>Scroll Progress: <span id="hud-prog" class="hud-accent">0.00</span></div>
+    <div>Active Meteors: <span id="hud-meteors" class="hud-accent">Idle</span></div>
+  </div>
+
+  <!-- Control Dashboard -->
+  <div id="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span>3D Scene & Sky Controls</span>
+        <span class="badge">Debug</span>
+      </div>
+      <button id="theme-btn" class="secondary" style="padding: 4px 8px; font-size: 11px;">
+        Toggle Dark
+      </button>
+    </div>
+
+    <!-- 1. Force Sky Artifacts -->
+    <div class="section-title">☄️ Force Celestial Artifacts</div>
+    
+    <div class="button-group">
+      <button id="btn-meteor">
+        <span>⚡</span> Launch Meteor
+      </button>
+      <button id="btn-bolide">
+        <span>🔥</span> Launch Bolide
+      </button>
+    </div>
+
+    <div class="button-group">
+      <button id="btn-storm" class="secondary">
+        <span>🌪️</span> Continuous Mode
+      </button>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-bottom: 12px; font-size: 11px; color: #4b5563;">
+      <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input id="chk-follow-cam" type="checkbox" checked style="accent-color: #0d9488; cursor: pointer;">
+        <span>Track Camera Flight</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input id="chk-keep-visible" type="checkbox" checked style="accent-color: #0d9488; cursor: pointer;">
+        <span>Visible in Sky Climb</span>
+      </label>
+    </div>
+
+    <!-- 2. Flight / Scroll Simulation -->
+    <div class="section-title">✈️ Flight & Scroll Simulation</div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Scroll Progression (0 = Rest, 1 = Sky/Done)</span>
+        <span id="val-scroll" class="control-value">0.00</span>
+      </div>
+      <input id="rng-scroll" type="range" min="0" max="1" step="0.005" value="0">
+    </div>
+
+    <div class="button-group">
+      <button id="btn-autoflight" class="secondary">
+        <span>▶️</span> Auto-Flight Tour
+      </button>
+      <button id="btn-reset-flight" class="secondary">
+        <span>↺</span> Reset to Hero
+      </button>
+    </div>
+
+    <!-- 3. Meteor & Transient Parameters -->
+    <div class="section-title">⚙️ Celestial Parameters</div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Meteor Speed Multiplier</span>
+        <span id="val-speed" class="control-value">1.0x</span>
+      </div>
+      <input id="rng-speed" type="range" min="0.2" max="3.0" step="0.1" value="1.0">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Meteor Trail Length</span>
+        <span id="val-trail" class="control-value">1.0</span>
+      </div>
+      <input id="rng-trail" type="range" min="0.4" max="2.5" step="0.05" value="1.0">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Meteor Corridor Height (Y)</span>
+        <span id="val-corridor" class="control-value">1.75</span>
+      </div>
+      <input id="rng-corridor" type="range" min="1.0" max="3.0" step="0.05" value="1.75">
+    </div>
+
+    <!-- 4. Camera & Flight Dynamics -->
+    <div class="section-title">🎥 Flight Dynamics & Camera</div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Forward Flight Surge (Units)</span>
+        <span id="val-surge" class="control-value">8.8</span>
+      </div>
+      <input id="rng-surge" type="range" min="4.0" max="14.0" step="0.2" value="8.8">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Sky Climb Altitude (Units)</span>
+        <span id="val-climb" class="control-value">1.82</span>
+      </div>
+      <input id="rng-climb" type="range" min="0.5" max="3.5" step="0.05" value="1.82">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Pitch Angle Up</span>
+        <span id="val-pitch" class="control-value">1.28</span>
+      </div>
+      <input id="rng-pitch" type="range" min="0.5" max="3.5" step="0.05" value="1.28">
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Base Camera FOV</span>
+        <span id="val-fov" class="control-value">34°</span>
+      </div>
+      <input id="rng-fov" type="range" min="20" max="60" step="1" value="34">
+    </div>
+
+    <!-- 5. Stars & Sky -->
+    <div class="section-title">✨ Celestial Stars</div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Star Twinkle Speed</span>
+        <span id="val-twinkle" class="control-value">1.8</span>
+      </div>
+      <input id="rng-twinkle" type="range" min="0.2" max="6.0" step="0.2" value="1.8">
+    </div>
+
+    <div class="button-group single" style="margin-top: 12px;">
+      <button id="btn-export" class="secondary">
+        <span>📋</span> Copy Parameters to Clipboard
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "./three.module.js";
+
+    const VERTEX_SHADER = `
+      uniform float uTime;
+      uniform float uPixelRatio;
+      uniform float uScrollProgress;
+
+      attribute float aSize;
+      attribute float aAlpha;
+      attribute float aPhase;
+      attribute float aLayer;
+      attribute vec3 aColor;
+
+      varying float vAlpha;
+      varying vec3 vColor;
+      varying float vLayer;
+      varying float vPhase;
+
+      void main() {
+        vColor = aColor;
+        vLayer = aLayer;
+        vPhase = aPhase;
+
+        vec3 pos = position;
+
+        // Organic living terrain undulation (subtle geological breathing)
+        if (aLayer < 0.8) {
+          pos.y += sin(pos.x * 0.08 + uTime * 0.14) * 0.024
+                 + cos(pos.z * 0.10 + uTime * 0.10) * 0.015;
+        } else if (aLayer < 1.8) {
+          pos.y += cos(pos.x * 0.06 - uTime * 0.10 + 1.6) * 0.020
+                 + sin(pos.z * 0.08 + uTime * 0.07) * 0.012;
+        } else if (aLayer < 2.5) {
+          pos.y += sin(pos.x * 0.04 + uTime * 0.05 + 2.8) * 0.012;
+        } else if (aLayer < 2.8) {
+          pos.y += sin(uTime * 0.04 + pos.x * 0.05) * 0.008;
+        } else if (aLayer < 3.2) {
+          pos.y += sin(uTime * 0.020 + aPhase) * 0.004;
+          pos.x += cos(uTime * 0.015 + aPhase) * 0.003;
+        }
+
+        // Progressive terrain evaporation as flight climbs into sky
+        float thinStart;
+        float thinEnd;
+        if (aLayer < 0.8) {
+          thinStart = 0.08; thinEnd = 0.50;
+        } else if (aLayer < 1.8) {
+          thinStart = 0.20; thinEnd = 0.68;
+        } else if (aLayer < 2.3) {
+          thinStart = 0.35; thinEnd = 0.82;
+        } else if (aLayer < 2.8) {
+          thinStart = 0.28; thinEnd = 0.75;
+        } else {
+          thinStart = 0.65; thinEnd = 0.96;
+        }
+
+        float randSeed = fract(aPhase * 0.15915494 + 0.3719);
+        float dropout = mix(thinStart, thinEnd, randSeed);
+        float dissolve = 1.0 - smoothstep(dropout - 0.10, dropout + 0.04, uScrollProgress);
+        dissolve *= (1.0 - smoothstep(0.92, 0.98, uScrollProgress));
+        if (uScrollProgress >= 0.98) {
+          dissolve = 0.0;
+        }
+
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        float camDist = -mvPosition.z;
+
+        // Near-camera slipstream fade
+        float nearFade = smoothstep(0.35, 1.25, camDist);
+
+        vAlpha = aAlpha * dissolve * nearFade;
+
+        float sizeAttenuation = 250.0 / max(0.85, camDist);
+        gl_PointSize = aSize * uPixelRatio * sizeAttenuation * (0.40 + 0.60 * dissolve) * nearFade;
+        gl_PointSize = clamp(gl_PointSize, 1.5, 8.5);
+
+        if (vAlpha <= 0.002 || camDist < 0.25) {
+          gl_PointSize = 0.0;
+        }
+
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `;
+
+    const FRAGMENT_SHADER = `
+      uniform float uTime;
+      uniform float uTwinkleSpeed;
+      uniform float uDarkTheme;
+
+      varying float vAlpha;
+      varying vec3 vColor;
+      varying float vLayer;
+      varying float vPhase;
+
+      void main() {
+        vec2 coord = gl_PointCoord - vec2(0.5);
+        float dist = length(coord);
+
+        if (dist > 0.5) {
+          discard;
+        }
+
+        float soft = 1.0 - smoothstep(0.28, 0.49, dist);
+        float alpha = vAlpha * soft;
+
+        if (vLayer > 2.8 && vLayer < 3.2) {
+          float twinkle = 0.68 + 0.32 * sin(uTime * uTwinkleSpeed + vPhase * 6.28318);
+          alpha *= twinkle;
+        }
+
+        vec3 finalCol = vColor;
+        if (uDarkTheme > 0.5) {
+          finalCol = mix(vec3(0.85, 0.92, 1.0), vec3(1.0) - vColor * 0.35, 0.45);
+        }
+
+        gl_FragColor = vec4(finalCol, alpha);
+      }
+    `;
+
+    // Dynamic Debug Parameters
+    const config = {
+      scrollProgress: 0.0,
+      autoFlight: false,
+      autoFlightDir: 1,
+      continuousStorm: false,
+      meteorSpeedMult: 1.0,
+      meteorTrailLength: 1.0,
+      corridorHeight: 1.75,
+      forwardSurge: 8.8,
+      skyClimb: 1.82,
+      pitchUp: 1.28,
+      baseFov: 34,
+      twinkleSpeed: 1.8,
+      darkTheme: false,
+      followCamera: true,
+      keepVisible: true,
+    };
+
+    const container = document.getElementById("canvas-container");
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(config.baseFov, window.innerWidth / window.innerHeight, 0.1, 100);
+    const baseCameraY = 0.82;
+    const baseCameraZ = 7.9;
+    camera.position.set(0, baseCameraY, baseCameraZ);
+    camera.lookAt(0, 0.80, 0);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
+
+    const uniforms = {
+      uTime: { value: 0 },
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      uScrollProgress: { value: 0 },
+      uTwinkleSpeed: { value: 1.8 },
+      uDarkTheme: { value: 0.0 },
+    };
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: VERTEX_SHADER,
+      fragmentShader: FRAGMENT_SHADER,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+
+    // Build Terrain Data
+    const { positions, sizes, alphas, phases, layers, colors } = generateTerrainData();
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute("aAlpha", new THREE.BufferAttribute(alphas, 1));
+    geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute("aLayer", new THREE.BufferAttribute(layers, 1));
+    geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+    const pointCloud = new THREE.Points(geometry, material);
+    scene.add(pointCloud);
+
+    // Celestial Transient Particles (Refined & Subtle Meteors)
+    const CELESTIAL_COUNT = 80;
+    const celestialGeom = new THREE.BufferGeometry();
+    const celestialPositions = new Float32Array(CELESTIAL_COUNT * 3);
+    const celestialSizes = new Float32Array(CELESTIAL_COUNT);
+    const celestialAlphas = new Float32Array(CELESTIAL_COUNT);
+    const celestialPhases = new Float32Array(CELESTIAL_COUNT);
+    const celestialLayers = new Float32Array(CELESTIAL_COUNT).fill(3.5);
+    const celestialColors = new Float32Array(CELESTIAL_COUNT * 3);
+
+    for (let i = 0; i < CELESTIAL_COUNT; i++) {
+      celestialPositions[i * 3 + 1] = -100;
+      celestialAlphas[i] = 0.0;
+    }
+
+    celestialGeom.setAttribute("position", new THREE.BufferAttribute(celestialPositions, 3));
+    celestialGeom.setAttribute("aSize", new THREE.BufferAttribute(celestialSizes, 1));
+    celestialGeom.setAttribute("aAlpha", new THREE.BufferAttribute(celestialAlphas, 1));
+    celestialGeom.setAttribute("aPhase", new THREE.BufferAttribute(celestialPhases, 1));
+    celestialGeom.setAttribute("aLayer", new THREE.BufferAttribute(celestialLayers, 1));
+    celestialGeom.setAttribute("aColor", new THREE.BufferAttribute(celestialColors, 3));
+
+    const celestialPoints = new THREE.Points(celestialGeom, material);
+    scene.add(celestialPoints);
+
+    // Meteor State (Subtle, refined celestial streak)
+    const meteorState = {
+      active: false,
+      isAsteroid: false,
+      startTime: 0,
+      duration: 0.90,
+      startX: -4.2,
+      startY: 1.75,
+      startZ: -0.5,
+      dirX: 1,
+      dirY: -0.24,
+      dirZ: -0.04,
+      distance: 4.4,
+      trailLength: 1.0,
+    };
+
+    function triggerMeteor(isBolide = false) {
+      const now = performance.now() * 0.001;
+      meteorState.active = true;
+      meteorState.isAsteroid = isBolide;
+      meteorState.startTime = now;
+
+      const baseDur = isBolide ? 1.35 : 0.85;
+      meteorState.duration = (baseDur / config.meteorSpeedMult);
+      meteorState.trailLength = config.meteorTrailLength * (isBolide ? 1.35 : 0.95);
+
+      const camZ = camera ? camera.position.z : baseCameraZ;
+      const camY = camera ? camera.position.y : baseCameraY;
+      const zOffset = config.followCamera ? (camZ - baseCameraZ) : 0;
+      const yOffset = config.followCamera ? (camY - baseCameraY) : 0;
+
+      const goRight = Math.random() < 0.60;
+      meteorState.startX = goRight ? -4.2 + Math.random() * 1.4 : 4.2 - Math.random() * 1.4;
+      meteorState.startY = config.corridorHeight + yOffset + (Math.random() - 0.5) * 0.25;
+      meteorState.startZ = -0.5 + zOffset + Math.random() * 0.6;
+
+      const angle = goRight
+        ? -0.20 - Math.random() * 0.16
+        : -Math.PI + 0.20 + Math.random() * 0.16;
+
+      meteorState.dirX = Math.cos(angle);
+      meteorState.dirY = Math.sin(angle);
+      meteorState.dirZ = -0.04;
+      meteorState.distance = 4.4 + Math.random() * 1.4;
+
+      document.getElementById("hud-meteors").innerText = isBolide ? "Active (Bolide)" : "Active (Shooting Star)";
+    }
+
+    // Terrain Generation Functions
+    function generateTerrainData() {
+      const points = [];
+      const cInkDark = { r: 15 / 255, g: 23 / 255, b: 42 / 255 };
+      const cTealAccent = { r: 13 / 255, g: 51 / 255, b: 45 / 255 };
+      const cSlateMid = { r: 51 / 255, g: 65 / 255, b: 85 / 255 };
+      const cSlateBg = { r: 71 / 255, g: 85 / 255, b: 105 / 255 };
+      const cSlateDistant = { r: 100 / 255, g: 116 / 255, b: 139 / 255 };
+      const cHorizon = { r: 148 / 255, g: 163 / 255, b: 184 / 255 };
+      const cStar = { r: 26 / 255, g: 38 / 255, b: 57 / 255 };
+
+      const getNaturalSize = () => {
+        const rnd = Math.random();
+        if (rnd < 0.82) return 0.040 + Math.random() * 0.020;
+        if (rnd < 0.97) return 0.064 + Math.random() * 0.022;
+        return 0.088 + Math.random() * 0.024;
+      };
+
+      // 1. Foreground Dune
+      const fgCrestZ = (x) => 2.35 + 0.35 * Math.sin(x * 0.28 + 0.4);
+      const fgHeight = (x, z) => {
+        const crestZ = fgCrestZ(x);
+        const crestY = 0.32 + 0.68 * Math.exp(-((x + 4.0) ** 2) / 20.0) + 0.54 * Math.exp(-((x - 5.2) ** 2) / 16.0) + 0.14 * Math.sin(x * 0.58 - 0.4);
+        const dz = z - crestZ;
+        const slope = dz < 0 ? -Math.pow(Math.abs(dz) * 1.8, 1.5) * 0.85 : -Math.pow(dz * 0.95, 1.35) * 0.72;
+        return crestY + slope;
+      };
+
+      for (let i = 0; i < 900; i++) {
+        const t = i / 899;
+        const x = (t - 0.5) * 26 + (Math.random() - 0.5) * 0.06;
+        const z = fgCrestZ(x) + (Math.random() - 0.5) * 0.04;
+        const y = fgHeight(x, z) + (Math.random() - 0.5) * 0.02;
+        const col = Math.random() < 0.16 ? cTealAccent : cInkDark;
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.92, phase: Math.random() * 6.28, layer: 0.0, ...col });
+      }
+
+      for (let i = 0; i < 11000; i++) {
+        const x = (Math.random() - 0.5) * 27;
+        const dz = -0.5 + Math.random() * 2.2;
+        const z = fgCrestZ(x) + dz;
+        const y = fgHeight(x, z);
+        if (y < -0.90) continue;
+        const col = Math.random() < 0.12 ? cTealAccent : cInkDark;
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.45 + Math.random() * 0.45, phase: Math.random() * 6.28, layer: 0.0, ...col });
+      }
+
+      // 2. Midground Mountains
+      const mgCrestZ = (x) => 0.65 + 0.25 * Math.sin(x * 0.32 - 0.2);
+      const mgHeight = (x, z) => {
+        const crestZ = mgCrestZ(x);
+        const crestY = 0.48 + 0.88 * Math.exp(-((x + 6.2) ** 2) / 14.0) + 0.82 * Math.exp(-((x - 6.0) ** 2) / 13.0) + 0.32 * Math.exp(-((x - 0.5) ** 2) / 18.0);
+        const dz = z - crestZ;
+        return crestY - Math.pow(Math.abs(dz) * 1.5, 1.4) * 0.95;
+      };
+
+      for (let i = 0; i < 850; i++) {
+        const t = i / 849;
+        const x = (t - 0.5) * 28;
+        const z = mgCrestZ(x);
+        const y = mgHeight(x, z);
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.85, phase: Math.random() * 6.28, layer: 1.0, ...cSlateMid });
+      }
+      for (let i = 0; i < 9500; i++) {
+        const x = (Math.random() - 0.5) * 29;
+        const dz = -0.7 + Math.random() * 2.0;
+        const z = mgCrestZ(x) + dz;
+        const y = mgHeight(x, z);
+        if (y < -0.6) continue;
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.4 + Math.random() * 0.4, phase: Math.random() * 6.28, layer: 1.0, ...cSlateMid });
+      }
+
+      // 3. Background Alpine Massif
+      const bgCrestZ = (x) => -1.2 + 0.3 * Math.sin(x * 0.22);
+      const bgHeight = (x, z) => {
+        const crestZ = bgCrestZ(x);
+        const crestY = 0.65 + 1.10 * Math.exp(-((x + 7.5) ** 2) / 9.5) + 1.05 * Math.exp(-((x - 7.2) ** 2) / 9.0) + 0.18 * Math.exp(-((x + 0.2) ** 2) / 10.0);
+        const dz = z - crestZ;
+        return crestY - Math.pow(Math.abs(dz) * 1.2, 1.4) * 1.3;
+      };
+
+      for (let i = 0; i < 900; i++) {
+        const t = i / 899;
+        const x = (t - 0.5) * 33;
+        const z = bgCrestZ(x);
+        const y = bgHeight(x, z);
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.8, phase: Math.random() * 6.28, layer: 2.0, ...cSlateBg });
+      }
+      for (let i = 0; i < 11000; i++) {
+        const x = (Math.random() - 0.5) * 34;
+        const dz = -0.8 + Math.random() * 2.2;
+        const z = bgCrestZ(x) + dz;
+        const y = bgHeight(x, z);
+        if (y < -0.15) continue;
+        points.push({ x, y, z, size: getNaturalSize(), alpha: 0.35 + Math.random() * 0.4, phase: Math.random() * 6.28, layer: 2.0, ...cSlateBg });
+      }
+
+      // 4. Horizon Mist
+      for (let i = 0; i < 1200; i++) {
+        const x = (Math.random() - 0.5) * 38;
+        const y = -0.2 + Math.random() * 1.5;
+        const z = -3.4 + (Math.random() - 0.5) * 1.6;
+        points.push({ x, y, z, size: 0.038, alpha: 0.22 + Math.random() * 0.2, phase: Math.random() * 6.28, layer: 2.5, ...cHorizon });
+      }
+
+      // 5. Stars in the Sky (Layer 3) — Deep, Balanced Celestial Canopy
+      for (let i = 0; i < 185; i++) {
+        const x = (Math.random() - 0.5) * 36;
+        const z = -2.0 - Math.pow(Math.random(), 1.25) * 12.0;
+        const y = 1.65 + Math.random() * 3.6;
+        const size = Math.random() < 0.82 ? 0.046 + Math.random() * 0.024 : 0.076 + Math.random() * 0.028;
+        points.push({ x, y, z, size, alpha: 0.52 + Math.random() * 0.44, phase: Math.random() * 6.28, layer: 3.0, ...cStar });
+      }
+
+      const total = points.length;
+      const positions = new Float32Array(total * 3);
+      const sizes = new Float32Array(total);
+      const alphas = new Float32Array(total);
+      const phases = new Float32Array(total);
+      const layers = new Float32Array(total);
+      const colors = new Float32Array(total * 3);
+
+      for (let i = 0; i < total; i++) {
+        const p = points[i];
+        positions[i * 3] = p.x;
+        positions[i * 3 + 1] = p.y;
+        positions[i * 3 + 2] = p.z;
+        sizes[i] = p.size;
+        alphas[i] = p.alpha;
+        phases[i] = p.phase;
+        layers[i] = p.layer;
+        colors[i * 3] = p.r;
+        colors[i * 3 + 1] = p.g;
+        colors[i * 3 + 2] = p.b;
+      }
+      return { positions, sizes, alphas, phases, layers, colors };
+    }
+
+    // Render Animation Loop
+    let nextStormMeteor = 0;
+    const startTime = performance.now();
+
+    function animate(currentTime) {
+      requestAnimationFrame(animate);
+      const elapsed = (currentTime - startTime) * 0.001;
+      uniforms.uTime.value = elapsed;
+      uniforms.uTwinkleSpeed.value = config.twinkleSpeed;
+
+      // Auto-flight animation if enabled
+      if (config.autoFlight) {
+        config.scrollProgress += config.autoFlightDir * 0.003;
+        if (config.scrollProgress >= 1.0) {
+          config.scrollProgress = 1.0;
+          config.autoFlightDir = -1;
+        } else if (config.scrollProgress <= 0.0) {
+          config.scrollProgress = 0.0;
+          config.autoFlightDir = 1;
+        }
+        document.getElementById("rng-scroll").value = config.scrollProgress;
+        document.getElementById("val-scroll").innerText = config.scrollProgress.toFixed(2);
+      }
+
+      // Continuous meteor storm generator
+      if (config.continuousStorm && elapsed >= nextStormMeteor) {
+        triggerMeteor(Math.random() < 0.35);
+        nextStormMeteor = elapsed + 2.2 + Math.random() * 1.5;
+      }
+
+      const sp = config.scrollProgress;
+      uniforms.uScrollProgress.value = sp;
+
+      // 3D Flight Camera Coordinates
+      const flightZ = baseCameraZ - sp * config.forwardSurge;
+      const passGlide = Math.sin(Math.min(1.0, sp / 0.36) * Math.PI) * 0.10;
+      const climbT = Math.max(0, (sp - 0.30) / 0.70);
+      const skyClimb = Math.pow(climbT, 1.40) * config.skyClimb;
+      const flightY = baseCameraY - passGlide + skyClimb;
+
+      const lookAheadDist = 6.4 - sp * 1.8;
+      const lookZ = flightZ - lookAheadDist;
+      const pitchT = Math.max(0, (sp - 0.28) / 0.72);
+      const pitchUp = Math.pow(pitchT, 1.30) * config.pitchUp;
+      const lookY = flightY + 0.08 + pitchUp;
+
+      camera.position.set(0, flightY, flightZ);
+      camera.lookAt(0, lookY, lookZ);
+      camera.rotation.z = Math.sin(sp * Math.PI * 1.6) * 0.015 * (1.0 - sp * 0.85);
+      camera.fov = config.baseFov + sp * 3.5;
+      camera.updateProjectionMatrix();
+
+      // Update HUD Telemetry
+      document.getElementById("hud-camz").innerText = flightZ.toFixed(2);
+      document.getElementById("hud-camy").innerText = flightY.toFixed(2);
+      document.getElementById("hud-prog").innerText = sp.toFixed(2);
+
+      // Transients fade
+      const transientFade = config.keepVisible
+        ? 1.0
+        : Math.max(0, 1.0 - Math.max(0, sp - 0.55) / 0.35);
+
+      // 1. Meteor Trail Animation
+      if (meteorState.active) {
+        const mProgress = (elapsed - meteorState.startTime) / meteorState.duration;
+        if (mProgress >= 1.0 || transientFade <= 0.001) {
+          meteorState.active = false;
+          for (let i = 0; i < 80; i++) {
+            celestialAlphas[i] = 0;
+            celestialPositions[i * 3 + 1] = -100;
+          }
+          celestialGeom.attributes.position.needsUpdate = true;
+          celestialGeom.attributes.aAlpha.needsUpdate = true;
+          document.getElementById("hud-meteors").innerText = "Idle";
+        } else {
+          const flightEnvelope = (mProgress < 0.10 ? mProgress / 0.10 : mProgress < 0.72 ? 1.0 : Math.max(0, 1.0 - (mProgress - 0.72) / 0.28)) * transientFade;
+          const currentDist = meteorState.distance * mProgress;
+          const headX = meteorState.startX + meteorState.dirX * currentDist;
+          const headY = meteorState.startY + meteorState.dirY * currentDist;
+          const headZ = meteorState.startZ + meteorState.dirZ * currentDist;
+
+          celestialPositions[0] = headX;
+          celestialPositions[1] = headY;
+          celestialPositions[2] = headZ;
+          celestialSizes[0] = meteorState.isAsteroid ? 0.060 : 0.046;
+          celestialAlphas[0] = flightEnvelope * 0.62;
+          celestialColors[0] = 18 / 255;
+          celestialColors[1] = 26 / 255;
+          celestialColors[2] = 40 / 255;
+
+          const trailPts = 79;
+          const activeTrailLength = meteorState.trailLength * Math.min(1.0, mProgress * 2.8);
+          for (let k = 1; k <= trailPts; k++) {
+            const frac = k / trailPts;
+            const lagDist = frac * activeTrailLength;
+            const jitterScale = 0.0015 + frac * 0.0055;
+            const perpX = -meteorState.dirY * jitterScale * Math.sin(k * 4.1 + elapsed * 12.0);
+            const perpY = meteorState.dirX * jitterScale * Math.cos(k * 3.3 + elapsed * 12.0);
+
+            celestialPositions[k * 3] = headX - meteorState.dirX * lagDist + perpX;
+            celestialPositions[k * 3 + 1] = headY - meteorState.dirY * lagDist + perpY;
+            celestialPositions[k * 3 + 2] = headZ - meteorState.dirZ * lagDist;
+
+            celestialSizes[k] = Math.max(0.016, 0.042 * (1.0 - frac * 0.75));
+            const tailDecay = Math.pow(1.0 - frac, 1.40);
+            celestialAlphas[k] = flightEnvelope * tailDecay * 0.48;
+
+            const slateFrac = frac * 0.75;
+            celestialColors[k * 3] = (18 + (80 - 18) * slateFrac) / 255;
+            celestialColors[k * 3 + 1] = (26 + (96 - 26) * slateFrac) / 255;
+            celestialColors[k * 3 + 2] = (40 + (118 - 40) * slateFrac) / 255;
+          }
+
+          celestialGeom.attributes.position.needsUpdate = true;
+          celestialGeom.attributes.aSize.needsUpdate = true;
+          celestialGeom.attributes.aAlpha.needsUpdate = true;
+          celestialGeom.attributes.aColor.needsUpdate = true;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animate);
+
+    // Window Resize Handler
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // =========================================================================
+    // UI DASHBOARD EVENT BINDINGS
+    // =========================================================================
+
+    // Force Trigger Buttons
+    document.getElementById("btn-meteor").addEventListener("click", () => triggerMeteor(false));
+    document.getElementById("btn-bolide").addEventListener("click", () => triggerMeteor(true));
+
+    // Continuous Mode Toggle
+    const stormBtn = document.getElementById("btn-storm");
+    stormBtn.addEventListener("click", () => {
+      config.continuousStorm = !config.continuousStorm;
+      stormBtn.classList.toggle("active-toggle", config.continuousStorm);
+      stormBtn.innerText = config.continuousStorm ? "🌪️ Continuous: ON" : "🌪️ Continuous Mode";
+      if (config.continuousStorm) triggerMeteor(false);
+    });
+
+    // Scroll Progression Slider
+    const scrollRng = document.getElementById("rng-scroll");
+    const scrollVal = document.getElementById("val-scroll");
+    scrollRng.addEventListener("input", (e) => {
+      config.scrollProgress = parseFloat(e.target.value);
+      scrollVal.innerText = config.scrollProgress.toFixed(2);
+      config.autoFlight = false;
+      document.getElementById("btn-autoflight").classList.remove("active-toggle");
+    });
+
+    // Auto-flight Button
+    const autoFlightBtn = document.getElementById("btn-autoflight");
+    autoFlightBtn.addEventListener("click", () => {
+      config.autoFlight = !config.autoFlight;
+      autoFlightBtn.classList.toggle("active-toggle", config.autoFlight);
+      autoFlightBtn.innerText = config.autoFlight ? "⏸️ Pause Tour" : "▶️ Auto-Flight Tour";
+    });
+
+    // Reset Flight Button
+    document.getElementById("btn-reset-flight").addEventListener("click", () => {
+      config.scrollProgress = 0;
+      config.autoFlight = false;
+      autoFlightBtn.classList.remove("active-toggle");
+      scrollRng.value = 0;
+      scrollVal.innerText = "0.00";
+    });
+
+    // Parameter Sliders
+    const bindSlider = (id, valId, key, suffix = "") => {
+      const el = document.getElementById(id);
+      const valEl = document.getElementById(valId);
+      el.addEventListener("input", (e) => {
+        config[key] = parseFloat(e.target.value);
+        valEl.innerText = config[key] + suffix;
+      });
+    };
+
+    bindSlider("rng-speed", "val-speed", "meteorSpeedMult", "x");
+    bindSlider("rng-trail", "val-trail", "meteorTrailLength", "");
+    bindSlider("rng-corridor", "val-corridor", "corridorHeight", "");
+    bindSlider("rng-surge", "val-surge", "forwardSurge", "");
+    bindSlider("rng-climb", "val-climb", "skyClimb", "");
+    bindSlider("rng-pitch", "val-pitch", "pitchUp", "");
+    bindSlider("rng-fov", "val-fov", "baseFov", "°");
+    bindSlider("rng-twinkle", "val-twinkle", "twinkleSpeed", "");
+
+    // Checkbox Options
+    document.getElementById("chk-follow-cam").addEventListener("change", (e) => {
+      config.followCamera = e.target.checked;
+    });
+    document.getElementById("chk-keep-visible").addEventListener("change", (e) => {
+      config.keepVisible = e.target.checked;
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById("theme-btn");
+    themeBtn.addEventListener("click", () => {
+      const isDark = document.body.classList.toggle("dark-theme");
+      config.darkTheme = isDark;
+      uniforms.uDarkTheme.value = isDark ? 1.0 : 0.0;
+      themeBtn.innerText = isDark ? "Toggle Light" : "Toggle Dark";
+    });
+
+    // Copy to Clipboard
+    document.getElementById("btn-export").addEventListener("click", () => {
+      const json = JSON.stringify(config, null, 2);
+      navigator.clipboard.writeText(json).then(() => {
+        alert("Parameters copied to clipboard!\n\n" + json);
+      });
+    });
+
+    // Initial trigger to showcase immediately
+    setTimeout(() => triggerMeteor(false), 800);
+  </script>
+</body>
+</html>

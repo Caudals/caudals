@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). The application today is a public marketing and demand-capture site plus a private Operator Console. The first evaluation pilots are delivered manually; the in-app evaluation product is specified below as planned work, with `product-specs/evals.md` as its contract.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). The application today is a public marketing and demand-capture site plus a private Operator Console. The first evaluation pilots are delivered manually; the in-app evaluation product is specified below as planned work.
 
 Current production scope:
 
@@ -52,7 +52,7 @@ Status: not implemented. The first three pilots are delivered manually; build Ph
 - A runner script of roughly 150 lines calls the target and writes results JSONL.
 - Grading: deterministic checks, an LLM judge and two human reviewers.
 - Analysis in spreadsheet pivots (cause × topic × tier); the report is written as HTML and rendered to PDF with brand tokens.
-- Expert work runs in shared spreadsheets under the provenance and access rules of `evals.md` → Expert-Built Data.
+- Expert work runs in shared spreadsheets under documented provenance and access rules.
 
 ### Phase 1 — in-app product
 
@@ -72,7 +72,7 @@ Eight domain tables in the existing PostgreSQL, with RLS by `org_id`, plus an `e
 | --- | --- |
 | `eval_project` | Customer engagement: org, sector, locale, status |
 | `eval_target` | System under test: kind (`http`, `openai`, `widget`, `manual`, `self_run`), config, auth reference, rate limit, label |
-| `eval_case` | Versioned case following the `evals.md` schema: source, tier, scope, author, reviewer, sign-off |
+| `eval_case` | Versioned case: source, tier, scope, author, reviewer, sign-off |
 | `eval_run` | One execution: target, suite version, timings, model fingerprint, summary |
 | `eval_result` | One row per case per run: response, retrieved context, latency, tokens, cost, score, grounded/confident/refused, grader, rationale, cause |
 | `eval_review` | Human override of a result; always wins |
@@ -276,7 +276,7 @@ Planned evaluation and dataset domains:
 - Webhook replay/idempotency protections when payment code is active
 - Upload/path validation guardrails
 - Provenance and auditability for every case, run, review, report and dataset item; results are immutable
-- Customer content: PII redacted at ingest, EU processing, named sub-processors, retention and deletion per `product-specs/evals.md`
+- Customer content: PII redacted at ingest, EU processing, named sub-processors, retention and deletion per data handling policies
 - Freelance experts: least-privilege access to redacted task material only
 - No adversarial inputs against any system without its owner's written authorisation
 - Error capture and opt-in stdout tracing without default PII transmission
@@ -314,7 +314,6 @@ Active drift risks:
 ## Linked References
 
 - `product-specs/overview.md`
-- `product-specs/evals.md`
 - `TOOLS.md`
 - [Caudals Leads architecture](https://github.com/Caudals/leads/blob/main/docs/ARCHITECTURE.md) — the
   separate Leads CRM runtime, which shares private `caudals-postgres` and

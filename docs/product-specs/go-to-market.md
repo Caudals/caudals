@@ -1,6 +1,6 @@
 # Go-to-Market Playbook
 
-How Caudals finds, earns and converts its first customers. Product and offers: `overview.md`. Evaluation method: `evals.md`.
+How Caudals finds, earns and converts its first customers. Product and offers: `overview.md`.
 
 ## Finding Targets
 
@@ -29,7 +29,7 @@ Record every signal in the Leads CRM with source, date, evidence URL and inferre
 
 1. **Integrator channel (primary).** The consultancy that built the system already has access, and a client asking "is it any good?" that it cannot answer credibly. Offer to be its independent test layer — white-labelled or on referral. Target Spanish AI/data consultancies of 10–100 people.
 2. **Ladder from the public system.** On every readout call ask: "What else runs on this stack internally?" Most companies with a public assistant run two to five internal ones.
-3. **Never need access.** Offer the self-run probe or output-only scoring (`evals.md` → Running). "We never touch your system" turns a months-long security review into a short conversation.
+3. **Never need access.** Offer the self-run probe or output-only scoring. "We never touch your system" turns a months-long security review into a short conversation.
 
 ## The Reality Check Play
 

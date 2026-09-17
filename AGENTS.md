@@ -14,7 +14,6 @@ Caudals is an AI data company that starts with evaluation. We begin with pilot p
 4. **Build** — freelance domain experts we recruit and manage build custom datasets from what the evaluations reveal: expanded evaluation sets, domain Q&A, knowledge-base content, reasoning and preference data and, over time, reusable sector datasets.
 
 - `docs/product-specs/overview.md`: product brief, offers, pricing, customers, custom datasets and the expert network.
-- `docs/product-specs/evals.md`: how an evaluation is built, graded and delivered, and the quality rules for expert-built data.
 - `docs/product-specs/go-to-market.md`: how customers are found and won, including the rules for probing third-party systems.
 
 Current deployment scope is intentionally narrow:
@@ -52,7 +51,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 
 1. `AGENTS.md`
 2. `docs/product-specs/overview.md`
-3. `docs/product-specs/evals.md` for evaluation and dataset work; `docs/product-specs/go-to-market.md` for marketing, content and outreach work
+3. `docs/product-specs/go-to-market.md` for marketing, content and outreach work
 4. `docs/index.md`
 5. `docs/ARCHITECTURE.md`
 6. `docs/DESIGN.md`, `docs/FRONTEND.md`
@@ -61,7 +60,6 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 ## Source-of-Truth Files
 
 - `docs/product-specs/overview.md`: canonical product brief. Read it first to understand what Caudals sells, to whom, and what is in scope.
-- `docs/product-specs/evals.md`: evaluation method, deliverable contract and expert-built data rules.
 - `docs/product-specs/go-to-market.md`: acquisition playbook and rules of engagement.
 - `docs/index.md`: documentation map and update ownership.
 - `docs/ARCHITECTURE.md`: technical system contract, runtime model and planned evaluation architecture.
