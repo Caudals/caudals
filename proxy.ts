@@ -85,7 +85,7 @@ function normalizeLocale(value?: string | null): Locale | null {
 }
 
 function extractHostname(request: NextRequest): string {
-  return cleanHostname(request.headers.get("host"));
+  return cleanHostname(request.headers.get("host") ?? request.nextUrl.hostname);
 }
 
 function matchesAppOnlyPath(pathname: string): boolean {
