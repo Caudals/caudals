@@ -181,8 +181,9 @@ export async function proxy(request: NextRequest) {
     (config) => config.hostname === hostname
   );
   const isMarketingHost = marketingHostnames.includes(hostname);
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
-  if (!isAppHost && !isMarketingHost) {
+  if (!isAppHost && !isMarketingHost && !isLocalhost) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
