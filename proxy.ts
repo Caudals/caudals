@@ -15,6 +15,7 @@ import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
 import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
 
 const supportedLocales = new Set<Locale>(locales);
+const EVALS_PREFIXES = ["/ops", "/workspace", "/share", "/evaluation-entry"];
 const APP_ONLY_PATH_PREFIXES = [
   "/requester",
   "/contributor",
@@ -169,6 +170,10 @@ async function getRequestCountryCode(request: NextRequest): Promise<string | nul
   return null;
 }
 
+function isEvalsPath(pathname: string) {
+  return EVALS_PREFIXES.some(p => pathname === p || pathname.startsWith(p + "/")) || pathname.startsWith("/api/evals/");
+}
+
 export async function proxy(request: NextRequest) {
   const hostname = extractHostname(request);
   const pathname = request.nextUrl.pathname;
@@ -176,6 +181,14 @@ export async function proxy(request: NextRequest) {
     (config) => config.hostname === hostname
   );
   const isMarketingHost = marketingHostnames.includes(hostname);
+
+  if (!isAppHost && !isMarketingHost) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
+
+  if (isMarketingHost && isEvalsPath(pathname)) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   if (shouldBlockPhaseOneHiddenSurface(pathname)) {
     return new NextResponse("Not Found", {
@@ -238,7 +251,12 @@ export async function proxy(request: NextRequest) {
   // 3. If cookie exists and matches detected: do nothing
   // 4. Otherwise: keep existing cookie (user preference)
   
-  let shouldUpdateCookie = false;
+  if (isAppHost) {
+    response.headers.set("cache-control", "private, no-store");
+    response.headers.set("x-robots-tag", "noindex");
+    response.headers.set("x-middleware-request-x-evals-surface", "1");
+  } else {
+    let shouldUpdateCookie = false;
   let localeToSet = cookieLocale ?? detectedLocale;
 
   if (!cookieLocale) {
@@ -267,9 +285,10 @@ export async function proxy(request: NextRequest) {
     });
     console.log(`[i18n] Cookie set to: ${localeToSet}`);
   }
+  }
 
   if (treatAppRootAsAdmin && !isRedirectResponse(response)) {
-    return rewriteWithState(request, response, "/admin");
+    return rewriteWithState(request, response, "/evaluation-entry");
   }
 
   return response;
