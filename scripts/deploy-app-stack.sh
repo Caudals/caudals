@@ -81,7 +81,7 @@ done
 
 container="$(docker ps --filter "label=com.docker.swarm.service.name=$service" --format '{{.ID}}' | head -n1)"
 docker exec "$container" node -e \
-  "fetch('http://127.0.0.1:3000/').then(async r=>{if(!r.ok)throw Error(await r.text())}).catch(e=>{console.error(e);process.exit(1)})"
+  "fetch('http://127.0.0.1:3000/', {headers:{host:'app.caudals.com'}}).then(async r=>{if(!r.ok)throw Error(await r.text())}).catch(e=>{console.error(e);process.exit(1)})"
 
 install -d -m 700 "$backup_root"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -105,14 +105,14 @@ cat >"$route_tmp" <<'EOF'
 http:
   routers:
     caudals-app-web:
-      rule: Host(`caudals.com`) || Host(`www.caudals.com`)
+      rule: Host(`caudals.com`) || Host(`www.caudals.com`) || Host(`app.caudals.com`)
       service: caudals-app
       middlewares:
         - redirect-to-https
       entryPoints:
         - web
     caudals-app-websecure:
-      rule: Host(`caudals.com`) || Host(`www.caudals.com`)
+      rule: Host(`caudals.com`) || Host(`www.caudals.com`) || Host(`app.caudals.com`)
       service: caudals-app
       entryPoints:
         - websecure
@@ -130,7 +130,7 @@ mv "$route_tmp" "$traefik_dir/caudals-app.yml"
 trap - EXIT
 
 for attempt in $(seq 1 30); do
-  if curl -fsS https://caudals.com/ >/dev/null; then break; fi
+  if curl -fsS https://caudals.com/ >/dev/null && curl -fsS https://app.caudals.com/ >/dev/null; then break; fi
   if [[ "$attempt" -eq 30 ]]; then
     mv "$traefik_dir/caudals-app.yml" "$route_backup/failed-caudals-app.yml"
     for previous in caudals-app.yml caudals-caudals-bce943.yml caudals-dokploy-webhook.yml; do
