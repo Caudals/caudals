@@ -69,3 +69,5 @@ inspect.json
 *.inspect.json
 
 *.pdf
+# LinkedIn post images kept locally; not published with the site.
+/public/linkedin/
