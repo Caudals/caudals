@@ -26,7 +26,7 @@ TEMPORAL_SERVICE="${CAUDALS_TEMPORAL_SERVICE:-caudals-workflow_temporal}"
 TEMPORAL_ADDRESS="${CAUDALS_POSTIZ_TEMPORAL_ADDRESS:-caudals-workflow-temporal:7233}"
 TEMPORAL_NAMESPACE="${CAUDALS_POSTIZ_TEMPORAL_NAMESPACE:-postiz}"
 TEMPORAL_ADMIN_IMAGE="${CAUDALS_TEMPORAL_ADMIN_IMAGE:-temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1}"
-POSTIZ_IMAGE="${CAUDALS_POSTIZ_IMAGE:-ghcr.io/gitroomhq/postiz-app:latest}"
+POSTIZ_IMAGE="${CAUDALS_POSTIZ_IMAGE:-ghcr.io/gitroomhq/postiz-app@sha256:785f97312f66a347fb96cdccc4ded5a33ced69a672c89a9adc8054e7d6a21dc5}"
 REDIS_IMAGE="${CAUDALS_SOCIAL_REDIS_IMAGE:-redis:7.4.2-alpine}"
 PUBLIC_HOST="${CAUDALS_POSTIZ_PUBLIC_HOST:-postiz.caudals.com}"
 PUBLIC_URL="${CAUDALS_POSTIZ_PUBLIC_URL:-https://$PUBLIC_HOST}"
@@ -121,6 +121,9 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'postiz')
 \gexec
 
 ALTER DATABASE postiz OWNER TO postiz;
+-- Prisma, the Mastra store and the Temporal orchestrator each hold a pool;
+-- at 10 the backend failed with "too many connections for role postiz".
+ALTER ROLE postiz CONNECTION LIMIT 30;
 ALTER DATABASE postiz SET timezone TO 'UTC';
 SQL
 
@@ -302,7 +305,7 @@ CAUDALS_POSTIZ_REDIS_SECRET="$REDIS_SECRET" \
 CAUDALS_POSTIZ_PUBLIC_URL="$PUBLIC_URL" \
 CAUDALS_POSTIZ_TEMPORAL_ADDRESS="$TEMPORAL_ADDRESS" \
 CAUDALS_POSTIZ_TEMPORAL_NAMESPACE="$TEMPORAL_NAMESPACE" \
-CAUDALS_POSTIZ_DISABLE_REGISTRATION="${CAUDALS_POSTIZ_DISABLE_REGISTRATION:-false}" \
+CAUDALS_POSTIZ_DISABLE_REGISTRATION="${CAUDALS_POSTIZ_DISABLE_REGISTRATION:-true}" \
   docker stack deploy \
     --detach=true \
     -c "$ROOT/infra/social/docker-stack.yml" \
@@ -317,8 +320,8 @@ Temporal:          $TEMPORAL_ADDRESS (namespace: $TEMPORAL_NAMESPACE)
 Next steps:
   1. Point $PUBLIC_HOST at this host in DNS (A record, DNS-only / not proxied,
      so the Let's Encrypt HTTP challenge can complete).
-  2. Sign up once at $PUBLIC_URL, then redeploy with
-     CAUDALS_POSTIZ_DISABLE_REGISTRATION=true to lock registration.
+  2. Registration is closed by default. On a brand-new instance, deploy once
+     with CAUDALS_POSTIZ_DISABLE_REGISTRATION=false, sign up, then redeploy.
   3. Add provider credentials with scripts/set-social-credentials.sh and
      redeploy so X and LinkedIn channels can be connected.
   4. Run scripts/probe-social-stack.sh to verify readiness.

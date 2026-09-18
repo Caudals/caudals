@@ -66,7 +66,9 @@ services:
           memory: 32M
 
   postiz:
-    image: ${CAUDALS_POSTIZ_IMAGE:-ghcr.io/gitroomhq/postiz-app:latest}
+    # Pinned by digest: `latest` is a 5.7 GB image, and letting Swarm resolve it
+    # on every deploy can pull a new one onto a nearly full disk.
+    image: ${CAUDALS_POSTIZ_IMAGE:-ghcr.io/gitroomhq/postiz-app@sha256:785f97312f66a347fb96cdccc4ded5a33ced69a672c89a9adc8054e7d6a21dc5}
     networks:
       dokploy-network:
         aliases:
@@ -84,9 +86,9 @@ services:
       TEMPORAL_NAMESPACE: ${CAUDALS_POSTIZ_TEMPORAL_NAMESPACE:-postiz}
       IS_GENERAL: "true"
       RUN_CRON: "true"
-      # Flipped to "true" by the deploy script once the first operator account
-      # exists, so the instance cannot be signed up for by anyone else.
-      DISABLE_REGISTRATION: ${CAUDALS_POSTIZ_DISABLE_REGISTRATION:-false}
+      # Closed by default: the operator accounts already exist. Deploy with
+      # CAUDALS_POSTIZ_DISABLE_REGISTRATION=false only to bootstrap a new instance.
+      DISABLE_REGISTRATION: ${CAUDALS_POSTIZ_DISABLE_REGISTRATION:-true}
       STORAGE_PROVIDER: local
       UPLOAD_DIRECTORY: /uploads
       NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
@@ -129,7 +131,9 @@ services:
         window: 5m
       resources:
         limits:
-          memory: ${CAUDALS_POSTIZ_MEMORY_LIMIT:-2048M}
+          # The orchestrator (Temporal worker) bundles its workflows at start
+          # and peaks around 1.3 GB; at 2 GB it was OOM-killed in a loop.
+          memory: ${CAUDALS_POSTIZ_MEMORY_LIMIT:-3072M}
         reservations:
           memory: 512M
 
