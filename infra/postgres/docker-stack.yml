@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  db:
+    image: caudals-postgres:16-pgvector-cron
+    networks:
+      dokploy-network:
+        aliases:
+          - caudals-postgres
+    volumes:
+      - caudals-postgres-data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  caudals-postgres-data:
+    external: true

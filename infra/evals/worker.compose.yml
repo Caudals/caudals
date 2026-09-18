@@ -1,0 +1,104 @@
+# Review and provision credentials/network before deployment. No production defaults.
+services:
+  worker:
+    image: ${EVALS_IMAGE:?Use an immutable reviewed image digest}
+    command: ["sh", "services/evals-worker/start.sh"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 0.5
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    environment:
+      EVALS_ENV: ${EVALS_ENV:?Choose development or production}
+      EVALS_QUEUE_SCHEMA: ${EVALS_QUEUE_SCHEMA:?Choose evals_queue_dev or evals_queue_prod}
+      EVALS_DISPATCH_ENABLED: "false"
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_database_url
+      EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_queue_database_url
+      EVALS_MASTER_KEYRING_FILE: /run/secrets/evals_master_keyring
+      EVALS_DGX_ENDPOINT_FILE: /run/secrets/evals_dgx_endpoint
+      EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit JSON workspace allowlist}
+      EVALS_WORKER_ACTOR_ID: ${EVALS_WORKER_ACTOR_ID:?Worker service identity}
+    secrets: [evals_database_url, evals_queue_database_url, evals_master_keyring, evals_dgx_endpoint]
+    networks: [evals_private]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: "no"
+  documents:
+    profiles: ["documents"]
+    image: ${EVALS_DOCUMENT_IMAGE:?Use an immutable reviewed document image digest}
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 192
+    mem_limit: 1g
+    cpus: 0.75
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    environment:
+      EVALS_ENV: ${EVALS_ENV:?Choose development or production}
+      EVALS_DOCUMENTS_ENABLED: ${EVALS_DOCUMENTS_ENABLED:-false}
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_document_database_url
+      EVALS_DOCUMENT_ORG_IDS: ${EVALS_DOCUMENT_ORG_IDS:?Explicit JSON workspace allowlist}
+      EVALS_DOCUMENT_ACTOR_ID: ${EVALS_DOCUMENT_ACTOR_ID:?Document service identity}
+      DO_SPACES_ENDPOINT: ${DO_SPACES_ENDPOINT:?Private S3-compatible endpoint}
+      DO_SPACES_REGION: ${DO_SPACES_REGION:?Storage region}
+      DO_SPACES_BUCKET: ${DO_SPACES_BUCKET:?Private bucket}
+      DO_SPACES_FORCE_PATH_STYLE: ${DO_SPACES_FORCE_PATH_STYLE:-false}
+      DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/evals_storage_access_key
+      DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/evals_storage_secret_key
+      NEXT_PUBLIC_DO_SPACES_CDN_URL: "disabled-private-evals"
+    secrets: [evals_document_database_url,evals_storage_access_key,evals_storage_secret_key]
+    networks: [evals_private]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: "no"
+  browser:
+    profiles: ["browser"]
+    image: ${EVALS_BROWSER_IMAGE:?Use an immutable reviewed browser image digest}
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 192
+    mem_limit: 1g
+    cpus: 0.75
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    environment:
+      EVALS_ENV: ${EVALS_ENV:?Choose development or production}
+      EVALS_QUEUE_SCHEMA: ${EVALS_QUEUE_SCHEMA:?Choose evals_queue_dev or evals_queue_prod}
+      EVALS_BROWSER_ENABLED: ${EVALS_BROWSER_ENABLED:-false}
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_browser_database_url
+      EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_queue_database_url
+      EVALS_BROWSER_SESSION_KEYRING_FILE: /run/secrets/evals_browser_session_keyring
+      EVALS_BROWSER_ORG_IDS: ${EVALS_BROWSER_ORG_IDS:?Explicit JSON workspace allowlist}
+      EVALS_BROWSER_ACTOR_ID: ${EVALS_BROWSER_ACTOR_ID:?Browser service identity}
+    secrets: [evals_browser_database_url,evals_queue_database_url,evals_browser_session_keyring]
+    # Deployment must attach this service only to a policy-enforced browser
+    # egress network plus its narrow DB/queue path. It must not reach DGX,
+    # metadata, Docker, object storage or other private services.
+    networks: [evals_private,evals_browser_egress]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: "no"
+secrets:
+  evals_database_url: {external: true}
+  evals_queue_database_url: {external: true}
+  evals_master_keyring: {external: true}
+  evals_dgx_endpoint: {external: true}
+  evals_document_database_url: {external: true}
+  evals_browser_database_url: {external: true}
+  evals_storage_access_key: {external: true}
+  evals_storage_secret_key: {external: true}
+  evals_browser_session_keyring: {external: true}
+networks:
+  evals_private: {external: true}
+  evals_browser_egress: {external: true}

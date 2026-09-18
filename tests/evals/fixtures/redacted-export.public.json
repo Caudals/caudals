@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "suite-redacted-export",
+  "suite_version_id": "redacted-export-release-1",
+  "origin_manifest_hash": "189e2a6a0df05bad920fb785a38a0306bda81607ca87d540c70ea9b893f16061",
+  "content_hash": "09190ccd2a17f4c1ca548b350cb3976c98b86f2444bff2dbf80a83f722847133",
+  "audience": "public",
+  "publication_consent_id": "synthetic-consent-v1",
+  "cases": [
+    {
+      "input": {
+        "schema_version": "1.0",
+        "case_id": "redacted-export",
+        "case_revision_id": "redacted-export-v1",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Synthetic policy A: add 10% to EUR 123.45 and round once to two decimals. Return JSON total and currency."
+          }
+        ],
+        "attachments": [],
+        "tools": []
+      },
+      "title": "redacted-export",
+      "language": "en",
+      "reference": {
+        "answerability": "answerable",
+        "expected": {
+          "total": "135.80",
+          "currency": "EUR"
+        },
+        "acceptable_alternatives": [],
+        "required_claims": [
+          "The total is EUR 135.80"
+        ],
+        "prohibited_claims": [
+          "This is a statutory tax rate"
+        ],
+        "prohibited_actions": [],
+        "source_refs": [
+          {
+            "source_revision_id": "fixture-policy-a-v1",
+            "anchor": "policy-1"
+          }
+        ]
+      },
+      "evidence_level": "source_supported",
+      "rights": "caudals_owned_synthetic"
+    }
+  ],
+  "sources": [
+    {
+      "source_revision_id": "fixture-policy-a-v1",
+      "title": "Synthetic policy A",
+      "anchors": [
+        {
+          "id": "policy-1",
+          "excerpt": "Add a 10% service fee; round once to two decimals.",
+          "locator": "line:1"
+        }
+      ]
+    }
+  ]
+}

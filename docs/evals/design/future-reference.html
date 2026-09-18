@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Caudals — future evaluation design reference</title
+  ><style>
+    :root {
+      --ds-canvas: #fbfaf8;
+      --ds-sidebar-bg: #fbfaf8;
+      --ds-surface: #fbfaf8;
+      --ds-surface-muted: #f4f4f2;
+      --ds-border-soft: rgba(0, 0, 0, 0.06);
+      --ds-border-strong: rgba(0, 0, 0, 0.12);
+      --ds-text-primary: #111827;
+      --ds-text-secondary: #6b7280;
+      --ds-text-tertiary: #9ca3af;
+      --ds-text-inverse: #ffffff;
+      --ds-accent: #059669;
+      --ds-accent-hover: #047857;
+      --ds-accent-soft: #ecfdf5;
+      --ds-accent-soft-2: #d1fae5;
+      --ds-accent-text: #047857;
+      --ds-accent-teal: #0f766e;
+      --ds-danger: #dc2626;
+      --ds-danger-soft: #fef2f2;
+      --ds-warning: #d97706;
+      --ds-warning-soft: #fffbeb;
+      --ds-info: #2563eb;
+      --ds-info-soft: #eff6ff;
+      --ds-cta-bg: #111827;
+      --ds-cta-bg-hover: #1f2937;
+      --ds-cta-text: #ffffff;
+      --ds-radius-xs: 6px;
+      --ds-radius-sm: 8px;
+      --ds-radius-md: 10px;
+      --ds-radius-lg: 12px;
+      --ds-radius-xl: 16px;
+      --ds-radius-shell: 14px;
+      --ds-radius-pill: 999px;
+      --ds-shadow-surface: 0 1px 2px rgba(0, 0, 0, 0.02);
+      --ds-shadow-overlay: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--ds-canvas);
+      color: var(--ds-text-primary);
+      font:
+        14px/1.6 -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+    header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--ds-border-strong);
+    }
+    header strong {
+      font-size: 20px;
+    }
+    header p {
+      margin: 6px 0 0;
+      color: var(--ds-text-secondary);
+    }
+    main {
+      max-width: 1120px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+    section {
+      margin: 40px 0 64px;
+    }
+    .label {
+      font-size: 12px;
+      color: var(--ds-accent-text);
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 22px;
+      font-weight: 400;
+    }
+    h3 {
+      font-size: 16px;
+    }
+    p {
+      max-width: 680px;
+    }
+    .screen {
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--ds-radius-lg);
+      overflow: hidden;
+      background: var(--ds-surface);
+    }
+    .bar {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--ds-border-strong);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .body {
+      padding: 32px;
+      max-width: 704px;
+      margin: auto;
+    }
+    .field {
+      padding: 10px 14px;
+      border: 1px solid var(--ds-border-strong);
+      border-radius: var(--ds-radius-md);
+      margin: 8px 0 22px;
+      color: var(--ds-text-secondary);
+    }
+    .options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0 24px;
+    }
+    .chip {
+      padding: 6px 12px;
+      border-radius: var(--ds-radius-pill);
+      background: var(--ds-surface-muted);
+    }
+    .selected {
+      background: var(--ds-accent-soft);
+      color: var(--ds-accent-text);
+    }
+    .cta {
+      display: inline-block;
+      background: var(--ds-cta-bg);
+      color: var(--ds-cta-text);
+      padding: 10px 18px;
+      border-radius: var(--ds-radius-md);
+    }
+    .muted {
+      color: var(--ds-text-secondary);
+    }
+    .progress {
+      height: 6px;
+      background: var(--ds-border-strong);
+      border-radius: var(--ds-radius-pill);
+      margin: 24px 0;
+    }
+    .progress span {
+      display: block;
+      background: var(--ds-accent);
+      width: 40%;
+      height: 100%;
+      border-radius: inherit;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      text-align: left;
+    }
+    th,
+    td {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--ds-border-strong);
+    }
+    th {
+      font-size: 12px;
+      color: var(--ds-text-secondary);
+      font-weight: 500;
+    }
+    .report {
+      max-width: none;
+    }
+    .callout {
+      padding: 16px 20px;
+      background: var(--ds-warning-soft);
+      border-radius: var(--ds-radius-sm);
+    }
+    .basis {
+      font-variant-numeric: tabular-nums;
+      font-size: 28px;
+      font-weight: 400;
+    }
+    .tabs {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--ds-border-strong);
+      padding-bottom: 14px;
+    }
+    .annotation {
+      font-size: 13px;
+      color: var(--ds-text-secondary);
+      margin-top: 12px;
+    }
+    @media (max-width: 600px) {
+      main {
+        padding: 0 16px;
+      }
+      .body {
+        padding: 24px 20px;
+      }
+      .bar {
+        padding: 16px;
+        flex-wrap: wrap;
+      }
+      header {
+        padding: 20px;
+      }
+      .tabs {
+        gap: 12px;
+      }
+    }
+  </style>
+  <header>
+    <strong>Caudals / Design reference</strong>
+    <p>
+      Future design only. Static illustrations with fictional data. No
+      connection, run or report functionality is implemented here.
+    </p>
+  </header>
+  <main>
+    <h1>From a system to evidence</h1>
+    <p class="muted">
+      Proposed working surfaces after WP-01. The live shell currently supports
+      workspace identity and invitations only. These illustrations are not
+      linked from the application.
+    </p>
+    <section>
+      <p class="label">Future connection flow</p>
+      <div class="screen">
+        <div class="bar">
+          <span>Example workspace</span
+          ><span class="muted">New evaluation</span>
+        </div>
+        <div class="body">
+          <h2>Connect your system</h2>
+          <p class="muted">
+            Choose how to provide answers from the system you want to evaluate.
+          </p>
+          <div class="options">
+            <span class="chip selected">Website chatbot</span
+            ><span class="chip">API</span
+            ><span class="chip">Upload answers</span>
+          </div>
+          <strong>System name</strong>
+          <div class="field">Example support assistant</div>
+          <strong>Website URL</strong>
+          <div class="field">https://example.test/support</div>
+          <strong>What should this system help with?</strong>
+          <div class="field">
+            Explain product coverage using the policy documents.
+          </div>
+          <p class="muted">
+            Reference material can be added here. Advanced settings appear only
+            when needed.
+          </p>
+          <span class="cta">Check connection — illustration</span>
+        </div>
+      </div>
+      <p class="annotation">
+        Implementation gate: supported connector, authorization scope and
+        bounded probe. Never begin an evaluation from a connection check.
+      </p>
+    </section>
+    <section>
+      <p class="label">Future persistent progress</p>
+      <div class="screen">
+        <div class="bar">
+          <span>Example support assistant</span
+          ><span class="chip selected">Running — fictional example</span>
+        </div>
+        <div class="body">
+          <h2>Testing the agreed questions</h2>
+          <p class="basis">24 of 60 completed</p>
+          <div class="progress" aria-hidden="true"><span></span></div>
+          <p class="muted">
+            Elapsed: 3 min · No reliable completion estimate yet
+          </p>
+          <p>You can close this page. Your evaluation will continue.</p>
+          <p class="muted">
+            Future actions: cancel evaluation; notify when ready.
+          </p>
+        </div>
+      </div>
+      <p class="annotation">
+        Counts must come from persisted events. Unknown work has no percentage;
+        reconnection resumes the same run. This artifact does not animate or
+        simulate progress.
+      </p>
+    </section>
+    <section>
+      <p class="label">Future published report</p>
+      <div class="screen">
+        <div class="bar">
+          <span>Example support assistant / Report revision 1</span
+          ><span class="chip">Fictional, preliminary example</span>
+        </div>
+        <div class="body report">
+          <h2>Coverage questions need clearer answers</h2>
+          <div class="tabs">
+            <strong>Overview</strong><span>Findings</span
+            ><span>Test results</span><span>Improvements</span
+            ><span>Methodology</span>
+          </div>
+          <p class="muted">
+            Scope: policy coverage · Dataset revision 1 · Target revision
+            unknown · Human review pending
+          </p>
+          <p class="basis">4 of 26 critical questions failed</p>
+          <div class="callout">
+            Example finding: waiting-period answers conflict with the cited
+            policy. Review the source before changing the system.
+          </div>
+          <h3>Evidence before recommendations</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Finding</th>
+                <th>Evidence</th>
+                <th>Next step</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Waiting-period explanation</td>
+                <td>3 of 12 cases</td>
+                <td>Review policy reference</td>
+              </tr>
+              <tr>
+                <td>Missing coverage limitation</td>
+                <td>1 of 14 cases</td>
+                <td>Clarify knowledge-base text</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="muted">
+            Detail must retain question, actual answer, expected behavior, exact
+            source revision, grader and reviewer. This fictional example is not
+            a reviewed score.
+          </p>
+        </div>
+      </div>
+      <p class="annotation">
+        Implementation gate: frozen evidence, uncertainty and exclusions,
+        publication policy and permitted audience. Share/export actions are
+        absent until implemented.
+      </p>
+    </section>
+  </main>
+</html>

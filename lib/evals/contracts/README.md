@@ -1,0 +1,27 @@
+# CEF 1.0 executable contracts
+
+Import server-side runtime APIs from `lib/evals/contracts`; use type-only imports in browser code. This module uses Node crypto and does not access a database, network, credentials, or target system.
+
+- `parseBundle(unknown)` validates strict structure, reference inventories, source anchors, family splits, bounded scenarios, assessment semantics, and every logical content hash. `bundleSchema.parse` performs structure/relationship validation only; it is **not** a hash verification boundary.
+- `withContentHash`, `contentHash`, `canonicalJson`, `verifyContentHash` implement canonical JSON/SHA-256 identity. Top-level `content_hash` alone is excluded from its own digest. Strings preserve Unicode normalization; lone surrogates, non-finite numbers, non-JSON values, cycles and accessors are rejected. JSON numbers have IEEE-754 semantics; money and exact decimal values use strings.
+- `encodeCefFiles` / `decodeCefFiles` operate on safe-path byte maps. They preserve CEF manifest/JSONL layout and verify exact bytes, source artifacts and logical records. Optional output-schema and deterministic-tool definitions use `output-schemas.jsonl` and `fixtures/tool-fixtures.jsonl`. Their revisions/hashes are explicitly bound by the manifest. The manifest never checksums itself.
+- `parseJsonBytes` / `parseJsonl` reject malformed UTF-8, duplicate decoded keys and excessive bytes/depth. Defaults: 32 MiB/file, 2 MiB/JSONL line, 100,000 records, nesting depth 64. File-map import additionally limits 10,000 files and 128 MiB total. Direct in-memory `parseBundle` expects an already bounded, plain JSON value; use byte parsing at untrusted input boundaries.
+- `projectCandidate`, `projectJudge`, `projectCustomer`, `projectPublic` validate the internal bundle first and construct strict audience envelopes with new hashes and an origin-manifest hash. These are deliberately separate schemas from an internal bundle. Never send an internal bundle to a runner.
+- Candidate exports include initial messages, candidate attachments and approved tool definitions only. Private turn branches, fixture state/results, references, sources, rubrics, observations, grading settings, provenance and extensions are absent. Hidden holdouts require an explicit runner-release flag. Subsequent scripted turns are executor-owned.
+- Judge exports include reference data, permitted evidence, rubrics and normalized observations, but no provider request IDs, raw artifacts, derivation notes or author identities. Customer/public exports contain reference data and permitted evidence, but exclude private grader configuration and holdouts. Missing source permissions fail closed. Customer/public attachment redistribution requires separate clearance and is currently rejected.
+- Public exports require a publication consent ID, explicit public access and reusable rights. Licensed/customer-owned content fails closed pending a separate clearance contract. An opaque consent ID is not proof of actual consent: authorization/publication code must verify the record and scope before calling this projection. Projections enforce field visibility, not content-level PII detection; input text must already be redacted.
+- `validateFamilySplits` must be supplied all relevant previous/training manifests to enforce family isolation across releases. `assertImmutableRevision` prevents changed content under a reused revision ID; storage must invoke it transactionally and preserve prior records. Single-bundle validation cannot inspect database history.
+- Connector types implement section 8's adapter boundary. Target configuration contains credential handles only. Endpoint syntax checks are not DNS/SSRF containment. Adapters must enforce scoped handles, egress policy, deadlines, reserved budgets and session isolation. No provider or execution code is included.
+
+Unknown core fields and versions other than literal `1.0` are rejected. Vendor fields belong in `extensions`, with keys such as `org.caudals/feature`. Task and grader kinds are explicit unions. `repetition` is zero-based. Unknown measurements use `{ "value": null, "provenance": "unavailable" }`; imported measurements must be `customer_reported` or unavailable. Synthetic provenance requires generator/prompt revisions; expert review requires reviewer attribution. Execution failures remain unscorable and disputed ground truth requires review.
+
+Export structural draft 2020-12 schemas without changing package scripts:
+
+```sh
+./node_modules/.bin/tsx scripts/evals/export-schemas.ts /desired/output/directory
+./node_modules/.bin/vitest run tests/evals/contracts.test.ts
+```
+
+Zod refinements (hashes, references, BCP47 validation, safe-path details and conditional policy checks) are executable constraints beyond structural JSON Schema. Consumers must run executable validation too. Embedded tool/output JSON Schemas are inert JSON data; downstream validators must prohibit unapproved remote reference resolution. Archive decompression, filesystem symlink containment, macro/HTML handling, database tenant authorization, real source review and actual execution-plan freezing belong to their owning ingestion/storage/execution work packages.
+
+The 11 checked-in fixture bundles under `tests/evals/fixtures` are synthetic and reproducible from `contracts-fixtures.ts`. The arithmetic fixture follows the specification's supplied 10% policy, not real tax law. `redacted-export.*.json` records the actual audience projections in addition to the internal sentinel-bearing fixture.

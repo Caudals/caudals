@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "suite-redacted-export",
+  "suite_version_id": "redacted-export-release-1",
+  "origin_manifest_hash": "aa03ebe2a1c507ffd503278fe718b569bd969b8013d62e57792de77d8c2bd5ca",
+  "content_hash": "94016469045c2943f31b618474a8e33fc5620f354b50ef0495740e6aa5ddeefb",
+  "audience": "candidate",
+  "cases": [
+    {
+      "schema_version": "1.0",
+      "case_id": "redacted-export",
+      "case_revision_id": "redacted-export-v1",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Synthetic policy A: add 10% to EUR 123.45 and round once to two decimals. Return JSON total and currency."
+        }
+      ],
+      "attachments": [],
+      "tools": []
+    }
+  ]
+}

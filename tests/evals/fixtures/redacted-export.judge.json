@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "suite-redacted-export",
+  "suite_version_id": "redacted-export-release-1",
+  "origin_manifest_hash": "aa03ebe2a1c507ffd503278fe718b569bd969b8013d62e57792de77d8c2bd5ca",
+  "content_hash": "5e6d3f3857a6d8a8813f9b9f4a7d2ab3a3c43ce58172d82a84e6c1744e717359",
+  "audience": "judge",
+  "cases": [
+    {
+      "input": {
+        "schema_version": "1.0",
+        "case_id": "redacted-export",
+        "case_revision_id": "redacted-export-v1",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Synthetic policy A: add 10% to EUR 123.45 and round once to two decimals. Return JSON total and currency."
+          }
+        ],
+        "attachments": [],
+        "tools": []
+      },
+      "title": "redacted-export",
+      "language": "en",
+      "reference": {
+        "answerability": "answerable",
+        "expected": {
+          "total": "135.80",
+          "currency": "EUR"
+        },
+        "acceptable_alternatives": [],
+        "required_claims": [
+          "The total is EUR 135.80"
+        ],
+        "prohibited_claims": [
+          "This is a statutory tax rate"
+        ],
+        "prohibited_actions": [],
+        "source_refs": [
+          {
+            "source_revision_id": "fixture-policy-a-v1",
+            "anchor": "policy-1"
+          }
+        ],
+        "rubric_revision_id": "invoice-total-rubric-v1",
+        "graders": [
+          {
+            "kind": "json_schema",
+            "schema_ref": "invoice-total-output-v1"
+          },
+          {
+            "kind": "decimal_equal",
+            "path": "$.total",
+            "expected": "135.80",
+            "tolerance": "0.00",
+            "rounding": "half_up",
+            "unit": "EUR"
+          }
+        ]
+      },
+      "evidence_level": "source_supported",
+      "rights": "caudals_owned_synthetic"
+    }
+  ],
+  "sources": [
+    {
+      "source_revision_id": "fixture-policy-a-v1",
+      "title": "Synthetic policy A",
+      "anchors": [
+        {
+          "id": "policy-1",
+          "excerpt": "Add a 10% service fee; round once to two decimals.",
+          "locator": "line:1"
+        }
+      ]
+    }
+  ],
+  "rubrics": [
+    {
+      "revision_id": "invoice-total-rubric-v1",
+      "criteria": [
+        {
+          "id": "correctness",
+          "description": "JSON total and currency match the supplied policy; no prose required",
+          "weight": 1,
+          "max_score": 1
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "content_hash": "16505fa14e31f70297c9b9905a2b541ae1cdbb5642595473a2212a0e1f77930c",
+      "case_revision_id": "redacted-export-v1",
+      "status": "succeeded",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "{\"total\":\"135.80\",\"currency\":\"EUR\"}"
+        }
+      ],
+      "tool_events": []
+    }
+  ]
+}

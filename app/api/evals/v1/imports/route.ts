@@ -1,0 +1,6 @@
+import { z } from "zod";
+import { api,EvalError,requireWorkspace } from "@/lib/evals/domain/http";
+import { columnMappingSchema,importIntentSchema } from "@/lib/evals/imports/structured";
+import { persistImport } from "@/lib/evals/repositories/managed";
+export const runtime="nodejs";
+export const POST=api(async(request,identity)=>{const length=Number(request.headers.get("content-length")??0);if(!Number.isFinite(length)||length>27_000_000)throw new EvalError("INPUT_INVALID",413,"Import is too large.");const form=await request.formData();const orgId=z.uuid().parse(form.get("orgId")),projectId=z.uuid().parse(form.get("projectId")),intent=importIntentSchema.parse(form.get("intent")),format=z.enum(["csv","xlsx","jsonl"]).parse(form.get("format")),mapping=columnMappingSchema.parse(JSON.parse(z.string().max(10000).parse(form.get("mapping")))),suiteVersionId=z.uuid().optional().parse(form.get("suiteVersionId")||undefined),file=form.get("file");if(!(file instanceof File)||file.size<1||file.size>25_000_000)throw new EvalError("INPUT_INVALID",422,"Choose a supported file up to 25 MB.");await requireWorkspace(identity,orgId,"write");return persistImport({orgId,actorId:identity.user.id},{projectId,intent,format,mapping,suiteVersionId,bytes:new Uint8Array(await file.arrayBuffer())},request.headers.get("idempotency-key")??"");});

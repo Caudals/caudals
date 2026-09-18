@@ -1,0 +1,2 @@
+import { redirect } from "next/navigation";import { requirePageIdentity } from "@/components/evals/page-identity";import { EvalShell } from "@/components/evals/shell";import { RunInspector } from "@/components/evals/run-inspector";
+export default async function Page({params}:{params:Promise<{id:string}>}){const identity=await requirePageIdentity("/ops/runs");if(!identity.platformRole)redirect("/workspace/evaluations");return <EvalShell identity={identity}><RunInspector runId={(await params).id}/></EvalShell>;}

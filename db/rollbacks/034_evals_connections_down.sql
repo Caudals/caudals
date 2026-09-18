@@ -1,0 +1,1 @@
+DO $$ BEGIN RAISE EXCEPTION 'WP-04 stores immutable imports, run plans and observations. Disable dispatch and use reviewed forward repair or restore a verified pre-034 backup; destructive rollback is refused.'; END $$;

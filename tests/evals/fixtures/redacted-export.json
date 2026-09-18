@@ -1,0 +1,390 @@
+{
+  "manifest": {
+    "schema_version": "1.0",
+    "suite_id": "suite-redacted-export",
+    "suite_version_id": "redacted-export-release-1",
+    "title": "redacted-export",
+    "created_at": "2026-09-17T00:00:00Z",
+    "scope": {
+      "domain": "synthetic_accounting",
+      "languages": [
+        "en"
+      ],
+      "jurisdictions": [],
+      "as_of": null,
+      "description": "Synthetic conformance fixture; no real tax policy"
+    },
+    "execution_mode": "controlled_model",
+    "evidence_policy": "source_grounded",
+    "case_revisions": [
+      {
+        "case_id": "redacted-export",
+        "revision_id": "redacted-export-v1",
+        "content_hash": "a63d73aebb5b198f7576f50749deb24394d90fa9109e80aa537672e1b4b7b60a",
+        "family_id": "redacted-export-family",
+        "split": "validation",
+        "weight": 1
+      }
+    ],
+    "source_revisions": [
+      {
+        "revision_id": "fixture-policy-a-v1",
+        "content_hash": "0fcc628030b080aedacd222c73b6e6e4c8d0a049261f956dee576a3c631c0f25"
+      }
+    ],
+    "rubric_revisions": [
+      {
+        "revision_id": "invoice-total-rubric-v1",
+        "content_hash": "b6e2a2e97899643aee7aa56d4866fbcf5064b55be240d497586338c6f5da8dad"
+      }
+    ],
+    "fixture_revisions": [],
+    "output_schema_revisions": [
+      {
+        "revision_id": "invoice-total-output-v1",
+        "content_hash": "038a2a54a7b9946934eeecd7c4992506cb58b14d70e7159c3871125322277b60"
+      }
+    ],
+    "execution_policy": {
+      "limits": {
+        "max_turns": 10,
+        "max_output_tokens": 500,
+        "max_tool_calls": 10,
+        "timeout_ms": 60000,
+        "repetitions": 1
+      },
+      "session": "fresh_per_case",
+      "retry": {
+        "max_attempts": 1,
+        "retryable_statuses": [],
+        "uncertain_outcome": "pause_for_review"
+      }
+    },
+    "scoring_policy": {
+      "metric_version": "cef-metric-v1",
+      "weighting": "case_weight",
+      "thresholds": {
+        "pass": 1,
+        "partial": 0.5
+      },
+      "exclusions": [
+        "unsupported",
+        "transport_error",
+        "disputed"
+      ],
+      "review": "all",
+      "comparison": "paired_family"
+    },
+    "sampling_plan": {
+      "procedure": "all",
+      "seed": 42,
+      "planned_repetitions": 1,
+      "stopping_rules": {
+        "max_cases": 1,
+        "max_duration_ms": 60000,
+        "early_stopping": false
+      }
+    },
+    "visibility_policy": {
+      "cases": {
+        "candidate": true,
+        "judge": true,
+        "customer": true,
+        "public": false
+      },
+      "sources": {
+        "candidate": false,
+        "judge": true,
+        "customer": true,
+        "public": false
+      },
+      "rubrics": {
+        "candidate": false,
+        "judge": true,
+        "customer": false,
+        "public": false
+      },
+      "observations": {
+        "candidate": false,
+        "judge": true,
+        "customer": true,
+        "public": false
+      },
+      "assessments": {
+        "candidate": false,
+        "judge": true,
+        "customer": true,
+        "public": false
+      },
+      "allow_candidate_holdout": false,
+      "publication_consent_id": null
+    },
+    "files": [
+      {
+        "path": "fixtures/policy-a.txt",
+        "sha256": "208125f5e3b367820458940a95ecc89f56d57a5835dc1299520ec3d0fab4debb",
+        "size_bytes": 50
+      }
+    ],
+    "content_hash": "aa03ebe2a1c507ffd503278fe718b569bd969b8013d62e57792de77d8c2bd5ca",
+    "extensions": {}
+  },
+  "cases": [
+    {
+      "schema_version": "1.0",
+      "case_id": "redacted-export",
+      "revision_id": "redacted-export-v1",
+      "content_hash": "a63d73aebb5b198f7576f50749deb24394d90fa9109e80aa537672e1b4b7b60a",
+      "family_id": "redacted-export-family",
+      "title": "redacted-export",
+      "task_type": "numerical",
+      "domain": "synthetic_accounting",
+      "tags": [
+        "conformance"
+      ],
+      "language": "en",
+      "jurisdiction": null,
+      "as_of": null,
+      "difficulty": "routine",
+      "severity": "medium",
+      "split": "validation",
+      "scenario": {
+        "required_capabilities": [
+          "text"
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": "Synthetic policy A: add 10% to EUR 123.45 and round once to two decimals. Return JSON total and currency."
+          }
+        ],
+        "attachments": [],
+        "termination": {
+          "kind": "final_answer"
+        },
+        "mode": "single_turn",
+        "turn_plan": null,
+        "tool_fixture_set_id": null
+      },
+      "reference": {
+        "answerability": "answerable",
+        "expected": {
+          "total": "135.80",
+          "currency": "EUR"
+        },
+        "acceptable_alternatives": [],
+        "required_claims": [
+          "The total is EUR 135.80"
+        ],
+        "prohibited_claims": [
+          "This is a statutory tax rate"
+        ],
+        "prohibited_actions": [],
+        "source_refs": [
+          {
+            "source_revision_id": "fixture-policy-a-v1",
+            "anchor": "policy-1"
+          }
+        ],
+        "rubric_revision_id": "invoice-total-rubric-v1",
+        "graders": [
+          {
+            "kind": "json_schema",
+            "schema_ref": "invoice-total-output-v1"
+          },
+          {
+            "kind": "decimal_equal",
+            "path": "$.total",
+            "expected": "135.80",
+            "tolerance": "0.00",
+            "rounding": "half_up",
+            "unit": "EUR"
+          }
+        ],
+        "derivation_notes": "PRIVATE_REFERENCE_SENTINEL"
+      },
+      "provenance": {
+        "method": "deterministic_fixture",
+        "generator_revision": null,
+        "prompt_revision": null,
+        "evidence_level": "source_supported",
+        "author_ids": [
+          "PRIVATE_AUTHOR_SENTINEL"
+        ],
+        "reviewer_ids": [],
+        "rights": "caudals_owned_synthetic",
+        "created_at": "2026-09-17T00:00:00Z"
+      },
+      "limits": {
+        "max_turns": 1,
+        "max_output_tokens": 500,
+        "max_tool_calls": 0,
+        "timeout_ms": 60000,
+        "repetitions": 1
+      },
+      "weight": 1,
+      "extensions": {
+        "org.caudals/private": {
+          "note": "PRIVATE_EXTENSION_SENTINEL"
+        }
+      }
+    }
+  ],
+  "sources": [
+    {
+      "schema_version": "1.0",
+      "source_id": "policy-a",
+      "revision_id": "fixture-policy-a-v1",
+      "content_hash": "0fcc628030b080aedacd222c73b6e6e4c8d0a049261f956dee576a3c631c0f25",
+      "title": "Synthetic policy A",
+      "artifact": {
+        "path": "fixtures/policy-a.txt",
+        "sha256": "208125f5e3b367820458940a95ecc89f56d57a5835dc1299520ec3d0fab4debb",
+        "size_bytes": 50,
+        "media_type": "text/plain",
+        "visibility": "judge"
+      },
+      "anchors": [
+        {
+          "id": "policy-1",
+          "excerpt": "Add a 10% service fee; round once to two decimals.",
+          "locator": "line:1"
+        }
+      ],
+      "access": {
+        "candidate": false,
+        "judge": true,
+        "customer": true,
+        "public": false
+      },
+      "rights": "caudals_owned_synthetic",
+      "created_at": "2026-09-17T00:00:00Z",
+      "extensions": {}
+    }
+  ],
+  "rubrics": [
+    {
+      "schema_version": "1.0",
+      "rubric_id": "invoice-total",
+      "revision_id": "invoice-total-rubric-v1",
+      "content_hash": "b6e2a2e97899643aee7aa56d4866fbcf5064b55be240d497586338c6f5da8dad",
+      "title": "Requested JSON only",
+      "criteria": [
+        {
+          "id": "correctness",
+          "description": "JSON total and currency match the supplied policy; no prose required",
+          "weight": 1,
+          "max_score": 1
+        }
+      ],
+      "derivation_notes": "PRIVATE_DERIVATION_SENTINEL",
+      "created_at": "2026-09-17T00:00:00Z",
+      "extensions": {}
+    }
+  ],
+  "fixtures": [],
+  "output_schemas": [
+    {
+      "id": "invoice-total-output-v1",
+      "content_hash": "038a2a54a7b9946934eeecd7c4992506cb58b14d70e7159c3871125322277b60",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "string"
+          },
+          "currency": {
+            "const": "EUR"
+          }
+        },
+        "required": [
+          "total",
+          "currency"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "observations": [
+    {
+      "schema_version": "1.0",
+      "observation_id": "redacted-export-observation",
+      "content_hash": "16505fa14e31f70297c9b9905a2b541ae1cdbb5642595473a2212a0e1f77930c",
+      "run_id": "run-1",
+      "case_revision_id": "redacted-export-v1",
+      "repetition": 0,
+      "attempt_id": "redacted-export-attempt",
+      "target_revision_id": "target-v1",
+      "started_at": "2026-09-17T00:00:00Z",
+      "finished_at": "2026-09-17T00:00:01Z",
+      "messages": [
+        {
+          "role": "assistant",
+          "content": "{\"total\":\"135.80\",\"currency\":\"EUR\"}"
+        }
+      ],
+      "tool_events": [],
+      "artifacts": [],
+      "provider_request_id": "PRIVATE_PROVIDER_REQUEST_SENTINEL",
+      "metadata": {
+        "latency_ms": {
+          "value": null,
+          "provenance": "unavailable"
+        },
+        "input_tokens": {
+          "value": null,
+          "provenance": "unavailable"
+        },
+        "output_tokens": {
+          "value": null,
+          "provenance": "unavailable"
+        },
+        "cost": {
+          "value": null,
+          "provenance": "unavailable"
+        },
+        "model_identity": {
+          "value": null,
+          "provenance": "unavailable"
+        }
+      },
+      "extensions": {},
+      "status": "succeeded",
+      "error": null
+    }
+  ],
+  "assessments": [
+    {
+      "schema_version": "1.0",
+      "assessment_id": "redacted-export-assessment",
+      "content_hash": "74e0a87be7b56db9c26adfc9d2d28b19478387e3a1c29ed65008b72975df6355",
+      "observation_hash": "16505fa14e31f70297c9b9905a2b541ae1cdbb5642595473a2212a0e1f77930c",
+      "grader_revision_id": "deterministic-grader-v1",
+      "rubric_revision_id": "invoice-total-rubric-v1",
+      "criteria": [
+        {
+          "criterion_id": "correctness",
+          "score": 1,
+          "rationale": "Matches expected output"
+        }
+      ],
+      "outcome": "pass",
+      "evidence_refs": [
+        {
+          "source_revision_id": "fixture-policy-a-v1",
+          "anchor": "policy-1"
+        }
+      ],
+      "rationale": "Requested output matches policy",
+      "review_status": "approved",
+      "supersedes_assessment_id": null,
+      "author": {
+        "kind": "grader",
+        "id": "grader-1"
+      },
+      "override_reason": null,
+      "created_at": "2026-09-17T00:00:02Z",
+      "extensions": {}
+    }
+  ]
+}

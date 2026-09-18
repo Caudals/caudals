@@ -1,0 +1,2 @@
+import { requirePageIdentity } from "@/components/evals/page-identity";import { EvalShell } from "@/components/evals/shell";import { AuthenticatedReport } from "@/components/evals/report-view";
+export default async function Page({params}:{params:Promise<{id:string}>}){const identity=await requirePageIdentity("/workspace/reports");return <EvalShell identity={identity}><AuthenticatedReport reportId={(await params).id}/></EvalShell>;}

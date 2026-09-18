@@ -1,0 +1,2 @@
+import { redirect } from "next/navigation";import { requirePageIdentity } from "@/components/evals/page-identity";import { EvalShell } from "@/components/evals/shell";import { QueueView } from "@/components/evals/operator-overview";
+export default async function Page(){const identity=await requirePageIdentity("/ops/reports");if(!identity.platformRole)redirect("/workspace/evaluations");return <EvalShell identity={identity}><QueueView kind="reports"/></EvalShell>;}
