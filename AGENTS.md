@@ -103,6 +103,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 - Never publish or expose a named company's evaluation results without its written consent.
 - Never build or run adversarial tests (prompt injection, jailbreaks, prompt extraction) against a system without its owner's written authorisation.
 - Never describe Caudals as certifying AI systems or making anyone AI Act compliant; we produce evidence, not conformity assessments.
+- Never use subagents: perform all research, inspection, file edits, and tool calls directly in your primary session; do not invoke subagent tools or spawn child sessions.
 - Never leak secrets in code, command output, documentation or captured media.
 - Avoid destructive operations unless explicitly required and documented in the user-facing response.
 

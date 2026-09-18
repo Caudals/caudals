@@ -5,6 +5,10 @@
 > Repository: `Caudals/caudals` · Audience: founders, implementation agents, reviewers.
 > This document specifies the new evaluations product from first principles. Earlier offers, sector priorities, manual-pilot prerequisites, route restrictions and proposed evaluation architectures are not requirements for this product. Existing production services must continue working.
 
+> [!IMPORTANT]
+> **CRITICAL DIRECTIVE FOR ALL AI AGENTS: DO NOT USE SUBAGENTS**
+> Any AI agent (Antigravity, Claude Code, Codex, etc.) reading or implementing this specification **MUST NOT** spawn subagents, invoke subagent tools (e.g. `invoke_subagent`), or delegate tasks to child/background agents. Execute all analysis, code changes, testing, and tool executions directly within your own primary session context.
+
 Reading map: [product and UX](#2-product-definition-and-success-criteria) · [architecture](#7-architecture-and-repository-integration) · [connections](#8-connection-framework) · [generation](#9-context-ingestion-and-dataset-generation) · [CEF standard](#10-caudals-evaluation-format--cef-10) · [execution and scoring](#11-evaluation-engine-grading-and-statistics) · [costs](#14-model-infrastructure-and-budget-control) · [operations](#17-vps-development-deployment-and-operations) · [work packages](#20-implementation-stages-and-work-packages) · [agent handoff](#21-agent-execution-protocol-and-handoff-template).
 
 ## 1. How agents must use this document
@@ -17,6 +21,9 @@ Reading map: [product and UX](#2-product-definition-and-success-criteria) · [ar
 6. Never mark a package complete from a screenshot, successful build or mocked happy path alone. Supply the package's functional evidence and relevant failure tests.
 7. Record decisions, migrations, commands actually executed, verification results and remaining limitations in a package handoff. Do not put secrets or customer material in these records.
 8. Update affected repository contracts as their packages ship. This draft does not silently rewrite the existing `AGENTS.md`, product overview, design system or deployment rules.
+9. **Never use subagents.** AI agents working on this project must execute all exploration, code changes, testing, and verification directly within their own single session context. Do not invoke subagent tools (e.g., `invoke_subagent`), spawn child agents, or delegate sub-tasks to nested agents. Subagents fragment working memory, lose context across boundaries, complicate verification, and risk unconstrained tool invocation.
+
+
 
 ### 1.1 Authority and scope
 
@@ -42,6 +49,8 @@ Working assumptions requiring founder review, but not blocking this draft:
 - Initial supported inputs are text and text-bearing documents/spreadsheets. OCR is an explicit later capability; voice/video/image-model evaluation is separate future scope.
 - Self-service automatic reports are preliminary by default. Reviewed reports require explicit review and publication criteria.
 
+
+
 ## 2. Product definition and success criteria
 
 Caudals connects to an AI system, establishes what the system should do, builds an evidence-linked evaluation set, measures its behavior and explains the results in a report that a business owner can act on.
@@ -50,11 +59,13 @@ The primary product object is an **evaluation**, not a model playground. A custo
 
 ### 2.1 Distinct evaluation modes
 
-| Mode | What is measured | Evidence boundary |
-| --- | --- | --- |
-| Deployed system | The complete chatbot/agent including its actual retrieval and configuration | Do not attribute failures to its underlying model without supporting traces |
-| Controlled model | A model with a recorded harness, prompts, context and tools | Results apply to that configuration, not all deployments of the model |
-| Imported responses | Previously generated answers or transcripts | Grade those artifacts; latency, identity and execution conditions may be unverified |
+
+| Mode               | What is measured                                                            | Evidence boundary                                                                   |
+| ------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Deployed system    | The complete chatbot/agent including its actual retrieval and configuration | Do not attribute failures to its underlying model without supporting traces         |
+| Controlled model   | A model with a recorded harness, prompts, context and tools                 | Results apply to that configuration, not all deployments of the model               |
+| Imported responses | Previously generated answers or transcripts                                 | Grade those artifacts; latency, identity and execution conditions may be unverified |
+
 
 A run records one execution mode. **Evidence policy is a separate axis:** `exploratory` or `source_grounded`; individual cases additionally record their review/evidence level. An exploratory run can use any execution mode, and its findings are hypotheses rather than verified accuracy claims. Customer-specific tests and a future common public benchmark use the same contracts but separate datasets, permissions and release policies.
 
@@ -74,28 +85,34 @@ An operator can create a client without an account, upload source material, conn
 - A recovered worker does not silently duplicate an external action or overwrite a committed answer.
 - Initial performance target: ordinary app pages usable within 2 seconds on a typical desktop connection; API reads p95 below 500 ms under the measured initial load, excluding uploads and inference. These are validation targets, not promises before measurement.
 
+
+
 ## 3. Product objects and vocabulary
 
-| Internal object | Customer label | Meaning |
-| --- | --- | --- |
-| Organization | Workspace | Customer security and commercial boundary |
-| Project | Project | One business use case, with related systems and evaluations |
-| Target / target revision | System / version | Connection and immutable configuration snapshot |
-| Source revision | Reference material | Document or other evidence with provenance |
-| Context profile | What we are evaluating | Purpose, users, domain, language, dates, capabilities and boundaries |
-| Suite / suite version | Test set | Versioned collection of cases and scoring policy |
-| Case revision | Test | Input, scenario, expectations, references and evaluators |
-| Evaluation | Evaluation | Customer-facing preparation-to-report workflow |
-| Run | Run | Execution of a frozen test set against one target revision |
-| Attempt | Internal only | One actual invocation within a case repetition |
-| Assessment | Result | One grading version over immutable output |
-| Finding | Finding | Evidence-supported conclusion across results |
-| Report revision | Report | Immutable published interpretation of selected run/assessment data |
-| Improvement batch | Improvement dataset | Curated material addressing specific failures |
+
+| Internal object          | Customer label         | Meaning                                                              |
+| ------------------------ | ---------------------- | -------------------------------------------------------------------- |
+| Organization             | Workspace              | Customer security and commercial boundary                            |
+| Project                  | Project                | One business use case, with related systems and evaluations          |
+| Target / target revision | System / version       | Connection and immutable configuration snapshot                      |
+| Source revision          | Reference material     | Document or other evidence with provenance                           |
+| Context profile          | What we are evaluating | Purpose, users, domain, language, dates, capabilities and boundaries |
+| Suite / suite version    | Test set               | Versioned collection of cases and scoring policy                     |
+| Case revision            | Test                   | Input, scenario, expectations, references and evaluators             |
+| Evaluation               | Evaluation             | Customer-facing preparation-to-report workflow                       |
+| Run                      | Run                    | Execution of a frozen test set against one target revision           |
+| Attempt                  | Internal only          | One actual invocation within a case repetition                       |
+| Assessment               | Result                 | One grading version over immutable output                            |
+| Finding                  | Finding                | Evidence-supported conclusion across results                         |
+| Report revision          | Report                 | Immutable published interpretation of selected run/assessment data   |
+| Improvement batch        | Improvement dataset    | Curated material addressing specific failures                        |
+
 
 An evaluation may contain multiple target runs when comparing models. A rerun creates new runs. Regrading stored outputs creates new assessments without calling the target again. Editing cases creates a new suite version.
 
 ## 4. Release strategy and commercial defaults
+
+
 
 ### 4.1 Connection order
 
@@ -117,28 +134,34 @@ The entitlement system exists before checkout: `max_active_runs`, `monthly_spend
 
 ## 5. UX specification
 
+
+
 ### 5.1 Information architecture
 
 Customer navigation:
 
-| Item | Primary screen | Important details |
-| --- | --- | --- |
+
+| Item        | Primary screen                                      | Important details                                           |
+| ----------- | --------------------------------------------------- | ----------------------------------------------------------- |
 | Evaluations | Recent/current evaluations; `New evaluation` action | Default landing; a single getting-started action when empty |
-| Systems | Connected systems, connection health and revisions | Add, reconnect, archive, view linked evaluations |
-| Reports | Published reports and comparisons | Filter by project/date; unpublished drafts invisible |
-| Test sets | Released test sets and editable forks | Secondary workflow; hidden until one exists |
-| Settings | Workspace, members, notifications, data and usage | Advanced technical controls stay out of the main flow |
+| Systems     | Connected systems, connection health and revisions  | Add, reconnect, archive, view linked evaluations            |
+| Reports     | Published reports and comparisons                   | Filter by project/date; unpublished drafts invisible        |
+| Test sets   | Released test sets and editable forks               | Secondary workflow; hidden until one exists                 |
+| Settings    | Workspace, members, notifications, data and usage   | Advanced technical controls stay out of the main flow       |
+
 
 Use a project selector/filter, not an extra top-level navigation hierarchy. Show schedules under a system or evaluation. Report links can be opened without learning project navigation.
 
 Operator navigation under `/ops`:
 
-| Group | Screens |
-| --- | --- |
-| Work | Overview, Clients, Evaluations, Review queue, Reports |
-| Library | Test sets, Sources, Domain packs, Improvement datasets |
+
+| Group    | Screens                                                                       |
+| -------- | ----------------------------------------------------------------------------- |
+| Work     | Overview, Clients, Evaluations, Review queue, Reports                         |
+| Library  | Test sets, Sources, Domain packs, Improvement datasets                        |
 | Platform | Providers & models, Inference, Usage & budgets, Accounts, Audit log, Settings |
-| Later | Experts & assignments, Benchmark releases |
+| Later    | Experts & assignments, Benchmark releases                                     |
+
 
 The operator workspace is a distinct shell. Keep the client and acting operator visible on every scoped screen. `View customer report` opens the customer's permitted view; it does not silently impersonate their account.
 
@@ -163,23 +186,27 @@ Do not force a review step in every customer workflow. Operator review can happe
 
 ### 5.3 Customer states and actions
 
-| State | Customer message/action | Internal behavior |
-| --- | --- | --- |
-| Empty | Connect your first system | No fake example scores unless clearly labeled demo |
-| Connection testing | Checking connection | Bounded probe, cancelable |
-| Unsupported connection | We need help connecting this system | Save setup, request operator assistance, offer API/import route |
-| Missing context | One short question | Resume same preparation after answer |
-| Awaiting manual answers | Your questions are ready; upload answers when available | Offer candidate-only CSV/JSONL template and matching reimport; do not imply the system is running |
-| No reliable answer key | More reference material is needed | Offer upload or exploratory evaluation; do not manufacture a score |
-| Queued | Waiting to start | Preserve FIFO/fairness; no imaginary percentage |
-| Preparing/running | Stage and actual progress | SSE/polling reconnectable |
-| Temporary infrastructure failure | Evaluation paused; we will retry | Preserve work and budget reservations |
-| Budget exhausted | Paused at the agreed limit | Owner/operator can reduce remaining scope or approve a new ceiling |
-| Partial | Some tests could not be completed | Show coverage and exclusions; explicit resume available |
-| Canceled | Evaluation canceled | Preserve completed work; no new target calls |
-| Preliminary | Automated findings; review status visible | Eligible output under workspace policy |
-| Reviewed | Reviewed scope and reviewer date | Frozen publication snapshot |
-| Superseded/withdrawn | Newer report available / report withdrawn | Retain provenance; revoke old public access if required |
+
+| State                            | Customer message/action                                 | Internal behavior                                                                                 |
+| -------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Empty                            | Connect your first system                               | No fake example scores unless clearly labeled demo                                                |
+| Connection testing               | Checking connection                                     | Bounded probe, cancelable                                                                         |
+| Unsupported connection           | We need help connecting this system                     | Save setup, request operator assistance, offer API/import route                                   |
+| Missing context                  | One short question                                      | Resume same preparation after answer                                                              |
+| Awaiting manual answers          | Your questions are ready; upload answers when available | Offer candidate-only CSV/JSONL template and matching reimport; do not imply the system is running |
+| No reliable answer key           | More reference material is needed                       | Offer upload or exploratory evaluation; do not manufacture a score                                |
+| Queued                           | Waiting to start                                        | Preserve FIFO/fairness; no imaginary percentage                                                   |
+| Preparing/running                | Stage and actual progress                               | SSE/polling reconnectable                                                                         |
+| Temporary infrastructure failure | Evaluation paused; we will retry                        | Preserve work and budget reservations                                                             |
+| Budget exhausted                 | Paused at the agreed limit                              | Owner/operator can reduce remaining scope or approve a new ceiling                                |
+| Partial                          | Some tests could not be completed                       | Show coverage and exclusions; explicit resume available                                           |
+| Canceled                         | Evaluation canceled                                     | Preserve completed work; no new target calls                                                      |
+| Preliminary                      | Automated findings; review status visible               | Eligible output under workspace policy                                                            |
+| Reviewed                         | Reviewed scope and reviewer date                        | Frozen publication snapshot                                                                       |
+| Superseded/withdrawn             | Newer report available / report withdrawn               | Retain provenance; revoke old public access if required                                           |
+
+
+
 
 ### 5.4 Report and comparison screens
 
@@ -226,27 +253,35 @@ Proposed app design contract (scoped to the evaluation shell so marketing remain
 - Keyboard-complete navigation, visible focus, text/icon status labels, accessible chart tables, screen-reader announcements only for meaningful progress changes, and verified contrast. Target WCAG 2.2 AA behavior; acceptance requires checking actual components.
 - Verify at 390, 768 and 1440 px widths. On mobile use a navigation drawer and full-screen result details. Horizontal scroll is acceptable for dense comparison tables with labeled columns.
 
+
+
 ## 6. System invariants
 
-| ID | Mandatory invariant |
-| --- | --- |
-| INV-01 | Tenant scope is established server-side and enforced on all data, artifacts, search, exports and background jobs. |
-| INV-02 | No provider key, target credential or DGX network address is exposed to customer browser code. |
-| INV-03 | Every run freezes target configuration, suite, model/grader settings, source revisions and execution policy. |
-| INV-04 | Raw observations and published report revisions are immutable; corrections create attributed new versions. |
-| INV-05 | Synthetic reference answers are unverified until their evidence and grading requirements are satisfied. |
-| INV-06 | Connection/runner failures, unsupported cases, invalid test cases and model failures are distinct outcomes. |
-| INV-07 | Every paid external attempt reserves budget before dispatch and reconciles afterward. Retries are counted. |
-| INV-08 | Model-generated text cannot authorize tools, network destinations, publication, spend increases or secret access. |
-| INV-09 | A candidate never receives private answer keys, private rubrics, hidden holdouts or judge-only sources. |
-| INV-10 | Retries and recovery cannot overwrite completed outputs or silently replay uncertain side effects. |
-| INV-11 | Model/provider substitutions require a new recorded execution plan; no silent fallback changes results. |
-| INV-12 | Reports cannot claim verified root causes, business losses, compliance or general safety from unsupported evidence. |
-| INV-13 | Named customer findings are private by default; public publication requires recorded consent. |
+
+| ID     | Mandatory invariant                                                                                                  |
+| ------ | -------------------------------------------------------------------------------------------------------------------- |
+| INV-01 | Tenant scope is established server-side and enforced on all data, artifacts, search, exports and background jobs.    |
+| INV-02 | No provider key, target credential or DGX network address is exposed to customer browser code.                       |
+| INV-03 | Every run freezes target configuration, suite, model/grader settings, source revisions and execution policy.         |
+| INV-04 | Raw observations and published report revisions are immutable; corrections create attributed new versions.           |
+| INV-05 | Synthetic reference answers are unverified until their evidence and grading requirements are satisfied.              |
+| INV-06 | Connection/runner failures, unsupported cases, invalid test cases and model failures are distinct outcomes.          |
+| INV-07 | Every paid external attempt reserves budget before dispatch and reconciles afterward. Retries are counted.           |
+| INV-08 | Model-generated text cannot authorize tools, network destinations, publication, spend increases or secret access.    |
+| INV-09 | A candidate never receives private answer keys, private rubrics, hidden holdouts or judge-only sources.              |
+| INV-10 | Retries and recovery cannot overwrite completed outputs or silently replay uncertain side effects.                   |
+| INV-11 | Model/provider substitutions require a new recorded execution plan; no silent fallback changes results.              |
+| INV-12 | Reports cannot claim verified root causes, business losses, compliance or general safety from unsupported evidence.  |
+| INV-13 | Named customer findings are private by default; public publication requires recorded consent.                        |
 | INV-14 | Cases used for training are excluded from untouched holdout claims, including sibling variants from the same family. |
-| INV-15 | The web request process does not execute long-running evaluations or untrusted customer code. |
+| INV-15 | The web request process does not execute long-running evaluations or untrusted customer code.                        |
+
+
+
 
 ## 7. Architecture and repository integration
+
+
 
 ### 7.1 Chosen architecture
 
@@ -276,24 +311,28 @@ flowchart LR
   R --> DB
 ```
 
+
+
 The diagram shows logical processes. Initially generation, grading and ordinary API execution can share a worker image with separate queue consumers. Browser/document processing remains separately resource-limited. All active state services run on the VPS; the DGX is inference capacity, not a queue/database host.
 
 ### 7.2 Stack and reuse decisions
 
-| Area | Choice | Reason / boundary |
-| --- | --- | --- |
-| Web/API | Existing Next.js App Router, React, TypeScript, Tailwind, Radix | Reuse repository and deployment skill; no new SPA/repo |
-| Auth | Existing Better Auth identity with explicit evaluation memberships | Do not equate an old operator role with unrestricted new tenant access |
-| Persistence | Existing PostgreSQL service, new `evals` schema in the app database | Reuse private infrastructure; schema-scoped privileges and migrations |
-| Queue | `pg-boss` behind a small internal queue interface; dedicated queue schema | PostgreSQL-backed durable jobs without Redis; outbox removes commit/enqueue gaps |
-| Validation | Zod with generated/exported JSON Schema and conformance fixtures | Runtime input validation plus language-independent interchange |
-| Model calls | Thin provider adapters using maintained provider SDKs or explicit HTTP | Preserve model-specific capability/usage semantics; no giant agent framework required |
-| Website automation | Playwright Chromium with curated connection recipes | Explicit, versioned interactions and testable extraction |
-| Large files | Private S3-compatible object storage on VPS | No documents or report binaries in Postgres rows |
-| Retrieval | Postgres full-text search; pgvector only when measured useful | Avoid deploying another vector service |
-| PDF | Controlled HTML report rendered by Playwright | Same data snapshot as web report, predictable layout |
-| Statistics | Small tested deterministic module; seeded resampling | Reproducible counts, intervals and comparisons |
-| Instrumentation | Structured logs, existing OTel/metrics interfaces where healthy | Redacted metadata only; do not require rebuilding every observability stack |
+
+| Area               | Choice                                                                    | Reason / boundary                                                                     |
+| ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Web/API            | Existing Next.js App Router, React, TypeScript, Tailwind, Radix           | Reuse repository and deployment skill; no new SPA/repo                                |
+| Auth               | Existing Better Auth identity with explicit evaluation memberships        | Do not equate an old operator role with unrestricted new tenant access                |
+| Persistence        | Existing PostgreSQL service, new `evals` schema in the app database       | Reuse private infrastructure; schema-scoped privileges and migrations                 |
+| Queue              | `pg-boss` behind a small internal queue interface; dedicated queue schema | PostgreSQL-backed durable jobs without Redis; outbox removes commit/enqueue gaps      |
+| Validation         | Zod with generated/exported JSON Schema and conformance fixtures          | Runtime input validation plus language-independent interchange                        |
+| Model calls        | Thin provider adapters using maintained provider SDKs or explicit HTTP    | Preserve model-specific capability/usage semantics; no giant agent framework required |
+| Website automation | Playwright Chromium with curated connection recipes                       | Explicit, versioned interactions and testable extraction                              |
+| Large files        | Private S3-compatible object storage on VPS                               | No documents or report binaries in Postgres rows                                      |
+| Retrieval          | Postgres full-text search; pgvector only when measured useful             | Avoid deploying another vector service                                                |
+| PDF                | Controlled HTML report rendered by Playwright                             | Same data snapshot as web report, predictable layout                                  |
+| Statistics         | Small tested deterministic module; seeded resampling                      | Reproducible counts, intervals and comparisons                                        |
+| Instrumentation    | Structured logs, existing OTel/metrics interfaces where healthy           | Redacted metadata only; do not require rebuilding every observability stack           |
+
 
 `pg-boss` provides PostgreSQL-backed job processing; pin and test a version compatible with the deployed Node/Postgres versions before adoption. Its queue guarantees do **not** make external model calls exactly-once. Caudals must still implement attempt identity and uncertain-outcome recovery. [Official project](https://github.com/timgit/pg-boss)
 
@@ -303,6 +342,8 @@ Do not install multiple evaluation frameworks for the first release:
 - **Inspect AI:** a candidate optional Python execution backend for later complex agent research and sandbox tasks. Its dataset/solver/scorer composition fits an adapter, while Caudals remains the product control plane. Defer until a concrete scenario exceeds the core runner; do not add a second production runtime just for naming compatibility. [Inspect](https://inspect.aisi.org.uk/), [sandboxing](https://inspect.aisi.org.uk/sandboxing.html)
 - Do not depend on frozen legacy Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis or Marquez installations.
 - Package license, maintenance, current security advisories and transitive execution behavior are checked at adoption. Public benchmark datasets require separate license/provenance review; availability is not permission to reuse in a commercial dataset.
+
+
 
 ### 7.3 Proposed code ownership
 
@@ -335,6 +376,8 @@ e2e/evals/...                       host routing and complete UI workflows
 docs/evals/work-packages/...         implementation handoffs and decisions
 ```
 
+
+
 ### 7.4 Host routing and existing services
 
 Current inspection found hostname logic in `proxy.ts`, a restrictive gate in `lib/phase-one-surface-gates`, Better Auth modules under `lib/auth/`, and private database access in `lib/db/client.ts`. Implementers MUST inspect these before adding routes.
@@ -347,7 +390,11 @@ Current inspection found hostname logic in `proxy.ts`, a restrictive gate in `li
 - Preserve marketing translations. New app-host English routing must bypass geolocation-based language switches.
 - Private routes, shares and data endpoints are excluded from sitemap/indexing and use private/no-store cache behavior. No shared CDN caching of authenticated HTML or APIs.
 
+
+
 ## 8. Connection framework
+
+
 
 ### 8.1 Common connector contract
 
@@ -383,6 +430,8 @@ Capability negotiation produces `supported`, `unsupported` or `unknown` per feat
 - Do not require hidden system prompts. Record them only when voluntarily supplied; unknown configuration remains unknown.
 - Live website/API endpoints default to conservative traffic. Proposed public-site default: one concurrent conversation and six messages/minute, subject to the agreed scope and provider limits.
 
+
+
 ### 8.3 Website chatbot discovery and execution
 
 This is a supported connection product, not a promise to automate every arbitrary website.
@@ -406,6 +455,8 @@ This is a supported connection product, not a promise to automate every arbitrar
 - For sites whose sessions cannot be reliably reset, mark that limitation; do not claim independent cases or automatically compare contaminated sessions.
 - Revalidate recipes before runs and after extraction failures. Pause on drift; do not automatically let an LLM click arbitrary new controls during a paid run.
 - Screenshot/trace retention is short and redacted; never capture full unrelated browsing sessions.
+
+
 
 ### 8.4 CSV, XLSX and JSONL imports
 
@@ -438,7 +489,11 @@ Do not execute arbitrary customer shell commands on the shared VPS.
 - Jobs include expiration, nonce, input hashes, connector version and resumable upload IDs. Prevent replay and duplicate acceptance.
 - A disconnected runner pauses the evaluation; do not silently route a private target through another provider.
 
+
+
 ## 9. Context ingestion and dataset generation
+
+
 
 ### 9.1 Sources and context profile
 
@@ -467,12 +522,14 @@ Each job has an input hash, prompt version, model revision, schema version, atte
 
 ### 9.3 Ground-truth policy
 
-| Evidence level | Requirement | Permitted claim |
-| --- | --- | --- |
-| Exploratory | AI proposal, incomplete evidence | Hypothesis/coverage exploration only |
-| Source-supported | Correct source anchors, internally consistent expectation, automated validity checks | Preliminary source-grounded result |
-| Reviewed | Qualified reviewer verifies material claims and rubric against sources | Reviewed result within that scope |
-| Expert-adjudicated | Domain expert resolves ambiguity or signs material answer requirements | Expert-reviewed result for those cases |
+
+| Evidence level     | Requirement                                                                          | Permitted claim                        |
+| ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------- |
+| Exploratory        | AI proposal, incomplete evidence                                                     | Hypothesis/coverage exploration only   |
+| Source-supported   | Correct source anchors, internally consistent expectation, automated validity checks | Preliminary source-grounded result     |
+| Reviewed           | Qualified reviewer verifies material claims and rubric against sources               | Reviewed result within that scope      |
+| Expert-adjudicated | Domain expert resolves ambiguity or signs material answer requirements               | Expert-reviewed result for those cases |
+
 
 - No generation model is its own sole validator. Use deterministic checks where possible and an independently configured grader plus review calibration.
 - Customer policy governs product-specific promises; dated authoritative sources govern external legal/tax claims. Conflicts are explicit and require adjudication, not silent averaging.
@@ -480,6 +537,8 @@ Each job has an input hash, prompt version, model revision, schema version, atte
 - Unanswerable and ambiguity cases explicitly define whether to ask for clarification, abstain, or give a conditional answer. Refusal is not inherently a failure.
 - Reports never describe all cases as expert reviewed when only a subset is. Review counts and selection method are visible.
 - Proposed reviewed-release rule: review all critical failures and disputed grades, review all critical reference keys, and sample at least 20% or 30 ordinary cases (whichever is larger, capped at all cases). Sampling supports a described QA process, not a claim that every item was reviewed.
+
+
 
 ### 9.4 Domain packs
 
@@ -528,24 +587,30 @@ README.md                      human-readable scope, use and limitations
 - `split` is `development`, `validation`, `holdout` or `training`; family-level constraints prevent overlap. Freeze release manifests independently of mutable library records.
 - Exports are audience-specific. Full internal bundle, customer-owned dataset export, candidate-only bundle and public benchmark release have different allowlists. Never ship the full internal archive to a candidate runner.
 
+
+
 ### 10.2 Manifest contract
 
-| Required field | Type / rule |
-| --- | --- |
-| `schema_version` | Literal `1.0` initially |
-| `suite_id`, `suite_version_id` | Opaque string IDs |
-| `title`, `created_at` | Nonempty string; timestamp |
-| `scope` | `{domain, languages[], jurisdictions[], as_of, description}`; `as_of` can be null only for non-temporal tasks |
-| `execution_mode` | `deployed_system`, `controlled_model`, `imported_responses` |
-| `evidence_policy` | `exploratory` or `source_grounded`; distinct from per-case review/evidence level |
-| `case_revisions` | Ordered `{case_id, revision_id, content_hash, family_id, split, weight}` list |
-| `source_revisions`, `rubric_revisions` | Exact referenced IDs and hashes |
-| `execution_policy` | Turn/token/time/tool/repetition limits, session and retry rules |
-| `scoring_policy` | Metric version, weighting, thresholds, exclusions, review and comparison rules |
-| `sampling_plan` | Selection procedure, seed, planned repetitions, stopping rules |
-| `visibility_policy` | Customer/candidate/judge/export access rules |
-| `files` | Relative safe paths with SHA-256 and size; no absolute paths or traversal |
-| `content_hash` | Digest of canonical manifest excluding this field |
+
+| Required field                         | Type / rule                                                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `schema_version`                       | Literal `1.0` initially                                                                                       |
+| `suite_id`, `suite_version_id`         | Opaque string IDs                                                                                             |
+| `title`, `created_at`                  | Nonempty string; timestamp                                                                                    |
+| `scope`                                | `{domain, languages[], jurisdictions[], as_of, description}`; `as_of` can be null only for non-temporal tasks |
+| `execution_mode`                       | `deployed_system`, `controlled_model`, `imported_responses`                                                   |
+| `evidence_policy`                      | `exploratory` or `source_grounded`; distinct from per-case review/evidence level                              |
+| `case_revisions`                       | Ordered `{case_id, revision_id, content_hash, family_id, split, weight}` list                                 |
+| `source_revisions`, `rubric_revisions` | Exact referenced IDs and hashes                                                                               |
+| `execution_policy`                     | Turn/token/time/tool/repetition limits, session and retry rules                                               |
+| `scoring_policy`                       | Metric version, weighting, thresholds, exclusions, review and comparison rules                                |
+| `sampling_plan`                        | Selection procedure, seed, planned repetitions, stopping rules                                                |
+| `visibility_policy`                    | Customer/candidate/judge/export access rules                                                                  |
+| `files`                                | Relative safe paths with SHA-256 and size; no absolute paths or traversal                                     |
+| `content_hash`                         | Digest of canonical manifest excluding this field                                                             |
+
+
+
 
 ### 10.3 Case contract
 
@@ -648,6 +713,8 @@ The supplied input must request every scored output requirement. The rubric must
 - If evaluating a deployed agent whose tools are internal, grade visible outcomes and supplied traces. Do not claim correct tool selection when calls are not observable.
 - Tool descriptions, returned documents and target output are untrusted data; they cannot modify the executor's permissions.
 
+
+
 ### 10.6 Observation and assessment contracts
 
 An observation includes `run_id`, `case_revision_id`, `repetition`, `attempt_id`, target revision, `started_at`, `finished_at`, normalized message/tool events, artifact hashes, provider request ID, terminal execution status, sanitized error and measured metadata.
@@ -659,6 +726,8 @@ An assessment includes observation hash, grader and rubric revisions, criterion-
 **Conformance fixtures required:** single-turn arithmetic, source-grounded QA, missing-information clarification, extraction, multi-turn correction, deterministic tool call, imported response with unknown usage, unsupported capability, transport failure, disputed ground truth and a redacted export. All must round-trip through CEF without losing meaning.
 
 ## 11. Evaluation engine, grading and statistics
+
+
 
 ### 11.1 Execution plan
 
@@ -694,6 +763,8 @@ Deterministic checks outrank stylistic LLM preferences where both address the sa
 - Proposed release gate: no unresolved critical calibration disagreement; ordinary-case agreement target at least 85% on the current rubric, reported with sample size. Recalibrate after judge/rubric changes. For an inadequate sample, label grading experimental and require review.
 - Store judge rationale as short criterion-specific evidence, not hidden reasoning traces. Escalate unresolved reference disputes rather than having more LLM votes turn ambiguity into truth.
 
+
+
 ### 11.4 Metrics and denominators
 
 Define and persist these counts for each run and slice:
@@ -709,18 +780,20 @@ Define and persist these counts for each run and slice:
 
 Metrics:
 
-| Metric | Definition / display |
-| --- | --- |
-| Strict pass rate | `N_pass / N_scorable`; null if denominator zero |
-| Rubric score | Predeclared weighted mean over applicable criteria; 0–100 display, separate from strict pass rate |
-| Assessed coverage | `N_scorable / N_eligible`; show counts |
-| Execution completion | `N_executed / N_eligible`; infrastructure measure |
-| Critical failure count | Critical cases failed / critical cases assessed, plus unassessed critical cases |
-| Abstention/clarification quality | Correct and incorrect abstention rates on answerable/unanswerable subsets |
-| Tool success | Correct final state and prohibited-action count on observable tool cases |
-| Robustness | Within-family consistency and repeated-run variability |
-| Performance | p50/p95 latency, time to first token if observed, throughput, and error rate |
-| Cost | Settled spend, reserved spend, estimated unresolved spend and cost per assessed unit |
+
+| Metric                           | Definition / display                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Strict pass rate                 | `N_pass / N_scorable`; null if denominator zero                                                   |
+| Rubric score                     | Predeclared weighted mean over applicable criteria; 0–100 display, separate from strict pass rate |
+| Assessed coverage                | `N_scorable / N_eligible`; show counts                                                            |
+| Execution completion             | `N_executed / N_eligible`; infrastructure measure                                                 |
+| Critical failure count           | Critical cases failed / critical cases assessed, plus unassessed critical cases                   |
+| Abstention/clarification quality | Correct and incorrect abstention rates on answerable/unanswerable subsets                         |
+| Tool success                     | Correct final state and prohibited-action count on observable tool cases                          |
+| Robustness                       | Within-family consistency and repeated-run variability                                            |
+| Performance                      | p50/p95 latency, time to first token if observed, throughput, and error rate                      |
+| Cost                             | Settled spend, reserved spend, estimated unresolved spend and cost per assessed unit              |
+
 
 Show all-eligible pass bounds when substantial data is unscored: lower bound `N_pass / N_eligible`, upper bound `(N_pass + N_unresolved) / N_eligible`, where unresolved is explicitly defined as eligible units without a final scorable assessment. These are missing-result bounds, not confidence intervals. Partial outcomes do not count as strict passes in either bound.
 
@@ -736,6 +809,8 @@ Default report guard: if assessed coverage is below 90%, or any critical eligibl
 - Rerun instability subset: proposed 10% of cases with three repetitions, budget permitting, selected before seeing outcomes. Never retry semantic failures until they pass and report only the last answer.
 - Regrade both compared runs using one new assessment policy when a rubric changes. Preserve prior published reports.
 
+
+
 ### 11.6 Recommendations and validation
 
 Finding → evidence → plausible cause → proposed intervention → validation test is the required chain.
@@ -746,17 +821,21 @@ Track improvement tasks and attach a follow-up comparison. Claim an intervention
 
 ## 12. Durable jobs, lifecycle and recovery
 
+
+
 ### 12.1 Separate state dimensions
 
 Do not overload one status column with execution, review and publication:
 
-| Object | States |
-| --- | --- |
+
+| Object                 | States                                                                                                                                                                 |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Evaluation preparation | `draft`, `checking_connection`, `ingesting`, `profiling`, `needs_input`, `generating`, `validating`, `needs_review`, `ready`, `awaiting_answers`, `failed`, `canceled` |
-| Run execution | `queued`, `running`, `pause_requested`, `paused`, `cancel_requested`, `canceled`, `completed`, `partial`, `failed` |
-| Run phase | `preflight`, `target_execution`, `grading`, `aggregation`, `reporting`, `done` |
-| Review | `not_required`, `pending`, `in_review`, `changes_requested`, `approved` |
-| Publication | `draft`, `published`, `superseded`, `withdrawn` |
+| Run execution          | `queued`, `running`, `pause_requested`, `paused`, `cancel_requested`, `canceled`, `completed`, `partial`, `failed`                                                     |
+| Run phase              | `preflight`, `target_execution`, `grading`, `aggregation`, `reporting`, `done`                                                                                         |
+| Review                 | `not_required`, `pending`, `in_review`, `changes_requested`, `approved`                                                                                                |
+| Publication            | `draft`, `published`, `superseded`, `withdrawn`                                                                                                                        |
+
 
 `partial` means terminal with usable observations and unfinished/unscorable required work; `failed` means no usable deliverable under policy. `completed` can include genuine model failures. Evidence level and publication are independent: a preliminary report can be published under an appropriate policy.
 
@@ -773,6 +852,8 @@ Queues: `ingest`, `profile`, `generate`, `validate`, `execute_api`, `execute_bro
 - Per-case invocation is a short task or a bounded leased conversation. Heartbeat while working; renew lease with a fencing token. Stale workers cannot commit after reassignment.
 - Never hold a database transaction open during inference or browser work.
 - Aggregation waits for terminal case-unit records, not an in-memory counter. Completion events are idempotent.
+
+
 
 ### 12.3 Attempts and uncertain external outcomes
 
@@ -793,6 +874,8 @@ Retries: only transient failures such as throttling or transport errors; bounded
 - Budget pause preserves completed work and clearly distinguishes actual, reserved and unresolved spend.
 - Report rendering failure retries report rendering only. Grading repair reuses observations. Do not rerun target calls to regenerate a PDF.
 
+
+
 ### 12.5 Fairness and status delivery
 
 - Initially one active heavy generation batch per DGX, one browser executor slot and small API concurrency. Tune only from measurements.
@@ -800,33 +883,39 @@ Retries: only transient failures such as throttling or transport errors; bounded
 - SSE emits monotonically increasing event IDs; clients reconnect using last event ID. Provide bounded polling fallback. Do not stream raw provider logs to customers.
 - A scheduler reconciles stale leases, orphaned artifacts, overdue reservations and stuck stages; it cannot silently change a frozen plan.
 
+
+
 ## 13. Data model and API contracts
+
+
 
 ### 13.1 Persistence entities
 
 All tenant-owned tables include `org_id`, opaque `id`, timestamps and actor metadata where relevant. Cross-table tenant consistency uses composite foreign keys or an equivalent enforced constraint, not UI convention.
 
-| Table/group in `evals` schema | Important fields and constraints |
-| --- | --- |
-| `workspace`, `membership`, `invitation` | Links existing auth identity; scoped role; unique membership; expiring hashed invite token |
-| `project`, `authorization_record` | Purpose, domain, language, agreed target/test scope, expiry and evidence reference |
-| `target`, `target_revision`, `connection_check` | Adapter kind, immutable config hash, secret version reference, capability evidence |
-| `secret_record`, `secret_version` | Envelope-encrypted value, key version, owner/scope, rotation and revocation state |
-| `source`, `source_revision`, `source_chunk` | Provenance, object hash/key, extraction, anchors and access policy |
-| `context_profile_revision`, `context_question` | Structured inferred/confirmed scope and unresolved facts |
-| `domain_pack_revision`, `rubric_revision` | Schemas, source rules, scoring code/prompt revisions |
-| `suite`, `suite_version`, `case`, `case_revision`, `suite_case` | Immutable membership and hashes; family/split uniqueness rules |
-| `evaluation`, `run`, `run_plan`, `case_unit` | Lifecycle, frozen plan; unique `(run_id, case_revision_id, repetition)` |
-| `attempt`, `observation`, `tool_event` | Invocation identity, append-only response/evidence, timing and trace provenance |
-| `assessment`, `criterion_score`, `review_decision` | Versioned judgments, overrides, reviewer identity and reason |
-| `finding`, `finding_evidence`, `improvement_task` | Attributed conclusions, source cases and validation linkage |
-| `report`, `report_revision`, `report_artifact` | Immutable snapshots, hashes, publication and supersession |
-| `share_grant`, `share_access_event` | Hashed bearer token, recipient/expiry restrictions, permitted snapshot fields |
-| `budget`, `reservation`, `cost_entry`, `price_revision` | Currency, ceilings, reserved/settled/unresolved amounts, source of price |
-| `outbox_event`, `workflow_step`, `run_event` | Durable orchestration and reconnectable progress |
-| `audit_event`, `artifact`, `deletion_request` | Append-only audit metadata, storage references and deletion lifecycle |
-| Later: `schedule`, `webhook_delivery`, `runner_identity` | Idempotent recurring runs, signed callbacks and scoped private runners |
-| Later: `expert_profile`, `assignment`, `submission`, `quality_review`, `dataset_release` | Restricted expert workflow and release provenance |
+
+| Table/group in `evals` schema                                                            | Important fields and constraints                                                           |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `workspace`, `membership`, `invitation`                                                  | Links existing auth identity; scoped role; unique membership; expiring hashed invite token |
+| `project`, `authorization_record`                                                        | Purpose, domain, language, agreed target/test scope, expiry and evidence reference         |
+| `target`, `target_revision`, `connection_check`                                          | Adapter kind, immutable config hash, secret version reference, capability evidence         |
+| `secret_record`, `secret_version`                                                        | Envelope-encrypted value, key version, owner/scope, rotation and revocation state          |
+| `source`, `source_revision`, `source_chunk`                                              | Provenance, object hash/key, extraction, anchors and access policy                         |
+| `context_profile_revision`, `context_question`                                           | Structured inferred/confirmed scope and unresolved facts                                   |
+| `domain_pack_revision`, `rubric_revision`                                                | Schemas, source rules, scoring code/prompt revisions                                       |
+| `suite`, `suite_version`, `case`, `case_revision`, `suite_case`                          | Immutable membership and hashes; family/split uniqueness rules                             |
+| `evaluation`, `run`, `run_plan`, `case_unit`                                             | Lifecycle, frozen plan; unique `(run_id, case_revision_id, repetition)`                    |
+| `attempt`, `observation`, `tool_event`                                                   | Invocation identity, append-only response/evidence, timing and trace provenance            |
+| `assessment`, `criterion_score`, `review_decision`                                       | Versioned judgments, overrides, reviewer identity and reason                               |
+| `finding`, `finding_evidence`, `improvement_task`                                        | Attributed conclusions, source cases and validation linkage                                |
+| `report`, `report_revision`, `report_artifact`                                           | Immutable snapshots, hashes, publication and supersession                                  |
+| `share_grant`, `share_access_event`                                                      | Hashed bearer token, recipient/expiry restrictions, permitted snapshot fields              |
+| `budget`, `reservation`, `cost_entry`, `price_revision`                                  | Currency, ceilings, reserved/settled/unresolved amounts, source of price                   |
+| `outbox_event`, `workflow_step`, `run_event`                                             | Durable orchestration and reconnectable progress                                           |
+| `audit_event`, `artifact`, `deletion_request`                                            | Append-only audit metadata, storage references and deletion lifecycle                      |
+| Later: `schedule`, `webhook_delivery`, `runner_identity`                                 | Idempotent recurring runs, signed callbacks and scoped private runners                     |
+| Later: `expert_profile`, `assignment`, `submission`, `quality_review`, `dataset_release` | Restricted expert workflow and release provenance                                          |
+
 
 Do not create all future tables before needed. Each package adds only its required schema. Reuse existing identity/audit infrastructure where semantics match, avoiding collision with frozen legacy dataset tables.
 
@@ -841,37 +930,43 @@ Do not create all future tables before needed. Each package adds only its requir
 - Use optimistic concurrency/version checks for drafts and reviews; return a conflict rather than overwrite another editor.
 - Migrations are additive/expand-first; avoid renaming or dropping used columns during active worker deployment. Rollbacks of irreversible data changes need restore/forward-repair instructions, not misleading destructive SQL.
 
+
+
 ### 13.3 API surface
 
 Base: `/api/evals/v1`. All mutations validate schemas and enforce roles server-side. `POST` creation/dispatch endpoints accept an `Idempotency-Key` scoped to actor, route and request hash. A repeated key with different payload returns `409`.
 
-| Method/path | Purpose |
-| --- | --- |
-| `POST /workspaces`, `POST /workspaces/:id/invitations` | Operator creation and scoped invitations |
-| `GET/POST /projects` | Paginated project listing/creation |
-| `POST /targets`, `POST /targets/:id/revisions` | Connection creation/versioning |
-| `POST /targets/:id/checks` | Bounded asynchronous connection/capability check |
-| `POST /sources/uploads`, `POST /sources/:id/finalize` | Scoped upload session and verified ingestion |
-| `POST /imports`, `GET /imports/:id` | Preview/mapping/row-validation workflow |
-| `POST /evaluations`, `GET /evaluations/:id` | Start preparation and read customer-safe state |
-| `POST /evaluations/:id/context-answers` | Resolve missing scope facts |
-| `GET/PATCH /suites/:id/draft`, `POST /suites/:id/versions` | Edit and freeze test sets |
-| `POST /runs`, `POST /runs/:id/pause`, `/resume`, `/cancel` | Bounded execution lifecycle |
-| `GET /runs/:id/events`, `GET /runs/:id/results` | SSE and paginated observations/assessments |
-| `POST /runs/:id/regrade` | New assessment policy over stored outputs |
-| `POST /reviews`, `POST /comparisons` | Attributed review and compatible comparison |
-| `POST /reports`, `POST /reports/:id/publish` | Build snapshot and publish an eligible revision |
-| `POST /reports/:id/shares`, `DELETE /shares/:id` | Create/revoke restricted access |
-| `POST /exports`, `GET /exports/:id` | Async PDF/JSONL/CSV artifact jobs |
-| `GET /usage`, `POST /budgets/:id/amendments` | Scoped usage and authorized cap changes |
-| Operator-only `/providers`, `/models`, `/inference`, `/audit` | Infrastructure configuration and diagnostics |
-| Later `/schedules`, `/webhooks`, `/runner`, `/assignments` | Recurrence, integrations and expert/private execution |
+
+| Method/path                                                   | Purpose                                               |
+| ------------------------------------------------------------- | ----------------------------------------------------- |
+| `POST /workspaces`, `POST /workspaces/:id/invitations`        | Operator creation and scoped invitations              |
+| `GET/POST /projects`                                          | Paginated project listing/creation                    |
+| `POST /targets`, `POST /targets/:id/revisions`                | Connection creation/versioning                        |
+| `POST /targets/:id/checks`                                    | Bounded asynchronous connection/capability check      |
+| `POST /sources/uploads`, `POST /sources/:id/finalize`         | Scoped upload session and verified ingestion          |
+| `POST /imports`, `GET /imports/:id`                           | Preview/mapping/row-validation workflow               |
+| `POST /evaluations`, `GET /evaluations/:id`                   | Start preparation and read customer-safe state        |
+| `POST /evaluations/:id/context-answers`                       | Resolve missing scope facts                           |
+| `GET/PATCH /suites/:id/draft`, `POST /suites/:id/versions`    | Edit and freeze test sets                             |
+| `POST /runs`, `POST /runs/:id/pause`, `/resume`, `/cancel`    | Bounded execution lifecycle                           |
+| `GET /runs/:id/events`, `GET /runs/:id/results`               | SSE and paginated observations/assessments            |
+| `POST /runs/:id/regrade`                                      | New assessment policy over stored outputs             |
+| `POST /reviews`, `POST /comparisons`                          | Attributed review and compatible comparison           |
+| `POST /reports`, `POST /reports/:id/publish`                  | Build snapshot and publish an eligible revision       |
+| `POST /reports/:id/shares`, `DELETE /shares/:id`              | Create/revoke restricted access                       |
+| `POST /exports`, `GET /exports/:id`                           | Async PDF/JSONL/CSV artifact jobs                     |
+| `GET /usage`, `POST /budgets/:id/amendments`                  | Scoped usage and authorized cap changes               |
+| Operator-only `/providers`, `/models`, `/inference`, `/audit` | Infrastructure configuration and diagnostics          |
+| Later `/schedules`, `/webhooks`, `/runner`, `/assignments`    | Recurrence, integrations and expert/private execution |
+
 
 The public share handler is a separate allowlisted projection, not a normal API response with a few hidden fields. Secret writes use dedicated endpoints; no secret plaintext is returned after successful creation.
 
 Response convention: `{data, meta}`; errors `{error: {code, message, field_errors, request_id, retryable}}`. Common codes: `CONNECTION_UNSUPPORTED`, `CONTEXT_REQUIRED`, `SOURCE_INVALID`, `CAPABILITY_MISSING`, `BUDGET_PAUSED`, `PROVIDER_UNAVAILABLE`, `VERSION_CONFLICT`, `SCOPE_DENIED`. Do not include stack traces or upstream response bodies in customer errors.
 
 ## 14. Model infrastructure and budget control
+
+
 
 ### 14.1 Separate model roles
 
@@ -892,6 +987,8 @@ Admin can add/rotate/revoke keys, validate a model, set default roles, disable r
 - The private route must be protected by existing private-network controls or an authenticated TLS gateway; private IP alone is not authentication. Inventory and choose the concrete mechanism in WP-00 without exposing this endpoint publicly.
 - Meter local GPU/worker time as an internal estimated cost even when external API cost is zero. Record the estimate separately from provider charges.
 
+
+
 ### 14.3 Spend accounting
 
 Use decimal currency arithmetic. A budget has currency, ceiling, settled amount, outstanding reservations and unresolved external liability. Price snapshots record effective time, provider billing unit, input/output/cache/tool prices and FX conversion source/date when needed.
@@ -911,14 +1008,18 @@ Unresolved liabilities remain in reservations or a separately included liability
 - Stop new dispatches before the ceiling would be exceeded; in-flight reservations cover accepted work. External invoice discrepancies can still require reconciliation, so show what the ceiling controls.
 - Human review spending has its own approved task budget. The €500/€1,000 ceiling is proposed as machine execution spend unless the founder chooses an all-in envelope; estimates show expert cost separately.
 
+
+
 ### 14.4 Conservative execution presets
 
-| Preset | Proposed shape | Gate |
-| --- | --- | --- |
-| Connection check | 1–3 harmless calls | Tiny separately reserved limit |
-| Diagnostic | 20–40 cases, one target, one judge where needed | Estimate before execution; validate coverage/quality |
-| Standard | 100–200 cases, representative and challenge slices | Pilot batch completes and updated estimate fits cap |
-| Deep | 300–500 cases or multi-target/repeated tool workflows | Explicit operator scope and budget amendment |
+
+| Preset           | Proposed shape                                        | Gate                                                 |
+| ---------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| Connection check | 1–3 harmless calls                                    | Tiny separately reserved limit                       |
+| Diagnostic       | 20–40 cases, one target, one judge where needed       | Estimate before execution; validate coverage/quality |
+| Standard         | 100–200 cases, representative and challenge slices    | Pilot batch completes and updated estimate fits cap  |
+| Deep             | 300–500 cases or multi-target/repeated tool workflows | Explicit operator scope and budget amendment         |
+
 
 These are size presets, not price or timing promises. Default customer presentation is `Standard evaluation`; internal selection may reduce or ask to amend scope when the agreed cap is insufficient.
 
@@ -927,6 +1028,8 @@ Illustrative budget arithmetic only: 150 cases × 6,000 input tokens × €3/mil
 Reduce cost through deterministic graders, DGX generation, representative sampling, token limits and selective adjudication. Cache immutable extraction/generation outputs by version where appropriate. Do not cache target answers in a rerun intended to measure new behavior; cache use must be explicit in non-live replay mode.
 
 ## 15. Reports, exports, sharing and notifications
+
+
 
 ### 15.1 Report generation pipeline
 
@@ -973,6 +1076,8 @@ Large exports run asynchronously with authenticated download endpoints or short-
 - Revocation stops new access and download requests through the checked gateway. An already active response may complete and already downloaded files cannot be revoked.
 - Public named reports/leaderboards require an explicit publish action and recorded consent/rights; private sharing is not public-publication consent.
 
+
+
 ### 15.5 Notifications
 
 In-app notices first; opt-in or workflow-required email for completion, required input, failures and invitations. Notify once per meaningful state transition, deduplicated by event ID. No per-case email noise. Resend/provider integration uses server secrets and a notification outbox.
@@ -981,18 +1086,22 @@ Prospecting contact is deliberately separate: an operator can export an approved
 
 ## 16. Security, privacy and roles
 
+
+
 ### 16.1 Permissions
 
-| Role | Scope and actions |
-| --- | --- |
-| Platform admin | Provider/inference configuration, platform policy, account administration and audited cross-tenant support |
-| Operator | Assigned/all authorized clients, evaluation preparation, review, execution and publication within budget limits |
-| Workspace owner | Members, target credentials, evaluations, reports, data deletion and commercial settings for one workspace |
-| Workspace editor | Connect/update permitted systems, prepare/run within allowance, edit drafts and inspect reports |
-| Workspace viewer | Read permitted reports/results; export only if enabled |
-| Expert reviewer | Assigned redacted sources/cases and submissions only; no general workspace browsing |
-| Share recipient | One permitted report revision/projection |
-| Worker/runner | Narrow service identity and task scope; no interactive admin privileges |
+
+| Role             | Scope and actions                                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| Platform admin   | Provider/inference configuration, platform policy, account administration and audited cross-tenant support      |
+| Operator         | Assigned/all authorized clients, evaluation preparation, review, execution and publication within budget limits |
+| Workspace owner  | Members, target credentials, evaluations, reports, data deletion and commercial settings for one workspace      |
+| Workspace editor | Connect/update permitted systems, prepare/run within allowance, edit drafts and inspect reports                 |
+| Workspace viewer | Read permitted reports/results; export only if enabled                                                          |
+| Expert reviewer  | Assigned redacted sources/cases and submissions only; no general workspace browsing                             |
+| Share recipient  | One permitted report revision/projection                                                                        |
+| Worker/runner    | Narrow service identity and task scope; no interactive admin privileges                                         |
+
 
 Default founders can hold platform admin and operator roles. Role checks apply to actions, not menus. Sensitive admin operations require recent authentication; require MFA for platform admins before public self-service launch while preserving existing unrelated operator login until deliberately migrated.
 
@@ -1004,6 +1113,8 @@ Default founders can hold platform admin and operator roles. Role checks apply t
 - Never log secret headers, cookies, full auth URLs, raw connection bodies or private documents. Redact error payloads before persistence and observability.
 - Tenant-specific caches and embedding queries include tenant/project and revision keys. No shared customer prompt cache or cross-tenant retrieval.
 - Do not treat anonymization alone as permission to add customer cases to public datasets.
+
+
 
 ### 16.3 SSRF and execution containment
 
@@ -1017,17 +1128,21 @@ Arbitrary URLs and webpage/tool content are expected inputs; therefore network c
 - Document parsers similarly run with no network, limited decompression/memory/time, no macros and no access to inference secrets.
 - Render target text as text/sanitized markdown; prohibit script/HTML execution. Downloads have content-type checks and attachment disposition.
 
+
+
 ### 16.4 Data policy and lifecycle
 
 Proposed defaults, configurable per engagement:
 
-| Data | Default retention |
-| --- | --- |
-| Unaccepted uploads / abandoned preparation artifacts | 7 days |
-| Raw browser traces/screenshots | 7 days, shorter when sensitive |
-| Accepted sources and run observations | 90 days unless engagement requires longer |
-| Published reports, approved suites and improvement releases | 12 months, adjustable |
-| Redacted operational/audit metadata | 12 months |
+
+| Data                                                        | Default retention                         |
+| ----------------------------------------------------------- | ----------------------------------------- |
+| Unaccepted uploads / abandoned preparation artifacts        | 7 days                                    |
+| Raw browser traces/screenshots                              | 7 days, shorter when sensitive            |
+| Accepted sources and run observations                       | 90 days unless engagement requires longer |
+| Published reports, approved suites and improvement releases | 12 months, adjustable                     |
+| Redacted operational/audit metadata                         | 12 months                                 |
+
 
 Redact unnecessary PII at ingestion, but preserve access-controlled originals only where needed to verify evidence and permitted by the engagement. Mark transformations so a reviewer can understand redaction effects.
 
@@ -1047,7 +1162,11 @@ Legal text, processing terms and domain-specific compliance claims need separate
 - No bypass of authentication, CAPTCHA or rate limiting; no real financial/administrative side effects; no public named negative report without consent.
 - Outreach drafts must describe evidence scope accurately and avoid implying comprehensive access to the company's internal system.
 
+
+
 ## 17. VPS development, deployment and operations
+
+
 
 ### 17.1 Inventory before capacity decisions
 
@@ -1058,11 +1177,14 @@ Existing docs describe a private PostgreSQL service, Swarm/Dokploy and S3-compat
 ### 17.2 Development on the production VPS
 
 - Work in a dedicated branch/worktree (`codex/<package>` by default), separate from deployed releases and other agents' checkouts.
+- Execute tasks directly within the assigned agent session; do not spawn subagents or delegate work to background child agents.
 - Development DB/schema, test object prefix/bucket, worker queues and provider budgets are separate. No copied production customer data; use deterministic fixtures.
 - Private preview uses authenticated/Tailscale-only ingress. Do not bind a development server publicly or expose debugger ports.
 - Development workers cannot claim production jobs. Production secret mounts are not copied into development shells.
 - Heavy builds/tests run with CPU/memory limits and low concurrency; never starve the production DB or app. If inventory shows inadequate headroom, defer heavy jobs or adjust capacity before proceeding.
 - Migration ownership is serialized even when UI/engine work is delegated. No two agents edit the same migration or shared routing file concurrently.
+
+
 
 ### 17.3 Service layout and resource planning
 
@@ -1093,6 +1215,8 @@ Rollback: disable feature/queue dispatch, drain/stop new jobs, restore prior com
 - Back up database, object manifests/artifacts, infrastructure config and encrypted-secret records consistently. Verify database references against object inventory after restore.
 - Run a restore rehearsal before customer launch and periodically afterward. Restored workers remain paused until paid-attempt and reservation reconciliation prevents accidental replay.
 - Keep a minimal, encrypted deletion/revocation ledger in independently retained backup/control storage, newer than the snapshot being restored. Before enabling restored reads, shares, exports or workers, replay all subsequent deletion tombstones and revocations and verify purges. Retain only IDs/timestamps/action types needed for this purpose, not deleted content. If the current ledger cannot be recovered, keep affected access disabled until reconciled; do not resurrect deleted data by treating an old backup as current policy.
+
+
 
 ### 17.6 Observability and runbooks
 
@@ -1135,18 +1259,22 @@ After the application is reliable, create a separate benchmark project/release w
 - No automatic contribution of customer data or reports. No marketing-selected best-of-N results without disclosing selection.
 - A public leaderboard, benchmark branding and release marketing are not blockers for the customer evaluations app.
 
+
+
 ## 20. Implementation stages and work packages
 
 Packages are ordered to produce a usable managed app early. Do not wait for private runners, an expert portal or a public benchmark before delivering the first operator evaluation.
 
-| Stage | Packages | Usable outcome / release gate |
-| --- | --- | --- |
-| A — Foundation | WP-00–03 | Isolated app shell, contracts, tenant boundary and budgeted durable execution |
-| B — Managed evaluations | WP-04–08 | Operator creates client → connects API/import → prepares tests → evaluates → publishes/shares report |
-| C — Broader connections and self-service | WP-09–11 | Website chatbots, live multi-turn/tools and minimal customer onboarding |
-| D — Repeatable service | WP-12–13 | Private CLI systems, scheduled monitoring and integrations |
-| E — Expert data engine | WP-14–15 | Restricted expert work, QA and improvement dataset releases |
-| F — Public benchmark | WP-16 | Independently governed benchmark; separate product initiative |
+
+| Stage                                    | Packages | Usable outcome / release gate                                                                        |
+| ---------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| A — Foundation                           | WP-00–03 | Isolated app shell, contracts, tenant boundary and budgeted durable execution                        |
+| B — Managed evaluations                  | WP-04–08 | Operator creates client → connects API/import → prepares tests → evaluates → publishes/shares report |
+| C — Broader connections and self-service | WP-09–11 | Website chatbots, live multi-turn/tools and minimal customer onboarding                              |
+| D — Repeatable service                   | WP-12–13 | Private CLI systems, scheduled monitoring and integrations                                           |
+| E — Expert data engine                   | WP-14–15 | Restricted expert work, QA and improvement dataset releases                                          |
+| F — Public benchmark                     | WP-16    | Independently governed benchmark; separate product initiative                                        |
+
 
 Stage B is the **first production product milestone**. Stages C–E extend the same contracts. A package can be split further, but each split must yield a testable behavior rather than scaffolding that nobody can use.
 
@@ -1169,6 +1297,8 @@ Acceptance:
 - Proposed worker/build headroom fits measured capacity or a concrete resource constraint is recorded.
 - DGX model IDs/capabilities are recorded as observed or unknown, never invented.
 
+
+
 ### WP-01 — Application shell, host routing and identity
 
 **Depends on:** WP-00. **Primary paths:** `proxy.ts`, surface gates, auth modules, `app/(evaluation)`, `components/evals`.
@@ -1179,7 +1309,7 @@ Deliverables:
 - Workspace/membership/invite foundation; founder operator roles; create a client without creating an account.
 - Role-aware navigation, table/form/status primitives and responsive empty states.
 - Authentication recovery, invitation acceptance/revocation and session expiry behavior.
-- Small visual reference artifact for the shell, connection flow, progress and report layout; delegate UI design to Claude CLI/Antigravity using the installed frontend skills and real references.
+- Small visual reference artifact for the shell, connection flow, progress and report layout; delegate UI design to dedicated Claude CLI/Antigravity sessions using the installed frontend skills and real references (without spawning subagents).
 
 Acceptance:
 
@@ -1188,6 +1318,8 @@ Acceptance:
 - Unknown hosts and cross-host app routes are rejected or safely redirected as specified; no auth/open-redirect loop.
 - Marketing language/routes and existing operator access still work.
 - Keyboard/mobile screenshots validate the requested calm design; hidden features have no dead navigation entries.
+
+
 
 ### WP-02 — CEF, tenant schema and private evidence storage
 
@@ -1208,6 +1340,8 @@ Acceptance:
 - Malformed/oversized/compressed-bomb inputs fail within resource limits; raw HTML/macros are not executed.
 - A source excerpt can be traced to its uploaded file and anchor.
 
+
+
 ### WP-03 — Durable jobs, provider registry, secrets and budget ledger
 
 **Depends on:** WP-02. **Primary paths:** workers, queue, provider/security modules, `infra/evals`.
@@ -1227,6 +1361,8 @@ Acceptance:
 - Duplicate outbox deliveries are harmless; no transaction remains open during external inference.
 - Secret values never appear in browser responses, logs, DB plaintext columns or diagnostics.
 - Cancel stops new dispatches and permits outstanding costs to settle honestly.
+
+
 
 ### WP-04 — API systems and structured imports
 
@@ -1249,6 +1385,8 @@ Acceptance:
 - Imported transcripts with missing timing/usage show unknown, not zero.
 - A generated/frozen suite can be exported for manual answering and reimported without exposing references or misattributing answers to changed cases.
 
+
+
 ### WP-05 — Context understanding and DGX dataset generation
 
 **Depends on:** WP-02–04. **Primary paths:** generation, source/context UI, case review.
@@ -1267,6 +1405,8 @@ Acceptance:
 - DGX outage pauses/retries according to policy; no unapproved cloud transfer.
 - Repeated schema failures stop after the retry bound; bad cases are quarantined.
 - Preparation resumes after a browser close and worker restart with correct progress.
+
+
 
 ### WP-06 — Scoring, adjudication and trustworthy aggregation
 
@@ -1288,6 +1428,8 @@ Acceptance:
 - Regrading does not call the target; previous assessments and overrides remain inspectable.
 - A deliberately changed rubric/source blocks naive comparison until compatible regrading or a new comparison is selected.
 
+
+
 ### WP-07 — Reports, PDFs, exports and private delivery
 
 **Depends on:** WP-06. **Primary paths:** reports, customer report UI, share/export routes.
@@ -1306,6 +1448,8 @@ Acceptance:
 - Revoked/expired links and guessed object URLs fail; shared views cannot invoke mutation APIs.
 - Rendering failure retries only rendering. PDF pages are visually inspected for clipping, page breaks, long transcripts and table headers.
 - Narrative generation failure still permits a deterministic evidence report with the limitation visible.
+
+
 
 ### WP-08 — Operator production release and recovery rehearsal
 
@@ -1348,6 +1492,8 @@ Acceptance:
 - A partial response is not graded as complete; session leakage across cases/tenants is tested.
 - CAPTCHA/login expiry/drift pauses safely without bypass or arbitrary new clicks.
 
+
+
 ### WP-10 — Multi-turn and deterministic tools
 
 **Depends on:** WP-06 and WP-08; browser-specific scenarios also need WP-09.
@@ -1365,6 +1511,8 @@ Acceptance:
 - Turn/tool/token/time budgets stop loops; no live side effect can occur through synthetic fixtures.
 - All runner outputs retain one case/repetition identity and trace sequence.
 - Comparison detects incompatible tool/context policies; simulated-user variation is disclosed.
+
+
 
 ### WP-11 — Minimal customer self-service
 
@@ -1386,6 +1534,8 @@ Acceptance / Stage C gate:
 - Customer role cannot alter platform keys, raise funded limits without authority or publish another workspace's report.
 - Turn on broader registration only after identity abuse controls, quotas, MFA for admins and billing/entitlement policy are ready; open signup is not automatic at this gate.
 
+
+
 ### WP-12 — Private runner and CLI integration
 
 **Depends on:** WP-08 and WP-10. **Primary paths:** runner package, pairing API, candidate bundle projection.
@@ -1403,6 +1553,8 @@ Acceptance:
 - Interrupted upload resumes without duplicate results; runner revocation stops future claims.
 - Private answer keys cannot be recovered from the runner bundle.
 - Imported execution identity is labeled accurately; signatures are not presented as proof of honest execution.
+
+
 
 ### WP-13 — Scheduled monitoring and integrations
 
@@ -1424,6 +1576,8 @@ Acceptance:
 - No alert claims a regression when datasets/rubrics are incomparable or coverage inadequate.
 - CRM handoff creates a draft/explicitly requested action, never automatic cold outreach.
 
+
+
 ### WP-14 — Expert assignments and quality review
 
 **Depends on:** WP-06 and WP-08. **Primary paths:** `/review`, assignments, quality records.
@@ -1442,6 +1596,8 @@ Acceptance:
 - Agreement/gold-task metrics show counts and do not mislabel small samples as reliable ranking.
 - Autosave conflicts preserve both contributions or require resolution rather than silently losing work.
 
+
+
 ### WP-15 — Improvement dataset releases
 
 **Depends on:** WP-14 and WP-13 for automated follow-up monitoring; manual follow-up can use WP-08.
@@ -1459,6 +1615,8 @@ Acceptance:
 - Export round-trip preserves schema, lineage and split membership.
 - Follow-up report distinguishes training-set gains, validation gains and causality limitations.
 
+
+
 ### WP-16 — Public benchmark product (later, separate brief)
 
 **Depends on:** reliable Stage B engine; WP-10 for tool tracks and WP-14 for domain-expert review.
@@ -1475,15 +1633,22 @@ Acceptance:
 - Saturation is measured and reported honestly; revisions are labeled and not retroactively mixed.
 - Public release gets its own founder review. This package does not block the app launch.
 
+
+
 ## 21. Agent execution protocol and handoff template
 
-### 21.1 Recommended delegation
 
+
+### 21.1 Execution discipline and subagent prohibition
+
+- **Strict prohibition on subagents:** AI implementation agents MUST NOT spawn or delegate work to subagents or child agent tools (such as `invoke_subagent` or background subagent sessions). All inspection, code editing, test running, and verification must occur directly in the primary agent thread. Subagents degrade context quality, discard vital working memory, risk duplicated or unbudgeted operations, and obscure failure modes.
 - Root implementation agent owns contracts, integration, migrations and release acceptance.
-- Claude CLI/Antigravity own bounded UI/UX proposals and implementation against fixed schemas; their output is reviewed for unsupported infrastructure, security and product assumptions.
-- Independent adapter/worker/UI tasks can run concurrently after their contract dependency is frozen. Shared migration/routing/auth edits stay serialized.
+- Dedicated standalone agent sessions (e.g. human operator launching Claude CLI or Antigravity) may own bounded UI/UX proposals and implementation against fixed schemas, but each agent session must work directly without child subagents. Output is reviewed for unsupported infrastructure, security and product assumptions.
+- Independent adapter/worker/UI tasks can run concurrently in separate operator sessions after their contract dependency is frozen. Shared migration/routing/auth edits stay serialized.
 - Do not confuse CLI success with product acceptance. Inspect actual resulting screens and functional state, especially loading, error, empty, partial and permission-denied behavior.
 - Use the installed frontend skills for UI work; inspect current official ElevenLabs references. Do not adopt invented brand tokens or unsupported third-party design-system files.
+
+
 
 ### 21.2 Copyable work-package prompt
 
@@ -1494,6 +1659,9 @@ Read the current AGENTS.md, the spec invariants and this package's dependencies.
 Inspect the repo and existing package handoffs before editing. Preserve unrelated
 working-tree changes and existing marketing, admin and Leads behavior.
 
+Do not use subagents or delegate to child agents. Execute all work directly in your
+primary session context.
+
 Implement only this package and necessary dependency fixes. Use the shared CEF,
 authorization, immutable versioning, queue and budget contracts. Do not replace
 them with local shortcuts. If a contract needs to change, record why and update
@@ -1503,14 +1671,17 @@ Develop in an isolated checkout on the VPS with separate test data/queues and
 bounded resources. Never expose or log secrets. Use fixture providers for routine
 tests and only tiny explicitly budgeted live probes for integration evidence.
 
-Delegate UI/UX to the available Claude CLI/Antigravity workflow with the installed
-frontend skills when this package changes UI. Keep shared-file ownership clear.
+Assign UI/UX to a dedicated Claude CLI/Antigravity session with the installed
+frontend skills when this package changes UI (without spawning subagents). Keep
+shared-file ownership clear.
 
 Complete the package acceptance criteria. Report actual tests, screenshots where
 applicable, migrations and release/rollback implications. Create/update
 docs/evals/work-packages/WP-XX.md with the handoff below. Do not mark later
 packages complete, deploy unrequested changes or claim success from mocks alone.
 ```
+
+
 
 ### 21.3 Handoff record
 
@@ -1537,19 +1708,23 @@ Status lives in handoffs, not in invented checkmarks in this draft. If a live pr
 
 ## 22. Cross-cutting validation and requirement traceability
 
+
+
 ### 22.1 Minimum test layers
 
-| Layer | What must be established |
-| --- | --- |
-| Contract | CEF validation, canonical hashing, version migration, projections, row mapping |
-| Domain | State transitions, immutable snapshots, score denominators, decimal costs, family splits |
-| DB integration | RLS, cross-tenant FKs, pooled context cleanup, concurrent budget reservations, idempotency |
-| Connector | Response normalization, capability gating, session/reset, retries, streaming completeness |
-| Security | SSRF, secret redaction, prompt-injection boundaries, artifact/share authorization, upload limits |
-| Recovery | Worker killed before/after dispatch, outbox replay, expired lease, disk/storage outage, cancellation |
-| E2E | Operator-created client to shared report; customer flow; rerun/compare; private access |
-| Visual | Connection form, loaders, long evidence, report/PDF, mobile, empty/error/partial states |
-| Operational | Bounded load, queue recovery, migration compatibility, backup restore, real deployment smoke |
+
+| Layer          | What must be established                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Contract       | CEF validation, canonical hashing, version migration, projections, row mapping                       |
+| Domain         | State transitions, immutable snapshots, score denominators, decimal costs, family splits             |
+| DB integration | RLS, cross-tenant FKs, pooled context cleanup, concurrent budget reservations, idempotency           |
+| Connector      | Response normalization, capability gating, session/reset, retries, streaming completeness            |
+| Security       | SSRF, secret redaction, prompt-injection boundaries, artifact/share authorization, upload limits     |
+| Recovery       | Worker killed before/after dispatch, outbox replay, expired lease, disk/storage outage, cancellation |
+| E2E            | Operator-created client to shared report; customer flow; rerun/compare; private access               |
+| Visual         | Connection form, loaders, long evidence, report/PDF, mobile, empty/error/partial states              |
+| Operational    | Bounded load, queue recovery, migration compatibility, backup restore, real deployment smoke         |
+
 
 Use deterministic fake providers with known failure modes to verify the engine, plus small real-provider/DGX probes to prove integration. Avoid broad expensive benchmark runs as a test substitute.
 
@@ -1566,52 +1741,62 @@ Use deterministic fake providers with known failure modes to verify the engine, 
 9. **Iteration:** customer changes system → same frozen suite → paired comparison; case edits instead create a new scope with overlap analysis.
 10. **Deletion/restore:** revoke shares → delete live data → documented backup expiry; restore in isolation replays subsequent deletion/revocation records before enabling access and cannot restart paid jobs automatically.
 
+
+
 ### 22.3 Founder requirement map
 
-| Requirement | Specification | First package |
-| --- | --- | --- |
-| Same repo, app.caudals.com | 7, 17 | WP-00–01 |
-| API/manual/spreadsheet connections | 8 | WP-04 |
-| Website chatbot connection | 8.3 | WP-09 |
-| Private CLI systems | 8.5 | WP-12 |
-| DGX-generated contextual dataset | 9, 14 | WP-03, WP-05 |
-| Standard evaluation framework | 10–12 | WP-02, WP-06 |
-| Commercial and open-source models | 11, 14 | WP-03–04 |
-| Minimal customer journey/loaders | 5 | WP-11; operator shell earlier |
-| Multi-turn and tools | 10.5 | WP-10 |
-| Reports, strengths/failures/improvements | 11, 15 | WP-06–07 |
-| Sharing, exports, reruns and comparisons | 5, 11, 15 | WP-07–08 |
-| Operator admin, keys, infra and accounts | 5, 14, 16 | WP-01, WP-03, WP-08 |
-| Bounded resources and costs | 14, 17 | WP-03, WP-08 |
-| Difficult valid evaluations | 9.5, 11 | WP-05–06, WP-10 |
-| Future domain experts and training data | 18 | WP-14–15 |
-| Public benchmark separated from app | 19 | WP-16 |
+
+| Requirement                              | Specification | First package                 |
+| ---------------------------------------- | ------------- | ----------------------------- |
+| Same repo, app.caudals.com               | 7, 17         | WP-00–01                      |
+| API/manual/spreadsheet connections       | 8             | WP-04                         |
+| Website chatbot connection               | 8.3           | WP-09                         |
+| Private CLI systems                      | 8.5           | WP-12                         |
+| DGX-generated contextual dataset         | 9, 14         | WP-03, WP-05                  |
+| Standard evaluation framework            | 10–12         | WP-02, WP-06                  |
+| Commercial and open-source models        | 11, 14        | WP-03–04                      |
+| Minimal customer journey/loaders         | 5             | WP-11; operator shell earlier |
+| Multi-turn and tools                     | 10.5          | WP-10                         |
+| Reports, strengths/failures/improvements | 11, 15        | WP-06–07                      |
+| Sharing, exports, reruns and comparisons | 5, 11, 15     | WP-07–08                      |
+| Operator admin, keys, infra and accounts | 5, 14, 16     | WP-01, WP-03, WP-08           |
+| Bounded resources and costs              | 14, 17        | WP-03, WP-08                  |
+| Difficult valid evaluations              | 9.5, 11       | WP-05–06, WP-10               |
+| Future domain experts and training data  | 18            | WP-14–15                      |
+| Public benchmark separated from app      | 19            | WP-16                         |
+
+
+
 
 ## 23. Decision register, research provenance and next review
 
+
+
 ### 23.1 Proposed decisions to review with founders
 
-| ID | Proposed decision | Revisit trigger |
-| --- | --- | --- |
-| D-01 | Managed invite-only launch, customer self-service after operator release | Demand and reliable Stage B delivery |
-| D-02 | English app, independently multilingual evaluation content | Customer localization demand |
-| D-03 | €500 default machine-spend cap; operator ceiling €1,000 | Confirm currency/all-in versus compute budget and observed unit economics |
-| D-04 | Preliminary automated reports; reviewed tier with explicit review coverage | Customer trust needs and expert availability |
-| D-05 | API/import first, assisted website second, private runner later | First concrete customer connection requirements |
-| D-06 | Next.js modular app, Postgres/pg-boss, separate bounded workers | Measured volume or isolation requirement exceeds this design |
-| D-07 | Controlled fixtures for tools; no untrusted hosted customer shell | Proven need and stronger sandbox capacity |
-| D-08 | Private VPS development environment plus immutable production releases | Capacity/security findings in inventory |
-| D-09 | Manual commercial contracting, entitlements before payment automation | Repeatable pricing and demand |
-| D-10 | Public benchmark independent of customer corpus and launch | Separate approved benchmark charter |
+
+| ID   | Proposed decision                                                          | Revisit trigger                                                           |
+| ---- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| D-01 | Managed invite-only launch, customer self-service after operator release   | Demand and reliable Stage B delivery                                      |
+| D-02 | English app, independently multilingual evaluation content                 | Customer localization demand                                              |
+| D-03 | €500 default machine-spend cap; operator ceiling €1,000                    | Confirm currency/all-in versus compute budget and observed unit economics |
+| D-04 | Preliminary automated reports; reviewed tier with explicit review coverage | Customer trust needs and expert availability                              |
+| D-05 | API/import first, assisted website second, private runner later            | First concrete customer connection requirements                           |
+| D-06 | Next.js modular app, Postgres/pg-boss, separate bounded workers            | Measured volume or isolation requirement exceeds this design              |
+| D-07 | Controlled fixtures for tools; no untrusted hosted customer shell          | Proven need and stronger sandbox capacity                                 |
+| D-08 | Private VPS development environment plus immutable production releases     | Capacity/security findings in inventory                                   |
+| D-09 | Manual commercial contracting, entitlements before payment automation      | Repeatable pricing and demand                                             |
+| D-10 | Public benchmark independent of customer corpus and launch                 | Separate approved benchmark charter                                       |
+
 
 Open facts for inventory: VPS headroom, actual DGX model inventory/throughput, object-store/backup health, provider keys/approved regions, existing organization/auth mapping and available expert review capacity. These are discovery tasks, not reasons to invent defaults as observed facts.
 
 ### 23.2 Design delegation provenance
 
-Two subagents used the installed `frontend-design` and `frontend-skill` instructions and invoked the actual external CLIs during preparation of this draft:
+Use the `frontend-design` and `frontend-skill` instructions and invoke the actual external CLIs:
 
 - **Claude CLI:** customer IA, progressive connection flow, persistent progress, category findings, evidence details and iteration/share UX.
-- **Antigravity CLI (`agy`):** operator table layouts, run inspector, source/rubric review, publication preview and restricted blind expert workbench.
+- **Antigravity CLI (**`agy`**):** operator table layouts, run inspector, source/rubric review, publication preview and restricted blind expert workbench.
 
 Both CLI runs completed successfully. This document incorporates reviewed recommendations, not their raw outputs. Unsupported hardware/backend claims, currency/cost promises, fixed completion times, invented brand styles, unsafe client-data pooling and inconsistent accessibility rules were excluded. No authenticated dashboard inspection, measured ElevenLabs CSS values or official dashboard `DESIGN.md` download is claimed.
 
