@@ -35,7 +35,7 @@ async function main() {
     await boss.work<JobData>(
       "execute_browser",
       { batchSize: 1, pollingIntervalSeconds: 2 },
-      async (jobs) => {
+      async (jobs: any[]) => {
         for (const job of jobs) {
           if (!orgs.includes(job.data.orgId)) throw new Error("browser_tenant_denied");
           if (!(await worker.canHandle(job.data))) throw new Error("browser_job_invalid");

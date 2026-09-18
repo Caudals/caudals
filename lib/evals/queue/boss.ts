@@ -1,4 +1,4 @@
-import PgBoss from 'pg-boss';
+import { PgBoss } from 'pg-boss';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { queues, type Tenant, type TenantTransaction } from './store';
@@ -10,7 +10,7 @@ export function createBoss(env:Record<string,string|undefined>=process.env,optio
  if(schema!==(environment==='production'?'evals_queue_prod':'evals_queue_dev'))throw new Error('queue_environment_mismatch');
  const connectionString=env.EVALS_QUEUE_DATABASE_URL_FILE?readFileSync(env.EVALS_QUEUE_DATABASE_URL_FILE,'utf8').trim():env.EVALS_QUEUE_DATABASE_URL;
  if(!connectionString)throw new Error('queue_database_missing');
- return new PgBoss({connectionString,schema,migrate:options.bootstrap===true,max:2,retryLimit:2,retryDelay:5,retryBackoff:true,expireInSeconds:180,application_name:`evals-${environment}`});
+ return new PgBoss({connectionString,schema,migrate:options.bootstrap===true,max:2,application_name:`evals-${environment}`});
 }
 export async function startBoss(boss:PgBoss) {await boss.start();for(const name of queues)await boss.createQueue(name);}
 /** Outbox read/send/mark are separate short transactions. Duplicate delivery is expected. */

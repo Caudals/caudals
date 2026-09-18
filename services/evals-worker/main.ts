@@ -19,7 +19,7 @@ async function main() {
  const keys=loadKeyring(keyFile),worker=new InvocationWorker({tx:withTenant,keys,actorId,workerId:randomUUID(),dgxEndpoint}),targetWorker=new TargetExecutionWorker({tx:withTenant,keys,actorId,workerId:randomUUID()});
  try {
  await startBoss(boss);
- for(const queue of ['execute_api','generate','profile','grade'])await boss.work<JobData>(queue,{batchSize:1,pollingIntervalSeconds:2},async jobs=>{
+ for(const queue of ['execute_api','generate','profile','grade'])await boss.work<JobData>(queue,{batchSize:1,pollingIntervalSeconds:2},async (jobs: any[])=>{
   for(const job of jobs){if(!orgs.includes(job.data.orgId))throw new Error('worker_tenant_denied');if(queue==='execute_api'&&await targetWorker.canHandle(job.data))await targetWorker.handle(job.data);else await worker.handle(job.data);}
  });
  let stopping=false;
