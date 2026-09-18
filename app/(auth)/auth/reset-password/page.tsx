@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
       }
 
       toast.success(t("Your password has been updated. You can sign in now."));
-      router.push("/auth/sign-in");
+      router.push("/workspace/sign-in?next=%2Fevaluation-entry");
     } catch (error) {
       console.error("resetPassword error", error);
       toast.error(t("We couldn't update your password. Please try the link again."));

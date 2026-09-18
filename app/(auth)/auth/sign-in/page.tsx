@@ -38,7 +38,7 @@ export default function SignInPage() {
     !requestedNext.startsWith("//") &&
     !shouldBlockPhaseOneHiddenSurface(requestedNext)
       ? requestedNext
-      : "/admin";
+      : "/evaluation-entry";
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
