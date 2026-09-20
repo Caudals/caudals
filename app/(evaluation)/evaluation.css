@@ -1,152 +1,384 @@
-.eval-shell {
-  min-height: 100dvh;
-  display: flex;
-  background: var(--ds-canvas);
-  color: var(--ds-text-primary);
-  font-size: 14px;
-  line-height: 1.5;
+/* =============================================================================
+   Evaluation surface
+   -----------------------------------------------------------------------------
+   Compositions specific to the evaluation product: the new-evaluation wizard,
+   run progress, the result inspector, monitoring and the shared report.
+
+   Everything generic — colour, type, buttons, tables, cards, the shell — comes
+   from the platform system below. Add a rule here only when it is genuinely
+   about evaluations; anything reusable belongs in platform.css and DESIGN.md.
+   ============================================================================= */
+
+@import "../../packages/brand/platform.css";
+
+/* -----------------------------------------------------------------------------
+   Flow: the guided "new evaluation" and "prepare a test set" columns.
+   A narrow measure, because these are decisions taken one at a time.
+   -------------------------------------------------------------------------- */
+
+.eval-flow {
+  width: min(100%, 660px);
+  margin-inline: auto;
 }
-.eval-shell * {
-  box-sizing: border-box;
-}
-.eval-shell a:focus-visible,
-.eval-shell button:focus-visible,
-.eval-shell select:focus-visible,
-.eval-table-scroll:focus-visible,
-.eval-drawer a:focus-visible {
-  outline: 3px solid var(--ds-accent);
-  outline-offset: 3px;
-}
-.eval-sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  padding: 28px 20px;
-  border-right: 1px solid var(--ds-border-strong);
-  display: flex;
-  flex-direction: column;
-  min-height: 100dvh;
-}
-.eval-brand {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.04em;
-}
-.eval-eyebrow {
-  margin: 8px 0 24px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ds-text-secondary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.eval-sidebar nav,
-.eval-drawer nav {
+
+.eval-flow-card {
   display: grid;
-  gap: 4px;
+  gap: 16px;
+  padding: 22px;
+  border-radius: var(--p-radius-xl);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
 }
-.eval-sidebar nav a,
-.eval-drawer nav a {
-  padding: 10px 12px;
-  border-radius: var(--ds-radius-sm);
-  color: var(--ds-text-secondary);
+.eval-flow-card + .eval-flow-card {
+  margin-top: 14px;
 }
-.eval-sidebar nav a:hover,
-.eval-drawer nav a:hover {
-  background: var(--ds-border-soft);
-  color: var(--ds-text-primary);
-}
-.eval-sidebar nav a[aria-current],
-.eval-drawer nav a[aria-current] {
-  background: var(--ds-surface);
-  color: var(--ds-text-primary);
+.eval-flow-card h2 {
+  font-size: var(--p-text-title);
   font-weight: 600;
-  box-shadow: var(--ds-shadow-surface);
+  letter-spacing: var(--p-tracking-title);
 }
-.eval-account {
-  margin-top: auto;
-  padding-top: 32px;
+.eval-flow-card h3 {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.eval-flow-card p {
+  color: var(--p-text-secondary);
+}
+.eval-flow-card > button,
+.eval-flow-card > .p-btn {
+  justify-self: start;
+}
+
+.eval-step-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.eval-step-heading > span:first-child {
   display: grid;
-  gap: 4px;
-  font-size: 12px;
-  overflow-wrap: anywhere;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: var(--p-radius-pill);
+  background: var(--p-action);
+  color: var(--p-action-text);
+  font-size: var(--p-text-micro);
+  font-weight: 600;
 }
-.eval-account span {
-  color: var(--ds-text-secondary);
+.eval-step-heading h2 {
+  font-size: var(--p-text-subtitle);
 }
-.eval-account strong {
+
+/* -----------------------------------------------------------------------------
+   Run progress. A long wait, so it reports what it is doing and how far along.
+   -------------------------------------------------------------------------- */
+
+.eval-progress-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  max-width: 720px;
+  padding: 26px;
+  border-radius: var(--p-radius-xl);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+}
+.eval-progress-mark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid var(--p-border-strong);
+  border-top-color: var(--p-text);
+  animation: p-spin 700ms linear infinite;
+}
+.eval-progress-copy {
+  display: grid;
+  gap: 8px;
+}
+.eval-progress-copy h2 {
+  font-size: var(--p-text-title);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+  text-transform: capitalize;
+}
+.eval-progress-copy p {
+  color: var(--p-text-secondary);
+}
+.eval-progress-copy progress {
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  margin: 4px 0;
+  border: 0;
+  border-radius: var(--p-radius-pill);
+  overflow: hidden;
+  background: var(--p-surface-3);
+}
+.eval-progress-copy progress::-webkit-progress-bar {
+  background: var(--p-surface-3);
+}
+.eval-progress-copy progress::-webkit-progress-value {
+  background: var(--p-action);
+  transition: width 400ms var(--p-ease-out);
+}
+.eval-progress-copy progress::-moz-progress-bar {
+  background: var(--p-action);
+}
+
+/* Terminal state. A quiet top rule marks it as an outcome, not another step. */
+.eval-result-hero {
+  display: grid;
+  gap: 8px;
+  max-width: 720px;
+  padding: 26px;
+  border-radius: var(--p-radius-xl);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  border-top: 3px solid var(--p-action);
+}
+.eval-result-hero h2 {
+  font-size: var(--p-text-title);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.eval-result-hero p {
+  color: var(--p-text-secondary);
+}
+
+/* -----------------------------------------------------------------------------
+   Result inspector: a list on the left, the evidence for one result on the
+   right. The evidence pane is sticky because the list is long and the reader is
+   comparing, not scrolling away.
+   -------------------------------------------------------------------------- */
+
+.eval-results-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.85fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: start;
+}
+.eval-results-list {
+  display: grid;
+  gap: 6px;
+}
+.eval-result-row {
+  display: grid;
+  gap: 3px;
+  padding: 13px 15px;
+  border: 0;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  color: var(--p-text);
+  font-size: var(--p-text-label);
+  text-align: left;
+  cursor: pointer;
+  transition-property: box-shadow, background-color, transform;
+  transition-duration: var(--p-dur-press);
+  transition-timing-function: var(--p-ease-out);
+}
+.eval-result-row > span:first-child {
   font-weight: 500;
 }
-.eval-body {
-  flex: 1;
-  min-width: 0;
+.eval-result-row small {
+  color: var(--p-text-secondary);
+  font-size: var(--p-text-micro);
 }
-.eval-context {
-  height: 56px;
-  padding: 0 32px;
-  border-bottom: 1px solid var(--ds-border-strong);
+@media (hover: hover) and (pointer: fine) {
+  .eval-result-row:hover {
+    box-shadow: var(--p-shadow-border-hover);
+  }
+}
+.eval-result-row:active {
+  transform: scale(0.99);
+}
+.eval-result-row[data-selected="true"] {
+  box-shadow: 0 0 0 1.5px var(--p-action);
+}
+
+.eval-result-desktop {
+  position: sticky;
+  top: 0;
+  max-height: calc(100dvh - var(--p-topbar-h) - 48px);
+  overflow: auto;
+  padding: 20px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+}
+.eval-result-mobile {
+  display: none;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+
+.eval-result-evidence {
+  display: grid;
+  gap: 10px;
+}
+.eval-result-evidence h3 {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.eval-result-evidence h4 {
+  font-size: var(--p-text-micro);
+  font-weight: 500;
+  color: var(--p-text-secondary);
+  margin-bottom: -4px;
+}
+.eval-result-evidence pre {
+  padding: 13px 15px;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  font-size: var(--p-text-micro);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow: auto;
+}
+.eval-result-evidence p {
+  color: var(--p-text-secondary);
+}
+.eval-source-refs {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.eval-source-refs code {
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 7px;
+  border-radius: var(--p-radius-xs);
+  background: var(--p-surface-2);
+  font-size: var(--p-text-nano);
+  color: var(--p-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* The headline pass rate. The one number a reader looks for first. */
+.eval-score {
+  font-size: clamp(42px, 8vw, 66px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text);
+}
+
+/* -----------------------------------------------------------------------------
+   Settings + monitoring
+   -------------------------------------------------------------------------- */
+
+.eval-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.eval-monitoring {
+  display: grid;
+  gap: 18px;
+  margin-top: 30px;
+}
+.eval-monitor-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+.eval-monitor-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+.eval-monitor-list li {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  background: var(--ds-surface);
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  font-size: var(--p-text-label);
+  line-height: 1.55;
 }
-.eval-context-user {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--ds-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.eval-body main {
-  max-width: 1280px;
-  margin: auto;
-  padding: 36px 32px 64px;
-}
-.eval-heading {
-  margin-bottom: 28px;
-}
-.eval-heading h1 {
-  font-size: 28px;
-  font-weight: 400;
-  letter-spacing: -0.025em;
-  margin: 0 0 8px;
-}
-.eval-heading p,
-.eval-section-heading p,
-.eval-panel > p,
-.eval-empty p,
-.eval-invitation-list > p {
-  color: var(--ds-text-secondary);
-  max-width: 680px;
-}
-.eval-panel {
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border-strong);
-  border-radius: var(--ds-radius-lg);
-  padding: 24px;
-}
-.eval-tabs {
+.eval-monitor-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 20px;
 }
-.eval-score {
-  margin: 8px 0;
-  color: var(--ds-text-primary) !important;
-  font-size: clamp(36px, 7vw, 64px);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.05em;
+/* A one-time secret. Monospace and boxed so it is obviously a value to copy. */
+.eval-monitor-secret {
+  display: block;
+  padding: 13px 15px;
+  margin: 10px 0;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  box-shadow: inset 0 0 0 1px var(--p-warn-border);
+  font-family: var(--p-font-mono);
+  font-size: var(--p-text-micro);
+  overflow-wrap: anywhere;
 }
+
+.eval-check-list {
+  display: grid;
+  gap: 13px;
+}
+.eval-check-list > label:not(.p-field) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--p-text-body);
+  color: var(--p-text-secondary);
+  cursor: pointer;
+}
+.eval-check-list input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--p-action);
+}
+
+/* -----------------------------------------------------------------------------
+   Invitations
+   -------------------------------------------------------------------------- */
+
+.eval-invitation-list {
+  margin-top: 26px;
+}
+.eval-invitation {
+  display: grid;
+  gap: 10px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--p-border-hairline);
+  overflow-wrap: anywhere;
+}
+.eval-invitation:last-child {
+  border-bottom: 0;
+}
+.eval-invitation button,
+.eval-invitation .p-btn {
+  justify-self: start;
+}
+
+/* -----------------------------------------------------------------------------
+   Shared report — no shell, so the page supplies its own frame.
+   -------------------------------------------------------------------------- */
+
 .eval-shared {
-  width: min(100% - 32px, 1080px);
-  margin: 0 auto;
-  padding: 48px 0 72px;
-  color: var(--ds-text-primary);
-}
-.eval-shared .eval-panel + .eval-panel,
-.eval-shared section + section {
-  margin-top: 16px;
+  width: min(100% - 32px, 1000px);
+  margin-inline: auto;
+  padding: 44px 0 80px;
+  color: var(--p-text);
 }
 .eval-shared pre {
   max-width: 100%;
@@ -154,88 +386,200 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.eval-shared .p-card + .p-card,
+.eval-shared section + section,
+.eval-shared article + article {
+  margin-top: 14px;
+}
+
+.eval-recovery {
+  margin-top: 16px;
+}
+
+/* -----------------------------------------------------------------------------
+   Compatibility layer
+   -----------------------------------------------------------------------------
+   Older evaluation components still emit these class names in their markup.
+   Mapping them onto the platform language keeps every screen consistent without
+   a single big-bang rewrite. Do not add new names here; when you touch one of
+   those components, move it to the platform classes and delete its alias.
+   -------------------------------------------------------------------------- */
+
+.eval-panel {
+  padding: 20px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+}
+.eval-panel + .eval-panel {
+  margin-top: 14px;
+}
+.eval-panel > h2,
+.eval-panel > h3 {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+  margin-bottom: 8px;
+}
+.eval-panel > p {
+  color: var(--p-text-secondary);
+}
+.eval-panel > * + *:not(h2):not(h3) {
+  margin-top: 10px;
+}
+
+.eval-eyebrow {
+  font-size: var(--p-text-micro);
+  font-weight: 500;
+  color: var(--p-text-secondary);
+  text-transform: capitalize;
+}
+
+.eval-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+}
+.eval-form > button,
+.eval-form > .p-btn {
+  justify-self: start;
+}
+
+/* Legacy `.eval-field` wrappers get the platform field treatment. */
+.eval-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.eval-field > span,
+.eval-field > label {
+  font-size: var(--p-text-label);
+  font-weight: 500;
+  color: var(--p-text);
+}
+.eval-field :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea),
+.eval-monitor-fields :where(input, select, textarea),
+.eval-check-list .eval-field :where(input, select) {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface);
+  color: var(--p-text);
+  font-size: var(--p-text-body);
+  transition-property: border-color, box-shadow;
+  transition-duration: var(--p-dur-instant);
+  transition-timing-function: var(--p-ease-crisp);
+}
+.eval-field textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.eval-field :where(input, select, textarea)::placeholder {
+  color: var(--p-text-tertiary);
+}
+.eval-field :where(input, select, textarea):focus-visible {
+  outline: none;
+  border-color: var(--p-border-strong);
+  box-shadow: 0 0 0 3px rgba(12, 12, 11, 0.07);
+}
+/* File inputs keep the browser control but sit on the platform surface. */
+.eval-field input[type="file"] {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+
+/* An inline "create" row: one field and its button on a single baseline. */
 .eval-create {
   display: flex;
   align-items: flex-end;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 .eval-create .eval-field {
   flex: 1;
-  max-width: 480px;
+  max-width: 420px;
 }
-.eval-field {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-.eval-field label,
-.eval-toolbar label {
-  font-weight: 500;
-  font-size: 13px;
-}
-.eval-field input,
-.eval-field select,
-.eval-toolbar select {
-  min-height: 44px;
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border-strong);
-  border-radius: var(--ds-radius-md);
-  width: 100%;
-  padding: 8px 12px;
-  color: var(--ds-text-primary);
-}
-.eval-shell button {
-  min-height: 44px;
-}
-.eval-form {
-  display: grid;
-  gap: 20px;
-  max-width: 560px;
-}
-.eval-form button {
-  justify-self: start;
-}
-.eval-status {
-  padding: 12px 0;
-  color: var(--ds-accent-text);
-}
-.eval-status-error {
-  color: var(--ds-danger);
-}
-.eval-actions {
+
+.eval-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
   align-items: center;
-  margin: 16px 0;
+  gap: 8px;
+  margin-bottom: 18px;
 }
-.eval-actions a:not([data-slot="button"]),
-.eval-empty a {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.eval-toolbar > label {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
 }
+.eval-toolbar select {
+  min-width: 190px;
+  max-width: 280px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface);
+  color: var(--p-text);
+  font-size: var(--p-text-label);
+}
+
+.eval-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding-inline: 8px;
+  border-radius: var(--p-radius-xs);
+  background: var(--p-neutral-soft);
+  color: var(--p-neutral);
+  box-shadow: inset 0 0 0 1px var(--p-neutral-border);
+  font-size: var(--p-text-micro);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.eval-heading {
+  margin-bottom: 20px;
+}
+.eval-heading h1 {
+  font-size: var(--p-text-display);
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: var(--p-tracking-display);
+}
+.eval-heading p {
+  margin-top: 6px;
+  max-width: 62ch;
+  color: var(--p-text-secondary);
+}
+
 .eval-empty {
-  border: 1px solid var(--ds-border-strong);
-  border-radius: var(--ds-radius-lg);
-  background: var(--ds-surface);
-  padding: 64px 32px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 60px 32px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
   text-align: center;
 }
 .eval-empty h2 {
-  font-size: 20px;
-  font-weight: 400;
-  margin-bottom: 12px;
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
 }
 .eval-empty p {
-  margin: 8px auto;
-  max-width: 480px;
+  max-width: 42ch;
+  color: var(--p-text-secondary);
 }
+
 .eval-table-scroll {
   overflow-x: auto;
-  border: 1px solid var(--ds-border-strong);
-  border-radius: var(--ds-radius-lg);
-  background: var(--ds-surface);
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
 }
 .eval-table-scroll table {
   width: 100%;
@@ -243,246 +587,256 @@
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
-.eval-table-scroll th,
-.eval-table-scroll td {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--ds-border-soft);
-}
 .eval-table-scroll thead th {
-  font-size: 11px;
+  height: 40px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--p-border-hairline);
+  font-size: var(--p-text-micro);
   font-weight: 500;
-  color: var(--ds-text-secondary);
-  background: var(--ds-surface-muted);
+  color: var(--p-text-secondary);
+  white-space: nowrap;
+}
+.eval-table-scroll tbody th,
+.eval-table-scroll tbody td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--p-border-hairline);
+  font-weight: 400;
+}
+.eval-table-scroll tbody tr:last-child th,
+.eval-table-scroll tbody tr:last-child td {
+  border-bottom: 0;
 }
 .eval-table-scroll tbody th {
   font-weight: 500;
   overflow-wrap: anywhere;
 }
-.eval-table-scroll td:last-child {
-  width: 180px;
+@media (hover: hover) and (pointer: fine) {
+  .eval-table-scroll tbody tr {
+    transition: background-color var(--p-dur-instant) var(--p-ease-crisp);
+  }
+  .eval-table-scroll tbody tr:hover {
+    background: var(--p-surface-2);
+  }
 }
-.eval-invites {
-  margin-top: 24px;
+
+.eval-status {
+  display: block;
+  padding: 11px 14px;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  color: var(--p-text-secondary);
+  font-size: var(--p-text-label);
 }
-.eval-section-heading {
-  margin-bottom: 24px;
+.eval-status-error {
+  background: var(--p-fail-soft);
+  color: var(--p-fail);
+  box-shadow: inset 0 0 0 1px var(--p-fail-border);
 }
-.eval-section-heading .eval-eyebrow {
-  margin: 0 0 4px;
-}
-.eval-section-heading h2 {
-  font-size: 20px;
-  font-weight: 400;
-  margin-bottom: 8px;
-  overflow-wrap: anywhere;
-}
-.eval-invitation-list {
-  margin-top: 32px;
-  border-top: 1px solid var(--ds-border-strong);
-  padding-top: 24px;
-}
-.eval-invitation {
-  padding: 20px 0;
-  display: grid;
-  gap: 12px;
-  border-bottom: 1px solid var(--ds-border-soft);
-  overflow-wrap: anywhere;
-}
-.eval-invitation button {
-  justify-self: start;
-}
-.eval-toolbar {
+
+.eval-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-top: 14px;
 }
-.eval-toolbar select {
-  width: auto;
+
+.eval-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: max-content;
   max-width: 100%;
-  min-width: 160px;
+  padding: 3px;
+  margin-bottom: 20px;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
 }
-.eval-chip {
-  background: var(--ds-accent-soft);
-  color: var(--ds-accent-text);
-  padding: 4px 10px;
-  border-radius: var(--ds-radius-pill);
-  font-size: 12px;
+
+.eval-metrics-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--p-border-hairline);
 }
+.eval-metrics-list > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.eval-metrics-list dt {
+  color: var(--p-text-secondary);
+  font-size: var(--p-text-label);
+}
+.eval-metrics-list dd {
+  margin: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.eval-cell-meta {
+  display: block;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-secondary);
+  font-weight: 400;
+}
+
+.eval-text-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--p-text);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--p-border-strong);
+}
+.eval-text-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.eval-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 56ch;
+  color: var(--p-text-secondary);
+  line-height: 1.55;
+  cursor: pointer;
+}
+.eval-check input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: var(--p-action);
+}
+
+/* Two columns inside the narrow flow column. `auto-fit` leaves a ragged last
+   row with four options; an explicit pair keeps the grid square. */
+.eval-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.eval-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 62px;
+  padding: 14px;
+  border: 0;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  color: var(--p-text);
+  font-size: var(--p-text-label);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition-property: box-shadow, transform;
+  transition-duration: var(--p-dur-press);
+  transition-timing-function: var(--p-ease-out);
+}
+/* See .p-choice: the invisible radio is the hit target, not a pass-through. */
+.eval-choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .eval-choice:hover {
+    box-shadow: var(--p-shadow-border-hover);
+  }
+}
+.eval-choice:active {
+  transform: scale(0.99);
+}
+.eval-choice-active,
+.eval-choice:has(input:checked) {
+  box-shadow: 0 0 0 1.5px var(--p-action);
+}
+.eval-choice:has(input:focus-visible) {
+  outline: 2px solid var(--p-focus);
+  outline-offset: 2px;
+}
+
 .eval-narrow {
-  max-width: 640px;
-  margin: 24px auto;
+  max-width: 620px;
+  margin-inline: auto;
 }
-.eval-mobile-menu {
-  display: none;
+.eval-public {
+  width: 100%;
 }
-.eval-drawer {
-  padding: 28px 20px;
-  background: var(--ds-surface);
+.eval-section-heading {
+  margin-bottom: 20px;
 }
-.eval-skip {
-  position: fixed;
-  top: 8px;
-  left: 8px;
-  z-index: 100;
-  transform: translateY(-200%);
-  background: var(--ds-surface);
-  padding: 12px;
+.eval-section-heading h2 {
+  font-size: var(--p-text-title);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
 }
-.eval-skip:focus {
-  transform: translateY(0);
+.eval-section-heading p {
+  margin-top: 4px;
+  color: var(--p-text-secondary);
 }
-@media (max-width: 767px) {
-  .eval-sidebar {
+.eval-invites {
+  margin-top: 22px;
+}
+
+/* -----------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1023px) {
+  .eval-results-layout {
+    grid-template-columns: 1fr;
+  }
+  .eval-result-desktop {
     display: none;
   }
-  .eval-mobile-menu {
-    display: inline-flex;
+  .eval-result-mobile {
+    display: grid;
   }
-  .eval-context {
-    padding: 0 16px;
+}
+
+@media (max-width: 767px) {
+  .eval-progress-panel {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px;
   }
-  .eval-body main {
-    padding: 28px 20px 48px;
+  .eval-flow-card,
+  .eval-result-hero {
+    padding: 18px;
   }
-  .eval-heading h1 {
-    font-size: 26px;
+  .eval-monitor-fields,
+  .eval-settings-grid,
+  .eval-choice-grid {
+    grid-template-columns: 1fr;
   }
   .eval-create {
     flex-direction: column;
     align-items: stretch;
   }
-  .eval-panel {
-    padding: 20px;
-  }
   .eval-create .eval-field {
     max-width: none;
-    width: 100%;
   }
   .eval-empty {
-    padding: 40px 20px;
-  }
-  .eval-context-user {
-    max-width: 120px;
+    padding: 44px 20px;
   }
   .eval-table-scroll th,
   .eval-table-scroll td {
-    padding: 10px 12px;
+    padding: 11px 13px;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .eval-shell *,
-  .eval-drawer {
-    animation: none !important;
-    transition: none !important;
+  .eval-shared {
+    width: calc(100% - 32px);
+    padding: 28px 0 56px;
   }
-}
-
-.eval-public {
-  width: 100%;
-  padding: 32px 20px;
-}
-
-.eval-auth {
-  max-width: 480px;
-  margin: 48px auto;
-}
-.eval-auth > .eval-brand {
-  margin-bottom: 32px;
-}
-.eval-auth .eval-form {
-  width: 100%;
-}
-.eval-auth a {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.eval-auth-note {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-}
-
-.eval-account button { margin-top:12px; min-height:44px; }
-.eval-drawer .eval-account .eval-status-error { color:var(--ds-danger); }
-.eval-drawer button:focus-visible { outline:3px solid var(--ds-accent); outline-offset:3px; }
-
-.eval-flow {
-  width: min(100%, 680px);
-  margin: 0 auto;
-}
-.eval-flow-card,
-.eval-progress-panel,
-.eval-result-hero {
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-lg);
-  background: var(--ds-surface);
-  padding: clamp(24px, 5vw, 48px);
-  box-shadow: var(--ds-shadow-sm);
-}
-.eval-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 24px 0;
-}
-.eval-choice {
-  min-height: 112px;
-  padding: 18px;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface);
-  color: var(--ds-text);
-  text-align: left;
-}
-.eval-choice[aria-pressed="true"] {
-  border-color: var(--ds-accent);
-  box-shadow: 0 0 0 2px var(--ds-accent-soft);
-}
-.eval-progress-panel {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 28px;
-  align-items: start;
-  max-width: 760px;
-}
-.eval-progress-mark {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--ds-accent-soft);
-  border-top-color: var(--ds-accent);
-  border-radius: 50%;
-  animation: eval-spin 1s linear infinite;
-}
-@keyframes eval-spin { to { transform: rotate(360deg); } }
-.eval-progress-copy progress { width: 100%; margin: 16px 0; accent-color: var(--ds-accent); }
-.eval-result-hero { max-width: 760px; border-top: 4px solid var(--ds-accent); }
-.eval-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
-.eval-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.eval-metrics-list { margin: 0; }
-.eval-metrics-list div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ds-border); }
-.eval-metrics-list dt { color: var(--ds-text-secondary); }
-.eval-metrics-list dd { margin: 0; font-variant-numeric: tabular-nums; }
-.eval-check-list { display: grid; gap: 16px; }
-.eval-check-list label { display: flex; align-items: center; gap: 10px; }
-.eval-check-list input { width: 18px; height: 18px; accent-color: var(--ds-accent); }
-.eval-cell-meta { color: var(--ds-text-secondary); font-size: 13px; }
-.eval-results-layout { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
-.eval-results-list { display: grid; gap: 8px; }
-.eval-result-row { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); background: var(--ds-surface); color: var(--ds-text); text-align: left; }
-.eval-result-row[data-selected="true"] { border-color: var(--ds-accent); box-shadow: 0 0 0 2px var(--ds-accent-soft); }
-.eval-result-row small { color: var(--ds-text-secondary); }
-.eval-result-desktop { position: sticky; top: 88px; max-height: calc(100vh - 112px); overflow: auto; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); background: var(--ds-surface); padding: 24px; }
-.eval-result-mobile { display: none; max-height: calc(100vh - 32px); overflow: auto; }
-.eval-result-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 14px; border-radius: var(--ds-radius-md); background: var(--ds-surface-subtle); }
-.eval-source-refs { display: flex; flex-wrap: wrap; gap: 8px; }
-
-@media (max-width: 767px) {
-  .eval-choice-grid,
-  .eval-settings-grid { grid-template-columns: 1fr; }
-  .eval-progress-panel { grid-template-columns: 1fr; }
-  .eval-progress-mark { width: 40px; height: 40px; }
-  .eval-results-layout { grid-template-columns: 1fr; }
-  .eval-result-desktop { display: none; }
-  .eval-result-mobile { display: grid; }
 }

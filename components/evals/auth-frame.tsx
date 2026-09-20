@@ -1,22 +1,38 @@
 import type { ReactNode } from "react";
-import { PageHeading } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
+
+/**
+ * The frame every unauthenticated evaluation screen sits in: sign-in, TOTP,
+ * password reset, invitation acceptance.
+ *
+ * A single centred column on the chrome backdrop. No marketing copy, no split
+ * hero — the person is here to get in, and everything else is a detour.
+ */
 export function AuthFrame({
   title,
   description,
+  footer,
   children,
 }: {
   title: string;
   description: string;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="eval-shell" lang="en">
-      <main className="eval-public">
-        <div className="eval-auth">
-          <p className="eval-brand">{t("brand")}</p>
-          <PageHeading title={title}>{description}</PageHeading>
-          <section className="eval-panel">{children}</section>
+    <div className="p-root" lang="en">
+      <main className="p-auth">
+        <div className="p-auth-inner">
+          <p className="p-brand">
+            <span className="p-brand-mark" aria-hidden="true" />
+            {t("brand")}
+          </p>
+          <div className="p-auth-head">
+            <h1>{title}</h1>
+            <p>{description}</p>
+          </div>
+          <section className="p-auth-card">{children}</section>
+          {footer && <div className="p-auth-note">{footer}</div>}
         </div>
       </main>
     </div>

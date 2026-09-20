@@ -48,6 +48,10 @@ function Button({
   return (
     <Comp
       data-slot="button"
+      // Exposed so the platform design system (packages/brand/platform.css) can
+      // restyle buttons inside `.p-root` without every caller changing import.
+      data-variant={variant ?? "default"}
+      data-size={size ?? "default"}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

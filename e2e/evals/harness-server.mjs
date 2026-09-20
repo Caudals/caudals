@@ -15,7 +15,7 @@ const result = await build({
     {
       name: "next-test-stubs",
       setup(b) {
-        b.onResolve({ filter: /^next\/(link|navigation)$/ }, (a) => ({
+        b.onResolve({ filter: /^next\/(link|navigation|image)$/ }, (a) => ({
           path: a.path,
           namespace: "stub",
         }));
@@ -24,7 +24,9 @@ const result = await build({
           contents:
             a.path === "next/link"
               ? 'import React from "react"; export default function Link({children,...p}) { return React.createElement("a",p,children); }'
-              : "export const usePathname=()=>location.pathname; export const useSearchParams=()=>new URLSearchParams(location.search); export const useRouter=()=>({refresh(){},push(p){location.assign(p)}});",
+              : a.path === "next/image"
+                ? 'import React from "react"; export default function Image({priority,...p}) { return React.createElement("img",p); }'
+                : "export const usePathname=()=>location.pathname; export const useSearchParams=()=>new URLSearchParams(location.search); export const useRouter=()=>({refresh(){},push(p){location.assign(p)}});",
           resolveDir: root,
         }));
       },
@@ -35,11 +37,49 @@ const css = await postcss([tailwind()]).process(
   await readFile(root + "app/globals.css", "utf8"),
   { from: root + "app/globals.css" },
 );
-const scoped = await readFile(root + "app/(evaluation)/evaluation.css", "utf8");
-createServer((req, res) => {
+const platform = await readFile(root + "packages/brand/platform.css", "utf8");
+// The evaluation sheet @imports the platform system. This file is concatenated
+// after the Tailwind output, where a bare @import is invalid and gets dropped,
+// so inline it here instead of relying on the browser to resolve it.
+const scoped =
+  platform +
+  "\n" +
+  (await readFile(root + "app/(evaluation)/evaluation.css", "utf8")).replace(
+    /^@import\s+["'][^"']*platform\.css["'];\s*$/m,
+    "",
+  );
+createServer(async (req, res) => {
   if (req.url?.startsWith("/api/evals/v1/workspace/summary")) {
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ data: { evaluations: [], systems: [], reports: [], entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website"], can_export: true }, usage: { settled: "0", outstanding: "0" }, preferences: { completion: true, required_input: true, failure: true, email: false } }, meta: {} }));
+    const empty = process.env.HARNESS_FIXTURE !== "demo";
+    res.end(JSON.stringify({ data: {
+      evaluations: empty ? [] : [
+        { id: "eval-1", title: "Support assistant — refunds", project_id: "proj-1", project_title: "Customer support", project_description: "Front-line support assistant", latest_source_id: "src-1", latest_source_revision_id: "srcrev-1", preparation_status: "ready", reason_code: null, selected_suite_version_id: "suite-1", commercial_cap: "500", currency: "EUR", latest_run_id: "run-1", latest_run_status: "running", latest_run_phase: "executing" },
+        { id: "eval-2", title: "Onboarding bot — eligibility", project_id: "proj-2", project_title: "Onboarding", project_description: "Signup assistant", latest_source_id: null, latest_source_revision_id: null, preparation_status: "needs_review", reason_code: null, selected_suite_version_id: null, commercial_cap: "500", currency: "EUR", latest_run_id: null, latest_run_status: null, latest_run_phase: null },
+        { id: "eval-3", title: "Claims triage — policy limits", project_id: "proj-3", project_title: "Claims", project_description: "Claims triage agent", latest_source_id: "src-3", latest_source_revision_id: "srcrev-3", preparation_status: "ready", reason_code: null, selected_suite_version_id: "suite-3", commercial_cap: "500", currency: "EUR", latest_run_id: "run-3", latest_run_status: "completed", latest_run_phase: "scoring" },
+        { id: "eval-4", title: "Internal KB assistant", project_id: "proj-4", project_title: "Knowledge base", project_description: "Internal assistant", latest_source_id: "src-4", latest_source_revision_id: "srcrev-4", preparation_status: "checking_connection", reason_code: null, selected_suite_version_id: null, commercial_cap: "500", currency: "EUR", latest_run_id: "run-4", latest_run_status: "failed", latest_run_phase: "connecting" }
+      ],
+      systems: empty ? [] : [
+        { id: "sys-1", project_id: "proj-1", title: "Support assistant (production)", target_revision_id: "targetrev-1", document: { kind: "website" }, connection_status: "connected", runner_status: null, error_code: null },
+        { id: "sys-2", project_id: "proj-2", title: "Onboarding bot API", target_revision_id: "targetrev-2", document: { kind: "openai_compatible" }, connection_status: "unsupported", runner_status: null, error_code: "TLS_HANDSHAKE" },
+        { id: "sys-3", project_id: "proj-3", title: "Claims triage (private network)", target_revision_id: "targetrev-3", document: { kind: "private_runner" }, connection_status: null, runner_status: "pairing_required", error_code: null }
+      ],
+      reports: empty ? [] : [
+        { id: "report-1", title: "Support assistant — March evaluation", current_revision_id: "reportrev-1", evaluation_id: "eval-1" },
+        { id: "report-2", title: "Claims triage — baseline", current_revision_id: "reportrev-2", evaluation_id: "eval-3" }
+      ],
+      entitlement: { max_active_runs: 2, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website", "openai_compatible"], can_export: true, can_schedule: true },
+      usage: { settled: "128.40", outstanding: "12.00" },
+      preferences: { completion: true, required_input: true, failure: true, email: false }
+    }, meta: {} }));
+  } else if (req.url?.startsWith("/caudals-logo")) {
+    try {
+      res.setHeader("Content-Type", "image/png");
+      res.end(await readFile(root + "public" + req.url.split("?")[0]));
+    } catch {
+      res.statusCode = 404;
+      res.end();
+    }
   } else if (req.url === "/app.js") {
     res.setHeader("Content-Type", "text/javascript");
     res.end(result.outputFiles[0].text);
@@ -49,7 +89,7 @@ createServer((req, res) => {
   } else {
     res.setHeader("Content-Type", "text/html");
     res.end(
-      '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evaluation UI contract harness</title><link rel="stylesheet" href="/app.css"><body class="font-sans"><div id="root"></div><script src="/app.js"></script></html>',
+      '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evaluation UI contract harness</title><link rel="stylesheet" href="/app.css"><body><div id="root"></div><script src="/app.js"></script></html>',
     );
   }
 }).listen(4187, "127.0.0.1");

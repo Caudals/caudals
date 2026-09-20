@@ -1,11 +1,38 @@
 "use client";
-import { useState, type ReactNode } from "react";
+
+/**
+ * Platform shell: sidebar, topbar and the floating content canvas.
+ *
+ * Three planes, and the whole language depends on keeping them distinct:
+ *   1. chrome  — the warm backdrop the sidebar lives on, no border
+ *   2. canvas  — a white rounded panel that scrolls independently
+ *   3. content — cards and tables inside the canvas
+ *
+ * Visual contract: packages/brand/platform.css. See docs/DESIGN.md.
+ */
+
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { betterAuthClient } from "./auth-client";
-import { Status } from "./primitives";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  Building2,
+  ChevronRight,
+  ClipboardCheck,
+  FileText,
+  FlaskConical,
+  LayoutGrid,
+  LifeBuoy,
+  Loader2,
+  LogOut,
+  Mail,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plug,
+  Settings,
+  SlidersHorizontal,
+  Unplug,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,8 +40,256 @@ import {
   SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { betterAuthClient } from "./auth-client";
 import { t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
+
+type NavItem = { href: string; label: string; icon: ReactNode };
+type NavGroup = { label?: string; items: NavItem[] };
+
+/* Breadcrumb labels. A route missing here falls back to a humanised segment,
+   so a new page is never labelled with a raw slug for long. */
+const CRUMBS: Record<string, string> = {
+  ops: "Operations",
+  clients: t("clients"),
+  evaluations: t("product"),
+  review: t("reviewQueue"),
+  reports: t("reports"),
+  platform: t("platform"),
+  runs: "Runs",
+  workspace: "Workspace",
+  systems: t("systems"),
+  settings: t("settings"),
+  invitations: t("invitations"),
+  new: t("newEvaluationAction"),
+};
+
+function crumbLabel(segment: string) {
+  if (CRUMBS[segment]) return CRUMBS[segment];
+  // Opaque ids (uuids, hashes) are not useful breadcrumbs — show a short form.
+  if (/^[0-9a-f-]{16,}$/i.test(segment)) return `${segment.slice(0, 8)}…`;
+  const words = segment.replaceAll("-", " ");
+  return words[0]?.toUpperCase() + words.slice(1);
+}
+
+function navFor(identity: EvalIdentity): NavGroup[] {
+  const operator =
+    identity.platformRole === "operator" || identity.platformRole === "platform_admin";
+  const groups: NavGroup[] = [];
+
+  if (operator) {
+    groups.push(
+      { items: [{ href: "/ops", label: t("overview"), icon: <LayoutGrid /> }] },
+      {
+        label: "Deliver",
+        items: [
+          { href: "/ops/clients", label: t("clients"), icon: <Building2 /> },
+          { href: "/ops/evaluations", label: t("product"), icon: <FlaskConical /> },
+          { href: "/ops/review", label: t("reviewQueue"), icon: <ClipboardCheck /> },
+          { href: "/ops/reports", label: t("reports"), icon: <FileText /> },
+        ],
+      },
+      {
+        label: "Platform",
+        items: [
+          { href: "/ops/platform", label: t("platform"), icon: <SlidersHorizontal /> },
+        ],
+      },
+    );
+  }
+
+  /* Group labels earn their place. A sidebar with a heading above every single
+     item is noise, so the workspace items stay in one group and only carry a
+     label when an operator nav sits above them and needs disambiguating. */
+  if (identity.workspaces.length) {
+    groups.push({
+      label: operator ? "Workspace" : undefined,
+      items: [
+        { href: "/workspace/evaluations", label: t("product"), icon: <FlaskConical /> },
+        { href: "/workspace/systems", label: t("systems"), icon: <Plug /> },
+        { href: "/workspace/reports", label: t("reports"), icon: <FileText /> },
+      ],
+    });
+  }
+
+  groups.push({
+    label: "Account",
+    items: [
+      ...(identity.workspaces.length
+        ? [{ href: "/workspace/settings", label: t("settings"), icon: <Settings /> }]
+        : []),
+      { href: "/workspace/invitations", label: t("invitations"), icon: <Mail /> },
+    ],
+  });
+
+  return groups;
+}
+
+function isCurrent(pathname: string, href: string) {
+  if (href === "/ops") return pathname === "/ops";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function initials(identity: EvalIdentity) {
+  const source = identity.user.name || identity.user.email;
+  const parts = source.split(/[\s._@-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).slice(0, 2) || source.slice(0, 2);
+}
+
+/* ------------------------------------------------------------------ nav --- */
+
+function Nav({
+  groups,
+  collapsed = false,
+  onNavigate,
+}: {
+  groups: NavGroup[];
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
+  const pathname = usePathname();
+  return (
+    <nav id="p-sidebar-nav" className="p-nav" aria-label={t("navigation")}>
+      {groups.map((group, index) => (
+        <div className="p-nav-group" key={group.label ?? `group-${index}`}>
+          {group.label && <p className="p-nav-label">{group.label}</p>}
+          {group.items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="p-nav-item"
+              aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
+              // On the rail the label is visually collapsed but stays in the
+              // DOM, so the link keeps its accessible name. `title` gives mouse
+              // users the same information the sighted label used to.
+              title={collapsed ? item.label : undefined}
+              onClick={onNavigate}
+            >
+              {item.icon}
+              <span className="p-nav-label-text">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/** Full lockup when there is room, the mark alone on the rail. */
+function Brand({ collapsed = false }: { collapsed?: boolean }) {
+  return (
+    <Link className="p-brand" href="/evaluation-entry" aria-label={t("brand")}>
+      {collapsed ? (
+        <Image
+          className="p-brand-mark"
+          src="/caudals-logo-icon.png"
+          alt=""
+          width={80}
+          height={80}
+          priority
+        />
+      ) : (
+        <Image
+          className="p-brand-wordmark"
+          src="/caudals-logo-wordmark.png"
+          alt=""
+          width={321}
+          height={108}
+          priority
+        />
+      )}
+    </Link>
+  );
+}
+
+/* -------------------------------------------------------------- account --- */
+
+function AccountMenu({
+  identity,
+  signingOut,
+  onSignOut,
+}: {
+  identity: EvalIdentity;
+  signingOut: boolean;
+  onSignOut: () => void;
+}) {
+  const operator =
+    identity.platformRole === "operator" || identity.platformRole === "platform_admin";
+  const workspace = identity.workspaces[0];
+  /* Modal is the Radix default and is kept deliberately: a non-modal menu
+     portalled inside the mobile drawer (itself a modal dialog) cannot be
+     reopened reliably. Selecting an item closes the menu, which lifts the
+     aria-hidden it puts on the shell, so a status the shell then reports —
+     a sign-out failure — is reachable. */
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="p-account">
+          <span className="p-avatar" aria-hidden="true">
+            {initials(identity)}
+          </span>
+          <span className="p-account-text">
+            <span className="p-account-name">
+              {identity.user.name || identity.user.email}
+            </span>
+            <span className="p-account-meta">
+              {operator ? t("ops") : (workspace?.name ?? t("customer"))}
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="p-menu"
+      >
+        <p className="p-menu-label">{identity.user.email}</p>
+        <DropdownMenuSeparator className="p-menu-sep" />
+        {identity.workspaces.length > 0 && (
+          <DropdownMenuItem asChild className="p-menu-item">
+            <Link href="/workspace/settings">
+              <Settings aria-hidden="true" />
+              {t("settings")}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem asChild className="p-menu-item">
+          <Link href="/workspace/invitations">
+            <Mail aria-hidden="true" />
+            {t("invitations")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="p-menu-item">
+          <a href="mailto:hello@caudals.com?subject=Caudals%20platform">
+            <LifeBuoy aria-hidden="true" />
+            Contact Caudals
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="p-menu-sep" />
+        <DropdownMenuItem
+          className="p-menu-item"
+          data-tone="danger"
+          disabled={signingOut}
+          onSelect={() => onSignOut()}
+        >
+          {signingOut ? <Loader2 aria-hidden="true" /> : <LogOut aria-hidden="true" />}
+          {t(signingOut ? "signingOut" : "signOut")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/* ---------------------------------------------------------------- shell --- */
 
 export function EvalShell({
   identity,
@@ -24,9 +299,33 @@ export function EvalShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
+  const groups = navFor(identity);
+
+  /* The sidebar state is a per-device preference, not account data. */
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem("caudals.sidebar") === "collapsed");
+    } catch {
+      /* private mode or blocked storage — the default is correct */
+    }
+  }, []);
+
+  function toggleSidebar() {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem("caudals.sidebar", next ? "collapsed" : "open");
+      } catch {
+        /* preference is best-effort */
+      }
+      return next;
+    });
+  }
+
   async function signOut() {
     if (signingOut) return;
     setSigningOut(true);
@@ -41,103 +340,140 @@ export function EvalShell({
       setSigningOut(false);
     }
   }
-  const account = (
-    <div className="eval-account">
-      <span>{t("signedIn")}</span>
-      <strong>{identity.user.email}</strong>
-      <Button
-        type="button"
-        variant="outline"
-        disabled={signingOut}
-        onClick={signOut}
-      >
-        {t(signingOut ? "signingOut" : "signOut")}
-      </Button>
-      {signOutError && <Status error>{t("signOutError")}</Status>}
-    </div>
-  );
-  const operator =
-    identity.platformRole === "operator" ||
-    identity.platformRole === "platform_admin";
-  const links = [
-    ...(operator ? [
-      { href: "/ops", label: t("overview") },
-      { href: "/ops/clients", label: t("clients") },
-      { href: "/ops/evaluations", label: t("product") },
-      { href: "/ops/review", label: t("reviewQueue") },
-      { href: "/ops/reports", label: t("reports") },
-      { href: "/ops/platform", label: t("platform") },
-    ] : []),
-    ...(identity.workspaces.length
-      ? [
-          { href: "/workspace/evaluations", label: t("product") },
-          { href: "/workspace/systems", label: t("systems") },
-          { href: "/workspace/reports", label: t("reports") },
-          { href: "/workspace/settings", label: t("settings") },
-        ]
-      : []),
-    { href: "/workspace/invitations", label: t("invitations") },
-  ];
-  const nav = (
-    <nav aria-label={t("navigation")}>
-      {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          aria-current={pathname === link.href ? "page" : undefined}
-          onClick={() => setOpen(false)}
-        >
-          {link.label}
-        </Link>
-      ))}
-    </nav>
-  );
+
+  const segments = pathname.split("/").filter(Boolean);
+  const crumbs = segments.map((segment, index) => ({
+    label: crumbLabel(segment),
+    href: `/${segments.slice(0, index + 1).join("/")}`,
+    last: index === segments.length - 1,
+  }));
+
   return (
-    <div className="eval-shell" lang="en">
-      <a className="eval-skip" href="#eval-main">
+    <div className="p-root">
+      <a className="p-skip" href="#p-main">
         {t("skip")}
       </a>
-      <aside className="eval-sidebar">
-        <Link className="eval-brand" href="/evaluation-entry">
-          {t("brand")}
-        </Link>
-        <p className="eval-eyebrow">{operator ? t("ops") : t("customer")}</p>
-        {nav}
-        {account}
-      </aside>
-      <div className="eval-body">
-        <header className="eval-context">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="eval-mobile-menu"
-                aria-label={t("openNavigation")}
-              >
-                <Menu aria-hidden="true" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="eval-drawer motion-reduce:animate-none"
+      <div className="p-shell" data-collapsed={collapsed ? "true" : "false"}>
+        <aside className="p-sidebar">
+          <div className="p-sidebar-head">
+            <Brand collapsed={collapsed} />
+            <button
+              type="button"
+              className="p-btn"
+              data-variant="ghost"
+              data-shape="icon"
+              onClick={toggleSidebar}
+              aria-expanded={!collapsed}
+              aria-controls="p-sidebar-nav"
+              aria-label={collapsed ? t("expandNavigation") : t("collapseNavigation")}
+              title={collapsed ? t("expandNavigation") : t("collapseNavigation")}
             >
-              <SheetTitle>{t("brand")}</SheetTitle>
-              <SheetDescription>
-                {operator ? t("ops") : t("customer")}
-              </SheetDescription>
-              {nav}
-              {account}
-            </SheetContent>
-          </Sheet>
-          <span>{pathname.startsWith("/ops") ? t("ops") : t("customer")}</span>
-          <span className="eval-context-user">
-            {identity.user.name || identity.user.email}
-          </span>
-        </header>
-        <main id="eval-main" tabIndex={-1}>
-          {children}
-        </main>
+              {collapsed ? (
+                <PanelLeftOpen aria-hidden="true" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" />
+              )}
+            </button>
+          </div>
+          <Nav groups={groups} collapsed={collapsed} />
+          <div className="p-sidebar-foot">
+            {signOutError && (
+              <p role="alert" className="p-status" data-tone="error">
+                <Unplug aria-hidden="true" />
+                <span>{t("signOutError")}</span>
+              </p>
+            )}
+            <AccountMenu identity={identity} signingOut={signingOut} onSignOut={signOut} />
+          </div>
+        </aside>
+
+        <div className="p-body">
+          <header className="p-topbar">
+            <Sheet open={drawer} onOpenChange={setDrawer}>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="p-btn p-mobile-only"
+                  data-variant="ghost"
+                  data-shape="icon"
+                  aria-label={t("openNavigation")}
+                >
+                  <PanelLeftOpen aria-hidden="true" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-root p-drawer">
+                <SheetTitle asChild>
+                  <span className="p-brand" style={{ marginBottom: 6 }}>
+                    <Image
+                      className="p-brand-wordmark"
+                      src="/caudals-logo-wordmark.png"
+                      alt={t("brand")}
+                      width={321}
+                      height={108}
+                    />
+                  </span>
+                </SheetTitle>
+                <SheetDescription className="p-nav-label" style={{ marginBottom: 10 }}>
+                  {identity.platformRole === "operator" ||
+                  identity.platformRole === "platform_admin"
+                    ? t("ops")
+                    : t("customer")}
+                </SheetDescription>
+                <Nav groups={groups} onNavigate={() => setDrawer(false)} />
+                <div className="p-sidebar-foot">
+                  {/* The failure has to be reported in whichever shell the
+                      person is actually looking at, drawer included. */}
+                  {signOutError && (
+                    <p role="alert" className="p-status" data-tone="error">
+                      <Unplug aria-hidden="true" />
+                      <span>{t("signOutError")}</span>
+                    </p>
+                  )}
+                  <AccountMenu
+                    identity={identity}
+                    signingOut={signingOut}
+                    onSignOut={signOut}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <nav aria-label="Breadcrumb">
+              <ol className="p-crumbs">
+                {crumbs.map((crumb) => (
+                  <li key={crumb.href}>
+                    {crumb.last ? (
+                      <span aria-current="page">{crumb.label}</span>
+                    ) : (
+                      <>
+                        <Link href={crumb.href}>{crumb.label}</Link>
+                        <ChevronRight className="p-crumb-sep" size={13} aria-hidden="true" />
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </nav>
+
+            <span className="p-topbar-spacer" />
+
+            <div className="p-topbar-actions">
+              <a
+                className="p-btn"
+                data-variant="secondary"
+                data-shape="pill"
+                href="mailto:hello@caudals.com?subject=Caudals%20platform"
+              >
+                <LifeBuoy aria-hidden="true" />
+                Help
+              </a>
+            </div>
+          </header>
+
+          <main id="p-main" className="p-canvas" tabIndex={-1}>
+            <div className="p-page">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );

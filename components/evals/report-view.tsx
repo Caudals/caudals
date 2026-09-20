@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { evalRequest } from "./api";
-import { PageHeading, Status } from "./primitives";
+import { Badge, Loading, PageHeading, Stat, StatGrid, Status, StatusBadge, Tabs } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 
@@ -14,7 +13,7 @@ type Result = ReportSnapshot["results"][number];
 
 function ResultEvidence({ result }: { result: Result }) {
   return <div className="eval-result-evidence">
-    <p className="eval-eyebrow">{result.severity} · {result.outcome}</p>
+    <p className="p-row" style={{ gap: 6 }}><StatusBadge value={result.severity} /><StatusBadge value={result.outcome} /></p>
     <h3>{result.title}</h3>
     <h4>{t("input")}</h4><pre>{result.input}</pre>
     <h4>{t("output")}</h4><pre>{result.output}</pre>
@@ -32,11 +31,11 @@ function ResultInspector({ results }: { results: Result[] }) {
   const [selected, setSelected] = useState<Result | null>(null);
   return <section className="eval-results-layout">
     <div className="eval-results-list" aria-label={t("results")}>
-      {results.map((item) => <button type="button" className="eval-result-row" data-selected={selected?.assessment_id === item.assessment_id} key={item.assessment_id} onClick={() => setSelected(item)}><span>{item.title}</span><small>{item.outcome} · {item.review_status}</small></button>)}
+      {results.map((item) => <button type="button" className="eval-result-row" data-selected={selected?.assessment_id === item.assessment_id} key={item.assessment_id} onClick={() => setSelected(item)}><span>{item.title}</span><span className="p-row" style={{ gap: 6, marginTop: 4 }}><StatusBadge value={item.outcome} /><small>{item.review_status.replaceAll("_", " ")}</small></span></button>)}
     </div>
     {selected && <aside className="eval-result-desktop" aria-live="polite"><ResultEvidence result={selected} /></aside>}
     <Dialog open={mobile && !!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
-      {selected && <DialogContent className="eval-result-mobile"><DialogHeader><DialogTitle>{selected.title}</DialogTitle><DialogDescription>{selected.outcome} · {selected.review_status}</DialogDescription></DialogHeader><ResultEvidence result={selected} /></DialogContent>}
+      {selected && <DialogContent className="p-dialog eval-result-mobile"><DialogHeader><DialogTitle>{selected.title}</DialogTitle><DialogDescription>{selected.outcome} · {selected.review_status}</DialogDescription></DialogHeader><ResultEvidence result={selected} /></DialogContent>}
     </Dialog>
   </section>;
 }
@@ -45,13 +44,13 @@ export function ReportView({ report }: { report: Partial<ReportSnapshot> }) {
   const [tab, setTab] = useState<Tab>("overview");
   const tabs: Tab[] = ["overview", "findings", "results", "improvements", "methodology"];
   return <>
-    <PageHeading title={report.system?.name ?? t("report")}>{report.scope ? `${report.scope.review_status} · ${report.metrics?.n_scorable ?? 0} of ${report.metrics?.n_eligible ?? 0} assessed` : t("privateReport")}</PageHeading>
-    <div role="tablist" aria-label={t("reportSections")} className="eval-tabs">{tabs.map((item) => <Button key={item} role="tab" aria-selected={tab === item} variant={tab === item ? "secondary" : "ghost"} onClick={() => setTab(item)}>{t(item)}</Button>)}</div>
-    {tab === "overview" && <section className="eval-panel"><h2>{t("overview")}</h2><p className="eval-score">{report.metrics?.strict_pass_rate == null ? t("notAvailable") : `${(report.metrics.strict_pass_rate * 100).toFixed(1)}%`}</p><p>{report.metrics?.n_pass ?? 0} {t("passedOf")} {report.metrics?.n_scorable ?? 0}. {report.metrics?.headline_status === "incomplete" && t("incompleteReport")}</p>{report.takeaways?.map((item, index) => <p key={index}>{item.text}</p>)}</section>}
-    {tab === "findings" && <section>{report.findings?.map((item) => <article className="eval-panel" key={item.id}><p className="eval-eyebrow">{item.severity} · {item.frequency_n}/{item.frequency_denominator}</p><h2>{item.title}</h2><p>{item.observation}</p><p><strong>{t("recommendedAction")}:</strong> {item.recommendation}</p>{item.cause_hypothesis && <p><strong>{t("hypothesis")}:</strong> {item.cause_hypothesis}</p>}</article>)}</section>}
+    <PageHeading title={report.system?.name ?? t("report")}>{report.scope ? `${report.scope.review_status.replaceAll("_", " ")} · ${report.metrics?.n_scorable ?? 0} of ${report.metrics?.n_eligible ?? 0} assessed` : t("privateReport")}</PageHeading>
+    <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs.map((item) => ({ value: item, label: t(item) }))} />
+    {tab === "overview" && <section className="p-stack"><div className="p-card"><p className="p-stat-label">{t("strictPassRate")}</p>{report.metrics?.strict_pass_rate == null ? <p>{t("notAvailable")}</p> : <p className="eval-score">{(report.metrics.strict_pass_rate * 100).toFixed(1)}%</p>}<p>{report.metrics?.n_pass ?? 0} {t("passedOf")} {report.metrics?.n_scorable ?? 0}.{report.metrics?.headline_status === "incomplete" ? ` ${t("incompleteReport")}` : ""}</p></div><StatGrid><Stat label={t("passed")} value={`${report.metrics?.n_pass ?? 0} / ${report.metrics?.n_scorable ?? 0}`} meta={t("scorableTests")} /><Stat label={t("eligible")} value={report.metrics?.n_eligible ?? 0} meta={t("eligibleTests")} /><Stat label={t("statusLabel")} value={<StatusBadge value={report.metrics?.headline_status} />} /></StatGrid>{report.takeaways?.length ? <div className="p-card"><h3>{t("takeaways")}</h3>{report.takeaways.map((item, index) => <p key={index}>{item.text}</p>)}</div> : null}</section>}
+    {tab === "findings" && <section>{report.findings?.map((item) => <article className="eval-panel" key={item.id}><p className="p-row" style={{ gap: 6 }}><StatusBadge value={item.severity} /><Badge>{item.frequency_n}/{item.frequency_denominator}</Badge></p><h2>{item.title}</h2><p>{item.observation}</p><p><strong>{t("recommendedAction")}:</strong> {item.recommendation}</p>{item.cause_hypothesis && <p><strong>{t("hypothesis")}:</strong> {item.cause_hypothesis}</p>}</article>)}</section>}
     {tab === "results" && <ResultInspector results={report.results ?? []} />}
     {tab === "improvements" && <section>{report.improvements?.map((item) => <article className="eval-panel" key={item.id}><h2>{item.priority}. {item.title}</h2><p>{item.validation_plan}</p></article>)}</section>}
-    {tab === "methodology" && <section className="eval-panel"><h2>{t("methodology")}</h2><p>CEF {report.methodology?.cef_version} · {report.methodology?.scorer_version}</p><ul>{report.methodology?.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul><p><code>{report.report_revision_id}</code></p></section>}
+    {tab === "methodology" && <section className="eval-panel"><h2>{t("methodology")}</h2><p>CEF {report.methodology?.cef_version} · {report.methodology?.scorer_version}</p><ul>{report.methodology?.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul><p><code className="p-code">{report.report_revision_id}</code></p></section>}
   </>;
 }
 
@@ -61,7 +60,7 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
   const [error, setError] = useState("");
   useEffect(() => { if (!orgId) return; void evalRequest<{ report: { current_revision_id: string }; revisions: Array<{ id: string; snapshot: ReportSnapshot }> }>(`/reports/${reportId}?orgId=${orgId}`).then((data) => setReport(data.revisions.find((item) => item.id === data.report.current_revision_id)?.snapshot ?? data.revisions[0]?.snapshot ?? null)).catch(() => setError(t("error"))); }, [orgId, reportId]);
   if (error) return <Status error>{error}</Status>;
-  if (!report) return <Status>{t("loading")}</Status>;
+  if (!report) return <Loading />;
   return <ReportView report={report} />;
 }
 
@@ -71,6 +70,6 @@ export function SharedReport() {
   const [error, setError] = useState("");
   useEffect(() => { if (!token) return; history.replaceState(null, "", location.pathname); void fetch("/api/evals/v1/share/exchange", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) }).then(async (response) => { if (!response.ok) throw new Error(); return (await response.json()).data; }).then(setReport).catch(() => setError(t("shareUnavailable"))); }, [token]);
   if (!token || error) return <Status error>{t("shareUnavailable")}</Status>;
-  if (!report) return <Status>{t("loadingReport")}</Status>;
+  if (!report) return <Loading>{t("loadingReport")}</Loading>;
   return <ReportView report={report} />;
 }

@@ -14,8 +14,10 @@ export default async function InvitationPage() {
   return identity ? (
     <EvalShell identity={identity}>{content}</EvalShell>
   ) : (
-    <div className="eval-shell" lang="en">
-      <main className="eval-public">{content}</main>
+    <div className="p-root" lang="en">
+      <main id="p-main" className="p-page">
+        {content}
+      </main>
     </div>
   );
 }

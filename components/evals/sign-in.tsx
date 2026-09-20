@@ -6,8 +6,7 @@ import { betterAuthClient } from "./auth-client";
 import { useAuthDestination } from "./use-auth-destination";
 import { evaluationRecoveryPath } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
-import { Field, Status } from "./primitives";
-import { Button } from "@/components/ui/button";
+import { Action, Field, Status } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 export function EvaluationSignIn({ next }: { next?: string }) {
   const router = useRouter();
@@ -77,8 +76,14 @@ export function EvaluationSignIn({ next }: { next?: string }) {
     <AuthFrame
       title={t(challenge ? "totpTitle" : "signInTitle")}
       description={t(challenge ? "totpHelp" : "signInHelp")}
+      footer={
+        <>
+          {destination.includes("#") && <p>{t("recoveryInvitationHelp")}</p>}
+          <p>{t(challenge ? "totpRecoveryHelp" : "invitationOnly")}</p>
+        </>
+      }
     >
-      <form className="eval-form" onSubmit={submit} aria-busy={pending}>
+      <form className="p-auth-form" onSubmit={submit} aria-busy={pending}>
         {challenge ? (
           <Field
             ref={codeInput}
@@ -120,7 +125,7 @@ export function EvaluationSignIn({ next }: { next?: string }) {
           </>
         )}
         {error && <Status error>{error}</Status>}
-        <Button type="submit" disabled={pending}>
+        <Action type="submit" block disabled={pending}>
           {t(
             pending
               ? challenge
@@ -130,11 +135,11 @@ export function EvaluationSignIn({ next }: { next?: string }) {
                 ? "verifyCode"
                 : "signInAccount",
           )}
-        </Button>
+        </Action>
         {challenge && (
-          <Button
-            variant="outline"
-            type="button"
+          <Action
+            variant="secondary"
+            block
             disabled={pending}
             onClick={() => {
               setChallenge(false);
@@ -143,14 +148,10 @@ export function EvaluationSignIn({ next }: { next?: string }) {
             }}
           >
             {t("restartSignIn")}
-          </Button>
+          </Action>
         )}
-        <Link href={evaluationRecoveryPath(destination)}>{t("recovery")}</Link>
-        {destination.includes("#") && (
-          <p className="eval-auth-note">{t("recoveryInvitationHelp")}</p>
-        )}
-        <p className="eval-auth-note">
-          {t(challenge ? "totpRecoveryHelp" : "invitationOnly")}
+        <p className="p-auth-note" style={{ marginTop: 0 }}>
+          <Link href={evaluationRecoveryPath(destination)}>{t("recovery")}</Link>
         </p>
       </form>
     </AuthFrame>

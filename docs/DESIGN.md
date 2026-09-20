@@ -1,170 +1,310 @@
 # Caudals Design System
 
-Single source of truth for the visual + interaction language across every surface: public landing, contact, blog, internal admin, evaluation dashboards and reports, and the `/proof` demo. Light-mode only. Anything not specified here defers to `app/globals.css` (tokens) and `c-design/Caudals Design System/` (recipes, previews, UI kits).
+Two design languages live in this repository. They are deliberately different and must not be blended.
 
-## Agent Instructions
-When building or refactoring any UI:
-1. Match the **live landing page** before introducing new aesthetics. Re-use existing primitives in `components/ui/*` and `components/landing/*` before inventing.
-2. Use the **tokenized values** below — never hand-roll colors, radii, or shadows.
-3. Editorial calm: off-white canvas, white cards, **near-black** (`#111827`) type, three-tier gray, single **emerald/teal** accent, one **serif italic** word as the signature display move.
-4. **Black CTAs, emerald/teal accents.** Primary actions are never teal. Teal is reserved for status, eyebrows, focus, the italic display word, and soft pills.
-5. **No emoji, no purple-blue gradients, no harsh shadows, no inner shadows, no parallax beyond the hero Spline scene.**
-6. **No webfonts.** Native SF / system stack; serif via `"New York", "Iowa", Georgia, serif` for the italic accent only.
-7. Dense admin and evaluation screens must stay readable under time pressure — favor hairline dividers (`gap-px bg-gray-100`) over heavy borders.
+| | **Platform** | **Marketing** |
+| --- | --- | --- |
+| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/equipo`, `/legal/*` |
+| Character | Dense, neutral, instrument-like. An evidence tool. | Editorial, calm, typographic. A point of view. |
+| Source of truth | `packages/brand/platform.css` | `packages/brand/tokens.css`, `app/globals.css` |
+| Governed by | **§1–§12 of this document** | **§13 of this document** |
 
-## Scope
-- **In scope:** landing, contact, blog, `/admin/*`, planned evaluation surfaces (operator authoring and grading, restricted expert workspace, customer dashboard, `/proof`), evaluation report PDFs, responsive (mobile · tablet · desktop), all server-rendered pages, PWA shells.
-- **Out of scope:** dark mode (deferred), schema/domain contract changes, legacy surfaces (`/buyer`, `/supplier`) — fix defects only, no redesign.
+This document is the authority for both. Where it and the code disagree, fix the code.
 
-## Experience Principles
-1. **Editorial calm.** Evidence should feel precise, quiet, serious. Headings are `font-normal` (400), not bold — boldness is reserved for labels.
-2. **Typography is the hero.** One serif italic word inside an otherwise neutral display headline (`font-serif italic text-teal-700/90`) is the signature.
-3. **Content breathes.** Public sections use `py-24 sm:py-32`, container `max-w-5xl`, side gutters `px-6 sm:px-8 lg:px-12`.
-4. **Trust is operational.** Source citation, suite version, run, verdict, grader and reviewer must be visible on every case and result — surface them as chips/dots, not buried fields.
-5. **Motion is deliberate.** One `cubic-bezier(0.22, 1, 0.36, 1)` ease everywhere. Entrance reveals are `opacity 0→1, y 20→0, 500–800ms`, staggered `0.05–0.1s`. No bounces, no springs.
+---
 
-## Foundation Tokens
-Single source: `app/globals.css` (production) mirrored in `c-design/Caudals Design System/colors_and_type.css`. Use these names, not raw hex.
+# Part I — The Platform
 
-```css
-/* Surfaces */
---ds-canvas:        #f9fafb;  /* page background */
---ds-sidebar-bg:    #f9fafb;
---ds-surface:       #ffffff;  /* cards, popovers, dialogs */
---ds-surface-muted: #f9fafb;
---ds-border-soft:   #f3f4f6;  /* hairlines, table dividers */
---ds-border-strong: #e5e7eb;  /* inputs, edges that must be seen */
+## 1. Agent instructions
 
-/* Text — three-tier gray; never pure black for body */
---ds-text-primary:   #111827; /* gray-900 */
---ds-text-secondary: #6b7280; /* gray-500 */
---ds-text-tertiary:  #9ca3af; /* gray-400 */
+Read this before writing any platform UI.
 
-/* Brand accent (emerald/teal — interchangeable names) */
---ds-accent:        #059669;  /* emerald-600 — primary state color */
---ds-accent-hover:  #047857;  /* emerald-700 */
---ds-accent-soft:   #ecfdf5;  /* emerald-50 — soft fills */
---ds-accent-soft-2: #d1fae5;  /* emerald-100 */
---ds-accent-text:   #047857;  /* text on soft */
-/* Display accent (serif-italic word only, ~90% opacity) */
---ds-accent-teal:   #0f766e;  /* teal-700 */
+1. **Compose, do not invent.** Build from `components/evals/primitives.tsx`. If the screen needs something the kit does not have, add it *to the kit* and document it here — never style inline, never add a one-off class in a component file.
+2. **Never hand-roll a value.** Every colour, radius, shadow, duration, easing, font size and tracking value comes from a `--p-*` token in `packages/brand/platform.css`. A literal `#hex`, `12px` radius or `300ms` in a component is a defect.
+3. **No webfonts.** The native system stack, tuned. See §4.
+4. **Monochrome chrome, semantic colour.** Black primary actions, greyscale everything else. A colour on screen is reporting a verdict, a severity or a chart series. If it is decorating, delete it.
+5. **Never show a raw enum.** `needs_review` reaches a customer as a "Needs review" pill, via `StatusBadge`. See §8.
+6. **Colour is never the only signal.** Every verdict is a colour *and* a word.
+7. **Exact motion values.** `cubic-bezier(0.23, 1, 0.32, 1)` is not `ease-out`. `0.97` is not `0.95`. Use what §10 says.
+8. **Do not import `platform.css` into a marketing route**, and do not import `globals.css` tokens into a platform component.
 
-/* Semantic */
---ds-danger:  #dc2626;  --ds-danger-soft:  #fef2f2;
---ds-warning: #d97706;  --ds-warning-soft: #fffbeb;
---ds-info:    #2563eb;  --ds-info-soft:    #eff6ff;
+## 2. Origin and intent
 
-/* CTA — primary action is near-black, never teal */
---ds-cta-bg:       #111827;
---ds-cta-bg-hover: #1f2937;
---ds-cta-text:     #ffffff;
+The language is modelled on ElevenLabs' dashboards: a warm off-white chrome, a floating white content canvas, a quiet icon sidebar, near-black primary actions, and status carried entirely by small pills. It was chosen because it is the right dress for what Caudals sells — dense, checkable evidence read under time pressure — not because it is fashionable.
 
-/* Radii */
---ds-radius-xs:   6px;
---ds-radius-sm:   8px;
---ds-radius-md:  10px;  /* default for buttons, inputs */
---ds-radius-lg:  12px;
---ds-radius-xl:  16px;  /* cards, panels */
---ds-radius-pill: 999px; /* hero waitlist, status dots, live pills */
+Three principles follow from that:
 
-/* Shadows — two utility tiers + hero */
---shadow-xs:        0 1px 2px 0 rgba(0,0,0,0.05);   /* inputs, buttons */
---ds-shadow-surface:0 1px 2px rgba(0,0,0,0.02);     /* settled cards */
---ds-shadow-overlay:0 10px 30px rgba(0,0,0,0.08);   /* popovers, dropdowns, hover-lift */
---shadow-soft-md:   0 18px 30px -25px rgba(15,23,42,0.18);
---shadow-soft-lg:   0 22px 45px -25px rgba(15,23,42,0.25);
---shadow-hero:      0 48px 120px -56px rgba(15,23,42,0.62); /* hero preview only */
-/* No inner shadows. No glow. */
+**Instrument, not brochure.** The platform reports findings. It does not persuade. No hero copy, no gradients, no illustration, no emoji.
+
+**Every pixel of colour is a claim.** In a report about whether an AI system passes or fails, a green pill is data. Spending green on a decorative accent devalues the green that means "pass".
+
+**Quiet chrome, loud content.** The shell recedes to a single grey plane. The content canvas is the only bright surface on screen.
+
+## 3. The three planes
+
+The single most recognisable move in the language. Keep them distinct.
+
+```
+┌─ chrome  #f3f3f1 ─────────────────────────────────────────┐
+│ sidebar          ┌─ canvas  #ffffff, r14, shadow-border ─┐│
+│ (transparent,    │                                       ││
+│  no border)      │  ┌─ card  #ffffff, r12, shadow ────┐  ││
+│                  │  └──────────────────────────────────┘  ││
+│ account chip     └───────────────────────────────────────┘│
+└───────────────────────────────────────────────────────────┘
 ```
 
-## Typography
-- **Family:** `-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, …`. No webfont loaded — Inter substitutes silently on non-Apple devices.
-- **Serif accent:** `"New York", "Iowa", Georgia, serif` — used **only** italic, **only** for one or two words inside a display headline, **only** in `text-teal-700/90`.
-- **Mono:** `ui-monospace, SFMono-Regular, Menlo, …` — citation and case-ID chips, console mockups.
-- **Display weight is 400** (`font-normal`) with tight tracking (`-0.02em` to `-0.03em`). Bold (700) is reserved for: eyebrows, labels, button copy, table column headers, status pills, card H3.
-- **Hierarchy:**
-  - Hero: `text-5xl sm:text-7xl lg:text-8xl` (48 → 72 → 96), `font-normal tracking-tight text-black`.
-  - Section H2: `text-4xl sm:text-5xl font-normal tracking-tight`.
-  - Card H3: `text-lg font-bold text-black`.
-  - Body: `text-base leading-relaxed text-gray-500` (long form) / `text-sm` (cards) / `text-xs` (meta).
-  - Eyebrow: `text-[13px] font-bold text-teal-600 mb-4`.
-  - Overline / micro-label: `text-[10px]–text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400` (column headers, "LIVE", "AVAILABLE", "EVALUATION CONSOLE").
-- **Tabular nums** on every number in a list, table, stat tile, or financial column.
+1. **Chrome** (`--p-chrome`) — the window backdrop, shared by the sidebar and the topbar. The sidebar carries a **full-height `1px` right border** in `--p-border`. It is the one border in the shell that earns its place: the canvas edge only begins below the topbar, so without it the sidebar header and the breadcrumb row beside it read as a single continuous grey strip. A shadow cannot do this job, because neither plane is elevated above the other.
+2. **Canvas** (`--p-canvas`) — a rounded white panel, `--p-radius-xl`, `--p-shadow-border`, `8px` inset from the right and bottom of the viewport, scrolling independently of the shell.
+3. **Content** — cards, tables and tiles inside the canvas.
 
-## Layout System
-- **Public canvas:** `bg-white`. Alternating very-light bands `bg-gray-50/50` may be used between sections, but the current landing is mostly pure white.
-- **Section container:** `mx-auto max-w-5xl px-6 sm:px-8 lg:px-12` (marketing copy), `max-w-7xl` (header, wide tables and grids), `max-w-4xl` (FAQ-like long-form).
-- **Section rhythm:** `py-24 sm:py-32` for content; `py-32 sm:py-48` for the closing CTA.
-- **Header:** `h-16` sticky, transparent at top, **translucent on scroll** (`bg-white/40 backdrop-blur-[22px]`) with a subtle bottom border.
-- **Hero:** Spline 3D scene full-bleed at `opacity-85`, white→transparent fade (`bg-gradient-to-t from-white to-transparent`) handing off to the next section. Centered copy, eyebrow chip with pulsing teal dot, huge display headline with one italic serif word, waitlist input/button as a single pill, glass-card "console" preview below.
-- **Admin canvas:** `bg-canvas` (`#f9fafb`) with white panels, hairline dividers, compact trust/status chips. Sidebar 256px (`w-64`).
-- **Grids of cards** that should read as "panels welded together": use the hairline trick — `gap-px bg-gray-100` with `bg-white` children — instead of explicit borders.
+### The sidebar and its rail
 
-## Core Component Contracts
-- **Buttons** (`components/ui/button.tsx`, defaults `rounded-md`):
-  - Primary: `bg-black text-white hover:bg-black/90 font-bold`, optional `hover:scale-[1.02]`.
-  - Outline: `border-gray-200 text-black hover:bg-gray-50 font-bold`.
-  - Ghost: nav links only — `text-gray-500 hover:text-black transition-colors`.
-  - Teal is **not** a button variant; it's status.
-  - Sizes: `h-9` default, `h-12` lg, `h-14` for the closing CTA, `h-10`–`h-12` rounded-full for hero waitlist.
-- **Inputs:** `h-9–h-12`, `border-gray-200 bg-white rounded-md`. Public contact form may use bottom-border + transparent bg. Hero waitlist is `rounded-full bg-white/60 backdrop-blur-sm`. Focus ring: `focus-visible:ring-[3px] focus-visible:ring-ring/50` (teal).
-- **Badges/chips:**
-  - "LIVE" / status pill: `text-[10px] font-bold uppercase tracking-[0.12em]` in teal-700 on teal-50, with a 1.5×1.5 teal dot, optional `animate-pulse`.
-  - Available/in-progress/blocked: 1.5×1.5 dot + 11px bold text in matching semantic color (teal / amber / red).
-- **Cards/panels:** `bg-white border border-gray-100/200 rounded-xl shadow-sm` or `shadow-none`. Hover: `border-gray-300 shadow-md` + optional `hover-lift` (translate-y -4px + shadow-overlay).
-- **Glass card** (hero preview only): `bg-white/72 backdrop-blur-2xl border-gray-200/60 rounded-2xl shadow-hero`. Recipe `.glass-card` in tokens.
-- **Tables:** white surface, **horizontal hairlines only** (`divide-gray-100`), header row in gray-50/40, column headers in overline style (`text-[11px] font-medium text-gray-500`). Tabular nums on numeric columns.
-- **Feature/capability tile:** 48×48 `rounded-md bg-gray-50 text-gray-400`, hover flips to `bg-teal-50 text-teal-600`, 24×24 lucide icon.
-- **Step badge:** 40×40 `rounded-md bg-teal-50 text-teal-600`, 20×20 icon, `group-hover:scale-110`.
-- **Score figure:** display weight 400 with tabular nums, always shown with its basis — an interval (`61% ± 8`) or a count (`4 of 26`). Never a bare percentage for must-pass results.
-- **Verdict chip:** pass / partial / fail as a 1.5×1.5 dot plus 11px bold label in teal / amber / red. Must-pass failures use the danger-soft fill and sort first.
-- **Case row:** question, response excerpt, verdict, failure cause, source citation (mono chip), grader and reviewer, on horizontal hairlines.
-- **Overlays** (dropdown, popover, dialog, sheet): forced opaque white via `globals.css` `[data-slot="*-content"]` rule. The pattern: blur = floating UI; opaque = settled UI.
+The sidebar has two states, and **the control that switches them lives inside the sidebar**, never in the topbar.
 
-## Evaluation Reports (PDF)
-- Same tokens on a white A4 page: near-black type, three-tier gray, one emerald accent, serif italic only for a single cover word.
-- Structure through kicker labels, hairline tables and generous spacing — no heavy borders or fills.
-- Callouts carry meaning by color: emerald for recommended actions, amber for cautions, red only for must-pass incidents.
-- The customer's name leads the cover; Caudals appears once, small, on the last page.
-- Render HTML to PDF with Playwright Chromium (`page.pdf`, A4, `printBackground: true`) with a quiet footer carrying page numbers.
+| | Expanded | Rail |
+| --- | --- | --- |
+| Width | `--p-sidebar-w` `256px` | `--p-sidebar-w-rail` `68px` |
+| Brand | `caudals-logo-wordmark.png`, 26px tall | `caudals-logo-icon.png`, 28×28 |
+| Header | brand and toggle side by side | brand above toggle, both centred |
+| Nav item | 36px tall, 18px icon, 14px label | 44px square, icon only, label as `title` |
+| Group label | text | a hairline rule — a heading above every icon is noise |
+| Account chip | avatar, name, workspace | avatar only |
 
-## Iconography
-- **Library:** `lucide-react` only (`iconLibrary: "lucide"` in `components.json`). Stroke `2`, default size `h-4 w-4` on buttons. Icons take `currentColor`; never filled, never colorized.
-- **Sidebar nav:** `h-3.5 w-3.5`. **Inline metric/row icons:** `h-4 w-4 text-slate-500`. **Footer social:** 20×20 `currentColor`.
-- **No emoji. No unicode-as-icon** (`→`, `★`, `•` → use `ArrowRight`, `Star`, `Circle`).
+The state persists per device in `localStorage` under `caudals.sidebar`. Every read and write is wrapped in try/catch: private mode and blocked storage must fall back to expanded, not throw.
 
-## Motion
-- **Ease:** `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-soft-spring`) for everything.
-- **Durations:** `150ms` interactive, `300ms` component state, `500–800ms` entrance only.
-- **Entrance:** Framer Motion — `initial={{opacity:0, y:20}} whileInView={{opacity:1, y:0}} transition={{duration:0.5, delay:i*0.05}}`. `viewport={{once:true, margin:"-60px"}}` for scroll-triggered sections.
-- **Hover:** links `gray-500 → black`; cards lift 4px + shadow upgrade; primary CTA `scale-[1.02]`; feature tile flips gray → teal.
-- **Pulse:** `animate-pulse` on the small teal dot in the hero eyebrow chip and any "LIVE" pill.
+**A collapsed label stays in the DOM.** Only its presentation collapses (`max-width: 0; opacity: 0`), so the link keeps its accessible name and a screen reader still hears "Reports". `title` gives sighted mouse users the same information the visible label used to.
 
-## Focus
-3px ring at `--ds-accent` (`#059669`) with `ring-offset-2`. Always visible. Inputs: `focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]`.
+**Brand assets** live in `public/`: `caudals-logo-wordmark.png` (mark + "Caudals", 3212×1080) and `caudals-logo-icon.png` (the three-bar mark, 1080×1080). `caudals_logo_black.svg` is the mark in vector. Never redraw the mark in CSS and never set `alt` on the lockup inside a link that already has an `aria-label` — that would announce the name twice.
 
-## Content & Copy Hooks (visual contract)
-Design choices assume Caudals voice: confident, plain, business-class, sentence case for buttons/labels/nav/headings, ALL CAPS only inside `letter-spacing: 0.12em` micro-labels, no exclamation marks, no hype words. Hero highlight is always **one serif italic teal word**. Trust signals are **concrete numbers** (`61% ± 8`, `4 of 26 critical questions`, `48 h`, `2 weeks`).
+Those two files plus `caudals-brand.png` shipped as mode `600`, which made them unreadable to the server process and rendered as broken images in the deployed app while working fine in the harness. Everything in `public/` must be world-readable; `find public -type f ! -perm -o+r` should return nothing.
 
-Strings ship through `t()` for `en` + `es`. Never hardcode English in app/marketing/auth/PWA.
+**The sidebar carries larger type than the rest of the platform**: 14px nav labels against the 13px used for buttons and fields, 18px icons against 15–16px elsewhere, 36px rows. The sidebar is read at a glance from the corner of the eye, not studied, so it takes one step up the scale.
 
-## Acceptance Checklist
-A UI change is ready when:
-1. **Tokens only** — no ad-hoc hex/radii/shadows.
-2. **Landing parity** — public surfaces stay consistent with the live page.
-3. **Hierarchy intact** — `font-normal` display, bold reserved for labels/eyebrows/buttons, three-gray text ramp respected.
-4. **Black CTA, teal status** — primary action is never teal.
-5. **Loading / empty / error / success** states are explicit but visually subtle (dot + label, never modal-heavy).
-6. **Responsive** at mobile, tablet, desktop. Container clamps respected.
-7. **No heavy shadows**, no purple-blue gradients, no emoji, no webfont add.
-8. **Overlays opaque**, hero/header allowed blur.
-9. **Motion uses `--ease-soft-spring`**, durations match the bands above.
-10. **Evidence state surfaced** on every case and result: source, suite version, verdict, grader, reviewer.
+## 4. Typography
 
-## References
-- `app/globals.css` — production token source.
-- `c-design/Caudals Design System/colors_and_type.css` — portable mirror.
-- `c-design/Caudals Design System/preview/*.html` — visual reference cards.
-- `c-design/Caudals Design System/ui_kits/marketing/index.html` — landing recreation.
-- `components/landing/*` — live marketing primitives.
-- `components/ui/*` — shadcn primitives (style `new-york`, base `zinc`).
+No webfonts. `--p-font` is the native stack, tuned with tight display tracking and `font-variant-numeric: tabular-nums` globally so evidence columns align.
+
+| Token | Size | Weight | Tracking | Use |
+| --- | --- | --- | --- | --- |
+| `--p-text-display` | 30px | 600 | `-0.03em` | Page title (`h1`), one per page |
+| `--p-text-title` | 20px | 600 | `-0.021em` | Section heading, dialog title |
+| `--p-text-subtitle` | 16px | 600 | `-0.021em` | Card heading, empty-state title |
+| `--p-text-body` | 14px | 400 | `-0.006em` | Body, table cells, inputs |
+| `--p-text-label` | 13px | 500 | `-0.006em` | Field labels, buttons, nav |
+| `--p-text-micro` | 12px | 400–500 | `0` | Table headers, badges, meta |
+| `--p-text-nano` | 11px | 500 | `0` | Avatar initials, menu labels, source refs |
+
+Rules:
+
+- **Headings are semibold (600), not regular.** This is the clearest break from the marketing language, where headings are 400. Do not carry the editorial weight across.
+- Tracking tightens as size grows and never goes negative below 14px.
+- Measure caps at `62ch` for descriptions, `42ch` for empty-state copy.
+- The one oversized number is the report pass rate, `.eval-score`: `clamp(42px, 8vw, 66px)` / 600 / `-0.045em`.
+- Never uppercase a label. The reference uses sentence case throughout, and uppercase costs legibility in dense tables.
+
+## 5. Colour
+
+### Chrome — monochrome
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--p-chrome` | `#f3f3f1` | Window backdrop, sidebar |
+| `--p-canvas` / `--p-surface` | `#ffffff` | Content canvas, cards |
+| `--p-surface-2` | `#f7f7f5` | Hover fill, segmented track, code blocks |
+| `--p-surface-3` | `#edece9` | Active nav pill, pressed state |
+| `--p-text` | `#0c0c0b` | Primary type, primary action fill |
+| `--p-text-secondary` | `#6d6d68` | Descriptions, table headers, idle nav |
+| `--p-text-tertiary` | `#9a9a94` | Placeholders, group labels, timestamps |
+| `--p-action` | `#0c0c0b` | Primary button, focus ring, active indicator |
+
+Greys are **warm** (a green-red bias, not blue). A cool grey against `#f3f3f1` reads dirty.
+
+### Semantic — the only colour on screen
+
+| Tone | Text | Fill | Means |
+| --- | --- | --- | --- |
+| `pass` | `#15803d` | `#f0fdf4` | Passed, ready, connected, published |
+| `warn` | `#b45309` | `#fffbeb` | Needs review, paused, partial, pairing required |
+| `fail` | `#b91c1c` | `#fef2f2` | Failed, unsupported, timed out, critical |
+| `info` | `#1d4ed8` | `#eff6ff` | Running, queued, validating — in flight |
+| `neutral` | `#57534e` | `#f5f5f4` | Pending, draft, cancelled, unknown |
+
+Charts use `--p-chart-1..5`, ordered by use. A single-series chart is `--p-chart-1` (near-black), never a colour.
+
+**Emerald is gone from the platform.** It survives only as `pass`. The marketing site keeps it as a brand accent (§13); that is intentional divergence, not drift.
+
+### Dark mode
+
+Authored, not shipped. Every value that changes is redeclared under `:root[data-theme="dark"]`. Light remains the single source for scale, radii and motion. To enable: set `data-theme="dark"` on `<html>` (`next-themes` is already a dependency), then QA every screen — nothing else should need to change. On dark, the layered depth shadow collapses to a single white ring, because layered shadows are invisible on dark surfaces.
+
+## 6. Space, radius and elevation
+
+**Radii** — `xs 6 · sm 8 · md 10 · lg 12 · xl 14 · 2xl 18 · pill 999`. Nothing outside this scale.
+
+**Concentric rule: outer radius = inner radius + padding.** Mismatched radii on closely nested surfaces is the most common thing that makes an interface feel subtly wrong. The pairs in the system already satisfy it:
+
+| Outer | Padding | Inner |
+| --- | --- | --- |
+| Menu `12` | `5` | Menu item `8` |
+| Segmented track `10` | `3` | Selected thumb `6` |
+| Card `12` | `20` | — past 24px of padding, treat the layers as independent |
+
+**Elevation is a shadow; structure is a border.**
+
+- `--p-shadow-border` — a three-layer ring + lift + ambient pool. This is what a card, button or chip gets *instead of* a `1px solid` border. It is transparent, so it adapts to whatever sits behind it; a fixed border colour cannot.
+- `--p-shadow-border-hover` — the same, one step stronger. Transition `box-shadow` only.
+- `--p-shadow-raise` — the selected segmented thumb.
+- `--p-shadow-overlay` — menus, dialogs, drawers.
+
+Keep a real `border` only where it separates: table row rules, the tab underline, input outlines, list dividers.
+
+**Layout constants** — sidebar `256px` (rail `68px`), topbar `48px`, content max `1360px`, page padding `40px 32px 96px` (desktop) / `28px 20px 72px` (mobile), frame gap `8px`.
+
+The content measure is wide on purpose: these are evidence tables with four to six columns, and a narrow column forces horizontal scrolling on exactly the screens that need scanning most.
+
+## 7. The component kit
+
+`components/evals/primitives.tsx`. Import from here; do not reach for `components/ui/*` directly in a new platform screen.
+
+| Component | Renders | Notes |
+| --- | --- | --- |
+| `Action` / `ActionLink` | `.p-btn` | `variant` primary·secondary·ghost·danger, `size` sm·md·lg, `shape` default·pill·icon, `block` |
+| `Chip` | `.p-chip` | Filter affordance, `+ Label`, pill, `active` |
+| `PageHeading` | `.p-head` | `title`, optional `actions` (top-right), description as children |
+| `SectionHeading` | `.p-section-head` | Same shape, one level down |
+| `Card` | `.p-card` | Optional `title` + `actions` |
+| `Tabs` | `.p-tabs` | `variant` underline (default) or pill |
+| `Toolbar` | `.p-toolbar` | Filter row under the heading |
+| `Badge` | `.p-badge` | `tone`, `dot`, `live` |
+| `StatusBadge` | `.p-badge` | **Use for every domain status.** See §8 |
+| `Status` | `.p-status` | Inline banner, `tone` error·success·warn·info |
+| `Loading` | `.p-status` + spinner | Indeterminate wait, reads as a sentence |
+| `Progress` | `.p-progress` | Determinate, needs `label` |
+| `Stat` / `StatGrid` | `.p-stat` | `label`, `value`, `meta`, `hero` |
+| `DefinitionList` | `.p-defs` | Term/value rows |
+| `Field` / `TextArea` / `SelectField` | `.p-field` | Label always present, `hint` optional |
+| `InlineSelect` | `.p-toolbar-label` + `.p-field` | Toolbar-width select |
+| `DataTable` / `RowTitle` | `.p-table` | Header may be `{ label, align: "end" }` |
+| `EmptyState` | `.p-empty` | Icon in a rounded mark, title, copy, one CTA |
+| `SessionRecovery` | — | Sign-in + recovery pair |
+
+### Buttons
+
+Height `36` (`sm 30`, `lg 42`), radius `--p-radius-md`, label `13px/500`.
+
+- **primary** — `--p-action` fill, white text. One per page region.
+- **secondary** — white, `--p-shadow-border`. The default for anything that is not *the* action.
+- **ghost** — transparent, secondary text. Toolbars and icon buttons.
+- **danger** — `--p-fail` fill. Destructive only.
+
+Optical padding: a button with a leading or trailing icon takes `12px` on the icon side against `14px` on the text side. This is excluded for icon-only buttons — `:has()` inherits its argument's specificity and would otherwise outrank the icon shape's `padding: 0` and crush the glyph.
+
+Icon stroke matches text weight: `1.5` beside 400, `2` beside 500/600. One icon library per surface — **lucide-react**, nothing else.
+
+## 8. Status is a contract
+
+A customer must never read `capture_incomplete`.
+
+`StatusBadge` maps a domain value to a tone and a human label through the `STATUS` table in `primitives.tsx`. An unmapped value degrades to a humanised neutral pill rather than vanishing, so a new backend state is legible the day it ships — but **add the mapping** when you add the state.
+
+```tsx
+<td><StatusBadge value={evaluation.preparation_status} /></td>
+```
+
+In-flight states (`running`, `queued`, `validating`, `generating`, `checking_connection`) get a pulsing dot. Settled states get a static one. Nothing else on the platform pulses.
+
+## 9. Layout patterns
+
+**Standard page** — `PageHeading` (with `actions` for the primary CTA, top-right) → `Tabs` if the page has sections → `Toolbar` for filters → content → `EmptyState` when there is none. This is the shape of every reference screenshot and should be the shape of every list page here.
+
+**Guided flow** (`.eval-flow`) — a `660px` centred column. Numbered step heading, one decision per card. Used by the new-evaluation wizard and test-set preparation.
+
+**Inspector** (`.eval-results-layout`) — list left, sticky evidence pane right; collapses to a dialog under 1024px.
+
+**Auth** (`.p-auth`) — one centred `400px` column on the chrome plane. Wordmark, title, description, card, footnote. No split hero, no marketing copy: the person is here to get in.
+
+**Empty states** carry an icon in a 44px rounded mark, a title, one line of copy and at most one action. Never a bare sentence.
+
+## 10. Motion
+
+Exact values. `cubic-bezier(0.23, 1, 0.32, 1)` is not `cubic-bezier(0.4, 0, 0.2, 1)`.
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--p-ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | Anything entering, exiting or pressed |
+| `--p-ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` | Movement across the screen |
+| `--p-ease-crisp` | `cubic-bezier(0.2, 0, 0, 1)` | Colour and hover |
+| `--p-dur-instant` | `120ms` | Hover, colour, high-frequency |
+| `--p-dur-press` | `160ms` | Scale on press |
+| `--p-dur-pop` | `180ms` | Dropdown, popover, tooltip |
+| `--p-dur-modal` | `220ms` | Dialog, drawer |
+
+Rules:
+
+- **`scale(0.97)` on `:active`** for every pressable element. Exactly `0.97`.
+- **Never `ease-in`** on UI. It delays the first frame — the moment the user is watching hardest — so it feels slower than `ease-out` at the same duration.
+- **Never animate from `scale(0)`.** Start at `0.95`–`0.97` with opacity. Nothing in the real world appears from nothing.
+- **Popovers scale from their trigger** (`transform-origin: var(--radix-*-transform-origin)`). **Modals stay centred** — they are not anchored to anything.
+- **Transitions, not keyframes**, for anything interactive: transitions retarget mid-flight, keyframes restart from zero.
+- **Name the properties.** `transition-property: box-shadow`, never `transition: all`.
+- **Gate hover behind** `@media (hover: hover) and (pointer: fine)`. Touch devices fire hover on tap.
+- Nothing over `300ms` for an interactive change.
+- Reduced motion means *fewer and gentler*, not none: opacity and colour survive because they carry meaning; movement and scale do not.
+
+**The sidebar collapse** is the one place two easings meet, and the split is deliberate. The rail *morphs* on screen, so `grid-template-columns` takes `--p-ease-in-out` over `--p-dur-modal`. The labels inside it are *exiting*, so they take `--p-ease-out` and go faster — `90ms` out — so text is gone before the rail finishes narrowing and never clips mid-glyph.
+
+**A hidden control is still the hit target.** The radio inside a `.p-choice` card is `opacity: 0` but stretched over the whole card with `pointer-events` intact, so a click lands on the real control. Never `pointer-events: none` on an input you have visually hidden: it hands the interaction to a label, shrinks the target, and breaks assistive tech and automation alike.
+
+**Menus are modal (the Radix default), and selecting an item closes them.** A modal menu `aria-hidden`s the shell behind it; if the menu stayed open after a selection, any status the shell then reported — a failed sign-out, say — would be invisible to assistive technology. Closing on select lifts the `aria-hidden` and the message lands.
+
+## 11. Accessibility
+
+- Focus is a `2px` solid `--p-focus` ring at `2px` offset. Visible on every interactive element. Never removed without an equivalent replacement.
+- Minimum target `32px`; `36px` for primary actions.
+- Every icon-only control has an `aria-label`. Every decorative icon has `aria-hidden="true"`.
+- Tables use `<caption class="sr-only">` and `<th scope>`.
+- Live regions: `role="status"` for progress, `role="alert"` for errors, `aria-live="polite"` on run progress.
+- The skip link (`.p-skip`) is first in the shell and lands on `#p-main`.
+- Colour never carries meaning alone (§1.6).
+
+## 12. Interop and migration
+
+The platform reuses the repo's shared shadcn components rather than forking them. Inside `.p-root`, `[data-slot="button"]`, `[data-slot="input"]` and the dialog/sheet chrome are restyled to this language, so a screen that has not yet migrated to the `p-*` primitives still looks right. `components/ui/button.tsx` emits `data-variant`/`data-size` purely so this remap can target it.
+
+Two selector techniques appear throughout and are deliberate:
+
+- **Doubled class** (`.p-menu.p-menu`) raises specificity to (0,2,0) so platform rules beat a Tailwind utility at (0,1,0) **on specificity rather than on stylesheet order**, which Next does not guarantee.
+- **Tokens on `:root`, rules under `.p-root`.** Dropdowns, sheets and dialogs render through a portal at the end of `<body>`, outside `.p-root`. Custom properties declared but never referenced elsewhere cost nothing and inherit everywhere, which is exactly what portalled surfaces need.
+
+**Compatibility layer.** `app/(evaluation)/evaluation.css` ends with an alias block mapping legacy `.eval-*` class names onto the platform language, so components not yet migrated stay consistent. **Do not add names to it.** When you touch one of those components, move it to the `p-*` primitives and delete its alias.
+
+**`/admin` is frozen scope** (`AGENTS.md`). Its 1,191-line module tree is maintained, not rewritten. It adopts the platform tokens by remapping the shadcn variables it already consumes (`.p-root[data-surface="admin"]`), so it reads as the same product without touching its code. Migrate a module to the primitives when it is next opened for real work.
+
+---
+
+# Part II — Marketing
+
+## 13. The public site
+
+`caudals.com` keeps its editorial language, unchanged by the platform redesign. It is scheduled for its own pass; until then these rules stand.
+
+- Tokens: `packages/brand/tokens.css` (`--ds-*`), consumed via `app/globals.css`.
+- Off-white canvas `#fbfaf8`, white cards, near-black type `#111827`, three-tier grey.
+- **Headings are `font-normal` (400)** — the opposite of the platform. This is the point of difference between a document and an instrument.
+- One serif italic word inside a neutral display headline (`font-serif italic`, `--ds-accent-teal`) is the signature move.
+- Emerald/teal (`--ds-accent` `#059669`) is the brand accent: eyebrows, status, focus, soft pills. **Primary CTAs are near-black, never teal.**
+- Sections `py-24 sm:py-32`, container `max-w-5xl`, gutters `px-6 sm:px-8 lg:px-12`.
+- One ease: `cubic-bezier(0.22, 1, 0.36, 1)`. Entrance reveals `opacity 0→1, y 20→0, 500–800ms`, stagger `0.05–0.1s`. No bounces.
+- No emoji, no purple-blue gradients, no harsh shadows, no parallax beyond the hero Spline scene.
+- Offers come from `lib/public/evaluation-offers.ts`; only the free Reality Check is priced.
+
+Do not import `platform.css` here, and do not carry the serif italic or emerald accent into the platform.
+
+---
+
+## Change log
+
+| Date | Change |
+| --- | --- |
+| 2026-09-20 | Platform redesign. New ElevenLabs-inspired system in `packages/brand/platform.css`; monochrome chrome with semantic-only colour; three-plane shell; expanded primitive kit; dark-ready tokens. Marketing language unchanged, now documented separately in §13. |

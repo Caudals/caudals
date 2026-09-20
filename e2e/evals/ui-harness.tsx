@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { EvalShell } from "../../components/evals/shell";
 import { ClientManagement } from "../../components/evals/client-management";
-import { NewEvaluationFlow, WorkspaceEvaluations } from "../../components/evals/workspace-evaluations";
+import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations } from "../../components/evals/workspace-evaluations";
 import { ReportView } from "../../components/evals/report-view";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
@@ -24,7 +24,7 @@ const identity = {
     {
       id: "00000000-0000-4000-8000-000000000001",
       name: "Example client",
-      role: "viewer" as const,
+      role: location.search.includes("editor") ? ("editor" as const) : ("viewer" as const),
     },
   ],
 };
@@ -41,6 +41,8 @@ const content =
     <ClientManagement />
   ) : location.pathname === "/workspace/evaluations/new" ? (
     <NewEvaluationFlow workspaces={identity.workspaces} />
+  ) : location.pathname.startsWith("/workspace/evaluations/") ? (
+    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports/fixture" ? (
     <ReportView report={{
       report_revision_id: "report-v1",
@@ -57,8 +59,8 @@ createRoot(document.getElementById("root")!).render(
   authPage ? (
     content
   ) : anonymous ? (
-    <div className="eval-shell">
-      <main className="eval-public">{content}</main>
+    <div className="p-root">
+      <main className="p-page">{content}</main>
     </div>
   ) : (
     <EvalShell identity={identity}>{content}</EvalShell>

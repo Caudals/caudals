@@ -1,5 +1,11 @@
-import { Status } from "@/components/evals/primitives";
-import { t } from "@/lib/evals/messages/en";
-export default function Loading() {
-  return <Status>{t("loading")}</Status>;
+import { Loading } from "@/components/evals/primitives";
+
+export default function EvaluationLoading() {
+  return (
+    <div className="p-root" lang="en">
+      <div className="p-page">
+        <Loading />
+      </div>
+    </div>
+  );
 }
