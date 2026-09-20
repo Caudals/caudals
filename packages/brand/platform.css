@@ -1981,8 +1981,14 @@
 }
 .p-auth .p-brand {
   justify-content: center;
+  flex: none;
+  height: auto;
   padding: 0;
   margin-bottom: 26px;
+}
+.p-auth .p-brand-wordmark {
+  height: 30px;
+  object-position: center;
 }
 .p-auth-head {
   text-align: center;

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { t } from "@/lib/evals/messages/en";
 
 /**
@@ -24,8 +25,14 @@ export function AuthFrame({
       <main className="p-auth">
         <div className="p-auth-inner">
           <p className="p-brand">
-            <span className="p-brand-mark" aria-hidden="true" />
-            {t("brand")}
+            <Image
+              className="p-brand-wordmark"
+              src="/caudals-logo-wordmark.png"
+              alt={t("brand")}
+              width={321}
+              height={108}
+              priority
+            />
           </p>
           <div className="p-auth-head">
             <h1>{title}</h1>
