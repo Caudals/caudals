@@ -1,7 +1,7 @@
 import { randomBytes,randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { describe,expect,it,vi } from 'vitest';
-import type PgBoss from 'pg-boss';
+import type { PgBoss } from 'pg-boss';
 import { fixture } from './worker-fixture';
 import { createBoss,dispatchOutbox,startBoss,type JobData } from '../../lib/evals/queue/boss';
 import { InvocationWorker } from '../../lib/evals/queue/worker';

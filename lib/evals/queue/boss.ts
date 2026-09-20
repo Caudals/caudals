@@ -1,4 +1,4 @@
-import PgBoss from 'pg-boss';
+import { PgBoss } from 'pg-boss';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { queues, type Tenant, type TenantTransaction } from './store';
