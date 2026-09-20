@@ -72,10 +72,11 @@ createServer(async (req, res) => {
       usage: { settled: "128.40", outstanding: "12.00" },
       preferences: { completion: true, required_input: true, failure: true, email: false }
     }, meta: {} }));
-  } else if (req.url?.startsWith("/caudals-logo")) {
+  } else if (req.url?.startsWith("/caudals-logo") || req.url?.startsWith("/caudals_logo")) {
     try {
-      res.setHeader("Content-Type", "image/png");
-      res.end(await readFile(root + "public" + req.url.split("?")[0]));
+      const filePath = root + "public" + req.url.split("?")[0];
+      res.setHeader("Content-Type", filePath.endsWith(".svg") ? "image/svg+xml" : "image/png");
+      res.end(await readFile(filePath));
     } catch {
       res.statusCode = 404;
       res.end();
@@ -92,4 +93,4 @@ createServer(async (req, res) => {
       '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evaluation UI contract harness</title><link rel="stylesheet" href="/app.css"><body><div id="root"></div><script src="/app.js"></script></html>',
     );
   }
-}).listen(4187, "127.0.0.1");
+}).listen(Number(process.env.HARNESS_PORT ?? 4187), "127.0.0.1");

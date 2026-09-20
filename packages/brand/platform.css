@@ -232,6 +232,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.p-root:has(.p-shell) {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
 .p-root *,
 .p-root *::before,
 .p-root *::after {
@@ -311,7 +317,9 @@
 .p-shell {
   display: grid;
   grid-template-columns: var(--p-sidebar-w) minmax(0, 1fr);
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   transition: grid-template-columns var(--p-dur-modal) var(--p-ease-in-out);
 }
 .p-shell[data-collapsed="true"] {
@@ -325,16 +333,12 @@
   top: 0;
   align-self: start;
   height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   padding: 12px 12px 12px;
   overflow: hidden;
-  /* A full-height hairline. Without it the sidebar header and the breadcrumb
-     row beside it merge into one continuous grey strip, because both sit on
-     the chrome plane and the canvas edge only starts below the topbar. This is
-     the one border in the shell that earns its place: it separates two planes
-     that a shadow cannot, because neither is elevated above the other. */
-  border-right: 1px solid var(--p-border);
+  border-right: none;
 }
 .p-shell[data-collapsed="true"] .p-sidebar {
   padding-inline: 12px;
@@ -345,35 +349,33 @@
 .p-sidebar-head {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   margin-bottom: 14px;
 }
 /* On the rail the two controls stack rather than fight for 64px. */
 .p-shell[data-collapsed="true"] .p-sidebar-head {
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .p-brand {
   display: flex;
   align-items: center;
+  gap: 10px;
   flex: 1;
   min-width: 0;
   height: 40px;
-  padding: 0 8px;
+  padding: 0 4px;
   color: var(--p-text);
   white-space: nowrap;
+  text-decoration: none;
 }
-/* Two lockups, both real assets from public/. The wordmark carries the mark
-   with it, so only one is ever visible; the other is removed from layout and
-   from the accessibility tree rather than merely hidden. */
-.p-brand-wordmark {
-  height: 26px;
-  width: auto;
-  object-fit: contain;
-  object-position: left center;
-  outline: none; /* not a content image — no depth ring */
-  transition: opacity var(--p-dur-instant) var(--p-ease-out);
+.p-brand-name {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--p-text);
+  line-height: 1;
 }
 .p-brand-mark {
   height: 28px;
@@ -382,10 +384,27 @@
   object-fit: contain;
   outline: none;
 }
+.p-brand-wordmark {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+  outline: none; /* not a content image — no depth ring */
+  transition: opacity var(--p-dur-instant) var(--p-ease-out);
+}
 .p-shell[data-collapsed="true"] .p-brand {
   flex: none;
   justify-content: center;
   padding: 0;
+  gap: 0;
+}
+.p-shell[data-collapsed="true"] .p-brand-mark {
+  height: 30px;
+  width: 30px;
+}
+:root[data-theme="dark"] .p-root .p-brand-mark,
+.p-root[data-theme="dark"] .p-brand-mark {
+  filter: invert(1);
 }
 
 .p-nav {
@@ -578,7 +597,11 @@
 .p-body {
   display: flex;
   flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
   min-width: 0;
+  overflow: hidden;
   padding: 0 var(--p-frame-gap) var(--p-frame-gap) 0;
 }
 
@@ -587,7 +610,7 @@
   align-items: center;
   gap: 8px;
   height: var(--p-topbar-h);
-  padding: 0 4px 0 0;
+  padding: 0 8px 0 20px;
   flex: none;
 }
 
@@ -677,6 +700,9 @@
   }
   .p-desktop-only.p-desktop-only {
     display: none;
+  }
+  .p-topbar {
+    padding-left: 4px;
   }
   .p-body {
     padding: 0 6px 6px;

@@ -186,25 +186,15 @@ function Nav({
 function Brand({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <Link className="p-brand" href="/evaluation-entry" aria-label={t("brand")}>
-      {collapsed ? (
-        <Image
-          className="p-brand-mark"
-          src="/caudals-logo-icon.png"
-          alt=""
-          width={80}
-          height={80}
-          priority
-        />
-      ) : (
-        <Image
-          className="p-brand-wordmark"
-          src="/caudals-logo-wordmark.png"
-          alt=""
-          width={321}
-          height={108}
-          priority
-        />
-      )}
+      <Image
+        className="p-brand-mark"
+        src="/caudals_logo_black.svg"
+        alt=""
+        width={32}
+        height={32}
+        priority
+      />
+      {!collapsed && <span className="p-brand-name">Caudals</span>}
     </Link>
   );
 }
@@ -405,12 +395,13 @@ export function EvalShell({
                 <SheetTitle asChild>
                   <span className="p-brand" style={{ marginBottom: 6 }}>
                     <Image
-                      className="p-brand-wordmark"
-                      src="/caudals-logo-wordmark.png"
-                      alt={t("brand")}
-                      width={321}
-                      height={108}
+                      className="p-brand-mark"
+                      src="/caudals_logo_black.svg"
+                      alt=""
+                      width={32}
+                      height={32}
                     />
+                    <span className="p-brand-name">Caudals</span>
                   </span>
                 </SheetTitle>
                 <SheetDescription className="p-nav-label" style={{ marginBottom: 10 }}>

@@ -54,7 +54,7 @@ The single most recognisable move in the language. Keep them distinct.
 └───────────────────────────────────────────────────────────┘
 ```
 
-1. **Chrome** (`--p-chrome`) — the window backdrop, shared by the sidebar and the topbar. The sidebar carries a **full-height `1px` right border** in `--p-border`. It is the one border in the shell that earns its place: the canvas edge only begins below the topbar, so without it the sidebar header and the breadcrumb row beside it read as a single continuous grey strip. A shadow cannot do this job, because neither plane is elevated above the other.
+1. **Chrome** (`--p-chrome`) — the window backdrop, shared by the sidebar and the topbar. The sidebar sits flush on the chrome plane with no right border, while the topbar breadcrumb is offset to the right to maintain clear visual separation between navigation zones.
 2. **Canvas** (`--p-canvas`) — a rounded white panel, `--p-radius-xl`, `--p-shadow-border`, `8px` inset from the right and bottom of the viewport, scrolling independently of the shell.
 3. **Content** — cards, tables and tiles inside the canvas.
 
@@ -65,7 +65,7 @@ The sidebar has two states, and **the control that switches them lives inside th
 | | Expanded | Rail |
 | --- | --- | --- |
 | Width | `--p-sidebar-w` `256px` | `--p-sidebar-w-rail` `68px` |
-| Brand | `caudals-logo-wordmark.png`, 26px tall | `caudals-logo-icon.png`, 28×28 |
+| Brand | `caudals_logo_black.svg` (28×28) + text | `caudals_logo_black.svg`, 30×30 |
 | Header | brand and toggle side by side | brand above toggle, both centred |
 | Nav item | 36px tall, 18px icon, 14px label | 44px square, icon only, label as `title` |
 | Group label | text | a hairline rule — a heading above every icon is noise |
