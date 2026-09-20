@@ -6,7 +6,6 @@ const pages = [
   { pathname: "/blog", changefreq: "weekly", priority: 0.9 },
   { pathname: "/newsletter", changefreq: "weekly", priority: 0.85 },
   { pathname: "/contact", changefreq: "monthly", priority: 0.8 },
-  { pathname: "/equipo", changefreq: "monthly", priority: 0.7 },
   { pathname: "/call", changefreq: "monthly", priority: 0.7 },
   { pathname: "/legal/cookies", changefreq: "yearly", priority: 0.2 },
   { pathname: "/legal/notice", changefreq: "yearly", priority: 0.2 },

@@ -3,7 +3,6 @@ import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
-import { CAUDALS_AUTHORS, getCaudalsAuthor } from "@/lib/authors";
 import { getBlogPosts } from "@/lib/blog/posts";
 import { getPublishedBlogPost } from "@/lib/blog/client";
 import { getPublishedIssue, getPublishedIssues } from "@/lib/newsletter/client";
@@ -206,24 +205,4 @@ export async function renderNewsletterIndexMarkdown() {
   return `# Data Unfiltered\n\nAnálisis periódico sobre herramientas de IA y los datos que utilizan los modelos.\n\n${
     entries || "_No hay números publicados._"
   }${canonicalFooter("/newsletter")}`;
-}
-
-/** Markdown for a single team member profile. */
-export function renderAuthorMarkdown(slug: string) {
-  const author = getCaudalsAuthor(slug);
-  if (!author) return null;
-
-  return `# ${author.name}\n\n${author.headline}\n\n${author.bio.join("\n\n")}${canonicalFooter(
-    `/equipo/${slug}`,
-  )}`;
-}
-
-/** Markdown index of the team. */
-export function renderTeamMarkdown() {
-  const entries = CAUDALS_AUTHORS.map(
-    (author) =>
-      `- [${author.name}](${buildMarketingUrl(`/equipo/${author.slug}`)}) — ${author.headline}`,
-  ).join("\n");
-
-  return `# Equipo de Caudals\n\n${entries}${canonicalFooter("/equipo")}`;
 }

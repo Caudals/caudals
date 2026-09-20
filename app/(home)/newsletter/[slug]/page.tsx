@@ -91,7 +91,7 @@ export default async function NewsletterIssuePage({
       "@type": "Organization",
       "@id": `${buildMarketingUrl("/")}#organization`,
       name: "Equipo de Caudals",
-      url: buildMarketingUrl("/equipo"),
+      url: buildMarketingUrl("/"),
     },
     publisher: {
       "@type": "Organization",

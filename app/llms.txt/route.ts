@@ -1,4 +1,3 @@
-import { CAUDALS_AUTHORS } from "@/lib/authors";
 import { getBlogPosts } from "@/lib/blog/posts";
 import { createTranslator } from "@/lib/i18n/create-translator";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -32,10 +31,6 @@ export async function GET() {
         `- [${cleanMarkdownLabel(issue.title)}](${buildMarketingUrl(`/newsletter/${issue.slug}`)})${issue.dek ? `: ${issue.dek}` : ""}`,
     )
     .join("\n");
-  const authorLinks = CAUDALS_AUTHORS.map(
-    (author) =>
-      `- [${author.name}](${buildMarketingUrl(`/equipo/${author.slug}`)}): ${author.headline}`,
-  ).join("\n");
 
   const body = `# Caudals
 
@@ -61,11 +56,6 @@ ${blogLinks || "- El archivo de artículos se publicará en esta sección."}
 
 - [Data Unfiltered](${buildMarketingUrl("/newsletter")}): análisis periódico sobre herramientas de IA y los datos que utilizan los modelos.
 ${newsletterLinks || "- Los números publicados aparecerán en esta sección."}
-
-## Equipo y autoridad editorial
-
-- [Equipo de Caudals](${buildMarketingUrl("/equipo")}): perfiles del equipo fundador y su experiencia técnica.
-${authorLinks}
 
 ## Información legal
 

@@ -2,12 +2,10 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import { markdownHeaders } from "@/lib/markdown/negotiation";
 import { isStaticMarkdownPage, renderStaticPageMarkdown } from "@/lib/markdown/pages";
 import {
-  renderAuthorMarkdown,
   renderBlogIndexMarkdown,
   renderBlogPostMarkdown,
   renderNewsletterIndexMarkdown,
   renderNewsletterIssueMarkdown,
-  renderTeamMarkdown,
 } from "@/lib/markdown/render";
 
 // Blog posts and newsletter issues are read from disk and from the CMS, so this
@@ -34,12 +32,6 @@ async function renderForPath(pathname: string): Promise<string | null> {
   if (segments[0] === "newsletter") {
     if (segments.length === 1) return renderNewsletterIndexMarkdown();
     if (segments.length === 2) return renderNewsletterIssueMarkdown(segments[1]);
-    return null;
-  }
-
-  if (segments[0] === "equipo") {
-    if (segments.length === 1) return renderTeamMarkdown();
-    if (segments.length === 2) return renderAuthorMarkdown(segments[1]);
     return null;
   }
 

@@ -27,6 +27,7 @@ const removedRoutes = [
   "/collaborate",
   "/dashboard",
   "/docs",
+  "/equipo",
   "/landing-simple",
   "/pricing",
   "/security",

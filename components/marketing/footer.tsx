@@ -113,11 +113,6 @@ export function MarketingFooter() {
                 </li>
               ))}
               <li>
-                <Link href="/equipo" className="hover:text-black">
-                  {t("Team")}
-                </Link>
-              </li>
-              <li>
                 <Link href="/call" className="hover:text-black">
                   {t("Book a meeting")}
                 </Link>

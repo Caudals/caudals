@@ -6,7 +6,6 @@ export function GET() {
     renderSitemapIndex([
       buildMarketingUrl("/post-sitemap.xml"),
       buildMarketingUrl("/page-sitemap.xml"),
-      buildMarketingUrl("/author-sitemap.xml"),
     ]),
   );
 }

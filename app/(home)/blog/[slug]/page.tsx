@@ -61,7 +61,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       "@type": "Organization",
       "@id": `${buildMarketingUrl("/")}#organization`,
       name: post.author,
-      url: buildMarketingUrl("/equipo"),
+      url: buildMarketingUrl("/"),
     },
     datePublished: post.publishedAt,
     dateModified: post.publishedAt,

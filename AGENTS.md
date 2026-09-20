@@ -18,7 +18,7 @@ Caudals is an AI data company that starts with evaluation. We begin with pilot p
 
 Current deployment scope is intentionally narrow:
 
-- public landing page, contact form, meeting booking, blog, newsletter, team and legal pages,
+- public landing page, contact form, meeting booking, blog, newsletter, and legal pages,
 - private Operator Console (`/admin`) and its sign-in (`/auth/*`).
 
 There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; do not reintroduce them.

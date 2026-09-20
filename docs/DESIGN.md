@@ -4,7 +4,7 @@ Two design languages live in this repository. They are deliberately different an
 
 | | **Platform** | **Marketing** |
 | --- | --- | --- |
-| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/equipo`, `/legal/*` |
+| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal/*` |
 | Character | Dense, neutral, instrument-like. An evidence tool. | Editorial, calm, typographic. A point of view. |
 | Source of truth | `packages/brand/platform.css` | `packages/brand/tokens.css`, `app/globals.css` |
 | Governed by | **§1–§12 of this document** | **§13 of this document** |

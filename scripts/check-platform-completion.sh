@@ -115,9 +115,9 @@ check_routes() {
   local path status expected
   # The public site is the landing page and its funnel; everything else,
   # including the removed marketplace pages and dashboards, must 404.
-  local -a allowed=("/" "/contact" "/call" "/blog" "/newsletter" "/equipo")
+  local -a allowed=("/" "/contact" "/call" "/blog" "/newsletter")
   local -a blocked=(
-    "/about" "/buyer" "/careers" "/catalog" "/catalogue" "/docs" "/pricing"
+    "/about" "/buyer" "/careers" "/catalog" "/catalogue" "/docs" "/equipo" "/pricing"
     "/security" "/supplier" "/v1" "/v1/datasets"
   )
 

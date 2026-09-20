@@ -15,15 +15,15 @@ Implementation rules for the public funnel, the internal Operator Console, and t
   platform system (`packages/brand/platform.css`, `.p-root`); the public site
   keeps the editorial system (`packages/brand/tokens.css`, `app/globals.css`).
   `docs/DESIGN.md` is the authority for both and states which applies where.
-- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, and `/legal/*`. Primary marketing navigation surfaces Contact, Blog, and Newsletter; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`, while `/equipo` is linked from the public footer.
+- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces Contact, Blog, and Newsletter; `/call` is a public funnel page reachable by direct link and cross-linked from `/contact`.
 - The deployed private surface is the legacy Operator Console (`/admin`) with its sign-in (`/auth/*`). The separate evaluation product routes (`/ops`, `/workspace`, `/evaluation-entry`, `/share`) exist in code but are not production-released.
 - The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 
 ## Routing and IA Contract
 
 - There is no landing-mode flag; the public route set above is what the app builds.
-- Public primary navigation exposes Contact, Blog, and Newsletter (`lib/navigation/public-links.ts`). The footer may additionally expose Team, meeting booking, and legal pages.
-- Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml`, `/page-sitemap.xml`, and `/author-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files list public content only.
+- Public primary navigation exposes Contact, Blog, and Newsletter (`lib/navigation/public-links.ts`). The footer may additionally expose meeting booking and legal pages.
+- Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml` and `/page-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files list public content only.
 - `/contact` is the general contact and intake path. It records evaluation requests (`lib/validators/evaluation-request.ts`, `lib/public/evaluation-request-intake.ts`): system type, stage, sector, owner role, what the system answers, an optional URL and the offer to start from. Hero and pricing links pass `?offer=<id>` to preselect that offer. Keep the quiet form treatment.
 - Public offers live in `lib/public/evaluation-offers.ts`, shared by the landing page, `/llms.txt`, agent markdown and home structured data. The pricing section shows three offers: only the free Reality Check has a price; the Pilot Evaluation and the monthly subscription read "Personalized" and are quoted on scope.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.

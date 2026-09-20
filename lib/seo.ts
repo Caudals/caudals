@@ -21,7 +21,6 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
-  { pathname: "/equipo", changeFrequency: "monthly", priority: 0.7 },
   { pathname: "/legal/cookies", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/legal/notice", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },

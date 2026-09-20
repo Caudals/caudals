@@ -6,7 +6,7 @@ Caudals evaluates companies' AI systems and builds custom datasets with freelanc
 
 Current production scope:
 
-- Public marketing, authority and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*`, `/legal/*`
+- Public marketing, authority and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
 
@@ -109,7 +109,7 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
 - The public page surface is `/`, `/contact`, `/call`, `/blog`, `/blog/*`,
-  `/newsletter`, `/newsletter/*`, `/equipo`, `/equipo/*` and `/legal/*`;
+  `/newsletter`, `/newsletter/*` and `/legal/*`;
   `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`, the funnel APIs and
   required metadata/assets are the only other routes.
 - Removed legacy self-serve route groups return `404`: `/browse`,
@@ -124,8 +124,7 @@ Expert work: freelance domain experts get restricted accounts to author and revi
   notification email. `PUBLIC_BUYER_BRIEF_INTAKE_ENABLED=false`
   keeps it email-only.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (`@calcom/embed-react`) and is treated as demand capture alongside `/contact`. The booking link is read server-side from the `CALCOM_LINK` env var (with a `NEXT_PUBLIC_CALCOM_LINK` build-time fallback); the inline embed needs only the public Cal link, no API key or OAuth. `/call` stays out of the primary landing navigation and is cross-linked from `/contact`.
-- `/equipo` and `/equipo/*` are public founder/author authority pages. They may link to an approved, redacted university credential PDF when the corresponding file exists under `public/material/`; missing credentials must not produce broken links or unsupported structured-data claims.
-- `/sitemap.xml` is the public sitemap index and points to post, page, and author subsitemaps. `/llms.txt` is the curated public AI-readable index. Neither may expose private routes, authenticated workspaces, direct-route surfaces or operational APIs.
+- `/sitemap.xml` is the public sitemap index and points to post and page subsitemaps. `/llms.txt` is the curated public AI-readable index. Neither may expose private routes, authenticated workspaces, direct-route surfaces or operational APIs.
 - `/api/auth/*` is the Better Auth operator identity endpoint, used with `/auth/*` for Operator Console sign-in.
 
 ## Infrastructure and Deployment

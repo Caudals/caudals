@@ -39,7 +39,6 @@ describe("seo helpers", () => {
         "/blog",
         "/call",
         "/contact",
-        "/equipo",
         "/legal/cookies",
         "/legal/notice",
         "/legal/privacy",

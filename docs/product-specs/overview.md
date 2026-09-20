@@ -141,7 +141,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 
 ## Product Surfaces
 
-- **Live public:** `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/equipo`, `/legal`.
+- **Live public:** `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
 - **Private:** `/admin` Operator Console.
 - **Planned evaluation surfaces:** operator case authoring and grading queue, restricted expert workspace, customer evaluation dashboard, printable report view, and the public `/proof` demo. See `docs/ARCHITECTURE.md`.
 - **Legacy direct routes (frozen):** `/buyer`, `/supplier`, `/v1/*`, `/security` — deployed and protected, maintained but not extended or marketed.

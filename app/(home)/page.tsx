@@ -46,9 +46,8 @@ const homePageStructuredData = {
       areaServed: "Worldwide",
       founder: CAUDALS_AUTHORS.map((author) => ({
         "@type": "Person",
-        "@id": `${buildMarketingUrl(`/equipo/${author.slug}`)}#person`,
         name: author.name,
-        url: buildMarketingUrl(`/equipo/${author.slug}`),
+        sameAs: author.linkedInUrl,
       })),
       knowsAbout: [
         "evaluación de asistentes y agentes de IA",
