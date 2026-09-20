@@ -361,7 +361,7 @@
 .p-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   flex: 1;
   min-width: 0;
   height: 40px;
@@ -378,8 +378,8 @@
   line-height: 1;
 }
 .p-brand-mark {
-  height: 23px;
-  width: 23px;
+  height: 20px;
+  width: 20px;
   flex: none;
   object-fit: contain;
   outline: none;
@@ -399,8 +399,8 @@
   gap: 0;
 }
 .p-shell[data-collapsed="true"] .p-brand-mark {
-  height: 25px;
-  width: 25px;
+  height: 22px;
+  width: 22px;
 }
 :root[data-theme="dark"] .p-root .p-brand-mark,
 .p-root[data-theme="dark"] .p-brand-mark {

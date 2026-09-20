@@ -65,7 +65,7 @@ The sidebar has two states, and **the control that switches them lives inside th
 | | Expanded | Rail |
 | --- | --- | --- |
 | Width | `--p-sidebar-w` `256px` | `--p-sidebar-w-rail` `68px` |
-| Brand | `caudals_logo_black.svg` (23×23) + text | `caudals_logo_black.svg`, 25×25 |
+| Brand | `caudals_logo_black.svg` (20×20) + text | `caudals_logo_black.svg`, 22×22 |
 | Header | brand and toggle side by side | brand above toggle, both centred |
 | Nav item | 36px tall, 18px icon, 14px label | 44px square, icon only, label as `title` |
 | Group label | text | a hairline rule — a heading above every icon is noise |
