@@ -10,4 +10,4 @@ The browser worker is a separate service and queue with a dedicated database rol
 
 Multi-turn and tool cases use frozen scenario graphs and simulated deterministic fixtures. Model output never grants network, filesystem, secret, publication or spend authority. Customer run creation is bounded by server-side workspace entitlements; runtime users cannot raise them.
 
-Develop in an isolated VPS worktree, disposable DB/storage and loopback preview. Production deployment is a separate operation. Keep migrations additive with forward-repair rollback guidance. Tests must establish tenant isolation and failure recovery, not merely successful rendering. Current status and remaining live release evidence are in `work-packages/WP-08.md` through `WP-11.md`.
+Develop in an isolated VPS worktree, disposable DB/storage and loopback preview. Production deployment is a separate operation. Keep migrations additive with forward-repair rollback guidance. Tests must establish tenant isolation and failure recovery, not merely successful rendering. Current status and remaining live release evidence are in `work-packages/WP-08.md` through `WP-13.md`.

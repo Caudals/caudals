@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 
-export interface SecretScope { orgId: string; recordId: string; versionId: string; purpose: 'provider'|'target'; scopeId: string }
+export interface SecretScope { orgId: string; recordId: string; versionId: string; purpose: 'provider'|'target'|'webhook'; scopeId: string }
 const sealedSchema = z.object({iv:z.string(),tag:z.string(),data:z.string()}).strict();
 const envelopeSchema = z.object({algorithm:z.literal('aes-256-gcm'),keyVersion:z.string(),wrappedKey:sealedSchema,value:sealedSchema}).strict();
 export type Envelope = z.infer<typeof envelopeSchema>;

@@ -52,7 +52,13 @@ async function textSnapshot(root: FrameLike, recipe: WebsiteRecipe) {
     .then((values) => values.map((value) => value.trim()).filter(Boolean));
 }
 
-async function waitForCompletion(
+export function newAssistantMessages(previous: string[], current: string[]) {
+  const samePrefix = previous.every((value, index) => current[index] === value);
+  const messages = samePrefix ? current.slice(previous.length) : current;
+  return { messages, duplicateFree: new Set(messages).size === messages.length };
+}
+
+export async function waitForCompletion(
   root: FrameLike,
   recipe: WebsiteRecipe,
   previous: string[],
@@ -61,13 +67,15 @@ async function waitForCompletion(
   let candidate = "";
   let changedAt = 0;
   let prior = "";
+  let busySeen = false;
   const stableFor =
     recipe.completion.kind === "text_stable" ? recipe.completion.stable_ms : 500;
   while (Date.now() < deadline) {
     const messages = await textSnapshot(root, recipe);
+    const fresh = newAssistantMessages(previous, messages);
     candidate =
       recipe.assistant_extraction === "last_new_message"
-        ? messages.slice(previous.length).at(-1) ?? ""
+        ? fresh.messages.at(-1) ?? ""
         : messages.at(-1) ?? "";
     if (candidate && candidate !== prior) {
       prior = candidate;
@@ -75,15 +83,19 @@ async function waitForCompletion(
     }
     let signalReady = true;
     if (recipe.completion.kind === "selector_hidden") {
-      signalReady = !(await locator(root, recipe.completion.locator)
+      const visible = await locator(root, recipe.completion.locator)
         .first()
         .isVisible()
-        .catch(() => false));
+        .catch(() => false);
+      if (visible) busySeen = true;
+      signalReady = busySeen && !visible;
     } else if (recipe.completion.kind === "send_enabled") {
-      signalReady = await locator(root, recipe.completion.locator)
+      const enabled = await locator(root, recipe.completion.locator)
         .first()
         .isEnabled()
         .catch(() => false);
+      if (!enabled) busySeen = true;
+      signalReady = busySeen && enabled;
     }
     if (candidate && signalReady && changedAt && Date.now() - changedAt >= stableFor) {
       return candidate;
@@ -91,6 +103,12 @@ async function waitForCompletion(
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error("capture_incomplete");
+}
+
+export function assertScorableWebsiteRecipe(recipe: WebsiteRecipe) {
+  if (recipe.completion.kind === "text_stable") {
+    throw new Error("website_completion_unverified");
+  }
 }
 
 export function capabilityReportForWebsite(recipe: WebsiteRecipe) {
@@ -117,13 +135,21 @@ export async function guardBrowserContext(
   context: BrowserContext,
   check: DestinationCheck,
 ) {
+  await context.routeWebSocket("**/*", async (socket) => {
+    try {
+      const destination = new URL(socket.url());
+      if (destination.protocol !== "wss:") throw new Error("destination_invalid");
+      destination.protocol = "https:";
+      await check(destination.toString());
+      socket.connectToServer();
+    } catch {
+      socket.close();
+    }
+  });
   await context.route("**/*", async (route) => {
     const url = route.request().url();
-    if (!/^https?:/i.test(url)) {
-      await route.abort("blockedbyclient");
-      return;
-    }
     try {
+      if (new URL(url).protocol !== "https:") throw new Error("destination_invalid");
       await check(url);
       await route.continue();
     } catch {
@@ -243,17 +269,22 @@ async function openRecipe(args: {
     serviceWorkers: "block",
     ...(args.storageState ? { storageState: browserStorageStateSchema.parse(args.storageState) } : {}),
   });
-  await guardBrowserContext(context, args.destinationCheck);
-  const page = await context.newPage();
-  await page.goto(args.recipe.start_url, {
-    waitUntil: "domcontentloaded",
-    timeout: 30_000,
-  });
-  const root = await recipeRoot(page, args.recipe);
-  if (args.recipe.launcher) {
-    await locator(root, args.recipe.launcher).first().click({ timeout: 10_000 });
+  try {
+    await guardBrowserContext(context, args.destinationCheck);
+    const page = await context.newPage();
+    await page.goto(args.recipe.start_url, {
+      waitUntil: "domcontentloaded",
+      timeout: 30_000,
+    });
+    const root = await recipeRoot(page, args.recipe);
+    if (args.recipe.launcher) {
+      await locator(root, args.recipe.launcher).first().click({ timeout: 10_000 });
+    }
+    return { context, page, root };
+  } catch (error) {
+    await context.close();
+    throw error;
   }
-  return { context, page, root };
 }
 
 export async function invokeWebsite(args: {
@@ -264,6 +295,7 @@ export async function invokeWebsite(args: {
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
 }) {
+  assertScorableWebsiteRecipe(args.recipe);
   const started = new Date().toISOString();
   const session = await openRecipe(args);
   try {
@@ -282,6 +314,8 @@ export async function invokeWebsite(args: {
       previous,
       new Date(args.context.deadline).getTime(),
     );
+    const captured = newAssistantMessages(previous, await textSnapshot(session.root, args.recipe));
+    if (!captured.messages.length || !captured.duplicateFree) throw new Error("capture_incomplete");
     const finished = new Date().toISOString();
     return observationSchema.parse(
       withContentHash({
@@ -317,6 +351,8 @@ export async function invokeWebsite(args: {
           "caudals.evals/browser": {
             recipe_revision_id: args.recipe.recipe_revision_id,
             extraction: args.recipe.assistant_extraction,
+            new_message_count: captured.messages.length,
+            duplicate_free: captured.duplicateFree,
           },
         },
       }),
@@ -337,6 +373,7 @@ export async function validateWebsiteRecipe(args: {
     `Reset check ${randomUUID()}`,
   ];
   const responses: string[] = [];
+  const duplicateFlags: boolean[] = [];
   for (const [index, prompt] of prompts.entries()) {
     const controller = new AbortController();
     const observation = await invokeWebsite({
@@ -367,6 +404,7 @@ export async function validateWebsiteRecipe(args: {
         .reverse()
         .find((message) => message.role === "assistant")?.content ?? "",
     );
+    duplicateFlags.push((observation.extensions["caudals.evals/browser"] as { duplicate_free?: boolean } | undefined)?.duplicate_free === true);
   }
   return browserProbeEvidenceSchema.parse({
     checked_at: new Date().toISOString(),
@@ -379,9 +417,7 @@ export async function validateWebsiteRecipe(args: {
       args.recipe.reset.kind !== "unsupported" &&
       !responses[1].includes(prompts[0]),
     streaming_complete: responses.every(Boolean),
-    duplicate_free: responses.every(
-      (response, index) => response.indexOf(response) === response.lastIndexOf(response),
-    ),
+    duplicate_free: duplicateFlags.every(Boolean),
     screenshot_artifact_id: null,
     trace_artifact_id: null,
   });

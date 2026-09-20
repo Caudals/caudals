@@ -106,6 +106,15 @@ export function createSuite(scope: EvidenceScope, input: {projectId: string; tit
     return (await db.query('INSERT INTO evals.suite(org_id,project_id,title) VALUES($1,$2,$3) RETURNING id,title,version,draft',[scope.orgId,input.projectId,input.title])).rows[0];
   }));
 }
+export function assertReleasedRegressionRevision(
+  candidate: { revision_id: string; extensions: Record<string, unknown> },
+  release: { draft_case_revision_id: string; redaction_status: string; validation_status: string } | undefined,
+) {
+  if (!release || release.draft_case_revision_id !== candidate.revision_id ||
+      release.redaction_status !== 'redacted' || release.validation_status !== 'valid') {
+    throw new EvidenceError(409,'Regression revision must be redacted and revalidated before freezing');
+  }
+}
 export function freezeSuite(scope: EvidenceScope, id: string, version: number, key: string) {
   return withTenant(scope,db => idempotent(db,scope,`freeze/${id}`,key,{version},async () => {
     const suite = required((await db.query('SELECT * FROM evals.suite WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,id])).rows[0]);
@@ -113,6 +122,11 @@ export function freezeSuite(scope: EvidenceScope, id: string, version: number, k
     const manifest = manifestSchema.parse(suite.draft);
     verifiedHash(manifest);
     if (manifest.suite_id !== id || !/^[0-9a-f-]{36}$/i.test(manifest.suite_version_id)) throw new EvidenceError(400,'Manifest identity mismatch');
+    const frozen = (await db.query('SELECT content_hash FROM evals.suite_version WHERE org_id=$1 AND id=$2 AND suite_id=$3',[scope.orgId,manifest.suite_version_id,id])).rows[0];
+    if (frozen) {
+      if (frozen.content_hash !== manifest.content_hash) throw new EvidenceError(409,'Frozen test-set identity changed');
+      return { id: manifest.suite_version_id, contentHash: manifest.content_hash, manifest };
+    }
     async function documents(table:string,refs:{revision_id:string;content_hash:string}[]) {
       const documents=[];
       for(const ref of refs) {
@@ -124,6 +138,20 @@ export function freezeSuite(scope: EvidenceScope, id: string, version: number, k
       return documents;
     }
     const bundle=parseEvidenceBundle({manifest,cases:await documents('case_revision',manifest.case_revisions),sources:await documents('source_revision',manifest.source_revisions),rubrics:await documents('rubric_revision',manifest.rubric_revisions),fixtures:await documents('tool_fixture_revision',manifest.fixture_revisions),output_schemas:await documents('output_schema_revision',manifest.output_schema_revisions),observations:[],assessments:[]});
+    for (const candidate of bundle.cases) {
+      const link = candidate.extensions['caudals.evals/regression'];
+      if (link === undefined) continue;
+      if (!link || typeof link !== 'object' || Array.isArray(link) ||
+          typeof link.regression_case_id !== 'string') {
+        throw new EvidenceError(422,'Regression revision has an invalid release link');
+      }
+      const release = (await db.query(
+        `SELECT draft_case_revision_id,redaction_status,validation_status
+         FROM evals.regression_case WHERE org_id=$1 AND id=$2`,
+        [scope.orgId,link.regression_case_id],
+      )).rows[0];
+      assertReleasedRegressionRevision(candidate, release);
+    }
     const artifacts=new Map<string,{id:string;visibility:string;sha256:string;byte_size:number}>();
     if(manifest.files.length>256) throw new EvidenceError(422,'Too many manifest files');
     for(const file of manifest.files) {

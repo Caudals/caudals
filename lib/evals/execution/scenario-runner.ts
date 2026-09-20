@@ -7,7 +7,7 @@ import type {
   toolFixtureSchema,
 } from "../contracts/scenarios";
 import { observationSchema } from "../contracts/results";
-import { withContentHash } from "../contracts/hashing";
+import { canonicalJson, withContentHash } from "../contracts/hashing";
 import { selectJson } from "../connectors/json-mapping";
 import type { z } from "zod";
 
@@ -19,6 +19,7 @@ type Invoke = (input: CandidateInput) => Promise<Observation>;
 export type ScenarioLimits = {
   maxTurns: number;
   maxToolCalls: number;
+  maxOutputTokens?: number;
   deadlineMs: number;
 };
 
@@ -29,6 +30,10 @@ export class ScenarioFailure extends Error {
       | "tool_budget_exhausted"
       | "scenario_timeout"
       | "scenario_branch_missing"
+      | "scenario_identity_mismatch"
+      | "scenario_transcript_mismatch"
+      | "target_observation_incomplete"
+      | "token_budget_exhausted"
       | "tool_schema_invalid"
       | "tool_transition_missing",
   ) {
@@ -37,7 +42,7 @@ export class ScenarioFailure extends Error {
 }
 
 function equal(left: unknown, right: unknown) {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return canonicalJson(left) === canonicalJson(right);
 }
 
 function conditionMatches(
@@ -184,7 +189,10 @@ export async function runScenario(args: {
   let nodeId = args.scenario.turn_plan?.entry_node_id ?? null;
   let turns = 0;
   let toolCalls = 0;
+  let outputTokens = 0;
+  let tokenUsageEstimated = false;
   let last: Observation | null = null;
+  let identity: { runId: string; targetRevisionId: string; attemptId: string } | null = null;
 
   while (true) {
     if (Date.now() >= args.limits.deadlineMs) {
@@ -198,7 +206,26 @@ export async function runScenario(args: {
       messages,
       tools: args.fixture?.tools ?? args.candidateInput.tools,
     };
-    last = await args.invoke(input);
+    const observation = await args.invoke(input);
+    if (observation.case_revision_id !== args.candidateInput.case_revision_id || (identity && (
+      observation.run_id !== identity.runId ||
+      observation.target_revision_id !== identity.targetRevisionId ||
+      observation.attempt_id !== identity.attemptId
+    ))) throw new ScenarioFailure("scenario_identity_mismatch");
+    if (!equal(observation.messages.slice(0, input.messages.length), input.messages)) {
+      throw new ScenarioFailure("scenario_transcript_mismatch");
+    }
+    if (observation.status !== "succeeded") throw new ScenarioFailure("target_observation_incomplete");
+    const reportedTokens = observation.metadata.output_tokens.value;
+    if (reportedTokens === null) tokenUsageEstimated = true;
+    // Browser widgets may not expose usage; this byte-based estimate is an
+    // approximate local stop, never a provider-reported token count.
+    outputTokens += reportedTokens ?? Math.max(1, Math.ceil(Buffer.byteLength(lastAssistant(observation), "utf8") / 4));
+    if (args.limits.maxOutputTokens !== undefined && outputTokens > args.limits.maxOutputTokens) {
+      throw new ScenarioFailure("token_budget_exhausted");
+    }
+    identity ??= { runId: observation.run_id, targetRevisionId: observation.target_revision_id, attemptId: observation.attempt_id };
+    last = observation;
     turns += 1;
     const responseMessages = last.messages.slice(input.messages.length);
     messages = [...messages, ...responseMessages];
@@ -237,6 +264,10 @@ export async function runScenario(args: {
       continue;
     }
 
+    if (args.scenario.termination.kind === "condition" && conditionMatches(args.scenario.termination.condition, {
+      text: lastAssistant(last), value: parsed(lastAssistant(last)), calledTools,
+    })) break;
+    if (args.scenario.termination.kind === "turn_limit" && turns >= args.scenario.termination.max_turns) break;
     if (!nodeId) break;
     const node = args.scenario.turn_plan?.nodes.find((item) => item.id === nodeId);
     if (!node) throw new ScenarioFailure("scenario_branch_missing");
@@ -263,6 +294,8 @@ export async function runScenario(args: {
     "caudals.evals/scenario": {
       turns,
       tool_calls: toolCalls,
+      output_tokens: outputTokens,
+      output_tokens_estimated: tokenUsageEstimated,
       final_state: state,
       fixture_revision_id: args.fixture?.revision_id ?? null,
     },

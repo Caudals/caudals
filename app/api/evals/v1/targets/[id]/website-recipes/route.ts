@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { api, jsonBody, requireWorkspace } from "@/lib/evals/domain/http";
-import { submitWebsiteRecipe } from "@/lib/evals/repositories/stage-c";
+import { assertOperatorRecipeAuthority, submitWebsiteRecipe } from "@/lib/evals/repositories/stage-c";
 
 export const runtime = "nodejs";
 export const POST = api(async (request, identity) => {
@@ -16,6 +16,7 @@ export const POST = api(async (request, identity) => {
     new URL(request.url).pathname.split("/").at(-2),
   );
   await requireWorkspace(identity, input.orgId, "write");
+  assertOperatorRecipeAuthority(identity.platformRole);
   return submitWebsiteRecipe(
     { orgId: input.orgId, actorId: identity.user.id },
     targetRevisionId,

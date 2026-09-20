@@ -5,10 +5,12 @@ import type { PoolClient } from "pg";
 import { EvalError } from "../domain/errors";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { targetConfigSchema, type TargetConfig } from "../contracts/connectors";
-import { caseSchema } from "../contracts/cases";
+import { caseSchema, rubricSchema, type CefCase } from "../contracts/cases";
+import { observationSchema } from "../contracts/results";
+import { gradeDeterministically } from "../scoring/deterministic";
 import { candidateInputSchema } from "../contracts/projections";
 import { toolFixtureSchema, type scenarioSchema } from "../contracts/scenarios";
-import { websiteRecipeSchema } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, websiteRecipeSchema } from "../contracts/browser";
 import {
   browserDiscoverySchema,
   controlWorkflow,
@@ -18,6 +20,7 @@ import {
 } from "../queue/store";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
+import { createRunnerJob } from "../private-runner/store";
 
 function required<T>(value: T | undefined): T {
   if (!value) throw new EvalError("SCOPE_DENIED", 404);
@@ -26,6 +29,40 @@ function required<T>(value: T | undefined): T {
 
 function connectionType(config: TargetConfig) {
   return config.kind;
+}
+
+export function assertWebsiteAuthorization(
+  record: { scope: { endpoint?: string }; expires_at: Date | string } | null,
+  endpoint: string,
+) {
+  if (!record || record.scope.endpoint !== endpoint || new Date(record.expires_at).getTime() <= Date.now()) {
+    throw new EvalError("SCOPE_DENIED", 403, "Confirm your authority to test this website before connecting it.");
+  }
+}
+
+export function recordWebsiteAuthorization(scope: EvidenceScope, projectId: string, targetId: string, key: string) {
+  return withTenant(scope, (db) => idempotent(db, scope, `website-authorization/${targetId}`, key, { projectId, targetId }, async () => {
+    const target = required((await db.query(
+      `SELECT tr.document FROM evals.target t JOIN LATERAL (
+       SELECT document FROM evals.target_revision x WHERE x.org_id=t.org_id AND x.target_id=t.id
+       ORDER BY x.created_at DESC,x.id DESC LIMIT 1
+       ) tr ON true WHERE t.org_id=$1 AND t.project_id=$2 AND t.id=$3`,
+      [scope.orgId, projectId, targetId],
+    )).rows[0]);
+    const config = targetConfigSchema.parse(target.document);
+    if (config.kind !== "website") throw new EvalError("INPUT_INVALID", 422, "This is not a website connection.");
+    const result = (await db.query(
+      `INSERT INTO evals.authorization_record(
+        org_id,project_id,target_id,basis,scope,traffic_limit,expires_at
+       ) VALUES($1,$2,$3,'workspace_member_attestation',$4,$5,now()+interval '90 days')
+       RETURNING id,expires_at`,
+      [scope.orgId, projectId, targetId,
+        { endpoint: config.endpoint, activity: "connection_check_and_bounded_evaluation", adversarial: false },
+        { requests_per_minute: Math.min(config.requests_per_minute, 6), concurrent_sessions: 1 },
+      ],
+    )).rows[0];
+    return { id: result.id, expiresAt: result.expires_at, endpoint: config.endpoint };
+  }));
 }
 
 export function getTargetConnectionKind(
@@ -73,6 +110,14 @@ export async function queueWebsiteConnectionCheck(
         if (config.kind !== "website") {
           throw new EvalError("INPUT_INVALID", 422, "This target is not a website connection.");
         }
+        const authorization = (await db.query(
+          `SELECT scope,expires_at FROM evals.authorization_record
+           WHERE org_id=$1 AND project_id=$2 AND target_id=$3
+             AND basis='workspace_member_attestation'
+           ORDER BY created_at DESC,id DESC LIMIT 1`,
+          [scope.orgId, row.project_id, row.target_id],
+        )).rows[0] ?? null;
+        assertWebsiteAuthorization(authorization, config.endpoint);
         const check = (
           await db.query(
             `INSERT INTO evals.connection_check(org_id,target_revision_id,status,probe_evidence)
@@ -141,6 +186,14 @@ export function submitWebsiteRecipe(
       key,
       { ...input, recipe },
       async () => {
+        const target = required((await db.query(
+          "SELECT document FROM evals.target_revision WHERE org_id=$1 AND id=$2",
+          [scope.orgId, targetRevisionId],
+        )).rows[0]);
+        const config = targetConfigSchema.parse(target.document);
+        if (config.kind !== "website") throw new EvalError("INPUT_INVALID", 422, "This is not a website connection.");
+        try { assertWebsiteRecipeOrigin(recipe.start_url, config.endpoint); }
+        catch { throw new EvalError("INPUT_INVALID", 422, "The recipe must start on the authorized website origin."); }
         const candidate = required(
           (
             await db.query(
@@ -186,6 +239,71 @@ async function entitlement(db: PoolClient, orgId: string) {
   );
 }
 
+export function assertApprovedRunSelection(
+  evaluation: { preparation_status: string; selected_suite_version_id: string | null },
+  requestedSuiteVersionId?: string,
+) {
+  if (evaluation.preparation_status !== "ready" || !evaluation.selected_suite_version_id) {
+    throw new EvalError("INPUT_INVALID", 409, "Approve the prepared test set before starting a run.");
+  }
+  if (requestedSuiteVersionId && requestedSuiteVersionId !== evaluation.selected_suite_version_id) {
+    throw new EvalError("SCOPE_DENIED", 403, "This test set is not approved for the evaluation.");
+  }
+}
+
+export function assertReadyConnection(
+  kind: string,
+  check: { status: string } | null,
+  recipe: { id: string } | null,
+) {
+  if (kind === "website" ? !recipe : check?.status !== "ready") {
+    throw new EvalError("CONNECTION_UNSUPPORTED", 409, "The connection is not ready. Request setup assistance or retry its check.");
+  }
+}
+
+export function assertOperatorRecipeAuthority(role: "platform_admin" | "operator" | null) {
+  if (role !== "platform_admin" && role !== "operator") {
+    throw new EvalError("SCOPE_DENIED", 403, "Website recipes require operator review.");
+  }
+}
+
+export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string, suiteVersionId: string, key: string) {
+  return withTenant(scope, (db) => idempotent(db, scope, `approve-suite/${evaluationId}`, key, { suiteVersionId }, async () => {
+    const evaluation = required((await db.query(
+      "SELECT id,project_id,preparation_status,selected_suite_version_id FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE",
+      [scope.orgId, evaluationId],
+    )).rows[0]);
+    if (evaluation.preparation_status === "ready" && evaluation.selected_suite_version_id === suiteVersionId) {
+      return { evaluationId, suiteVersionId, status: "ready" };
+    }
+    if (evaluation.preparation_status !== "needs_review") {
+      throw new EvalError("INPUT_INVALID", 409, "The test set is not ready for approval.");
+    }
+    const suite = (await db.query(
+      `SELECT sv.id FROM evals.suite_version sv
+       JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
+       JOIN evals.generation_batch b ON b.org_id=sv.org_id
+         AND b.evaluation_id=$2 AND b.status='completed'
+         AND b.output->>'suiteId'=s.id::text
+         AND b.output->>'suiteVersionId'=sv.id::text
+         AND b.id=(SELECT x.id FROM evals.generation_batch x
+           WHERE x.org_id=$1 AND x.evaluation_id=$2 AND x.status='completed'
+           ORDER BY x.created_at DESC,x.id DESC LIMIT 1)
+       WHERE sv.org_id=$1 AND sv.id=$3 AND s.project_id=$4
+         AND jsonb_array_length(sv.manifest->'source_revisions')>0
+         AND jsonb_array_length(sv.manifest->'case_revisions')>0`,
+      [scope.orgId, evaluationId, suiteVersionId, evaluation.project_id],
+    )).rows[0];
+    if (!suite) throw new EvalError("SCOPE_DENIED", 404, "The frozen test set does not belong to this preparation.");
+    await db.query(
+      `UPDATE evals.evaluation SET selected_suite_version_id=$3,preparation_status='ready',
+       reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2`,
+      [scope.orgId, evaluationId, suiteVersionId],
+    );
+    return { evaluationId, suiteVersionId, status: "ready" };
+  }));
+}
+
 async function monthlySpend(db: PoolClient, orgId: string) {
   const row = (
     await db.query(
@@ -209,7 +327,9 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     ]);
     const evaluations = (
       await db.query(
-        `SELECT e.*,p.title AS project_title,
+        `SELECT e.*,p.title AS project_title,p.description AS project_description,
+          (SELECT sr.source_id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_id,
+          (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
           (SELECT r.id FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_id,
           (SELECT r.status FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_status,
           (SELECT r.phase FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_phase
@@ -221,8 +341,15 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     ).rows;
     const systems = (
       await db.query(
-        `SELECT t.id,t.title,tr.id AS target_revision_id,tr.document,
-          cc.status AS connection_status,cc.error_code,cc.capability_report
+        `SELECT t.id,t.project_id,t.title,tr.id AS target_revision_id,tr.document,
+          cc.status AS connection_status,cc.error_code,cc.capability_report,
+          CASE WHEN tr.document->>'kind'='private_runner' THEN
+            CASE WHEN ri.id IS NULL THEN 'pairing_required'
+                 WHEN ri.revoked_at IS NOT NULL THEN 'revoked'
+                 WHEN ri.token_expires_at<=now() THEN 'token_expired'
+                 WHEN ri.last_seen_at>now()-interval '15 minutes' THEN 'connected'
+                 ELSE 'paired' END
+            ELSE NULL END AS runner_status
          FROM evals.target t
          JOIN LATERAL (
            SELECT * FROM evals.target_revision x
@@ -234,6 +361,8 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
            WHERE x.org_id=tr.org_id AND x.target_revision_id=tr.id
            ORDER BY x.created_at DESC,x.id DESC LIMIT 1
          ) cc ON true
+         LEFT JOIN evals.runner_identity ri ON ri.org_id=t.org_id AND ri.target_id=t.id
+           AND ri.id::text=tr.document->>'runner_id'
          WHERE t.org_id=$1 ORDER BY t.created_at DESC,t.id LIMIT 100`,
         [scope.orgId],
       )
@@ -326,7 +455,11 @@ export function createSelfServiceRun(
   const input = selfServiceRunInputSchema.parse(raw);
   return withTenant(scope, (db) =>
     idempotent(db, scope, "self-service-runs", key, input, async () => {
-      const limits = await entitlement(db, scope.orgId);
+      await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`self-service-runs:${scope.orgId}`]);
+      const limits = required((await db.query(
+        "SELECT * FROM evals.workspace_entitlement WHERE org_id=$1",
+        [scope.orgId],
+      )).rows[0]);
       const active = Number(
         (
           await db.query(
@@ -351,10 +484,11 @@ export function createSelfServiceRun(
           )
         ).rows[0],
       );
+      assertApprovedRunSelection(evaluation, input.suiteVersionId);
       const target = required(
         (
           await db.query(
-            `SELECT tr.*,t.project_id
+            `SELECT tr.*,t.project_id,t.id AS target_id
              FROM evals.target_revision tr
              JOIN evals.target t ON (t.org_id,t.id)=(tr.org_id,tr.target_id)
              WHERE tr.org_id=$1 AND t.project_id=$2
@@ -375,6 +509,29 @@ export function createSelfServiceRun(
       if (config.kind === "website" && !config.recipe_revision_id) {
         throw new EvalError("CONNECTION_UNSUPPORTED", 409, "This website needs connection assistance before it can run.");
       }
+      if (config.kind === "website") {
+        const authorization = (await db.query(
+          `SELECT scope,expires_at FROM evals.authorization_record
+           WHERE org_id=$1 AND project_id=$2 AND target_id=$3
+             AND basis='workspace_member_attestation'
+           ORDER BY created_at DESC,id DESC LIMIT 1`,
+          [scope.orgId, evaluation.project_id, target.target_id],
+        )).rows[0] ?? null;
+        assertWebsiteAuthorization(authorization, config.endpoint);
+      }
+      const connectionCheck = (await db.query(
+        `SELECT status,capability_report FROM evals.connection_check
+         WHERE org_id=$1 AND target_revision_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1`,
+        [scope.orgId, target.id],
+      )).rows[0] ?? null;
+      const recipe = config.kind === "website" && config.recipe_revision_id
+        ? (await db.query(
+            `SELECT id FROM evals.website_recipe_revision
+             WHERE org_id=$1 AND id=$2 AND target_id=$3`,
+            [scope.orgId, config.recipe_revision_id, target.target_id],
+          )).rows[0] ?? null
+        : null;
+      if (config.kind !== "imported_responses" && config.kind !== "private_runner") assertReadyConnection(config.kind, connectionCheck, recipe);
       const suite = required(
         (
           await db.query(
@@ -387,7 +544,7 @@ export function createSelfServiceRun(
             [
               scope.orgId,
               evaluation.project_id,
-              input.suiteVersionId ?? evaluation.selected_suite_version_id ?? null,
+              evaluation.selected_suite_version_id,
             ],
           )
         ).rows[0],
@@ -402,14 +559,65 @@ export function createSelfServiceRun(
         )
       ).rows;
       if (!rows.length) throw new EvalError("INPUT_INVALID", 422, "The test set is empty.");
-      const capability = (
+      if (config.kind === "private_runner") {
+        if (suite.manifest.execution_mode === "imported_responses")
+          throw new EvalError("INPUT_INVALID",422,"The approved test set is for collected answers.");
+        const runId=randomUUID();
+        const plan=withContentHash({run_id:runId,target_revision_id:target.id,
+          target_config_hash:target.content_hash,suite_version_id:suite.id,
+          case_revisions:rows.map(row=>({revision_id:row.case_revision_id,content_hash:row.document.content_hash,family_id:row.document.family_id})),
+          execution_mode:"deployed_system",execution_transport:"customer_private_runner",
+          candidate_context_hash:sha256(canonicalJson({visibility:"candidate",suite:suite.content_hash})),
+          repetition_policy:"frozen_case_limits",execution_conditions_hash:sha256(canonicalJson(config))});
+        await db.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,reason_code)
+          VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution','runner_wait')`,
+          [runId,scope.orgId,evaluation.id,target.id,suite.id]);
+        await db.query("INSERT INTO evals.run_plan(org_id,run_id,content_hash,document) VALUES($1,$2,$3,$4)",
+          [scope.orgId,runId,plan.content_hash,plan]);
+        const job=await createRunnerJob(db,scope,{runnerId:config.runner_id,connectorVersion:config.connector_version,projectId:evaluation.project_id,
+          targetId:target.target_id,targetRevisionId:target.id,runId,suiteVersionId:suite.id,rows});
+        await db.query(`UPDATE evals.evaluation SET selected_target_revision_id=$3,
+          selected_suite_version_id=$4,preparation_status='ready',updated_at=now() WHERE org_id=$1 AND id=$2`,
+          [scope.orgId,evaluation.id,target.id,suite.id]);
+        return {id:runId,workflowId:null,status:"awaiting_private_runner",units:job.units,
+          queued:0,excluded:0,planHash:plan.content_hash,runnerJobId:job.jobId};
+      }
+      if (config.kind === "imported_responses") {
+        if (suite.manifest.execution_mode !== "imported_responses") {
+          throw new EvalError("INPUT_INVALID", 422, "The approved test set is not for collected answers.");
+        }
+        if (rows.some((row) => caseSchema.parse(row.document).limits.repetitions !== 1)) {
+          throw new EvalError("INPUT_INVALID", 422, "Collected answers require one response per question.");
+        }
+        const runId = randomUUID();
+        const plan = withContentHash({
+          run_id: runId,
+          target_revision_id: target.id,
+          target_config_hash: target.content_hash,
+          suite_version_id: suite.id,
+          case_revisions: rows.map((row) => ({ revision_id: row.case_revision_id, content_hash: row.document.content_hash })),
+          execution_mode: "imported_responses",
+          collection_policy: "customer_supplied_case_revision_matched",
+        });
         await db.query(
-          `SELECT capability_report FROM evals.connection_check
-           WHERE org_id=$1 AND target_revision_id=$2 AND status='ready'
-           ORDER BY completed_at DESC,id DESC LIMIT 1`,
-          [scope.orgId, target.id],
-        )
-      ).rows[0]?.capability_report;
+          `INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase)
+           VALUES($1,$2,$3,$4,$5,'imported_responses','paused','preflight')`,
+          [runId, scope.orgId, evaluation.id, target.id, suite.id],
+        );
+        await db.query("INSERT INTO evals.run_plan(org_id,run_id,content_hash,document) VALUES($1,$2,$3,$4)", [scope.orgId, runId, plan.content_hash, plan]);
+        for (const row of rows) {
+          await db.query("INSERT INTO evals.case_unit(id,org_id,run_id,case_revision_id,repetition,status) VALUES($1,$2,$3,$4,0,'pending')", [randomUUID(), scope.orgId, runId, row.case_revision_id]);
+        }
+        await db.query(
+          "UPDATE evals.evaluation SET selected_target_revision_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",
+          [scope.orgId, evaluation.id, target.id],
+        );
+        return { id: runId, workflowId: null, status: "awaiting_answers", units: rows.length, queued: 0, excluded: 0, planHash: plan.content_hash };
+      }
+      if (suite.manifest.execution_mode === "imported_responses") {
+        throw new EvalError("INPUT_INVALID", 422, "The approved test set requires collected answers.");
+      }
+      const capability = connectionCheck?.status === "ready" ? connectionCheck.capability_report : null;
       const fixtureRows = suite.manifest.fixture_revisions?.length
         ? (
             await db.query(
@@ -553,14 +761,24 @@ export function controlRun(
   action: "pause" | "resume" | "cancel",
 ) {
   return withTenant(scope, async (db) => {
-    const workflow = required(
-      (
-        await db.query(
-          "SELECT id FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
-          [scope.orgId, runId],
-        )
-      ).rows[0],
-    );
+    const workflow = (
+      await db.query(
+        "SELECT id FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
+        [scope.orgId, runId],
+      )
+    ).rows[0];
+    if (!workflow) {
+      const job=(await db.query("SELECT id FROM evals.runner_job WHERE org_id=$1 AND run_id=$2 FOR UPDATE",[scope.orgId,runId])).rows[0];
+      if(!job)throw new EvalError("SCOPE_DENIED",404);
+      if(action!=="cancel")throw new EvalError("CONNECTION_UNSUPPORTED",422,"Private runner jobs can only be canceled here.");
+      await db.query("UPDATE evals.runner_job SET status='canceled' WHERE org_id=$1 AND id=$2 AND status IN ('ready','claimed')",[scope.orgId,job.id]);
+      await db.query("UPDATE evals.case_unit SET status='canceled',reason_code='runner_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status='pending'",[scope.orgId,runId]);
+      await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS(
+        SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='succeeded'
+      ) THEN 'partial' ELSE 'canceled' END,reason_code='runner_canceled',updated_at=now()
+        WHERE org_id=$1 AND id=$2`,[scope.orgId,runId]);
+      return {runId,action};
+    }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
     return { runId, action };
   });
@@ -568,6 +786,7 @@ export function controlRun(
 
 export function forkSuite(
   scope: EvidenceScope,
+  sourceSuiteId: string,
   suiteVersionId: string,
   title: string,
   key: string,
@@ -586,8 +805,8 @@ export function forkSuite(
               `SELECT sv.manifest,s.project_id
                FROM evals.suite_version sv
                JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
-               WHERE sv.org_id=$1 AND sv.id=$2`,
-              [scope.orgId, suiteVersionId],
+               WHERE sv.org_id=$1 AND sv.id=$2 AND sv.suite_id=$3`,
+              [scope.orgId, suiteVersionId, sourceSuiteId],
             )
           ).rows[0],
         );
@@ -614,6 +833,12 @@ export function forkSuite(
   );
 }
 
+export function assertRegressionEligible(source: { execution_status: string; latest_outcome: string | null }) {
+  if (source.execution_status !== "succeeded" || !["fail", "partial"].includes(source.latest_outcome ?? "")) {
+    throw new EvalError("INPUT_INVALID", 409, "Only a scored, failed or partially failed interaction can become a regression draft.");
+  }
+}
+
 export function createRegressionDraft(
   scope: EvidenceScope,
   observationId: string,
@@ -622,16 +847,23 @@ export function createRegressionDraft(
     const source = required(
       (
         await db.query(
-          `SELECT o.id,cu.case_revision_id,e.project_id
+          `SELECT o.id,o.execution_status,cu.case_revision_id,e.project_id,
+                  assessment.outcome AS latest_outcome
            FROM evals.observation o
            JOIN evals.case_unit cu ON (cu.org_id,cu.id)=(o.org_id,o.case_unit_id)
            JOIN evals.run r ON (r.org_id,r.id)=(o.org_id,o.run_id)
            JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
+           LEFT JOIN LATERAL (
+             SELECT outcome FROM evals.assessment a
+             WHERE a.org_id=o.org_id AND a.observation_id=o.id
+             ORDER BY a.created_at DESC,a.id DESC LIMIT 1
+           ) assessment ON true
            WHERE o.org_id=$1 AND o.id=$2`,
           [scope.orgId, observationId],
         )
       ).rows[0],
     );
+    assertRegressionEligible(source);
     return (
       await db.query(
         `INSERT INTO evals.regression_case(
@@ -644,4 +876,134 @@ export function createRegressionDraft(
       )
     ).rows[0];
   });
+}
+
+export function getRegressionDraft(scope: EvidenceScope, regressionId: string) {
+  return withTenant(scope, async (db) => required((await db.query(
+    `SELECT rc.id,rc.project_id,rc.source_observation_id,rc.source_case_revision_id,
+            rc.draft_case_revision_id,rc.redaction_status,rc.validation_status,
+            source.document AS source_case,observation.document AS failed_observation,
+            revised.document AS released_case
+     FROM evals.regression_case rc
+     JOIN evals.case_revision source ON (source.org_id,source.id)=(rc.org_id,rc.source_case_revision_id)
+     JOIN evals.observation observation ON (observation.org_id,observation.id)=(rc.org_id,rc.source_observation_id)
+     LEFT JOIN evals.case_revision revised ON (revised.org_id,revised.id)=(rc.org_id,rc.draft_case_revision_id)
+     WHERE rc.org_id=$1 AND rc.id=$2`,
+    [scope.orgId, regressionId],
+  )).rows[0]));
+}
+
+export function assertRegressionReleaseCandidate(args: {
+  candidate: CefCase;
+  source: { case_id: string; revision_id: string; family_id: string; content_hash: string };
+  regressionId: string;
+  observationId: string;
+  actorId: string;
+}) {
+  const { candidate, source, regressionId, observationId, actorId } = args;
+  if (candidate.case_id !== source.case_id || candidate.family_id !== source.family_id ||
+      candidate.revision_id === source.revision_id || candidate.content_hash === source.content_hash) {
+    throw new EvalError("INPUT_INVALID", 422, "The regression must be a new revision of the failed case in the same family.");
+  }
+  const link = candidate.extensions["caudals.evals/regression"];
+  if (!link || typeof link !== "object" || Array.isArray(link) ||
+      link.regression_case_id !== regressionId || link.source_observation_id !== observationId ||
+      link.source_case_revision_id !== source.revision_id) {
+    throw new EvalError("INPUT_INVALID", 422, "The revision must trace to the failed interaction and regression draft.");
+  }
+  if (candidate.provenance.method !== "human_authored" ||
+      candidate.provenance.evidence_level !== "expert_reviewed" ||
+      !candidate.provenance.reviewer_ids.includes(actorId)) {
+    throw new EvalError("INPUT_INVALID", 422, "A named expert reviewer must revalidate the redacted revision.");
+  }
+  if (!candidate.reference.source_refs.length) {
+    throw new EvalError("INPUT_INVALID", 422, "The revised case needs a verified source reference.");
+  }
+  if (candidate.reference.graders.some((grader) => ["llm_judge", "human", "json_schema"].includes(grader.kind))) {
+    throw new EvalError("INPUT_INVALID", 422, "This release path requires deterministic, locally revalidated graders.");
+  }
+  const content = [
+    candidate.title,
+    ...candidate.scenario.messages.map((message) => message.content),
+    JSON.stringify(candidate.reference.expected),
+    ...candidate.reference.acceptable_alternatives.map((value) => JSON.stringify(value)),
+    ...candidate.reference.required_claims,
+    ...candidate.reference.prohibited_claims,
+    ...candidate.reference.prohibited_actions,
+    candidate.reference.derivation_notes ?? "",
+  ].join("\n");
+  if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(content) ||
+      /\b(?:sk-[A-Za-z0-9_-]{16,}|Bearer\s+[A-Za-z0-9._-]{20,})\b/i.test(content)) {
+    throw new EvalError("INPUT_INVALID", 422, "Remove obvious personal addresses or credentials before releasing the case.");
+  }
+}
+
+export function releaseRegressionCase(
+  scope: EvidenceScope,
+  regressionId: string,
+  candidateRevisionId: string,
+  key: string,
+) {
+  return withTenant(scope, (db) => idempotent(
+    db, scope, `regression-release/${regressionId}`, key, { candidateRevisionId }, async () => {
+      const regression = required((await db.query(
+        "SELECT * FROM evals.regression_case WHERE org_id=$1 AND id=$2 FOR UPDATE",
+        [scope.orgId, regressionId],
+      )).rows[0]);
+      if (regression.redaction_status === "redacted" && regression.validation_status === "valid") {
+        if (regression.draft_case_revision_id !== candidateRevisionId) {
+          throw new EvalError("VERSION_CONFLICT", 409, "This regression has already released another revision.");
+        }
+        return { id: regressionId, candidateRevisionId, redactionStatus: "redacted", validationStatus: "valid" };
+      }
+      if (regression.redaction_status !== "pending" || regression.validation_status !== "pending") {
+        throw new EvalError("VERSION_CONFLICT", 409, "This regression is no longer awaiting review.");
+      }
+      const row = required((await db.query(
+        `SELECT revised.document AS candidate,source.document AS source,
+                o.document AS observation,rr.document AS rubric,
+                revised.id AS candidate_revision_id
+         FROM evals.regression_case rc
+         JOIN evals.case_revision source ON (source.org_id,source.id)=(rc.org_id,rc.source_case_revision_id)
+         JOIN evals.case_revision revised ON revised.org_id=rc.org_id AND revised.id=$3
+         JOIN evals."case" c ON (c.org_id,c.id)=(revised.org_id,revised.case_id)
+         JOIN evals.observation o ON (o.org_id,o.id)=(rc.org_id,rc.source_observation_id)
+         JOIN evals.rubric_revision rr ON (rr.org_id,rr.id)=(revised.org_id,revised.rubric_revision_id)
+         WHERE rc.org_id=$1 AND rc.id=$2 AND c.project_id=rc.project_id
+           AND rr.project_id=rc.project_id
+           AND NOT EXISTS (
+             SELECT 1 FROM evals.suite_case sc
+             WHERE sc.org_id=revised.org_id AND sc.case_revision_id=revised.id
+           )`,
+        [scope.orgId, regressionId, candidateRevisionId],
+      )).rows[0]);
+      const candidate = caseSchema.parse(row.candidate);
+      const source = caseSchema.parse(row.source);
+      const observation = observationSchema.parse(row.observation);
+      const rubric = rubricSchema.parse(row.rubric);
+      assertRegressionReleaseCandidate({
+        candidate, source, regressionId,
+        observationId: regression.source_observation_id,
+        actorId: scope.actorId,
+      });
+      const check = gradeDeterministically({
+        caseRevision: candidate, observation, rubric,
+        graderRevisionId: "regression-release-v1",
+      });
+      if (check.outcome !== "fail" && check.outcome !== "partial") {
+        throw new EvalError("INPUT_INVALID", 422, "The failed answer must still fail the revalidated deterministic case.");
+      }
+      await db.query(
+        `UPDATE evals.regression_case SET
+           draft_case_revision_id=$3,redaction_status='redacted',validation_status='valid'
+         WHERE org_id=$1 AND id=$2`,
+        [scope.orgId, regressionId, candidateRevisionId],
+      );
+      await db.query(
+        "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'regression.released',$3)",
+        [scope.orgId, scope.actorId, regressionId],
+      );
+      return { id: regressionId, candidateRevisionId, redactionStatus: "redacted", validationStatus: "valid", revalidationOutcome: check.outcome };
+    },
+  ));
 }

@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). The application today is a public marketing and demand-capture site plus a private Operator Console. The first evaluation pilots are delivered manually; the in-app evaluation product is specified below as planned work.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production remains a public marketing and demand-capture site plus the private Operator Console. An invite-only evaluation product is implemented in this repository but has not passed its production release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-13.md`.
 
 Current production scope:
 
@@ -42,9 +42,13 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 
 Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`, which only the frozen `/v1` brief intake still creates. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
 
-## Evaluation Product Architecture (planned)
+## Evaluation Product Implementation (not yet released)
 
-Status: not implemented. The first three pilots are delivered manually; build Phase 1 only after the third paying customer.
+The current evaluation implementation uses `app/(evaluation)` for separate `/ops` and `/workspace` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, `evals` PostgreSQL tables from migrations 031–041, and separate general, document, and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the browser worker is disabled by default and still needs a policy-enforced deployment egress boundary and authorized real-widget evidence. Stage D adds a customer-side outbound private runner and a gated schedule loop in the general worker. The loop creates at most one latest missed dispatch, compares frozen runs with coverage guards, and separately retries signed HTTPS webhook delivery. See `evals/work-packages/WP-09.md`–`WP-13.md` for precise status and remaining release checks.
+
+## Earlier Evaluation Architecture Sketch (superseded)
+
+This sketch predates the staged implementation above. Its `/proof`, `/e/[projectId]`, and `lib/eval` paths are not the current evaluation-product contract. The product specification and `docs/evals/AGENTS.md` take precedence.
 
 ### Phase 0 — manual delivery
 

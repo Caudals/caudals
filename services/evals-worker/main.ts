@@ -6,6 +6,9 @@ import { createBoss, dispatchOutbox, startBoss, type JobData } from '../../lib/e
 import { InvocationWorker } from '../../lib/evals/queue/worker';
 import { loadKeyring } from '../../lib/evals/security/envelope';
 import { TargetExecutionWorker } from '../../lib/evals/queue/target-worker';
+import { tickSchedules } from '../../lib/evals/monitoring/schedules';
+import { tickScheduledAlerts } from '../../lib/evals/monitoring/alerts';
+import { tickWebhookDeliveries } from '../../lib/evals/monitoring/webhooks';
 
 async function main() {
  if(process.env.EVALS_DISPATCH_ENABLED!=='true')throw new Error('dispatch_disabled');
@@ -16,18 +19,24 @@ async function main() {
  const endpointFile=process.env.EVALS_DGX_ENDPOINT_FILE;
  const dgxEndpoint=endpointFile?readFileSync(endpointFile,'utf8').trim():undefined;
  const boss=createBoss();boss.on('error',()=>console.error(JSON.stringify({event:'queue_error'})));
- const keys=loadKeyring(keyFile),worker=new InvocationWorker({tx:withTenant,keys,actorId,workerId:randomUUID(),dgxEndpoint}),targetWorker=new TargetExecutionWorker({tx:withTenant,keys,actorId,workerId:randomUUID()});
+ const keys=loadKeyring(keyFile),webhookKeys=process.env.EVALS_SCHEDULES_ENABLED==='true'
+   ?loadKeyring(z.string().min(1).parse(process.env.EVALS_WEBHOOK_KEYRING_FILE)):null,
+   worker=new InvocationWorker({tx:withTenant,keys,actorId,workerId:randomUUID(),dgxEndpoint}),targetWorker=new TargetExecutionWorker({tx:withTenant,keys,actorId,workerId:randomUUID()});
  try {
  await startBoss(boss);
  for(const queue of ['execute_api','generate','profile','grade'])await boss.work<JobData>(queue,{batchSize:1,pollingIntervalSeconds:2},async (jobs: any[])=>{
   for(const job of jobs){if(!orgs.includes(job.data.orgId))throw new Error('worker_tenant_denied');if(queue==='execute_api'&&await targetWorker.canHandle(job.data))await targetWorker.handle(job.data);else await worker.handle(job.data);}
  });
  let stopping=false;
+ let lastScheduleTick=0;
  const stop=()=>{stopping=true;};process.once('SIGTERM',stop);process.once('SIGINT',stop);
  console.info(JSON.stringify({event:'worker_ready',environment:process.env.EVALS_ENV}));
   while(!stopping) {
+   const scheduleTick=process.env.EVALS_SCHEDULES_ENABLED==='true'&&Date.now()-lastScheduleTick>=60000;
+   if(scheduleTick)lastScheduleTick=Date.now();
    for(const orgId of orgs) {
     const tenant={orgId,actorId};await targetWorker.recover(tenant);await worker.recover(tenant);await dispatchOutbox(boss,withTenant,tenant,10);
+    if(scheduleTick){await tickSchedules(tenant);await tickScheduledAlerts(tenant);await tickWebhookDeliveries(tenant,webhookKeys!);}
    }
    await new Promise(resolve=>setTimeout(resolve,1000));
   }

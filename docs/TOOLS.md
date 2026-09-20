@@ -24,6 +24,20 @@ When interacting with production-like resources, use read-first diagnostics and 
 - GitHub CLI (`gh`): CI run and failed-job triage
 - Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
+## Evaluation Stage C local checks
+
+Use a disposable local PostgreSQL database and private storage endpoint for integration tests; never point destructive fixtures at the shared production database. Apply migrations 031–041 in order, then exercise tenant queries under a non-owner NOBYPASSRLS role. `npx vitest run tests/evals/stage-c.test.ts` checks website/scenario/customer policy contracts. `npx playwright test --config=e2e/evals/browser-fixture.config.ts` checks isolated browser fixtures, and `npx playwright test --config=e2e/evals/ui.config.ts` checks the invite-only UI harness. Run the two Playwright configs serially because the UI harness binds loopback port 4187. The UI harness does not prove Next.js routing, production network isolation, real widget consent or durable storage.
+
+Before interpreting a queue test failure, verify the installed `pg-boss` version against `package-lock.json`: this local workspace can contain a stale symlink to 10.3.3 while the lockfile specifies 12.33.1. Verify the release with the locked dependency set; do not alter the shared dependency tree merely to hide the mismatch. Stage C release gates are tracked in `docs/evals/work-packages/WP-09.md`–`WP-11.md`.
+
+## Evaluation Stage D local checks
+
+Use `npx vitest run tests/evals/stage-d-*.test.ts` for protocol, calendar and CLI fixtures. For the database tests, provision a disposable PostgreSQL database with migrations 031–041 and a non-owner role inheriting `evals_runtime`; set `EVALS_TEST_DATABASE_URL` to that role and `EVALS_TEST_OWNER_URL` to the disposable migration owner. Run `npx vitest run tests/evals/stage-d-runner-db.test.ts tests/evals/stage-d-monitor-db.test.ts`. These tests insert and update fixtures and must never target production.
+
+Stage D is disabled unless `EVALS_SCHEDULES_ENABLED=true` on the allowlisted general worker. Before enabling it, mount `EVALS_WEBHOOK_KEYRING_FILE` on both web and general worker, set `EVALS_WEBHOOK_KEY_VERSION` on web to a version in that keyring, and provision the Ed25519 `EVALS_RUNNER_SIGNING_KEY` for bundle signing. Keep these out of logs and use mounted secret files where supported. Run `npm run typecheck`, the eval Vitest suite, and the browser fixtures before a release; then exercise a real approved target, worker restart and a customer-controlled webhook receiver. The web UI shows webhook secrets and customer tokens only once. A receiver verifies the exact body with the delivery ID/timestamp signature and records each delivery ID for at least five minutes to reject replay. Keep old webhook secrets accepted until queued deliveries made before rotation have drained.
+
+The private CLI package and adapter usage are in `packages/evals-runner/README.md`. Stage D release evidence and remaining gates are in `docs/evals/work-packages/WP-12.md`–`WP-13.md`.
+
 ## Tool Selection Matrix
 
 - Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database

@@ -38,7 +38,6 @@ Founder-confirmed:
 - Keep the customer workflow minimal: connect, wait for preparation, wait for evaluation, inspect results.
 - Use an English application interface. Evaluation content can be in other languages.
 - Design for eventual freelance expert curation and training-dataset production.
-- Treat the public general-purpose-model benchmark as a separate later initiative. Spanish tax/accounting is a tentative benchmark domain, not a prerequisite for the app.
 - Treat 500–1,000 per evaluation as a maximum spending envelope, increasing later.
 
 Working assumptions requiring founder review, but not blocking this draft:
@@ -67,7 +66,7 @@ The primary product object is an **evaluation**, not a model playground. A custo
 | Imported responses | Previously generated answers or transcripts                                 | Grade those artifacts; latency, identity and execution conditions may be unverified |
 
 
-A run records one execution mode. **Evidence policy is a separate axis:** `exploratory` or `source_grounded`; individual cases additionally record their review/evidence level. An exploratory run can use any execution mode, and its findings are hypotheses rather than verified accuracy claims. Customer-specific tests and a future common public benchmark use the same contracts but separate datasets, permissions and release policies.
+A run records one execution mode. **Evidence policy is a separate axis:** `exploratory` or `source_grounded`; individual cases additionally record their review/evidence level. An exploratory run can use any execution mode, and its findings are hypotheses rather than verified accuracy claims. Customer-specific tests use these contracts with their own datasets, permissions and release policies.
 
 ### 2.2 First useful release
 
@@ -160,7 +159,7 @@ Operator navigation under `/ops`:
 | Work     | Overview, Clients, Evaluations, Review queue, Reports                         |
 | Library  | Test sets, Sources, Domain packs, Improvement datasets                        |
 | Platform | Providers & models, Inference, Usage & budgets, Accounts, Audit log, Settings |
-| Later    | Experts & assignments, Benchmark releases                                     |
+| Later    | Experts & assignments                                     |
 
 
 The operator workspace is a distinct shell. Keep the client and acting operator visible on every scoped screen. `View customer report` opens the customer's permitted view; it does not silently impersonate their account.
@@ -234,7 +233,7 @@ Share flow: choose report revision, audience, expiry and visibility; preview exa
 9. Create private share/invite; outreach is a separate deliberate action, not an automatic side effect of an evaluation.
 10. Rerun, compare, schedule or open an improvement dataset project.
 
-Admin secret fields are write-only after save. Show label, scope, last validation, expiration if known and rotation history. A `Test connection` action runs a bounded probe; it does not launch a benchmark or download a model.
+Admin secret fields are write-only after save. Show label, scope, last validation, expiration if known and rotation history. A `Test connection` action runs a bounded probe; it does not launch a full evaluation or download a model.
 
 ### 5.6 Visual and interaction direction
 
@@ -341,7 +340,7 @@ Do not install multiple evaluation frameworks for the first release:
 - **Promptfoo:** useful for adapter parity tests, importing/exporting simple suites and future compatibility. Its custom-provider interface is a useful interoperability boundary; it does not own tenants, report truth or budget accounting. Its browser provider demonstrates scripted browser execution, but the production connector must satisfy Caudals isolation and extraction contracts. [Custom providers](https://www.promptfoo.dev/docs/providers/custom-api/), [browser provider](https://www.promptfoo.dev/docs/providers/browser/)
 - **Inspect AI:** a candidate optional Python execution backend for later complex agent research and sandbox tasks. Its dataset/solver/scorer composition fits an adapter, while Caudals remains the product control plane. Defer until a concrete scenario exceeds the core runner; do not add a second production runtime just for naming compatibility. [Inspect](https://inspect.aisi.org.uk/), [sandboxing](https://inspect.aisi.org.uk/sandboxing.html)
 - Do not depend on frozen legacy Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis or Marquez installations.
-- Package license, maintenance, current security advisories and transitive execution behavior are checked at adoption. Public benchmark datasets require separate license/provenance review; availability is not permission to reuse in a commercial dataset.
+- Package license, maintenance, current security advisories and transitive execution behavior are checked at adoption.
 
 
 
@@ -546,7 +545,7 @@ Versioned domain packs supply task taxonomy, source hierarchy, required context 
 
 Tax/accounting, legal and finance are initial pack candidates. Jurisdiction and as-of date are mandatory for date-sensitive claims. Do not embed remembered tax rates or laws as answer keys. Start with a synthetic accounting fixture pack to verify the engine, then curate real source-backed content independently of app implementation.
 
-### 9.5 Difficulty and resistance to benchmark saturation
+### 9.5 Difficulty and resistance to saturation
 
 The objective is valid discrimination on valuable tasks, not forcing frontier models to fail.
 
@@ -560,7 +559,7 @@ The objective is valid discrimination on valuable tasks, not forcing frontier mo
 - Track item pass rates, ceiling effects, agreement and ambiguous-item rates. Proposed saturation alert: best reference model exceeds 90% on the challenge development set with a narrow interval; review coverage before creating the next version. This is an operational trigger, not a universal scientific threshold.
 - Frontier models may pass every valid case. Report that honestly and explain limited coverage; do not invent failures or change scoring afterward.
 
-FinanceQA emphasizes financial-analysis tasks, and APEX studies economically valuable professional work. Use these as methodological inspiration for realistic, checkable tasks; neither supplies a ready-made Spanish tax benchmark or guarantees difficulty against future models. [FinanceQA paper](https://arxiv.org/abs/2501.18062), [APEX paper](https://arxiv.org/abs/2509.25721)
+FinanceQA emphasizes financial-analysis tasks, and APEX studies economically valuable professional work. Use these as methodological inspiration for realistic, checkable tasks; neither supplies a ready-made Spanish tax test set or guarantees difficulty against future models. [FinanceQA paper](https://arxiv.org/abs/2501.18062), [APEX paper](https://arxiv.org/abs/2509.25721)
 
 ## 10. Caudals Evaluation Format — CEF 1.0
 
@@ -585,7 +584,7 @@ README.md                      human-readable scope, use and limitations
 - `case_id` is stable logical identity; `revision_id` and `content_hash` change on material edits. `family_id` groups related variants. A display title never determines identity.
 - A source edit, expected-answer edit, rubric edit, fixture edit or candidate-visible context edit creates a new relevant revision and suite manifest.
 - `split` is `development`, `validation`, `holdout` or `training`; family-level constraints prevent overlap. Freeze release manifests independently of mutable library records.
-- Exports are audience-specific. Full internal bundle, customer-owned dataset export, candidate-only bundle and public benchmark release have different allowlists. Never ship the full internal archive to a candidate runner.
+- Exports are audience-specific. Full internal bundle, customer-owned dataset export, and candidate-only bundle have different allowlists. Never ship the full internal archive to a candidate runner.
 
 
 
@@ -1246,24 +1245,11 @@ Every release includes schema, provenance, rights, author/reviewer identity, QA 
 
 The app exports training material; running fine-tuning jobs is a separate later capability. Validate improvement on untouched holdouts and distinguish it from performance on examples used to construct the fix.
 
-## 19. Future benchmark track — deliberately separate
-
-After the application is reliable, create a separate benchmark project/release workflow using CEF, the model registry and controlled-model execution.
-
-- Choose domain/jurisdiction/language explicitly; Spanish tax/accounting remains a candidate.
-- Recruit domain review before making public correctness claims.
-- Publish task taxonomy, source dates, allowed tools/context, scoring, budgets, repeated-run policy, uncertainty and model identity limitations.
-- Keep development sets, private holdouts and public example/release sets distinct. Release cadence creates new versions instead of silently changing the leaderboard.
-- Use equal disclosed conditions or clearly separate tracks for tool access, reasoning budget and context. Deployed customer systems are not ranked alongside bare models as if equivalent.
-- Maintain answer-key errata, appeal/adjudication process and re-scoring history. A source change does not rewrite past results without a new revision.
-- No automatic contribution of customer data or reports. No marketing-selected best-of-N results without disclosing selection.
-- A public leaderboard, benchmark branding and release marketing are not blockers for the customer evaluations app.
-
 
 
 ## 20. Implementation stages and work packages
 
-Packages are ordered to produce a usable managed app early. Do not wait for private runners, an expert portal or a public benchmark before delivering the first operator evaluation.
+Packages are ordered to produce a usable managed app early. Do not wait for private runners or an expert portal before delivering the first operator evaluation.
 
 
 | Stage                                    | Packages | Usable outcome / release gate                                                                        |
@@ -1273,7 +1259,6 @@ Packages are ordered to produce a usable managed app early. Do not wait for priv
 | C — Broader connections and self-service | WP-09–11 | Website chatbots, live multi-turn/tools and minimal customer onboarding                              |
 | D — Repeatable service                   | WP-12–13 | Private CLI systems, scheduled monitoring and integrations                                           |
 | E — Expert data engine                   | WP-14–15 | Restricted expert work, QA and improvement dataset releases                                          |
-| F — Public benchmark                     | WP-16    | Independently governed benchmark; separate product initiative                                        |
 
 
 Stage B is the **first production product milestone**. Stages C–E extend the same contracts. A package can be split further, but each split must yield a testable behavior rather than scaffolding that nobody can use.
@@ -1617,23 +1602,6 @@ Acceptance:
 
 
 
-### WP-16 — Public benchmark product (later, separate brief)
-
-**Depends on:** reliable Stage B engine; WP-10 for tool tracks and WP-14 for domain-expert review.
-
-Deliverables:
-
-- Dedicated benchmark charter, rights-cleared corpus, frozen methodology, separate release/data permissions and public leaderboard/report views.
-- Model comparison plans with recorded budgets/conditions, holdout handling, uncertainty and errata.
-
-Acceptance:
-
-- No customer-private data is included without separate explicit rights.
-- Benchmark scores can be reproduced from the released permitted artifacts and documented private components, with limitations stated.
-- Saturation is measured and reported honestly; revisions are labeled and not retroactively mixed.
-- Public release gets its own founder review. This package does not block the app launch.
-
-
 
 ## 21. Agent execution protocol and handoff template
 
@@ -1726,7 +1694,7 @@ Status lives in handoffs, not in invented checkmarks in this draft. If a live pr
 | Operational    | Bounded load, queue recovery, migration compatibility, backup restore, real deployment smoke         |
 
 
-Use deterministic fake providers with known failure modes to verify the engine, plus small real-provider/DGX probes to prove integration. Avoid broad expensive benchmark runs as a test substitute.
+Use deterministic fake providers with known failure modes to verify the engine, plus small real-provider/DGX probes to prove integration. Avoid broad expensive evaluation runs as a test substitute.
 
 ### 22.2 Required end-to-end scenarios
 
@@ -1763,7 +1731,6 @@ Use deterministic fake providers with known failure modes to verify the engine, 
 | Bounded resources and costs              | 14, 17        | WP-03, WP-08                  |
 | Difficult valid evaluations              | 9.5, 11       | WP-05–06, WP-10               |
 | Future domain experts and training data  | 18            | WP-14–15                      |
-| Public benchmark separated from app      | 19            | WP-16                         |
 
 
 
@@ -1786,7 +1753,6 @@ Use deterministic fake providers with known failure modes to verify the engine, 
 | D-07 | Controlled fixtures for tools; no untrusted hosted customer shell          | Proven need and stronger sandbox capacity                                 |
 | D-08 | Private VPS development environment plus immutable production releases     | Capacity/security findings in inventory                                   |
 | D-09 | Manual commercial contracting, entitlements before payment automation      | Repeatable pricing and demand                                             |
-| D-10 | Public benchmark independent of customer corpus and launch                 | Separate approved benchmark charter                                       |
 
 
 Open facts for inventory: VPS headroom, actual DGX model inventory/throughput, object-store/backup health, provider keys/approved regions, existing organization/auth mapping and available expert review capacity. These are discovery tasks, not reasons to invent defaults as observed facts.

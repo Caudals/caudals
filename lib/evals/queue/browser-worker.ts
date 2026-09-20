@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Browser } from "playwright";
 import type { PoolClient } from "pg";
 import { targetConfigSchema, type InvocationContext, type TargetConfig } from "../contracts/connectors";
-import { websiteRecipeSchema, type WebsiteRecipe } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, websiteRecipeSchema, type WebsiteRecipe } from "../contracts/browser";
 import { browserStorageStateSchema } from "../contracts/browser";
 import type { CandidateInput } from "../contracts/projections";
 import type { Observation } from "../contracts/results";
@@ -105,6 +105,7 @@ export class BrowserJobWorker {
         return websiteRecipeSchema.parse(row.document);
       },
     );
+    assertWebsiteRecipeOrigin(recipe.start_url, config.endpoint);
     let sessionBytes: Buffer | undefined;
     try {
       const storageState = config.login_session_id
@@ -286,6 +287,35 @@ export class BrowserJobWorker {
         return;
       }
 
+      assertWebsiteRecipeOrigin(recipe.start_url, claimed.config.endpoint);
+      if (recipe.completion.kind === "text_stable") {
+        await this.options.tx(tenant, async (client) => {
+          const current = await locked(client, tenant.orgId, claimed.step.id);
+          if (current.step.status !== "running" || current.step.fence !== claimed.step.fence) return;
+          await client.query(
+            `UPDATE evals.website_recipe_candidate SET
+               document=$3,discovery_snapshot=$4,status='needs_operator',
+               reason_code='website_completion_unverified',updated_at=now()
+             WHERE org_id=$1 AND id=$2`,
+            [tenant.orgId, claimed.candidate.id, recipe, snapshot ?? null],
+          );
+          await client.query(
+            `UPDATE evals.connection_check SET status='needs_operator',
+               error_code='website_completion_unverified',completed_at=now()
+             WHERE org_id=$1 AND id=$2`,
+            [tenant.orgId, claimed.input.connectionCheckId],
+          );
+          await client.query(
+            `UPDATE evals.workflow_step SET status='completed',lease_until=NULL,
+               reason_code='needs_operator',updated_at=now() WHERE org_id=$1 AND id=$2`,
+            [tenant.orgId, claimed.step.id],
+          );
+          await event(client, tenant.orgId, claimed.step.workflow_id, "website_needs_operator", "website_completion_unverified");
+          await projectWorkflow(client, tenant.orgId, claimed.step.workflow_id);
+        });
+        return;
+      }
+
       const evidence = await validateWebsiteRecipe({
         browser: this.options.browser,
         recipe,
@@ -379,6 +409,8 @@ export class BrowserJobWorker {
           "connection_unsupported",
           "destination_denied",
           "destination_invalid",
+          "website_recipe_origin_mismatch",
+          "website_completion_unverified",
         ].includes(error.message)
           ? error.message
           : "website_discovery_failed";

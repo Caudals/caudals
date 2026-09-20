@@ -88,6 +88,12 @@ export const websiteRecipeSchema = z
     }
   });
 
+export function assertWebsiteRecipeOrigin(startUrl: string, authorizedEndpoint: string) {
+  if (new URL(startUrl).origin !== new URL(authorizedEndpoint).origin) {
+    throw new Error("website_recipe_origin_mismatch");
+  }
+}
+
 export const browserDiscoverySnapshotSchema = z.strictObject({
   url: z.url(),
   title: z.string().max(500),
