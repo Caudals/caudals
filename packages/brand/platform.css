@@ -378,14 +378,14 @@
   line-height: 1;
 }
 .p-brand-mark {
-  height: 28px;
-  width: 28px;
+  height: 23px;
+  width: 23px;
   flex: none;
   object-fit: contain;
   outline: none;
 }
 .p-brand-wordmark {
-  height: 36px;
+  height: 34px;
   width: auto;
   object-fit: contain;
   object-position: left center;
@@ -399,8 +399,8 @@
   gap: 0;
 }
 .p-shell[data-collapsed="true"] .p-brand-mark {
-  height: 30px;
-  width: 30px;
+  height: 25px;
+  width: 25px;
 }
 :root[data-theme="dark"] .p-root .p-brand-mark,
 .p-root[data-theme="dark"] .p-brand-mark {
