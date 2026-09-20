@@ -15,7 +15,7 @@ const sections = [
   },
   {
     title: "Purpose",
-    body: "Caudals evaluates companies' AI systems against test sets built from their own documentation and experts, delivers scored reports, and builds the domain-specific data that closes the gaps it finds.",
+    body: "Caudals evaluates companies' AI systems against test sets built from their documentation and domain experts, delivers scored reports, and builds the domain-specific data that closes the gaps it finds.",
   },
   {
     title: "Terms of Use",

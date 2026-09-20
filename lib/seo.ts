@@ -3,7 +3,7 @@ import type { Metadata, MetadataRoute } from "next";
 export const SITE_NAME = "Caudals";
 export const DEFAULT_SITE_TITLE = "Evaluación independiente de asistentes de IA | Caudals";
 export const DEFAULT_SITE_DESCRIPTION =
-  "Caudals evalúa asistentes, chatbots y agentes de IA con preguntas sacadas de tu propia documentación y respuestas validadas por tus expertos. Informe con puntuación y evidencias.";
+  "Caudals evalúa asistentes, chatbots y agentes de IA con preguntas sacadas de tu propia documentación y respuestas validadas por nuestros expertos de dominio. Informe con puntuación y evidencias.";
 
 const DEFAULT_SOCIAL_IMAGE_PATH = "/brand.png";
 const DEFAULT_MARKETING_HOSTNAME = "caudals.com";

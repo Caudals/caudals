@@ -17,7 +17,7 @@ const faqs = [
   {
     question: "Who decides what the correct answer is?",
     answer:
-      "Your documentation and your expert. Every case cites the document it comes from, and your domain expert signs off the answer key in a structured 90-minute session before we run anything, so the results can't be disputed later.",
+      "Your documentation and our domain experts. Every case cites the document it comes from, and our domain experts sign off the answer key in a structured session before we run anything, so the results can't be disputed later.",
   },
   {
     question: "Do you need access to our systems?",
@@ -32,7 +32,7 @@ const faqs = [
   {
     question: "How is this different from an evaluation platform?",
     answer:
-      "Evaluation platforms are tools for developers who already have a test set. We write the test set: questions from your documents, your customers and your experts, graded with deterministic checks, a calibrated AI judge and human review.",
+      "Evaluation platforms are tools for developers who already have a test set. We write the test set: questions from your documents, your customers and our domain experts, graded with deterministic checks, a calibrated AI judge and human review.",
   },
   {
     question: "Do you certify our AI or make it AI Act compliant?",

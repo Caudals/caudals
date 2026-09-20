@@ -14,11 +14,11 @@ export function StatsSection() {
     {
       value: "150–300",
       label: "Cases in a pilot",
-      description: "Drawn from your documentation, real customer questions and your expert.",
+      description: "Drawn from your documentation, real customer questions and our domain experts.",
     },
     {
       value: "90 min",
-      label: "With your expert",
+      label: "With our domain experts",
       description: "One structured session defines what a correct answer is.",
     },
     {

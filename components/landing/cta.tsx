@@ -129,7 +129,7 @@ export function CTASection() {
   const t = useTranslations();
   const assurances = [
     "EU data processing",
-    "Your expert signs the answer key",
+    "Our domain experts sign off the answer key",
     "No commitment to start",
   ];
 

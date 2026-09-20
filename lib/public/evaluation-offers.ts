@@ -22,7 +22,7 @@ export const EVALUATION_STEPS: readonly EvaluationStep[] = [
     id: "evaluate",
     label: "Evaluate",
     description:
-      "We build a golden test set from your documentation, real customer questions and a 90-minute session with your expert, run it against your system and score every answer.",
+      "We build a golden test set from your documentation, real customer questions and our domain experts, run it against your system and score every answer.",
   },
   {
     id: "report",
@@ -82,9 +82,9 @@ export const EVALUATION_OFFERS: readonly EvaluationOffer[] = [
     pricing: "quoted",
     duration: "2 weeks",
     summary:
-      "A golden test set built from your documentation, real customer questions and one session with your expert, run against one system.",
+      "A golden test set built from your documentation, real customer questions and our domain experts, run against one system.",
     includes: [
-      "150–300 cases signed off by your expert",
+      "150–300 cases signed off by domain experts",
       "A scorecard and a report of about 20 pages",
       "Every failure explained by its cause, with prioritised fixes",
       "A live readout with your team",

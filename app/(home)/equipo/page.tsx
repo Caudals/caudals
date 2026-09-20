@@ -8,7 +8,7 @@ import { buildMarketingUrl, buildPublicMetadata } from "@/lib/seo";
 export const metadata = buildPublicMetadata({
   title: "Equipo fundador",
   description:
-    "Conoce a los ingenieros que fundaron Caudals y evalúan asistentes y agentes de IA con pruebas trazables, construidas con la documentación y los expertos de cada empresa.",
+    "Conoce a los ingenieros que fundaron Caudals y evalúan asistentes y agentes de IA con pruebas trazables, construidas con la documentación de cada empresa y expertos de dominio.",
   pathname: "/equipo",
 });
 
@@ -40,7 +40,7 @@ export default function TeamPage() {
             Ingenieros detrás de las evaluaciones de Caudals
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-gray-600">
-            Construimos conjuntos de pruebas con la documentación y los expertos de cada empresa, medimos dónde falla su IA y convertimos cada evaluación en los datos que la hacen más fiable.
+            Construimos conjuntos de pruebas con la documentación de cada empresa y expertos de dominio, medimos dónde falla su IA y convertimos cada evaluación en los datos que la hacen más fiable.
           </p>
         </header>
 

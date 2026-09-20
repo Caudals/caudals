@@ -78,7 +78,7 @@ Readout script: two minutes of context, no slides → fifteen minutes walking th
 | "Too expensive." | "About three days of one developer's cost. How many hours went into arguing whether the assistant is good?" |
 | "Not this quarter." | Offer the €600 suite covering only the failures already found. |
 | "We can't share documents." | "Phase one uses only what is already public. Beyond that: our EU infrastructure, NDA and DPA, deletion on completion — or the self-run probe." |
-| "How do we know your answers are right?" | "Every case cites your own documentation, and your expert signs off the answer key before we run anything." |
+| "How do we know your answers are right?" | "Every case cites your documentation, and our domain experts verify and sign off the answer key before we run anything." |
 | "Who builds the dataset?" | "Vetted Spanish professionals from your sector, working to our guidelines, with every item double-reviewed and traceable." |
 | "You're very young." | "We are. That's why we sent results before asking for a meeting." Move on. |
 

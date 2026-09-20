@@ -52,7 +52,7 @@ export function MarketingFooter() {
   const t = useTranslations();
 
   const aiPrompt = t(
-    "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their own documentation and experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
+    "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
   );
   const aiLinks = getAskAiLinks(aiPrompt);
 
@@ -65,7 +65,7 @@ export function MarketingFooter() {
               {t("Caudals")}
             </p>
             <p className="text-sm text-slate-500">
-              {t("Independent evaluation for AI assistants, with answer keys signed off by your own experts.")}
+              {t("Independent evaluation for AI assistants, with answer keys signed off by domain experts.")}
             </p>
             <Link
               href="mailto:hello@caudals.com"

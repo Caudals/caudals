@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Caudals",
     short_name: "Caudals",
     description:
-      "Evaluación independiente de asistentes y agentes de IA, con conjuntos de pruebas validados por los expertos de cada empresa.",
+      "Evaluación independiente de asistentes y agentes de IA, con conjuntos de pruebas validados por expertos de dominio.",
     start_url: "/",
     scope: "/",
     display: "standalone",

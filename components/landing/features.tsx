@@ -14,9 +14,9 @@ import { useTranslations } from "@/lib/i18n/use-translations";
 const capabilities = [
   {
     icon: ShieldCheck,
-    title: "Answer keys your experts sign",
+    title: "Answer keys signed by domain experts",
     description:
-      "Every case cites your own documentation, and your expert signs off the answer key before anything runs.",
+      "Every case cites your documentation, and our domain experts verify and sign off the answer key before anything runs.",
   },
   {
     icon: Workflow,
