@@ -31,6 +31,7 @@ import {
   Plug,
   Settings,
   SlidersHorizontal,
+  Users,
   Unplug,
 } from "lucide-react";
 import {
@@ -79,7 +80,7 @@ function crumbLabel(segment: string) {
   return words[0]?.toUpperCase() + words.slice(1);
 }
 
-function navFor(identity: EvalIdentity): NavGroup[] {
+function navFor(identity: EvalIdentity, expert = false): NavGroup[] {
   const operator =
     identity.platformRole === "operator" || identity.platformRole === "platform_admin";
   const groups: NavGroup[] = [];
@@ -93,6 +94,7 @@ function navFor(identity: EvalIdentity): NavGroup[] {
           { href: "/ops/clients", label: t("clients"), icon: <Building2 /> },
           { href: "/ops/evaluations", label: t("product"), icon: <FlaskConical /> },
           { href: "/ops/review", label: t("reviewQueue"), icon: <ClipboardCheck /> },
+          { href: "/ops/experts", label: t("expertWork"), icon: <Users /> },
           { href: "/ops/reports", label: t("reports"), icon: <FileText /> },
         ],
       },
@@ -116,6 +118,13 @@ function navFor(identity: EvalIdentity): NavGroup[] {
         { href: "/workspace/systems", label: t("systems"), icon: <Plug /> },
         { href: "/workspace/reports", label: t("reports"), icon: <FileText /> },
       ],
+    });
+  }
+
+  if (expert) {
+    groups.push({
+      label: "Expert",
+      items: [{ href: "/review", label: t("assignedWork"), icon: <ClipboardCheck /> }],
     });
   }
 
@@ -283,9 +292,11 @@ function AccountMenu({
 
 export function EvalShell({
   identity,
+  expert = false,
   children,
 }: {
   identity: EvalIdentity;
+  expert?: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -293,7 +304,7 @@ export function EvalShell({
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
-  const groups = navFor(identity);
+  const groups = navFor(identity, expert);
 
   /* The sidebar state is a per-device preference, not account data. */
   useEffect(() => {

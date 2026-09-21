@@ -228,6 +228,16 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
   low: { tone: "neutral", label: "Low" },
   pass: { tone: "pass", label: "Pass" },
   fail: { tone: "fail", label: "Fail" },
+  assigned: { tone: "info", label: "Assigned" },
+  in_progress: { tone: "info", label: "In progress" },
+  conflict: { tone: "fail", label: "Save conflict" },
+  guideline_changed: { tone: "warn", label: "Guideline changed" },
+  submitted: { tone: "info", label: "Submitted" },
+  in_review: { tone: "info", label: "In review" },
+  changes_requested: { tone: "warn", label: "Changes requested" },
+  approved: { tone: "pass", label: "Approved" },
+  rejected: { tone: "fail", label: "Rejected" },
+  adjudicated: { tone: "strong", label: "Adjudicated" },
 };
 
 export function humanize(value: string) {

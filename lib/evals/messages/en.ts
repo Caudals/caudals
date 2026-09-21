@@ -137,6 +137,8 @@ export const messages = {
   operatorOverview: "Evaluation operations",
   operatorOverviewHelp: "See work that needs attention, current runs, publication state and recovery-relevant costs.",
   reviewQueue: "Review queue",
+  expertWork: "Expert work",
+  assignedWork: "Assigned work",
   reports: "Reports",
   report: "Report",
   platform: "Platform",

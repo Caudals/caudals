@@ -7,6 +7,8 @@ import { ReportView } from "../../components/evals/report-view";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
+import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
+import { ExpertManagement } from "../../components/evals/expert-management";
 const params = new URLSearchParams(location.search);
 const authPage =
   location.pathname === "/workspace/sign-in" ||
@@ -43,6 +45,12 @@ const content =
     />
   ) : location.pathname === "/ops" ? (
     <ClientManagement />
+  ) : location.pathname === "/ops/experts" ? (
+    <ExpertManagement workspaces={identity.workspaces} />
+  ) : location.pathname.startsWith("/review/assignments/") ? (
+    <ExpertWorkbench assignmentId={location.pathname.split("/").at(-1)!} />
+  ) : location.pathname === "/review" ? (
+    <ExpertAssignmentQueue />
   ) : location.pathname === "/workspace/evaluations/new" ? (
     <NewEvaluationFlow workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/settings" ? (
@@ -69,6 +77,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <EvalShell identity={identity}>{content}</EvalShell>
+    <EvalShell identity={identity} expert={location.pathname.startsWith("/review")}>{content}</EvalShell>
   ),
 );

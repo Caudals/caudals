@@ -11,6 +11,48 @@
 
 @import "../../packages/brand/platform.css";
 
+.eval-expert-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+.eval-evidence,
+.eval-transcript {
+  padding: 14px;
+  border-radius: var(--p-radius-md);
+  background: var(--p-surface-2);
+  overflow-wrap: anywhere;
+}
+.eval-flag-list {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--p-border-hairline);
+  border-radius: var(--p-radius-md);
+}
+.eval-flag-list label { display: flex; gap: 8px; align-items: center; }
+.eval-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(23 23 20 / 45%);
+}
+.eval-dialog {
+  width: min(100%, 480px);
+  padding: 24px;
+  border-radius: var(--p-radius-xl);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-overlay);
+}
+.eval-dialog > * + * { margin-top: 12px; }
+@media (max-width: 760px) {
+  .eval-expert-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* -----------------------------------------------------------------------------
    Flow: the guided "new evaluation" and "prepare a test set" columns.
    A narrow measure, because these are decisions taken one at a time.

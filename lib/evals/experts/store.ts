@@ -396,6 +396,35 @@ export async function revealReviewPhase(scope: Scope, assignmentId: string) {
   });
 }
 
+export async function resolveSubmissionConflict(scope: Scope, assignmentId: string, revisionId: string) {
+  z.uuid().parse(assignmentId); z.uuid().parse(revisionId);
+  return withTenant(scope, async (db) => {
+    const assignment = (await db.query<{ status: string }>(
+      "SELECT status FROM evals.expert_assignment WHERE org_id=$1 AND id=$2 FOR UPDATE",
+      [scope.orgId, assignmentId],
+    )).rows[0];
+    if (!assignment) denied();
+    if (assignment.status !== "conflict") throw new EvalError("VERSION_CONFLICT", 409, "This assignment no longer has a save conflict.");
+    const revision = (await db.query<{ version: number; status: string }>(
+      `SELECT version,status FROM evals.expert_submission_revision
+       WHERE org_id=$1 AND assignment_id=$2 AND id=$3`,
+      [scope.orgId, assignmentId, revisionId],
+    )).rows[0];
+    if (!revision) denied("Submission revision was not found.");
+    const status = revision.status === "submitted" ? "submitted" : "in_progress";
+    await db.query(
+      `UPDATE evals.expert_assignment SET current_submission_revision_id=$3,
+        lock_version=$4,status=$5,updated_at=now() WHERE org_id=$1 AND id=$2`,
+      [scope.orgId, assignmentId, revisionId, revision.version, status],
+    );
+    await db.query(
+      "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'expert_conflict.resolved',$3)",
+      [scope.orgId, scope.actorId, assignmentId],
+    );
+    return { id: assignmentId, revisionId, lockVersion: revision.version, status };
+  });
+}
+
 const paymentInputSchema = z.strictObject({
   assignmentId: z.uuid(),
   amount: z.string().regex(/^\d{1,15}(?:\.\d{1,9})?$/),
@@ -404,9 +433,9 @@ const paymentInputSchema = z.strictObject({
   note: z.string().max(4_000),
 });
 
-export async function createPaymentRecord(scope: Scope, rawInput: z.input<typeof paymentInputSchema>) {
+export async function createPaymentRecord(scope: Scope, rawInput: z.input<typeof paymentInputSchema>, key?: string) {
   const input = paymentInputSchema.parse(rawInput);
-  return withTenant(scope, async (db) => {
+  return withTenant(scope, async (db) => idempotent(db, scope.actorId, `expert-payments/${scope.orgId}/${input.assignmentId}`, key ?? randomUUID(), input, async () => {
     const row = (await db.query(
       `INSERT INTO evals.expert_payment_record(org_id,assignment_id,amount,currency,status,note)
        SELECT $1,$2,$3,$4,$5,$6
@@ -416,7 +445,7 @@ export async function createPaymentRecord(scope: Scope, rawInput: z.input<typeof
     )).rows[0];
     if (!row) denied();
     return row;
-  });
+  }));
 }
 
 export async function listPaymentRecords(scope: Scope, assignmentId: string) {

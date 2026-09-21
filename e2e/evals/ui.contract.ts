@@ -143,6 +143,9 @@ for (const width of [390, 768, 1440])
     await expect(
       page.getByRole("link", { name: "Clients", exact: true }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Assigned work", exact: true }),
+    ).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -364,6 +367,113 @@ test("Stage C customer can upload and finalize a source document", async ({ page
   await page.getByRole("button", { name: "Use this document" }).click();
   await expect(page.getByLabel("Example customer question")).toBeVisible();
   expect(uploaded && finalized).toBe(true);
+});
+
+const expertAssignmentId = "00000000-0000-4000-8000-000000000101";
+const expertFixture = {
+  id: expertAssignmentId,
+  kind: "authoring",
+  status: "assigned",
+  evidence: {
+    excerpts: [{ anchor: "policy-1", text: "Redacted policy excerpt" }],
+    transcript: [{ role: "assistant", content: "Redacted answer under review" }],
+  },
+  guideline: { title: "Evidence review", instructions: "Use only the evidence shown here." },
+  dueAt: null,
+  ownRevision: null,
+  model_identity: "PRIVATE_MODEL_SENTINEL",
+  author_identity: "PRIVATE_AUTHOR_SENTINEL",
+  unassigned_evidence: "PRIVATE_UNASSIGNED_SENTINEL",
+};
+
+test("expert workbench never renders hidden identities or unassigned evidence", async ({ page }) => {
+  await page.route(`**/api/evals/v1/review/assignments/${expertAssignmentId}`, (route) =>
+    route.fulfill({ json: { data: expertFixture, meta: {} } }),
+  );
+  await page.goto(`/review/assignments/${expertAssignmentId}`);
+  await expect(page.getByText("Redacted policy excerpt")).toBeVisible();
+  await expect(page.getByText("PRIVATE_MODEL_SENTINEL")).toHaveCount(0);
+  await expect(page.getByText("PRIVATE_AUTHOR_SENTINEL")).toHaveCount(0);
+  await expect(page.getByText("PRIVATE_UNASSIGNED_SENTINEL")).toHaveCount(0);
+});
+
+test("expert stale autosave reports a preserved conflict and restores focus", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  let mutations = 0;
+  await page.route(`**/api/evals/v1/review/assignments/${expertAssignmentId}`, (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { data: expertFixture, meta: {} } });
+    mutations += 1;
+    expect(route.request().postDataJSON()).toMatchObject({ document: { flags: ["ambiguous"] } });
+    return route.fulfill({ json: { data: mutations === 1
+      ? { conflict: true, revisionId: "00000000-0000-4000-8000-000000000102", version: 2, lockVersion: 0 }
+      : { conflict: false, revisionId: "00000000-0000-4000-8000-000000000103", version: 3, lockVersion: 3 }, meta: {} } });
+  });
+  await page.goto(`/review/assignments/${expertAssignmentId}`);
+  await page.getByLabel("Answer").fill("Independent contribution");
+  await page.getByLabel("Rationale").fill("The supplied excerpt supports this answer.");
+  await page.getByLabel("Flag ambiguity").check();
+  const save = page.getByRole("button", { name: "Save draft" });
+  await save.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("alertdialog")).toContainText("Both versions were preserved");
+  await page.getByRole("button", { name: "Continue editing" }).click();
+  await expect(save).toBeFocused();
+  const submit = page.getByRole("button", { name: "Submit work" });
+  await submit.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status")).toContainText("Work submitted for independent review");
+  expect(mutations).toBe(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("expert queue and submission controls are keyboard reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.route("**/api/evals/v1/review/assignments", (route) => route.fulfill({ json: { data: [
+    { id: expertAssignmentId, kind: "authoring", status: "assigned", severity: "high", due_at: null, updated_at: new Date().toISOString() },
+  ], meta: {} } }));
+  await page.goto("/review");
+  const open = page.getByRole("link", { name: "Open assignment" });
+  await open.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/review/assignments/${expertAssignmentId}$`));
+});
+
+test("operator resolves an expert save conflict and records manual payment", async ({ page }) => {
+  const profileId = "00000000-0000-4000-8000-000000000104";
+  const calls: string[] = [];
+  await page.route("**/api/evals/v1/**", (route) => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    if (path.endsWith("/experts")) return route.fulfill({ json: { data: [{ id: profileId, user_id: "expert@example.test", domains: ["insurance"], credentials_status: "verified", terms_status: "accepted", eligibility_status: "eligible" }], meta: {} } });
+    if (path.endsWith("/expert-assignments") && request.method() === "GET") return route.fulfill({ json: { data: [{ id: expertAssignmentId, assigned_profile_id: profileId, kind: "calibration", severity: "high", status: "conflict", review_phase: "blind", due_at: null }], meta: {} } });
+    if (path.endsWith(`/expert-assignments/${expertAssignmentId}/payments`)) {
+      calls.push("payment");
+      expect(request.headers()["idempotency-key"]).toMatch(/^[a-f0-9-]{36}$/);
+      expect(request.postDataJSON()).toMatchObject({ amount: "75.00", currency: "EUR", status: "planned" });
+      return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000107" }, meta: {} } });
+    }
+    if (path.endsWith(`/expert-assignments/${expertAssignmentId}`) && request.method() === "PATCH") {
+      calls.push("resolve");
+      expect(request.postDataJSON()).toMatchObject({ action: "resolve_conflict", revisionId: "00000000-0000-4000-8000-000000000106" });
+      return route.fulfill({ json: { data: { status: "in_progress" }, meta: {} } });
+    }
+    if (path.endsWith(`/expert-assignments/${expertAssignmentId}`)) return route.fulfill({ json: { data: {
+      id: expertAssignmentId, assigned_profile_id: profileId, kind: "calibration", severity: "high", status: "conflict", review_phase: "blind", due_at: null,
+      revisions: [{ id: "00000000-0000-4000-8000-000000000105", version: 1, status: "draft", conflict: false, created_at: new Date().toISOString() }, { id: "00000000-0000-4000-8000-000000000106", version: 2, status: "draft", conflict: true, created_at: new Date().toISOString() }],
+    }, meta: {} } });
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
+  });
+  await page.goto("/ops/experts");
+  await page.getByRole("tab", { name: "Expert quality" }).click();
+  await expect(page.getByText("Not enough reviewed work to rank")).toBeVisible();
+  await page.getByRole("tab", { name: "Assignments" }).click();
+  await page.getByRole("button", { name: "Inspect" }).click();
+  await page.getByRole("button", { name: "Use revision 2" }).click();
+  await expect(page.getByRole("status")).toContainText("Save conflict resolved");
+  await page.getByLabel("Manual payment amount (EUR)").fill("75.00");
+  await page.getByLabel("Payment note").fill("Invoice after acceptance");
+  await page.getByRole("button", { name: "Add planned payment record" }).click();
+  await expect(page.getByRole("status")).toContainText("No payment was sent automatically");
+  expect(calls).toEqual(["resolve", "payment"]);
 });
 test("Stage C result inspector is nonmodal on desktop and modal with focus on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

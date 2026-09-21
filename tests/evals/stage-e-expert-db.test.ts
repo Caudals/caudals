@@ -11,6 +11,7 @@ import {
   listPaymentRecords,
   readAssignedWork,
   recordQualityDecision,
+  resolveSubmissionConflict,
   revealReviewPhase,
   saveExpertSubmission,
 } from "../../lib/evals/experts/store";
@@ -145,6 +146,10 @@ const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
       "SELECT count(*)::int AS count FROM evals.expert_submission_revision WHERE assignment_id=$1",
       [assignmentA.id],
     )).rows[0].count).toBe(2);
+    await resolveSubmissionConflict({ orgId: orgA, actorId: operatorId }, assignmentA.id, stale.revisionId);
+    expect(await readAssignedWork(actorA, assignmentA.id)).toMatchObject({
+      status: "in_progress", ownRevision: { version: 2, document: { answer: "Competing independent draft." } },
+    });
     await expect(readAssignedWork(actorA, assignmentB.id)).rejects.toMatchObject({ code: "SCOPE_DENIED" });
     expect((await listAssignedWork(actorA)).map((row) => row.id)).toContain(assignmentA.id);
     expect((await listAssignedWork(actorA)).map((row) => row.id)).not.toContain(assignmentB.id);
@@ -241,9 +246,16 @@ const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
     );
     expect(replacement.revisionId).not.toBe(guidelineA.revisionId);
     expect(await readAssignedWork({ userId: expertAUserId, profileId: profileA.id }, assignment.id)).toMatchObject({ status: "guideline_changed" });
+    const paymentKey = randomUUID();
     await createPaymentRecord(
       { orgId: orgA, actorId: operatorId },
       { assignmentId: assignment.id, amount: "75.00", currency: "EUR", status: "planned", note: "Manual invoice after acceptance." },
+      paymentKey,
+    );
+    await createPaymentRecord(
+      { orgId: orgA, actorId: operatorId },
+      { assignmentId: assignment.id, amount: "75.00", currency: "EUR", status: "planned", note: "Manual invoice after acceptance." },
+      paymentKey,
     );
     expect(await listPaymentRecords({ orgId: orgA, actorId: operatorId }, assignment.id)).toHaveLength(1);
     expect(JSON.stringify(await readAssignedWork({ userId: expertAUserId, profileId: profileA.id }, assignment.id))).not.toContain("75.00");
