@@ -9,6 +9,7 @@ import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
+import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 const params = new URLSearchParams(location.search);
 const authPage =
   location.pathname === "/workspace/sign-in" ||
@@ -47,6 +48,8 @@ const content =
     <ClientManagement />
   ) : location.pathname === "/ops/experts" ? (
     <ExpertManagement workspaces={identity.workspaces} />
+  ) : location.pathname === "/ops/improvements" ? (
+    <ImprovementDatasets workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/review/assignments/") ? (
     <ExpertWorkbench assignmentId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/review" ? (

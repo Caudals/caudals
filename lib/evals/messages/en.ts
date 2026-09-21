@@ -138,6 +138,7 @@ export const messages = {
   operatorOverviewHelp: "See work that needs attention, current runs, publication state and recovery-relevant costs.",
   reviewQueue: "Review queue",
   expertWork: "Expert work",
+  improvementDatasets: "Improvement datasets",
   assignedWork: "Assigned work",
   reports: "Reports",
   report: "Report",

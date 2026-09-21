@@ -475,6 +475,73 @@ test("operator resolves an expert save conflict and records manual payment", asy
   await expect(page.getByRole("status")).toContainText("No payment was sent automatically");
   expect(calls).toEqual(["resolve", "payment"]);
 });
+
+test("operator completes the improvement dataset release and held-out validation workflow", async ({ page }) => {
+  const blockedBatch = "00000000-0000-4000-8000-000000000120";
+  const readyBatch = "00000000-0000-4000-8000-000000000121";
+  const itemRevision = "00000000-0000-4000-8000-000000000122";
+  const artifactId = "00000000-0000-4000-8000-000000000123";
+  const releaseId = "00000000-0000-4000-8000-000000000124";
+  let released = false;
+  const batches = [
+    { id: blockedBatch, project_id: "00000000-0000-4000-8000-000000000125", title: "Rejected corrections", objective: "Do not release rejected work.", status: "draft", lock_version: 0, task_count: 1, item_count: 1 },
+    { id: readyBatch, project_id: "00000000-0000-4000-8000-000000000126", title: "Claims policy corrections", objective: "Correct evidence-grounding failures.", status: released ? "released" : "in_review", lock_version: released ? 1 : 0, task_count: 1, item_count: 1 },
+  ];
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const request = route.request(); const url = new URL(request.url()); const path = url.pathname;
+    if (path.endsWith("/improvement-batches") && request.method() === "GET")
+      return route.fulfill({ json: { data: batches, meta: {} } });
+    if (path.endsWith(`/improvement-batches/${blockedBatch}`)) return route.fulfill({ json: { data: {
+      batch: batches[0], tasks: [{ id: "task-rejected", kind: "grounded_qa", split: "training", family_id: "rejected-family" }],
+      items: [{ id: "item-rejected", revision_id: "revision-rejected", kind: "grounded_qa", split: "training", family_id: "rejected-family", decision: "reject", rights_status: "permitted", redaction_status: "approved" }], releases: [],
+    }, meta: {} } });
+    if (path.endsWith(`/improvement-batches/${readyBatch}/release`)) {
+      expect(request.headers()["idempotency-key"]).toMatch(/^[a-f0-9-]{36}$/);
+      expect(request.postDataJSON()).toEqual({ orgId: id, expectedVersion: 0 });
+      released = true; batches[1].status = "released"; batches[1].lock_version = 1;
+      return route.fulfill({ json: { data: { releaseId, artifactId, contentHash: "a".repeat(64), sha256: "b".repeat(64), byteSize: 2048, publicKeyFingerprint: "c".repeat(64) }, meta: {} } });
+    }
+    if (path.endsWith(`/improvement-batches/${readyBatch}/validate`)) {
+      expect(request.headers()["idempotency-key"]).toMatch(/^[a-f0-9-]{36}$/);
+      expect(request.postDataJSON()).toMatchObject({ orgId: id, releaseId, expectedVersion: 1 });
+      return route.fulfill({ json: { data: { interventionId: "intervention-1", validationId: "validation-1", snapshot: {
+        training: { count: 5, excluded: 0, baselineScore: 0.4, followupScore: 0.9, delta: 0.5 },
+        validation: { count: 4, excluded: 0, baselineScore: 0.5, followupScore: 0.75, delta: 0.25 },
+        holdout: { count: 3, excluded: 0, baselineScore: 0.5, followupScore: 0.67, delta: 0.17 },
+        causality: "observational_after_recorded_intervention",
+        limitations: ["This before/after comparison records an observed association and does not prove causality."],
+      } }, meta: {} } });
+    }
+    if (path.endsWith(`/improvement-batches/${readyBatch}`)) return route.fulfill({ json: { data: {
+      batch: batches[1], tasks: [{ id: "task-ready", kind: "corrected_response", split: "training", family_id: "claims-correction" }],
+      items: [{ id: "item-ready", revision_id: itemRevision, kind: "corrected_response", split: "training", family_id: "claims-correction", decision: "approve", rights_status: "permitted", redaction_status: "approved" }],
+      releases: released ? [{ id: releaseId, revision: 1, status: "ready", artifact_id: artifactId, content_hash: "a".repeat(64), public_key_fingerprint: "c".repeat(64) }] : [],
+    }, meta: {} } });
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("/ops/improvements");
+  await page.getByRole("button", { name: "Open Rejected corrections" }).click();
+  await expect(page.getByRole("checkbox", { name: "Select rejected-family" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Release signed dataset" })).toBeDisabled();
+  await expect(page.getByText(/requires independent approval/i)).toBeVisible();
+  await page.getByRole("tab", { name: "Batches" }).click();
+  await page.getByRole("button", { name: "Open Claims policy corrections" }).click();
+  await page.getByRole("button", { name: "Release signed dataset" }).click();
+  const download = page.getByRole("link", { name: "Download signed JSONL" });
+  await expect(download).toHaveAttribute("href", `/api/evals/v1/dataset-artifacts/${artifactId}?orgId=${id}`);
+  await expect(page.getByText(/cannot be revoked after download/i)).toBeVisible();
+  await page.getByRole("tab", { name: "Follow-up evidence" }).click();
+  await page.getByLabel("Baseline run ID").fill("00000000-0000-4000-8000-000000000127");
+  await page.getByLabel("Follow-up run ID").fill("00000000-0000-4000-8000-000000000128");
+  await page.getByLabel("Compatible comparison ID").fill("00000000-0000-4000-8000-000000000129");
+  await page.getByLabel("Recorded customer intervention").fill("Customer updated the retrieval content.");
+  await page.getByLabel("Intervention evidence reference").fill("change-ticket-42");
+  await page.getByRole("button", { name: "Record follow-up evidence" }).click();
+  for (const label of ["Training", "Validation", "Held-out"]) await expect(page.getByText(label, { exact: true })).toBeVisible();
+  await expect(page.getByText(/does not prove causality/i)).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
 test("Stage C result inspector is nonmodal on desktop and modal with focus on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/reports/fixture");

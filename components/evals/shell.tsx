@@ -26,6 +26,7 @@ import {
   Loader2,
   LogOut,
   Mail,
+  DatabaseZap,
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
@@ -61,6 +62,7 @@ const CRUMBS: Record<string, string> = {
   ops: "Operations",
   clients: t("clients"),
   evaluations: t("product"),
+  improvements: t("improvementDatasets"),
   review: t("reviewQueue"),
   reports: t("reports"),
   platform: t("platform"),
@@ -94,13 +96,19 @@ function navFor(identity: EvalIdentity, expert = false): NavGroup[] {
           { href: "/ops/clients", label: t("clients"), icon: <Building2 /> },
           { href: "/ops/evaluations", label: t("product"), icon: <FlaskConical /> },
           { href: "/ops/review", label: t("reviewQueue"), icon: <ClipboardCheck /> },
-          { href: "/ops/experts", label: t("expertWork"), icon: <Users /> },
           { href: "/ops/reports", label: t("reports"), icon: <FileText /> },
+        ],
+      },
+      {
+        label: "Library",
+        items: [
+          { href: "/ops/improvements", label: t("improvementDatasets"), icon: <DatabaseZap /> },
         ],
       },
       {
         label: "Platform",
         items: [
+          { href: "/ops/experts", label: t("expertWork"), icon: <Users /> },
           { href: "/ops/platform", label: t("platform"), icon: <SlidersHorizontal /> },
         ],
       },
