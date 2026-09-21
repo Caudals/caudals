@@ -22,6 +22,8 @@ credentials="$state_dir/credentials.env"
 secret_base="${CAUDALS_APP_ENV_SECRET:-app_runtime_env}"
 dataset_signing_key="${CAUDALS_EVALS_DATASET_SIGNING_KEY_FILE:-$state_dir/evals-dataset-signing-key.pem}"
 dataset_signing_secret_base="${CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET:-evals_dataset_signing_key}"
+object_storage_access_secret="${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET:-caudals_object_storage_access_key_id}"
+object_storage_secret_secret="${CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET:-caudals_object_storage_secret_access_key}"
 traefik_dir="${CAUDALS_TRAEFIK_DYNAMIC_DIR:-/etc/dokploy/traefik/dynamic}"
 backup_root="${CAUDALS_APP_BACKUP_DIR:-/root/.caudals/backups}"
 
@@ -49,6 +51,13 @@ fi
 
 docker node ls >/dev/null
 docker network inspect "$network" >/dev/null
+for object_storage_secret in "$object_storage_access_secret" "$object_storage_secret_secret"; do
+  if ! docker secret inspect "$object_storage_secret" >/dev/null 2>&1; then
+    echo "Missing object-storage Docker secret: $object_storage_secret" >&2
+    echo "Run scripts/deploy-object-storage-stack.sh before deploying the app." >&2
+    exit 1
+  fi
+done
 
 install -d -m 700 "$state_dir"
 if [[ ! -s "$dataset_signing_key" ]]; then
@@ -86,6 +95,8 @@ CAUDALS_APP_IMAGE="$versioned_image" \
 CAUDALS_APP_NETWORK="$network" \
 CAUDALS_APP_ENV_SECRET="$secret" \
 CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET="$dataset_signing_secret" \
+CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET="$object_storage_access_secret" \
+CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET="$object_storage_secret_secret" \
   docker stack deploy --detach=true -c "$root/infra/app-stack.yml" "$stack"
 
 service="${stack}_app"

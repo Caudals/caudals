@@ -321,7 +321,8 @@ Install caveat:
   `dokploy-network`, creates root-only generated credential files under
   `/root/.caudals/object-storage/`, creates matching Docker secrets, ensures the
   bucket exists, and wires the app service to `DO_SPACES_*_FILE` secret
-  fallbacks.
+  fallbacks. The production app stack declares the same private endpoint and
+  credential-secret mounts so immutable app redeployments preserve that wiring.
 - `npm run object-storage:probe` verifies MinIO private health, bucket
   existence, write/read/delete behavior, and no published ports from inside the
   Docker network.

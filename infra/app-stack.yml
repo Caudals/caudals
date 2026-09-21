@@ -15,9 +15,18 @@ services:
       NODE_ENV: production
       PORT: "3000"
       EVALS_DATASET_SIGNING_KEY_FILE: /run/secrets/evals_dataset_signing_key
+      DO_SPACES_ENDPOINT: ${CAUDALS_OBJECT_STORAGE_ENDPOINT:-http://caudals-object-storage-minio:9000}
+      DO_SPACES_FORCE_PATH_STYLE: "true"
+      DO_SPACES_REGION: ${CAUDALS_OBJECT_STORAGE_REGION:-us-east-1}
+      DO_SPACES_BUCKET: ${CAUDALS_OBJECT_STORAGE_BUCKET:-caudals-storage}
+      NEXT_PUBLIC_DO_SPACES_CDN_URL: ${CAUDALS_OBJECT_STORAGE_CDN_URL:-http://caudals-object-storage-minio:9000/caudals-storage}
+      DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/object_storage_access_key
+      DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/object_storage_secret_key
     secrets:
       - app_runtime_env
       - evals_dataset_signing_key
+      - object_storage_access_key
+      - object_storage_secret_key
     # Nothing in the image reads the runtime secret, so the start command
     # exports it before starting Next.js. A missing file makes `.` exit the
     # shell, so the task fails and the update rolls back instead of serving
@@ -71,3 +80,9 @@ secrets:
   evals_dataset_signing_key:
     external: true
     name: ${CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET:?CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET is required}
+  object_storage_access_key:
+    external: true
+    name: ${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET:-caudals_object_storage_access_key_id}
+  object_storage_secret_key:
+    external: true
+    name: ${CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET:-caudals_object_storage_secret_access_key}
