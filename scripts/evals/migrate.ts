@@ -9,7 +9,7 @@ async function main(){
  try{
   await client.query("SELECT pg_advisory_lock(hashtext('caudals-evals-migrations'))");
   await client.query('CREATE TABLE IF NOT EXISTS public.evals_migration_history(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())');
-  for(const name of ['031_evals_identity.sql','032_evals_evidence.sql','033_evals_execution.sql','034_evals_connections.sql','035_evals_generation.sql','036_evals_scoring.sql','037_evals_reports.sql','038_evals_operations.sql','039_evals_stage_c.sql','040_evals_private_runner.sql','041_evals_monitoring.sql','042_evals_monitor_schedule_reasons.sql','043_evals_expert_work.sql']){
+  for(const name of ['031_evals_identity.sql','032_evals_evidence.sql','033_evals_execution.sql','034_evals_connections.sql','035_evals_generation.sql','036_evals_scoring.sql','037_evals_reports.sql','038_evals_operations.sql','039_evals_stage_c.sql','040_evals_private_runner.sql','041_evals_monitoring.sql','042_evals_monitor_schedule_reasons.sql','043_evals_expert_work.sql','044_evals_improvement_releases.sql']){
    const sql=await readFile(new URL(`../../db/migrations/${name}`,import.meta.url),'utf8');const hash=createHash('sha256').update(sql).digest('hex');
    const {rows}=await client.query('SELECT sha256 FROM public.evals_migration_history WHERE name=$1',[name]);
    if(rows[0]){if(rows[0].sha256!==hash)throw new Error(`Migration checksum mismatch: ${name}`);continue;}
