@@ -20,6 +20,8 @@ versioned_image="${base_image%:*}:$build_tag"
 state_dir="${CAUDALS_APP_STATE_DIR:-/root/.caudals/app}"
 credentials="$state_dir/credentials.env"
 secret_base="${CAUDALS_APP_ENV_SECRET:-app_runtime_env}"
+dataset_signing_key="${CAUDALS_EVALS_DATASET_SIGNING_KEY_FILE:-$state_dir/evals-dataset-signing-key.pem}"
+dataset_signing_secret_base="${CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET:-evals_dataset_signing_key}"
 traefik_dir="${CAUDALS_TRAEFIK_DYNAMIC_DIR:-/etc/dokploy/traefik/dynamic}"
 backup_root="${CAUDALS_APP_BACKUP_DIR:-/root/.caudals/backups}"
 
@@ -48,11 +50,30 @@ fi
 docker node ls >/dev/null
 docker network inspect "$network" >/dev/null
 
+install -d -m 700 "$state_dir"
+if [[ ! -s "$dataset_signing_key" ]]; then
+  umask 077
+  openssl genpkey -algorithm ED25519 -out "$dataset_signing_key" >/dev/null 2>&1
+  echo "Created root-only Ed25519 dataset signing key: $dataset_signing_key"
+fi
+chmod 600 "$dataset_signing_key"
+if ! openssl pkey -in "$dataset_signing_key" -noout -text 2>/dev/null | grep -q 'ED25519'; then
+  echo "Dataset signing key is not a valid Ed25519 private key: $dataset_signing_key" >&2
+  exit 1
+fi
+
 digest="$(sha256sum "$credentials" | cut -c1-12)"
 secret="${secret_base}_${digest}"
 if ! docker secret inspect "$secret" >/dev/null 2>&1; then
   docker secret create --label "caudals.digest=$digest" "$secret" "$credentials" >/dev/null
   echo "Created Docker secret: $secret"
+fi
+
+dataset_signing_digest="$(sha256sum "$dataset_signing_key" | cut -c1-12)"
+dataset_signing_secret="${dataset_signing_secret_base}_${dataset_signing_digest}"
+if ! docker secret inspect "$dataset_signing_secret" >/dev/null 2>&1; then
+  docker secret create --label "caudals.digest=$dataset_signing_digest" "$dataset_signing_secret" "$dataset_signing_key" >/dev/null
+  echo "Created dataset signing Docker secret: $dataset_signing_secret"
 fi
 
 if [[ "$build_local" =~ ^(1|true|yes)$ ]]; then
@@ -64,6 +85,7 @@ fi
 CAUDALS_APP_IMAGE="$versioned_image" \
 CAUDALS_APP_NETWORK="$network" \
 CAUDALS_APP_ENV_SECRET="$secret" \
+CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET="$dataset_signing_secret" \
   docker stack deploy --detach=true -c "$root/infra/app-stack.yml" "$stack"
 
 service="${stack}_app"
