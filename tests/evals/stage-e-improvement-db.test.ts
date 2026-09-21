@@ -3,8 +3,8 @@ import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import {
-  createImprovementBatch, createImprovementTask, getDatasetArtifact,
-  promoteApprovedSubmission, releaseDataset, reviewDatasetItem,
+  createImprovementBatch, createImprovementTask, getDatasetArtifact, getImprovementBatch,
+  promoteApprovedSubmission, recordInterventionValidation, releaseDataset, reviewDatasetItem,
   type DatasetArtifactStore,
 } from "../../lib/evals/improvements/store";
 import { verifyDatasetArtifact } from "../../lib/evals/improvements/release";
@@ -39,16 +39,23 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
       await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$3,'operator'),($2,$3,'operator')", [orgA, orgB, operator]);
       await db.query("INSERT INTO evals.project(id,org_id,title,created_by) VALUES($1,$2,'A',$5),($3,$4,'B',$5)", [projectA, orgA, projectB, orgB, operator]);
       const target = randomUUID(); const targetRevision = randomUUID(); const suite = randomUUID(); const suiteVersion = randomUUID(); const evaluation = randomUUID();
-      const rubric = randomUUID(); const caseId = randomUUID(); const caseRevision = randomUUID();
+      const rubric = randomUUID();
+      const cases = [
+        { id: randomUUID(), revisionId: randomUUID(), family: "run-training-family", split: "training", baseline: "fail", followup: "pass" },
+        { id: randomUUID(), revisionId: randomUUID(), family: "run-validation-family", split: "validation", baseline: "partial", followup: "pass" },
+        { id: randomUUID(), revisionId: randomUUID(), family: "run-holdout-family", split: "holdout", baseline: "fail", followup: "partial" },
+      ];
       await db.query("INSERT INTO evals.target(id,org_id,project_id,title,created_by) VALUES($1,$2,$3,'Target',$4)", [target, orgA, projectA, operator]);
       await db.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document,created_by) VALUES($1,$2,$3,$4,'{}',$5)", [targetRevision, orgA, target, hash, operator]);
       await db.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document,created_by) VALUES($1,$2,$3,$4,'{}',$5)", [rubric, orgA, projectA, hash, operator]);
-      await db.query("INSERT INTO evals.\"case\"(id,org_id,project_id,created_by) VALUES($1,$2,$3,$4)", [caseId, orgA, projectA, operator]);
-      await db.query(`INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id,created_by)
-        VALUES($1,$2,$3,'run-family','holdout',$4,'{}',$5,$6)`, [caseRevision, orgA, caseId, hash, rubric, operator]);
+      for (const candidate of cases) {
+        await db.query("INSERT INTO evals.\"case\"(id,org_id,project_id,created_by) VALUES($1,$2,$3,$4)", [candidate.id, orgA, projectA, operator]);
+        await db.query(`INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id,created_by)
+          VALUES($1,$2,$3,$4,$5,$6,'{}',$7,$8)`, [candidate.revisionId, orgA, candidate.id, candidate.family, candidate.split, hash, rubric, operator]);
+      }
       await db.query("INSERT INTO evals.suite(id,org_id,project_id,title,created_by) VALUES($1,$2,$3,'Suite',$4)", [suite, orgA, projectA, operator]);
       const manifest = { suite_id: suite, suite_version_id: suiteVersion, content_hash: hash,
-        case_revisions: [{ revision_id: caseRevision, case_id: caseId, content_hash: hash, family_id: "run-family", split: "holdout" }],
+        case_revisions: cases.map((candidate) => ({ revision_id: candidate.revisionId, case_id: candidate.id, content_hash: hash, family_id: candidate.family, split: candidate.split })),
         source_revisions: [], rubric_revisions: [], output_schema_revisions: [], fixture_revisions: [], files: [] };
       await db.query("INSERT INTO evals.suite_version(id,org_id,suite_id,content_hash,manifest,created_by) VALUES($1,$2,$3,$4,$5,$6)", [suiteVersion, orgA, suite, hash, manifest, operator]);
       await db.query(`INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,review_status,commercial_cap,currency,created_by)
@@ -56,6 +63,15 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
       for (const runId of [baselineRun, followupRun]) await db.query(`INSERT INTO evals.run(
         id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,created_by
       ) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','done',$6)`, [runId, orgA, evaluation, targetRevision, suiteVersion, operator]);
+      for (const candidate of cases) for (const [runId, outcome] of [[baselineRun, candidate.baseline], [followupRun, candidate.followup]] as const) {
+        const caseUnit = randomUUID(); const observation = randomUUID();
+        await db.query(`INSERT INTO evals.case_unit(id,org_id,run_id,case_revision_id,repetition,status)
+          VALUES($1,$2,$3,$4,0,'succeeded')`, [caseUnit, orgA, runId, candidate.revisionId]);
+        await db.query(`INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,content_hash,document,execution_status)
+          VALUES($1,$2,$3,$4,$5,'{}','succeeded')`, [observation, orgA, runId, caseUnit, hash]);
+        await db.query(`INSERT INTO evals.assessment(id,org_id,observation_id,content_hash,document,outcome,review_status)
+          VALUES($1,$2,$3,$4,'{}',$5,'approved')`, [randomUUID(), orgA, observation, hash, outcome]);
+      }
       await db.query(`INSERT INTO evals.finding(id,org_id,run_id,title,severity,evidence_strength,frequency_n,frequency_denominator,observation,recommendation)
         VALUES($1,$2,$3,'Finding','high','reviewed',1,1,'Observed','Improve')`, [finding, orgA, baselineRun]);
       await db.query(`INSERT INTO evals.comparison(id,org_id,project_id,baseline_run_id,candidate_run_id,policy_hash,status,reason_codes,snapshot,created_by)
@@ -103,6 +119,9 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
     expect(await withTenant({ orgId: orgA, actorId: operator }, async (db) => (await db.query("SELECT id FROM evals.improvement_batch WHERE id=$1", [otherBatch])).rowCount)).toBe(0);
     await expect(createCandidate({ family: "self", split: "training", decision: "approve", reviewer: profileA })).rejects.toThrow(/independent_review_required/);
     const rejected = await createCandidate({ family: "rejected", split: "training", decision: "reject", reviewer: profileB });
+    expect(await withTenant({ orgId: orgA, actorId: expertA }, async (db) =>
+      Number((await db.query("SELECT count(*)::int AS count FROM evals.improvement_batch")).rows[0].count),
+    )).toBe(0);
     await expect(withTenant({ orgId: orgA, actorId: operator }, async (db) => {
       const release = (await db.query(`INSERT INTO evals.dataset_release(org_id,batch_id,project_id,content_hash,manifest,public_key_fingerprint)
         VALUES($1,$2,$3,$4,'{}',$4) RETURNING id`, [orgA, rejected.batchId, projectA, hash])).rows[0];
@@ -113,6 +132,9 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
   it("keeps revisions immutable and blocks sibling-family contamination across releases", async () => {
     const holdout = await createCandidate({ family: "shared-family", split: "holdout", decision: "approve", reviewer: profileB });
     await expect(owner.query("UPDATE evals.dataset_item_revision SET document='{}' WHERE id=$1", [holdout.revisionId])).rejects.toThrow(/immutable evidence/);
+    await expect(owner.query(`UPDATE evals.improvement_task SET expert_assignment_id=$2
+      WHERE id=(SELECT task_id FROM evals.dataset_item_revision WHERE id=$1)`, [holdout.revisionId, reviewAssignment]))
+      .rejects.toThrow(/immutable_improvement_task_lineage/);
     await withTenant({ orgId: orgA, actorId: operator }, async (db) => {
       const release = (await db.query(`INSERT INTO evals.dataset_release(org_id,batch_id,project_id,content_hash,manifest,public_key_fingerprint)
         VALUES($1,$2,$3,$4,'{}',$4) RETURNING id`, [orgA, holdout.batchId, projectA, hash])).rows[0];
@@ -166,12 +188,36 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
       reviewerProfileId: profileB, decision: "approve", rightsStatus: "permitted",
       redactionStatus: "approved", rationale: "Rights and redaction checked.",
     });
-    const released = await releaseDataset(scope, batch.id, privateKey, artifacts);
+    const rejectedTask = await createImprovementTask(scope, batch.id, {
+      findingId: finding, expertAssignmentId: assignment, kind: "corrected_response",
+      familyId: "rejected-family", split: "training", rightsBasis: "customer_owned",
+    });
+    const rejectedItem = await promoteApprovedSubmission(scope, rejectedTask.id, submission);
+    await reviewDatasetItem(scope, rejectedItem.revisionId, {
+      reviewerProfileId: profileB, decision: "reject", rightsStatus: "permitted",
+      redactionStatus: "approved", rationale: "Excluded from the release.",
+    });
+    await expect(releaseDataset(scope, batch.id, privateKey, artifacts, { expectedVersion: 5 })).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    const released = await releaseDataset(scope, batch.id, privateKey, artifacts, { expectedVersion: 6 });
     const replayed = await releaseDataset(scope, batch.id, privateKey, artifacts);
     expect(replayed).toEqual(released);
     expect(memory.size).toBe(1);
+    const version = (await getImprovementBatch(scope, batch.id)).batch.lock_version as number;
+    const validationInput = {
+      releaseId: released.releaseId, baselineRunId: baselineRun, followupRunId: followupRun,
+      comparisonId: comparison, description: "Customer updated retrieval content.",
+      evidenceReference: "change-ticket-42",
+    };
+    await expect(recordInterventionValidation(scope, batch.id, { ...validationInput, expectedVersion: version - 1 })).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
+    const validation = await recordInterventionValidation(scope, batch.id, { ...validationInput, expectedVersion: version });
+    expect(validation.snapshot).toMatchObject({
+      training: { count: 1, delta: 1 }, validation: { count: 1, delta: 0.5 },
+      holdout: { count: 1, delta: 0.5 }, causality: "observational_after_recorded_intervention",
+    });
     const downloaded = await getDatasetArtifact(scope, released.artifactId, artifacts);
-    expect(verifyDatasetArtifact(downloaded.bytes, publicKey).manifest.release_id).toBe(released.releaseId);
+    const verified = verifyDatasetArtifact(downloaded.bytes, publicKey);
+    expect(verified.manifest.release_id).toBe(released.releaseId);
+    expect(verified.items).toHaveLength(1);
     await expect(getDatasetArtifact({ orgId: orgB, actorId: operator }, released.artifactId, artifacts)).rejects.toMatchObject({ status: 404 });
   });
 });

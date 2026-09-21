@@ -16,7 +16,7 @@ const REQUIRED_IMMUTABLE_TRIGGERS = [
 
 export type StageEReleaseInspection = {
   migrations: string[];
-  runtimeRole: { name: string; superuser: boolean; bypassRls: boolean; login: boolean; ownedObjects: number } | null;
+  runtimeRole: { name: string; superuser: boolean; bypassRls: boolean; login: boolean; ownedObjects: number; memberCount: number; unsafeMemberCount: number } | null;
   immutableTriggers: string[];
   signingKey: string;
   featureEnabled: boolean;
@@ -26,8 +26,8 @@ export function assessStageERelease(input: StageEReleaseInspection) {
   const migrations = new Set(input.migrations);
   if (REQUIRED_MIGRATIONS.some((name) => !migrations.has(name))) throw new Error("Stage E migrations are incomplete.");
   const role = input.runtimeRole;
-  if (!role || role.name !== "evals_runtime" || role.superuser || role.bypassRls || role.login || role.ownedObjects !== 0) {
-    throw new Error("The Stage E runtime role must be NOLOGIN, NOSUPERUSER, NOBYPASSRLS and own no evaluation objects.");
+  if (!role || role.name !== "evals_runtime" || role.superuser || role.bypassRls || role.login || role.ownedObjects !== 0 || role.memberCount < 1 || role.unsafeMemberCount !== 0) {
+    throw new Error("The Stage E runtime group and its login members must be non-owner, NOSUPERUSER and NOBYPASSRLS.");
   }
   const triggers = new Set(input.immutableTriggers);
   if (REQUIRED_IMMUTABLE_TRIGGERS.some((name) => !triggers.has(name))) throw new Error("Stage E immutable evidence triggers are incomplete.");
@@ -41,6 +41,7 @@ export function assessStageERelease(input: StageEReleaseInspection) {
     migrations: [...REQUIRED_MIGRATIONS],
     runtimeRole: role.name,
     ownedObjects: role.ownedObjects,
+    runtimeMemberCount: role.memberCount,
     immutableTriggerCount: REQUIRED_IMMUTABLE_TRIGGERS.length,
     featureEnabled: true as const,
     signingKeyType: "ed25519" as const,
@@ -50,12 +51,19 @@ export function assessStageERelease(input: StageEReleaseInspection) {
 type Database = { query<T extends Record<string, unknown>>(text: string, values?: unknown[]): Promise<QueryResult<T>> };
 
 export async function inspectStageERelease(database: Database, signingKey: string, featureEnabled: boolean) {
-  const [migrationResult, roleResult, ownershipResult, triggerResult] = await Promise.all([
+  const [migrationResult, roleResult, ownershipResult, memberResult, triggerResult] = await Promise.all([
     database.query<{ name: string }>("SELECT name FROM public.evals_migration_history WHERE name = ANY($1::text[]) ORDER BY name", [[...REQUIRED_MIGRATIONS]]),
     database.query<{ rolname: string; rolsuper: boolean; rolbypassrls: boolean; rolcanlogin: boolean }>("SELECT rolname,rolsuper,rolbypassrls,rolcanlogin FROM pg_roles WHERE rolname='evals_runtime'"),
     database.query<{ count: number }>(`SELECT count(*)::int AS count FROM pg_class c
       JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_roles r ON r.oid=c.relowner
       WHERE n.nspname='evals' AND r.rolname='evals_runtime'`),
+    database.query<{ member_count: number; unsafe_count: number }>(`SELECT count(*)::int AS member_count,
+      count(*) FILTER (WHERE member.rolsuper OR member.rolbypassrls
+        OR EXISTS(SELECT 1 FROM pg_namespace n WHERE n.nspname='evals' AND n.nspowner=member.oid)
+        OR EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='evals' AND c.relowner=member.oid))::int AS unsafe_count
+      FROM pg_auth_members membership JOIN pg_roles parent ON parent.oid=membership.roleid
+      JOIN pg_roles member ON member.oid=membership.member WHERE parent.rolname='evals_runtime'`),
     database.query<{ tgname: string }>(`SELECT t.tgname FROM pg_trigger t
       JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname='evals' AND NOT t.tgisinternal AND t.tgenabled <> 'D' AND t.tgname = ANY($1::text[])
@@ -67,6 +75,8 @@ export async function inspectStageERelease(database: Database, signingKey: strin
     runtimeRole: role ? {
       name: role.rolname, superuser: role.rolsuper, bypassRls: role.rolbypassrls,
       login: role.rolcanlogin, ownedObjects: ownershipResult.rows[0]?.count ?? -1,
+      memberCount: memberResult.rows[0]?.member_count ?? 0,
+      unsafeMemberCount: memberResult.rows[0]?.unsafe_count ?? -1,
     } : null,
     immutableTriggers: triggerResult.rows.map((row) => row.tgname),
     signingKey,

@@ -192,41 +192,54 @@ DO $$ DECLARE t text; BEGIN
   END LOOP;
 END $$;
 
-CREATE POLICY expert_guideline_scope ON evals.expert_guideline_revision
+CREATE POLICY expert_guideline_read ON evals.expert_guideline_revision FOR SELECT
   USING(
-    org_id=evals.org_id()
+    (evals.is_operator() AND org_id=evals.org_id())
     OR EXISTS(
       SELECT 1 FROM evals.expert_assignment a JOIN evals.expert_profile p ON p.id=a.assigned_profile_id
       WHERE a.org_id=expert_guideline_revision.org_id AND a.guideline_revision_id=expert_guideline_revision.id
         AND p.user_id=evals.actor_id()
     )
-  ) WITH CHECK(org_id=evals.org_id());
-CREATE POLICY expert_assignment_scope ON evals.expert_assignment
+  );
+CREATE POLICY expert_guideline_create ON evals.expert_guideline_revision FOR INSERT
+  WITH CHECK(evals.is_operator() AND org_id=evals.org_id());
+CREATE POLICY expert_assignment_read ON evals.expert_assignment FOR SELECT
   USING(
-    org_id=evals.org_id()
-    OR EXISTS(SELECT 1 FROM evals.expert_profile p WHERE p.id=assigned_profile_id AND p.user_id=evals.actor_id())
-  ) WITH CHECK(
-    org_id=evals.org_id()
+    (evals.is_operator() AND org_id=evals.org_id())
     OR EXISTS(SELECT 1 FROM evals.expert_profile p WHERE p.id=assigned_profile_id AND p.user_id=evals.actor_id())
   );
-CREATE POLICY expert_evidence_scope ON evals.expert_assignment_evidence
+CREATE POLICY expert_assignment_create ON evals.expert_assignment FOR INSERT
+  WITH CHECK(evals.is_operator() AND org_id=evals.org_id());
+CREATE POLICY expert_assignment_update ON evals.expert_assignment FOR UPDATE
+  USING(
+    (evals.is_operator() AND org_id=evals.org_id())
+    OR EXISTS(SELECT 1 FROM evals.expert_profile p WHERE p.id=assigned_profile_id AND p.user_id=evals.actor_id())
+  ) WITH CHECK(
+    (evals.is_operator() AND org_id=evals.org_id())
+    OR EXISTS(SELECT 1 FROM evals.expert_profile p WHERE p.id=assigned_profile_id AND p.user_id=evals.actor_id())
+  );
+CREATE POLICY expert_evidence_read ON evals.expert_assignment_evidence FOR SELECT
   USING(EXISTS(
     SELECT 1 FROM evals.expert_assignment a
     WHERE (a.org_id,a.id)=(expert_assignment_evidence.org_id,expert_assignment_evidence.assignment_id)
-  )) WITH CHECK(org_id=evals.org_id());
-CREATE POLICY expert_conflict_scope ON evals.expert_conflict_declaration
+  ));
+CREATE POLICY expert_evidence_create ON evals.expert_assignment_evidence FOR INSERT
+  WITH CHECK(evals.is_operator() AND org_id=evals.org_id());
+CREATE POLICY expert_conflict_read ON evals.expert_conflict_declaration FOR SELECT
   USING(EXISTS(
     SELECT 1 FROM evals.expert_assignment a
     WHERE (a.org_id,a.id)=(expert_conflict_declaration.org_id,expert_conflict_declaration.assignment_id)
-  )) WITH CHECK(
-    org_id=evals.org_id()
+  ));
+CREATE POLICY expert_conflict_create ON evals.expert_conflict_declaration FOR INSERT
+  WITH CHECK(
+    (evals.is_operator() AND org_id=evals.org_id())
     OR EXISTS(
       SELECT 1 FROM evals.expert_assignment a JOIN evals.expert_profile p ON p.id=a.assigned_profile_id
       WHERE (a.org_id,a.id)=(expert_conflict_declaration.org_id,expert_conflict_declaration.assignment_id)
         AND p.user_id=evals.actor_id() AND p.id=expert_profile_id
     )
   );
-CREATE POLICY expert_submission_scope ON evals.expert_submission_revision
+CREATE POLICY expert_submission_read ON evals.expert_submission_revision FOR SELECT
   USING(
     EXISTS(
       SELECT 1 FROM evals.expert_assignment a
@@ -239,28 +252,34 @@ CREATE POLICY expert_submission_scope ON evals.expert_submission_revision
         (expert_submission_revision.org_id,expert_submission_revision.id)
         AND reviewer.user_id=evals.actor_id()
     )
-  ) WITH CHECK(
-    org_id=evals.org_id()
+  );
+CREATE POLICY expert_submission_create ON evals.expert_submission_revision FOR INSERT
+  WITH CHECK(
+    (evals.is_operator() AND org_id=evals.org_id())
     OR EXISTS(
       SELECT 1 FROM evals.expert_assignment a JOIN evals.expert_profile p ON p.id=a.assigned_profile_id
       WHERE (a.org_id,a.id)=(expert_submission_revision.org_id,expert_submission_revision.assignment_id)
         AND p.user_id=evals.actor_id() AND p.id=author_profile_id
     )
   );
-CREATE POLICY expert_quality_scope ON evals.expert_quality_review
+CREATE POLICY expert_quality_read ON evals.expert_quality_review FOR SELECT
   USING(EXISTS(
     SELECT 1 FROM evals.expert_assignment a
     WHERE (a.org_id,a.id)=(expert_quality_review.org_id,expert_quality_review.review_assignment_id)
-  )) WITH CHECK(
-    org_id=evals.org_id()
+  ));
+CREATE POLICY expert_quality_create ON evals.expert_quality_review FOR INSERT
+  WITH CHECK(
+    (evals.is_operator() AND org_id=evals.org_id())
     OR EXISTS(
       SELECT 1 FROM evals.expert_assignment a JOIN evals.expert_profile p ON p.id=a.assigned_profile_id
       WHERE (a.org_id,a.id)=(expert_quality_review.org_id,expert_quality_review.review_assignment_id)
         AND p.user_id=evals.actor_id() AND p.id=reviewer_profile_id
     )
   );
-CREATE POLICY expert_payment_scope ON evals.expert_payment_record
-  USING(org_id=evals.org_id()) WITH CHECK(org_id=evals.org_id());
+CREATE POLICY expert_payment_read ON evals.expert_payment_record FOR SELECT
+  USING(evals.is_operator() AND org_id=evals.org_id());
+CREATE POLICY expert_payment_create ON evals.expert_payment_record FOR INSERT
+  WITH CHECK(evals.is_operator() AND org_id=evals.org_id());
 
 GRANT SELECT,INSERT,UPDATE(domains,jurisdictions,languages,credentials_status,terms_status,eligibility_status,updated_at)
   ON evals.expert_profile TO evals_runtime;

@@ -234,13 +234,14 @@ export async function readAssignedWork(actor: ExpertActor, assignmentId: string)
   return withTenant({ orgId: "", actorId: actor.userId }, async (db) => {
     const row = (await db.query<{
       id: string; kind: string; status: string; evidence_snapshot: unknown; guideline: unknown;
-      due_at: Date | null; own_revision: unknown; review_phase: string; peer_decisions: unknown;
+      due_at: Date | null; own_revision: unknown; review_target: unknown; review_phase: string; peer_decisions: unknown;
     }>(
       `SELECT a.id,a.kind,a.status,e.snapshot AS evidence_snapshot,g.document AS guideline,
         a.due_at,a.review_phase,
         CASE WHEN own.id IS NULL THEN NULL ELSE jsonb_build_object(
           'version',own.version,'status',own.status,'document',own.document
         ) END AS own_revision,
+        target.document AS review_target,
         CASE WHEN a.review_phase='revealed' THEN COALESCE((
           SELECT jsonb_agg(jsonb_build_object('decision',q.decision,'rationale',q.rationale)
             ORDER BY q.created_at,q.id)
@@ -251,6 +252,8 @@ export async function readAssignedWork(actor: ExpertActor, assignmentId: string)
        JOIN evals.expert_guideline_revision g ON (g.org_id,g.id)=(a.org_id,a.guideline_revision_id)
        LEFT JOIN evals.expert_submission_revision own
          ON (own.org_id,own.id)=(a.org_id,a.current_submission_revision_id)
+       LEFT JOIN evals.expert_submission_revision target
+         ON (target.org_id,target.id)=(a.org_id,a.review_of_submission_revision_id)
        WHERE a.id=$1 AND a.assigned_profile_id=$2`,
       [assignmentId, actor.profileId],
     )).rows[0];
@@ -287,7 +290,7 @@ export async function saveExpertSubmission(
       [assignmentId, actor.profileId],
     )).rows[0];
     if (!assignment) denied();
-    if (["guideline_changed", "canceled", "approved", "rejected", "adjudicated"].includes(assignment.status)) {
+    if (["guideline_changed", "submitted", "in_review", "canceled", "approved", "rejected", "adjudicated"].includes(assignment.status)) {
       throw new EvalError("WORK_LOCKED", 409, "This assignment is no longer editable.");
     }
     const conflict = (await db.query<{ status: string }>(
@@ -352,6 +355,10 @@ export async function recordQualityDecision(actor: ExpertActor, reviewAssignment
        JOIN evals.expert_submission_revision s
          ON (s.org_id,s.id)=(a.org_id,a.review_of_submission_revision_id)
        WHERE a.id=$1 AND a.assigned_profile_id=$2 AND a.kind IN ('independent_review','adjudication')
+         AND a.status NOT IN ('approved','rejected','adjudicated','canceled','guideline_changed')
+         AND EXISTS(SELECT 1 FROM evals.expert_conflict_declaration conflict
+           WHERE (conflict.org_id,conflict.assignment_id,conflict.expert_profile_id)=(a.org_id,a.id,a.assigned_profile_id)
+             AND conflict.status='clear')
        FOR UPDATE OF a`,
       [reviewAssignmentId, actor.profileId],
     )).rows[0];

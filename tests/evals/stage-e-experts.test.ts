@@ -25,6 +25,10 @@ describe("WP-14 expert contracts", () => {
       guideline: { title: "Review guideline", instructions: "Check the supplied evidence." },
       due_at: "2026-09-30T12:00:00.000Z",
       own_revision: { version: 2, status: "draft", document: { answer: "Needs work" } },
+      review_target: {
+        answer: "Submission being reviewed", rationale: "Grounded rationale",
+        source_refs: [{ source_revision_id: guidelineId, anchor: "p1" }], flags: [],
+      },
       model_identity: "PRIVATE_MODEL_SENTINEL",
       author_identity: "PRIVATE_AUTHOR_SENTINEL",
       payment_amount: "PRIVATE_PAYMENT_SENTINEL",
@@ -37,9 +41,11 @@ describe("WP-14 expert contracts", () => {
       id: assignmentId,
       evidence: { excerpts: [{ anchor: "p1", text: "Redacted policy" }] },
       ownRevision: { version: 2, status: "draft" },
+      reviewTarget: { answer: "Submission being reviewed", rationale: "Grounded rationale", sourceAnchors: ["p1"], flags: [] },
     });
     expect(projected).not.toHaveProperty("peerDecisions");
     expect(JSON.stringify(projected)).not.toMatch(/PRIVATE_MODEL|PRIVATE_AUTHOR|PRIVATE_PAYMENT|PRIVATE_WORKSPACE|PRIVATE_PEER/);
+    expect(JSON.stringify(projected.reviewTarget)).not.toContain(guidelineId);
   });
 
   it("reveals only anonymized peer decisions after the configured phase ends", () => {

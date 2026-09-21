@@ -98,8 +98,12 @@ describe("WP-15 signed improvement dataset releases", () => {
   it("rejects family overlap with untouched or previously released holdouts", () => {
     const training = { ...qa, family_id: "family-a", split: "training" as const };
     expect(() => validateReleaseCandidates({ items: [training], heldOutFamilies: ["family-a"], priorReleases: [] })).toThrow("family_split_overlap");
+    expect(() => validateReleaseCandidates({ items: [{ ...training, split: "validation" }], heldOutFamilies: ["family-a"], priorReleases: [] })).toThrow("family_split_overlap");
     expect(() => validateReleaseCandidates({
       items: [training], heldOutFamilies: [], priorReleases: [{ family_id: "family-a", split: "holdout" }],
+    })).toThrow("family_split_overlap");
+    expect(() => validateReleaseCandidates({
+      items: [training, { ...preference, family_id: "family-a" }], heldOutFamilies: [], priorReleases: [],
     })).toThrow("family_split_overlap");
   });
 

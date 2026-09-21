@@ -19,11 +19,13 @@ export function validateReleaseCandidates(input: {
 }) {
   if (!input.items.length) throw new Error("release_empty");
   const heldOut = new Set(input.heldOutFamilies);
-  for (const prior of input.priorReleases) if (prior.split === "holdout") heldOut.add(prior.family_id);
-  const priorTraining = new Set(input.priorReleases.filter((row) => row.split === "training").map((row) => row.family_id));
   const seenItems = new Set<string>(); const seenRevisions = new Set<string>();
-  const training = new Set(input.items.filter((item) => item.split === "training").map((item) => item.family_id));
-  const holdout = new Set(input.items.filter((item) => item.split === "holdout").map((item) => item.family_id));
+  const familySplits = new Map<string, DatasetItem["split"]>();
+  for (const prior of input.priorReleases) {
+    const existing = familySplits.get(prior.family_id);
+    if (existing && existing !== prior.split) throw new Error("family_split_overlap");
+    familySplits.set(prior.family_id, prior.split);
+  }
   for (const candidate of input.items) {
     if (candidate.status !== "approved") throw new Error("review_required");
     if (candidate.rights_status !== "permitted") throw new Error("rights_not_permitted");
@@ -31,9 +33,11 @@ export function validateReleaseCandidates(input: {
     if (!candidate.reviewer_profile_id || candidate.reviewer_profile_id === candidate.author_profile_id) throw new Error("independent_review_required");
     if (seenItems.has(candidate.item_id) || seenRevisions.has(candidate.revision_id)) throw new Error("duplicate_release_item");
     seenItems.add(candidate.item_id); seenRevisions.add(candidate.revision_id);
+    const existingSplit = familySplits.get(candidate.family_id);
+    if ((heldOut.has(candidate.family_id) && candidate.split !== "holdout") ||
+        (existingSplit && existingSplit !== candidate.split)) throw new Error("family_split_overlap");
+    familySplits.set(candidate.family_id, candidate.split);
   }
-  if ([...training].some((family) => heldOut.has(family) || holdout.has(family)) ||
-      [...holdout].some((family) => priorTraining.has(family))) throw new Error("family_split_overlap");
   const parsed = input.items.map((candidate) => datasetItemSchema.parse(candidate));
   for (const candidate of parsed) verifyContentHash(candidate);
   return parsed;

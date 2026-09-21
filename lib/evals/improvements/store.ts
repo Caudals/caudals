@@ -56,6 +56,8 @@ export async function createImprovementTask(scope: Scope, batchId: string, rawIn
   z.uuid().parse(batchId); const input = taskInputSchema.parse(rawInput);
   return withTenant(scope, (db) => idempotent(db, scope.actorId, `improvement-tasks/${scope.orgId}/${batchId}`, creationKey(key), input, async () => {
     try {
+      const batch = (await db.query("SELECT id FROM evals.improvement_batch WHERE org_id=$1 AND id=$2 FOR UPDATE", [scope.orgId, batchId])).rows[0];
+      if (!batch) denied();
       const row = (await db.query(
         `INSERT INTO evals.improvement_task(
           org_id,batch_id,finding_id,expert_assignment_id,kind,family_id,split,rights_basis,status
@@ -64,7 +66,9 @@ export async function createImprovementTask(scope: Scope, batchId: string, rawIn
         [scope.orgId, batchId, input.findingId, input.expertAssignmentId, input.kind,
           input.familyId, input.split, input.rightsBasis],
       )).rows[0];
-      if (!row) denied(); return row;
+      if (!row) denied();
+      await db.query("UPDATE evals.improvement_batch SET status='in_review',lock_version=lock_version+1,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, batchId]);
+      return row;
     } catch (error) {
       if ((error as Error).message.includes("invalid_improvement_task_lineage")) invalid("LINEAGE_INVALID", "Finding, assignment and batch must belong to one project.");
       throw error;
@@ -93,6 +97,9 @@ export async function promoteApprovedSubmission(scope: Scope, taskId: string, su
   z.uuid().parse(taskId); z.uuid().parse(submissionRevisionId);
   const payloadKey = { taskId, submissionRevisionId };
   return withTenant(scope, (db) => idempotent(db, scope.actorId, `dataset-promotions/${scope.orgId}/${taskId}`, creationKey(key), payloadKey, async () => {
+    const task = (await db.query<{ batch_id: string }>("SELECT batch_id FROM evals.improvement_task WHERE org_id=$1 AND id=$2", [scope.orgId, taskId])).rows[0];
+    if (!task) denied();
+    await db.query("SELECT id FROM evals.improvement_batch WHERE org_id=$1 AND id=$2 FOR UPDATE", [scope.orgId, task.batch_id]);
     const existing = (await db.query(
       `SELECT r.id AS revision_id,i.id AS item_id,t.status FROM evals.dataset_item_revision r
        JOIN evals.dataset_item i ON (i.org_id,i.id)=(r.org_id,r.item_id)
@@ -138,6 +145,7 @@ export async function promoteApprovedSubmission(scope: Scope, taskId: string, su
     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [revisionId, scope.orgId, itemId, taskId, row.finding_id,
       submissionRevisionId, row.author_profile_id, document.content_hash, document]);
     await db.query("UPDATE evals.improvement_task SET status='submitted',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, taskId]);
+    await db.query("UPDATE evals.improvement_batch SET status='in_review',lock_version=lock_version+1,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, row.batch_id]);
     return { itemId, revisionId, status: "draft" as const };
   }));
 }
@@ -151,7 +159,14 @@ const reviewInputSchema = z.strictObject({
 export async function reviewDatasetItem(scope: Scope, itemRevisionId: string, rawInput: z.input<typeof reviewInputSchema>, key?: string) {
   z.uuid().parse(itemRevisionId); const input = reviewInputSchema.parse(rawInput);
   return withTenant(scope, (db) => idempotent(db, scope.actorId, `dataset-reviews/${scope.orgId}/${itemRevisionId}`, creationKey(key), input, async () => {
-    const reviewer = (await db.query("SELECT id FROM evals.expert_profile WHERE id=$1 AND credentials_status='verified' AND terms_status='accepted'", [input.reviewerProfileId])).rows[0];
+    const item = (await db.query<{ batch_id: string }>(`SELECT i.batch_id FROM evals.dataset_item_revision r
+      JOIN evals.dataset_item i ON (i.org_id,i.id)=(r.org_id,r.item_id)
+      WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, itemRevisionId])).rows[0];
+    if (!item) denied();
+    await db.query("SELECT id FROM evals.improvement_batch WHERE org_id=$1 AND id=$2 FOR UPDATE", [scope.orgId, item.batch_id]);
+    const reviewer = (await db.query(`SELECT id FROM evals.expert_profile WHERE id=$1
+      AND credentials_status='verified' AND terms_status='accepted'
+      AND eligibility_status IN ('calibrating','eligible')`, [input.reviewerProfileId])).rows[0];
     if (!reviewer) invalid("REVIEWER_INELIGIBLE", "Choose a verified reviewer with accepted terms.");
     try {
       const result = (await db.query<{ id: string; task_id: string }>(
@@ -165,6 +180,7 @@ export async function reviewDatasetItem(scope: Scope, itemRevisionId: string, ra
       if (!result) denied();
       const approved = input.decision === "approve" && input.rightsStatus === "permitted" && input.redactionStatus === "approved";
       await db.query("UPDATE evals.improvement_task SET status=$3,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, result.task_id, approved ? "approved" : input.decision === "reject" ? "rejected" : "submitted"]);
+      await db.query("UPDATE evals.improvement_batch SET status='in_review',lock_version=lock_version+1,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, item.batch_id]);
       return { id: result.id, status: approved ? "approved" : input.decision };
     } catch (error) {
       if ((error as Error).message.includes("independent_review_required")) invalid("INDEPENDENT_REVIEW_REQUIRED", "Dataset QA requires a different reviewer.");
@@ -210,10 +226,11 @@ export async function releaseDataset(
          WHERE i.org_id=$1 AND i.batch_id=$2 ORDER BY i.created_at,i.id`, [scope.orgId, batchId],
       )).rows;
       if (!rows.length) invalid("RELEASE_EMPTY", "Add at least one reviewed item before release.");
-      if (rows.some((row) => !row.reviewer_profile_id || row.decision !== "approve" || row.rights_status !== "permitted" || row.redaction_status !== "approved")) {
+      const candidates = rows.filter((row) => row.reviewer_profile_id && row.decision === "approve" && row.rights_status === "permitted" && row.redaction_status === "approved");
+      if (!candidates.length) {
         invalid("REVIEW_REQUIRED", "review_required: every released item requires independent approval, permitted rights and approved redaction.");
       }
-      const items = rows.map((row) => approvedDocument(row as Parameters<typeof approvedDocument>[0]));
+      const items = candidates.map((row) => approvedDocument(row as Parameters<typeof approvedDocument>[0]));
       const heldOutFamilies = (await db.query<{ family_id: string }>(
         `SELECT DISTINCT cr.family_id FROM evals.case_revision cr JOIN evals."case" c
           ON (c.org_id,c.id)=(cr.org_id,cr.case_id)
@@ -259,7 +276,7 @@ export async function releaseDataset(
         id,org_id,batch_id,project_id,revision,content_hash,manifest,artifact_id,public_key_fingerprint,status
       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'ready')`, [releaseId, scope.orgId, batchId, batch.project_id,
         revision, verified.manifest.content_hash, verified.manifest, artifactId, verified.manifest.public_key_fingerprint]);
-      for (const [ordinal, row] of rows.entries()) await db.query(
+      for (const [ordinal, row] of candidates.entries()) await db.query(
         "INSERT INTO evals.dataset_release_item(org_id,release_id,item_revision_id,ordinal) VALUES($1,$2,$3,$4)",
         [scope.orgId, releaseId, row.revision_id, ordinal],
       );
@@ -354,6 +371,7 @@ export async function recordInterventionValidation(scope: Scope, batchId: string
       .map((row) => ({ revisionId: row.revision_id, familyId: row.family_id, split: row.split as "training" | "validation" | "holdout" }));
     const toOutcomes = (rows: typeof baselineRows) => Object.fromEntries(rows.filter((row) => row.outcome).map((row) => [row.revision_id, improvementOutcomeSchema.parse(row.outcome)])) as OutcomeByCase;
     const snapshot = compareImprovementRuns({ baseline: toOutcomes(baselineRows), followup: toOutcomes(followupRows), cases });
+    if (snapshot.holdout.count < 1) invalid("HELDOUT_EVIDENCE_REQUIRED", "Follow-up validation requires at least one matched, scorable held-out case.");
     const intervention = (await db.query(`INSERT INTO evals.intervention_record(org_id,project_id,release_id,baseline_run_id,description,evidence_reference)
       VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, [scope.orgId, batch.project_id, input.releaseId, input.baselineRunId, input.description, input.evidenceReference])).rows[0];
     const validation = (await db.query(`INSERT INTO evals.intervention_validation(org_id,intervention_id,followup_run_id,comparison_id,snapshot)

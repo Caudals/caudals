@@ -24,6 +24,7 @@ type Assignment = {
   guideline: { title: string; instructions: string };
   dueAt: string | null;
   ownRevision: { version: number; status: string; document: SubmissionDocument } | null;
+  reviewTarget?: { answer: unknown; rationale: string; sourceAnchors: string[]; flags: string[] };
   peerDecisions?: Array<{ decision: string; rationale: string }>;
 };
 
@@ -147,6 +148,7 @@ export function ExpertWorkbench({ assignmentId }: { assignmentId: string }) {
           {work.evidence.transcript.map((turn, index) => <article className="eval-transcript" key={`${turn.role}-${index}`}><p className="p-eyebrow">{turn.role}</p><p>{turn.content}</p></article>)}
         </Card>
         <Card title="Guideline"><p>{work.guideline.instructions}</p></Card>
+        {work.reviewTarget && <Card title="Submission under review"><p>{answerText(work.reviewTarget.answer)}</p><p>{work.reviewTarget.rationale}</p>{work.reviewTarget.sourceAnchors.length > 0 && <p>Source anchors: {work.reviewTarget.sourceAnchors.join(", ")}</p>}</Card>}
         {work.peerDecisions && <Card title="Revealed peer decisions">{work.peerDecisions.map((item, index) => <div key={index}><StatusBadge value={item.decision} /><p>{item.rationale}</p></div>)}</Card>}
       </div>
       <Card title={review ? "Your independent decision" : "Your contribution"}>

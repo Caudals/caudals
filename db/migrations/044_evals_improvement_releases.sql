@@ -155,6 +155,9 @@ CREATE FUNCTION evals.validate_improvement_task() RETURNS trigger
 LANGUAGE plpgsql SET search_path=pg_catalog,evals AS $$
 DECLARE batch_project uuid; finding_project uuid; assignment_project uuid;
 BEGIN
+  IF TG_OP='UPDATE' AND NEW.expert_assignment_id IS DISTINCT FROM OLD.expert_assignment_id
+    AND EXISTS(SELECT 1 FROM evals.dataset_item_revision r WHERE r.org_id=OLD.org_id AND r.task_id=OLD.id)
+  THEN RAISE EXCEPTION 'immutable_improvement_task_lineage'; END IF;
   SELECT project_id INTO batch_project FROM evals.improvement_batch WHERE org_id=NEW.org_id AND id=NEW.batch_id;
   SELECT e.project_id INTO finding_project FROM evals.finding f
     JOIN evals.run r ON (r.org_id,r.id)=(f.org_id,f.run_id)
@@ -169,7 +172,7 @@ BEGIN
   THEN RAISE EXCEPTION 'invalid_improvement_task_lineage'; END IF;
   RETURN NEW;
 END $$;
-CREATE TRIGGER improvement_task_lineage BEFORE INSERT ON evals.improvement_task
+CREATE TRIGGER improvement_task_lineage BEFORE INSERT OR UPDATE OF expert_assignment_id ON evals.improvement_task
   FOR EACH ROW EXECUTE FUNCTION evals.validate_improvement_task();
 
 CREATE FUNCTION evals.validate_dataset_item_revision() RETURNS trigger
@@ -220,7 +223,7 @@ BEGIN
     OR review_row.decision<>'approve' OR review_row.rights_status<>'permitted'
     OR review_row.redaction_status<>'approved' OR review_row.reviewer_profile_id=author
   THEN RAISE EXCEPTION 'release_candidate_not_approved'; END IF;
-  IF (item_split='training' AND EXISTS(
+  IF (item_split<>'holdout' AND EXISTS(
       SELECT 1 FROM evals.case_revision cr JOIN evals."case" c ON (c.org_id,c.id)=(cr.org_id,cr.case_id)
       WHERE cr.org_id=NEW.org_id AND c.project_id=release_project AND cr.family_id=item_family AND cr.split='holdout'
     )) OR EXISTS(
@@ -229,7 +232,7 @@ BEGIN
       JOIN evals.dataset_item_revision rev ON (rev.org_id,rev.id)=(prior.org_id,prior.item_revision_id)
       JOIN evals.dataset_item item ON (item.org_id,item.id)=(rev.org_id,rev.item_id)
       WHERE rel.org_id=NEW.org_id AND rel.project_id=release_project AND item.family_id=item_family
-        AND ((item.split='holdout' AND item_split='training') OR (item.split='training' AND item_split='holdout'))
+        AND item.split<>item_split
     ) THEN RAISE EXCEPTION 'family_split_overlap'; END IF;
   RETURN NEW;
 END $$;
@@ -277,7 +280,7 @@ DO $$ DECLARE t text; BEGIN
   ] LOOP
     EXECUTE format('ALTER TABLE evals.%I ENABLE ROW LEVEL SECURITY',t);
     EXECUTE format('ALTER TABLE evals.%I FORCE ROW LEVEL SECURITY',t);
-    EXECUTE format('CREATE POLICY tenant ON evals.%I USING (org_id=evals.org_id()) WITH CHECK (org_id=evals.org_id())',t);
+    EXECUTE format('CREATE POLICY operator_tenant ON evals.%I USING (org_id=evals.org_id() AND evals.is_operator()) WITH CHECK (org_id=evals.org_id() AND evals.is_operator())',t);
     EXECUTE format('GRANT SELECT,INSERT ON evals.%I TO evals_runtime',t);
   END LOOP;
 END $$;

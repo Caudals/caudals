@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { getEvalsPool } from "../../lib/evals/repositories/db";
+import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import {
   createExpertAssignment,
   createExpertProfile,
@@ -154,6 +154,17 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
     await expect(readAssignedWork(actorA, assignmentB.id)).rejects.toMatchObject({ code: "SCOPE_DENIED" });
     expect((await listAssignedWork(actorA)).map((row) => row.id)).toContain(assignmentA.id);
     expect((await listAssignedWork(actorA)).map((row) => row.id)).not.toContain(assignmentB.id);
+    const directVisibility = await withTenant({ orgId: orgA, actorId: expertAUserId }, async (db) => ({
+      assignments: Number((await db.query("SELECT count(*)::int AS count FROM evals.expert_assignment")).rows[0].count),
+      evidence: Number((await db.query("SELECT count(*)::int AS count FROM evals.expert_assignment_evidence")).rows[0].count),
+    }));
+    expect(directVisibility).toEqual({ assignments: 1, evidence: 1 });
+    await expect(withTenant({ orgId: orgA, actorId: expertAUserId }, async (db) => db.query(
+      `INSERT INTO evals.expert_assignment(
+        org_id,project_id,assigned_profile_id,kind,severity,guideline_revision_id
+      ) VALUES($1,$2,$3,'authoring','low',$4)`,
+      [orgA, projectA, profileA.id, guidelineA.revisionId],
+    ))).rejects.toThrow(/row-level security policy/);
   });
 
   it("keeps independent review blind, rejects self-review, and permits attributed critical approval", async () => {
@@ -180,6 +191,10 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
         document: { answer: "Reviewed answer", rationale: "Grounded in the excerpt.", source_refs: [], flags: [] },
       },
     );
+    await expect(saveExpertSubmission(
+      { userId: expertAUserId, profileId: profileA.id }, authoring.id,
+      { expectedVersion: 1, document: { answer: "Late edit", rationale: "Should stay locked.", source_refs: [], flags: [] } },
+    )).rejects.toMatchObject({ code: "WORK_LOCKED" });
     await expect(createExpertAssignment(
       { orgId: orgA, actorId: operatorId },
       {
@@ -212,12 +227,24 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
     const actorB = { userId: expertBUserId, profileId: profileB.id };
     const blind = await readAssignedWork(actorB, review.id);
     expect(blind).not.toHaveProperty("peerDecisions");
+    expect(blind).toMatchObject({ reviewTarget: { answer: "Reviewed answer", rationale: "Grounded in the excerpt." } });
     expect(JSON.stringify(blind)).not.toContain(expertAUserId);
     await recordQualityDecision(actorB, review.id, { decision: "approve", rationale: "The answer is supported." });
     await revealReviewPhase({ orgId: orgA, actorId: operatorId }, review.id);
     expect(await readAssignedWork(actorB, review.id)).toMatchObject({
       peerDecisions: [{ decision: "approve", rationale: "The answer is supported." }],
     });
+    const conflictedReview = await createExpertAssignment(
+      { orgId: orgA, actorId: operatorId },
+      {
+        projectId: projectA, kind: "independent_review", expertProfileId: profileB.id,
+        guidelineRevisionId: guidelineA.revisionId, severity: "critical",
+        evidenceSnapshot: { excerpts: [{ anchor: "critical-1", text: "Critical redacted policy." }], transcript: [] },
+        conflictDeclaration: "disclosed", dueAt: null, reviewOfSubmissionRevisionId: submitted.revisionId,
+      },
+    );
+    await expect(recordQualityDecision(actorB, conflictedReview.id, { decision: "approve", rationale: "Must not be accepted." }))
+      .rejects.toMatchObject({ code: "SCOPE_DENIED" });
   });
 
   it("flags unfinished assignments after a guideline revision and hides payment data from experts", async () => {
@@ -260,6 +287,9 @@ const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpper
     );
     expect(await listPaymentRecords({ orgId: orgA, actorId: operatorId }, assignment.id)).toHaveLength(1);
     expect(JSON.stringify(await readAssignedWork({ userId: expertAUserId, profileId: profileA.id }, assignment.id))).not.toContain("75.00");
+    expect(await withTenant({ orgId: orgA, actorId: expertAUserId }, async (db) =>
+      Number((await db.query("SELECT count(*)::int AS count FROM evals.expert_payment_record")).rows[0].count),
+    )).toBe(0);
   });
 
   it("does not expose another tenant's assignments through guessed IDs", async () => {

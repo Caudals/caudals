@@ -17,7 +17,11 @@ export async function withTenant<T>(context: TenantContext, callback: (client: P
   let broken = false;
   try {
     await client.query("BEGIN");
-    const { rows } = await client.query<{ unsafe: boolean }>(`SELECT r.rolsuper OR r.rolbypassrls OR EXISTS(SELECT 1 FROM pg_namespace n WHERE n.nspname='evals' AND n.nspowner=r.oid) AS unsafe FROM pg_roles r WHERE r.rolname=current_user`);
+    const { rows } = await client.query<{ unsafe: boolean }>(`SELECT r.rolsuper OR r.rolbypassrls
+      OR EXISTS(SELECT 1 FROM pg_namespace n WHERE n.nspname='evals' AND n.nspowner=r.oid)
+      OR EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+        WHERE n.nspname='evals' AND c.relowner=r.oid) AS unsafe
+      FROM pg_roles r WHERE r.rolname=current_user`);
     if (rows[0]?.unsafe !== false) throw new Error("Evaluation runtime must be a non-owner NOBYPASSRLS role");
     await client.query("SELECT set_config('evals.org_id',$1,true),set_config('evals.actor_id',$2,true),set_config('statement_timeout','10000',true)", [context.orgId, context.actorId]);
     const result = await callback(client);

@@ -112,6 +112,7 @@ type ProjectionInput = {
   guideline: { title?: unknown; instructions?: unknown };
   due_at: unknown;
   own_revision: { version?: unknown; status?: unknown; document?: unknown } | null;
+  review_target?: unknown;
   review_phase: string;
   peer_decisions?: Array<{ decision?: unknown; rationale?: unknown; [key: string]: unknown }>;
   [key: string]: unknown;
@@ -125,6 +126,7 @@ export type RedactedAssignmentProjection = {
   guideline: { title: string; instructions: string };
   dueAt: string | null;
   ownRevision: { version: number; status: string; document: z.infer<typeof jsonValueSchema> } | null;
+  reviewTarget?: { answer: z.infer<typeof jsonValueSchema>; rationale: string; sourceAnchors: string[]; flags: string[] };
   peerDecisions?: Array<{ decision: string; rationale: string }>;
 };
 
@@ -145,6 +147,16 @@ export function redactedAssignmentProjection(input: ProjectionInput): RedactedAs
       document: jsonValueSchema.parse(input.own_revision.document),
     },
   };
+
+  if (["independent_review", "adjudication"].includes(result.kind) && input.review_target) {
+    const target = expertSubmissionDocumentSchema.parse(input.review_target);
+    result.reviewTarget = {
+      answer: target.answer,
+      rationale: target.rationale,
+      sourceAnchors: target.source_refs.map((reference) => reference.anchor),
+      flags: target.flags,
+    };
+  }
 
   if (input.review_phase === "revealed") {
     result.peerDecisions = (input.peer_decisions ?? []).map((decision) => ({
