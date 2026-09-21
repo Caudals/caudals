@@ -1,6 +1,6 @@
 import { getBlogPosts } from "@/lib/blog/posts";
-import { createTranslator } from "@/lib/i18n/create-translator";
-import { getDictionary } from "@/lib/i18n/dictionaries";
+import { getTranslator } from "@/lib/i18n/server";
+import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
 import { buildMarketingUrl } from "@/lib/seo";
@@ -16,19 +16,22 @@ export async function GET() {
     getBlogPosts("es"),
     getPublishedIssues(20),
   ]);
-  // Offers and prices come from the same source strings as the landing page.
-  const t = createTranslator("es", getDictionary("es"));
+  // Offers and prices come from the same messages as the landing page.
+  const t = getTranslator("es");
+  /** Spanish is the body language of this file, so links point at `/es`. */
+  const url = (pathname: string) =>
+    buildMarketingUrl(localizePathname(pathname, "es"));
 
   const blogLinks = posts
     .map(
       (post) =>
-        `- [${cleanMarkdownLabel(post.title)}](${buildMarketingUrl(`/blog/${post.slug}`)}): ${post.excerpt}`,
+        `- [${cleanMarkdownLabel(post.title)}](${url(`/blog/${post.slug}`)}): ${post.excerpt}`,
     )
     .join("\n");
   const newsletterLinks = issues
     .map(
       (issue) =>
-        `- [${cleanMarkdownLabel(issue.title)}](${buildMarketingUrl(`/newsletter/${issue.slug}`)})${issue.dek ? `: ${issue.dek}` : ""}`,
+        `- [${cleanMarkdownLabel(issue.title)}](${url(`/newsletter/${issue.slug}`)})${issue.dek ? `: ${issue.dek}` : ""}`,
     )
     .join("\n");
 
@@ -44,24 +47,28 @@ ${renderEvaluationOverviewMarkdown(t)}
 
 ## Empezar
 
-- [Solicitar una evaluación](${buildMarketingUrl("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
-- [Reservar una llamada](${buildMarketingUrl("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
+- [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
+- [Reservar una llamada](${url("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 
 ## Conocimiento y publicaciones
 
-- [Blog de Caudals](${buildMarketingUrl("/blog")}): notas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables.
+- [Blog de Caudals](${url("/blog")}): notas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables.
 ${blogLinks || "- El archivo de artículos se publicará en esta sección."}
 
 ## Newsletter
 
-- [Data Unfiltered](${buildMarketingUrl("/newsletter")}): análisis periódico sobre herramientas de IA y los datos que utilizan los modelos.
+- [Data Unfiltered](${url("/newsletter")}): análisis periódico sobre herramientas de IA y los datos que utilizan los modelos.
 ${newsletterLinks || "- Los números publicados aparecerán en esta sección."}
 
 ## Información legal
 
-- [Política de cookies](${buildMarketingUrl("/legal/cookies")}): uso de cookies y tecnologías similares.
-- [Política de privacidad](${buildMarketingUrl("/legal/privacy")}): tratamiento y protección de datos personales.
-- [Aviso legal](${buildMarketingUrl("/legal/notice")}): titularidad y condiciones legales del sitio.
+- [Política de cookies](${url("/legal/cookies")}): uso de cookies y tecnologías similares.
+- [Política de privacidad](${url("/legal/privacy")}): tratamiento y protección de datos personales.
+- [Aviso legal](${url("/legal/notice")}): titularidad y condiciones legales del sitio.
+
+## Versión en inglés
+
+- [Caudals in English](${buildMarketingUrl(localizePathname("/", "en"))}): the same site in English. Every public page exists at both \`/es/…\` and \`/en/…\`, and each one declares the other as an \`hreflang\` alternate.
 
 ## Acceso para agentes
 

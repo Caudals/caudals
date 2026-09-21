@@ -20,16 +20,15 @@ import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import { useAuth } from "@/lib/auth/provider";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { toast } from "sonner";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { resolveSettingsHref } from "@/lib/navigation/role-view";
 
 export function NavUser() {
   const { user, userRole } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const toast = useLocaleToast();
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

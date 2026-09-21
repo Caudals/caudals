@@ -17,8 +17,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useTranslations } from "@/lib/i18n/use-translations";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useInternalTranslations } from "@/lib/i18n/internal";
+import { toast } from "sonner";
 import { CheckCircle2, Shield, Sparkles } from "lucide-react";
 
 export default function SignInPage() {
@@ -29,8 +29,7 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const toast = useLocaleToast();
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const requestedNext = searchParams.get("next");
   const nextPath =
     requestedNext &&

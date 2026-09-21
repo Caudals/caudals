@@ -2,34 +2,13 @@
 
 import { motion } from "framer-motion";
 import { Quote } from "lucide-react";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
+
+/** Ordered ids; the quotes live in the message files. */
+const testimonialIds = ["helioLabs", "polyphonic", "northwind"] as const;
 
 export function TestimonialsSection() {
-  const t = useTranslations();
-
-  const testimonials = [
-    {
-      quote: t(
-        "Caudals unlocked a global contributor base that matched our medical imaging criteria in record time. The review tooling kept clinicians in control of every approval.",
-      ),
-      name: "Dr. Anika Forster",
-      role: t("Director of Data Science, HelioLabs"),
-    },
-    {
-      quote: t(
-        "Within two weeks we launched three multimodal programs across Spanish and Korean markets. Contributor training modules reduced rework by over 60%.",
-      ),
-      name: "Joel Reyes",
-      role: t("Lead Researcher, Polyphonic AI"),
-    },
-    {
-      quote: t(
-        "The partnership team felt like an extension of ours—designing incentives, QA policies, and even helping us publish a public dataset for the research community.",
-      ),
-      name: "Mina Patel",
-      role: t("Head of AI Innovation, Northwind Robotics"),
-    },
-  ];
+  const t = useTranslations("testimonials");
 
   return (
     <section className="relative py-24">
@@ -37,17 +16,17 @@ export function TestimonialsSection() {
       <div className="mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-12 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-            {t("Customer stories")}
+            {t("eyebrow")}
           </p>
           <h2 className="mt-4 text-3xl font-semibold text-foreground sm:text-4xl">
-            {t("Teams shipping production AI trust Caudals")}
+            {t("title")}
           </h2>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((testimonial, index) => (
+          {testimonialIds.map((id, index) => (
             <motion.blockquote
-              key={testimonial.name}
+              key={id}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.08 }}
@@ -55,11 +34,11 @@ export function TestimonialsSection() {
               className="group flex h-full flex-col gap-6 rounded-[1.6rem] border border-black/[0.08] bg-background p-6 text-left shadow-sm"
             >
               <Quote className="h-6 w-6 text-teal-600 transition-transform duration-300 group-hover:scale-110" />
-              <p className="text-base leading-relaxed text-slate-500 transition-colors duration-300 group-hover:text-slate-700">{testimonial.quote}</p>
+              <p className="text-base leading-relaxed text-slate-500 transition-colors duration-300 group-hover:text-slate-700">{t(`items.${id}.quote`)}</p>
               <div className="mt-auto space-y-1">
-                <p className="text-sm font-semibold text-foreground transition-colors duration-300 group-hover:text-black">{testimonial.name}</p>
+                <p className="text-sm font-semibold text-foreground transition-colors duration-300 group-hover:text-black">{t(`items.${id}.name`)}</p>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                  {testimonial.role}
+                  {t(`items.${id}.role`)}
                 </p>
               </div>
             </motion.blockquote>

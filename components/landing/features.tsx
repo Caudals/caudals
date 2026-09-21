@@ -9,66 +9,38 @@ import {
   ShieldCheck,
   Workflow,
 } from "lucide-react";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
 
+/** Icon per capability; the copy lives in the message files. */
 const capabilities = [
-  {
-    icon: ShieldCheck,
-    title: "Answer keys signed by domain experts",
-    description:
-      "Every case cites your documentation, and our domain experts verify and sign off the answer key before anything runs.",
-  },
-  {
-    icon: Workflow,
-    title: "Every failure has a cause",
-    description:
-      "Knowledge gap, retrieval miss, invented answer or outdated document: you know whether to fix the documentation or the system.",
-  },
-  {
-    icon: Languages,
-    title: "Real-world language and edge cases",
-    description:
-      "Cases reflect how real customers write: typos, regional phrasing, industry jargon, and mixed Spanish and English where relevant.",
-  },
-  {
-    icon: KeyRound,
-    title: "No production credentials needed",
-    description:
-      "We test public interfaces as a customer would, you run our probe inside your network, or we score past conversations.",
-  },
-  {
-    icon: History,
-    title: "Runs you can reproduce",
-    description:
-      "Every run keeps its suite version, model fingerprint and grader, so a silent model change by your vendor shows up in the numbers.",
-  },
-  {
-    icon: Database,
-    title: "A test set you own",
-    description:
-      "You keep the golden set as JSONL, and it grows every month with new questions and new data.",
-  },
-];
+  { id: "answerKeys", icon: ShieldCheck },
+  { id: "causes", icon: Workflow },
+  { id: "language", icon: Languages },
+  { id: "credentials", icon: KeyRound },
+  { id: "reproducible", icon: History },
+  { id: "ownership", icon: Database },
+] as const;
+
 
 export function FeaturesSection() {
-  const t = useTranslations();
+  const t = useTranslations("features");
 
   return (
     <section className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Why Caudals")}
+            {t("eyebrow")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl max-w-2xl text-balance">
-            {t("We deliver verifiable evidence")}
+            {t("title")}
           </h2>
         </div>
 
         <div className="grid gap-x-12 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
           {capabilities.map((capability, index) => (
             <motion.div
-              key={capability.title}
+              key={capability.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
@@ -79,10 +51,10 @@ export function FeaturesSection() {
                 <capability.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
               </div>
               <h3 className="text-lg font-bold text-black mb-3">
-                {t(capability.title)}
+                {t(`capabilities.${capability.id}.title`)}
               </h3>
               <p className="text-sm text-gray-500 leading-relaxed transition-colors duration-300 group-hover:text-gray-700">
-                {t(capability.description)}
+                {t(`capabilities.${capability.id}.description`)}
               </p>
             </motion.div>
           ))}

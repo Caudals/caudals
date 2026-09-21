@@ -34,14 +34,72 @@ Implementation rules for the public funnel, the internal Operator Console, and t
 
 ## Localization Contract
 
-- Supported locales: `en` and `es`.
-- Locale cookie: `NEXT_LOCALE`.
-- Middleware locale detection can use country headers, `Accept-Language`, and IP geolocation fallback.
-- Spain (`ES`) is treated as a strong signal for Spanish locale routing.
-- Requests without an `Accept-Language` header use Spanish as the canonical public fallback so crawlers receive metadata and content in the same language. Explicit English browser preferences still resolve to English outside Spain.
-- Use translation pipeline (`t()`, `getServerTranslator()`, `translateReactNode`) for public and legacy admin strings. The evaluation surface uses its own English message catalog; see `docs/evals/AGENTS.md`.
-- Do not ship new hardcoded user-facing English strings in public or admin components.
-- Spain locale (`ES`) should resolve naturally to Spanish copy.
+Supported locales are `en` and `es`. Only the public marketing surface is
+translated; `/admin`, `/auth/*` and the evaluation surface are English-only.
+
+### URL shape
+
+- Every public page lives at `/{locale}{path}`: `/en/blog`, `/es/legal/privacy`.
+  There is no unprefixed default, so each page has exactly one canonical URL and
+  each language is indexed independently.
+- An unprefixed public path is redirected once (307) by `proxy.ts` to the
+  negotiated locale. An unsupported language prefix (`/fr/blog`) is a 404.
+- `lib/i18n/routing.ts` is the single definition of that shape.
+  `isNonLocalizedPath` lists every prefix that stays outside the locale tree —
+  the Operator Console, auth, APIs, sitemaps, `robots.txt` and `llms.txt`. Add
+  new internal surfaces there, never to the locale tree.
+
+### Detection and choice
+
+- Negotiation happens in `lib/i18n/negotiate.ts` and is pure and synchronous:
+  it reads only the request. No IP geolocation, no third-party call, no
+  client-side reload.
+- Precedence: the `NEXT_LOCALE` cookie (an explicit choice), then
+  `Accept-Language`, then an edge country hint, then `en`.
+- A country hint never overrides an explicit choice or a stated language
+  preference. Someone in Spain reading in English keeps English.
+- A client that states no language gets `en`, so what a crawler indexes is
+  predictable.
+- The language switcher (`components/i18n/language-switcher.tsx`) renders real
+  links to the same page in the other language: crawlable, no reload.
+
+### Messages
+
+- UI copy lives in `lib/i18n/messages/{en,es}.json`, namespaced by surface.
+  `en.json` defines the shape and `es.json` is checked against it, so a key
+  present in one locale and missing from the other is a `tsc` error.
+- Read messages with `useTranslations("namespace")` in client components and
+  `getScopedTranslator(locale, "namespace")` on the server. Keys are typed;
+  an unknown key does not compile.
+- Long-form prose (blog, legal) is content, not UI copy: it lives in
+  `content/blog/{locale}/` and `content/legal/{locale}.json`.
+- Zod schemas emit message *keys*, not sentences — they run where no locale is
+  in scope, and the form resolves them at render. A schema that omits a custom
+  message falls back to Zod's own English text, which is a defect.
+- Do not ship hardcoded user-facing strings in public components, and do not
+  reintroduce runtime DOM translation.
+- `npm run i18n:check-parity` verifies key parity, blank values and
+  interpolation slots. It runs against the message files, not the source.
+
+### SEO
+
+- `buildPublicMetadata` takes the page's `locale` and emits a self-referencing
+  canonical, a full `hreflang` set including `x-default`, and `og:locale` with
+  alternates. Pass `locale` from the route params on every public page.
+- Both sitemaps emit one `<url>` per locale, each carrying the whole
+  `hreflang` set (`lib/sitemap-xml.ts`).
+- Structured data is built per locale; the Organization node keeps one
+  locale-free `@id` that every localized page references.
+
+### Static rendering
+
+- The public tree is prerendered per locale via `generateStaticParams`. Nothing
+  in `app/layout.tsx` may read the request — `cookies()` or `headers()` there
+  opts *every* route out of static rendering, including the marketing pages.
+- `<html lang>` is corrected inside the locale subtree by
+  `components/i18n/html-lang.tsx`.
+- The internal surfaces declare `export const dynamic = "force-dynamic"` in
+  their own group layouts, because they are authenticated and per-request.
 
 ## Platform UI Contract
 

@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export function CommandPaletteButton({
   compact = false,
   className,
 }: CommandPaletteButtonProps) {
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const shortcut = useMemo(() => {
     if (typeof window === "undefined") {
       return "Ctrl+K";

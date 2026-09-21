@@ -1,0 +1,126 @@
+{
+  "cookies": {
+    "title": "Cookie Policy",
+    "description": "Effective date: March 1, 2026. This policy describes how we use cookies and similar technologies.",
+    "metaTitle": "Cookie Policy",
+    "metaDescription": "How Caudals uses essential cookies, optional analytics and similar technologies, and how you can manage your preferences.",
+    "sections": [
+      {
+        "title": "Essential Cookies",
+        "body": "Required to run authentication, session management, language preferences, and core platform security behavior. These are always active and cannot be switched off."
+      },
+      {
+        "title": "Analytics Cookies",
+        "body": "Optional, privacy-friendly analytics that help us understand product usage and improve the experience. They load only after you accept optional cookies in the cookie banner."
+      },
+      {
+        "title": "Managing Your Choices",
+        "body": "You can accept or decline optional cookies in the banner, and change your choice at any time from the “Cookie preferences” link in the footer. You can also control cookies from your browser settings."
+      },
+      {
+        "title": "Third-Party Services",
+        "body": "Some pages embed third-party services such as the Cal.com scheduler and payment providers, which may set their own cookies governed by their respective policies."
+      }
+    ]
+  },
+  "notice": {
+    "title": "Legal Notice",
+    "description": "Effective date: March 1, 2026. Ownership and legal information for this website under Spanish Law 34/2002 (LSSI-CE).",
+    "metaTitle": "Legal Notice",
+    "metaDescription": "Legal notice, ownership, intellectual property and terms of use for the Caudals website under Spanish law and the LSSI-CE.",
+    "sections": [
+      {
+        "title": "Site Owner",
+        "body": "This website is operated by Caudals ([legal company name]), tax ID [NIF/CIF], with registered office at [registered address], registered in the [Commercial Registry] [registry details]. Contact: hello@caudals.com."
+      },
+      {
+        "title": "Purpose",
+        "body": "Caudals evaluates companies' AI systems against test sets built from their documentation and domain experts, delivers scored reports, and builds the domain-specific data that closes the gaps it finds."
+      },
+      {
+        "title": "Terms of Use",
+        "body": "Access to and use of this website implies acceptance of these terms together with our Terms of Service, Privacy Policy, and Cookie Policy. Users agree to make lawful use of the website and its content."
+      },
+      {
+        "title": "Intellectual Property",
+        "body": "The contents of this website, including texts, designs, logos, and software, are owned by Caudals or its licensors and are protected by intellectual and industrial property law. Reproduction without authorization is prohibited."
+      },
+      {
+        "title": "Liability",
+        "body": "Caudals is not liable for damages arising from the misuse of the website or from temporary unavailability due to maintenance or technical causes, to the extent permitted by applicable law."
+      },
+      {
+        "title": "Applicable Law and Jurisdiction",
+        "body": "This legal notice is governed by Spanish law. Any dispute relating to the website will be subject to the competent courts of Spain."
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "description": "Effective date: March 1, 2026. This policy explains how Caudals handles personal data across platform operations.",
+    "metaTitle": "Privacy Policy",
+    "metaDescription": "How Caudals collects, uses, protects and retains personal data, the legal bases for processing, and the rights of data subjects.",
+    "sections": [
+      {
+        "title": "Data We Collect",
+        "body": "We collect account details, profile information, dataset workflow activity, support communication, and payment operation metadata needed to provide the platform."
+      },
+      {
+        "title": "How We Use Data",
+        "body": "We use data to operate buyer, supplier, and internal admin workflows, support commercial operations, secure the platform, and improve service reliability."
+      },
+      {
+        "title": "Legal Basis",
+        "body": "We process personal data to perform our contract with you, to pursue our legitimate interest in operating and securing the platform, to comply with legal obligations, and on the basis of your consent where required."
+      },
+      {
+        "title": "Data Sharing and International Transfers",
+        "body": "We share data only with service providers required to run platform operations (for example infrastructure, email, or payment partners) under contractual safeguards. Where data leaves the European Economic Area, we rely on adequacy decisions or standard contractual clauses."
+      },
+      {
+        "title": "Security and Retention",
+        "body": "We apply baseline controls including rate limiting, upload guardrails, audit logs, and webhook replay protection. Data is retained according to legal, contractual, and operational requirements."
+      },
+      {
+        "title": "Your Rights",
+        "body": "You can request access, rectification, erasure, portability, restriction, or object to processing of your personal data, and withdraw consent at any time, by contacting privacy@caudals.com. You may also lodge a complaint with your data protection authority."
+      }
+    ]
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "description": "Effective date: March 1, 2026. These terms govern use of Caudals products and services.",
+    "metaTitle": "Terms of Service",
+    "metaDescription": "The terms governing access to and use of Caudals, the responsibilities of the parties, licences, payments and applicable law.",
+    "sections": [
+      {
+        "title": "Platform Use",
+        "body": "You agree to use Caudals only for lawful data operations and to avoid abusive, fraudulent, or harmful activity."
+      },
+      {
+        "title": "Account Responsibilities",
+        "body": "You are responsible for maintaining account security, accurate profile information, and authorized use of your workspace."
+      },
+      {
+        "title": "Buyer and Supplier Conduct",
+        "body": "Buyers must provide clear project requirements and lawful use cases. Suppliers must provide lawful, permissioned, and policy-compliant data access."
+      },
+      {
+        "title": "Intellectual Property",
+        "body": "Caudals retains all rights to the platform and its content. Datasets and deliverables are licensed under the terms agreed in each order or contract."
+      },
+      {
+        "title": "Payments and Payouts",
+        "body": "Funding and payouts are processed through integrated payment providers. Processing timelines, reversals, and disputes follow provider and platform rules."
+      },
+      {
+        "title": "Liability and Governing Law",
+        "body": "The platform is provided on an as-is basis to the extent permitted by law. These terms are governed by the laws of Spain, and disputes are subject to the competent courts of Spain."
+      },
+      {
+        "title": "Termination",
+        "body": "We may suspend or terminate accounts that violate these terms or create legal, security, or operational risk."
+      }
+    ]
+  }
+}

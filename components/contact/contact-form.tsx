@@ -31,8 +31,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { toast } from "sonner";
+import { useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 const defaultValues: Partial<EvaluationRequestFormValues> = {
@@ -106,8 +106,7 @@ type ContactFormProps = {
 
 export function ContactForm({ requestedOffer }: ContactFormProps) {
   const [isComplete, setIsComplete] = useState(false);
-  const toast = useLocaleToast();
-  const t = useTranslations();
+  const t = useTranslations("contact");
   const formDefaults = useMemo<Partial<EvaluationRequestFormValues>>(
     () => ({ ...defaultValues, requestedOffer }),
     [requestedOffer],
@@ -120,11 +119,19 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
 
   const isSubmitting = form.formState.isSubmitting;
 
+  /**
+   * Builds select options from a value list, reading each label from the
+   * `contact.options.<group>` message namespace so the choices are shown in
+   * the reader's language while the stored value stays a stable id.
+   */
   function optionsFrom<T extends string>(
+    group: "systemType" | "sector" | "ownerRole" | "systemStage" | "offer",
     values: readonly T[],
-    labels: Record<T, string>,
   ): SelectOption[] {
-    return values.map((value) => ({ value, label: t(labels[value]) }));
+    return values.map((value) => ({
+      value,
+      label: t(`options.${group}.${value}.label` as Parameters<typeof t>[0]),
+    }));
   }
 
   function renderSelectField(
@@ -182,14 +189,14 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               }
             });
           }
-          toast.error(t("Please review the highlighted fields."));
+          toast.error(t("reviewFields"));
           return;
         }
 
         const message =
           payload && typeof payload === "object" && "error" in payload
             ? String((payload as { error?: unknown }).error ?? "")
-            : t("We couldn't send your message.");
+            : t("sendFailed");
 
         throw new Error(message || "Request failed");
       }
@@ -198,7 +205,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
       form.reset(formDefaults);
     } catch (error) {
       console.error("Failed to submit contact form", error);
-      toast.error(t("We couldn't send your message. Please try again."));
+      toast.error(t("sendFailedRetry"));
     }
   }
 
@@ -206,14 +213,14 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
     return (
       <div className="py-8 text-center">
         <h2 className="text-2xl font-normal tracking-tight text-black mb-4">
-          {t("Request sent")}
+          {t("sentTitle")}
         </h2>
         <p className="text-base text-gray-600 leading-relaxed mb-8">
-          {t("We'll review your system and reply within 24 hours with the right starting point.")}
+          {t("sentBody")}
         </p>
         <div className="space-y-4 pt-8 border-t border-black/[0.08]">
           <p className="text-base text-gray-600">
-            {t("If you want to add more context in the meantime, email us at")}{" "}
+            {t("sentEmailPrefix")}{" "}
             <a
               href="mailto:hello@caudals.com"
               className="text-black hover:underline decoration-1 underline-offset-4"
@@ -226,7 +233,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
             className="text-sm font-medium text-black hover:underline decoration-1 underline-offset-4"
             onClick={() => setIsComplete(false)}
           >
-            {t("Send another request")}
+            {t("sendAnother")}
           </button>
         </div>
       </div>
@@ -244,11 +251,11 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               render={({ field }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm font-medium text-black">
-                    {t("Full name")}
+                    {t("fullName")}
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={t("Jane Smith")}
+                      placeholder={t("fullNamePlaceholder")}
                       className={minimalInputClass}
                       {...field}
                     />
@@ -263,12 +270,12 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               render={({ field }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm font-medium text-black">
-                    {t("Work email")}
+                    {t("workEmail")}
                   </FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder={t("jane@company.com")}
+                      placeholder={t("workEmailPlaceholder")}
                       className={minimalInputClass}
                       {...field}
                     />
@@ -286,11 +293,11 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel className="text-sm font-medium text-black">
-                      {t("Company")}
+                      {t("company")}
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder={t("Acme Corp")}
+                        placeholder={t("companyPlaceholder")}
                         className={minimalInputClass}
                         {...field}
                       />
@@ -301,34 +308,34 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               />
               {renderSelectField(
                 "sector",
-                t("Sector"),
-                t("Select a sector"),
-                optionsFrom(evaluationSectors, evaluationSectorLabels),
+                t("sector"),
+                t("sectorPlaceholder"),
+                optionsFrom("sector", evaluationSectors),
               )}
             </div>
 
             <div className="space-y-8 border-t border-black/[0.08] pt-8">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                  {t("Your AI system")}
+                  {t("systemHeading")}
                 </p>
                 <h2 className="mt-2 text-xl font-normal tracking-tight text-black">
-                  {t("What should we evaluate?")}
+                  {t("systemQuestion")}
                 </h2>
               </div>
 
               <div className="grid gap-8 md:grid-cols-2 items-start">
                 {renderSelectField(
                   "systemType",
-                  t("Type of system"),
-                  t("Select a type"),
-                  optionsFrom(evaluationSystemTypes, evaluationSystemTypeLabels),
+                  t("systemType"),
+                  t("systemTypePlaceholder"),
+                  optionsFrom("systemType", evaluationSystemTypes),
                 )}
                 {renderSelectField(
                   "ownerRole",
-                  t("Who owns the system?"),
-                  t("Select a team"),
-                  optionsFrom(evaluationOwnerRoles, evaluationOwnerRoleLabels),
+                  t("systemOwner"),
+                  t("systemOwnerPlaceholder"),
+                  optionsFrom("ownerRole", evaluationOwnerRoles),
                 )}
               </div>
 
@@ -338,14 +345,12 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel className="text-sm font-medium text-black">
-                      {t("What does it answer?")}
+                      {t("systemAnswers")}
                     </FormLabel>
                     <FormControl>
                       <Textarea
                         rows={3}
-                        placeholder={t(
-                          "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
-                        )}
+                        placeholder={t("systemAnswersPlaceholder")}
                         className={cn(minimalInputClass, "resize-none")}
                         {...field}
                       />
@@ -358,9 +363,9 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
               <div className="grid gap-8 md:grid-cols-2 items-start">
                 {renderSelectField(
                   "requestedOffer",
-                  t("What would you like to start with? (optional)"),
-                  t("Select an option"),
-                  optionsFrom(evaluationRequestOffers, evaluationRequestOfferLabels),
+                  t("startWith"),
+                  t("startWithPlaceholder"),
+                  optionsFrom("offer", evaluationRequestOffers),
                 )}
               </div>
             </div>
@@ -371,14 +376,12 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
             render={({ field }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm font-medium text-black">
-                  {t("Anything else we should know? (optional)")}
+                  {t("anythingElse")}
                 </FormLabel>
                 <FormControl>
                   <Textarea
                     rows={3}
-                    placeholder={t(
-                      "How you test it today, recent complaints, a deadline you're working to…",
-                    )}
+                    placeholder={t("anythingElsePlaceholder")}
                     className={cn(minimalInputClass, "resize-none")}
                     {...field}
                   />
@@ -396,11 +399,11 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {t("Sending...")}
+                {t("sending")}
               </>
             ) : (
               <>
-                {t("Send request")}
+                {t("submit")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}

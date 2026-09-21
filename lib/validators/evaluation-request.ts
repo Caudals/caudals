@@ -1,4 +1,15 @@
 import { z } from "zod";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+/**
+ * Validation messages are message keys, not sentences.
+ *
+ * This schema runs on the client and on the server, where no locale is in
+ * scope, so it emits keys that the form resolves in the reader's language.
+ * Typing them as `MessageKey` means a key that does not exist fails `tsc`
+ * rather than surfacing as raw text under an input.
+ */
+const messageKey = (key: Extract<MessageKey, `validation.${string}`>) => key;
 
 export const evaluationSystemTypes = [
   "customer-assistant",
@@ -129,41 +140,41 @@ const optionalUrl = (message: string) =>
 
 export const evaluationRequestFormSchema = z.object({
   fullName: z
-    .string()
+    .string({ message: messageKey("validation.fullNameRequired") })
     .trim()
-    .min(2, { message: "Please enter your full name" })
-    .max(120, { message: "Name is too long" }),
+    .min(2, { message: messageKey("validation.fullNameRequired") })
+    .max(120, { message: messageKey("validation.nameTooLong") }),
   workEmail: z
-    .string()
+    .string({ message: messageKey("validation.invalidWorkEmail") })
     .trim()
-    .email({ message: "Please enter a valid work email" })
-    .max(320, { message: "Email is too long" }),
+    .email({ message: messageKey("validation.invalidWorkEmail") })
+    .max(320, { message: messageKey("validation.emailTooLong") }),
   organization: z
-    .string()
+    .string({ message: messageKey("validation.companyRequired") })
     .trim()
-    .min(2, { message: "Organization name is required" })
-    .max(160, { message: "Organization name is too long" }),
-  organizationWebsite: optionalUrl("Please enter a valid URL"),
+    .min(2, { message: messageKey("validation.companyRequired") })
+    .max(160, { message: messageKey("validation.companyTooLong") }),
+  organizationWebsite: optionalUrl(messageKey("validation.invalidUrl")),
   companySize: z.enum(evaluationCompanySizes).optional(),
   systemType: z.enum(evaluationSystemTypes, {
-    message: "Please select the type of system",
+    message: messageKey("validation.systemTypeRequired"),
   }),
-  sector: z.enum(evaluationSectors, { message: "Please select your sector" }),
+  sector: z.enum(evaluationSectors, { message: messageKey("validation.sectorRequired") }),
   ownerRole: z.enum(evaluationOwnerRoles, {
-    message: "Please select who owns the system",
+    message: messageKey("validation.ownerRequired"),
   }),
   systemStage: z.enum(evaluationSystemStages).optional(),
   systemAnswers: z
-    .string({ message: "Tell us briefly what the system answers" })
+    .string({ message: messageKey("validation.systemAnswersRequired") })
     .trim()
-    .min(10, { message: "Tell us briefly what the system answers" })
-    .max(1000, { message: "Keep this under 1,000 characters" }),
-  systemUrl: optionalUrl("Please enter a valid URL"),
+    .min(10, { message: messageKey("validation.systemAnswersRequired") })
+    .max(1000, { message: messageKey("validation.systemAnswersTooLong") }),
+  systemUrl: optionalUrl(messageKey("validation.invalidUrl")),
   requestedOffer: z.enum(evaluationRequestOffers).optional(),
   message: z
     .string()
     .trim()
-    .max(2000, { message: "Message is too long" })
+    .max(2000, { message: messageKey("validation.messageTooLong") })
     .transform((value) => (value ? value : undefined))
     .optional(),
 });

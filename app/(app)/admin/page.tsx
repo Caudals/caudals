@@ -6,7 +6,7 @@ import {
   isOperatorModuleKey,
   type OperatorModuleKey,
 } from "@/lib/operator/console-snapshot";
-import { getServerTranslator } from "@/lib/i18n/server";
+import { translateInternal } from "@/lib/i18n/internal";
 import { requireAdmin } from "@/lib/middleware/admin-check";
 
 type AdminDashboardProps = {
@@ -23,7 +23,6 @@ export default async function AdminDashboard({
 }: AdminDashboardProps) {
   await requireAdmin();
   const params = await searchParams;
-  const t = await getServerTranslator();
   const [overview, elevation, securityRoster] = await Promise.all([
     getOperatorConsoleOverview(),
     getCurrentOperatorElevationStatus(),
@@ -37,7 +36,7 @@ export default async function AdminDashboard({
       elevationStatus={"error" in elevation ? null : elevation.status}
       securityRoster={"error" in securityRoster ? null : securityRoster.roster}
       snapshot={overview.data}
-      t={t}
+      t={translateInternal}
     />
   );
 }

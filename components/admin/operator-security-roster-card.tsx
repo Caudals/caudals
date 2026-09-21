@@ -3,15 +3,15 @@ import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { OperatorSecurityResetButton } from "@/components/admin/operator-security-reset-button";
 import { Badge } from "@/components/ui/badge";
 import type { OperatorSecurityRoster } from "@/lib/actions/operator-security-actions";
-import type { Translator } from "@/lib/i18n/create-translator";
+import type { InternalTranslator } from "@/lib/i18n/internal";
 import { cn } from "@/lib/utils";
 
 type OperatorSecurityRosterCardProps = {
   roster: OperatorSecurityRoster | null;
-  t: Translator;
+  t: InternalTranslator;
 };
 
-function formatDate(value: string | null, t: Translator) {
+function formatDate(value: string | null, t: InternalTranslator) {
   if (!value) {
     return t("No session");
   }

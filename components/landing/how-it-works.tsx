@@ -8,8 +8,11 @@ import {
   Repeat,
   type LucideIcon,
 } from "lucide-react";
-import { useTranslations } from "@/lib/i18n/use-translations";
-import { EVALUATION_STEPS, type EvaluationStepId } from "@/lib/public/evaluation-offers";
+import { useTranslations } from "@/lib/i18n/context";
+import {
+  EVALUATION_STEP_IDS,
+  type EvaluationStepId,
+} from "@/lib/public/evaluation-offers";
 
 const stepIcons: Record<EvaluationStepId, LucideIcon> = {
   evaluate: FlaskConical,
@@ -19,31 +22,29 @@ const stepIcons: Record<EvaluationStepId, LucideIcon> = {
 };
 
 export function HowItWorksSection() {
-  const t = useTranslations();
+  const t = useTranslations("howItWorks");
 
   return (
     <section className="py-24 sm:py-32 bg-background overflow-hidden">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12 text-center">
         <div className="mb-16 mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("How it works")}
+            {t("eyebrow")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl text-balance">
-            {t("Driven entirely by evidence.")}
+            {t("title")}
           </h2>
           <p className="mt-6 text-base leading-relaxed text-gray-500 text-balance">
-            {t(
-              "Each step leaves you with something you keep, and tells you whether the next one is worth doing.",
-            )}
+            {t("subtitle")}
           </p>
         </div>
 
         <div className="grid gap-px bg-black/[0.08] border border-black/[0.08] rounded-xl overflow-hidden sm:grid-cols-2 lg:grid-cols-4 text-left shadow-sm">
-          {EVALUATION_STEPS.map((step, index) => {
-            const Icon = stepIcons[step.id];
+          {EVALUATION_STEP_IDS.map((stepId, index) => {
+            const Icon = stepIcons[stepId];
             return (
               <motion.div
-                key={step.id}
+                key={stepId}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
@@ -54,11 +55,11 @@ export function HowItWorksSection() {
                   <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-105" strokeWidth={1.5} />
                 </div>
                 <p className="text-[11px] font-medium font-mono text-neutral-500 uppercase tracking-wider mb-2 transition-colors duration-300 group-hover:text-black">
-                  {t("Step 0{{index}}", { index: index + 1 })}
+                  {t("step", { index: index + 1 })}
                 </p>
-                <h3 className="text-lg font-bold text-black mb-3">{t(step.label)}</h3>
+                <h3 className="text-lg font-bold text-black mb-3">{t(`steps.${stepId}.label`)}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed transition-colors duration-300 group-hover:text-gray-700">
-                  {t(step.description)}
+                  {t(`steps.${stepId}.description`)}
                 </p>
               </motion.div>
             );

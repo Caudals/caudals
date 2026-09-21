@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/command";
 import { getOperatorConsoleOverview } from "@/lib/actions/operator-console-actions";
 import { useAuth } from "@/lib/auth/provider";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import type { OperatorConsoleSnapshot } from "@/lib/operator/console-snapshot";
 import {
   Activity,
@@ -134,7 +134,7 @@ export function CommandPalette() {
   const recordsRequestStartedRef = useRef(false);
   const { userRole } = useAuth();
   const router = useRouter();
-  const t = useTranslations();
+  const t = useInternalTranslations();
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {

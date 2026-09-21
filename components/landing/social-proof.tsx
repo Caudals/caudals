@@ -9,7 +9,7 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
 
 /** Slow, symmetric ease so the fade has no visible start or finish. */
 const entranceEase = cubicBezier(0.45, 0, 0.25, 1);
@@ -27,7 +27,7 @@ const partners = [
 ];
 
 export function SocialProofSection() {
-  const t = useTranslations();
+  const t = useTranslations("socialProof");
   const sectionRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
 
@@ -53,15 +53,13 @@ export function SocialProofSection() {
           className="mb-16 text-center mx-auto max-w-3xl"
         >
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("Recognition & partners")}
+            {t("eyebrow")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl">
-            {t("Recognitions and institutions we've worked with")}
+            {t("title")}
           </h2>
           <p className="text-base text-gray-500 mt-6 leading-relaxed">
-            {t(
-              "Backed by leading institutions, programs, and public organizations across our journey.",
-            )}
+            {t("subtitle")}
           </p>
         </motion.div>
 

@@ -13,6 +13,8 @@ export default function robots(): MetadataRoute.Robots {
     "/markdown-for-agents",
     "/pwa",
     "/requester",
+    // Topic filters are facets of the blog index, not separate pages. The
+    // pattern is locale-agnostic because it matches on the query string.
     "/*?topic=*",
   ];
 

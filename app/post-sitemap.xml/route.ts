@@ -1,34 +1,40 @@
 import { getAllBlogSlugs, getBlogPost } from "@/lib/blog/posts";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { defaultLocale } from "@/lib/i18n/config";
-import { buildMarketingUrl } from "@/lib/seo";
-import { renderUrlSet, xmlResponse } from "@/lib/sitemap-xml";
+import { localizedUrlEntries, renderUrlSet, xmlResponse } from "@/lib/sitemap-xml";
 
 export const revalidate = 3600;
 
+/** Blog posts and newsletter issues, each published in every locale. */
 export async function GET() {
   const slugs = await getAllBlogSlugs();
   const [blogEntries, issues] = await Promise.all([
     Promise.all(
       slugs.map(async (slug) => {
+        // Publication dates do not vary by language, so the default locale is
+        // enough to read `lastmod`.
         const post = await getBlogPost(slug, defaultLocale);
-        return {
-          loc: buildMarketingUrl(`/blog/${slug}`),
+        return localizedUrlEntries({
+          pathname: `/blog/${slug}`,
           lastmod: post?.publishedAt,
-          changefreq: "monthly" as const,
+          changefreq: "monthly",
           priority: 0.75,
-        };
+        });
       }),
     ),
     getPublishedIssues(100),
   ]);
 
-  const newsletterEntries = issues.map((issue) => ({
-    loc: buildMarketingUrl(`/newsletter/${issue.slug}`),
-    lastmod: issue.sent_at,
-    changefreq: "monthly" as const,
-    priority: 0.7,
-  }));
+  const newsletterEntries = issues.flatMap((issue) =>
+    localizedUrlEntries({
+      pathname: `/newsletter/${issue.slug}`,
+      lastmod: issue.sent_at,
+      changefreq: "monthly",
+      priority: 0.7,
+    }),
+  );
 
-  return xmlResponse(renderUrlSet([...blogEntries, ...newsletterEntries]));
+  return xmlResponse(
+    renderUrlSet([...blogEntries.flat(), ...newsletterEntries]),
+  );
 }

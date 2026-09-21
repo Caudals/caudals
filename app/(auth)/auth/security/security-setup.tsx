@@ -7,8 +7,8 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 
 import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import type { OperatorSecurityStatus } from "@/lib/auth/operator-security";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { toast } from "sonner";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,8 +35,7 @@ export function OperatorSecuritySetup({
   status: initialStatus,
 }: OperatorSecuritySetupProps) {
   const router = useRouter();
-  const toast = useLocaleToast();
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const [status, setStatus] = useState(initialStatus);
   const [password, setPassword] = useState("");
   const [totpUri, setTotpUri] = useState("");

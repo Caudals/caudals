@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
 
 /**
  * Subscribe box for the archive pages.
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function NewsletterSignupForm({ source, compact = false }: Props) {
-  const t = useTranslations();
+  const t = useTranslations("newsletterForm");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
@@ -47,7 +47,7 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
   if (state === "done") {
     return (
       <p className="text-base font-medium text-teal-700">
-        {t("Check your inbox to confirm your subscription.")}
+        {t("confirm")}
       </p>
     );
   }
@@ -57,10 +57,10 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
       {!compact && (
         <div>
           <p className="text-lg font-semibold text-slate-900">
-            {t("Get it every two weeks")}
+            {t("title")}
           </p>
           <p className="mt-1 text-sm text-slate-600">
-            {t("No spam, no link roundups. One click to unsubscribe, always.")}
+            {t("note")}
           </p>
         </div>
       )}
@@ -71,9 +71,9 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder={t("you@company.com")}
+          placeholder={t("emailPlaceholder")}
           className="h-11 flex-1 rounded-lg"
-          aria-label={t("Email")}
+          aria-label={t("emailLabel")}
         />
         {/* Bot trap: hidden from people, irresistible to scripts. */}
         <input
@@ -88,13 +88,13 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
         />
         <Button type="submit" disabled={state === "sending"} className="h-11 rounded-lg px-6">
           {state === "sending" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t("Subscribe")}
+          {t("subscribe")}
         </Button>
       </div>
 
       {state === "error" && (
         <p className="text-sm text-red-600">
-          {t("We couldn't save your request. Please try again.")}
+          {t("error")}
         </p>
       )}
     </form>

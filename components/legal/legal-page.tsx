@@ -1,23 +1,19 @@
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
-import { getServerTranslator } from "@/lib/i18n/server";
-
-type LegalSection = {
-  title: string;
-  body: string;
-};
+import type { Locale } from "@/lib/i18n/config";
+import { getLegalDocument, type LegalDocumentId } from "@/lib/legal/documents";
 
 type LegalPageProps = {
-  /** English source strings; translated here so each page stays declarative. */
-  title: string;
-  description: string;
-  sections: LegalSection[];
+  document: LegalDocumentId;
+  locale: Locale;
 };
 
 // Minimal, card-free document layout matching the /contact and /blog surfaces:
 // white canvas, landing navigation, a hairline-divided title, and quiet prose.
-export async function LegalPage({ title, description, sections }: LegalPageProps) {
-  const t = await getServerTranslator();
+// The copy is read from `content/legal/<locale>.json`, already in the reader's
+// language, so nothing is translated at render time.
+export function LegalPage({ document, locale }: LegalPageProps) {
+  const { title, description, sections } = getLegalDocument(document, locale);
 
   return (
     <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
@@ -25,10 +21,10 @@ export async function LegalPage({ title, description, sections }: LegalPageProps
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-24">
         <header className="mb-12 border-b border-gray-200 pb-10">
           <h1 className="text-4xl font-normal tracking-tight sm:text-5xl">
-            {t(title)}
+            {title}
           </h1>
           <p className="mt-5 text-sm leading-relaxed text-gray-500">
-            {t(description)}
+            {description}
           </p>
         </header>
 
@@ -36,10 +32,10 @@ export async function LegalPage({ title, description, sections }: LegalPageProps
           {sections.map((section) => (
             <section key={section.title} className="space-y-3">
               <h2 className="text-lg font-bold tracking-tight text-black">
-                {t(section.title)}
+                {section.title}
               </h2>
               <p className="text-base leading-relaxed text-gray-600">
-                {t(section.body)}
+                {section.body}
               </p>
             </section>
           ))}

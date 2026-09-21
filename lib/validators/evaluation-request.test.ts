@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { locales } from "@/lib/i18n/config";
+import { createTranslator, type MessageKey } from "@/lib/i18n/messages";
+
 import {
   evaluationRequestFormSchema,
   parseRequestedOffer,
@@ -42,13 +45,34 @@ describe("evaluationRequestFormSchema", () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
+      // The schema runs where no locale is in scope, so it emits message keys
+      // that the form resolves in the reader's language.
       const { fieldErrors } = result.error.flatten();
-      expect(fieldErrors.systemType).toContain("Please select the type of system");
-      expect(fieldErrors.sector).toContain("Please select your sector");
-      expect(fieldErrors.ownerRole).toContain("Please select who owns the system");
+      expect(fieldErrors.systemType).toContain("validation.systemTypeRequired");
+      expect(fieldErrors.sector).toContain("validation.sectorRequired");
+      expect(fieldErrors.ownerRole).toContain("validation.ownerRequired");
       expect(fieldErrors.systemAnswers).toContain(
-        "Tell us briefly what the system answers",
+        "validation.systemAnswersRequired",
       );
+    }
+  });
+
+  it("emits message keys that resolve in every locale", () => {
+    // A key with no message would surface to a visitor as raw text.
+    const result = evaluationRequestFormSchema.safeParse({ systemAnswers: "" });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    const keys = Object.values(result.error.flatten().fieldErrors)
+      .flat()
+      .filter((message): message is string => typeof message === "string");
+
+    expect(keys.length).toBeGreaterThan(0);
+    for (const locale of locales) {
+      const t = createTranslator(locale);
+      for (const key of keys) {
+        expect(t(key as MessageKey), `${locale}:${key}`).not.toBe(key);
+      }
     }
   });
 

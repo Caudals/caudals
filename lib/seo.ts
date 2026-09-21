@@ -1,9 +1,60 @@
 import type { Metadata, MetadataRoute } from "next";
+import {
+  defaultLocale,
+  localeOpenGraph,
+  locales,
+  type Locale,
+} from "@/lib/i18n/config";
+import { buildAlternates } from "@/lib/i18n/metadata";
+import { localizePathname } from "@/lib/i18n/routing";
 
 export const SITE_NAME = "Caudals";
-export const DEFAULT_SITE_TITLE = "Evaluación independiente de asistentes de IA | Caudals";
-export const DEFAULT_SITE_DESCRIPTION =
-  "Caudals evalúa asistentes, chatbots y agentes de IA con preguntas sacadas de tu propia documentación y respuestas validadas por nuestros expertos de dominio. Informe con puntuación y evidencias.";
+
+/**
+ * Site-level title and description per locale. Each language carries its own
+ * so the two versions compete for their own queries rather than sharing one
+ * set of Spanish metadata across both URLs.
+ */
+export const SITE_TITLES: Record<Locale, string> = {
+  en: "Independent evaluation for AI assistants | Caudals",
+  es: "Evaluación independiente de asistentes de IA | Caudals",
+};
+
+export const SITE_DESCRIPTIONS: Record<Locale, string> = {
+  en: "Caudals evaluates AI assistants, chatbots and agents with questions drawn from your own documentation and answer keys signed off by our domain experts. A scored, evidence-backed report.",
+  es: "Caudals evalúa asistentes, chatbots y agentes de IA con preguntas sacadas de tu propia documentación y respuestas validadas por nuestros expertos de dominio. Informe con puntuación y evidencias.",
+};
+
+export const SITE_KEYWORDS: Record<Locale, string[]> = {
+  en: [
+    "AI assistant evaluation",
+    "chatbot evaluation",
+    "AI agent evaluation",
+    "AI answer quality",
+    "AI test set",
+    "LLM evaluation",
+  ],
+  es: [
+    "evaluación de asistentes de IA",
+    "evaluación de chatbots",
+    "evaluación de agentes de IA",
+    "calidad de respuestas de IA",
+    "conjunto de pruebas para IA",
+    "evaluación de LLM",
+  ],
+};
+
+export function getSiteTitle(locale: Locale = defaultLocale) {
+  return SITE_TITLES[locale] ?? SITE_TITLES[defaultLocale];
+}
+
+export function getSiteDescription(locale: Locale = defaultLocale) {
+  return SITE_DESCRIPTIONS[locale] ?? SITE_DESCRIPTIONS[defaultLocale];
+}
+
+/** Retained for callers that predate locale-aware metadata. */
+export const DEFAULT_SITE_TITLE = SITE_TITLES[defaultLocale];
+export const DEFAULT_SITE_DESCRIPTION = SITE_DESCRIPTIONS[defaultLocale];
 
 const DEFAULT_SOCIAL_IMAGE_PATH = "/brand.png";
 const DEFAULT_MARKETING_HOSTNAME = "caudals.com";
@@ -31,7 +82,10 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
 type PublicMetadataOptions = {
   title?: string;
   description: string;
+  /** Locale-free pathname, e.g. "/blog". The locale prefix is added here. */
   pathname: string;
+  /** Language of the page being rendered. Drives canonical, hreflang and og:locale. */
+  locale?: Locale;
   imagePath?: string;
   type?: "website" | "article";
   noIndex?: boolean;
@@ -145,6 +199,7 @@ export function buildPublicMetadata({
   title,
   description,
   pathname,
+  locale = defaultLocale,
   imagePath = DEFAULT_SOCIAL_IMAGE_PATH,
   type = "website",
   noIndex = false,
@@ -155,16 +210,16 @@ export function buildPublicMetadata({
   section,
 }: PublicMetadataOptions): Metadata {
   const documentTitle = title ? stripTrailingBrand(title) : undefined;
-  const resolvedTitle = title ? buildBrandedTitle(title) : DEFAULT_SITE_TITLE;
-  const url = buildMarketingUrl(pathname);
+  const resolvedTitle = title ? buildBrandedTitle(title) : getSiteTitle(locale);
+  // The canonical URL carries this page's own locale prefix, and every
+  // supported locale is published as an hreflang alternate alongside it.
+  const url = buildMarketingUrl(localizePathname(pathname, locale));
   const imageUrl = buildMarketingUrl(imagePath);
 
   return {
     ...(documentTitle ? { title: documentTitle } : {}),
     description,
-    alternates: {
-      canonical: url,
-    },
+    alternates: buildAlternates(pathname, locale, buildMarketingUrl),
     keywords,
     authors: authors?.map((name) => ({ name })),
     robots: buildRobots(!noIndex, !noIndex),
@@ -174,7 +229,10 @@ export function buildPublicMetadata({
       title: resolvedTitle,
       description,
       siteName: SITE_NAME,
-      locale: "es_ES",
+      locale: localeOpenGraph[locale],
+      alternateLocale: locales
+        .filter((candidate) => candidate !== locale)
+        .map((candidate) => localeOpenGraph[candidate]),
       images: [
         {
           url: imageUrl,

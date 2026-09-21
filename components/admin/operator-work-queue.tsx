@@ -30,7 +30,7 @@ import {
   getNextWorkflowTransitions,
   getWorkflowNameForRecordType,
 } from "@/lib/operator/workflows";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -236,7 +236,7 @@ function WorkItemRow({
   onRecordChanged,
   onRecordDeleted,
 }: WorkItemRowProps) {
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const [isPending, startTransition] = useTransition();
   const [isCrudPending, startCrudTransition] = useTransition();
   const [reason, setReason] = useState("");
@@ -695,7 +695,7 @@ export function OperatorWorkQueue({
   module,
   initialItems,
 }: OperatorWorkQueueProps) {
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const [items, setItems] = useState(initialItems);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkReason, setBulkReason] = useState("");

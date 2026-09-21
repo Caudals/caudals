@@ -1,0 +1,546 @@
+{
+  "nav": {
+    "brand": "Caudals",
+    "logoAlt": "Logotipo de Caudals",
+    "toggleMenu": "Abrir menú",
+    "getStarted": "Comenzar",
+    "contact": "Contacto",
+    "blog": "Blog",
+    "newsletter": "Newsletter",
+    "languageLabel": "Idioma",
+    "switchLanguage": "Cambiar idioma"
+  },
+  "hero": {
+    "headline": "Enseñamos a las máquinas los *matices* del criterio humano.",
+    "subtitle": "Medimos dónde falla tu IA y movilizamos a profesionales de cada sector para crear los datos que lo resuelven",
+    "primaryCta": "Diagnóstico inicial gratuito",
+    "note": "Formulamos cuarenta preguntas a tu asistente basadas en tu propia documentación. Informe en 48 horas, gratis.",
+    "secondaryCta": "O reserva una llamada de 30 minutos."
+  },
+  "socialProof": {
+    "eyebrow": "Reconocimientos y socios",
+    "title": "Reconocimientos e instituciones con las que hemos trabajado",
+    "subtitle": "Respaldado por instituciones líderes, programas y organizaciones públicas a lo largo de nuestra trayectoria."
+  },
+  "howItWorks": {
+    "eyebrow": "Cómo funciona",
+    "title": "Impulsado totalmente por la evidencia.",
+    "subtitle": "Cada paso te deja algo que conservar y te indica si vale la pena dar el siguiente.",
+    "step": "Paso 0{index}",
+    "steps": {
+      "evaluate": {
+        "label": "Evaluar",
+        "description": "Construimos un conjunto de pruebas a partir de tu documentación, preguntas reales de clientes y nuestros expertos de dominio, lo ejecutamos contra tu sistema y puntuamos cada respuesta."
+      },
+      "report": {
+        "label": "Informe",
+        "description": "Un cuadro de mando con cada fallo explicado por su causa, las lagunas en tu documentación y las correcciones prioritarias, presentado en una sesión en directo."
+      },
+      "subscribe": {
+        "label": "Suscribirse",
+        "description": "Volvemos a ejecutar la suite cada mes con nuevas preguntas y datos, y te avisamos de cualquier cosa que se haya roto desde la última ejecución."
+      },
+      "build": {
+        "label": "Construir",
+        "description": "Las lagunas que encontramos se convierten en los datasets que las cierran, y una nueva ejecución demuestra que la puntuación ha mejorado."
+      }
+    }
+  },
+  "useCases": {
+    "eyebrow": "Qué evaluamos",
+    "title": "Sistemas donde una respuesta incorrecta cuesta dinero",
+    "subtitle": "Probamos la IA de texto y documentos: los asistentes con los que hablan tus clientes y aquellos en los que confían tus equipos.",
+    "systems": {
+      "assistants": {
+        "title": "Asistentes de atención al cliente y chatbots",
+        "description": "En tu web, en tu app o en WhatsApp."
+      },
+      "voice": {
+        "title": "Agentes de voz e IVR",
+        "description": "Los que atienden tus líneas telefónicas."
+      },
+      "internal": {
+        "title": "Asistentes internos",
+        "description": "Sobre política de RRHH, material de ventas o manuales técnicos."
+      },
+      "documents": {
+        "title": "Sistemas de procesamiento de documentos",
+        "description": "Triaje, clasificación y extracción."
+      },
+      "product": {
+        "title": "Funcionalidades de IA en tu producto",
+        "description": "Asistentes de cotización, analizadores de cláusulas y explicaciones de valoración."
+      },
+      "support": {
+        "title": "Soporte técnico y posventa",
+        "description": "Manuales de maquinaria, referencias de piezas y procedimientos de taller."
+      }
+    }
+  },
+  "features": {
+    "eyebrow": "Por qué Caudals",
+    "title": "Entregamos evidencia contrastable",
+    "capabilities": {
+      "answerKeys": {
+        "title": "Respuestas validadas por expertos de dominio",
+        "description": "Cada caso cita tu documentación y nuestros expertos de dominio verifican y validan las respuestas antes de ejecutar nada."
+      },
+      "causes": {
+        "title": "Cada fallo tiene una causa",
+        "description": "Falta de conocimiento, fallo en la búsqueda, respuesta inventada o documento obsoleto: sabrás si debes arreglar la documentación o el sistema."
+      },
+      "language": {
+        "title": "Lenguaje real y casos límite",
+        "description": "Los casos reflejan cómo escriben los clientes reales: errores tipográficos, modismos regionales, jerga del sector y mezclas de español e inglés."
+      },
+      "credentials": {
+        "title": "Sin necesidad de credenciales de producción",
+        "description": "Probamos las interfaces públicas como un cliente, ejecutas nuestra prueba dentro de tu red, o evaluamos conversaciones pasadas."
+      },
+      "reproducible": {
+        "title": "Ejecuciones reproducibles",
+        "description": "Cada ejecución guarda la versión, la huella del modelo y el evaluador, para que cualquier cambio silencioso de tu proveedor se refleje en los números."
+      },
+      "ownership": {
+        "title": "Un dataset de pruebas que es tuyo",
+        "description": "Conservas el conjunto de pruebas en formato JSONL, y crece cada mes con nuevas preguntas y datos."
+      }
+    }
+  },
+  "stats": {
+    "eyebrow": "Tiempos y entregables",
+    "title": "Sencillo de arrancar este mismo mes",
+    "subtitle": "Sin necesidad de integrar nuevas plataformas. Nosotros realizamos el trabajo y te entregamos la evidencia.",
+    "items": {
+      "diagnostic": {
+        "value": "48 h",
+        "label": "Diagnóstico inicial",
+        "description": "Cuarenta preguntas a tu asistente público, con el informe de resultados dos días después."
+      },
+      "cases": {
+        "value": "150–300",
+        "label": "Casos en un piloto",
+        "description": "Elaborados a partir de tu documentación, dudas reales de clientes y nuestros expertos de dominio."
+      },
+      "session": {
+        "value": "90 min",
+        "label": "Con nuestros expertos de dominio",
+        "description": "Una única sesión estructurada para definir con precisión qué respuesta es correcta."
+      },
+      "readout": {
+        "value": "2 semanas",
+        "label": "Hasta la presentación en directo",
+        "description": "Desde la reunión inicial hasta la entrega del informe final ante tu equipo."
+      }
+    }
+  },
+  "partnerships": {
+    "eyebrow": "Punto de partida",
+    "title": "Empieza con un diagnóstico inicial gratuito",
+    "body": "Facilítanos el enlace a tu asistente. Le formulamos cuarenta preguntas cuyas respuestas figuran en tu documentación pública y te enviamos un informe de seis páginas en 48 horas. Sin accesos de sistema, sin contratos y sin argumentarios de venta agresivos.",
+    "primaryCta": "Solicitar diagnóstico gratuito",
+    "secondaryCta": "O reserva una llamada de 30 min",
+    "note": "¿Tu sistema es de uso interno? Podemos facilitar una sonda para ejecutar en tu propia red o evaluar una muestra anonimizada de conversaciones pasadas.",
+    "highlights": {
+      "public": {
+        "title": "Público, como un cliente",
+        "description": "Probamos tu interfaz pública a ritmo humano mediante perfiles ficticios. Sin cuentas, sin datos personales y sin pruebas de carga."
+      },
+      "report": {
+        "title": "Un informe práctico",
+        "description": "Tu puntuación general, desglose por categorías de fallo y siete transcripciones anotadas frente a las fuentes oficiales que contradicen."
+      },
+      "readout": {
+        "title": "Una sesión de 30 minutos",
+        "description": "Analizamos juntos los fallos identificados. Si decides profundizar, el siguiente paso es una Evaluación Piloto."
+      }
+    },
+    "metrics": {
+      "reply": {
+        "label": "Primera respuesta",
+        "value": "24 h"
+      },
+      "report": {
+        "label": "Informe listo en",
+        "value": "48 h"
+      },
+      "cost": {
+        "label": "Coste",
+        "value": "Gratis"
+      }
+    }
+  },
+  "pricing": {
+    "eyebrow": "Precios y planes",
+    "title": "Comienza gratis. Precios cerrados, nunca por horas.",
+    "subtitle": "El diagnóstico inicial es gratuito. Los pilotos y las suscripciones se presupuestan según el alcance de tu sistema, con un precio fijo acordado antes de empezar.",
+    "offers": {
+      "realityCheck": {
+        "name": "Diagnóstico inicial",
+        "price": "Gratis",
+        "duration": "48 horas",
+        "summary": "Cuarenta preguntas hechas a tu asistente público, con respuestas extraídas de tu propia documentación pública.",
+        "cta": "Diagnóstico inicial",
+        "include1": "Tu puntuación y las categorías de fallos",
+        "include2": "Siete transcripciones anotadas, cada una junto a la fuente que contradice",
+        "include3": "Un informe de seis páginas y una sesión de 30 minutos"
+      },
+      "pilotEvaluation": {
+        "name": "Evaluación piloto",
+        "price": "Personalizado",
+        "duration": "2 semanas",
+        "summary": "Un conjunto de pruebas construido a partir de tu documentación, preguntas reales de clientes y nuestros expertos de dominio, ejecutado contra un sistema.",
+        "cta": "Iniciar piloto",
+        "include1": "150–300 casos validados por expertos de dominio",
+        "include2": "Un cuadro de mando y un informe de unas 20 páginas",
+        "include3": "Cada fallo explicado por su causa, con correcciones prioritarias",
+        "include4": "Una sesión en directo con tu equipo",
+        "include5": "El conjunto de pruebas en formato JSONL, tuyo para siempre"
+      },
+      "monthlySubscription": {
+        "name": "Suscripción mensual",
+        "price": "Personalizado",
+        "duration": "Cada mes",
+        "summary": "La evaluación sigue ejecutándose a medida que cambian tu sistema, tus documentos y tus proveedores.",
+        "cta": "Consultar suscripción",
+        "include1": "Una re-ejecución mensual con unos 25 casos nuevos",
+        "include2": "Nuevos datos de tus logs y tickets",
+        "include3": "Alertas de regresión y diferencias respecto a la última ejecución",
+        "include4": "Una revisión trimestral",
+        "include5": "Contrato de 12 meses, cancelable en los primeros 90 días"
+      }
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Testimonios",
+    "title": "Los equipos que llevan IA a producción confían en Caudals",
+    "items": {
+      "helioLabs": {
+        "quote": "Caudals desbloqueó una base global de colaboradores que coincidía con nuestros criterios de imágenes médicas en un tiempo récord. Las herramientas de revisión mantuvieron a los clínicos al mando de cada aprobación.",
+        "name": "Dr. Anika Forster",
+        "role": "Directora de Ciencia de Datos, HelioLabs"
+      },
+      "polyphonic": {
+        "quote": "En dos semanas lanzamos tres programas multimodales en los mercados español y coreano. Los módulos de formación para colaboradores redujeron el retrabajo en más de un 60 %.",
+        "name": "Joel Reyes",
+        "role": "Investigador principal, Polyphonic AI"
+      },
+      "northwind": {
+        "quote": "El equipo de alianzas parecía una extensión del nuestro: diseñaron incentivos, políticas de QA e incluso nos ayudaron a publicar un dataset público para la comunidad investigadora.",
+        "name": "Mina Patel",
+        "role": "Responsable de Innovación IA, Northwind Robotics"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "Preguntas frecuentes",
+    "title": "Lo que preguntan los equipos antes de evaluar su sistema",
+    "footnote": "¿Tienes alguna duda específica? Escríbenos y te responderemos en menos de 24 horas.",
+    "items": {
+      "scope": {
+        "question": "¿Qué sistemas evaluáis?",
+        "answer": "Sistemas de IA basados en texto y documentos: asistentes y chatbots de atención al cliente (web, aplicaciones o WhatsApp), agentes de voz e IVR, asistentes internos sobre políticas y manuales, flujos de triaje y extracción documental, y funcionalidades de IA integradas en producto. Nos centramos en casos donde una respuesta errónea tiene un coste directo o legal."
+      },
+      "answerKey": {
+        "question": "¿Quién determina qué respuesta es correcta?",
+        "answer": "Tu propia documentación y nuestros expertos de dominio. Cada caso de prueba referencia con precisión el documento de origen, y nuestros especialistas validan el criterio de respuesta en una sesión estructurada antes de cualquier prueba. De este modo, los resultados son incontestables."
+      },
+      "access": {
+        "question": "¿Necesitáis acceso a nuestra infraestructura interna?",
+        "answer": "No. Podemos probar una interfaz pública como lo haría un cliente, puedes ejecutar nuestra sonda dentro de tu propia red y enviarnos un archivo de resultados firmado, o podemos puntuar una muestra de conversaciones pasadas. Nunca necesitamos tener credenciales de producción."
+      },
+      "data": {
+        "question": "¿Cómo gestionáis la confidencialidad de nuestros documentos y datos?",
+        "answer": "Los datos personales se anonimizan nada más recibirlos, todo el procesamiento se realiza en infraestructura europea y cada proyecto cuenta con acuerdos de confidencialidad (NDA) y encargo de tratamiento (DPA). El dataset de referencia te pertenece íntegramente. Eliminamos toda la información 12 meses después de finalizar el proyecto, o antes si así lo solicitas."
+      },
+      "platforms": {
+        "question": "¿En qué se diferencia de una plataforma de evaluación tradicional?",
+        "answer": "Las plataformas de evaluación son herramientas para equipos que ya disponen de una batería de pruebas creada. Nosotros nos encargamos de construirla: elaboramos las preguntas a partir de tus documentos, tus incidencias reales y nuestros expertos de dominio, evaluando los resultados mediante comprobaciones deterministas, un juez de IA calibrado y supervisión humana experta."
+      },
+      "certification": {
+        "question": "¿Certificáis sistemas de IA o garantizáis el cumplimiento de la AI Act?",
+        "answer": "No. Medimos el rendimiento y aportamos evidencia empírica: un registro documentado, cuantificado y reproducible del comportamiento de tu sistema. Este informe sirve como documentación de soporte técnico de alto valor, pero no constituye una certificación oficial ni una evaluación de conformidad regulatoria."
+      },
+      "after": {
+        "question": "¿Qué ocurre una vez entregado el informe?",
+        "answer": "Puedes mantener la evaluación activa mediante una suscripción mensual con nuevos casos, datos actualizados y control de regresiones. Cuando el informe descubre conocimientos contradictorios o ausentes, desplegamos a expertos sectoriales para crear los datasets que resuelven la brecha, demostrando la mejora con una nueva ejecución."
+      }
+    }
+  },
+  "cta": {
+    "title": "Descubre los fallos de tu IA antes de que lo hagan tus clientes",
+    "subtitle": "Indícanos el enlace a tu asistente público o explícanos las características de tu sistema interno. Te responderemos en menos de 24 horas con la propuesta más adecuada.",
+    "primaryCta": "Diagnóstico inicial gratuito",
+    "secondaryCta": "Reservar llamada de 30 minutos",
+    "newsletterNote": "¿Aún no estás listo para evaluar tu sistema? Recibe nuestra newsletter quincenal. Cancelable en un clic.",
+    "emailPlaceholder": "Tu correo electrónico",
+    "subscribe": "Suscribirse",
+    "getStarted": "Comenzar",
+    "assurances": {
+      "eu": {
+        "label": "Procesamiento íntegro en la UE"
+      },
+      "experts": {
+        "label": "Criterios validados por nuestros expertos de dominio"
+      },
+      "noCommitment": {
+        "label": "Sin compromiso inicial"
+      }
+    }
+  },
+  "footer": {
+    "brand": "Caudals",
+    "tagline": "Evaluación independiente para asistentes y agentes de IA, con respuestas de referencia validadas por expertos de dominio.",
+    "askAi": "Pregunta a una IA sobre Caudals",
+    "askAiPrompt": "¿Qué es Caudals? Explica cómo evalúa asistentes de IA a partir de baterías de prueba creadas con la documentación de cada empresa y expertos de dominio, y cómo cada evaluación evoluciona hacia datasets específicos. Basa el resumen en su web: https://caudals.com.",
+    "explore": "Explorar",
+    "bookMeeting": "Reserva una reunión",
+    "rights": "© {year} Caudals. Todos los derechos reservados.",
+    "x": "X",
+    "github": "GitHub",
+    "linkedin": "LinkedIn",
+    "legalHeading": "Legal",
+    "legalLinks": {
+      "privacy": {
+        "label": "Política de privacidad"
+      },
+      "terms": {
+        "label": "Términos del servicio"
+      },
+      "cookies": {
+        "label": "Política de cookies"
+      },
+      "notice": {
+        "label": "Aviso legal"
+      }
+    }
+  },
+  "newsletterForm": {
+    "title": "Recíbela cada dos semanas",
+    "note": "Sin spam ni recopilaciones de enlaces vacías. Puedes darte de baja en cualquier momento con un solo clic.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "tu.correo@empresa.com",
+    "subscribe": "Suscribirse",
+    "confirm": "Revisa tu bandeja de entrada para confirmar la suscripción.",
+    "alreadySubscribed": "¡Ya estás suscrito! Seguirás recibiendo cada entrega.",
+    "invalidEmail": "Introduce una dirección de email válida.",
+    "error": "No hemos podido guardar tu solicitud. Inténtalo de nuevo."
+  },
+  "contact": {
+    "title": "Solicita una evaluación",
+    "subtitle": "Cuéntanos qué sistema de IA utilizas y qué responde. Te contestaremos en 24 horas con el punto de partida adecuado.",
+    "preferLive": "¿Prefieres hablar en directo?",
+    "bookMeeting": "Reserva una reunión",
+    "reviewFields": "Por favor, revisa los campos señalados.",
+    "sendFailed": "No pudimos enviar tu mensaje.",
+    "sendFailedRetry": "No pudimos enviar tu mensaje. Por favor, inténtalo de nuevo.",
+    "sentTitle": "Solicitud enviada con éxito",
+    "sentBody": "Analizaremos las características de tu sistema y te responderemos en menos de 24 horas con la propuesta más conveniente.",
+    "sentEmailPrefix": "Si deseas aportar contexto adicional mientras tanto, puedes escribirnos a",
+    "sendAnother": "Enviar otra solicitud",
+    "fullName": "Nombre completo",
+    "fullNamePlaceholder": "Ej. Laura González",
+    "workEmail": "Correo corporativo",
+    "workEmailPlaceholder": "laura@empresa.com",
+    "company": "Empresa",
+    "companyPlaceholder": "Ej. Seguros Norte",
+    "sector": "Sector",
+    "sectorPlaceholder": "Selecciona un sector",
+    "systemHeading": "Tu sistema de IA",
+    "systemQuestion": "¿Qué sistema quieres evaluar?",
+    "systemType": "Tipo de sistema",
+    "systemTypePlaceholder": "Selecciona un tipo",
+    "systemOwner": "¿Qué área lidera el sistema?",
+    "systemOwnerPlaceholder": "Selecciona un área",
+    "systemAnswers": "¿Qué tipo de consultas resuelve?",
+    "systemAnswersPlaceholder": "Por ejemplo: coberturas, periodos de carencia y siniestros de nuestras pólizas de salud, basándose en condiciones generales y preguntas frecuentes.",
+    "startWith": "¿Con qué propuesta te gustaría empezar? (opcional)",
+    "startWithPlaceholder": "Selecciona una opción",
+    "anythingElse": "¿Algún detalle adicional a tener en cuenta? (opcional)",
+    "anythingElsePlaceholder": "Cómo lo evaluáis actualmente, incidencias detectadas, plazos previstos de lanzamiento…",
+    "sending": "Enviando...",
+    "submit": "Enviar solicitud",
+    "options": {
+      "systemType": {
+        "customer-assistant": {
+          "label": "Asistente o chatbot para clientes"
+        },
+        "voice-agent": {
+          "label": "Agente de voz o IVR"
+        },
+        "internal-assistant": {
+          "label": "Asistente interno"
+        },
+        "document-pipeline": {
+          "label": "Clasificación o extracción de documentos"
+        },
+        "product-feature": {
+          "label": "Función de IA en nuestro producto"
+        },
+        "other": {
+          "label": "Otro"
+        }
+      },
+      "sector": {
+        "insurance": {
+          "label": "Seguros y correduría"
+        },
+        "industrial": {
+          "label": "Posventa industrial y servicio técnico"
+        },
+        "banking": {
+          "label": "Banca y finanzas"
+        },
+        "energy": {
+          "label": "Energía y suministros"
+        },
+        "telecom": {
+          "label": "Telecomunicaciones"
+        },
+        "healthcare": {
+          "label": "Salud"
+        },
+        "legal": {
+          "label": "Legal y asesoría"
+        },
+        "travel": {
+          "label": "Viajes y transporte"
+        },
+        "retail": {
+          "label": "Comercio y e-commerce"
+        },
+        "other": {
+          "label": "Otro"
+        }
+      },
+      "ownerRole": {
+        "customer-service": {
+          "label": "Atención al cliente"
+        },
+        "digital": {
+          "label": "Transformación digital o canal digital"
+        },
+        "after-sales": {
+          "label": "Posventa o servicio técnico"
+        },
+        "quality-operations": {
+          "label": "Calidad u operaciones"
+        },
+        "it-data": {
+          "label": "Equipo de sistemas, datos o IA"
+        },
+        "management": {
+          "label": "Dirección"
+        },
+        "integrator": {
+          "label": "Un integrador o agencia externa"
+        },
+        "other": {
+          "label": "Otro"
+        }
+      },
+      "systemStage": {
+        "live": {
+          "label": "En producción"
+        },
+        "pilot": {
+          "label": "En piloto"
+        },
+        "planned": {
+          "label": "Aún no lanzado"
+        }
+      },
+      "offer": {
+        "reality-check": {
+          "label": "Diagnóstico inicial gratuito"
+        },
+        "pilot-evaluation": {
+          "label": "Evaluación piloto"
+        },
+        "monthly-subscription": {
+          "label": "Suscripción mensual"
+        },
+        "not-sure": {
+          "label": "Aún no lo sé"
+        }
+      }
+    }
+  },
+  "call": {
+    "title": "Reserva una reunión",
+    "subtitle": "Elige el momento que mejor te venga. Veremos qué responde tu sistema de IA, cómo lo pruebas hoy y qué cubriría una evaluación.",
+    "scheduler": "Programador de reuniones",
+    "preferWrite": "¿Prefieres escribirnos primero?",
+    "describeSystem": "Descríbenos tu sistema",
+    "orEmail": "o escríbenos a",
+    "unavailableTitle": "Estamos configurando la agenda",
+    "unavailableBody": "Nuestro calendario todavía no está conectado. Cuéntanos cómo es tu sistema y te responderemos en 24 horas para buscar un hueco.",
+    "contactUs": "Contáctanos"
+  },
+  "cookies": {
+    "title": "Aviso de cookies",
+    "body": "Usamos cookies esenciales para que el sitio funcione y analíticas opcionales para mejorarlo.",
+    "readOur": "Consulta nuestra",
+    "policy": "Política de cookies",
+    "decline": "Rechazar",
+    "accept": "Aceptar"
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Artículos y análisis técnicos sobre evaluación de sistemas de IA y la creación de datos que garantizan su fiabilidad.",
+    "all": "Todos",
+    "empty": "No se han encontrado artículos en esta categoría.",
+    "backToBlog": "Volver al blog",
+    "readTime": "{minutes} min de lectura",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "back": "Volver",
+    "furtherReading": "Seguir leyendo",
+    "notFoundDescription": "Artículos y análisis técnicos sobre evaluación de sistemas de IA y la creación de datos que garantizan su fiabilidad."
+  },
+  "newsletter": {
+    "title": "Data Unfiltered",
+    "metaTitle": "Data Unfiltered, la newsletter de Caudals",
+    "metaDescription": "Análisis periódico sobre herramientas de IA y sobre cómo se obtienen, licencian, limpian y evalúan los datos con los que se entrenan los modelos.",
+    "intro": "Cada quince días: herramientas de IA probadas en producción, técnicas aplicables de inmediato y la realidad operativa de capturar, licenciar y depurar los datos de entrenamiento.",
+    "empty": "La próxima edición está en camino. Suscríbete arriba y la recibirás directamente en tu correo.",
+    "issueNumber": "Nº {number}",
+    "forwarded": "¿Te han reenviado esta edición?",
+    "getNext": "Recibe la siguiente directamente en tu correo.",
+    "fallbackDescription": "Newsletter de Caudals sobre inteligencia artificial y datos.",
+    "author": "Equipo de Caudals"
+  },
+  "structuredData": {
+    "serviceName": "Evaluación de asistentes y agentes de IA",
+    "serviceType": "Evaluación independiente de sistemas de IA con conjuntos de pruebas validados por expertos",
+    "webPageName": "Evaluación independiente de asistentes de IA",
+    "offerCatalog": "Ofertas y precios",
+    "knowsAbout": {
+      "topic1": "evaluación de asistentes y agentes de IA",
+      "topic2": "conjuntos de pruebas validados por expertos",
+      "topic3": "análisis de fallos de sistemas de IA",
+      "topic4": "calidad y trazabilidad de respuestas de IA",
+      "topic5": "datos de dominio para IA"
+    }
+  },
+  "agents": {
+    "otherPages": "Otras páginas",
+    "canonicalUrl": "URL canónica"
+  },
+  "validation": {
+    "fullNameRequired": "Introduce tu nombre completo",
+    "nameTooLong": "El nombre es demasiado largo",
+    "invalidWorkEmail": "Introduce un correo corporativo válido",
+    "emailTooLong": "El correo electrónico es demasiado largo",
+    "companyRequired": "El nombre de la empresa es obligatorio",
+    "companyTooLong": "El nombre de la empresa es demasiado largo",
+    "systemTypeRequired": "Selecciona el tipo de sistema",
+    "sectorRequired": "Selecciona tu sector",
+    "ownerRequired": "Indica quién lidera el sistema",
+    "systemAnswersRequired": "Cuéntanos brevemente qué consultas resuelve el sistema",
+    "systemAnswersTooLong": "Escribe menos de 1.000 caracteres",
+    "messageTooLong": "El mensaje es demasiado largo",
+    "invalidEmail": "Por favor, introduce un correo electrónico válido",
+    "invalidUrl": "Introduce una URL válida"
+  }
+}

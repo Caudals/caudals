@@ -1,131 +1,114 @@
-import type { Translator } from "@/lib/i18n/create-translator";
+import type { NamespaceKeys, Translator } from "@/lib/i18n/messages";
 
 /**
- * The evaluation model and its public offers, as English source strings.
+ * The evaluation model and its public offers.
+ *
+ * This module holds structure only — ids, ordering, how many bullet points an
+ * offer has, and whether it publishes a price. All customer-facing copy lives
+ * in `lib/i18n/messages/*.json` under the `howItWorks` and `pricing`
+ * namespaces, so a wording change is a message edit and never touches code.
  *
  * The landing page, `/llms.txt`, the markdown served to agents and the home
- * page structured data all read from here, so an offer change is one edit plus
- * its dictionary entry. Only the free Reality Check has a published price;
- * pilots and subscriptions are quoted on scope.
+ * page structured data all read from here.
  */
 
 export type EvaluationStepId = "evaluate" | "report" | "subscribe" | "build";
 
-export type EvaluationStep = {
-  id: EvaluationStepId;
-  label: string;
-  description: string;
-};
-
-export const EVALUATION_STEPS: readonly EvaluationStep[] = [
-  {
-    id: "evaluate",
-    label: "Evaluate",
-    description:
-      "We build a golden test set from your documentation, real customer questions and our domain experts, run it against your system and score every answer.",
-  },
-  {
-    id: "report",
-    label: "Report",
-    description:
-      "A scorecard, every failure explained by its cause, the gaps in your documentation and prioritised fixes, presented in a live readout.",
-  },
-  {
-    id: "subscribe",
-    label: "Subscribe",
-    description:
-      "We re-run the suite every month with new questions and new data, and flag anything that broke since the last run.",
-  },
-  {
-    id: "build",
-    label: "Build",
-    description:
-      "The gaps we find become the datasets that close them, and a re-run proves the score moved.",
-  },
-];
+/** Ordered steps of the evaluation model. */
+export const EVALUATION_STEP_IDS = [
+  "evaluate",
+  "report",
+  "subscribe",
+  "build",
+] as const satisfies readonly EvaluationStepId[];
 
 export type EvaluationOfferId =
-  | "reality-check"
-  | "pilot-evaluation"
-  | "monthly-subscription";
+  | "realityCheck"
+  | "pilotEvaluation"
+  | "monthlySubscription";
 
 export type EvaluationOffer = {
   id: EvaluationOfferId;
-  name: string;
-  /** "Free", or "Personalized" for offers quoted on the customer's scope. */
-  price: string;
+  /** Value of the `offer` query parameter on `/contact`. */
+  slug: string;
+  /** "free" publishes a price in structured data; "quoted" publishes none. */
   pricing: "free" | "quoted";
-  duration: string;
-  summary: string;
-  includes: readonly string[];
+  /** How many `includeN` bullets this offer defines in the message files. */
+  includeCount: number;
+  /** Whether this offer is the visually emphasised one in the pricing grid. */
+  featured: boolean;
 };
 
-export const EVALUATION_OFFERS: readonly EvaluationOffer[] = [
+export const EVALUATION_OFFERS = [
   {
-    id: "reality-check",
-    name: "Initial Diagnostic",
-    price: "Free",
+    id: "realityCheck",
+    slug: "diagnostic",
     pricing: "free",
-    duration: "48 hours",
-    summary:
-      "Forty questions put to your public assistant, with answers taken from your own public documentation.",
-    includes: [
-      "Your score and the failure categories",
-      "Seven annotated transcripts, each next to the source it contradicts",
-      "A six-page report and a 30-minute readout",
-    ],
+    includeCount: 3,
+    featured: false,
   },
   {
-    id: "pilot-evaluation",
-    name: "Pilot Evaluation",
-    price: "Personalized",
+    id: "pilotEvaluation",
+    slug: "pilot-evaluation",
     pricing: "quoted",
-    duration: "2 weeks",
-    summary:
-      "A golden test set built from your documentation, real customer questions and our domain experts, run against one system.",
-    includes: [
-      "150–300 cases signed off by domain experts",
-      "A scorecard and a report of about 20 pages",
-      "Every failure explained by its cause, with prioritised fixes",
-      "A live readout with your team",
-      "The golden set as JSONL, yours to keep",
-    ],
+    includeCount: 5,
+    featured: true,
   },
   {
-    id: "monthly-subscription",
-    name: "Monthly subscription",
-    price: "Personalized",
+    id: "monthlySubscription",
+    slug: "monthly-subscription",
     pricing: "quoted",
-    duration: "Every month",
-    summary:
-      "The evaluation keeps running as your system, your documents and your vendors change.",
-    includes: [
-      "A monthly re-run with about 25 new cases",
-      "New data from your logs and tickets",
-      "Regression alerts and a diff against the last run",
-      "A quarterly review",
-      "12-month term, cancellable in the first 90 days",
-    ],
+    includeCount: 5,
+    featured: false,
   },
-];
+] as const satisfies readonly EvaluationOffer[];
 
-/** The model and its offers as markdown, for `/llms.txt` and the pages served to agents. */
+/**
+ * The `includeN` message keys an offer defines, in order.
+ *
+ * The cast is narrowed to keys that actually exist in the `pricing` namespace,
+ * so an offer whose `includeCount` outruns its message entries is caught by
+ * `tsc` rather than rendering a raw key on the pricing page.
+ */
+type PricingKey = NamespaceKeys<"pricing">;
+type OfferIncludeKey<Id extends EvaluationOfferId> = Extract<
+  PricingKey,
+  `offers.${Id}.include${number}`
+>;
+
+export function offerIncludeKeys<Id extends EvaluationOfferId>(offer: {
+  id: Id;
+  includeCount: number;
+}) {
+  return Array.from(
+    { length: offer.includeCount },
+    (_, index) => `offers.${offer.id}.include${index + 1}`,
+  ) as OfferIncludeKey<Id>[];
+}
+
+/** The model and its offers as markdown, for `/llms.txt` and agent pages. */
 export function renderEvaluationOverviewMarkdown(t: Translator) {
-  const steps = EVALUATION_STEPS.map(
-    (step, index) => `${index + 1}. **${t(step.label)}.** ${t(step.description)}`,
+  const steps = EVALUATION_STEP_IDS.map(
+    (id, index) =>
+      `${index + 1}. **${t(`howItWorks.steps.${id}.label`)}.** ${t(
+        `howItWorks.steps.${id}.description`,
+      )}`,
   ).join("\n");
+
   const offers = EVALUATION_OFFERS.map(
     (offer) =>
-      `- **${t(offer.name)}** — ${t(offer.price)} · ${t(offer.duration)}. ${t(offer.summary)}`,
+      `- **${t(`pricing.offers.${offer.id}.name`)}** — ${t(
+        `pricing.offers.${offer.id}.price`,
+      )} · ${t(`pricing.offers.${offer.id}.duration`)}. ${t(
+        `pricing.offers.${offer.id}.summary`,
+      )}`,
   ).join("\n");
 
   return [
-    `## ${t("How it works")}`,
+    `## ${t("howItWorks.eyebrow")}`,
     steps,
-    `## ${t("Offers and pricing")}`,
+    `## ${t("pricing.title")}`,
     offers,
-    t(
-      "The Initial Diagnostic is free. Pilots and subscriptions are quoted on your scope before we start, and we never bill by the hour.",
-    ),
+    t("pricing.subtitle"),
   ].join("\n\n");
 }

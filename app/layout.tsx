@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
-import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { SiteAnalytics } from "@/components/legal/site-analytics";
-import { getServerTranslationBundle } from "@/lib/i18n/server";
-import { TranslationProvider } from "@/lib/i18n/translation-context";
-import { translateReactNode } from "@/lib/i18n/translate-node";
-import { ClientLocaleDetector } from "@/lib/i18n/client-locale-detector";
+import { defaultLocale, localeHtmlLang } from "@/lib/i18n/config";
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_TITLE,
@@ -21,6 +17,10 @@ const googleVerificationToken =
   process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
 const defaultSocialImage = getDefaultSocialImageUrl();
 
+/**
+ * Document-level defaults. Locale-specific title, description and hreflang are
+ * declared by `app/[locale]/layout.tsx` and by each page, which override these.
+ */
 export const metadata: Metadata = {
   metadataBase: new URL(getMarketingSiteOrigin()),
   applicationName: SITE_NAME,
@@ -29,15 +29,6 @@ export const metadata: Metadata = {
     template: "%s | Caudals",
   },
   description: DEFAULT_SITE_DESCRIPTION,
-  keywords: [
-    "evaluación de asistentes de IA",
-    "evaluación de chatbots",
-    "evaluación de agentes de IA",
-    "calidad de respuestas de IA",
-    "conjunto de pruebas para IA",
-    "AI evaluation",
-    "LLM evaluation",
-  ],
   creator: SITE_NAME,
   publisher: SITE_NAME,
   openGraph: {
@@ -85,35 +76,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { locale, dictionary, placeholders, translator } =
-    await getServerTranslationBundle();
-
-  const content = (
-    <AuthProvider>
-      {children}
-      <Toaster richColors position="top-right" closeButton={false} />
-    </AuthProvider>
-  );
-
-  const localizedContent = translateReactNode(content, translator);
-
+  // The document opens in the default language. `app/[locale]/layout.tsx`
+  // corrects `<html lang>` for the public tree, which is the only part of the
+  // site that is translated; the internal surfaces are English-only.
+  //
+  // This layout deliberately reads nothing from the request: doing so would
+  // opt every route out of static rendering, including the marketing pages.
   return (
-    <html lang={locale}>
+    <html lang={localeHtmlLang[defaultLocale]} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <TranslationProvider
-          locale={locale}
-          dictionary={dictionary}
-          placeholders={placeholders}
-        >
-          <ClientLocaleDetector serverLocale={locale} />
-          {localizedContent}
-          <CookieConsentBanner />
-        </TranslationProvider>
+        <AuthProvider>
+          {children}
+          <Toaster richColors position="top-right" closeButton={false} />
+        </AuthProvider>
         <SiteAnalytics />
       </body>
     </html>

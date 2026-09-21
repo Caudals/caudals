@@ -1,0 +1,546 @@
+{
+  "nav": {
+    "brand": "Caudals",
+    "logoAlt": "Caudals logo",
+    "toggleMenu": "Toggle menu",
+    "getStarted": "Get started",
+    "contact": "Contact",
+    "blog": "Blog",
+    "newsletter": "Newsletter",
+    "languageLabel": "Language",
+    "switchLanguage": "Change language"
+  },
+  "hero": {
+    "headline": "We teach machines the *nuances* of human judgement.",
+    "subtitle": "We test where your AI fails, and deploy practicing domain experts to build the data that resolves it.",
+    "primaryCta": "Get a free Initial Diagnostic",
+    "note": "We put forty questions from your own documentation to your assistant. Report in 48 hours, free.",
+    "secondaryCta": "Or book a 30-minute call."
+  },
+  "socialProof": {
+    "eyebrow": "Recognition & partners",
+    "title": "Recognitions and institutions we've worked with",
+    "subtitle": "Backed by leading institutions, programs, and public organizations across our journey."
+  },
+  "howItWorks": {
+    "eyebrow": "How it works",
+    "title": "Driven entirely by evidence.",
+    "subtitle": "Each step leaves you with something you keep, and tells you whether the next one is worth doing.",
+    "step": "Step 0{index}",
+    "steps": {
+      "evaluate": {
+        "label": "Evaluate",
+        "description": "We build a golden test set from your documentation, real customer questions and our domain experts, run it against your system and score every answer."
+      },
+      "report": {
+        "label": "Report",
+        "description": "A scorecard, every failure explained by its cause, the gaps in your documentation and prioritised fixes, presented in a live readout."
+      },
+      "subscribe": {
+        "label": "Subscribe",
+        "description": "We re-run the suite every month with new questions and new data, and flag anything that broke since the last run."
+      },
+      "build": {
+        "label": "Build",
+        "description": "The gaps we find become the datasets that close them, and a re-run proves the score moved."
+      }
+    }
+  },
+  "useCases": {
+    "eyebrow": "What we evaluate",
+    "title": "Systems where a wrong answer costs money",
+    "subtitle": "We test text and document AI: the assistants your customers talk to and the ones your teams rely on.",
+    "systems": {
+      "assistants": {
+        "title": "Customer assistants and chatbots",
+        "description": "On your website, in your app or on WhatsApp."
+      },
+      "voice": {
+        "title": "Voice and IVR agents",
+        "description": "The ones that answer your phone lines."
+      },
+      "internal": {
+        "title": "Internal assistants",
+        "description": "Over HR policy, sales material or technical manuals."
+      },
+      "documents": {
+        "title": "Document pipelines",
+        "description": "Triage, classification and extraction."
+      },
+      "product": {
+        "title": "AI features in your product",
+        "description": "Quote assistants, clause analysers and valuation explanations."
+      },
+      "support": {
+        "title": "Technical support and after-sales",
+        "description": "Machinery manuals, part numbers and workshop procedures."
+      }
+    }
+  },
+  "features": {
+    "eyebrow": "Why Caudals",
+    "title": "We deliver verifiable evidence",
+    "capabilities": {
+      "answerKeys": {
+        "title": "Answer keys signed by domain experts",
+        "description": "Every case cites your documentation, and our domain experts verify and sign off the answer key before anything runs."
+      },
+      "causes": {
+        "title": "Every failure has a cause",
+        "description": "Knowledge gap, retrieval miss, invented answer or outdated document: you know whether to fix the documentation or the system."
+      },
+      "language": {
+        "title": "Real-world language and edge cases",
+        "description": "Cases reflect how real customers write: typos, regional phrasing, industry jargon, and mixed Spanish and English where relevant."
+      },
+      "credentials": {
+        "title": "No production credentials needed",
+        "description": "We test public interfaces as a customer would, you run our probe inside your network, or we score past conversations."
+      },
+      "reproducible": {
+        "title": "Runs you can reproduce",
+        "description": "Every run keeps its suite version, model fingerprint and grader, so a silent model change by your vendor shows up in the numbers."
+      },
+      "ownership": {
+        "title": "A test set you own",
+        "description": "You keep the golden set as JSONL, and it grows every month with new questions and new data."
+      }
+    }
+  },
+  "stats": {
+    "eyebrow": "What to expect",
+    "title": "Small enough to start this month",
+    "subtitle": "No platform to adopt. We do the work and hand you the evidence.",
+    "items": {
+      "diagnostic": {
+        "value": "48 h",
+        "label": "Initial Diagnostic",
+        "description": "Forty questions to your public assistant, with the report two days later."
+      },
+      "cases": {
+        "value": "150–300",
+        "label": "Cases in a pilot",
+        "description": "Drawn from your documentation, real customer questions and our domain experts."
+      },
+      "session": {
+        "value": "90 min",
+        "label": "With our domain experts",
+        "description": "One structured session defines what a correct answer is."
+      },
+      "readout": {
+        "value": "2 weeks",
+        "label": "To a live readout",
+        "description": "From kickoff to the report, presented to your team."
+      }
+    }
+  },
+  "partnerships": {
+    "eyebrow": "Start here",
+    "title": "Start with a free Initial Diagnostic",
+    "body": "Send us the link to your assistant. We ask it forty questions whose answers are in your own public documentation and send you a six-page report within 48 hours. No access, no contract and no sales pitch inside.",
+    "primaryCta": "Request free diagnostic",
+    "secondaryCta": "Or book a 30-min call",
+    "note": "Is your system internal? We can run our probe inside your network or score past conversations instead.",
+    "highlights": {
+      "public": {
+        "title": "Public, like a customer",
+        "description": "We use your public interface at human pace with fictional personas. No accounts, no personal data and no load testing."
+      },
+      "report": {
+        "title": "A report you can use",
+        "description": "Your score, the failure categories and seven annotated transcripts, each next to the source it contradicts."
+      },
+      "readout": {
+        "title": "A 30-minute readout",
+        "description": "We walk you through the failures. If you want to go further, the next step is a Pilot Evaluation."
+      }
+    },
+    "metrics": {
+      "reply": {
+        "label": "First reply",
+        "value": "24 h"
+      },
+      "report": {
+        "label": "Report ready in",
+        "value": "48 h"
+      },
+      "cost": {
+        "label": "Cost",
+        "value": "Free"
+      }
+    }
+  },
+  "pricing": {
+    "eyebrow": "Pricing",
+    "title": "Free to start. Never billed by the hour.",
+    "subtitle": "The Initial Diagnostic is free. Pilots and subscriptions are quoted on the scope of your system, with a fixed price agreed before we start.",
+    "offers": {
+      "realityCheck": {
+        "name": "Initial Diagnostic",
+        "price": "Free",
+        "duration": "48 hours",
+        "summary": "Forty questions put to your public assistant, with answers taken from your own public documentation.",
+        "cta": "Initial Diagnostic",
+        "include1": "Your score and the failure categories",
+        "include2": "Seven annotated transcripts, each next to the source it contradicts",
+        "include3": "A six-page report and a 30-minute readout"
+      },
+      "pilotEvaluation": {
+        "name": "Pilot Evaluation",
+        "price": "Personalized",
+        "duration": "2 weeks",
+        "summary": "A golden test set built from your documentation, real customer questions and our domain experts, run against one system.",
+        "cta": "Start a pilot",
+        "include1": "150–300 cases signed off by domain experts",
+        "include2": "A scorecard and a report of about 20 pages",
+        "include3": "Every failure explained by its cause, with prioritised fixes",
+        "include4": "A live readout with your team",
+        "include5": "The golden set as JSONL, yours to keep"
+      },
+      "monthlySubscription": {
+        "name": "Monthly subscription",
+        "price": "Personalized",
+        "duration": "Every month",
+        "summary": "The evaluation keeps running as your system, your documents and your vendors change.",
+        "cta": "Ask about the subscription",
+        "include1": "A monthly re-run with about 25 new cases",
+        "include2": "New data from your logs and tickets",
+        "include3": "Regression alerts and a diff against the last run",
+        "include4": "A quarterly review",
+        "include5": "12-month term, cancellable in the first 90 days"
+      }
+    }
+  },
+  "testimonials": {
+    "eyebrow": "Customer stories",
+    "title": "Teams shipping production AI trust Caudals",
+    "items": {
+      "helioLabs": {
+        "quote": "Caudals unlocked a global contributor base that matched our medical imaging criteria in record time. The review tooling kept clinicians in control of every approval.",
+        "name": "Dr. Anika Forster",
+        "role": "Director of Data Science, HelioLabs"
+      },
+      "polyphonic": {
+        "quote": "Within two weeks we launched three multimodal programs across Spanish and Korean markets. Contributor training modules reduced rework by over 60%.",
+        "name": "Joel Reyes",
+        "role": "Lead Researcher, Polyphonic AI"
+      },
+      "northwind": {
+        "quote": "The partnership team felt like an extension of ours—designing incentives, QA policies, and even helping us publish a public dataset for the research community.",
+        "name": "Mina Patel",
+        "role": "Head of AI Innovation, Northwind Robotics"
+      }
+    }
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "What teams ask before an evaluation",
+    "footnote": "Have a different question? Contact us and we'll get back to you within 24 hours.",
+    "items": {
+      "scope": {
+        "question": "What do you evaluate?",
+        "answer": "Text and document AI systems: customer assistants and chatbots on the web, in apps or on WhatsApp, voice and IVR agents, internal assistants over policies and manuals, document triage and extraction pipelines, and AI features inside products. We focus on systems where a wrong answer costs money."
+      },
+      "answerKey": {
+        "question": "Who decides what the correct answer is?",
+        "answer": "Your documentation and our domain experts. Every case cites the document it comes from, and our domain experts sign off the answer key in a structured session before we run anything, so the results can't be disputed later."
+      },
+      "access": {
+        "question": "Do you need access to our systems?",
+        "answer": "No. We can test a public interface the way a customer would, you can run our probe inside your own network and send back a signed results file, or we can score a sample of past conversations. We never need to hold production credentials."
+      },
+      "data": {
+        "question": "What happens to our documents and data?",
+        "answer": "Personal data is redacted as soon as we receive it, content is processed on EU infrastructure, and every paid engagement has an NDA and a data-processing agreement. The golden set is yours. We delete everything 12 months after the engagement ends, or sooner if you ask."
+      },
+      "platforms": {
+        "question": "How is this different from an evaluation platform?",
+        "answer": "Evaluation platforms are tools for developers who already have a test set. We write the test set: questions from your documents, your customers and our domain experts, graded with deterministic checks, a calibrated AI judge and human review."
+      },
+      "certification": {
+        "question": "Do you certify our AI or make it AI Act compliant?",
+        "answer": "No. We measure and produce evidence: a scored, reproducible record of how your system behaves. That record is useful supporting documentation, but it is not a certification or a conformity assessment."
+      },
+      "after": {
+        "question": "What happens after the report?",
+        "answer": "The evaluation can keep running with a monthly subscription: new questions, new data and regression alerts every month. When it shows missing or contradictory knowledge, we build the data that closes the gap, and a re-run proves the score moved."
+      }
+    }
+  },
+  "cta": {
+    "title": "Find out what your AI gets wrong before your customers do",
+    "subtitle": "Send us the link to your assistant, or tell us about an internal one. We reply within 24 hours with the right starting point.",
+    "primaryCta": "Get a free Initial Diagnostic",
+    "secondaryCta": "Book a 30-minute call",
+    "newsletterNote": "Not ready to talk yet? Get our newsletter every two weeks. One click to unsubscribe.",
+    "emailPlaceholder": "Your email address",
+    "subscribe": "Subscribe",
+    "getStarted": "Get started",
+    "assurances": {
+      "eu": {
+        "label": "EU data processing"
+      },
+      "experts": {
+        "label": "Our domain experts sign off the answer key"
+      },
+      "noCommitment": {
+        "label": "No commitment to start"
+      }
+    }
+  },
+  "footer": {
+    "brand": "Caudals",
+    "tagline": "Independent evaluation for AI assistants, with answer keys signed off by domain experts.",
+    "askAi": "Ask AI about Caudals",
+    "askAiPrompt": "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
+    "explore": "Explore",
+    "bookMeeting": "Book a meeting",
+    "rights": "© {year} Caudals. All rights reserved.",
+    "x": "X",
+    "github": "GitHub",
+    "linkedin": "LinkedIn",
+    "legalHeading": "Legal",
+    "legalLinks": {
+      "privacy": {
+        "label": "Privacy Policy"
+      },
+      "terms": {
+        "label": "Terms of Service"
+      },
+      "cookies": {
+        "label": "Cookie Policy"
+      },
+      "notice": {
+        "label": "Legal Notice"
+      }
+    }
+  },
+  "newsletterForm": {
+    "title": "Get it every two weeks",
+    "note": "No spam, no link roundups. One click to unsubscribe, always.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@company.com",
+    "subscribe": "Subscribe",
+    "confirm": "Check your inbox to confirm your subscription.",
+    "alreadySubscribed": "You're already subscribed! We'll keep the updates coming.",
+    "invalidEmail": "Please enter a valid email address.",
+    "error": "We couldn't save your request. Please try again."
+  },
+  "contact": {
+    "title": "Request an evaluation",
+    "subtitle": "Tell us which AI system you run and what it answers. We'll reply within 24 hours with the right starting point.",
+    "preferLive": "Prefer to meet live?",
+    "bookMeeting": "Book a meeting",
+    "reviewFields": "Please review the highlighted fields.",
+    "sendFailed": "We couldn't send your message.",
+    "sendFailedRetry": "We couldn't send your message. Please try again.",
+    "sentTitle": "Request sent",
+    "sentBody": "We'll review your system and reply within 24 hours with the right starting point.",
+    "sentEmailPrefix": "If you want to add more context in the meantime, email us at",
+    "sendAnother": "Send another request",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Jane Smith",
+    "workEmail": "Work email",
+    "workEmailPlaceholder": "jane@company.com",
+    "company": "Company",
+    "companyPlaceholder": "Acme Corp",
+    "sector": "Sector",
+    "sectorPlaceholder": "Select a sector",
+    "systemHeading": "Your AI system",
+    "systemQuestion": "What should we evaluate?",
+    "systemType": "Type of system",
+    "systemTypePlaceholder": "Select a type",
+    "systemOwner": "Who owns the system?",
+    "systemOwnerPlaceholder": "Select a team",
+    "systemAnswers": "What does it answer?",
+    "systemAnswersPlaceholder": "For example: coverage, waiting periods and claims for our health policies, from our general conditions and FAQ.",
+    "startWith": "What would you like to start with? (optional)",
+    "startWithPlaceholder": "Select an option",
+    "anythingElse": "Anything else we should know? (optional)",
+    "anythingElsePlaceholder": "How you test it today, recent complaints, a deadline you're working to…",
+    "sending": "Sending...",
+    "submit": "Send request",
+    "options": {
+      "systemType": {
+        "customer-assistant": {
+          "label": "Customer assistant or chatbot"
+        },
+        "voice-agent": {
+          "label": "Voice or IVR agent"
+        },
+        "internal-assistant": {
+          "label": "Internal assistant"
+        },
+        "document-pipeline": {
+          "label": "Document triage or extraction"
+        },
+        "product-feature": {
+          "label": "AI feature in our product"
+        },
+        "other": {
+          "label": "Other"
+        }
+      },
+      "sector": {
+        "insurance": {
+          "label": "Insurance and brokerage"
+        },
+        "industrial": {
+          "label": "Industrial after-sales and technical support"
+        },
+        "banking": {
+          "label": "Banking and finance"
+        },
+        "energy": {
+          "label": "Energy and utilities"
+        },
+        "telecom": {
+          "label": "Telecommunications"
+        },
+        "healthcare": {
+          "label": "Healthcare"
+        },
+        "legal": {
+          "label": "Legal and advisory"
+        },
+        "travel": {
+          "label": "Travel and transport"
+        },
+        "retail": {
+          "label": "Retail and e-commerce"
+        },
+        "other": {
+          "label": "Other"
+        }
+      },
+      "ownerRole": {
+        "customer-service": {
+          "label": "Customer service"
+        },
+        "digital": {
+          "label": "Digital transformation or digital channel"
+        },
+        "after-sales": {
+          "label": "After-sales or technical support"
+        },
+        "quality-operations": {
+          "label": "Quality or operations"
+        },
+        "it-data": {
+          "label": "IT, data or AI team"
+        },
+        "management": {
+          "label": "Senior management"
+        },
+        "integrator": {
+          "label": "An external integrator or agency"
+        },
+        "other": {
+          "label": "Other"
+        }
+      },
+      "systemStage": {
+        "live": {
+          "label": "In production"
+        },
+        "pilot": {
+          "label": "In pilot"
+        },
+        "planned": {
+          "label": "Not launched yet"
+        }
+      },
+      "offer": {
+        "reality-check": {
+          "label": "Free Initial Diagnostic"
+        },
+        "pilot-evaluation": {
+          "label": "Pilot Evaluation"
+        },
+        "monthly-subscription": {
+          "label": "Monthly subscription"
+        },
+        "not-sure": {
+          "label": "Not sure yet"
+        }
+      }
+    }
+  },
+  "call": {
+    "title": "Book a meeting",
+    "subtitle": "Pick a time that works for you. We'll look at what your AI system answers, how you test it today and what an evaluation would cover.",
+    "scheduler": "Meeting scheduler",
+    "preferWrite": "Prefer to write first?",
+    "describeSystem": "Describe your system",
+    "orEmail": "or email",
+    "unavailableTitle": "Scheduling is being set up",
+    "unavailableBody": "Our live scheduler isn't connected yet. Tell us about your system and we'll reply within 24 hours to find a time.",
+    "contactUs": "Contact us"
+  },
+  "cookies": {
+    "title": "Cookie notice",
+    "body": "We use essential cookies to run this site and optional analytics to improve it.",
+    "readOur": "Read our",
+    "policy": "Cookie Policy",
+    "decline": "Decline",
+    "accept": "Accept"
+  },
+  "blog": {
+    "title": "Blog",
+    "description": "Notes on how to evaluate AI systems and the data that makes them reliable.",
+    "all": "All",
+    "empty": "No entries found.",
+    "backToBlog": "Back to blog",
+    "readTime": "{minutes} min read",
+    "previous": "Previous",
+    "next": "Next",
+    "back": "Back",
+    "furtherReading": "Further Reading",
+    "notFoundDescription": "Notes on how to evaluate AI systems and the data that makes them reliable."
+  },
+  "newsletter": {
+    "title": "Data Unfiltered",
+    "metaTitle": "Data Unfiltered, the Caudals newsletter",
+    "metaDescription": "Regular analysis of AI tools and of how the data models train on is sourced, licensed, cleaned and evaluated.",
+    "intro": "Every week: AI tools we have actually tested, techniques you can use the same day, and what really happens when you source, license and clean the data models train on.",
+    "empty": "The first issue is on its way. Subscribe above and you will get it.",
+    "issueNumber": "No. {number}",
+    "forwarded": "Someone forwarded you this?",
+    "getNext": "Get the next one straight to your inbox.",
+    "fallbackDescription": "The Caudals newsletter on artificial intelligence and data.",
+    "author": "The Caudals team"
+  },
+  "structuredData": {
+    "serviceName": "Evaluation of AI assistants and agents",
+    "serviceType": "Independent evaluation of AI systems with expert-validated test sets",
+    "webPageName": "Independent evaluation for AI assistants",
+    "offerCatalog": "Offers and pricing",
+    "knowsAbout": {
+      "topic1": "evaluation of AI assistants and agents",
+      "topic2": "expert-validated test sets",
+      "topic3": "failure analysis of AI systems",
+      "topic4": "quality and traceability of AI answers",
+      "topic5": "domain data for AI"
+    }
+  },
+  "agents": {
+    "otherPages": "Other pages",
+    "canonicalUrl": "Canonical URL"
+  },
+  "validation": {
+    "fullNameRequired": "Please enter your full name",
+    "nameTooLong": "Name is too long",
+    "invalidWorkEmail": "Please enter a valid work email",
+    "emailTooLong": "Email is too long",
+    "companyRequired": "Organization name is required",
+    "companyTooLong": "Organization name is too long",
+    "systemTypeRequired": "Please select the type of system",
+    "sectorRequired": "Please select your sector",
+    "ownerRequired": "Please select who owns the system",
+    "systemAnswersRequired": "Tell us briefly what the system answers",
+    "systemAnswersTooLong": "Keep this under 1,000 characters",
+    "messageTooLong": "Message is too long",
+    "invalidEmail": "Please enter a valid email",
+    "invalidUrl": "Please enter a valid URL"
+  }
+}

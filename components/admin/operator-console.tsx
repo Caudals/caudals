@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { OperatorElevationStatus } from "@/lib/actions/operator-elevation-actions";
 import type { OperatorSecurityRoster } from "@/lib/actions/operator-security-actions";
-import type { Translator } from "@/lib/i18n/create-translator";
+import type { InternalTranslator } from "@/lib/i18n/internal";
 import type {
   BuildGate,
   DemoBuild,
@@ -42,7 +42,7 @@ type OperatorConsoleProps = {
   elevationStatus: OperatorElevationStatus | null;
   securityRoster: OperatorSecurityRoster | null;
   snapshot: OperatorConsoleSnapshot;
-  t: Translator;
+  t: InternalTranslator;
 };
 
 type ModuleGroup = {
@@ -87,7 +87,7 @@ function gateClassName(state: BuildGate["state"]) {
   return "border-gray-200 bg-gray-50 text-gray-500";
 }
 
-function statusLabel(state: BuildGate["state"], t: Translator) {
+function statusLabel(state: BuildGate["state"], t: InternalTranslator) {
   if (state === "pass") return t("Pass");
   if (state === "review") return t("Review");
   if (state === "blocked") return t("Blocked");
@@ -104,7 +104,7 @@ function readinessClassName(state: OperatorServiceReadiness["state"]) {
   return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
-function readinessLabel(state: OperatorServiceReadiness["state"], t: Translator) {
+function readinessLabel(state: OperatorServiceReadiness["state"], t: InternalTranslator) {
   if (state === "ready") return t("Ready");
   if (state === "blocked") return t("Blocked");
   return t("Review");
@@ -120,7 +120,7 @@ function moduleHealthClassName(blockedRecords: number) {
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
-function moduleHealthLabel(blockedRecords: number, t: Translator) {
+function moduleHealthLabel(blockedRecords: number, t: InternalTranslator) {
   if (blockedRecords > 0) {
     return `${blockedRecords} ${t("Blocked")}`;
   }
@@ -165,7 +165,7 @@ function formatGeneratedAt(value: string) {
   }).format(new Date(value));
 }
 
-function ConsoleAnchorNav({ t }: { t: Translator }) {
+function ConsoleAnchorNav({ t }: { t: InternalTranslator }) {
   const links = [
     { href: "#console-overview", label: "Overview", icon: Gauge },
     { href: "#console-workspace", label: "Active workspace", icon: ListChecks },
@@ -235,7 +235,7 @@ function ModuleCard({
 }: {
   module: OperatorModuleSummary;
   active?: boolean;
-  t: Translator;
+  t: InternalTranslator;
 }) {
   return (
     <a
@@ -292,7 +292,7 @@ function ModuleDirectory({
 }: {
   activeModule: OperatorModuleSummary;
   modules: OperatorModuleSummary[];
-  t: Translator;
+  t: InternalTranslator;
 }) {
   const moduleMap = new Map(modules.map((module) => [module.key, module]));
 
@@ -386,7 +386,7 @@ function ServiceReadinessPanel({
   t,
 }: {
   readiness: OperatorServiceReadiness[];
-  t: Translator;
+  t: InternalTranslator;
 }) {
   const counts = readinessCounts(readiness);
 
@@ -490,7 +490,7 @@ function FeaturedBuildLane({
   t,
 }: {
   build: DemoBuild;
-  t: Translator;
+  t: InternalTranslator;
 }) {
   const budgetPct = Math.min(
     100,
@@ -579,7 +579,7 @@ function ModuleWorkspace({
   securityRoster: OperatorSecurityRoster | null;
   serviceReadiness: OperatorServiceReadiness[];
   showSettingsControls: boolean;
-  t: Translator;
+  t: InternalTranslator;
 }) {
   const moduleServices = serviceReadiness.filter(
     (item) => item.moduleKey === activeModule.key
@@ -717,7 +717,7 @@ function BriefMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BuildRow({ build, t }: { build: DemoBuild; t: Translator }) {
+function BuildRow({ build, t }: { build: DemoBuild; t: InternalTranslator }) {
   const budgetPct = Math.min(
     100,
     Math.round((build.costUsedUsd / build.budgetUsd) * 100)
@@ -780,7 +780,7 @@ function QAScorecard({
 }: {
   build: DemoBuild;
   dimensions: string[][];
-  t: Translator;
+  t: InternalTranslator;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4">
@@ -818,7 +818,7 @@ function LicensePanel({
   t,
 }: {
   snapshot: OperatorConsoleSnapshot;
-  t: Translator;
+  t: InternalTranslator;
 }) {
   const composed = snapshot.licensePreview.composed;
 
@@ -870,7 +870,7 @@ function BuildIntelligence({
 }: {
   snapshot: OperatorConsoleSnapshot;
   qaDimensions: string[][];
-  t: Translator;
+  t: InternalTranslator;
 }) {
   return (
     <section id="console-builds" className="scroll-mt-24 space-y-4">
@@ -924,7 +924,7 @@ function EvidencePlane({
   t,
 }: {
   snapshot: OperatorConsoleSnapshot;
-  t: Translator;
+  t: InternalTranslator;
 }) {
   return (
     <section id="console-evidence" className="scroll-mt-24 space-y-4">

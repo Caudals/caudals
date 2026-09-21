@@ -15,8 +15,8 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { betterAuthClient } from "@/lib/auth/better-auth-client";
 import { useAuth } from "@/lib/auth/provider";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { toast } from "sonner";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { resolveSettingsHref } from "@/lib/navigation/role-view";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,7 @@ import {
 
 export function UserMenu() {
   const { user, userRole } = useAuth();
-  const t = useTranslations();
-  const toast = useLocaleToast();
+  const t = useInternalTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);

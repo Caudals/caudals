@@ -18,16 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useTranslations } from "@/lib/i18n/use-translations";
-import { useLocaleToast } from "@/lib/i18n/use-locale-toast";
+import { useInternalTranslations } from "@/lib/i18n/internal";
+import { toast } from "sonner";
 
 type Mode = "request" | "reset";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const t = useTranslations();
-  const toast = useLocaleToast();
+  const t = useInternalTranslations();
   const token = searchParams.get("token");
   const tokenError = searchParams.get("error");
   const mode: Mode = token ? "reset" : "request";

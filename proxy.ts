@@ -5,16 +5,19 @@ import {
   MARKDOWN_ROUTE_PREFIX,
   prefersMarkdown,
 } from "@/lib/markdown/negotiation";
+import { LOCALE_COOKIE } from "@/lib/i18n/config";
 import {
-  LOCALE_COOKIE,
-  LOCALE_COOKIE_MAX_AGE,
-  type Locale,
-  locales,
-} from "@/lib/i18n/config";
-import { detectPreferredLocale } from "@/lib/i18n/detect-locale";
-import { getClientIP, getCountryFromIP } from "@/lib/i18n/geolocation";
+  getCountryFromHeaders,
+  negotiateLocale,
+} from "@/lib/i18n/negotiate";
+import {
+  hasUnsupportedLocalePrefix,
+  isNonLocalizedPath,
+  localizePathname,
+  PATHNAME_HEADER,
+  splitLocale,
+} from "@/lib/i18n/routing";
 
-const supportedLocales = new Set<Locale>(locales);
 const EVALS_PREFIXES = ["/ops", "/workspace", "/share", "/evaluation-entry"];
 const APP_ONLY_PATH_PREFIXES = [
   "/requester",
@@ -77,13 +80,6 @@ const marketingHostnames = parseHostnameList(
 );
 const primaryAppHost = appHostConfigs[0];
 
-function normalizeLocale(value?: string | null): Locale | null {
-  if (!value) return null;
-  if (supportedLocales.has(value as Locale)) return value as Locale;
-  const base = value.split("-")[0];
-  return supportedLocales.has(base as Locale) ? (base as Locale) : null;
-}
-
 function extractHostname(request: NextRequest): string {
   return cleanHostname(request.headers.get("host") ?? request.nextUrl.hostname);
 }
@@ -134,40 +130,6 @@ function rewriteWithState(
   });
 
   return rewritten;
-}
-
-/**
- * Get country code from request headers or IP geolocation
- * Supports both platform-specific headers (Vercel, Cloudflare, AWS) and IP-based detection
- */
-async function getRequestCountryCode(request: NextRequest): Promise<string | null> {
-  // First, try platform-specific headers (fast, no API call needed)
-  const headerCountry = 
-    request.headers.get("x-vercel-ip-country") ??
-    request.headers.get("cf-ipcountry") ??
-    request.headers.get("x-country-code") ??
-    request.headers.get("cloudfront-viewer-country") ??
-    request.headers.get("x-forwarded-country") ??
-    null;
-
-  if (headerCountry) {
-    console.log(`[i18n] Country from header: ${headerCountry}`);
-    return headerCountry;
-  }
-
-  // Fallback to IP-based geolocation (for self-hosted environments like Dokploy)
-  const clientIP = getClientIP(request.headers);
-  if (clientIP) {
-    console.log(`[i18n] Client IP: ${clientIP}`);
-    const country = await getCountryFromIP(clientIP);
-    if (country) {
-      console.log(`[i18n] Country from IP: ${country}`);
-      return country;
-    }
-  }
-
-  console.log("[i18n] No country detected");
-  return null;
 }
 
 function isEvalsPath(pathname: string) {
@@ -229,63 +191,57 @@ export async function proxy(request: NextRequest) {
 
   const treatAppRootAsAdmin = isAppHost && pathname === "/";
 
-  const response = NextResponse.next({ request });
-  const cookieLocale = normalizeLocale(request.cookies.get(LOCALE_COOKIE)?.value);
-  
-  // Get country code and language header
-  const countryCode = await getRequestCountryCode(request);
-  const acceptLanguage = request.headers.get("accept-language");
-  
-  console.log(`[i18n] Cookie locale: ${cookieLocale}, Country: ${countryCode}, Accept-Language: ${acceptLanguage}`);
-  
-  // Detect locale from all available sources
-  const detectedLocale = detectPreferredLocale({
-    header: acceptLanguage,
-    countryCode: countryCode,
+  // ---- Locale routing (public marketing host only) -----------------------
+  //
+  // Public pages live under `/{locale}/...`. A request without a locale prefix
+  // is redirected once to the negotiated locale; from then on the URL itself
+  // carries the language, so nothing downstream has to guess and every page
+  // has a single canonical address.
+  //
+  // Internal surfaces (`/admin`, `/auth`, the Operator Console, APIs and
+  // machine-readable files) are never prefixed and never redirected here —
+  // that separation is required by AGENTS.md.
+  if (!isAppHost && !treatAppRootAsAdmin && !isNonLocalizedPath(pathname)) {
+    // `/fr/blog` names a language we do not publish. Prefixing it would
+    // produce `/en/fr/blog`, so it is answered as a miss instead.
+    if (hasUnsupportedLocalePrefix(pathname)) {
+      return new NextResponse("Not Found", { status: 404 });
+    }
+
+    const { locale: pathLocale, pathname: barePathname } = splitLocale(pathname);
+
+    if (!pathLocale) {
+      const { locale } = negotiateLocale({
+        cookie: request.cookies.get(LOCALE_COOKIE)?.value,
+        acceptLanguage: request.headers.get("accept-language"),
+        countryCode: getCountryFromHeaders(request.headers),
+      });
+
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = localizePathname(barePathname, locale);
+      // 307 keeps the method and, unlike a 308, lets the negotiated target
+      // change later without being cached permanently by browsers.
+      const redirect = NextResponse.redirect(redirectUrl, 307);
+      // Negotiation varies on these, so shared caches must not reuse one
+      // visitor's redirect for another.
+      redirect.headers.set("vary", "accept-language, cookie");
+      return redirect;
+    }
+  }
+
+  // The root layout reads this back to label `<html lang>`, so the document
+  // language always matches the URL that served it.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(PATHNAME_HEADER, pathname);
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
   });
 
-  console.log(`[i18n] Detected locale: ${detectedLocale}`);
-
-  // Logic for setting/updating cookie:
-  // 1. If no cookie exists: set detected locale
-  // 2. If cookie exists but we detect Spain (ES): always override to Spanish (strongest signal)
-  // 3. If cookie exists and matches detected: do nothing
-  // 4. Otherwise: keep existing cookie (user preference)
-  
   if (isAppHost) {
     response.headers.set("cache-control", "private, no-store");
     response.headers.set("x-robots-tag", "noindex");
     response.headers.set("x-middleware-request-x-evals-surface", "1");
-  } else {
-    let shouldUpdateCookie = false;
-  let localeToSet = cookieLocale ?? detectedLocale;
-
-  if (!cookieLocale) {
-    // First visit: set detected locale
-    shouldUpdateCookie = true;
-    localeToSet = detectedLocale;
-    console.log(`[i18n] No cookie found, setting: ${localeToSet}`);
-  } else if (countryCode === "ES" && cookieLocale !== "es") {
-    // User is in Spain but cookie is not Spanish: override (strongest signal)
-    shouldUpdateCookie = true;
-    localeToSet = "es";
-    console.log(`[i18n] User in Spain, forcing Spanish`);
-  } else if (cookieLocale !== detectedLocale && countryCode) {
-    // Country changed and we have strong evidence
-    shouldUpdateCookie = true;
-    localeToSet = detectedLocale;
-    console.log(`[i18n] Country-based override: ${localeToSet}`);
-  }
-
-  if (shouldUpdateCookie) {
-    response.cookies.set(LOCALE_COOKIE, localeToSet, {
-      path: "/",
-      maxAge: LOCALE_COOKIE_MAX_AGE,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-    console.log(`[i18n] Cookie set to: ${localeToSet}`);
-  }
   }
 
   if (treatAppRootAsAdmin && !isRedirectResponse(response)) {

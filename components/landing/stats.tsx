@@ -1,52 +1,33 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
+
+/** Ordered ids; the copy for each lives in the message files. */
+const statIds = ["diagnostic", "cases", "session", "readout"] as const;
 
 export function StatsSection() {
-  const t = useTranslations();
-  const stats = [
-    {
-      value: "48 h",
-      label: "Initial Diagnostic",
-      description: "Forty questions to your public assistant, with the report two days later.",
-    },
-    {
-      value: "150–300",
-      label: "Cases in a pilot",
-      description: "Drawn from your documentation, real customer questions and our domain experts.",
-    },
-    {
-      value: "90 min",
-      label: "With our domain experts",
-      description: "One structured session defines what a correct answer is.",
-    },
-    {
-      value: "2 weeks",
-      label: "To a live readout",
-      description: "From kickoff to the report, presented to your team.",
-    },
-  ];
+  const t = useTranslations("stats");
 
   return (
     <section className="py-24 sm:py-32 bg-background">
       <div className="mx-auto max-w-5xl px-6 sm:px-8 lg:px-12">
         <div className="mb-20 text-center mx-auto max-w-3xl">
           <p className="text-[13px] font-bold text-teal-600 mb-4">
-            {t("What to expect")}
+            {t("eyebrow")}
           </p>
           <h2 className="text-4xl font-normal tracking-tight text-black sm:text-5xl text-balance">
-            {t("Small enough to start this month")}
+            {t("title")}
           </h2>
           <p className="text-base text-gray-500 mt-6 leading-relaxed text-balance">
-            {t("No platform to adopt. We do the work and hand you the evidence.")}
+            {t("subtitle")}
           </p>
         </div>
 
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, index) => (
+          {statIds.map((id, index) => (
             <motion.div
-              key={stat.label}
+              key={id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -54,13 +35,13 @@ export function StatsSection() {
               className="flex flex-col items-start"
             >
               <div className="text-4xl font-normal tracking-tight text-black sm:text-5xl mb-4 tabular-nums">
-                {t(stat.value)}
+                {t(`items.${id}.value`)}
               </div>
               <p className="text-sm font-bold text-black mb-2 uppercase tracking-wide">
-                {t(stat.label)}
+                {t(`items.${id}.label`)}
               </p>
               <p className="text-xs text-gray-500 leading-relaxed">
-                {t(stat.description)}
+                {t(`items.${id}.description`)}
               </p>
             </motion.div>
           ))}

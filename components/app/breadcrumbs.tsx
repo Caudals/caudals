@@ -3,12 +3,12 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { useBreadcrumbs } from "@/lib/navigation/use-breadcrumbs";
 
 export function Breadcrumbs() {
   const pathname = usePathname();
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const breadcrumbs = useBreadcrumbs(pathname);
 
   // Don't show breadcrumbs on mobile (< md)

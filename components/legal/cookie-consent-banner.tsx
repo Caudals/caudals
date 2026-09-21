@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
 import {
   getCookieConsent,
   setCookieConsent,
@@ -13,7 +13,7 @@ import {
 } from "@/lib/legal/cookie-consent";
 
 export function CookieConsentBanner() {
-  const t = useTranslations();
+  const t = useTranslations("cookies");
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -50,19 +50,17 @@ export function CookieConsentBanner() {
         >
           <div
             role="dialog"
-            aria-label={t("Cookie notice")}
+            aria-label={t("title")}
             className="mx-auto flex max-w-5xl flex-col gap-4 rounded-xl border border-black/[0.08] bg-background/95 p-5 shadow-[var(--ds-shadow-overlay)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6"
           >
             <p className="text-sm leading-relaxed text-gray-600">
-              {t(
-                "We use essential cookies to run this site and optional analytics to improve it.",
-              )}{" "}
-              {t("Read our")}{" "}
+              {t("body")}{" "}
+              {t("readOur")}{" "}
               <Link
                 href="/legal/cookies"
                 className="font-medium text-black underline decoration-1 underline-offset-4 hover:text-gray-700"
               >
-                {t("Cookie Policy")}
+                {t("policy")}
               </Link>
               .
             </p>
@@ -72,13 +70,13 @@ export function CookieConsentBanner() {
                 onClick={() => choose("rejected")}
                 className="rounded-md border border-black/[0.12] px-5 font-bold text-black hover:bg-black/5"
               >
-                {t("Decline")}
+                {t("decline")}
               </Button>
               <Button
                 onClick={() => choose("accepted")}
                 className="rounded-md bg-black px-5 font-bold text-white hover:bg-black/90"
               >
-                {t("Accept")}
+                {t("accept")}
               </Button>
             </div>
           </div>

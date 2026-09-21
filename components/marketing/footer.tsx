@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { publicNavigationLinks } from "@/lib/navigation/public-links";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useTranslations } from "@/lib/i18n/context";
+import { LocaleLink as Link } from "@/components/i18n/locale-link";
 
+/** Ids match `footer.legalLinks.*` in the message files. */
 const legalLinks = [
-  { href: "/legal/privacy", label: "Privacy Policy" },
-  { href: "/legal/terms", label: "Terms of Service" },
-  { href: "/legal/cookies", label: "Cookie Policy" },
-  { href: "/legal/notice", label: "Legal Notice" },
+  { href: "/legal/privacy", id: "privacy" },
+  { href: "/legal/terms", id: "terms" },
+  { href: "/legal/cookies", id: "cookies" },
+  { href: "/legal/notice", id: "notice" },
 ] as const;
 
 const getAskAiLinks = (prompt: string) => {
@@ -49,11 +50,10 @@ const getAskAiLinks = (prompt: string) => {
 };
 
 export function MarketingFooter() {
-  const t = useTranslations();
+  const t = useTranslations("footer");
+  const tNav = useTranslations("nav");
 
-  const aiPrompt = t(
-    "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
-  );
+  const aiPrompt = t("askAiPrompt");
   const aiLinks = getAskAiLinks(aiPrompt);
 
   return (
@@ -62,10 +62,10 @@ export function MarketingFooter() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <p className="mb-4 text-lg font-semibold text-slate-900">
-              {t("Caudals")}
+              {t("brand")}
             </p>
             <p className="text-sm text-slate-500">
-              {t("Independent evaluation for AI assistants, with answer keys signed off by domain experts.")}
+              {t("tagline")}
             </p>
             <Link
               href="mailto:hello@caudals.com"
@@ -76,7 +76,7 @@ export function MarketingFooter() {
 
             <div className="mt-8">
               <p className="mb-3 text-sm font-semibold text-slate-900">
-                {t("Ask AI about Caudals")}
+                {t("askAi")}
               </p>
               <div className="flex flex-wrap items-center gap-2.5">
                 {aiLinks.map((item) => (
@@ -86,7 +86,7 @@ export function MarketingFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`group flex h-[46px] w-[46px] items-center justify-center rounded-[14px] transition-transform duration-200 hover:scale-105 active:scale-95 ${item.bgClass}`}
-                    title={`${t("Ask AI about Caudals")} en ${item.name}`}
+                    title={`${t("askAi")} en ${item.name}`}
                   >
                     <span className="sr-only">{item.name}</span>
                     <Image
@@ -102,32 +102,32 @@ export function MarketingFooter() {
           </div>
           <div>
             <p className="mb-4 text-sm font-semibold text-slate-900">
-              {t("Explore")}
+              {t("explore")}
             </p>
             <ul className="space-y-2 text-sm text-slate-500">
               {publicNavigationLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="hover:text-black">
-                    {t(link.label)}
+                    {tNav(link.labelKey)}
                   </Link>
                 </li>
               ))}
               <li>
                 <Link href="/call" className="hover:text-black">
-                  {t("Book a meeting")}
+                  {t("bookMeeting")}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
             <p className="mb-4 text-sm font-semibold text-slate-900">
-              {t("Legal")}
+              {t("legalHeading")}
             </p>
             <ul className="space-y-2 text-sm text-slate-500">
               {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="hover:text-black">
-                    {t(link.label)}
+                    {t(`legalLinks.${link.id}.label`)}
                   </Link>
                 </li>
               ))}
@@ -137,9 +137,7 @@ export function MarketingFooter() {
 
         <div className="flex flex-col items-center justify-between gap-4 border-t border-black/[0.08] pt-8 sm:flex-row">
           <p className="text-sm text-slate-500">
-            {t("© {{year}} Caudals. All rights reserved.", {
-              year: new Date().getFullYear(),
-            })}
+            {t("rights", { year: new Date().getFullYear() })}
           </p>
           <div className="flex gap-6">
             <Link
@@ -148,7 +146,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">{t("X")}</span>
+              <span className="sr-only">{t("x")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"
@@ -163,7 +161,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">{t("GitHub")}</span>
+              <span className="sr-only">{t("github")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"
@@ -182,7 +180,7 @@ export function MarketingFooter() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="sr-only">{t("LinkedIn")}</span>
+              <span className="sr-only">{t("linkedin")}</span>
               <svg
                 className="h-5 w-5"
                 fill="currentColor"

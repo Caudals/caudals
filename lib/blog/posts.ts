@@ -7,7 +7,6 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/components/blog/mdx-components";
 import { defaultLocale, type Locale, locales } from "@/lib/i18n/config";
-import { getRequestLocale } from "@/lib/i18n/server";
 import {
   estimateReadTimeMinutes,
   normalizeTopicKey,
@@ -85,7 +84,8 @@ function parseFrontmatter(data: Record<string, unknown>, slug: string): BlogFron
   };
 }
 
-async function directoryExists(targetPath: string) {
+/** True when the path is readable, whether it is a file or a directory. */
+async function pathExists(targetPath: string) {
   try {
     await fs.access(targetPath);
     return true;
@@ -96,13 +96,13 @@ async function directoryExists(targetPath: string) {
 
 async function getLocaleDirectory(locale: Locale) {
   const targetDirectory = path.join(BLOG_CONTENT_ROOT, locale);
-  const exists = await directoryExists(targetDirectory);
+  const exists = await pathExists(targetDirectory);
   if (exists) {
     return targetDirectory;
   }
 
   const fallbackDirectory = path.join(BLOG_CONTENT_ROOT, defaultLocale);
-  return (await directoryExists(fallbackDirectory)) ? fallbackDirectory : null;
+  return (await pathExists(fallbackDirectory)) ? fallbackDirectory : null;
 }
 
 async function getSlugsForLocale(locale: Locale) {
@@ -120,12 +120,12 @@ async function getSlugsForLocale(locale: Locale) {
 
 async function getFilePathForSlug(locale: Locale, slug: string) {
   const preferredPath = path.join(BLOG_CONTENT_ROOT, locale, `${slug}${BLOG_FILE_EXTENSION}`);
-  if (await directoryExists(preferredPath)) {
+  if (await pathExists(preferredPath)) {
     return preferredPath;
   }
 
   const fallbackPath = path.join(BLOG_CONTENT_ROOT, defaultLocale, `${slug}${BLOG_FILE_EXTENSION}`);
-  if (await directoryExists(fallbackPath)) {
+  if (await pathExists(fallbackPath)) {
     return fallbackPath;
   }
 
@@ -254,8 +254,8 @@ async function compileRemotePost(post: PublishedBlogArticle, locale: Locale): Pr
   }
 }
 
-export async function getBlogPosts(locale?: Locale) {
-  const resolvedLocale = locale ?? (await getRequestLocale());
+export async function getBlogPosts(locale: Locale) {
+  const resolvedLocale = locale;
   const primarySlugs = await getSlugsForLocale(resolvedLocale);
   const fallbackSlugs =
     resolvedLocale === defaultLocale ? [] : await getSlugsForLocale(defaultLocale);
@@ -290,8 +290,8 @@ export async function getBlogPosts(locale?: Locale) {
     .sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
 }
 
-export async function getBlogPost(slug: string, locale?: Locale) {
-  const resolvedLocale = locale ?? (await getRequestLocale());
+export async function getBlogPost(slug: string, locale: Locale) {
+  const resolvedLocale = locale;
   const published = await getPublishedBlogPost(slug, resolvedLocale);
   if (published) {
     const compiled = await compileRemotePost(published, resolvedLocale);
@@ -334,7 +334,7 @@ export async function getBlogPost(slug: string, locale?: Locale) {
   }
 }
 
-export async function getAdjacentBlogPosts(slug: string, locale?: Locale) {
+export async function getAdjacentBlogPosts(slug: string, locale: Locale) {
   const posts = await getBlogPosts(locale);
   const index = posts.findIndex((post) => post.slug === slug);
 

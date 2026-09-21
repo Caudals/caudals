@@ -15,7 +15,8 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
-import { useTranslations } from "@/lib/i18n/use-translations"
+import { useOptionalTranslator } from "@/lib/i18n/context"
+import type { MessageKey } from "@/lib/i18n/messages"
 
 const Form = FormProvider
 
@@ -138,10 +139,15 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField()
-  const t = useTranslations()
+  // Public forms emit message keys from their zod schemas; internal forms
+  // (which render outside any LocaleProvider) emit plain English sentences.
+  // `useOptionalTranslator` returns null there, so those pass through as-is.
+  const translate = useOptionalTranslator()
   const rawBody = error ? String(error?.message ?? "") : props.children
   const body =
-    typeof rawBody === "string" && rawBody.length > 0 ? t(rawBody) : rawBody
+    typeof rawBody === "string" && rawBody.length > 0 && translate
+      ? translate(rawBody as MessageKey)
+      : rawBody
 
   if (!body) {
     return null

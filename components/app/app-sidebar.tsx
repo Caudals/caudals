@@ -22,7 +22,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/provider";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import {
   Sidebar,
   SidebarContent,
@@ -179,7 +179,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { state } = useSidebar();
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const isCollapsed = state === "collapsed";
 
   if (loading || !userRole) {

@@ -11,7 +11,7 @@ import {
   type OperatorRecordNote,
 } from "@/lib/actions/operator-record-note-actions";
 import type { OperatorModuleKey } from "@/lib/operator/console-snapshot";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ export function OperatorRecordNotes({
   targetType,
   targetId,
 }: OperatorRecordNotesProps) {
-  const t = useTranslations();
+  const t = useInternalTranslations();
   const [loaded, setLoaded] = useState(false);
   const [notes, setNotes] = useState<OperatorRecordNote[]>([]);
   const [body, setBody] = useState("");

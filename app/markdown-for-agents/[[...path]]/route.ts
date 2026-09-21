@@ -1,4 +1,5 @@
-import { getRequestLocale } from "@/lib/i18n/server";
+import { defaultLocale, type Locale } from "@/lib/i18n/config";
+import { splitLocale } from "@/lib/i18n/routing";
 import { markdownHeaders } from "@/lib/markdown/negotiation";
 import { isStaticMarkdownPage, renderStaticPageMarkdown } from "@/lib/markdown/pages";
 import {
@@ -14,17 +15,20 @@ export const runtime = "nodejs";
 export const revalidate = 3600;
 
 /** Resolves a marketing pathname to its markdown body, or null if unsupported. */
-async function renderForPath(pathname: string): Promise<string | null> {
+async function renderForPath(
+  pathname: string,
+  locale: Locale,
+): Promise<string | null> {
   if (isStaticMarkdownPage(pathname)) {
-    return renderStaticPageMarkdown(pathname);
+    return renderStaticPageMarkdown(pathname, locale);
   }
 
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments[0] === "blog") {
-    if (segments.length === 1) return renderBlogIndexMarkdown(await getRequestLocale());
+    if (segments.length === 1) return renderBlogIndexMarkdown(locale);
     if (segments.length === 2) {
-      return renderBlogPostMarkdown(segments[1], await getRequestLocale());
+      return renderBlogPostMarkdown(segments[1], locale);
     }
     return null;
   }
@@ -43,11 +47,15 @@ export async function GET(
   { params }: { params: Promise<{ path?: string[] }> },
 ) {
   const { path } = await params;
-  const pathname = `/${(path ?? []).join("/")}`.replace(/\/+$/, "") || "/";
+  const requestedPath = `/${(path ?? []).join("/")}`.replace(/\/+$/, "") || "/";
+  // The locale comes from the URL, exactly as it does for the HTML pages, so an
+  // agent asking for `/es/blog` as markdown gets the Spanish text.
+  const { locale: pathLocale, pathname } = splitLocale(requestedPath);
+  const locale = pathLocale ?? defaultLocale;
 
   let body: string | null = null;
   try {
-    body = await renderForPath(pathname);
+    body = await renderForPath(pathname, locale);
   } catch (error) {
     console.error(`[Markdown] Failed to render "${pathname}":`, error);
     // Fall through to the HTML-is-authoritative response below rather than

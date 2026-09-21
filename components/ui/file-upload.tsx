@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "./button";
 import { Upload, X, File } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import { useInternalTranslations } from "@/lib/i18n/internal";
 
 interface FileUploadProps {
   accept?: string;
@@ -24,7 +24,7 @@ export function FileUpload({
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const t = useTranslations();
+  const t = useInternalTranslations();
 
   const handleFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;

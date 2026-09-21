@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
@@ -15,18 +14,23 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { publicNavigationLinks } from "@/lib/navigation/public-links";
-import { useTranslations } from "@/lib/i18n/use-translations";
+import {
+  publicNavigationLinks,
+  type PublicNavigationLink,
+} from "@/lib/navigation/public-links";
+import { useTranslations } from "@/lib/i18n/context";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { LocaleLink as Link } from "@/components/i18n/locale-link";
 
 interface HeaderProps {
-  links?: Array<{ label: string; href: string }>;
+  links?: readonly PublicNavigationLink[];
   translucent?: boolean;
 }
 
 const REQUEST_ACCESS_CTA = "/contact";
 
 export function Header({ links, translucent = false }: HeaderProps) {
-  const t = useTranslations();
+  const t = useTranslations("nav");
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -52,35 +56,36 @@ export function Header({ links, translucent = false }: HeaderProps) {
         <Link href="/" className="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-90">
           <Image
             src="/caudals_logo_black.svg"
-            alt={t("Caudals logo")}
+            alt={t("logoAlt")}
             width={28}
             height={28}
             className="h-7 w-7"
             priority
           />
           <span className="text-xl font-medium tracking-tight text-black">
-            {t("Caudals")}
+            {t("brand")}
           </span>
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.map(({ href, label }) => (
+          {navLinks.map(({ href, labelKey }) => (
             <Link
               key={href}
               href={href}
               className="text-[14px] font-medium text-gray-600 transition-colors hover:text-black"
             >
-              {t(label)}
+              {t(labelKey)}
             </Link>
           ))}
+          <LanguageSwitcher />
           <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-            <Link href={REQUEST_ACCESS_CTA}>{t("Get started")}</Link>
+            <Link href={REQUEST_ACCESS_CTA}>{t("getStarted")}</Link>
           </Button>
         </nav>
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-auto md:hidden text-black hover:bg-black/5">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">{t("Toggle menu")}</span>
+              <span className="sr-only">{t("toggleMenu")}</span>
             </Button>
           </SheetTrigger>
           <SheetContent
@@ -89,37 +94,38 @@ export function Header({ links, translucent = false }: HeaderProps) {
           >
             <div className="flex h-full flex-col">
               <SheetHeader className="border-b border-black/[0.08] px-6 pb-5 pt-6">
-                <SheetTitle className="sr-only">{t("Caudals")}</SheetTitle>
+                <SheetTitle className="sr-only">{t("brand")}</SheetTitle>
                 <Link href="/" className="flex items-center gap-2">
                   <Image
                     src="/caudals_logo_black.svg"
-                    alt={t("Caudals logo")}
+                    alt={t("logoAlt")}
                     width={24}
                     height={24}
                     className="h-6 w-6"
                     priority
                   />
-                  <span className="text-lg font-bold text-black">{t("Caudals")}</span>
+                  <span className="text-lg font-bold text-black">{t("brand")}</span>
                 </Link>
               </SheetHeader>
 
               <ScrollArea className="flex-1 px-6">
                 <div className="flex flex-col gap-6 py-8">
-                  {navLinks.map(({ href, label }) => (
+                  {navLinks.map(({ href, labelKey }) => (
                     <SheetClose asChild key={href}>
                       <Link
                         href={href}
                         className="text-lg font-bold text-gray-600 hover:text-black"
                       >
-                        {t(label)}
+                        {t(labelKey)}
                       </Link>
                     </SheetClose>
                   ))}
                   <SheetClose asChild>
                     <Button size="sm" asChild className="w-full rounded-md bg-black text-white hover:bg-black/90">
-                      <Link href={REQUEST_ACCESS_CTA}>{t("Get started")}</Link>
+                      <Link href={REQUEST_ACCESS_CTA}>{t("getStarted")}</Link>
                     </Button>
                   </SheetClose>
+                  <LanguageSwitcher className="pt-2 text-base" />
                 </div>
               </ScrollArea>
             </div>
