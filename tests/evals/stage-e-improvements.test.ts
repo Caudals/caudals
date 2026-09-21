@@ -7,6 +7,7 @@ import {
   validateReleaseCandidates,
   verifyDatasetArtifact,
 } from "../../lib/evals/improvements/release";
+import { compareImprovementRuns } from "../../lib/evals/improvements/validation";
 
 const ids = {
   project: "00000000-0000-4000-8000-000000000201",
@@ -122,5 +123,22 @@ describe("WP-15 signed improvement dataset releases", () => {
       lines[0] = JSON.stringify(manifest); changed = Buffer.from(lines.join("\n") + "\n");
     }
     expect(() => verifyDatasetArtifact(changed, publicKey)).toThrow();
+  });
+
+  it("reports training, validation and holdout separately with an observational limitation", () => {
+    const result = compareImprovementRuns({
+      baseline: { train: "fail", validate: "partial", hold: "fail" },
+      followup: { train: "pass", validate: "pass", hold: "partial" },
+      cases: [
+        { revisionId: "train", familyId: "family-train", split: "training" },
+        { revisionId: "validate", familyId: "family-validate", split: "validation" },
+        { revisionId: "hold", familyId: "family-hold", split: "holdout" },
+      ],
+    });
+    expect(result.training.delta).toBe(1);
+    expect(result.validation.delta).toBe(0.5);
+    expect(result.holdout.delta).toBe(0.5);
+    expect(result.causality).toBe("observational_after_recorded_intervention");
+    expect(result.limitations.join(" ")).toMatch(/does not prove causality/i);
   });
 });
