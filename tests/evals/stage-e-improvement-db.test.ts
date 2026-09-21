@@ -12,12 +12,13 @@ import { verifyDatasetArtifact } from "../../lib/evals/improvements/release";
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const hash = "a".repeat(64);
+const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpperCase()}`;
 
 (runtimeUrl && ownerUrl ? describe : describe.skip)("WP-15 improvement lineage PostgreSQL path", () => {
   const owner = new Pool({ connectionString: ownerUrl, max: 1 });
-  const operator = `operator-${randomUUID()}`;
-  const expertA = `expert-a-${randomUUID()}`;
-  const expertB = `expert-b-${randomUUID()}`;
+  const operator = authId();
+  const expertA = authId();
+  const expertB = authId();
   const orgA = randomUUID(); const orgB = randomUUID();
   const projectA = randomUUID(); const projectB = randomUUID();
   const profileA = randomUUID(); const profileB = randomUUID();

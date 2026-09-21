@@ -1,6 +1,6 @@
 # Evaluation product implementation
 
-The user authorized Stages A–C (WP-00–11) of `../product-specs/evals-platform-implementation-spec.md`. That specification controls the new evaluation product; the old three-paid-pilot prerequisite and old `/e`/`proof` architecture do not block this work.
+The user authorized Stages A–E (WP-00–15) of `../product-specs/evals-platform-implementation-spec.md`. That specification controls the new evaluation product; the old three-paid-pilot prerequisite and old `/e`/`proof` architecture do not block this work. Stage E is feature-gated and does not authorize an open expert marketplace, automated payouts or fine-tuning execution.
 
 Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and separate workers. Evaluation UI is English using its own catalog; public marketing localization and `/admin` remain separate. No legacy marketplace or frozen infrastructure dependency. Stage C remains invite-only: do not enable broad registration.
 
@@ -10,4 +10,6 @@ The browser worker is a separate service and queue with a dedicated database rol
 
 Multi-turn and tool cases use frozen scenario graphs and simulated deterministic fixtures. Model output never grants network, filesystem, secret, publication or spend authority. Customer run creation is bounded by server-side workspace entitlements; runtime users cannot raise them.
 
-Develop in an isolated VPS worktree, disposable DB/storage and loopback preview. Production deployment is a separate operation. Keep migrations additive with forward-repair rollback guidance. Tests must establish tenant isolation and failure recovery, not merely successful rendering. Current status and remaining live release evidence are in `work-packages/WP-08.md` through `WP-13.md`.
+Develop in an isolated VPS worktree, disposable DB/storage and loopback preview. Production deployment is a separate operation. Keep migrations additive with forward-repair rollback guidance. Tests must establish tenant isolation and failure recovery, not merely successful rendering. Current status and remaining live release evidence are in `work-packages/WP-08.md` through `WP-15.md`.
+
+Stage E expert routes derive access from the assigned expert profile and expose only immutable redacted snapshots. Operators retain workspace-manage checks. Improvement releases require independent approval, rights/redaction clearance, family-aware split checks and server-only Ed25519 signing. Validation reports training, validation and held-out evidence separately and never implies that an observed before/after change proves causality. Current Stage E handoffs are `work-packages/WP-14.md` and `WP-15.md`.

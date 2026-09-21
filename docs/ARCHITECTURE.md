@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production remains a public marketing and demand-capture site plus the private Operator Console. An invite-only evaluation product is implemented in this repository but has not passed its production release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-13.md`.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production remains a public marketing and demand-capture site plus the private Operator Console. An invite-only evaluation product is implemented in this repository but has not passed all production release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-15.md`.
 
 Current production scope:
 
@@ -38,13 +38,13 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - `app/(buyer)/*`, `app/(supplier)/*`, `lib/buyer/*`, `lib/supplier/*`, `lib/api/v1.ts`: legacy direct-route surfaces (frozen)
 - `lib/cli/*`, `scripts/caudals.ts`, `bin/caudals.mjs`: legacy operations CLI (frozen)
 - `db/migrations/*` and `db/rollbacks/*`: PostgreSQL schema history; every migration ships a rollback
-- Planned: `app/(eval)/*`, `app/(app)/admin/eval/*`, `lib/eval/*`
+- `app/(evaluation)/*`, `app/api/evals/v1/*`, `lib/evals/*`: invite-only evaluation, expert-review and improvement-dataset product
 
 Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`, which only the frozen `/v1` brief intake still creates. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
 
-## Evaluation Product Implementation (not yet released)
+## Evaluation Product Implementation (feature-gated)
 
-The current evaluation implementation uses `app/(evaluation)` for separate `/ops` and `/workspace` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, `evals` PostgreSQL tables from migrations 031–042, and separate general, document, and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the browser worker is disabled by default and still needs a policy-enforced deployment egress boundary and authorized real-widget evidence. Stage D adds a customer-side outbound private runner and a gated schedule loop in the general worker. The loop creates at most one latest missed dispatch, compares frozen runs with coverage guards, and separately retries signed HTTPS webhook delivery. See `evals/work-packages/WP-09.md`–`WP-13.md` for precise status and remaining release checks.
+The current evaluation implementation uses `app/(evaluation)` for separate `/ops`, `/workspace` and assignment-scoped `/review` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, `evals` PostgreSQL tables from migrations 031–044, and separate general, document, and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the browser worker is disabled by default and still needs a policy-enforced deployment egress boundary and authorized real-widget evidence. Stage D adds a customer-side outbound private runner and a gated schedule loop in the general worker. Stage E adds redacted expert assignments, immutable submissions/reviews and privately delivered signed improvement datasets with family-aware splits and observational follow-up evidence. Stage E is disabled unless `EVALS_EXPERT_WORK_ENABLED=true` and the migration, role, trigger and Ed25519 release checks pass. See `evals/work-packages/WP-09.md`–`WP-15.md` for precise status and remaining release checks.
 
 ## Earlier Evaluation Architecture Sketch (superseded)
 
@@ -263,13 +263,13 @@ Current:
   supplier assets, dataset-build operations, labelling batches, release
   documentation, delivery and subscription records
 
-Planned evaluation and dataset domains:
+Evaluation and dataset domains:
 
 - projects and targets
 - versioned cases and sector-generic case libraries
 - runs and immutable results, human reviews
 - findings and reports
-- freelance experts, tasks, item reviews and QA metrics for custom datasets
+- freelance experts, scoped tasks, immutable item reviews and sample-aware QA metrics for custom datasets
 - customer uploads, run archives, golden-set exports and custom datasets in object storage
 
 ## Security and Reliability Anchors

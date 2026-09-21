@@ -18,12 +18,13 @@ import {
 
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
+const authId = () => `au_${randomUUID().replaceAll("-", "").slice(0, 26).toUpperCase()}`;
 
 (runtimeUrl && ownerUrl ? describe : describe.skip)("WP-14 expert PostgreSQL path", () => {
   const owner = new Pool({ connectionString: ownerUrl, max: 1 });
-  const operatorId = `operator-${randomUUID()}`;
-  const expertAUserId = `expert-a-${randomUUID()}`;
-  const expertBUserId = `expert-b-${randomUUID()}`;
+  const operatorId = authId();
+  const expertAUserId = authId();
+  const expertBUserId = authId();
   const orgA = randomUUID();
   const orgB = randomUUID();
   const projectA = randomUUID();

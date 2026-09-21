@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "evals:release-check-stage-e": "tsx scripts/evals/release-check-stage-e.ts",
     "blog:preflight": "tsx scripts/preflight-blog.ts",
     "remotion:studio": "remotion studio remotion/index.ts",
     "remotion:compositions": "remotion compositions remotion/index.ts",

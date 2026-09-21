@@ -31,6 +31,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 | `docs/TOOLS.md` | operational tooling and setup runbook | tooling workflows, setup, or troubleshooting changes |
 | `docs/evals/work-packages/WP-09.md`–`WP-11.md` | Stage C implementation and evidence still required | website, scenario/tool, or customer self-service contract changes |
 | `docs/evals/work-packages/WP-12.md`–`WP-13.md` | Stage D private runner and monitoring status | runner, schedule, webhook, token, alert or CRM draft changes |
+| `docs/evals/work-packages/WP-14.md`–`WP-15.md` | Stage E expert work and improvement dataset release status | expert assignment, QA, dataset release, signing or follow-up validation changes |
 
 ## Governance Canon
 `docs/product-specs/overview.md` is the canonical product direction; supporting docs align to it. Marketplace, supplier-portal, catalogue and non-text modality work is out of scope and must not be reintroduced as current direction.
