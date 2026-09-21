@@ -36,7 +36,6 @@ describe("seo helpers", () => {
     expect(getIndexableMarketingRoutes().map((route) => route.pathname)).toEqual(
       [
         "/",
-        "/blog",
         "/call",
         "/contact",
         "/legal/cookies",

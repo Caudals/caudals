@@ -166,6 +166,16 @@ export async function proxy(request: NextRequest) {
     return redirectAnonymousAdminRequest(request);
   }
 
+  // Blog is temporarily hidden: redirect any blog requests to home (307 Temporary Redirect).
+  if (!isAppHost) {
+    const { locale: blogPathLocale, pathname: blogBarePathname } = splitLocale(pathname);
+    if (blogBarePathname === "/blog" || blogBarePathname.startsWith("/blog/")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = blogPathLocale ? `/${blogPathLocale}` : "/";
+      return NextResponse.redirect(redirectUrl, 307);
+    }
+  }
+
   // Content negotiation for agents: a request that explicitly prefers
   // `text/markdown` is rewritten to the markdown renderer. This sits after the
   // 404 and authentication gates above so markdown cannot reach a surface that

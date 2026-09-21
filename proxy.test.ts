@@ -71,13 +71,25 @@ describe("proxy locale routing", () => {
 
   it("redirects an unprefixed public path to the negotiated locale", async () => {
     const response = await proxy(
-      marketingRequest("/blog", { "accept-language": "es-ES,es;q=0.9" }),
+      marketingRequest("/newsletter", { "accept-language": "es-ES,es;q=0.9" }),
     );
 
     expect(response.status).toBe(307);
     expect(new URL(response.headers.get("location") ?? "").pathname).toBe(
-      "/es/blog",
+      "/es/newsletter",
     );
+  });
+
+  it("temporarily redirects blog requests to the home page", async () => {
+    const response = await proxy(marketingRequest("/blog"));
+    expect(response.status).toBe(307);
+    expect(new URL(response.headers.get("location") ?? "").pathname).toBe("/");
+
+    const localizedResponse = await proxy(marketingRequest("/es/blog"));
+    expect(localizedResponse.status).toBe(307);
+    expect(
+      new URL(localizedResponse.headers.get("location") ?? "").pathname,
+    ).toBe("/es");
   });
 
   it("varies the redirect so shared caches do not mix visitors", async () => {
@@ -101,7 +113,7 @@ describe("proxy locale routing", () => {
   });
 
   it("serves a path that already carries a locale without redirecting", async () => {
-    const response = await proxy(marketingRequest("/es/blog"));
+    const response = await proxy(marketingRequest("/es/newsletter"));
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });

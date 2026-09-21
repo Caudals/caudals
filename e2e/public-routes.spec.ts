@@ -5,7 +5,8 @@ import { expect, test } from "@playwright/test";
  * path is redirected once to the negotiated locale.
  */
 const publicRoutes = [
-  { path: "/blog", heading: /^blog$/i },
+  // Temporarily hidden:
+  // { path: "/blog", heading: /^blog$/i },
   { path: "/contact", heading: /request an evaluation/i },
   { path: "/legal/privacy", heading: /privacy policy/i },
   { path: "/legal/terms", heading: /terms of service/i },
@@ -153,10 +154,7 @@ test.describe("public navigation", () => {
       "href",
       "/es/contact",
     );
-    await expect(nav.getByRole("link", { name: "Blog" })).toHaveAttribute(
-      "href",
-      "/es/blog",
-    );
+    await expect(nav.getByRole("link", { name: "Blog" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Newsletter" })).toHaveAttribute(
       "href",
       "/es/newsletter",

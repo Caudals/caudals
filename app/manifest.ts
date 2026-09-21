@@ -40,11 +40,6 @@ export default function manifest(): MetadataRoute.Manifest {
         url: "/contact",
         description: "Solicita un Diagnóstico inicial gratuito o una evaluación de tu asistente de IA",
       },
-      {
-        name: "Leer el blog",
-        url: "/blog",
-        description: "Notas sobre cómo evaluar sistemas de IA y los datos que los hacen fiables",
-      },
     ],
   };
 }

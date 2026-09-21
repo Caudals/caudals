@@ -69,7 +69,8 @@ export type IndexableMarketingRoute = {
 
 const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/", changeFrequency: "weekly", priority: 1 },
-  { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
+  // Temporarily hidden:
+  // { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/legal/cookies", changeFrequency: "yearly", priority: 0.3 },
