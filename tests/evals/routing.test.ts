@@ -21,6 +21,8 @@ describe('evaluation host isolation',()=>{
  it('rejects external, backslash and removed-surface redirects',()=>{
   for(const path of ['//evil.test','/\\evil.test','https://evil.test','/buyer','/ops\nX:test'])expect(safeRedirectPath(path)).toBe('/evaluation-entry');
   expect(safeRedirectPath('/workspace/evaluations?orgId=abc')).toBe('/workspace/evaluations?orgId=abc');
+  expect(safeRedirectPath('/review/assignments/00000000-0000-4000-8000-000000000101')).toBe('/review/assignments/00000000-0000-4000-8000-000000000101');
+  expect(safeRedirectPath('//evil.test/review/assignments/00000000-0000-4000-8000-000000000101')).toBe('/evaluation-entry');
  });
 });
 

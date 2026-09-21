@@ -18,6 +18,6 @@ export function isEvaluationPath(path: string) {
 export function safeRedirectPath(value: string | null, fallback='/evaluation-entry') {
   if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\r\n\x00]/.test(value)) return fallback;
   const parsed=new URL(value,'https://app.caudals.com');
-  if (parsed.origin!=='https://app.caudals.com' || !(['/admin','/auth','/ops','/workspace','/evaluation-entry'].some(x=>parsed.pathname===x||parsed.pathname.startsWith(`${x}/`)))) return fallback;
+  if (parsed.origin!=='https://app.caudals.com' || !(['/admin','/auth','/ops','/workspace','/review','/evaluation-entry'].some(x=>parsed.pathname===x||parsed.pathname.startsWith(`${x}/`)))) return fallback;
   return parsed.pathname+parsed.search;
 }
