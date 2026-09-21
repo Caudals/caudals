@@ -124,7 +124,7 @@ async function upload(config,opts) {
 async function main() {
   const [command,...args]=process.argv.slice(2),opts=options(args);
   if(command==='pair')return pair(opts);
-  if(command==='logout'){await saveJson(configPath,{});process.stdout.write('Local runner credentials removed.\n');return;}
+  if(command==='logout'){await unlink(configPath).catch(error=>{if(error?.code!=='ENOENT')throw error;});process.stdout.write('Local runner credentials removed.\n');return;}
   const config=await readJson(configPath);
   if(command==='doctor')return doctor(config);
   if(command==='fetch')return fetchJob(config,opts);

@@ -769,3 +769,37 @@ test("invitation query tokens are not read into client state", async ({
     page.getByRole("button", { name: "Accept invitation", exact: true }),
   ).toBeDisabled();
 });
+
+test("workspace owner creates a pinned monitoring schedule", async ({ page }) => {
+  const evaluationId = "00000000-0000-4000-8000-000000000080";
+  const targetRevisionId = "00000000-0000-4000-8000-000000000081";
+  const suiteVersionId = "00000000-0000-4000-8000-000000000082";
+  let created: Record<string, unknown> | null = null;
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/workspace/summary"))
+      return route.fulfill({ json: { data: {
+        evaluations: [{ id: evaluationId, title: "Support monitor", project_id: "project-1", project_title: "Support", project_description: "", latest_source_id: null, latest_source_revision_id: null, preparation_status: "ready", reason_code: null, selected_suite_version_id: suiteVersionId, commercial_cap: "25", currency: "EUR", latest_run_id: null, latest_run_status: null, latest_run_phase: null }],
+        systems: [{ id: "target-1", project_id: "project-1", title: "Support API", target_revision_id: targetRevisionId, document: { kind: "https_json" }, connection_status: "ready", runner_status: null, runner_id: null, error_code: null }],
+        reports: [], entitlement: { max_active_runs: 2, monthly_spend_limit: "200", currency: "EUR", allowed_connection_types: ["https_json"], can_export: true, can_schedule: true },
+        usage: { settled: "0", outstanding: "0" }, preferences: { completion: true, required_input: true, failure: true, email: false },
+      }, meta: {} } });
+    if (path.endsWith("/schedules") && request.method() === "POST") {
+      expect(request.headers()["idempotency-key"]).toMatch(/^[a-f0-9-]{36}$/);
+      created = request.postDataJSON();
+      return route.fulfill({ json: { data: { id: "schedule-1" }, meta: {} } });
+    }
+    if (path.endsWith("/schedules") || path.endsWith("/alerts") || path.endsWith("/webhooks") || path.endsWith("/tokens"))
+      return route.fulfill({ json: { data: [], meta: {} } });
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
+  });
+  await page.goto(`/workspace/settings?owner=1`);
+  await expect(page.getByRole("heading", { name: "Scheduled monitoring" })).toBeVisible();
+  await page.getByLabel("Cadence").selectOption("monthly");
+  await page.getByLabel("Day of month (1–31)").fill("31");
+  await page.getByLabel("IANA timezone").fill("Europe/Madrid");
+  await page.getByRole("button", { name: "Create schedule" }).click();
+  await expect(page.getByRole("status")).toHaveText("Schedule created.");
+  expect(created).toMatchObject({ orgId: id, evaluationId, targetRevisionId, suiteVersionId, cadence: "monthly", dayOfMonth: 31, timezone: "Europe/Madrid", maxRunSpend: "25", currency: "EUR" });
+});

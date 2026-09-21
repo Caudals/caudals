@@ -19,6 +19,7 @@ export function classifyMonitoringOutcome(input:{baseline:RunEvidence|null;candi
   if(!comparison||!comparison.compatible||comparison.status==="incompatible")
     return {status:"inconclusive" as const,reasons:comparison?.reasons.length?comparison.reasons:["incomparable"]};
   if(!comparison.common.length||comparison.unassessed>0)return {status:"inconclusive" as const,reasons:["paired_coverage_inadequate"]};
+  if(comparison.status==="inconclusive")return {status:"inconclusive" as const,reasons:["mixed_change"]};
   return comparison.regressed>0?{status:"regression" as const,reasons:["paired_case_regressed"]}:
     {status:"pass" as const,reasons:[]};
 }

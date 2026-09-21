@@ -6,7 +6,7 @@ import { fixture } from './worker-fixture';
 import { createBoss,dispatchOutbox,startBoss,type JobData } from '../../lib/evals/queue/boss';
 import { InvocationWorker } from '../../lib/evals/queue/worker';
 
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('pg-boss 10.3.3 durable integration',()=>{
+describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('pg-boss 12.33.1 durable integration',()=>{
  it('uses a queue-only owner, survives restart, and consumes actual duplicate deliveries once',async()=>{
   const f=await fixture();const role=`evals_q_${randomUUID().replaceAll('-','')}`,password=randomBytes(24).toString('hex');
   const admin=new Pool({connectionString:process.env.EVALS_TEST_DATABASE_URL,max:1});let boss:PgBoss|undefined;let queuePool:Pool|undefined;

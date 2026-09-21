@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
 import { candidateInputSchema } from "../../lib/evals/contracts/projections";
-import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerResultSchema, runnerUploadSchema,
+import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerCompletionStatus, runnerResultSchema, runnerUploadSchema,
   signPayload, tokenHash, tokenMatches, validateSignedBundle, verifyPayload } from "../../lib/evals/private-runner/protocol";
 
 const id=(digit:string)=>`${digit.repeat(8)}-${digit.repeat(4)}-4${digit.repeat(3)}-8${digit.repeat(3)}-${digit.repeat(12)}`;
@@ -50,5 +50,10 @@ describe("WP-12 private runner protocol",()=>{
         latency_ms:{value:null,provenance:"unavailable"},input_tokens:{value:null,provenance:"unavailable"},
         output_tokens:{value:null,provenance:"unavailable"},cost:{value:{amount:"1.25",currency:"EUR"},provenance:"customer_reported"},
         model_identity:{value:null,provenance:"unavailable"}}}).metadata.cost.value).toEqual({amount:"1.25",currency:"EUR"});
+  });
+  it("labels mixed terminal runner results partial",()=>{
+    expect(runnerCompletionStatus(2,2)).toBe("completed");
+    expect(runnerCompletionStatus(2,1)).toBe("partial");
+    expect(runnerCompletionStatus(2,0)).toBe("failed");
   });
 });

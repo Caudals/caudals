@@ -35,6 +35,7 @@ export function customerWorkspaceView(value: Summary) {
       document: { kind: (item.document as RecordValue | null)?.kind },
       connection_status: item.connection_status,
       runner_status: item.runner_status,
+      runner_id: item.runner_id,
       error_code: item.error_code,
     })),
     reports: value.reports.map((item) => ({

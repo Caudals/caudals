@@ -10,7 +10,7 @@ import { caseSchema } from "../contracts/cases";
 import { targetConfigSchema } from "../contracts/connectors";
 import { EvalError } from "../domain/errors";
 import { withTenant, type TenantContext } from "../repositories/db";
-import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerUploadSchema, signPayload, tokenHash, verifyPayload, type RunnerBundle } from "./protocol";
+import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerCompletionStatus, runnerUploadSchema, signPayload, tokenHash, verifyPayload, type RunnerBundle } from "./protocol";
 
 function denied(): never { throw new EvalError("SCOPE_DENIED", 404); }
 function signingKey() {
@@ -188,10 +188,10 @@ export async function submitRunnerResult(db:PoolClient,runner:Record<string,unkn
   await db.query("UPDATE evals.case_unit SET status=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,unit.id,document.status]);
   const remaining=Number((await db.query("SELECT count(*)::int AS n FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status='pending'",[runner.org_id,job.run_id])).rows[0].n);
   if(!remaining) {
-    const usable=Number((await db.query("SELECT count(*)::int AS n FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status='succeeded'",[runner.org_id,job.run_id])).rows[0].n);
+    const counts=(await db.query("SELECT count(*)::int AS total,count(*) FILTER(WHERE status='succeeded')::int AS succeeded FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[runner.org_id,job.run_id])).rows[0];
     await db.query("UPDATE evals.runner_job SET status='completed',completed_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,job.id]);
     await db.query("UPDATE evals.run SET status=$3,phase='grading',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",
-      [runner.org_id,job.run_id,usable?"completed":"partial"]);
+      [runner.org_id,job.run_id,runnerCompletionStatus(Number(counts.total),Number(counts.succeeded))]);
   } else await db.query("UPDATE evals.run SET status='paused',reason_code='runner_wait',updated_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,job.run_id]);
   return {accepted:true,duplicate:false,submissionId,remaining};
 }

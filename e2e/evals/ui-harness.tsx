@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { EvalShell } from "../../components/evals/shell";
 import { ClientManagement } from "../../components/evals/client-management";
-import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations } from "../../components/evals/workspace-evaluations";
+import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
 import { ReportView } from "../../components/evals/report-view";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
@@ -24,7 +24,11 @@ const identity = {
     {
       id: "00000000-0000-4000-8000-000000000001",
       name: "Example client",
-      role: location.search.includes("editor") ? ("editor" as const) : ("viewer" as const),
+      role: location.search.includes("owner")
+        ? ("owner" as const)
+        : location.search.includes("editor")
+          ? ("editor" as const)
+          : ("viewer" as const),
     },
   ],
 };
@@ -41,6 +45,8 @@ const content =
     <ClientManagement />
   ) : location.pathname === "/workspace/evaluations/new" ? (
     <NewEvaluationFlow workspaces={identity.workspaces} />
+  ) : location.pathname === "/workspace/settings" ? (
+    <WorkspaceSettings workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
     <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports/fixture" ? (

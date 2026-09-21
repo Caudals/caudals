@@ -64,6 +64,8 @@ describe("WP-12 outbound CLI fixture",()=>{
       expect(uploads).toBe(1);
       expect(JSON.parse(await readFile(resultsPath,"utf8")).results[0].uploaded).toBe(true);
       expect(runnerConfig.privateKey).toContain("PRIVATE KEY");
+      await invoke("logout");
+      await expect(readFile(configPath,"utf8")).rejects.toMatchObject({code:"ENOENT"});
     }finally{await new Promise<void>((done,reject)=>server.close(error=>error?reject(error):done()));}
   });
 });

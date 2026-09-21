@@ -53,6 +53,7 @@ export type WorkspaceSummary = {
     document: { kind: string };
     connection_status: string | null;
     runner_status: string | null;
+    runner_id: string | null;
     error_code: string | null;
   }>;
   reports: Array<{
@@ -500,15 +501,21 @@ export function WorkspaceSystems({ workspaces }: { workspaces: EvalIdentity["wor
   const { summary, error } = useWorkspaceSummary(orgId);
   const [pairing,setPairing]=useState<{code:string;expiresAt:string}|null>(null);
   const [pairError,setPairError]=useState("");
-  const canPair=["owner","editor","operator"].includes(workspaces.find(item=>item.id===orgId)?.role??"");
+  const role=workspaces.find(item=>item.id===orgId)?.role??"";
+  const canPair=["owner","editor","operator"].includes(role),canRevoke=["owner","operator"].includes(role);
   async function pair(targetId:string){
     setPairError("");setPairing(null);
     try{setPairing(await evalRequest<{code:string;expiresAt:string}>("/runner/pairings","POST",{orgId,targetId}));}
     catch(value){setPairError(value instanceof Error?value.message:t("error"));}
   }
+  async function revoke(runnerId:string){
+    setPairError("");setPairing(null);
+    try{await evalRequest(`/runner/${runnerId}?orgId=${encodeURIComponent(orgId)}`,"DELETE");}
+    catch(value){setPairError(value instanceof Error?value.message:t("error"));}
+  }
   return <><PageHeading title={t("systems")}>{t("connectSystem")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={value=>{setOrgId(value);setPairing(null);}} />{error && <Status error>{error}</Status>}{pairError && <Status error>{pairError}</Status>}
     {pairing && <section className="eval-flow-card" aria-live="polite"><h2>Private runner pairing</h2><p>This code expires {new Date(pairing.expiresAt).toLocaleTimeString()}. Run <code>caudals-evals pair --base {typeof window!=="undefined"?window.location.origin:"https://app.caudals.com"} --org {orgId} --code CODE</code> inside your network, replacing CODE with:</p><p><code>{pairing.code}</code></p></section>}
-    {!summary ? <Loading /> : summary.systems.length ? <DataTable caption={t("systems")} headers={[t("system"), t("connectionType"), t("connection"), { label: "Action", align: "end" }]}>{summary.systems.map((system) => <tr key={system.id}><RowTitle>{system.title}</RowTitle><td><Badge>{humanize(system.document.kind)}</Badge></td><td><span className="p-row" style={{ gap: 6 }}><StatusBadge value={system.document.kind === "private_runner" ? (system.runner_status ?? "pairing_required") : (system.connection_status ?? "checking_connection")} />{system.error_code ? <span className="p-cell-meta">{system.error_code}</span> : null}</span></td><td className="p-table-action">{system.document.kind==="private_runner"&&canPair?<Action variant="secondary" size="sm" onClick={()=>void pair(system.id)}>Create pairing code</Action>:null}</td></tr>)}</DataTable> : <EmptyState title={t("noSystems")} icon={<Plug />}><p>{t("evaluationIntro")}</p></EmptyState>}</>;
+    {!summary ? <Loading /> : summary.systems.length ? <DataTable caption={t("systems")} headers={[t("system"), t("connectionType"), t("connection"), { label: "Action", align: "end" }]}>{summary.systems.map((system) => <tr key={system.id}><RowTitle>{system.title}</RowTitle><td><Badge>{humanize(system.document.kind)}</Badge></td><td><span className="p-row" style={{ gap: 6 }}><StatusBadge value={system.document.kind === "private_runner" ? (system.runner_status ?? "pairing_required") : (system.connection_status ?? "checking_connection")} />{system.error_code ? <span className="p-cell-meta">{system.error_code}</span> : null}</span></td><td className="p-table-action">{system.document.kind==="private_runner"&&canPair?<Action variant="secondary" size="sm" onClick={()=>void pair(system.id)}>{system.runner_id?"Replace pairing":"Create pairing code"}</Action>:null}{system.document.kind==="private_runner"&&system.runner_id&&system.runner_status!=="revoked"&&canRevoke?<Action variant="secondary" size="sm" onClick={()=>void revoke(system.runner_id!)}>Revoke runner</Action>:null}</td></tr>)}</DataTable> : <EmptyState title={t("noSystems")} icon={<Plug />}><p>{t("evaluationIntro")}</p></EmptyState>}</>;
 }
 
 export function WorkspaceReports({ workspaces }: { workspaces: EvalIdentity["workspaces"] }) {

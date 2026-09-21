@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createWebhookSignature, verifyWebhookSignature } from "../../lib/evals/monitoring/webhook-protocol";
+import { postWebhook } from "../../lib/evals/monitoring/webhooks";
 
 describe("WP-13 webhook protocol",()=>{
   it("binds delivery ID, timestamp, and exact body to a signature",async()=>{
@@ -12,5 +13,8 @@ describe("WP-13 webhook protocol",()=>{
     expect(await verifyWebhookSignature(secret,{id,timestamp:time,body,signature,now:Date.parse(time),accept})).toBe(false);
     expect(await verifyWebhookSignature(secret,{id,timestamp:time,body:body+" ",signature,now:Date.parse(time),accept:()=>true})).toBe(false);
     expect(await verifyWebhookSignature(secret,{id,timestamp:time,body,signature,now:Date.parse(time)+6*60_000,accept:()=>true})).toBe(false);
+  });
+  it("rejects loopback webhook destinations before opening a request",async()=>{
+    await expect(postWebhook("https://127.0.0.1/hook","{}",{})).rejects.toThrow("denied");
   });
 });

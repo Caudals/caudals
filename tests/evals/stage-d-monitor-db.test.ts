@@ -17,7 +17,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
   afterAll(async()=>{await owner.end();await getEvalsPool().end();});
   it("claims only the latest missed slot once and records budget and freshness skips",async()=>{
     process.env.EVALS_DATABASE_URL=runtimeUrl!;
-    const orgId=randomUUID(),projectId=randomUUID(),targetId=randomUUID(),targetRevisionId=randomUUID(),
+    const orgId=randomUUID(),otherOrgId=randomUUID(),projectId=randomUUID(),targetId=randomUUID(),targetRevisionId=randomUUID(),
       evaluationId=randomUUID(),suiteId=randomUUID(),suiteVersionId=randomUUID(),
       rubricId=randomUUID(),caseId=randomUUID(),revisionId=randomUUID();
     const config={kind:"https_json",schema_version:"1.0",endpoint:"https://example.test/api"};
@@ -30,7 +30,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const c=await owner.connect();try{
       await c.query("BEGIN");await c.query("INSERT INTO public.auth_user(id,name,email,\"emailVerified\") VALUES('monitor-fixture','Fixture','monitor@example.test',true) ON CONFLICT DO NOTHING");
       await c.query("SELECT set_config('evals.actor_id','monitor-fixture',true)");
-      await c.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Monitor fixture','monitor-fixture')",[orgId]);
+      await c.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Monitor fixture','monitor-fixture'),($2,'Other fixture','monitor-fixture')",[orgId,otherOrgId]);
       await c.query("UPDATE evals.workspace_entitlement SET can_schedule=true,monthly_spend_limit=500 WHERE org_id=$1",[orgId]);
       await c.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Project')",[projectId,orgId]);
       await c.query("INSERT INTO evals.target(id,org_id,project_id,title) VALUES($1,$2,$3,'System')",[targetId,orgId,projectId]);
@@ -55,6 +55,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const base={evaluationId,targetRevisionId,suiteVersionId,timezone:"UTC",cadence:"daily",localTime:"09:00",
       weekday:null,dayOfMonth:null,maxRunSpend:"200",currency:"EUR",sourceMaxAgeDays:null};
     const created=await createSchedule(scope,base,"monitor-fixture-key-1");
+    expect(await withTenant({orgId:otherOrgId,actorId:"monitor-fixture"},async db=>(await db.query("SELECT id FROM evals.monitor_schedule")).rows)).toEqual([]);
     await owner.query("UPDATE evals.monitor_schedule SET next_due_at='2026-09-01T09:00:00Z' WHERE id=$1",[created.id]);
     const claimed=await claimDueSchedules(scope,"2026-09-20T12:00:00Z");
     expect(claimed).toHaveLength(1);
@@ -88,6 +89,22 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const third=await claimDueSchedules(scope,"2026-09-20T12:00:00Z");
     expect(third).toHaveLength(1);
     expect((await dispatchScheduleSlot(scope,third[0])).reason_code).toBe("overlap_skipped");
+    const restart=await createSchedule(scope,base,"monitor-fixture-key-5"),restartDispatch=randomUUID(),restartRun=randomUUID();
+    await owner.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,
+      execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','queued','preflight','evals-scheduler')`,
+      [restartRun,orgId,evaluationId,targetRevisionId,suiteVersionId]);
+    await owner.query(`INSERT INTO evals.schedule_dispatch(id,org_id,schedule_id,scheduled_for,local_slot_key,
+      schedule_version,target_revision_id,suite_version_id,max_run_spend,status,updated_at)
+      VALUES($1,$2,$3,'2026-09-20T09:00:00Z','2026-09-20T09:00',$4,$5,$6,200,'starting',now()-interval '2 minutes')`,
+      [restartDispatch,orgId,restart.id,restart.version,targetRevisionId,suiteVersionId]);
+    const replayInput={evaluationId,targetRevisionId,suiteVersionId};
+    await owner.query(`INSERT INTO evals.evidence_request(org_id,created_by,route,request_key,request_hash,response)
+      VALUES($1,'evals-scheduler','self-service-runs',$2,$3,$4)`,[orgId,`schedule-${restartDispatch}`,
+      sha256(canonicalJson(replayInput)),{id:restartRun,status:"queued"}]);
+    expect(await dispatchScheduleSlot(scope,restartDispatch)).toMatchObject({status:"started",run_id:restartRun});
+    expect(await dispatchScheduleSlot(scope,restartDispatch)).toMatchObject({status:"started",run_id:restartRun});
+    expect(await withTenant(scope,async db=>(await db.query("SELECT count(*)::int AS count FROM evals.schedule_dispatch WHERE org_id=$1 AND schedule_id=$2",
+      [orgId,restart.id])).rows[0].count)).toBe(1);
     const pending=await createSchedule(scope,base,"monitor-fixture-key-4");
     const runId=randomUUID();
     await owner.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,
@@ -105,7 +122,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     expect(await withTenant(scope,async db=>(await db.query("SELECT count(*)::int AS count FROM evals.notification WHERE org_id=$1 AND event_id=$2",
       [orgId,`monitor:${dispatchId}:inconclusive`])).rows[0].count)).toBe(1);
     await owner.query("UPDATE evals.evaluation SET preparation_status='needs_input' WHERE id=$1",[evaluationId]);
-    expect((await updateSchedule(scope,fresh.id,{expectedVersion:fresh.version,status:"paused"})).status).toBe("paused");
+    expect(await updateSchedule(scope,fresh.id,{expectedVersion:fresh.version,status:"paused"})).toMatchObject({status:"paused",reason_code:"manual_pause"});
     const token=await createCustomerToken(scope,{name:"CI monitor",scopes:["runs:read"],
       expiresAt:new Date(Date.now()+3600_000).toISOString()});
     expect(await authenticateCustomerToken(orgId,`Bearer ${token.token}`,"runs:read")).toMatchObject({tokenId:token.id});
@@ -128,9 +145,11 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     expect(deliveries[0].payload_hash).toMatch(/^[a-f0-9]{64}$/);
     await owner.query(`UPDATE evals.webhook_delivery SET status='sending',attempt_count=5,
       lease_until=now()-interval '1 minute' WHERE id=$1`,[deliveries[0].id]);
+    const runsBefore=await withTenant(scope,async db=>(await db.query("SELECT count(*)::int AS count FROM evals.run WHERE org_id=$1",[orgId])).rows[0].count);
     expect(await tickWebhookDeliveries(scope,keys)).toBe(0);
     const finalDelivery=await withTenant(scope,async db=>(await db.query("SELECT status,attempt_count FROM evals.webhook_delivery WHERE org_id=$1 AND id=$2",
       [orgId,deliveries[0].id])).rows[0]);
     expect(finalDelivery).toMatchObject({status:"failed",attempt_count:5});
+    expect(await withTenant(scope,async db=>(await db.query("SELECT count(*)::int AS count FROM evals.run WHERE org_id=$1",[orgId])).rows[0].count)).toBe(runsBefore);
   });
 });

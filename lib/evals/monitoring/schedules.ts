@@ -48,7 +48,7 @@ export function createSchedule(scope:EvidenceScope,raw:unknown,key:string){
 }
 export function listSchedules(scope:EvidenceScope){return withTenant(scope,async db=>(await db.query(`SELECT s.id,s.project_id,s.evaluation_id,s.target_revision_id,s.suite_version_id,
   s.timezone,s.cadence,s.local_time,s.weekday,s.day_of_month,s.max_run_spend,s.currency,
-  s.source_max_age_days,s.status,s.next_due_at,s.version,s.updated_at,
+  s.source_max_age_days,s.status,s.reason_code,s.next_due_at,s.version,s.updated_at,
   d.status AS latest_dispatch_status,d.reason_code AS latest_dispatch_reason,d.scheduled_for AS latest_scheduled_for,
   a.status AS latest_alert_status
   FROM evals.monitor_schedule s
@@ -64,8 +64,8 @@ export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
     if(previous.version!==input.expectedVersion)throw new EvalError("VERSION_CONFLICT",409,"The schedule changed. Reload it before saving.");
     if(input.status==="paused"&&input.targetRevisionId===undefined&&input.suiteVersionId===undefined&&
       input.maxRunSpend===undefined&&input.sourceMaxAgeDays===undefined){
-      return (await db.query(`UPDATE evals.monitor_schedule SET status='paused',version=version+1,updated_at=now()
-        WHERE org_id=$1 AND id=$2 RETURNING id,status,version,next_due_at,updated_at`,[scope.orgId,id])).rows[0];
+      return (await db.query(`UPDATE evals.monitor_schedule SET status='paused',reason_code='manual_pause',version=version+1,updated_at=now()
+        WHERE org_id=$1 AND id=$2 RETURNING id,status,reason_code,version,next_due_at,updated_at`,[scope.orgId,id])).rows[0];
     }
     const targetRevisionId=input.targetRevisionId??previous.target_revision_id,
       suiteVersionId=input.suiteVersionId??previous.suite_version_id,
@@ -79,8 +79,9 @@ export function updateSchedule(scope:EvidenceScope,id:string,raw:unknown){
       units(String(evaluation.commercial_cap))>units(maxRunSpend) || units(maxRunSpend)>units(String(limits.monthly_spend_limit)))
       throw new EvalError("BUDGET_PAUSED",409,"The updated schedule exceeds the agreed spending limits.");
     return (await db.query(`UPDATE evals.monitor_schedule SET target_revision_id=$3,suite_version_id=$4,
-      max_run_spend=$5,source_max_age_days=$6,status=$7,version=version+1,updated_at=now()
-      WHERE org_id=$1 AND id=$2 RETURNING id,status,version,next_due_at,updated_at`,
+      max_run_spend=$5,source_max_age_days=$6,status=$7,reason_code=CASE WHEN $7='paused' THEN 'manual_pause' ELSE NULL END,
+      version=version+1,updated_at=now()
+      WHERE org_id=$1 AND id=$2 RETURNING id,status,reason_code,version,next_due_at,updated_at`,
       [scope.orgId,id,targetRevisionId,suiteVersionId,maxRunSpend,sourceMaxAgeDays,input.status??previous.status])).rows[0];
   });
 }

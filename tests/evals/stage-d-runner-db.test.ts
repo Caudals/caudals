@@ -28,6 +28,8 @@ suite("WP-12 private runner database path",()=>{
     const seed=await owner.connect();
     try{
       await seed.query("BEGIN");await seed.query("SELECT set_config('evals.actor_id','fixture-user',true)");
+      await seed.query(`INSERT INTO public.auth_user(id,name,email,"emailVerified")
+        VALUES('fixture-user','Runner fixture','runner-fixture@example.test',true) ON CONFLICT DO NOTHING`);
       await seed.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Runner test','fixture-user'),($2,'Other runner test','fixture-user')",[orgId,otherOrgId]);
       await seed.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Private project')",[projectId,orgId]);
       await seed.query("INSERT INTO evals.target(id,org_id,project_id,title) VALUES($1,$2,$3,'Private system')",[targetId,orgId,projectId]);

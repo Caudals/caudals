@@ -39,6 +39,10 @@ export type RunnerBundle = z.infer<typeof runnerBundleSchema>;
 export type RunnerUpload = z.infer<typeof runnerUploadSchema>;
 
 export function newRunnerToken() { return randomBytes(32).toString("base64url"); }
+export function runnerCompletionStatus(total:number,succeeded:number){
+  if(!Number.isInteger(total)||!Number.isInteger(succeeded)||total<1||succeeded<0||succeeded>total)throw new Error("runner_counts_invalid");
+  return succeeded===total?"completed" as const:succeeded>0?"partial" as const:"failed" as const;
+}
 export function tokenHash(token: string) { return sha256(token); }
 export function tokenMatches(token: string, hash: string) {
   if (!/^[a-f0-9]{64}$/.test(hash) || token.length > 256) return false;

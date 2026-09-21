@@ -342,7 +342,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const systems = (
       await db.query(
         `SELECT t.id,t.project_id,t.title,tr.id AS target_revision_id,tr.document,
-          cc.status AS connection_status,cc.error_code,cc.capability_report,
+          cc.status AS connection_status,cc.error_code,cc.capability_report,ri.id AS runner_id,
           CASE WHEN tr.document->>'kind'='private_runner' THEN
             CASE WHEN ri.id IS NULL THEN 'pairing_required'
                  WHEN ri.revoked_at IS NOT NULL THEN 'revoked'
