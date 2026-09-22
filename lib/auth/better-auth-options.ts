@@ -37,7 +37,6 @@ function getBetterAuthUrl() {
   return (
     process.env.BETTER_AUTH_URL ??
     process.env.NEXT_PUBLIC_BETTER_AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
     (process.env.NODE_ENV === "production"
       ? PRODUCTION_AUTH_URL
       : LOCAL_AUTH_URL)

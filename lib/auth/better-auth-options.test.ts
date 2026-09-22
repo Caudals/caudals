@@ -1,5 +1,5 @@
 import { getSchema } from "better-auth/db";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createBetterAuthId } from "@/lib/auth/better-auth-ids";
 import {
@@ -16,11 +16,27 @@ describe("Better Auth options", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (originalResetTtlEnv === undefined) {
       delete process.env[RESET_TTL_ENV];
     } else {
       process.env[RESET_TTL_ENV] = originalResetTtlEnv;
     }
+  });
+
+  it("keeps authentication on the app host when the public site URL is configured", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://caudals.com");
+    vi.stubEnv("BETTER_AUTH_URL", "restore-after-test");
+    vi.stubEnv("NEXT_PUBLIC_BETTER_AUTH_URL", "restore-after-test");
+    delete process.env.BETTER_AUTH_URL;
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_URL;
+
+    const options = createBetterAuthOptions({} as never);
+
+    expect(options.baseURL).toBe("https://app.caudals.com");
+    expect(options.trustedOrigins).toContain("https://app.caudals.com");
+    expect(options.trustedOrigins).not.toContain("https://caudals.com");
   });
 
   it("keeps auth plugin tables in the auth namespace", () => {
