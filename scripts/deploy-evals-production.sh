@@ -10,7 +10,10 @@ state_dir=/root/.caudals/evals-production
 [[ -s $state_dir/evals_queue.url ]] || { echo 'Run provision-evals-production.sh first' >&2; exit 1; }
 [[ -s $state_dir/org-ids.json ]] || { echo 'Create a reviewed JSON workspace allowlist in org-ids.json' >&2; exit 1; }
 
-commit=$(git -C "$repo_dir" rev-parse HEAD)
+commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
+  infra/evals/Dockerfile infra/evals/Dockerfile.documents infra/evals/Dockerfile.browser \
+  lib services/evals-worker services/evals-documents services/evals-browser \
+  package.json package-lock.json tsconfig.json)}
 worker_tag="mariomedpar/caudals:evals-worker-$commit"
 document_tag="mariomedpar/caudals:evals-documents-$commit"
 docker pull "$worker_tag" >/dev/null

@@ -6,8 +6,7 @@ on:
     paths:
       - ".github/workflows/evals-images.yml"
       - "infra/evals/Dockerfile*"
-      - "lib/evals/**"
-      - "lib/env/**"
+      - "lib/**"
       - "services/evals-*/**"
       - "package.json"
       - "package-lock.json"
