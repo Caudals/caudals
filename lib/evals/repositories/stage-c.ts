@@ -232,7 +232,7 @@ async function entitlement(db: PoolClient, orgId: string) {
   return required(
     (
       await db.query(
-        "SELECT * FROM evals.workspace_entitlement WHERE org_id=$1 FOR SHARE",
+        "SELECT * FROM evals.lock_workspace_entitlement($1)",
         [orgId],
       )
     ).rows[0],

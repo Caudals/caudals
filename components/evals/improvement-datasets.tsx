@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DatabaseZap } from "lucide-react";
+import { t } from "@/lib/evals/messages/en";
 import { evalRequest } from "./api";
 import {
   Action, ActionLink, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
-  SelectField, Stat, StatGrid, Status, StatusBadge, Tabs, TextArea, Toolbar,
+  Loading, SelectField, Stat, StatGrid, Status, StatusBadge, Tabs, TextArea, Toolbar,
 } from "./primitives";
 
 type Workspace = { id: string; name: string };
@@ -36,6 +37,7 @@ export function ImprovementDatasets({ workspaces }: { workspaces: Workspace[] })
   const [batches, setBatches] = useState<Batch[]>([]); const [detail, setDetail] = useState<Detail | null>(null);
   const [tab, setTab] = useState<"batches" | "build" | "validation">("batches");
   const [notice, setNotice] = useState(""); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [batchForm, setBatchForm] = useState({ projectId: "", title: "", objective: "" });
   const [taskForm, setTaskForm] = useState({ findingId: "", expertAssignmentId: "", kind: "corrected_response", familyId: "", split: "training", rightsBasis: "customer_owned" });
   const [promotion, setPromotion] = useState({ taskId: "", submissionRevisionId: "" });
@@ -45,15 +47,17 @@ export function ImprovementDatasets({ workspaces }: { workspaces: Workspace[] })
   const [validation, setValidation] = useState<Validation | null>(null);
 
   const loadBatches = useCallback(async () => {
-    if (!orgId) return;
+    if (!orgId) { setBatches([]); setLoading(false); return; }
+    setLoading(true);
     try { setBatches(await evalRequest<Batch[]>(`/improvement-batches?orgId=${encodeURIComponent(orgId)}`)); setError(""); }
-    catch { setError("Improvement datasets could not be loaded."); }
+    catch (value) { setError(value instanceof Error ? value.message : "Improvement datasets could not be loaded."); }
+    finally { setLoading(false); }
   }, [orgId]);
   const inspect = useCallback(async (batchId: string) => {
     try {
       const next = await evalRequest<Detail>(`/improvement-batches/${batchId}?orgId=${encodeURIComponent(orgId)}`);
       setDetail(next); setSelectedItem(""); setValidation(null); setTab("build"); setError("");
-    } catch { setError("The improvement batch could not be loaded."); }
+    } catch (value) { setError(value instanceof Error ? value.message : "The improvement batch could not be loaded."); }
   }, [orgId]);
   useEffect(() => { void loadBatches(); setDetail(null); }, [loadBatches]);
 
@@ -126,7 +130,7 @@ export function ImprovementDatasets({ workspaces }: { workspaces: Workspace[] })
         <Field id="improvement-title" label="Batch title" value={batchForm.title} onChange={(event) => setBatchForm({ ...batchForm, title: event.target.value })} />
       </div><TextArea id="improvement-objective" label="Objective" value={batchForm.objective} onChange={(event) => setBatchForm({ ...batchForm, objective: event.target.value })} />
       <Action onClick={() => void createBatch()} disabled={busy || !batchForm.projectId || !batchForm.title}>Create improvement batch</Action></Card>
-      {batches.length ? <DataTable caption="Improvement batches" headers={["Batch", "Tasks", "Items", "Status", { label: "", align: "end" }]}>
+      {loading ? <Loading>Loading improvement datasets…</Loading> : error ? <Action variant="secondary" onClick={() => void loadBatches()}>{t("retry")}</Action> : batches.length ? <DataTable caption="Improvement batches" headers={["Batch", "Tasks", "Items", "Status", { label: "", align: "end" }]}>
         {batches.map((batch) => <tr key={batch.id}><RowTitle meta={batch.objective || "No objective recorded"}>{batch.title}</RowTitle><td>{batch.task_count ?? 0}</td><td>{batch.item_count ?? 0}</td><td><StatusBadge value={batch.status} /></td><td className="p-table-action"><Action size="sm" variant="secondary" aria-label={`Open ${batch.title}`} onClick={() => void inspect(batch.id)}>Open</Action></td></tr>)}
       </DataTable> : <EmptyState title="No improvement batches" icon={<DatabaseZap />}><p>Create a finding-linked batch after an evaluation has identified evidence-backed work.</p></EmptyState>}
     </div>}

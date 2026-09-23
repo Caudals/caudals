@@ -23,7 +23,17 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
     } catch(error) {
       const known=error instanceof EvalError;
       const validation=error instanceof ZodError || error instanceof SyntaxError;
-      return Response.json({error:{code:known?error.code:validation?'INPUT_INVALID':'SERVICE_UNAVAILABLE',message:known?error.message:validation?'Check the supplied fields.':'The service is temporarily unavailable.',field_errors:error instanceof ZodError?error.issues.map(x=>({path:x.path,message:x.message})):[],request_id:requestId,retryable:!known&&!validation}},{status:known?error.status:validation?400:503,headers:privateHeaders});
+      const code=known?error.code:validation?'INPUT_INVALID':'SERVICE_UNAVAILABLE';
+      const status=known?error.status:validation?400:503;
+      const databaseCode =
+        typeof error === "object" && error !== null && "code" in error &&
+        typeof error.code === "string" && /^[0-9A-Z]{5}$/.test(error.code)
+          ? error.code
+          : undefined;
+      // Correlate failures without putting exception text, SQL, credentials or
+      // customer data in application logs.
+      console.error("eval_api_request_failed",{request_id:requestId,code,status,error_type:error instanceof Error?error.name:typeof error,database_code:databaseCode});
+      return Response.json({error:{code,message:known?error.message:validation?'Check the supplied fields.':'The service is temporarily unavailable.',field_errors:error instanceof ZodError?error.issues.map(x=>({path:x.path,message:x.message})):[],request_id:requestId,retryable:!known&&!validation}},{status,headers:privateHeaders});
     }
   };
 }

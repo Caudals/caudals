@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { EvalShell } from "../../components/evals/shell";
 import { ClientManagement } from "../../components/evals/client-management";
-import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
+import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceReports, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
 import { ReportView } from "../../components/evals/report-view";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
@@ -10,6 +10,7 @@ import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
+import { QueueView } from "../../components/evals/operator-overview";
 const params = new URLSearchParams(location.search);
 const authPage =
   location.pathname === "/workspace/sign-in" ||
@@ -46,6 +47,8 @@ const content =
     />
   ) : location.pathname === "/ops" ? (
     <ClientManagement />
+  ) : location.pathname === "/ops/reports" ? (
+    <QueueView kind="reports" />
   ) : location.pathname === "/ops/experts" ? (
     <ExpertManagement workspaces={identity.workspaces} />
   ) : location.pathname === "/ops/improvements" ? (
@@ -58,6 +61,8 @@ const content =
     <NewEvaluationFlow workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/settings" ? (
     <WorkspaceSettings workspaces={identity.workspaces} />
+  ) : location.pathname === "/workspace/reports" ? (
+    <WorkspaceReports workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
     <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports/fixture" ? (

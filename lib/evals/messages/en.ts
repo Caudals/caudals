@@ -89,6 +89,10 @@ export const messages = {
   expert: "Expert reviewer",
   loading: "Loading workspaces…",
   retry: "Try again",
+  notFound: "This item is unavailable or may have been removed.",
+  reloadAndRetry: "This item changed. Reload it and try again.",
+  tryAgainShortly: "The service is busy. Try again shortly.",
+  checkDetails: "Check the supplied details and try again.",
   error: "This request could not be completed. Try again.",
   expired: "Your session has expired. Sign in again to continue.",
   forbidden:

@@ -3,22 +3,30 @@ export class EvalRequestError extends Error {
   constructor(
     public status: number,
     public code: string,
+    public requestId?: string,
   ) {
-    super(
-      status === 401
-        ? t("expired")
-        : status === 403
-          ? t("forbidden")
-          : [
-                "INVITATION_INVALID",
-                "INVITATION_EXPIRED",
-                "INVITATION_REVOKED",
-                "INVITATION_UNAVAILABLE",
-              ].includes(code)
-            ? t("invalidInvite")
-            : t("error"),
-    );
+    const message = getSafeErrorMessage(status, code);
+    super(status >= 500 && requestId ? `${message} Reference: ${requestId}.` : message);
+    this.name = "EvalRequestError";
   }
+}
+
+function getSafeErrorMessage(status: number, code: string): string {
+  if (status === 401) return t("expired");
+  if (status === 403) return t("forbidden");
+  if (status === 404) return t("notFound");
+  if (
+    [
+      "INVITATION_INVALID",
+      "INVITATION_EXPIRED",
+      "INVITATION_REVOKED",
+      "INVITATION_UNAVAILABLE",
+    ].includes(code)
+  ) return t("invalidInvite");
+  if (status === 409) return t("reloadAndRetry");
+  if (status === 429) return t("tryAgainShortly");
+  if (status >= 500) return t("error");
+  return t("checkDetails");
 }
 export async function evalRequest<T>(
   path: string,
@@ -42,6 +50,7 @@ export async function evalRequest<T>(
     throw new EvalRequestError(
       response.status,
       result?.error?.code ?? "UNKNOWN",
+      result?.error?.request_id,
     );
   if (!result || !("data" in result)) throw new Error(t("error"));
   return result.data as T;

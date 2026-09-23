@@ -82,8 +82,13 @@ export type WorkspaceSummary = {
 export function useWorkspaceSummary(orgId: string) {
   const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const reload = useCallback(async () => {
-    if (!orgId) return;
+    if (!orgId) {
+      setSummary(null);
+      setLoading(false);
+      return;
+    }
     try {
       setSummary(
         await evalRequest<WorkspaceSummary>(
@@ -93,14 +98,23 @@ export function useWorkspaceSummary(orgId: string) {
       setError("");
     } catch (value) {
       setError(value instanceof Error ? value.message : t("error"));
+    } finally {
+      setLoading(false);
     }
   }, [orgId]);
   useEffect(() => {
+    setSummary(null);
+    setError("");
+    setLoading(Boolean(orgId));
     const timer = window.setTimeout(() => void reload(), 0);
     const interval = window.setInterval(() => void reload(), 5_000);
     return () => { window.clearTimeout(timer); window.clearInterval(interval); };
+  }, [orgId, reload]);
+  const retry = useCallback(() => {
+    setLoading(true);
+    void reload();
   }, [reload]);
-  return { summary, error, reload };
+  return { summary, error, reload, retry, loading };
 }
 
 export function WorkspaceEvaluations({
@@ -110,7 +124,7 @@ export function WorkspaceEvaluations({
 }) {
   const [orgId, setOrgId] = useState(workspaces[0]?.id ?? "");
   const workspace = workspaces.find((item) => item.id === orgId);
-  const { summary, error } = useWorkspaceSummary(orgId);
+  const { summary, error, retry, loading } = useWorkspaceSummary(orgId);
   if (!workspace) {
     return (
       <>
@@ -151,8 +165,14 @@ export function WorkspaceEvaluations({
         <Badge>{t(workspace.role)}</Badge>
       </div>
       {error && <Status error>{error}</Status>}
-      {!summary ? (
+      {!summary ? loading ? (
         <Loading />
+      ) : error ? (
+        <Action variant="secondary" onClick={retry}>{t("retry")}</Action>
+      ) : (
+        <EmptyState title={t("noWorkspace")} icon={<Inbox />}>
+          <p>{t("noWorkspaceHelp")}</p>
+        </EmptyState>
       ) : summary.evaluations.length ? (
         <DataTable
           caption={t("recentEvaluations")}
@@ -498,7 +518,7 @@ function WorkspacePicker({ workspaces, value, onChange }: { workspaces: EvalIden
 
 export function WorkspaceSystems({ workspaces }: { workspaces: EvalIdentity["workspaces"] }) {
   const [orgId, setOrgId] = useState(workspaces[0]?.id ?? "");
-  const { summary, error } = useWorkspaceSummary(orgId);
+  const { summary, error, reload, retry, loading } = useWorkspaceSummary(orgId);
   const [pairing,setPairing]=useState<{code:string;expiresAt:string}|null>(null);
   const [pairError,setPairError]=useState("");
   const role=workspaces.find(item=>item.id===orgId)?.role??"";
@@ -515,23 +535,23 @@ export function WorkspaceSystems({ workspaces }: { workspaces: EvalIdentity["wor
   }
   return <><PageHeading title={t("systems")}>{t("connectSystem")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={value=>{setOrgId(value);setPairing(null);}} />{error && <Status error>{error}</Status>}{pairError && <Status error>{pairError}</Status>}
     {pairing && <section className="eval-flow-card" aria-live="polite"><h2>Private runner pairing</h2><p>This code expires {new Date(pairing.expiresAt).toLocaleTimeString()}. Run <code>caudals-evals pair --base {typeof window!=="undefined"?window.location.origin:"https://app.caudals.com"} --org {orgId} --code CODE</code> inside your network, replacing CODE with:</p><p><code>{pairing.code}</code></p></section>}
-    {!summary ? <Loading /> : summary.systems.length ? <DataTable caption={t("systems")} headers={[t("system"), t("connectionType"), t("connection"), { label: "Action", align: "end" }]}>{summary.systems.map((system) => <tr key={system.id}><RowTitle>{system.title}</RowTitle><td><Badge>{humanize(system.document.kind)}</Badge></td><td><span className="p-row" style={{ gap: 6 }}><StatusBadge value={system.document.kind === "private_runner" ? (system.runner_status ?? "pairing_required") : (system.connection_status ?? "checking_connection")} />{system.error_code ? <span className="p-cell-meta">{system.error_code}</span> : null}</span></td><td className="p-table-action">{system.document.kind==="private_runner"&&canPair?<Action variant="secondary" size="sm" onClick={()=>void pair(system.id)}>{system.runner_id?"Replace pairing":"Create pairing code"}</Action>:null}{system.document.kind==="private_runner"&&system.runner_id&&system.runner_status!=="revoked"&&canRevoke?<Action variant="secondary" size="sm" onClick={()=>void revoke(system.runner_id!)}>Revoke runner</Action>:null}</td></tr>)}</DataTable> : <EmptyState title={t("noSystems")} icon={<Plug />}><p>{t("evaluationIntro")}</p></EmptyState>}</>;
+    {!summary ? loading ? <Loading /> : error ? <Action variant="secondary" onClick={retry}>{t("retry")}</Action> : <EmptyState title={t("noWorkspace")} icon={<Inbox />}><p>{t("noWorkspaceHelp")}</p></EmptyState> : summary.systems.length ? <DataTable caption={t("systems")} headers={[t("system"), t("connectionType"), t("connection"), { label: "Action", align: "end" }]}>{summary.systems.map((system) => <tr key={system.id}><RowTitle>{system.title}</RowTitle><td><Badge>{humanize(system.document.kind)}</Badge></td><td><span className="p-row" style={{ gap: 6 }}><StatusBadge value={system.document.kind === "private_runner" ? (system.runner_status ?? "pairing_required") : (system.connection_status ?? "checking_connection")} />{system.error_code ? <span className="p-cell-meta">{system.error_code}</span> : null}</span></td><td className="p-table-action">{system.document.kind==="private_runner"&&canPair?<Action variant="secondary" size="sm" onClick={()=>void pair(system.id)}>{system.runner_id?"Replace pairing":"Create pairing code"}</Action>:null}{system.document.kind==="private_runner"&&system.runner_id&&system.runner_status!=="revoked"&&canRevoke?<Action variant="secondary" size="sm" onClick={()=>void revoke(system.runner_id!)}>Revoke runner</Action>:null}</td></tr>)}</DataTable> : <EmptyState title={t("noSystems")} icon={<Plug />}><p>{t("evaluationIntro")}</p></EmptyState>}</>;
 }
 
 export function WorkspaceReports({ workspaces }: { workspaces: EvalIdentity["workspaces"] }) {
   const [orgId, setOrgId] = useState(workspaces[0]?.id ?? "");
-  const { summary, error } = useWorkspaceSummary(orgId);
-  return <><PageHeading title={t("reports")}>{t("privateReport")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={setOrgId} />{error && <Status error>{error}</Status>}{!summary ? <Loading /> : summary.reports.length ? <DataTable caption={t("reports")} headers={[t("report"), t("statusLabel"), { label: t("access"), align: "end" }]}>{summary.reports.map((report) => <tr key={report.id}><RowTitle>{report.title}</RowTitle><td><Badge tone="pass" dot>{t("reportAvailable")}</Badge></td><td className="p-table-action"><Link className="p-link" href={`/workspace/reports/${report.id}?orgId=${orgId}`}>{t("open")}</Link></td></tr>)}</DataTable> : <EmptyState title={t("noReports")} icon={<FileText />}><p>{t("evaluationHelp")}</p></EmptyState>}</>;
+  const { summary, error, retry, loading } = useWorkspaceSummary(orgId);
+  return <><PageHeading title={t("reports")}>{t("privateReport")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={setOrgId} />{error && <Status error>{error}</Status>}{!summary ? loading ? <Loading /> : error ? <Action variant="secondary" onClick={retry}>{t("retry")}</Action> : <EmptyState title={t("noWorkspace")} icon={<Inbox />}><p>{t("noWorkspaceHelp")}</p></EmptyState> : summary.reports.length ? <DataTable caption={t("reports")} headers={[t("report"), t("statusLabel"), { label: t("access"), align: "end" }]}>{summary.reports.map((report) => <tr key={report.id}><RowTitle>{report.title}</RowTitle><td><Badge tone="pass" dot>{t("reportAvailable")}</Badge></td><td className="p-table-action"><Link className="p-link" href={`/workspace/reports/${report.id}?orgId=${orgId}`}>{t("open")}</Link></td></tr>)}</DataTable> : <EmptyState title={t("noReports")} icon={<FileText />}><p>{t("evaluationHelp")}</p></EmptyState>}</>;
 }
 
 export function WorkspaceSettings({ workspaces }: { workspaces: EvalIdentity["workspaces"] }) {
   const [orgId, setOrgId] = useState(workspaces[0]?.id ?? "");
-  const { summary, error, reload } = useWorkspaceSummary(orgId);
+  const { summary, error, reload, retry, loading } = useWorkspaceSummary(orgId);
   const [saved, setSaved] = useState(false);
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = new FormData(event.currentTarget);
     await evalRequest("/workspace/preferences", "PATCH", { orgId, completion: form.has("completion"), requiredInput: form.has("requiredInput"), failure: form.has("failure"), email: form.has("email") });
     setSaved(true); await reload();
   }
-  return <><PageHeading title={t("settings")}>{t("workspaceUsageHelp")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={setOrgId} />{error && <Status error>{error}</Status>}{saved && <Status>{t("preferencesSaved")}</Status>}{!summary ? <Loading /> : <><div className="eval-settings-grid"><section className="eval-panel"><h2>{t("usage")}</h2><DefinitionList items={[{ term: t("monthlyLimit"), value: `${summary.entitlement.monthly_spend_limit} ${summary.entitlement.currency}` }, { term: t("settledSpend"), value: `${summary.usage.settled} ${summary.entitlement.currency}` }, { term: t("outstandingSpend"), value: `${summary.usage.outstanding} ${summary.entitlement.currency}` }, { term: t("activeRunAllowance"), value: summary.entitlement.max_active_runs }]} /></section><section className="eval-panel"><h2>{t("notificationPreferences")}</h2><form className="eval-check-list" onSubmit={save} key={JSON.stringify(summary.preferences)}><label><input name="completion" type="checkbox" defaultChecked={summary.preferences.completion} /> {t("notifyCompletion")}</label><label><input name="requiredInput" type="checkbox" defaultChecked={summary.preferences.required_input} /> {t("notifyRequiredInput")}</label><label><input name="failure" type="checkbox" defaultChecked={summary.preferences.failure} /> {t("notifyFailure")}</label><label><input name="email" type="checkbox" defaultChecked={summary.preferences.email} /> {t("emailNotifications")}</label><Button>{t("savePreferences")}</Button></form></section></div><WorkspaceMonitoringPanel orgId={orgId} canManage={["owner","operator"].includes(workspaces.find(item=>item.id===orgId)?.role??"")} summary={summary} /></>}</>;
+  return <><PageHeading title={t("settings")}>{t("workspaceUsageHelp")}</PageHeading><WorkspacePicker workspaces={workspaces} value={orgId} onChange={setOrgId} />{error && <Status error>{error}</Status>}{saved && <Status>{t("preferencesSaved")}</Status>}{!summary ? loading ? <Loading /> : error ? <Action variant="secondary" onClick={retry}>{t("retry")}</Action> : <EmptyState title={t("noWorkspace")} icon={<Inbox />}><p>{t("noWorkspaceHelp")}</p></EmptyState> : <><div className="eval-settings-grid"><section className="eval-panel"><h2>{t("usage")}</h2><DefinitionList items={[{ term: t("monthlyLimit"), value: `${summary.entitlement.monthly_spend_limit} ${summary.entitlement.currency}` }, { term: t("settledSpend"), value: `${summary.usage.settled} ${summary.entitlement.currency}` }, { term: t("outstandingSpend"), value: `${summary.usage.outstanding} ${summary.entitlement.currency}` }, { term: t("activeRunAllowance"), value: summary.entitlement.max_active_runs }]} /></section><section className="eval-panel"><h2>{t("notificationPreferences")}</h2><form className="eval-check-list" onSubmit={save} key={JSON.stringify(summary.preferences)}><label><input name="completion" type="checkbox" defaultChecked={summary.preferences.completion} /> {t("notifyCompletion")}</label><label><input name="requiredInput" type="checkbox" defaultChecked={summary.preferences.required_input} /> {t("notifyRequiredInput")}</label><label><input name="failure" type="checkbox" defaultChecked={summary.preferences.failure} /> {t("notifyFailure")}</label><label><input name="email" type="checkbox" defaultChecked={summary.preferences.email} /> {t("emailNotifications")}</label><Button>{t("savePreferences")}</Button></form></section></div><WorkspaceMonitoringPanel orgId={orgId} canManage={["owner","operator"].includes(workspaces.find(item=>item.id===orgId)?.role??"")} summary={summary} /></>}</>;
 }

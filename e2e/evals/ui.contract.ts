@@ -183,6 +183,81 @@ test("operator desktop reference", async ({ page }) => {
     fullPage: true,
   });
 });
+test("operator report queue stops loading on an API failure and retries safely", async ({ page }) => {
+  let evaluationReads = 0;
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/workspaces"))
+      return route.fulfill({ json: { data: [{ id, name: "Example client" }], meta: {} } });
+    if (path.endsWith("/evaluations")) {
+      evaluationReads += 1;
+      if (evaluationReads === 1)
+        return route.fulfill({ status: 503, json: { error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "database password=must-not-render",
+          request_id: "safe-reference-123",
+        } } });
+      return route.fulfill({ json: { data: { evaluations: [], runs: [], reports: [] }, meta: {} } });
+    }
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
+  });
+
+  await page.goto("/ops/reports");
+  await expect(page.getByText(/Reference: safe-reference-123/)).toBeVisible();
+  await expect(page.getByText("Loading workspaces…")).toHaveCount(0);
+  await expect(page.getByText("database password=must-not-render")).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("heading", { name: "No published reports yet" })).toBeVisible();
+  expect(evaluationReads).toBe(2);
+});
+
+test("workspace reports distinguish an API failure from an empty report list", async ({ page }) => {
+  let summaryReads = 0;
+  await page.route("**/api/evals/v1/workspace/summary?**", async (route) => {
+    summaryReads += 1;
+    if (summaryReads === 1)
+      return route.fulfill({ status: 503, json: { error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "private database detail",
+        request_id: "workspace-reference-456",
+      } } });
+    return route.fulfill({ json: { data: {
+      reports: [], evaluations: [], systems: [],
+      entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: [], can_export: true, can_schedule: false },
+      usage: { settled: "0", outstanding: "0" },
+      preferences: { completion: true, required_input: true, failure: true, email: false },
+    }, meta: {} } });
+  });
+
+  await page.goto("/workspace/reports");
+  await expect(page.getByText(/workspace-reference-456/)).toBeVisible();
+  await expect(page.getByText("Loading workspaces…")).toHaveCount(0);
+  await expect(page.getByText("private database detail")).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("heading", { name: "No published reports yet" })).toBeVisible();
+  expect(summaryReads).toBe(2);
+});
+
+test("improvement datasets offer retry instead of showing a false empty state", async ({ page }) => {
+  let batchReads = 0;
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/improvement-batches")) {
+      batchReads += 1;
+      if (batchReads === 1)
+        return route.fulfill({ status: 503, json: { error: { code: "SERVICE_UNAVAILABLE", request_id: "improvement-reference-789" } } });
+      return route.fulfill({ json: { data: [], meta: {} } });
+    }
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
+  });
+
+  await page.goto("/ops/improvements");
+  await expect(page.getByText(/improvement-reference-789/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No improvement batches" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByRole("heading", { name: "No improvement batches" })).toBeVisible();
+  expect(batchReads).toBe(2);
+});
 test("Stage C connection flow is keyboard usable at mobile width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/workspace/evaluations/new?orgId=${id}`);
