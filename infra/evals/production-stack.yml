@@ -1,0 +1,78 @@
+services:
+  worker:
+    image: ${EVALS_WORKER_IMAGE:?Reviewed image digest is required}
+    command: ["sh", "services/evals-worker/start.sh"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    networks: [dokploy-network]
+    environment:
+      EVALS_ENV: production
+      EVALS_QUEUE_SCHEMA: evals_queue_prod
+      EVALS_DISPATCH_ENABLED: "true"
+      EVALS_SCHEDULES_ENABLED: "false"
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_database_url
+      EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_queue_database_url
+      EVALS_MASTER_KEYRING_FILE: /run/secrets/evals_master_keyring
+      EVALS_DGX_ENDPOINT_FILE: /run/secrets/evals_dgx_endpoint
+      EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
+      EVALS_WORKER_ACTOR_ID: service:evals-worker
+    secrets: [evals_database_url,evals_queue_database_url,evals_master_keyring,evals_dgx_endpoint]
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.50", memory: 768M}
+        reservations: {memory: 192M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  documents:
+    image: ${EVALS_DOCUMENT_IMAGE:?Reviewed image digest is required}
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    networks: [dokploy-network]
+    environment:
+      NODE_ENV: production
+      HOME: /tmp
+      EVALS_ENV: production
+      EVALS_DOCUMENTS_ENABLED: "true"
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_document_database_url
+      EVALS_DOCUMENT_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
+      EVALS_DOCUMENT_ACTOR_ID: service:evals-documents
+      DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
+      DO_SPACES_REGION: us-east-1
+      DO_SPACES_BUCKET: caudals-storage
+      DO_SPACES_FORCE_PATH_STYLE: "true"
+      DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/object_storage_access_key
+      DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/object_storage_secret_key
+      NEXT_PUBLIC_DO_SPACES_CDN_URL: disabled-private-evals
+    secrets: [evals_document_database_url,object_storage_access_key,object_storage_secret_key]
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.75", memory: 1G}
+        reservations: {memory: 256M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  dokploy-network: {external: true}
+secrets:
+  evals_database_url: {external: true, name: caudals_evals_worker_database_url}
+  evals_queue_database_url: {external: true, name: caudals_evals_queue_database_url}
+  evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
+  evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
+  evals_document_database_url: {external: true, name: caudals_evals_document_database_url}
+  object_storage_access_key: {external: true, name: caudals_object_storage_access_key_id}
+  object_storage_secret_key: {external: true, name: caudals_object_storage_secret_access_key}
