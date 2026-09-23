@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
 COPY tsconfig.json ./
-COPY lib/evals ./lib/evals
+COPY lib ./lib
 COPY services/evals-documents ./services/evals-documents
 USER pwuser
 CMD ["node","--conditions=react-server","--import","tsx","services/evals-documents/main.ts"]

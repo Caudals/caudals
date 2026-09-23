@@ -11,8 +11,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY package.json package-lock.json tsconfig.json ./
-COPY lib/evals ./lib/evals
-COPY lib/env ./lib/env
+COPY lib ./lib
 COPY services/evals-worker ./services/evals-worker
 USER node
 CMD ["sh", "services/evals-worker/start.sh"]
