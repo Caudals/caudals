@@ -176,9 +176,12 @@ export async function discoverWebsite(args: {
       waitUntil: "domcontentloaded",
       timeout: Math.min(args.timeoutMs ?? 30_000, 60_000),
     });
-    const snapshot = await page.evaluate(() => {
-      const describe = (element: Element) => {
-        const html = element as HTMLElement;
+    // Keep this as browser-native JavaScript. The production tsx loader adds
+    // helper references to serialized function callbacks that do not exist in
+    // Chromium's page context.
+    const snapshot = await page.evaluate(`(() => {
+      const describe = (element) => {
+        const html = element;
         return [
           element.tagName.toLocaleLowerCase(),
           element.getAttribute("role"),
@@ -191,7 +194,7 @@ export async function discoverWebsite(args: {
           .join(" | ")
           .slice(0, 500);
       };
-      const all = (selector: string, limit = 25) =>
+      const all = (selector, limit = 25) =>
         Array.from(document.querySelectorAll(selector)).slice(0, limit).map(describe);
       const text = document.body?.innerText?.toLocaleLowerCase() ?? "";
       const html = document.documentElement.innerHTML.toLocaleLowerCase();
@@ -217,7 +220,7 @@ export async function discoverWebsite(args: {
           .some((description) => description.includes("shadow")),
         has_captcha: /captcha|verify you are human|cloudflare challenge/.test(text),
       };
-    });
+    })()`);
     return browserDiscoverySnapshotSchema.parse(snapshot);
   } finally {
     await context.close();
