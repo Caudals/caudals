@@ -22,6 +22,8 @@ credentials="$state_dir/credentials.env"
 secret_base="${CAUDALS_APP_ENV_SECRET:-app_runtime_env}"
 dataset_signing_key="${CAUDALS_EVALS_DATASET_SIGNING_KEY_FILE:-$state_dir/evals-dataset-signing-key.pem}"
 dataset_signing_secret_base="${CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET:-evals_dataset_signing_key}"
+runner_signing_key="${CAUDALS_EVALS_RUNNER_SIGNING_KEY_FILE:-$state_dir/evals-runner-signing-key.pem}"
+runner_signing_secret_base="${CAUDALS_EVALS_RUNNER_SIGNING_KEY_SECRET:-evals_runner_signing_key}"
 object_storage_access_secret="${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET:-caudals_object_storage_access_key_id}"
 object_storage_secret_secret="${CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET:-caudals_object_storage_secret_access_key}"
 traefik_dir="${CAUDALS_TRAEFIK_DYNAMIC_DIR:-/etc/dokploy/traefik/dynamic}"
@@ -74,6 +76,16 @@ if ! openssl pkey -in "$dataset_signing_key" -noout -text 2>/dev/null | grep -q 
   echo "Dataset signing key is not a valid Ed25519 private key: $dataset_signing_key" >&2
   exit 1
 fi
+if [[ ! -s "$runner_signing_key" ]]; then
+  umask 077
+  openssl genpkey -algorithm ED25519 -out "$runner_signing_key" >/dev/null 2>&1
+  echo "Created root-only Ed25519 runner signing key: $runner_signing_key"
+fi
+chmod 600 "$runner_signing_key"
+if ! openssl pkey -in "$runner_signing_key" -noout -text 2>/dev/null | grep -q 'ED25519'; then
+  echo "Runner signing key is not a valid Ed25519 private key: $runner_signing_key" >&2
+  exit 1
+fi
 
 digest="$(sha256sum "$credentials" | cut -c1-12)"
 secret="${secret_base}_${digest}"
@@ -87,6 +99,12 @@ dataset_signing_secret="${dataset_signing_secret_base}_${dataset_signing_digest}
 if ! docker secret inspect "$dataset_signing_secret" >/dev/null 2>&1; then
   docker secret create --label "caudals.digest=$dataset_signing_digest" "$dataset_signing_secret" "$dataset_signing_key" >/dev/null
   echo "Created dataset signing Docker secret: $dataset_signing_secret"
+fi
+runner_signing_digest="$(sha256sum "$runner_signing_key" | cut -c1-12)"
+runner_signing_secret="${runner_signing_secret_base}_${runner_signing_digest}"
+if ! docker secret inspect "$runner_signing_secret" >/dev/null 2>&1; then
+  docker secret create --label "caudals.digest=$runner_signing_digest" "$runner_signing_secret" "$runner_signing_key" >/dev/null
+  echo "Created runner signing Docker secret: $runner_signing_secret"
 fi
 
 if [[ "$build_local" =~ ^(1|true|yes)$ ]]; then
@@ -108,6 +126,7 @@ CAUDALS_APP_IMAGE="$deploy_image" \
 CAUDALS_APP_NETWORK="$network" \
 CAUDALS_APP_ENV_SECRET="$secret" \
 CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET="$dataset_signing_secret" \
+CAUDALS_EVALS_RUNNER_SIGNING_KEY_SECRET="$runner_signing_secret" \
 CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET="$object_storage_access_secret" \
 CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET="$object_storage_secret_secret" \
   docker stack deploy --detach=true -c "$root/infra/app-stack.yml" "$stack"
