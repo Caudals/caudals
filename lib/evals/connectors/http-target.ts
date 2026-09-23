@@ -8,7 +8,7 @@ import { observationSchema, type Observation } from "../contracts/results";
 import { withContentHash } from "../contracts/hashing";
 import { assignJson, selectJson } from "./json-mapping";
 import { ConnectorRateLimit } from "./rate-limit";
-import { validatePublicDestination, type Lookup, type PinnedDestination } from "./egress";
+import { pinnedLookup, validatePublicDestination, type Lookup, type PinnedDestination } from "./egress";
 
 export type CredentialResolver = (secretVersionId: string, attemptId: string) => Promise<Buffer>;
 export type NativeInvoker = (config: Extract<TargetConfig,{kind:"provider_native"}>, input: CandidateInput, context: InvocationContext) => Promise<NormalizedTargetResponse>;
@@ -44,7 +44,7 @@ export async function pinnedJsonTransport(destination: PinnedDestination, body: 
   const client = destination.url.protocol === "https:" ? https : http;
   return new Promise<{status:number;headers:Headers;body:Uint8Array}>((resolve,reject) => {
     let total=0; const chunks:Buffer[]=[];
-    const request=client.request(destination.url,{method:"POST",agent:false,signal:context.signal,timeout:Math.max(1,new Date(context.deadline).getTime()-Date.now()),lookup:(_h,_o,cb)=>cb(null,destination.address,destination.family),headers:{"content-type":"application/json","content-length":String(body.byteLength),...headers}},response=>{
+    const request=client.request(destination.url,{method:"POST",agent:false,signal:context.signal,timeout:Math.max(1,new Date(context.deadline).getTime()-Date.now()),lookup:pinnedLookup(destination),headers:{"content-type":"application/json","content-length":String(body.byteLength),...headers}},response=>{
       response.on("data",(chunk:Buffer)=>{total+=chunk.byteLength;if(total>2_000_000)response.destroy(new Error("response_too_large"));else chunks.push(chunk);});
       response.on("end",()=>resolve({status:response.statusCode??0,headers:new Headers(Object.entries(response.headers).flatMap(([key,value]):[string,string][]=>value===undefined?[]:[[key,Array.isArray(value)?value.join(", "):value]])),body:Buffer.concat(chunks)}));
       response.on("error",reject);

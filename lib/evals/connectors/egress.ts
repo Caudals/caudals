@@ -1,5 +1,5 @@
 import { lookup as dnsLookup } from "node:dns/promises";
-import { BlockList, isIP } from "node:net";
+import { BlockList, isIP, type LookupFunction } from "node:net";
 
 const blocked4 = new BlockList();
 for (const [address, prefix] of [
@@ -14,6 +14,14 @@ for (const [address, prefix] of [["2001::",23],["2001:db8::",32],["2002::",16],[
 
 export type Lookup = typeof dnsLookup;
 export type PinnedDestination = { url: URL; address: string; family: 4 | 6; hostname: string };
+
+/** Node requests all addresses when automatic family selection is enabled. */
+export function pinnedLookup(destination: { address: string; family: number }): LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options.all) callback(null, [{ address: destination.address, family: destination.family }]);
+    else callback(null, destination.address, destination.family);
+  };
+}
 
 export function isPublicAddress(address: string): boolean {
   const family = isIP(address);

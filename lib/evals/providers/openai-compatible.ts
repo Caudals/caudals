@@ -3,6 +3,7 @@ import { BlockList, isIP } from 'node:net';
 import http from 'node:http';
 import https from 'node:https';
 import { z } from 'zod';
+import { pinnedLookup } from '../connectors/egress';
 import { ProviderFailure, type Invocation, type ProviderOutput, type ProviderRevision } from './contracts';
 const forbidden=new BlockList();
 for(const [ip,bits] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0.0',8],['169.254.0.0',16],['172.16.0.0',12],['192.0.0.0',24],['192.0.2.0',24],['192.168.0.0',16],['198.18.0.0',15],['198.51.100.0',24],['203.0.113.0',24],['224.0.0.0',4],['240.0.0.0',4]] as const) forbidden.addSubnet(ip,bits,'ipv4');
@@ -33,7 +34,7 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
   const fail=(error:ProviderFailure)=>{if(!finished){finished=true;reject(error);}};
   const request=(url.protocol==='https:'?https:http).request(url,{
     method:'POST',signal,agent:false,timeout:input.timeoutMs,
-    lookup:(_host,_options,callback)=>callback(null,address.address,address.family),
+    lookup:pinnedLookup(address),
     headers:{'content-type':'application/json','content-length':Buffer.byteLength(payload),...(secret?{authorization:`Bearer ${secret.toString('utf8')}`}:{})},
   },response=>{
     const status=response.statusCode??0;

@@ -1,6 +1,6 @@
 import { describe,expect,it } from "vitest";
 import JSZip from "jszip";
-import { validatePublicDestination } from "../../lib/evals/connectors/egress";
+import { pinnedLookup,validatePublicDestination } from "../../lib/evals/connectors/egress";
 import { HttpTargetAdapter } from "../../lib/evals/connectors/http-target";
 import { candidateInputSchema } from "../../lib/evals/contracts/projections";
 import { previewImport,candidateAnswerTemplate,matchManualAnswers } from "../../lib/evals/imports/structured";
@@ -17,6 +17,11 @@ import { createShareToken,hashShareToken,projectSharedReport } from "../../lib/e
 
 const ids={run:"11111111-1111-4111-8111-111111111111",target:"22222222-2222-4222-8222-222222222222",attempt:"33333333-3333-4333-8333-333333333333",plan:"44444444-4444-4444-8444-444444444444",scope:"55555555-5555-4555-8555-555555555555",policy:"66666666-6666-4666-8666-666666666666"};
 describe("WP-04 connectors and imports",()=>{
+  it("returns the pinned address in Node's all-address lookup form",()=>{
+    const lookup=pinnedLookup({address:"93.184.216.34",family:4});
+    lookup("example.test",{all:true},(error,address)=>{expect(error).toBeNull();expect(address).toEqual([{address:"93.184.216.34",family:4}]);});
+    lookup("example.test",{all:false},(error,address,family)=>{expect(error).toBeNull();expect(address).toBe("93.184.216.34");expect(family).toBe(4);});
+  });
   it.each(["http://example.com","https://127.0.0.1","https://2130706433","https://[::1]","https://169.254.169.254/latest"])('rejects unsafe destination %s',async url=>{await expect(validatePublicDestination(url,async()=>[{address:"127.0.0.1",family:4}] as never)).rejects.toThrow();});
   it("rejects a DNS answer set containing a rebinding address",async()=>{await expect(validatePublicDestination("https://example.test/v1",async()=>[{address:"93.184.216.34",family:4},{address:"10.0.0.1",family:4}] as never)).rejects.toThrow("denied");});
   it("normalizes a bounded OpenAI-compatible response without exposing credentials",async()=>{const config={schema_version:"1.0" as const,target_revision_id:ids.target,limits:{max_turns:1,max_output_tokens:100,max_tool_calls:0,timeout_ms:1000,repetitions:1},requests_per_minute:6,concurrent_sessions:1,reset:"fresh_session" as const,kind:"openai_compatible" as const,endpoint:"https://example.test/v1/chat/completions",model:"fixture",credential:{kind:"bearer" as const,secret_version_id:ids.scope,header_name:"Authorization"}};let seen="";const adapter=new HttpTargetAdapter(config,{lookup:async()=>[{address:"93.184.216.34",family:4}] as never,credential:async()=>Buffer.from("private-value"),transport:async(_destination,_body,headers)=>{seen=headers.authorization;return {status:200,headers:new Headers(),body:Buffer.from(JSON.stringify({id:"request-1",model:"fixture-v1",choices:[{message:{content:"answer"}}],usage:{prompt_tokens:4,completion_tokens:1}}))};}});const input=candidateInputSchema.parse({schema_version:"1.0",case_id:"case-1",case_revision_id:"case-v1",messages:[{role:"user",content:"question"}],attachments:[],tools:[]}),observation=await adapter.invoke(input,{run_id:ids.run,target_revision_id:ids.target,execution_plan_id:ids.plan,tenant_scope_handle:ids.scope,deadline:new Date(Date.now()+1000).toISOString(),attempt_id:ids.attempt,scoped_credential_handle:ids.scope,destination_policy_id:ids.policy,reserved_cost:{amount:"1",currency:"EUR"},signal:new AbortController().signal});expect(seen).toBe("Bearer private-value");expect(observation.status).toBe("succeeded");expect(observation.messages.at(-1)?.content).toBe("answer");expect(JSON.stringify(observation)).not.toContain("private-value");});

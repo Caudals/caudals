@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import https from "node:https";
 import { z } from "zod";
 import type { PoolClient } from "pg";
-import { validatePublicDestination } from "../connectors/egress";
+import { pinnedLookup, validatePublicDestination } from "../connectors/egress";
 import { canonicalJson, sha256 } from "../contracts/hashing";
 import { EvalError } from "../domain/errors";
 import type { EvidenceScope } from "../repositories/evidence";
@@ -72,7 +72,7 @@ export async function postWebhook(url:string,body:string,headers:Record<string,s
   const destination=await validatePublicDestination(url);
   return new Promise((resolve,reject)=>{
     const req=https.request(destination.url,{method:"POST",agent:false,timeout:10000,
-      lookup:(_hostname,_options,callback)=>callback(null,destination.address,destination.family),
+      lookup:pinnedLookup(destination),
       headers:{"content-type":"application/json","content-length":Buffer.byteLength(body),...headers}},response=>{
       response.resume();response.on("end",()=>resolve(response.statusCode??0));
     });
