@@ -10,6 +10,7 @@ import { authenticateCustomerToken,createCustomerToken,revokeCustomerToken } fro
 import { queueWebhookEvent,tickWebhookDeliveries } from "../../lib/evals/monitoring/webhooks";
 import { encryptSecret } from "../../lib/evals/security/envelope";
 import { settleScheduledRun } from "../../lib/evals/monitoring/alerts";
+import { createPrefixedId } from "../../lib/operator/ids";
 
 const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_TEST_OWNER_URL;
 (runtimeUrl&&ownerUrl?describe:describe.skip)("WP-13 monitoring database path",()=>{
@@ -20,6 +21,7 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const orgId=randomUUID(),otherOrgId=randomUUID(),projectId=randomUUID(),targetId=randomUUID(),targetRevisionId=randomUUID(),
       evaluationId=randomUUID(),suiteId=randomUUID(),suiteVersionId=randomUUID(),
       rubricId=randomUUID(),caseId=randomUUID(),revisionId=randomUUID();
+    const actorId=createPrefixedId("au");
     const config={kind:"https_json",schema_version:"1.0",endpoint:"https://example.test/api"};
     const source=syntheticAccountingFixture(),item=caseSchema.parse(withContentHash({...source.cases[0],case_id:caseId,
       revision_id:revisionId,reference:{...source.cases[0].reference,rubric_revision_id:rubricId}}));
@@ -28,9 +30,9 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
         content_hash:item.content_hash,family_id:item.family_id,split:item.split,weight:item.weight}],
       source_revisions:[],rubric_revisions:[],output_schema_revisions:[],fixture_revisions:[],files:[]});
     const c=await owner.connect();try{
-      await c.query("BEGIN");await c.query("INSERT INTO public.auth_user(id,name,email,\"emailVerified\") VALUES('monitor-fixture','Fixture','monitor@example.test',true) ON CONFLICT DO NOTHING");
-      await c.query("SELECT set_config('evals.actor_id','monitor-fixture',true)");
-      await c.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Monitor fixture','monitor-fixture'),($2,'Other fixture','monitor-fixture')",[orgId,otherOrgId]);
+      await c.query("BEGIN");await c.query("INSERT INTO public.auth_user(id,name,email,\"emailVerified\") VALUES($1,'Fixture',$2,true)",[actorId,`${randomUUID()}@example.test`]);
+      await c.query("SELECT set_config('evals.actor_id',$1,true)",[actorId]);
+      await c.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Monitor fixture',$3),($2,'Other fixture',$3)",[orgId,otherOrgId,actorId]);
       await c.query("UPDATE evals.workspace_entitlement SET can_schedule=true,monthly_spend_limit=500 WHERE org_id=$1",[orgId]);
       await c.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Project')",[projectId,orgId]);
       await c.query("INSERT INTO evals.target(id,org_id,project_id,title) VALUES($1,$2,$3,'System')",[targetId,orgId,projectId]);
@@ -51,11 +53,11 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
         [evaluationId,orgId,projectId,suiteVersionId]);
       await c.query("COMMIT");
     }catch(error){await c.query("ROLLBACK");throw error;}finally{c.release();}
-    const scope={orgId,actorId:"monitor-fixture"};
+    const scope={orgId,actorId};
     const base={evaluationId,targetRevisionId,suiteVersionId,timezone:"UTC",cadence:"daily",localTime:"09:00",
       weekday:null,dayOfMonth:null,maxRunSpend:"200",currency:"EUR",sourceMaxAgeDays:null};
     const created=await createSchedule(scope,base,"monitor-fixture-key-1");
-    expect(await withTenant({orgId:otherOrgId,actorId:"monitor-fixture"},async db=>(await db.query("SELECT id FROM evals.monitor_schedule")).rows)).toEqual([]);
+    expect(await withTenant({orgId:otherOrgId,actorId},async db=>(await db.query("SELECT id FROM evals.monitor_schedule")).rows)).toEqual([]);
     await owner.query("UPDATE evals.monitor_schedule SET next_due_at='2026-09-01T09:00:00Z' WHERE id=$1",[created.id]);
     const claimed=await claimDueSchedules(scope,"2026-09-20T12:00:00Z");
     expect(claimed).toHaveLength(1);
@@ -69,13 +71,13 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const fresh=await createSchedule(scope,{...base,sourceMaxAgeDays:1},"monitor-fixture-key-2");
     const unrelatedSource=randomUUID(),unrelatedArtifact=randomUUID(),unrelatedRevision=randomUUID();
     await owner.query(`INSERT INTO evals.artifact(id,org_id,project_id,export_path,object_key,sha256,byte_size,media_type,state,created_by)
-      VALUES($1,$2,$3,$4,$5,$6,1,'text/plain','ready','monitor-fixture')`,[unrelatedArtifact,orgId,projectId,
-      `fixture/${unrelatedArtifact}`,`fixture/${unrelatedArtifact}`,sha256("x")]);
-    await owner.query("INSERT INTO evals.source(id,org_id,project_id,title,rights,created_by) VALUES($1,$2,$3,'Unrelated','customer_owned','monitor-fixture')",
-      [unrelatedSource,orgId,projectId]);
+      VALUES($1,$2,$3,$4,$5,$6,1,'text/plain','ready',$7)`,[unrelatedArtifact,orgId,projectId,
+      `fixture/${unrelatedArtifact}`,`fixture/${unrelatedArtifact}`,sha256("x"),actorId]);
+    await owner.query("INSERT INTO evals.source(id,org_id,project_id,title,rights,created_by) VALUES($1,$2,$3,'Unrelated','customer_owned',$4)",
+      [unrelatedSource,orgId,projectId,actorId]);
     await owner.query(`INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,document,extraction_version,created_by)
-      VALUES($1,$2,$3,$4,$5,$6,'fixture','monitor-fixture')`,[unrelatedRevision,orgId,unrelatedSource,unrelatedArtifact,
-      sha256("unrelated"),{}]);
+      VALUES($1,$2,$3,$4,$5,$6,'fixture',$7)`,[unrelatedRevision,orgId,unrelatedSource,unrelatedArtifact,
+      sha256("unrelated"),{},actorId]);
     await owner.query("UPDATE evals.monitor_schedule SET next_due_at='2026-09-19T09:00:00Z' WHERE id=$1",[fresh.id]);
     const second=await claimDueSchedules(scope,"2026-09-20T12:00:00Z");
     expect(second).toHaveLength(1);
@@ -108,8 +110,8 @@ const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL,ownerUrl=process.env.EVALS_
     const pending=await createSchedule(scope,base,"monitor-fixture-key-4");
     const runId=randomUUID();
     await owner.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,
-      execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','grading','monitor-fixture')`,
-      [runId,orgId,evaluationId,targetRevisionId,suiteVersionId]);
+      execution_mode,status,phase,created_by) VALUES($1,$2,$3,$4,$5,'deployed_system','completed','grading',$6)`,
+      [runId,orgId,evaluationId,targetRevisionId,suiteVersionId,actorId]);
     await owner.query("INSERT INTO evals.case_unit(org_id,run_id,case_revision_id,repetition,status) VALUES($1,$2,$3,0,'capture_incomplete')",
       [orgId,runId,revisionId]);
     const dispatchId=randomUUID();

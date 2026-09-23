@@ -17,7 +17,9 @@ GRANT USAGE ON SEQUENCE evals.execution_event_id_seq TO evals_runtime;
 -- Apply after Stage B migrations when these relations exist.
 DO $$ BEGIN
  IF to_regclass('evals.case_unit') IS NOT NULL THEN
- GRANT SELECT,UPDATE ON evals.case_unit TO evals_worker;
+  GRANT SELECT ON evals.target,evals.target_revision,evals.run TO evals_worker;
+  GRANT UPDATE(status,phase,updated_at) ON evals.run TO evals_worker;
+  GRANT SELECT,UPDATE ON evals.case_unit TO evals_worker;
   GRANT SELECT,INSERT ON evals.observation TO evals_worker;
   GRANT SELECT,INSERT,UPDATE ON evals.target_attempt TO evals_worker;
  END IF;

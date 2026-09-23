@@ -8,6 +8,7 @@ import { signPayload } from "../../lib/evals/private-runner/protocol";
 import { canonicalJson, sha256, withContentHash } from "../../lib/evals/contracts/hashing";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { caseSchema } from "../../lib/evals/contracts/cases";
+import { createPrefixedId } from "../../lib/operator/ids";
 
 const runtimeUrl=process.env.EVALS_TEST_DATABASE_URL;
 const ownerUrl=process.env.EVALS_TEST_OWNER_URL;
@@ -18,6 +19,7 @@ suite("WP-12 private runner database path",()=>{
   it("pairs, claims, resumes an upload, rejects replay changes and revokes access",async()=>{
     process.env.EVALS_DATABASE_URL=runtimeUrl!;
     const platformKeys=generateKeyPairSync("ed25519"),runnerKeys=generateKeyPairSync("ed25519");
+    const actorId=createPrefixedId("au");
     process.env.EVALS_RUNNER_SIGNING_KEY=platformKeys.privateKey.export({format:"pem",type:"pkcs8"}).toString();
     const runnerPrivate=runnerKeys.privateKey.export({format:"pem",type:"pkcs8"}).toString();
     const runnerPublic=runnerKeys.publicKey.export({format:"pem",type:"spki"}).toString();
@@ -27,10 +29,10 @@ suite("WP-12 private runner database path",()=>{
       revision_id:revisionId,reference:{...source.cases[0].reference,rubric_revision_id:rubricId}}));
     const seed=await owner.connect();
     try{
-      await seed.query("BEGIN");await seed.query("SELECT set_config('evals.actor_id','fixture-user',true)");
+      await seed.query("BEGIN");await seed.query("SELECT set_config('evals.actor_id',$1,true)",[actorId]);
       await seed.query(`INSERT INTO public.auth_user(id,name,email,"emailVerified")
-        VALUES('fixture-user','Runner fixture','runner-fixture@example.test',true) ON CONFLICT DO NOTHING`);
-      await seed.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Runner test','fixture-user'),($2,'Other runner test','fixture-user')",[orgId,otherOrgId]);
+        VALUES($1,'Runner fixture',$2,true)`,[actorId,`${randomUUID()}@example.test`]);
+      await seed.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Runner test',$3),($2,'Other runner test',$3)",[orgId,otherOrgId,actorId]);
       await seed.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Private project')",[projectId,orgId]);
       await seed.query("INSERT INTO evals.target(id,org_id,project_id,title) VALUES($1,$2,$3,'Private system')",[targetId,orgId,projectId]);
       const config={schema_version:"1.0",target_revision_id:targetRevisionId,limits:{max_turns:1,max_output_tokens:500,max_tool_calls:0,timeout_ms:60000,repetitions:1},
@@ -55,13 +57,13 @@ suite("WP-12 private runner database path",()=>{
         [evaluationId,orgId,projectId,suiteVersionId]);
       await seed.query("COMMIT");
     }catch(error){await seed.query("ROLLBACK");throw error;}finally{seed.release();}
-    const pairing=await createPairing({orgId,actorId:"fixture-user"},targetId);
+    const pairing=await createPairing({orgId,actorId},targetId);
     await expect(completePairing(otherOrgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0")).rejects.toThrow();
     const identity=await completePairing(orgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0");
     await expect(completePairing(orgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0")).rejects.toThrow();
     await owner.query("INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase) VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution')",
       [runId,orgId,evaluationId,identity.targetRevisionId,suiteVersionId]);
-    const job=await withTenant({orgId,actorId:"fixture-user"},db=>createRunnerJob(db,{orgId,actorId:"fixture-user"},{
+    const job=await withTenant({orgId,actorId},db=>createRunnerJob(db,{orgId,actorId},{
       runnerId:identity.runnerId,connectorVersion:"caudals-evals-cli:0.1.0",projectId,targetId,targetRevisionId:identity.targetRevisionId,runId,suiteVersionId,
       rows:[{case_revision_id:revisionId,document:item}]}));
     const claimed=await authenticateRunner(orgId,identity.token,(db,runner)=>pollRunner(db,orgId,String(runner.id)));
@@ -80,9 +82,9 @@ suite("WP-12 private runner database path",()=>{
     expect(duplicate).toMatchObject({accepted:true,duplicate:true});
     const changed={...reported,result:{...reported.result,messages:[...reported.result.messages.slice(0,-1),{role:"assistant",content:"changed"}]}};
     await expect(authenticateRunner(orgId,identity.token,(db,runner)=>submitRunnerResult(db,runner,{...changed,signature:signPayload(changed,runnerPrivate)}))).rejects.toThrow();
-    const stored=await withTenant({orgId,actorId:"fixture-user"},async db=>(await db.query("SELECT document FROM evals.observation WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows[0].document);
+    const stored=await withTenant({orgId,actorId},async db=>(await db.query("SELECT document FROM evals.observation WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows[0].document);
     expect(stored.extensions["caudals.evals/private_runner"].execution_identity).toBe("customer_runner_reported");
-    await revokeRunner({orgId,actorId:"fixture-user"},identity.runnerId);
+    await revokeRunner({orgId,actorId},identity.runnerId);
     await expect(authenticateRunner(orgId,identity.token,async()=>true)).rejects.toThrow();
   });
 });

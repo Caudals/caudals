@@ -15,7 +15,7 @@ services:
     environment:
       EVALS_ENV: ${EVALS_ENV:?Choose development or production}
       EVALS_QUEUE_SCHEMA: ${EVALS_QUEUE_SCHEMA:?Choose evals_queue_dev or evals_queue_prod}
-      EVALS_DISPATCH_ENABLED: "false"
+      EVALS_DISPATCH_ENABLED: ${EVALS_DISPATCH_ENABLED:-false}
       EVALS_DATABASE_URL_FILE: /run/secrets/evals_database_url
       EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_queue_database_url
       EVALS_MASTER_KEYRING_FILE: /run/secrets/evals_master_keyring

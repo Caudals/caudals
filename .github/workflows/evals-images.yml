@@ -1,0 +1,46 @@
+name: Build evaluation workers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/evals-images.yml"
+      - "infra/evals/Dockerfile*"
+      - "lib/evals/**"
+      - "lib/env/**"
+      - "services/evals-*/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: worker
+            dockerfile: infra/evals/Dockerfile
+          - name: documents
+            dockerfile: infra/evals/Dockerfile.documents
+          - name: browser
+            dockerfile: infra/evals/Dockerfile.browser
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:evals-${{ matrix.name }}-${{ github.sha }}
