@@ -9,12 +9,12 @@ import { POST as enroll } from '@/app/api/evals/v1/invitations/enroll/route';
 const enabled=!!process.env.EVALS_TEST_DATABASE_URL;
 describe.skipIf(!enabled)('evaluation identity real PostgreSQL',()=>{
  const owner=new Pool({connectionString:process.env.EVALS_TEST_DATABASE_URL,max:2});
- const operator:EvalIdentity={user:{id:createPrefixedId('au'),email:`${randomUUID()}@example.test`,name:'Fixture operator'},platformRole:'operator',workspaces:[]};
+ const operator:EvalIdentity={user:{id:createPrefixedId('au'),email:`${randomUUID()}@example.test`,name:'Fixture operator'},platformRole:'platform_admin',workspaces:[]};
  const viewer:EvalIdentity={user:{id:createPrefixedId('au'),email:`${randomUUID()}@example.test`,name:'Fixture viewer'},platformRole:null,workspaces:[]};
  let a:string;let b:string;
  beforeAll(async()=>{
   for(const identity of [operator,viewer]) await owner.query('INSERT INTO auth_user(id,name,email,"emailVerified","createdAt","updatedAt") VALUES($1,$2,$3,true,now(),now())',[identity.user.id,identity.user.name,identity.user.email]);
-  await owner.query("INSERT INTO evals.platform_role(user_id,role) VALUES($1,'operator')",[operator.user.id]);
+  await owner.query("INSERT INTO evals.platform_role(user_id,role) VALUES($1,'platform_admin')",[operator.user.id]);
   a=(await createWorkspace(operator,'Fixture A',randomUUID())).id;b=(await createWorkspace(operator,'Fixture B',randomUUID())).id;
  });
  afterAll(async()=>{await owner.end();});
