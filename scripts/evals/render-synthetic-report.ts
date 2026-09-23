@@ -11,6 +11,21 @@ const fixture = syntheticAccountingFixture();
 const caseRevision = fixture.cases[0];
 const now = new Date().toISOString();
 const targetRevisionId = randomUUID();
+const longFixture = process.argv.includes("--long");
+const results = Array.from({ length: longFixture ? 12 : 1 }, (_, index) => ({
+  case_revision_id: index === 0 ? caseRevision.revision_id : randomUUID(),
+  title: `${caseRevision.title} ${index + 1}`,
+  topic: "calculation",
+  severity: "medium" as const,
+  outcome: "pass" as const,
+  assessment_id: randomUUID(),
+  observation_id: randomUUID(),
+  input: longFixture ? `Synthetic conversation ${index + 1}. ` + "The customer asks for the documented amount and currency. ".repeat(8) : caseRevision.scenario.messages[0].content,
+  output: longFixture ? `Synthetic answer ${index + 1}. ` + "The documented result is EUR 135.80. This is fixture text for page-break verification. ".repeat(35) : '{"total":"135.80","currency":"EUR"}',
+  rationale: "The synthetic answer matches the expected calculation.",
+  source_refs: [],
+  review_status: "unreviewed",
+}));
 const snapshot = buildReportSnapshot({
   schema_version: "1.0",
   report_revision_id: randomUUID(),
@@ -30,23 +45,10 @@ const snapshot = buildReportSnapshot({
     languages: ["en"],
     review_status: "preliminary",
   },
-  metrics: aggregateRun([{ id: caseRevision.revision_id, familyId: caseRevision.family_id,
-    eligible: true, executionStatus: "succeeded", outcome: "pass", severity: "medium" }]),
+  metrics: aggregateRun(results.map((result, index) => ({ id: result.case_revision_id, familyId: `${caseRevision.family_id}-${index}`,
+    eligible: true, executionStatus: "succeeded", outcome: "pass", severity: "medium" }))),
   findings: [],
-  results: [{
-    case_revision_id: caseRevision.revision_id,
-    title: caseRevision.title,
-    topic: "calculation",
-    severity: "medium",
-    outcome: "pass",
-    assessment_id: randomUUID(),
-    observation_id: randomUUID(),
-    input: caseRevision.scenario.messages[0].content,
-    output: '{"total":"135.80","currency":"EUR"}',
-    rationale: "The synthetic answer matches the expected calculation.",
-    source_refs: [],
-    review_status: "unreviewed",
-  }],
+  results,
   improvements: [],
   methodology: {
     cef_version: "1.0",
@@ -54,7 +56,7 @@ const snapshot = buildReportSnapshot({
     grader_revisions: ["deterministic-v1"],
     rubric_revisions: [fixture.rubric.revision_id],
     source_revisions: [fixture.source.revision_id],
-    sampling: "One synthetic accounting fixture.",
+    sampling: longFixture ? "Twelve synthetic page-break fixtures." : "One synthetic accounting fixture.",
     exclusions: [],
     review_coverage: "Preliminary synthetic demonstration only.",
     cost: null,
