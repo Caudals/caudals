@@ -49,7 +49,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            className="text-balance text-4xl font-normal tracking-tight text-black sm:text-6xl lg:text-7xl"
+            className="text-balance text-3xl font-normal tracking-tight text-black sm:text-5xl lg:text-6xl"
           >
             {headline.before}
             {headline.accent ? (
