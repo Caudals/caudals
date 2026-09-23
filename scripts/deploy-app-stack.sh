@@ -91,11 +91,20 @@ fi
 
 if [[ "$build_local" =~ ^(1|true|yes)$ ]]; then
   docker build --pull -t "$versioned_image" "$root"
+  deploy_image="$versioned_image"
 else
   docker pull "$versioned_image"
+  # A Git commit tag identifies the build, but Swarm must run the registry
+  # digest we just pulled so a later tag change cannot alter this release.
+  deploy_image="$(docker image inspect "$versioned_image" --format '{{json .RepoDigests}}' |
+    jq -r --arg repository "${versioned_image%:*}" 'first(.[] | select(startswith($repository + "@sha256:"))) // empty')"
+  if [[ -z "$deploy_image" ]]; then
+    echo "The pulled app image has no matching registry digest: $versioned_image" >&2
+    exit 1
+  fi
 fi
 
-CAUDALS_APP_IMAGE="$versioned_image" \
+CAUDALS_APP_IMAGE="$deploy_image" \
 CAUDALS_APP_NETWORK="$network" \
 CAUDALS_APP_ENV_SECRET="$secret" \
 CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET="$dataset_signing_secret" \
@@ -181,5 +190,5 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 
-echo "Deployed $service with $versioned_image"
+echo "Deployed $service with $deploy_image (build $versioned_image)"
 echo "Legacy Traefik routes retained for rollback in $route_backup"
