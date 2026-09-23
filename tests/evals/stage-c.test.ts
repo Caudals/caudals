@@ -126,10 +126,12 @@ describe("WP-11 approved test-set gate", () => {
       units: [{ id: "unit-1", status: "pending", observation: { private: "answer" }, attempt_id: "private-attempt" }],
       plan: { document: { private: "plan" } },
       costs: { reserved: "private-cost" },
+      targetUsage: { calls: 2, unknown: 1 },
       events: [{ private: "event" }],
     });
     expect(view.run).toMatchObject({ id: "run-1", status: "paused", execution_mode: "imported_responses" });
     expect(view.units).toEqual([{ id: "unit-1", status: "pending" }]);
+    expect(view.targetUsage).toEqual({ calls: 2, unknown: 1 });
     expect(JSON.stringify(view)).not.toMatch(/secret|answer|attempt|plan|cost|event/);
   });
   it("projects workspace systems without connector credentials or operator-only fields", () => {

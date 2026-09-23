@@ -414,6 +414,7 @@ export function EvaluationJourney({ evaluationId, workspaces }: { evaluationId: 
   const [run, setRun] = useState<{
     run: { id: string; status: string; phase: string; execution_mode: string; suite_version_id: string; created_at: string; reason_code: string | null };
     units: Array<{ id: string; status: string }>;
+    targetUsage: { calls: number; unknown: number };
   } | null>(null);
   const [pending, setPending] = useState(false);
   const startKey = useRef(crypto.randomUUID());
@@ -506,7 +507,7 @@ export function EvaluationJourney({ evaluationId, workspaces }: { evaluationId: 
       ) : running ? (
         <section className="eval-progress-panel" aria-live="polite"><div className="eval-progress-mark" aria-hidden="true" /><div className="eval-progress-copy"><p className="eval-eyebrow">{t("running")}</p><h2>{run.run.phase.replaceAll("_", " ")}</h2><p><strong>{counts.completed}</strong> {t("testsCompleted")} · <strong>{counts.total}</strong> {t("tests")}</p><progress max={Math.max(counts.total, 1)} value={counts.completed} /><p>{t("closePageHelp")}</p><Button variant="outline" onClick={cancel} disabled={pending}>{t("cancelRun")}</Button></div></section>
       ) : terminal ? (
-        <section className="eval-result-hero"><p><StatusBadge value={run.run.status} /></p><h2>{report ? t("resultsReady") : t("reviewingResults")}</h2><p>{report ? t("preliminaryResults") : t("closePageHelp")}</p><div className="eval-actions">{report && <Button asChild><Link href={`/workspace/reports/${report.id}?orgId=${orgId}`}>{t("reviewFindings")}</Link></Button>}{!report && canWrite && (run.run.execution_mode === "imported_responses" || system?.document.kind === "private_runner") && ["completed", "partial"].includes(run.run.status) && <Button onClick={finishManualReport} disabled={pending}>Prepare preliminary report</Button>}{report && canWrite && <Button variant="outline" onClick={start} disabled={pending}>{t("runAgain")}</Button>}</div></section>
+        <section className="eval-result-hero"><p><StatusBadge value={run.run.status} /></p><h2>{report ? t("resultsReady") : t("reviewingResults")}</h2><p>{report ? t("preliminaryResults") : t("closePageHelp")}</p>{run.run.execution_mode === "deployed_system" && <p>{t("externalTargetCalls")}: {run.targetUsage.calls}. {t("externalTargetCostHelp")}{run.targetUsage.unknown > 0 && ` ${t("externalTargetUnknown")}: ${run.targetUsage.unknown}.`}</p>}<div className="eval-actions">{report && <Button asChild><Link href={`/workspace/reports/${report.id}?orgId=${orgId}`}>{t("reviewFindings")}</Link></Button>}{!report && canWrite && (run.run.execution_mode === "imported_responses" || system?.document.kind === "private_runner") && ["completed", "partial"].includes(run.run.status) && <Button onClick={finishManualReport} disabled={pending}>Prepare preliminary report</Button>}{report && canWrite && <Button variant="outline" onClick={start} disabled={pending}>{t("runAgain")}</Button>}</div></section>
       ) : null}
     </>
   );

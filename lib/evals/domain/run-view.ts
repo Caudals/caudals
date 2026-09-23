@@ -1,6 +1,7 @@
 type RunRead = {
   run: Record<string, unknown>;
   units: Array<Record<string, unknown>>;
+  targetUsage?: { calls: number; unknown: number };
   [key: string]: unknown;
 };
 
@@ -17,5 +18,9 @@ export function customerRunView(value: RunRead) {
       reason_code: run.reason_code,
     },
     units: value.units.map((unit) => ({ id: unit.id, status: unit.status })),
+    targetUsage: {
+      calls: value.targetUsage?.calls ?? 0,
+      unknown: value.targetUsage?.unknown ?? 0,
+    },
   };
 }
