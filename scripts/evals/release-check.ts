@@ -7,10 +7,11 @@ async function main(){
  if(process.env.EVALS_DISPATCH_ENABLED==="true"&&!process.argv.includes("--dispatch-reviewed"))throw new Error("Dispatch enablement requires the explicit reviewed release flag.");
  const pool=new Pool({connectionString:url,max:1});
  try{
- const roles=await pool.query(`SELECT rolname,rolsuper,rolbypassrls FROM pg_roles WHERE rolname IN ('evals_runtime','evals_worker','evals_document','evals_execution_admin') ORDER BY rolname`);
+ const roles=await pool.query(`SELECT rolname,rolsuper,rolbypassrls FROM pg_roles WHERE rolname IN ('evals_runtime','evals_worker','evals_document','evals_execution_admin','evals_scheduler') ORDER BY rolname`);
+ const scheduler=await pool.query("SELECT pg_has_role('evals_scheduler','evals_runtime','USAGE') AS inherits_runtime");
  const migrations=await pool.query("SELECT name FROM public.evals_migration_history WHERE name LIKE '%_evals_%' ORDER BY name");
  const tables=await pool.query("SELECT count(*)::int AS count FROM pg_tables WHERE schemaname='evals'");
- if(roles.rows.length<4||roles.rows.some(role=>role.rolsuper||role.rolbypassrls))throw new Error("Evaluation service roles are missing or privileged.");
+ if(roles.rows.length<5||roles.rows.some(role=>role.rolsuper||role.rolbypassrls)||!scheduler.rows[0]?.inherits_runtime)throw new Error("Evaluation service roles are missing, privileged, or the scheduler lacks tenant runtime grants.");
  const needed=["034_evals_connections.sql","035_evals_generation.sql","036_evals_scoring.sql","037_evals_reports.sql","038_evals_operations.sql","039_evals_stage_c.sql","046_evals_target_usage.sql"];
  if(needed.some(name=>!migrations.rows.some(row=>row.name===name)))throw new Error("Stage B migrations are incomplete.");
  console.log(JSON.stringify({status:"ready",workersPaused:process.env.EVALS_DISPATCH_ENABLED!=="true",roles:roles.rows.map(role=>role.rolname),tables:tables.rows[0].count}));
