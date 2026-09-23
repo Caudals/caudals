@@ -23,3 +23,14 @@ GRANT UPDATE(status,reason_code,finished_at) ON evals.target_attempt TO evals_br
 GRANT UPDATE(status,phase,reason_code,updated_at) ON evals.run TO evals_browser;
 GRANT USAGE ON SEQUENCE evals.execution_event_id_seq TO evals_browser;
 GRANT EXECUTE ON FUNCTION evals.org_id(),evals.actor_id() TO evals_browser;
+
+-- Reapply after migration 046 when provisioning or rotating the browser login.
+DO $$ BEGIN
+ IF to_regclass('evals.target_invocation_ledger') IS NOT NULL THEN
+  GRANT SELECT,INSERT ON evals.target_invocation_ledger TO evals_browser;
+  GRANT UPDATE(state,reported_input_tokens,reported_output_tokens,
+    reported_cost_amount,reported_cost_currency,reported_cost_provenance,
+    reason_code,dispatched_at,finished_at)
+    ON evals.target_invocation_ledger TO evals_browser;
+ END IF;
+END $$;
