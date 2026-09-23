@@ -1,7 +1,77 @@
-import { expect, test } from "@playwright/test";
+import { chromium, expect, test } from "@playwright/test";
 import { createServer } from "node:http";
-import { guardBrowserContext, waitForCompletion } from "../../lib/evals/connectors/browser-executor";
+import { createServer as createHttpsServer } from "node:https";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { discoverWebsite, guardBrowserContext, invokeWebsite, validateWebsiteRecipe, waitForCompletion } from "../../lib/evals/connectors/browser-executor";
+import { withContentHash } from "../../lib/evals/contracts/hashing";
 import type { WebsiteRecipe } from "../../lib/evals/contracts/browser";
+
+test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored capture", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "evals-fake-chatbot-"));
+  const key = join(directory, "key.pem"), cert = join(directory, "cert.pem");
+  execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+    "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
+  const server = createHttpsServer({ key: readFileSync(key), cert: readFileSync(cert) }, (_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    response.end(`<!doctype html><html><head><title>Synthetic chatbot fixture</title></head><body>
+      <main><h1>Synthetic chatbot fixture</h1><form><label>Question<textarea></textarea></label>
+      <button type="submit">Send</button></form><div role="status" id="busy" hidden>Working</div>
+      <div role="log"></div></main><script>
+      document.querySelector('form').addEventListener('submit', event => {
+        event.preventDefault();const question=document.querySelector('textarea').value;
+        const busy=document.querySelector('#busy');busy.hidden=false;
+        const answer=document.createElement('p');answer.dataset.messageAuthorRole='assistant';
+        document.querySelector('[role=log]').append(answer);
+        setTimeout(()=>{answer.textContent='Partial';},100);
+        setTimeout(()=>{answer.textContent='Synthetic answer: '+question;busy.hidden=true;},650);
+      });
+      </script></body></html>`);
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("fixture_port_missing");
+  const url = `https://127.0.0.1:${address.port}/`;
+  const browser = await chromium.launch({ args: ["--ignore-certificate-errors"] });
+  const destinationCheck = async (candidate: string) => {
+    if (new URL(candidate).origin !== new URL(url).origin) throw new Error("fixture_destination_denied");
+  };
+  try {
+    const discovery = await discoverWebsite({ browser, url, destinationCheck });
+    expect(discovery.text_inputs.length).toBeGreaterThan(0);
+    const recipe = withContentHash({ schema_version: "1.0", recipe_revision_id: randomUUID(),
+      source: "operator_authored", start_url: url, launcher: null, frame_chain: [],
+      input: { kind: "role", role: "textbox", name: "Question" },
+      submit: { kind: "click", locator: { kind: "role", role: "button", name: "Send" } },
+      message_container: { kind: "role", role: "log", name: null },
+      assistant_message: { kind: "css", value: '[data-message-author-role="assistant"]' },
+      completion: { kind: "selector_hidden", locator: { kind: "css", value: "#busy" } },
+      reset: { kind: "new_context" }, assistant_extraction: "last_new_message",
+      created_at: new Date().toISOString(), extensions: {},
+    }) as WebsiteRecipe;
+    const probe = await validateWebsiteRecipe({ browser, recipe, destinationCheck, timeoutMs: 5_000 });
+    expect(probe).toMatchObject({ distinct_responses: true, reset_verified: true,
+      streaming_complete: true, duplicate_free: true });
+    const observation = await invokeWebsite({ browser, recipe, destinationCheck,
+      input: { schema_version: "1.0", case_id: "synthetic-case", case_revision_id: "synthetic-case-v1",
+        messages: [{ role: "user", content: "fixture question" }], attachments: [], tools: [] },
+      context: { run_id: "synthetic-run", target_revision_id: "synthetic-target",
+        execution_plan_id: "synthetic-plan", tenant_scope_handle: "synthetic",
+        deadline: new Date(Date.now() + 5_000).toISOString(), attempt_id: "synthetic-attempt",
+        scoped_credential_handle: null, destination_policy_id: "synthetic-local-only",
+        reserved_cost: { amount: "0", currency: "EUR" }, signal: new AbortController().signal },
+    });
+    expect(observation.status).toBe("succeeded");
+    expect(observation.messages.at(-1)?.content).toBe("Synthetic answer: fixture question");
+  } finally {
+    await browser.close();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test("website fixtures cover iframe, open shadow DOM, streaming and delayed completion", async ({ page }) => {
   await page.setContent('<iframe title="support"></iframe>');

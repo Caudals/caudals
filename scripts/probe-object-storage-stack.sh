@@ -10,7 +10,8 @@ BUCKET="${CAUDALS_OBJECT_STORAGE_BUCKET:-caudals-storage}"
 REGION="${CAUDALS_OBJECT_STORAGE_REGION:-us-east-1}"
 CDN_URL="${CAUDALS_OBJECT_STORAGE_CDN_URL:-${MINIO_API_URL}/${BUCKET}}"
 CURL_IMAGE="${CAUDALS_OBJECT_STORAGE_CURL_IMAGE:-curlimages/curl:8.11.1}"
-NODE_IMAGE="${CAUDALS_OBJECT_STORAGE_NODE_IMAGE:-node:20-bookworm-slim}"
+WORKER_IMAGE="$(docker service inspect caudals-evals_worker --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || true)"
+NODE_IMAGE="${CAUDALS_OBJECT_STORAGE_NODE_IMAGE:-${WORKER_IMAGE:-node:20-bookworm-slim}}"
 GENERATED_DIR="${CAUDALS_GENERATED_OBJECT_STORAGE_DIR:-/root/.caudals/object-storage}"
 ACCESS_KEY_FILE="${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_ID_FILE:-${GENERATED_DIR}/object-storage-access-key-id}"
 SECRET_KEY_FILE="${CAUDALS_OBJECT_STORAGE_SECRET_ACCESS_KEY_FILE:-${GENERATED_DIR}/object-storage-secret-access-key}"
@@ -81,13 +82,22 @@ run_node_probe() {
   local output
 
   printf "%s\t" "$label"
+  local source_mount="$ROOT:/workspace:ro"
+  local dependency_mount="$ROOT/node_modules:/workspace/node_modules:ro"
+  local workdir=/workspace
+  if [[ "$NODE_IMAGE" == "$WORKER_IMAGE" && -n "$WORKER_IMAGE" ]]; then
+    source_mount="$ROOT/scripts:/app/scripts:ro"
+    dependency_mount="$ROOT/package.json:/app/package.json:ro"
+    workdir=/app
+  fi
   if output="$(
-    docker run --rm \
+    docker run --rm --user 0 \
       --network "$NETWORK" \
-      -v "$ROOT:/workspace:ro" \
+      -v "$source_mount" \
+      -v "$dependency_mount" \
       -v "$ACCESS_KEY_FILE:/run/caudals/object-storage-access-key-id:ro" \
       -v "$SECRET_KEY_FILE:/run/caudals/object-storage-secret-access-key:ro" \
-      -w /workspace \
+      -w "$workdir" \
       -e DO_SPACES_ENDPOINT="$MINIO_API_URL" \
       -e DO_SPACES_FORCE_PATH_STYLE=true \
       -e DO_SPACES_REGION="$REGION" \
