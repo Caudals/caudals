@@ -19,7 +19,7 @@ if [[ ! -e $state_dir/pre-provision-evals.dump ]]; then
   chmod 0600 "$state_dir/pre-provision-evals.dump"
 fi
 
-for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_queue; do
+for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_browser evals_queue; do
   if docker exec --user postgres "$postgres_container" psql -U postgres -d caudals -Atqc "SELECT 1 FROM pg_roles WHERE rolname='$role'" | grep -qx 1; then
     [[ -s $state_dir/$role.password ]] || { echo "Existing $role has no matching protected password file" >&2; exit 1; }
     continue
@@ -42,7 +42,7 @@ if ! docker exec --user postgres "$postgres_container" psql -U postgres -d cauda
     'CREATE DATABASE caudals_evals_queue OWNER evals_queue'
 fi
 
-for grants in worker document admin; do
+for grants in worker document admin browser; do
   docker exec -i --user postgres "$postgres_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d caudals -q \
     < "$repo_dir/infra/evals/$grants-grants.sql"
 done
@@ -54,14 +54,34 @@ write_secret() {
   fi
 }
 
-for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_queue; do
+for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_browser evals_queue; do
   database=caudals
   [[ $role == evals_queue ]] && database=caudals_evals_queue
-  printf 'postgresql://%s:%s@caudals-postgres:5432/%s' "$role" "$(cat "$state_dir/$role.password")" "$database" \
+  host=caudals-postgres
+  [[ $role == evals_browser ]] && host=evals-browser-db
+  printf 'postgresql://%s:%s@%s:5432/%s' "$role" "$(cat "$state_dir/$role.password")" "$host" "$database" \
     > "$state_dir/$role.url"
   chmod 0600 "$state_dir/$role.url"
   write_secret "caudals_${role}_database_url" "$state_dir/$role.url"
 done
+
+printf 'postgresql://evals_queue:%s@evals-browser-db:5432/caudals_evals_queue' \
+  "$(cat "$state_dir/evals_queue.password")" > "$state_dir/evals_browser_queue.url"
+chmod 0600 "$state_dir/evals_browser_queue.url"
+write_secret caudals_evals_browser_queue_database_url "$state_dir/evals_browser_queue.url"
+
+if [[ ! -e $state_dir/browser-session-keyring.json ]]; then
+  printf '{"v1":"%s"}\n' "$(openssl rand -base64 32)" > "$state_dir/browser-session-keyring.json"
+  chmod 0600 "$state_dir/browser-session-keyring.json"
+fi
+write_secret caudals_evals_browser_session_keyring "$state_dir/browser-session-keyring.json"
+
+if ! docker network inspect caudals-evals-browser-internal >/dev/null 2>&1; then
+  docker network create --driver overlay --attachable --internal caudals-evals-browser-internal >/dev/null
+fi
+if ! docker network inspect caudals-evals-browser-outbound >/dev/null 2>&1; then
+  docker network create --driver overlay --attachable caudals-evals-browser-outbound >/dev/null
+fi
 
 if [[ ! -e $state_dir/master-keyring.json ]]; then
   printf '{"v1":"%s"}\n' "$(openssl rand -base64 32)" > "$state_dir/master-keyring.json"

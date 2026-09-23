@@ -70,6 +70,107 @@ services:
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
+  browser-egress:
+    image: ${EVALS_BROWSER_IMAGE:?Reviewed browser image digest is required}
+    command: ["node", "--import=tsx", "services/evals-browser/egress-proxy.ts"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: {size: 16777216}
+    networks:
+      evals_browser_internal:
+        aliases: [evals-browser-egress]
+      evals_browser_outbound: {}
+    environment:
+      NODE_ENV: production
+      HOME: /tmp
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const s=require('net').connect(3128,'127.0.0.1');s.on('connect',()=>{s.destroy();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.25", memory: 192M}
+        reservations: {memory: 64M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  browser-db-relay:
+    image: ${EVALS_BROWSER_IMAGE:?Reviewed browser image digest is required}
+    command: ["node", "services/evals-browser/db-relay.mjs"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    networks:
+      evals_browser_internal:
+        aliases: [evals-browser-db]
+      dokploy-network: {}
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const s=require('net').connect(5432,'127.0.0.1');s.on('connect',()=>{s.destroy();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.15", memory: 128M}
+        reservations: {memory: 32M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  browser:
+    image: ${EVALS_BROWSER_IMAGE:?Reviewed browser image digest is required}
+    command: ["node", "--conditions=react-server", "--import=tsx", "services/evals-browser/main.ts"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: {size: 134217728}
+    networks: [evals_browser_internal]
+    environment:
+      NODE_ENV: production
+      HOME: /tmp
+      EVALS_ENV: production
+      EVALS_QUEUE_SCHEMA: evals_queue_prod
+      EVALS_BROWSER_ENABLED: "true"
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_browser_database_url
+      EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_browser_queue_database_url
+      EVALS_BROWSER_SESSION_KEYRING_FILE: /run/secrets/evals_browser_session_keyring
+      EVALS_BROWSER_ORG_IDS: ${EVALS_BROWSER_ORG_IDS:?Explicit browser workspace allowlist is required}
+      EVALS_BROWSER_ACTOR_ID: service:evals-browser
+      EVALS_BROWSER_EGRESS_HOST: evals-browser-egress
+      EVALS_BROWSER_EGRESS_PORT: "3128"
+    secrets: [evals_browser_database_url,evals_browser_queue_database_url,evals_browser_session_keyring]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-browser-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.75", memory: 1536M}
+        reservations: {memory: 512M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
   documents:
     image: ${EVALS_DOCUMENT_IMAGE:?Reviewed image digest is required}
     user: "1000:1000"
@@ -109,6 +210,8 @@ services:
       options: {max-size: "10m", max-file: "3"}
 networks:
   dokploy-network: {external: true}
+  evals_browser_internal: {external: true, name: caudals-evals-browser-internal}
+  evals_browser_outbound: {external: true, name: caudals-evals-browser-outbound}
 secrets:
   evals_database_url: {external: true, name: caudals_evals_worker_database_url}
   evals_scheduler_database_url: {external: true, name: caudals_evals_scheduler_database_url}
@@ -117,5 +220,8 @@ secrets:
   evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
   evals_document_database_url: {external: true, name: caudals_evals_document_database_url}
+  evals_browser_database_url: {external: true, name: caudals_evals_browser_database_url}
+  evals_browser_queue_database_url: {external: true, name: caudals_evals_browser_queue_database_url}
+  evals_browser_session_keyring: {external: true, name: caudals_evals_browser_session_keyring}
   object_storage_access_key: {external: true, name: caudals_object_storage_access_key_id}
   object_storage_secret_key: {external: true, name: caudals_object_storage_secret_access_key}
