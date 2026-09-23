@@ -16,6 +16,8 @@ services:
       PORT: "3000"
       EVALS_DATASET_SIGNING_KEY_FILE: /run/secrets/evals_dataset_signing_key
       EVALS_SYNTHETIC_TARGET_TOKEN_FILE: /run/secrets/evals_synthetic_target_token
+      EVALS_WEBHOOK_KEYRING_FILE: /run/secrets/evals_webhook_keyring
+      EVALS_WEBHOOK_KEY_VERSION: v1
       DO_SPACES_ENDPOINT: ${CAUDALS_OBJECT_STORAGE_ENDPOINT:-http://caudals-object-storage-minio:9000}
       DO_SPACES_FORCE_PATH_STYLE: "true"
       DO_SPACES_REGION: ${CAUDALS_OBJECT_STORAGE_REGION:-us-east-1}
@@ -27,6 +29,7 @@ services:
       - app_runtime_env
       - evals_dataset_signing_key
       - evals_synthetic_target_token
+      - evals_webhook_keyring
       - object_storage_access_key
       - object_storage_secret_key
     # Nothing in the image reads the runtime secret, so the start command
@@ -85,6 +88,9 @@ secrets:
   evals_synthetic_target_token:
     external: true
     name: caudals_evals_synthetic_target_token
+  evals_webhook_keyring:
+    external: true
+    name: caudals_evals_webhook_keyring
   object_storage_access_key:
     external: true
     name: ${CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET:-caudals_object_storage_access_key_id}

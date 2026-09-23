@@ -15,7 +15,6 @@ services:
       EVALS_ENV: production
       EVALS_QUEUE_SCHEMA: evals_queue_prod
       EVALS_DISPATCH_ENABLED: "true"
-      EVALS_SCHEDULES_ENABLED: "false"
       EVALS_DATABASE_URL_FILE: /run/secrets/evals_database_url
       EVALS_QUEUE_DATABASE_URL_FILE: /run/secrets/evals_queue_database_url
       EVALS_MASTER_KEYRING_FILE: /run/secrets/evals_master_keyring
@@ -30,6 +29,44 @@ services:
       resources:
         limits: {cpus: "0.50", memory: 768M}
         reservations: {memory: 192M}
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  scheduler:
+    image: ${EVALS_WORKER_IMAGE:?Reviewed image digest is required}
+    command: ["sh", "services/evals-worker/start-scheduler.sh"]
+    user: "1000:1000"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: {size: 67108864}
+    networks: [dokploy-network]
+    environment:
+      NODE_ENV: production
+      HOME: /tmp
+      EVALS_ENV: production
+      EVALS_SCHEDULES_ENABLED: "true"
+      EVALS_DATABASE_URL_FILE: /run/secrets/evals_scheduler_database_url
+      EVALS_WEBHOOK_KEYRING_FILE: /run/secrets/evals_webhook_keyring
+      EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
+      EVALS_SCHEDULER_ACTOR_ID: service:evals-scheduler
+    secrets: [evals_scheduler_database_url,evals_webhook_keyring]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-scheduler-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    deploy:
+      replicas: 1
+      restart_policy: {condition: on-failure, delay: 10s}
+      update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
+      resources:
+        limits: {cpus: "0.25", memory: 256M}
+        reservations: {memory: 64M}
     logging:
       driver: json-file
       options: {max-size: "10m", max-file: "3"}
@@ -74,6 +111,8 @@ networks:
   dokploy-network: {external: true}
 secrets:
   evals_database_url: {external: true, name: caudals_evals_worker_database_url}
+  evals_scheduler_database_url: {external: true, name: caudals_evals_scheduler_database_url}
+  evals_webhook_keyring: {external: true, name: caudals_evals_webhook_keyring}
   evals_queue_database_url: {external: true, name: caudals_evals_queue_database_url}
   evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}

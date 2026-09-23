@@ -58,6 +58,10 @@ for object_storage_secret in "$object_storage_access_secret" "$object_storage_se
     exit 1
   fi
 done
+if ! docker secret inspect caudals_evals_webhook_keyring >/dev/null 2>&1; then
+  echo 'Missing evaluation webhook keyring secret. Run scripts/provision-evals-production.sh first.' >&2
+  exit 1
+fi
 
 install -d -m 700 "$state_dir"
 if [[ ! -s "$dataset_signing_key" ]]; then

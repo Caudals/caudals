@@ -19,7 +19,7 @@ if [[ ! -e $state_dir/pre-provision-evals.dump ]]; then
   chmod 0600 "$state_dir/pre-provision-evals.dump"
 fi
 
-for role in evals_worker evals_document evals_execution_admin evals_queue; do
+for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_queue; do
   if docker exec --user postgres "$postgres_container" psql -U postgres -d caudals -Atqc "SELECT 1 FROM pg_roles WHERE rolname='$role'" | grep -qx 1; then
     [[ -s $state_dir/$role.password ]] || { echo "Existing $role has no matching protected password file" >&2; exit 1; }
     continue
@@ -31,6 +31,11 @@ for role in evals_worker evals_document evals_execution_admin evals_queue; do
     docker exec -i --user postgres "$postgres_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d caudals -q
   unset password
 done
+
+# Scheduled run creation uses the same tenant-checked repository path as the
+# app, in a separate process without target/provider credentials.
+docker exec --user postgres "$postgres_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d caudals -qc \
+  'GRANT evals_runtime TO evals_scheduler'
 
 if ! docker exec --user postgres "$postgres_container" psql -U postgres -d caudals -Atqc "SELECT 1 FROM pg_database WHERE datname='caudals_evals_queue'" | grep -qx 1; then
   docker exec --user postgres "$postgres_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d caudals -qc \
@@ -49,7 +54,7 @@ write_secret() {
   fi
 }
 
-for role in evals_worker evals_document evals_execution_admin evals_queue; do
+for role in evals_worker evals_document evals_execution_admin evals_scheduler evals_queue; do
   database=caudals
   [[ $role == evals_queue ]] && database=caudals_evals_queue
   printf 'postgresql://%s:%s@caudals-postgres:5432/%s' "$role" "$(cat "$state_dir/$role.password")" "$database" \
@@ -63,6 +68,12 @@ if [[ ! -e $state_dir/master-keyring.json ]]; then
   chmod 0600 "$state_dir/master-keyring.json"
 fi
 write_secret caudals_evals_master_keyring "$state_dir/master-keyring.json"
+
+if [[ ! -e $state_dir/webhook-keyring.json ]]; then
+  printf '{"v1":"%s"}\n' "$(openssl rand -base64 32)" > "$state_dir/webhook-keyring.json"
+  chmod 0600 "$state_dir/webhook-keyring.json"
+fi
+write_secret caudals_evals_webhook_keyring "$state_dir/webhook-keyring.json"
 
 if [[ ! -e $state_dir/dgx-endpoint ]]; then
   printf '%s\n' 'http://192.168.70.19:11434/v1' > "$state_dir/dgx-endpoint"

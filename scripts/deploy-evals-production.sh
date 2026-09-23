@@ -9,6 +9,9 @@ repo_dir=$(cd "$(dirname "$0")/.." && pwd)
 state_dir=/root/.caudals/evals-production
 [[ -s $state_dir/evals_queue.url ]] || { echo 'Run provision-evals-production.sh first' >&2; exit 1; }
 [[ -s $state_dir/org-ids.json ]] || { echo 'Create a reviewed JSON workspace allowlist in org-ids.json' >&2; exit 1; }
+for secret in caudals_evals_scheduler_database_url caudals_evals_webhook_keyring; do
+  docker secret inspect "$secret" >/dev/null 2>&1 || { echo "Missing $secret. Run provision-evals-production.sh first" >&2; exit 1; }
+done
 
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \
@@ -35,7 +38,7 @@ docker run --rm --network dokploy-network --user 0 \
   "import('./lib/evals/queue/boss.ts').then(async m=>{const b=m.createBoss(process.env,{bootstrap:true});try{await m.startBoss(b)}finally{await b.stop({graceful:true})}})"
 
 docker stack deploy --with-registry-auth -c "$repo_dir/infra/evals/production-stack.yml" caudals-evals
-for service in worker documents; do
+for service in worker scheduler documents; do
   name="caudals-evals_$service"
   if ! docker service inspect "$name" --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}' |
     jq -e 'any(.[]?; .Type == "tmpfs" and .Target == "/tmp")' >/dev/null; then
