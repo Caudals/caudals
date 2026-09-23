@@ -27,6 +27,6 @@ export async function requireWorkspace(identity: EvalIdentity, orgId: string, ac
     if (!rows.length) throw new EvalError("SCOPE_DENIED",404);
     const admin=identity.platformRole==='platform_admin';
     if (!admin && (action==='manage' ? !['owner','operator'].includes(rows[0].role) : action==='write' ? !['owner','editor','operator'].includes(rows[0].role) : !rows[0].role)) throw new EvalError("SCOPE_DENIED",404);
-    if(admin) await client.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,$3,$1)",[orgId,identity.user.id,`support.${action}`]);
+    if(admin) await client.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,$3,$4)",[orgId,identity.user.id,`support.${action}`,orgId]);
   });
 }

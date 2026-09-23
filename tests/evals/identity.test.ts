@@ -23,6 +23,11 @@ describe.skipIf(!enabled)('evaluation identity real PostgreSQL',()=>{
   await expect(createWorkspace(operator,'Different',key)).rejects.toMatchObject({code:'VERSION_CONFLICT'});
   await expect(createWorkspace(viewer,'Denied',randomUUID())).rejects.toMatchObject({code:'SCOPE_DENIED'});
  });
+ it('records a support read without mixing UUID and text parameter types',async()=>{
+  await expect(requireWorkspace(operator,a,'read')).resolves.toBeUndefined();
+  const audit=await owner.query("SELECT action,subject_id FROM evals.audit_event WHERE org_id=$1 AND actor_id=$2 AND action='support.read' ORDER BY created_at DESC LIMIT 1",[a,operator.user.id]);
+  expect(audit.rows[0]).toEqual({action:'support.read',subject_id:a});
+ });
  it('accepts a one-time invitation only for its verified recipient',async()=>{
   const invitation=await createInvitation(operator,a,viewer.user.email,'viewer',randomUUID());
   expect(invitation.token).toHaveLength(43);
