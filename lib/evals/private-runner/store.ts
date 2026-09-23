@@ -64,9 +64,16 @@ export async function revokeRunner(scope: TenantContext, runnerId: string) {
     const row=(await db.query("UPDATE evals.runner_identity SET revoked_at=COALESCE(revoked_at,now()) WHERE org_id=$1 AND id=$2 RETURNING id,revoked_at",[scope.orgId,runnerId])).rows[0];
     if(!row) denied();
     await db.query("UPDATE evals.runner_job SET status='canceled' WHERE org_id=$1 AND runner_id=$2 AND status IN ('ready','claimed')",[scope.orgId,runnerId]);
-    await db.query(`UPDATE evals.run SET reason_code='runner_revoked',updated_at=now()
-      WHERE org_id=$1 AND id IN (SELECT run_id FROM evals.runner_job WHERE org_id=$1 AND runner_id=$2 AND status='canceled')
-      AND status='paused'`,[scope.orgId,runnerId]);
+    const canceled=(await db.query(`SELECT run_id FROM evals.runner_job WHERE org_id=$1 AND runner_id=$2 AND status='canceled'`,
+      [scope.orgId,runnerId])).rows;
+    for(const job of canceled){
+      await db.query(`UPDATE evals.case_unit SET status='canceled',reason_code='runner_revoked',updated_at=now()
+        WHERE org_id=$1 AND run_id=$2 AND status='pending'`,[scope.orgId,job.run_id]);
+      await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS(
+        SELECT 1 FROM evals.observation o WHERE o.org_id=$1 AND o.run_id=$2
+      ) THEN 'partial' ELSE 'canceled' END,reason_code='runner_revoked',updated_at=now()
+        WHERE org_id=$1 AND id=$2 AND status='paused'`,[scope.orgId,job.run_id]);
+    }
     await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'runner.revoked',$3)",[scope.orgId,scope.actorId,runnerId]);
     return {runnerId,revokedAt:row.revoked_at};
   });

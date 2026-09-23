@@ -84,7 +84,22 @@ suite("WP-12 private runner database path",()=>{
     await expect(authenticateRunner(orgId,identity.token,(db,runner)=>submitRunnerResult(db,runner,{...changed,signature:signPayload(changed,runnerPrivate)}))).rejects.toThrow();
     const stored=await withTenant({orgId,actorId},async db=>(await db.query("SELECT document FROM evals.observation WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows[0].document);
     expect(stored.extensions["caudals.evals/private_runner"].execution_identity).toBe("customer_runner_reported");
+    const pendingRunId=randomUUID();
+    await owner.query("INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,reason_code) VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution','runner_wait')",
+      [pendingRunId,orgId,evaluationId,identity.targetRevisionId,suiteVersionId]);
+    const pending=await withTenant({orgId,actorId},db=>createRunnerJob(db,{orgId,actorId},{
+      runnerId:identity.runnerId,connectorVersion:"caudals-evals-cli:0.1.0",projectId,targetId,
+      targetRevisionId:identity.targetRevisionId,runId:pendingRunId,suiteVersionId,
+      rows:[{case_revision_id:revisionId,document:item}]}));
     await revokeRunner({orgId,actorId},identity.runnerId);
+    const canceled=await owner.query(`SELECT r.status AS run_status,r.reason_code,j.status AS job_status,cu.status AS unit_status
+      FROM evals.run r JOIN evals.runner_job j ON (j.org_id,j.run_id)=(r.org_id,r.id)
+      JOIN evals.case_unit cu ON (cu.org_id,cu.run_id)=(r.org_id,r.id)
+      WHERE r.org_id=$1 AND r.id=$2 AND j.id=$3`,[orgId,pendingRunId,pending.jobId]);
+    expect(canceled.rows[0]).toMatchObject({run_status:"canceled",reason_code:"runner_revoked",
+      job_status:"canceled",unit_status:"canceled"});
+    const prior=await owner.query("SELECT status FROM evals.run WHERE org_id=$1 AND id=$2",[orgId,runId]);
+    expect(prior.rows[0].status).toBe("completed");
     await expect(authenticateRunner(orgId,identity.token,async()=>true)).rejects.toThrow();
   });
 });
