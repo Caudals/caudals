@@ -11,6 +11,7 @@ state_dir=/root/.caudals/evals-production
 [[ -s $state_dir/org-ids.json ]] || { echo 'Create a reviewed JSON workspace allowlist in org-ids.json' >&2; exit 1; }
 
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
+  .github/workflows/evals-images.yml \
   infra/evals/Dockerfile infra/evals/Dockerfile.documents infra/evals/Dockerfile.browser \
   lib services/evals-worker services/evals-documents services/evals-browser \
   package.json package-lock.json tsconfig.json)}
@@ -34,4 +35,15 @@ docker run --rm --network dokploy-network --user 0 \
   "import('./lib/evals/queue/boss.ts').then(async m=>{const b=m.createBoss(process.env,{bootstrap:true});try{await m.startBoss(b)}finally{await b.stop({graceful:true})}})"
 
 docker stack deploy --with-registry-auth -c "$repo_dir/infra/evals/production-stack.yml" caudals-evals
+for service in worker documents; do
+  name="caudals-evals_$service"
+  if ! docker service inspect "$name" --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}' |
+    jq -e 'any(.[]?; .Type == "tmpfs" and .Target == "/tmp")' >/dev/null; then
+    size=67108864
+    [[ $service == documents ]] && size=134217728
+    # Swarm ignores Compose's tmpfs key. Its native mount keeps the read-only
+    # filesystem while giving tsx and Chromium writable ephemeral scratch.
+    docker service update --mount-add "type=tmpfs,destination=/tmp,tmpfs-size=$size" "$name" >/dev/null
+  fi
+done
 echo "Deployed evaluation worker images from $commit with an explicit workspace allowlist."

@@ -6,8 +6,6 @@ services:
     read_only: true
     init: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    tmpfs: ["/tmp:size=64m,mode=1777"]
     networks: [dokploy-network]
     environment:
       EVALS_ENV: production
@@ -37,8 +35,6 @@ services:
     read_only: true
     init: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    tmpfs: ["/tmp:size=128m,mode=1777"]
     networks: [dokploy-network]
     environment:
       NODE_ENV: production
