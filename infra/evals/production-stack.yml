@@ -6,6 +6,10 @@ services:
     read_only: true
     init: true
     cap_drop: [ALL]
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: {size: 67108864}
     networks: [dokploy-network]
     environment:
       EVALS_ENV: production
@@ -35,6 +39,10 @@ services:
     read_only: true
     init: true
     cap_drop: [ALL]
+    volumes:
+      - type: tmpfs
+        target: /tmp
+        tmpfs: {size: 134217728}
     networks: [dokploy-network]
     environment:
       NODE_ENV: production
