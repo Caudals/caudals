@@ -79,6 +79,9 @@ jobs:
   deploy-to-vps:
     needs: [build-and-push]
     runs-on: ubuntu-latest
+    concurrency:
+      group: production-app-deploy
+      cancel-in-progress: false
     steps:
       - name: Tailscale
         uses: tailscale/github-action@v3
@@ -94,9 +97,13 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no caudals@caudals-1 << 'INNEREOF'
+          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA=${{ github.sha }} bash -se" << 'INNEREOF'
             cd /home/caudals/caudals
             git fetch origin main
-            git reset --hard origin/main
+            if [ "$(git rev-parse origin/main)" != "$DEPLOY_SHA" ]; then
+              echo "A newer main commit superseded this deployment."
+              exit 0
+            fi
+            git reset --hard "$DEPLOY_SHA"
             sudo CAUDALS_APP_BUILD_LOCAL=false scripts/deploy-app-stack.sh
           INNEREOF
