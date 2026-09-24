@@ -328,6 +328,13 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
         await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
         return {status:"quarantined",jobId:job.id,reasonCode:"generated_draft_invalid",detail:error instanceof Error?error.message:"Draft validation failed."};
       }
+      if(parsed.rejectedCases.length){
+        const batch=(await db.query("SELECT id FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];
+        if(batch){
+          const recorded=await db.query("SELECT id FROM evals.case_quarantine WHERE org_id=$1 AND generation_batch_id=$2 AND reason_code='generated_cases_filtered' LIMIT 1",[scope.orgId,batch.id]);
+          if(!recorded.rowCount)await db.query("INSERT INTO evals.case_quarantine(org_id,evaluation_id,generation_batch_id,draft,reason_code,schema_errors) VALUES($1,$2,$3,$4,'generated_cases_filtered',$5)",[scope.orgId,evaluationId,batch.id,{filteredCases:parsed.rejectedCases},JSON.stringify(parsed.rejectedCases.map(({index,reasonCode})=>`case_${index}:${reasonCode}`))]);
+        }
+      }
       const profileRow=(await db.query("SELECT document,model_revision_id FROM evals.context_profile_revision WHERE org_id=$1 AND id=$2",[scope.orgId,job.profile_revision_id])).rows[0];
       const generator=(await db.query("SELECT provider_revision_id FROM evals.generation_provider_route WHERE org_id=$1 AND role='generator'",[scope.orgId])).rows[0];
       const questions=parsed.cases.map((item)=>({question:item.question,expected:item.expected,anchor:item.anchorId,sourceRevisionId:item.sourceRevisionId,severity:item.severity,difficulty:item.difficulty}));
