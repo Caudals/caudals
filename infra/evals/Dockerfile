@@ -1,12 +1,12 @@
 # Standalone worker/admin image. Pin the built image digest at deployment.
-FROM node:20.20.1-bookworm-slim AS dependencies
+FROM node:24.21.0-bookworm-slim AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 # tsx is locked in devDependencies and deliberately retained for the TS entrypoints.
 # No Next build, browsers, or generated customer material is needed by this image.
 RUN npm ci --include=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
 
-FROM node:20.20.1-bookworm-slim
+FROM node:24.21.0-bookworm-slim
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules

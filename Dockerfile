@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim AS base
+FROM node:24.21.0-bookworm-slim AS base
 
 # Disable npm update notifications and configure Node.js defaults
 ENV npm_config_update_notifier=false \
