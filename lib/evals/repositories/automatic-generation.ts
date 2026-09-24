@@ -323,7 +323,7 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
 
 export function getAutomaticGeneration(scope: EvidenceScope, evaluationId: string, jobId?: string) {
   return withTenant(scope,async db=>{
-    const job=(await db.query(`SELECT id,status,reason_code,profile_revision_id,suite_id,suite_version_id,created_at,updated_at
+    const job=(await db.query(`SELECT id,workflow_id,status,reason_code,profile_revision_id,suite_id,suite_version_id,created_at,updated_at
       FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 AND ($3::uuid IS NULL OR id=$3)
       ORDER BY created_at DESC,id DESC LIMIT 1`,[scope.orgId,evaluationId,jobId??null])).rows[0];
     if(!job)return {status:"idle",job:null,batches:[]};
