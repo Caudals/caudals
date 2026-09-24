@@ -226,9 +226,9 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
     if(!job)throw new EvalError("SCOPE_DENIED",404);
     const retryable=(await db.query(`SELECT s.id,s.version,b.status AS batch_status
       FROM evals.workflow_step s JOIN evals.generation_batch b
-        ON b.org_id=s.org_id AND b.generation_job_id=$3 AND b.step_kind='draft' AND b.version=s.version
+        ON b.org_id=s.org_id AND b.generation_job_id=$3::uuid AND b.step_kind='draft' AND b.version=s.version
       WHERE s.org_id=$1 AND s.workflow_id=$2 AND s.step_kind='generate' AND s.status='paused'
-        AND s.reason_code='invocation_configuration_invalid' AND s.input->>'generationJobId'=$3
+        AND s.reason_code='invocation_configuration_invalid' AND s.input->>'generationJobId'=$3::text
         AND b.status IN ('queued','paused')
         AND NOT EXISTS (SELECT 1 FROM evals.execution_attempt a WHERE a.org_id=s.org_id AND a.step_id=s.id)
       ORDER BY s.version DESC LIMIT 1 FOR UPDATE OF s,b`,[scope.orgId,job.workflow_id,job.id])).rows[0];
