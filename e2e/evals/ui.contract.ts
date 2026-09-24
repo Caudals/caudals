@@ -1056,3 +1056,83 @@ test("workspace owner creates a pinned monitoring schedule", async ({ page }) =>
   await expect(page.getByRole("status")).toHaveText("Schedule created.");
   expect(created).toMatchObject({ orgId: id, evaluationId, targetRevisionId, suiteVersionId, cadence: "monthly", dayOfMonth: 31, timezone: "Europe/Madrid", maxRunSpend: "25", currency: "EUR" });
 });
+
+test("workspace can browse, fork, edit and freeze a test set", async ({ page }) => {
+  const sourceSuiteId = "00000000-0000-4000-8000-000000000201";
+  const sourceVersionId = "00000000-0000-4000-8000-000000000202";
+  const forkSuiteId = "00000000-0000-4000-8000-000000000203";
+  const oldRevisionId = "00000000-0000-4000-8000-000000000204";
+  const newRevisionId = "00000000-0000-4000-8000-000000000205";
+  let saved = false;
+  let frozen = false;
+  const originalDocument = {
+    title: "Refund window",
+    scenario: { messages: [{ role: "user", content: "How long do I have to request a refund?" }] },
+    reference: { expected: "30 days" },
+  };
+  const updatedDocument = {
+    ...originalDocument,
+    title: "Updated refund window",
+    scenario: { messages: [{ role: "user", content: "When does the refund period end?" }] },
+    reference: { expected: "Thirty calendar days" },
+  };
+  const released = (suiteId: string, versionId: string, title: string) => ({
+    suite_id: suiteId,
+    suite_version_id: versionId,
+    project_id: "00000000-0000-4000-8000-000000000206",
+    project_title: "Customer support",
+    title,
+    content_hash: "a".repeat(64),
+    frozen_at: "2026-09-24T10:00:00.000Z",
+    case_count: 1,
+  });
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    if (path === "/api/evals/v1/suites" && request.method() === "GET") {
+      return route.fulfill({ json: { data: frozen ? [released(forkSuiteId, newRevisionId, "Support improvements"), released(sourceSuiteId, sourceVersionId, "Support source") ] : [released(sourceSuiteId, sourceVersionId, "Support source")], meta: {} } });
+    }
+    if (path === `/api/evals/v1/suites/${sourceSuiteId}/forks` && request.method() === "POST") {
+      expect(request.postDataJSON()).toEqual({ orgId: id, suiteVersionId: sourceVersionId, title: "Support improvements" });
+      return route.fulfill({ json: { data: { suiteId: forkSuiteId, draftVersion: 1 }, meta: {} } });
+    }
+    if (path === `/api/evals/v1/suites/${forkSuiteId}/cases` && request.method() === "GET") {
+      return route.fulfill({ json: { data: {
+        suiteId: forkSuiteId,
+        suiteTitle: "Support improvements",
+        version: saved ? 2 : 1,
+        cases: [{ caseRevisionId: saved ? newRevisionId : oldRevisionId, document: saved ? updatedDocument : originalDocument }],
+      }, meta: {} } });
+    }
+    if (path === `/api/evals/v1/suites/${forkSuiteId}/cases/${oldRevisionId}` && request.method() === "POST") {
+      expect(request.postDataJSON()).toEqual({ orgId: id, title: "Updated refund window", contents: ["When does the refund period end?"], expected: "Thirty calendar days" });
+      saved = true;
+      return route.fulfill({ json: { data: { suiteId: forkSuiteId, version: 2, caseRevisionId: newRevisionId, contentHash: "b".repeat(64) }, meta: {} } });
+    }
+    if (path === `/api/evals/v1/suites/${forkSuiteId}/versions` && request.method() === "POST") {
+      expect(request.postDataJSON()).toEqual({ orgId: id, version: 2 });
+      frozen = true;
+      return route.fulfill({ json: { data: { id: newRevisionId }, meta: {} } });
+    }
+    return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Not found" } } });
+  });
+
+  await page.goto(`/workspace/test-sets?orgId=${id}&editor`);
+  await expect(page.getByRole("heading", { name: "Test sets" })).toBeVisible();
+  await expect(page.getByText("Support source", { exact: true })).toBeVisible();
+  await page.getByText("Fork test set", { exact: true }).click();
+  await page.getByLabel("Name for your copy").fill("Support improvements");
+  await page.getByRole("button", { name: "Create editable fork" }).click();
+  await expect(page).toHaveURL(new RegExp(`/workspace/test-sets/${forkSuiteId}`));
+  await expect(page.getByRole("heading", { name: "Support improvements" })).toBeVisible();
+  await page.getByLabel("Case title").fill("Updated refund window");
+  await page.getByLabel("Scenario message 1 (user)").fill("When does the refund period end?");
+  await page.getByLabel("Reference answer (JSON for structured answers)").fill("Thirty calendar days");
+  await page.getByRole("button", { name: "Save case" }).click();
+  await expect(page.getByText("Case saved. Review it before freezing the test set.")).toBeVisible();
+  await page.getByRole("button", { name: "Freeze test set" }).click();
+  await expect(page).toHaveURL(new RegExp(`/workspace/test-sets\\?orgId=${id}`));
+  await expect(page.getByText("Support improvements", { exact: true })).toBeVisible();
+  expect(saved && frozen).toBe(true);
+});

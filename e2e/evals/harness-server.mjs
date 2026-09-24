@@ -26,7 +26,7 @@ const result = await build({
               ? 'import React from "react"; export default function Link({children,...p}) { return React.createElement("a",p,children); }'
               : a.path === "next/image"
                 ? 'import React from "react"; export default function Image({priority,...p}) { return React.createElement("img",p); }'
-                : "export const usePathname=()=>location.pathname; export const useSearchParams=()=>new URLSearchParams(location.search); export const useRouter=()=>({refresh(){},push(p){location.assign(p)}});",
+                : "export const usePathname=()=>location.pathname; export const useSearchParams=()=>new URLSearchParams(location.search); export const useRouter=()=>({refresh(){},push(p){const next=new URL(p,location.href);const current=new URLSearchParams(location.search);for(const role of [\"editor\",\"owner\"])if(current.has(role))next.searchParams.set(role,\"\");location.assign(next.pathname+next.search)}});",
           resolveDir: root,
         }));
       },

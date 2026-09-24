@@ -7,3 +7,11 @@ export const POST = api(async (request, identity) => {
  await requireWorkspace(identity,input.orgId,'write');
  return evidence.createSuite({orgId:input.orgId,actorId:identity.user.id},input,request.headers.get('Idempotency-Key') ?? '');
 });
+
+export const GET = api(async (request, identity) => {
+ const url = new URL(request.url);
+ const orgId = z.uuid().parse(url.searchParams.get('orgId'));
+ const projectId = url.searchParams.has('projectId') ? z.uuid().parse(url.searchParams.get('projectId')) : undefined;
+ await requireWorkspace(identity,orgId,'read');
+ return evidence.listSuiteVersions({orgId,actorId:identity.user.id},projectId);
+});

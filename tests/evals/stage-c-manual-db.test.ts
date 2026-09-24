@@ -5,6 +5,8 @@ import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import { canonicalJson, sha256, withContentHash } from "../../lib/evals/contracts/hashing";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { applyMatchedAnswers, createReportForRun, createRun, persistImport, scoreRun } from "../../lib/evals/repositories/managed";
+import { createSuite, editSuiteDraftCase, freezeSuite, getDraft, getSuiteDraftCases, listSuiteVersions } from "../../lib/evals/repositories/evidence";
+import { forkSuite } from "../../lib/evals/repositories/stage-c";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -100,5 +102,65 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const report = await createReportForRun(scope, { runId, title: "Synthetic manual report", reviewStatus: "preliminary", scorerVersion: "fixture-v1" }, randomUUID());
     expect(report.snapshot.methodology.limitations).toContain("Responses were imported; execution identity, latency and usage may be unavailable.");
     expect(report.snapshot.results).toHaveLength(2);
+
+    const forkSource = await createSuite(scope, { projectId, title: "Customer source suite" }, randomUUID());
+    const template = await withTenant(scope, async connection => (await connection.query(
+      "SELECT manifest FROM evals.suite_version WHERE org_id=$1 AND id=$2", [orgId, suiteVersionId],
+    )).rows[0].manifest);
+    const editableCase = withContentHash({
+      ...fixtures[0].cases[0], case_id: randomUUID(), revision_id: randomUUID(), family_id: randomUUID(),
+      reference: { ...fixtures[0].cases[0].reference, source_refs: [] },
+      provenance: { ...fixtures[0].cases[0].provenance, evidence_level: "unverified" as const },
+    });
+    const holdout = withContentHash({
+      ...fixtures[1].cases[0], case_id: randomUUID(), revision_id: randomUUID(), family_id: randomUUID(), split: "holdout" as const,
+      reference: { ...fixtures[1].cases[0].reference, source_refs: [] },
+      provenance: { ...fixtures[1].cases[0].provenance, evidence_level: "unverified" as const },
+    });
+    const forkSourceVersionId = randomUUID();
+    const forkSourceManifest = withContentHash({
+      ...template, suite_id: forkSource.id, suite_version_id: forkSourceVersionId, title: "Customer source suite", evidence_policy: "exploratory" as const,
+      case_revisions: [
+        { case_id: editableCase.case_id, revision_id: editableCase.revision_id, content_hash: editableCase.content_hash,
+          family_id: editableCase.family_id, split: editableCase.split, weight: editableCase.weight },
+        { case_id: holdout.case_id, revision_id: holdout.revision_id, content_hash: holdout.content_hash,
+          family_id: holdout.family_id, split: holdout.split, weight: holdout.weight },
+      ],
+    });
+    await withTenant(scope, async connection => {
+      for (const item of [editableCase, holdout]) {
+        await connection.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [item.case_id, orgId, projectId]);
+        await connection.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+          [item.revision_id, orgId, item.case_id, item.family_id, item.split, item.content_hash, item, item.reference.rubric_revision_id]);
+      }
+      await connection.query("INSERT INTO evals.suite_version(id,org_id,suite_id,content_hash,manifest) VALUES($1,$2,$3,$4,$5)",
+        [forkSourceVersionId, orgId, forkSource.id, forkSourceManifest.content_hash, forkSourceManifest]);
+      for (const [ordinal, item] of forkSourceManifest.case_revisions.entries()) await connection.query(
+        "INSERT INTO evals.suite_case(org_id,suite_version_id,case_revision_id,ordinal) VALUES($1,$2,$3,$4)",
+        [orgId, forkSourceVersionId, item.revision_id, ordinal],
+      );
+    });
+    const fork = await forkSuite(scope, forkSource.id, forkSourceVersionId, "Customer fork", randomUUID());
+    const draftCases = await getSuiteDraftCases(scope, fork.suiteId);
+    expect(draftCases.cases).toHaveLength(1);
+    expect(draftCases.cases[0].caseRevisionId).not.toBe(holdout.revision_id);
+    const editable = draftCases.cases[0];
+    const contents = editable.document.scenario.messages.map((message, index) => index === 0 ? "A customer-edited question" : message.content);
+    const editKey = randomUUID();
+    const editInput = { title: "Customer-edited case", contents, expected: editable.document.reference.expected };
+    const edited = await editSuiteDraftCase(scope, fork.suiteId, editable.caseRevisionId, editInput, editKey);
+    expect(await editSuiteDraftCase(scope, fork.suiteId, editable.caseRevisionId, editInput, editKey)).toEqual(edited);
+    expect(edited.version).toBe(2);
+    await expect(editSuiteDraftCase(scope, fork.suiteId, holdout.revision_id, editInput, randomUUID())).rejects.toMatchObject({ status: 404 });
+    const savedCases = await getSuiteDraftCases(scope, fork.suiteId);
+    expect(savedCases.cases[0].document).toMatchObject({
+      title: "Customer-edited case",
+      provenance: { evidence_level: "customer_supplied_unreviewed", reviewer_ids: [] },
+      scenario: { messages: [{ content: "A customer-edited question" }] },
+    });
+    expect((await getDraft(scope, fork.suiteId)).version).toBe(2);
+    const frozenFork = await freezeSuite(scope, fork.suiteId, edited.version, randomUUID());
+    expect(frozenFork.manifest.case_revisions.map(item => item.revision_id)).toContain(holdout.revision_id);
+    expect((await listSuiteVersions(scope)).find(item => item.suite_id === fork.suiteId)).toMatchObject({ case_count: 1 });
   }, 30000);
 });

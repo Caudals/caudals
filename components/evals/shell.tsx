@@ -11,7 +11,7 @@
  * Visual contract: packages/brand/platform.css. See docs/DESIGN.md.
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -50,6 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { betterAuthClient } from "./auth-client";
+import { evalRequest } from "./api";
 import { t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
@@ -72,6 +73,7 @@ const CRUMBS: Record<string, string> = {
   settings: t("settings"),
   invitations: t("invitations"),
   new: t("newEvaluationAction"),
+  "test-sets": "Test sets",
 };
 
 function crumbLabel(segment: string) {
@@ -82,7 +84,7 @@ function crumbLabel(segment: string) {
   return words[0]?.toUpperCase() + words.slice(1);
 }
 
-function navFor(identity: EvalIdentity, expert = false): NavGroup[] {
+function navFor(identity: EvalIdentity, expert = false, hasTestSets = false): NavGroup[] {
   const operator =
     identity.platformRole === "operator" || identity.platformRole === "platform_admin";
   const groups: NavGroup[] = [];
@@ -312,7 +314,20 @@ export function EvalShell({
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
-  const groups = navFor(identity, expert);
+  const [hasTestSets, setHasTestSets] = useState(false);
+  const workspaceIds = useMemo(() => identity.workspaces.map((workspace) => workspace.id), [identity.workspaces]);
+  const groups = navFor(identity, expert, hasTestSets);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all(workspaceIds.map(async (workspaceId) => {
+      try {
+        const items = await evalRequest<Array<{ suite_version_id: string }>>(`/suites?orgId=${encodeURIComponent(workspaceId)}`);
+        return items.length > 0;
+      } catch { return false; }
+    })).then((results) => { if (active) setHasTestSets(results.some(Boolean)); });
+    return () => { active = false; };
+  }, [workspaceIds]);
 
   /* The sidebar state is a per-device preference, not account data. */
   useEffect(() => {

@@ -31,6 +31,22 @@ export async function idempotent<T>(db: PoolClient, scope: EvidenceScope, route:
 export function listProjects(scope: EvidenceScope, after?: string) {
   return withTenant(scope, async db => (await db.query('SELECT id,title,description,created_at FROM evals.project WHERE org_id=$1 AND ($2::uuid IS NULL OR (created_at,id) > (SELECT created_at,id FROM evals.project WHERE org_id=$1 AND id=$2)) ORDER BY created_at,id LIMIT 50', [scope.orgId,after ?? null])).rows);
 }
+export function listSuiteVersions(scope: EvidenceScope, projectId?: string) {
+  return withTenant(scope, async db => (await db.query(
+    `SELECT s.id AS suite_id,sv.id AS suite_version_id,s.project_id,p.title AS project_title,
+            COALESCE(sv.manifest->>'title',s.title) AS title,sv.content_hash,sv.created_at AS frozen_at,
+            count(cr.id) FILTER (WHERE cr.split <> 'holdout')::int AS case_count
+     FROM evals.suite_version sv
+     JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
+     JOIN evals.project p ON (p.org_id,p.id)=(s.org_id,s.project_id)
+     LEFT JOIN evals.suite_case sc ON (sc.org_id,sc.suite_version_id)=(sv.org_id,sv.id)
+     LEFT JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(sc.org_id,sc.case_revision_id)
+     WHERE sv.org_id=$1 AND ($2::uuid IS NULL OR s.project_id=$2)
+     GROUP BY s.id,sv.id,s.project_id,p.title,s.title,sv.manifest,sv.content_hash,sv.created_at
+     ORDER BY sv.created_at DESC,sv.id DESC LIMIT 200`,
+    [scope.orgId,projectId ?? null],
+  )).rows);
+}
 export function createProject(scope: EvidenceScope, input: {title: string; description: string}, key: string) {
   return withTenant(scope, db => idempotent(db,scope,'projects',key,input,async () => (await db.query('INSERT INTO evals.project(org_id,title,description) VALUES($1,$2,$3) RETURNING id,title,description,created_at',[scope.orgId,input.title,input.description])).rows[0]));
 }
@@ -92,12 +108,88 @@ export function getSource(scope: EvidenceScope, id: string) {
 export function getDraft(scope: EvidenceScope, id: string) {
   return withTenant(scope,async db => required((await db.query('SELECT id,draft,version FROM evals.suite WHERE org_id=$1 AND id=$2',[scope.orgId,id])).rows[0]));
 }
+export function getSuiteDraftCases(scope: EvidenceScope, id: string) {
+  return withTenant(scope, async db => {
+    const suite = required((await db.query('SELECT id,title,project_id,draft,version FROM evals.suite WHERE org_id=$1 AND id=$2',[scope.orgId,id])).rows[0]);
+    const manifest = manifestSchema.parse(suite.draft);
+    verifiedHash(manifest);
+    const editable = manifest.case_revisions.filter(item => item.split !== 'holdout');
+    const rows = editable.length ? (await db.query(
+      `SELECT cr.id,cr.content_hash,cr.document FROM evals.case_revision cr
+       JOIN evals."case" c ON (c.org_id,c.id)=(cr.org_id,cr.case_id)
+       WHERE cr.org_id=$1 AND c.project_id=$2 AND cr.id=ANY($3::uuid[])`,
+      [scope.orgId, suite.project_id, editable.map(item => item.revision_id)],
+    )).rows : [];
+    const byId = new Map(rows.map(row => [row.id, row]));
+    const cases = editable.map(reference => {
+      const row = required(byId.get(reference.revision_id));
+      if (row.content_hash !== reference.content_hash) throw new EvidenceError(409,'Draft case revision changed');
+      const document = caseSchema.parse(row.document);
+      verifyContentHash(document);
+      return { caseRevisionId: row.id, document };
+    });
+    return { suiteId: suite.id, suiteTitle: suite.title, version: suite.version, cases };
+  });
+}
 export function patchDraft(scope: EvidenceScope, id: string, version: number, draft: unknown) {
   return withTenant(scope,async db => {
     const result = await db.query('UPDATE evals.suite SET draft=$4,version=version+1 WHERE org_id=$1 AND id=$2 AND version=$3 RETURNING id,draft,version',[scope.orgId,id,version,JSON.stringify(draft)]);
     if (!result.rowCount) throw new EvidenceError(409,'Draft changed or is unavailable');
     return result.rows[0];
   });
+}
+export function editSuiteDraftCase(
+  scope: EvidenceScope,
+  suiteId: string,
+  caseRevisionId: string,
+  input: { title: string; contents: string[]; expected: unknown },
+  key: string,
+) {
+  return withTenant(scope, db => idempotent(db,scope,`suite-case-edit/${suiteId}/${caseRevisionId}`,key,input,async () => {
+    const suite = required((await db.query('SELECT id,project_id,draft,version FROM evals.suite WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,suiteId])).rows[0]);
+    const manifest = manifestSchema.parse(suite.draft);
+    verifiedHash(manifest);
+    const reference = manifest.case_revisions.find(item => item.revision_id === caseRevisionId);
+    if (!reference || reference.split === 'holdout') throw new EvidenceError(404,'Editable test-set case not found');
+    const row = required((await db.query(
+      `SELECT cr.document,cr.content_hash FROM evals.case_revision cr
+       JOIN evals."case" c ON (c.org_id,c.id)=(cr.org_id,cr.case_id)
+       WHERE cr.org_id=$1 AND cr.id=$2 AND c.project_id=$3`,
+      [scope.orgId,caseRevisionId,suite.project_id],
+    )).rows[0]);
+    if (row.content_hash !== reference.content_hash) throw new EvidenceError(409,'Draft case revision changed');
+    const original = caseSchema.parse(row.document);
+    verifyContentHash(original);
+    if (input.contents.length !== original.scenario.messages.length) throw new EvidenceError(422,'The message structure cannot change in a customer fork');
+    const revisionId = randomUUID();
+    const editedAt = new Date().toISOString();
+    const document = caseSchema.parse(withContentHash({
+      ...original,
+      revision_id: revisionId,
+      title: input.title,
+      scenario: { ...original.scenario, messages: original.scenario.messages.map((message,index) => ({...message,content:input.contents[index]})) },
+      reference: { ...original.reference, expected: input.expected as typeof original.reference.expected },
+      provenance: { ...original.provenance, evidence_level: 'customer_supplied_unreviewed' as const, reviewer_ids: [] },
+      extensions: { ...original.extensions, 'caudals.evals/customer-edit': { actor_id: scope.actorId, edited_at: editedAt } },
+    }));
+    await db.query(
+      'INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+      [document.revision_id,scope.orgId,document.case_id,document.family_id,document.split,document.content_hash,document,document.reference.rubric_revision_id],
+    );
+    const nextManifest = manifestSchema.parse(withContentHash({
+      ...manifest,
+      suite_version_id: randomUUID(),
+      created_at: editedAt,
+      case_revisions: manifest.case_revisions.map(item => item.revision_id === caseRevisionId
+        ? {...item,revision_id:document.revision_id,content_hash:document.content_hash}
+        : item),
+    }));
+    const updated = required((await db.query(
+      'UPDATE evals.suite SET draft=$3,version=version+1 WHERE org_id=$1 AND id=$2 RETURNING version',
+      [scope.orgId,suiteId,nextManifest],
+    )).rows[0]);
+    return { suiteId, version: updated.version, caseRevisionId: document.revision_id, contentHash: document.content_hash };
+  }));
 }
 
 export function createSuite(scope: EvidenceScope, input: {projectId: string; title: string}, key: string) {

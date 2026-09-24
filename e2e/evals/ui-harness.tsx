@@ -11,6 +11,7 @@ import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/e
 import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 import { QueueView } from "../../components/evals/operator-overview";
+import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
 const params = new URLSearchParams(location.search);
 const authPage =
   location.pathname === "/workspace/sign-in" ||
@@ -63,6 +64,10 @@ const content =
     <WorkspaceSettings workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports" ? (
     <WorkspaceReports workspaces={identity.workspaces} />
+  ) : location.pathname === "/workspace/test-sets" ? (
+    <WorkspaceTestSets workspaces={identity.workspaces} />
+  ) : location.pathname.startsWith("/workspace/test-sets/") ? (
+    <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
     <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports/fixture" ? (
