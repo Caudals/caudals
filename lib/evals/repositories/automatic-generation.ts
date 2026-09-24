@@ -82,7 +82,7 @@ function makeInvocation(args: {
     providerRevisionId: args.route.provider_revision_id, priceRevisionId: args.route.price_revision_id,
     workspaceBudgetId: args.workspaceBudgetId, runBudgetId: args.runBudgetId, role: args.route.role,
     dataClass: args.route.data_class, region: args.route.region, routing: "local_only", approvedProviderIds: [],
-    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), timeoutMs: 120000,
+    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), timeoutMs: 900000,
     internalCostPerSecond: args.route.internal_cost_per_second,
   });
 }

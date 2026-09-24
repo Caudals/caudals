@@ -6,10 +6,10 @@ export const invocationSchema=z.object({
   dataClass:z.string().min(1), region:z.string().min(1), routing:z.enum(['local_only','approved_providers']),
   approvedProviderIds:z.array(z.string().uuid()),
   messages:z.array(z.object({role:z.enum(['system','user','assistant']),content:z.string().max(100000)}).strict()).min(1).max(100),
-  maxOutputTokens:z.number().int().min(1).max(32768), timeoutMs:z.number().int().min(100).max(120000).default(60000),
+  maxOutputTokens:z.number().int().min(1).max(32768), timeoutMs:z.number().int().min(100).max(900000).default(60000),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
-}).strict();
+}).strict().superRefine((input,ctx)=>{if(input.timeoutMs>120000&&(!input.generationJobId||!input.generationStep||input.probe||input.routing!=="local_only"||!(["generator","context_analyzer"] as string[]).includes(input.role)))ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});});
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {
  const promptBytes=Buffer.byteLength(JSON.stringify(messages),"utf8");
  const maximum=Math.min(4096,requestCap,outputLimit,contextLimit-promptBytes-1024);

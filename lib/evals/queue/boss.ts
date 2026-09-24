@@ -19,7 +19,7 @@ export async function dispatchOutbox(boss:Pick<PgBoss,'send'>,tx:TenantTransacti
  JOIN evals.workflow_step s ON (s.org_id,s.id)=(e.org_id,e.step_id)
  WHERE e.org_id=$1 AND e.delivered_at IS NULL AND e.available_at<=now() ORDER BY e.created_at,e.id LIMIT $2`,[tenant.orgId,Math.min(100,limit)])).rows);
  for(const e of events) {
-  await boss.send(e.queue,{orgId:tenant.orgId,stepId:e.step_id,inputHash:e.input_hash},{id:e.id,singletonKey:e.id,retryLimit:2,expireInSeconds:180});
+  await boss.send(e.queue,{orgId:tenant.orgId,stepId:e.step_id,inputHash:e.input_hash},{id:e.id,singletonKey:e.id,retryLimit:2,expireInSeconds:e.queue==='profile'||e.queue==='generate'?1200:180});
   await tx(tenant,async c=>{await c.query('UPDATE evals.outbox_event SET delivered_at=now() WHERE org_id=$1 AND id=$2 AND delivered_at IS NULL',[tenant.orgId,e.id]);});
  }
  return events.length;
