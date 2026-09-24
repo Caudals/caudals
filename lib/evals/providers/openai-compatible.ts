@@ -25,7 +25,7 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  const address=addresses[0];
  const url=new URL(`${base.pathname.replace(/\/$/,'')}/chat/completions`,base);
  const payload=JSON.stringify({model:provider.model_id,messages:input.messages,max_tokens:input.maxOutputTokens,stream:false,temperature:0,
-  ...(input.probe&&input.probeKind==='json_object'?{response_format:{type:'json_object'}}:{}),
+  ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
   ...(input.probe&&input.probeKind==='tools'?{tools:[{type:'function',function:{name:'probe_echo',description:'Return the requested string; inspection only, never executed.',parameters:{type:'object',properties:{value:{type:'string'}},required:['value'],additionalProperties:false}}}],tool_choice:{type:'function',function:{name:'probe_echo'}}}:{}),
  });
  const started=Date.now();

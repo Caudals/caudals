@@ -13,7 +13,7 @@ export async function loadProvider(client:PoolClient, input:Invocation):Promise<
    if(provider.adapter!=='dgx' || !provider.capabilities.probeApproved || input.maxOutputTokens>128 || Buffer.byteLength(JSON.stringify(input.messages))>256)throw new Error('probe_not_approved');
    if([price.input_price,price.output_price,price.cache_price,price.tool_price].some(p=>units(p)!==BigInt(0)))throw new Error('probe_requires_zero_external_price');
  } else if(input.probeKind!=='text')throw new Error('probe_mode_requires_admin_probe');
- else if(!provider.capabilities.text || !provider.capabilities.boundedTokens) throw new Error('provider_capability_unverified');
+ else if(!provider.capabilities.text || !provider.capabilities.boundedTokens || input.outputFormat==='json_object'&&!provider.capabilities.jsonObject) throw new Error('provider_capability_unverified');
  if(input.maxOutputTokens>provider.output_limit) throw new Error('output_bound_exceeded');
  // UTF-8 bytes conservatively dominate byte-level tokenization; reserve full context
  // for input to cover provider chat-template overhead. Reject oversized payloads locally.

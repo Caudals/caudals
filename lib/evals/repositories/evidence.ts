@@ -10,7 +10,7 @@ import { manifestSchema } from '../contracts/manifest';
 import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
-import { extractText } from '../storage/text';
+import { extractText, MAX_SOURCE_BYTES } from '../storage/text';
 import { objectKey, readVerified, sealObject, writeUpload } from '../storage/private';
 
 const uuidSchema = z.uuid();
@@ -50,13 +50,23 @@ export function listSuiteVersions(scope: EvidenceScope, projectId?: string) {
 export function createProject(scope: EvidenceScope, input: {title: string; description: string}, key: string) {
   return withTenant(scope, db => idempotent(db,scope,'projects',key,input,async () => (await db.query('INSERT INTO evals.project(org_id,title,description) VALUES($1,$2,$3) RETURNING id,title,description,created_at',[scope.orgId,input.title,input.description])).rows[0]));
 }
-export function createUpload(scope: EvidenceScope, input: {projectId: string; title: string; mediaType: string; byteSize: number; sha256: string; rights: 'customer_owned'|'licensed'|'public_domain'|'caudals_owned'; visibility?: 'internal'|'candidate'|'judge'|'customer'; exportPath?:string}, key: string) {
+export function createUpload(scope: EvidenceScope, input: {projectId: string; evaluationId?:string; title: string; mediaType: string; byteSize: number; sha256: string; rights: 'customer_owned'|'licensed'|'public_domain'|'caudals_owned'; visibility?: 'internal'|'candidate'|'judge'|'customer'; exportPath?:string}, key: string) {
   return withTenant(scope, db => idempotent(db,scope,'uploads',key,input,async () => {
     required((await db.query('SELECT id FROM evals.project WHERE org_id=$1 AND id=$2',[scope.orgId,input.projectId])).rows[0]);
+    if(input.evaluationId){
+      const evaluation=required((await db.query('SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,input.evaluationId])).rows[0]);
+      if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,'Source project does not match evaluation');
+      const usage=(await db.query(`SELECT count(*)::int AS files,COALESCE(sum(a.byte_size),0)::bigint AS bytes
+        FROM evals.source s JOIN evals.source_upload u ON u.org_id=s.org_id AND u.source_id=s.id
+        JOIN evals.artifact a ON a.org_id=u.org_id AND a.id=u.artifact_id
+        WHERE s.org_id=$1 AND s.evaluation_id=$2 AND NOT EXISTS
+          (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=s.org_id AND w.source_id=s.id)` ,[scope.orgId,input.evaluationId])).rows[0];
+      if(usage.files>=20||Number(usage.bytes)+input.byteSize>100_000_000)throw new EvidenceError(413,'Evaluation source limit exceeded');
+    }
     const id = randomUUID(); const storageKey = objectKey(scope.orgId,id);
-    const exportPath=input.exportPath??`sources/${id}.${input.mediaType==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'?'docx':'txt'}`;
+    const extensions:Record<string,string>={'text/plain':'txt','text/markdown':'md','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/pdf':'pdf','text/csv':'csv','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx'}; const exportPath=input.exportPath??('sources/'+id+'.'+(extensions[input.mediaType]??'bin'));
     await db.query('INSERT INTO evals.artifact(id,org_id,project_id,object_key,sha256,byte_size,media_type,export_path,visibility) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[id,scope.orgId,input.projectId,storageKey,input.sha256,input.byteSize,input.mediaType,exportPath,input.visibility??'internal']);
-    const source = (await db.query('INSERT INTO evals.source(org_id,project_id,title,rights) VALUES($1,$2,$3,$4) RETURNING id',[scope.orgId,input.projectId,input.title,input.rights])).rows[0];
+    const source = (await db.query('INSERT INTO evals.source(org_id,project_id,evaluation_id,title,rights) VALUES($1,$2,$3,$4,$5) RETURNING id',[scope.orgId,input.projectId,input.evaluationId??null,input.title,input.rights])).rows[0];
     // Persist binding: source cannot finalize a different source's upload.
     await db.query('INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3)',[scope.orgId,source.id,id]);
     return { sourceId: source.id, artifactId: id, artifactPath:exportPath, uploadUrl: `/api/evals/v1/artifacts/${id}/upload?orgId=${scope.orgId}`, method: 'PUT' };
@@ -71,21 +81,56 @@ async function replay(scope: EvidenceScope, route: string, key: string, payload:
  });
 }
 export async function finalizeSource(scope: EvidenceScope, sourceId: string, key: string) {
-  const route=`finalize/${sourceId}`;
-  const old=await replay(scope,route,key,{});if(old) return old;
+  const route="finalize/"+sourceId;
+  const old=await replay(scope,route,key,{});if(old)return old;
   const artifact=await withTenant(scope,async db=>required((await db.query('SELECT a.* FROM evals.artifact a JOIN evals.source_upload u ON u.org_id=a.org_id AND u.artifact_id=a.id WHERE u.org_id=$1 AND u.source_id=$2',[scope.orgId,sourceId])).rows[0]));
-  if(artifact.state!=='pending' || new Date(artifact.expires_at)<new Date()) throw new EvidenceError(409,'Upload is no longer pending');
-  const bytes=await readVerified(artifact.object_key,artifact.byte_size,artifact.sha256);
-  const extraction=extractSource(bytes,artifact.media_type);
-  const sealed=objectKey(scope.orgId,artifact.id,true);
-  await sealObject(sealed,bytes,artifact.media_type);
+  if(artifact.state!=="pending"||new Date(artifact.expires_at)<new Date())throw new EvidenceError(409,"Upload is no longer pending");
+  await readVerified(artifact.object_key,artifact.byte_size,artifact.sha256);
   return withTenant(scope,db=>idempotent(db,scope,route,key,{},async()=>{
-    const current=required((await db.query('SELECT * FROM evals.artifact WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,artifact.id])).rows[0]);
-    if(current.state!=='pending' || current.object_key!==artifact.object_key || new Date(current.expires_at)<new Date()) throw new EvidenceError(409,'Upload state changed');
-    await db.query("UPDATE evals.artifact SET state='ready',object_key=$3,expires_at=now()+interval '90 days' WHERE org_id=$1 AND id=$2",[scope.orgId,artifact.id,sealed]);
-    return persistSourceRevision(db,scope,sourceId,artifact,extraction);
+    const current=required((await db.query("SELECT * FROM evals.artifact WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,artifact.id])).rows[0]);
+    if(current.state!=="pending"||current.object_key!==artifact.object_key||new Date(current.expires_at)<new Date())throw new EvidenceError(409,"Upload state changed");
+    const inserted=await db.query("INSERT INTO evals.source_ingestion_job(org_id,source_id,artifact_id,status) VALUES($1,$2,$3,'queued') ON CONFLICT(org_id,artifact_id) DO NOTHING RETURNING id,status",[scope.orgId,sourceId,artifact.id]); const job=inserted.rows[0]??required((await db.query("SELECT id,status FROM evals.source_ingestion_job WHERE org_id=$1 AND artifact_id=$2",[scope.orgId,artifact.id])).rows[0]);
+    return {status:"extracting",sourceId,artifactId:artifact.id,ingestionJobId:job.id};
   }));
 }
+export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:string;projectId:string;url:string;title:string;rights:"customer_owned"|"licensed"|"public_domain"},key:string){
+ return withTenant(scope,db=>idempotent(db,scope,"website-source/"+input.evaluationId,key,input,async()=>{
+  const evaluation=required((await db.query("SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,input.evaluationId])).rows[0]);
+  if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,"Website source project does not match evaluation");
+  const source=required((await db.query("INSERT INTO evals.source(org_id,project_id,evaluation_id,title,rights) VALUES($1,$2,$3,$4,$5) RETURNING id",[scope.orgId,input.projectId,input.evaluationId,input.title,input.rights])).rows[0]);
+  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,created_by) VALUES($1,$2,$3,$4,$5) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,scope.actorId])).rows[0]);
+  return {sourceId:source.id,jobId:job.id,status:job.status};
+ }));
+}
+
+export async function createWebsiteCaptureArtifact(scope:EvidenceScope,jobId:string,bytes:Buffer){
+ if(bytes.length<1||bytes.length>MAX_SOURCE_BYTES)throw new EvidenceError(422,"Website text is outside extraction limits");
+ const digest=sha256(bytes);
+ return withTenant(scope,async db=>{
+  const job=required((await db.query("SELECT id,source_id,artifact_id,status FROM evals.website_source_job WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,jobId])).rows[0]);
+  if(job.status!=="persisting"&&job.status!=="extracting")throw new EvidenceError(409,"Website capture is no longer active");
+  if(job.artifact_id){
+   const existing=required((await db.query("SELECT id,object_key,sha256,byte_size,media_type,export_path,visibility FROM evals.artifact WHERE org_id=$1 AND id=$2",[scope.orgId,job.artifact_id])).rows[0]);
+   if(existing.sha256!==digest||existing.byte_size!==bytes.length)throw new EvidenceError(409,"Website changed during capture retry");
+   return existing;
+  }
+  const artifactId=randomUUID(),storageKey=objectKey(scope.orgId,artifactId);
+  const artifact=required((await db.query("INSERT INTO evals.artifact(id,org_id,project_id,object_key,sha256,byte_size,media_type,export_path,visibility) VALUES($1,$2,(SELECT project_id FROM evals.source WHERE org_id=$2 AND id=$3),$4,$5,$6,'text/markdown',$7,'internal') RETURNING id,object_key,sha256,byte_size,media_type,export_path,visibility",[artifactId,scope.orgId,job.source_id,storageKey,digest,bytes.length,"sources/website-"+job.source_id+".md"])).rows[0]);
+  await db.query("INSERT INTO evals.source_upload(org_id,source_id,artifact_id) VALUES($1,$2,$3)",[scope.orgId,job.source_id,artifact.id]);
+  await db.query("UPDATE evals.website_source_job SET artifact_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,artifact.id]);
+  return artifact;
+ });
+}
+
+export function queueWebsiteSourceExtraction(scope:EvidenceScope,jobId:string,artifactId:string){
+ return withTenant(scope,async db=>{
+  const job=required((await db.query("SELECT source_id,status,artifact_id FROM evals.website_source_job WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,jobId])).rows[0]);
+  if(job.artifact_id!==artifactId||!["persisting","extracting"].includes(job.status))throw new EvidenceError(409,"Website capture is no longer active");
+  await db.query("INSERT INTO evals.source_ingestion_job(org_id,source_id,artifact_id,status) VALUES($1,$2,$3,'queued') ON CONFLICT(org_id,artifact_id) DO NOTHING",[scope.orgId,job.source_id,artifactId]);
+  await db.query("UPDATE evals.website_source_job SET status='extracting',captured_text=NULL,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,jobId]);
+ });
+}
+
 export async function uploadArtifact(scope: EvidenceScope, id:string, bytes:Buffer) {
  const a=await withTenant(scope,async db=>required((await db.query("SELECT * FROM evals.artifact WHERE org_id=$1 AND id=$2 AND state='pending' AND expires_at>now()",[scope.orgId,id])).rows[0]));
  if(bytes.length!==a.byte_size || sha256(bytes)!==a.sha256) throw new EvidenceError(422,'Upload size or checksum mismatch');
@@ -102,7 +147,9 @@ export function getSource(scope: EvidenceScope, id: string) {
     const source = required((await db.query('SELECT id,title,project_id FROM evals.source WHERE org_id=$1 AND id=$2',[scope.orgId,id])).rows[0]);
     const revisions = (await db.query('SELECT id,artifact_id,content_hash,extraction_version FROM evals.source_revision WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20',[scope.orgId,id])).rows;
     const chunks = revisions.length ? (await db.query('SELECT id,source_revision_id,ordinal,excerpt,anchor FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2 ORDER BY ordinal LIMIT 256',[scope.orgId,revisions[0].id])).rows : [];
-    return { ...source, revisions, chunks };
+    const ingestion=(await db.query('SELECT id,status,attempt_count,reason_code,source_revision_id,updated_at FROM evals.source_ingestion_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
+    const websiteCapture=(await db.query('SELECT id,start_url,status,reason_code,source_revision_id,updated_at FROM evals.website_source_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
+    return { ...source, revisions, chunks, ingestion, websiteCapture };
   });
 }
 export function getDraft(scope: EvidenceScope, id: string) {
@@ -291,7 +338,7 @@ export function addRevision(scope: EvidenceScope, projectId: string, input: {kin
   }));
 }
 
-async function persistSourceRevision(db: PoolClient, scope: EvidenceScope, sourceId: string, artifact: {id:string;sha256:string;byte_size:number;media_type:string;export_path:string;visibility:string}, extraction: ReturnType<typeof extractText>) {
+export async function persistSourceRevision(db: PoolClient, scope: EvidenceScope, sourceId: string, artifact: {id:string;sha256:string;byte_size:number;media_type:string;export_path:string;visibility:string}, extraction: Awaited<ReturnType<typeof extractText>>) {
     const source = required((await db.query('SELECT title,rights FROM evals.source WHERE org_id=$1 AND id=$2',[scope.orgId,sourceId])).rows[0]);
     const revisionId = randomUUID();
     const chunks = extraction.chunks.map(chunk => ({...chunk,id:randomUUID()}));
@@ -304,11 +351,47 @@ async function persistSourceRevision(db: PoolClient, scope: EvidenceScope, sourc
     return { sourceId, revisionId, artifactId: artifact.id, contentHash:document.content_hash,sha256: artifact.sha256, chunks: chunks.length };
 }
 
+export async function completeSourceIngestion(scope:EvidenceScope,jobId:string,sealedObjectKey:string,extraction:Awaited<ReturnType<typeof extractText>>){
+ return withTenant(scope,async db=>{
+  const job=required((await db.query("SELECT * FROM evals.source_ingestion_job WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,jobId])).rows[0]);
+  if(job.status!=="running")throw new EvidenceError(409,"Source ingestion job is no longer running");
+  const artifact=required((await db.query("SELECT * FROM evals.artifact WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,job.artifact_id])).rows[0]);
+  if(artifact.state!=="pending")throw new EvidenceError(409,"Source artifact is no longer pending");
+  await db.query("UPDATE evals.artifact SET state='ready',object_key=$3,expires_at=now()+interval '90 days' WHERE org_id=$1 AND id=$2",[scope.orgId,artifact.id,sealedObjectKey]);
+  const revision=await persistSourceRevision(db,scope,job.source_id,{id:artifact.id,sha256:artifact.sha256,byte_size:artifact.byte_size,media_type:artifact.media_type,export_path:artifact.export_path,visibility:artifact.visibility},extraction);
+  await db.query("UPDATE evals.source_ingestion_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,revision.revisionId]);
+  await db.query("UPDATE evals.website_source_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=$2",[scope.orgId,artifact.id,revision.revisionId]);
+  return {...revision,status:"ready"};
+ });
+}
+
+export function failSourceIngestion(scope:EvidenceScope,jobId:string,reasonCode:string,retryable=false){
+ return withTenant(scope,async db=>{
+  const result=await db.query("UPDATE evals.source_ingestion_job SET status=CASE WHEN $4 AND attempt_count<3 THEN 'queued' ELSE 'failed' END,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2 AND status='running' RETURNING id,status,reason_code",[scope.orgId,jobId,reasonCode,retryable]);
+  if(result.rows[0]?.status==="failed")await db.query("UPDATE evals.website_source_job SET status='failed',reason_code=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=(SELECT artifact_id FROM evals.source_ingestion_job WHERE org_id=$1 AND id=$2)",[scope.orgId,jobId,reasonCode]);
+  return result.rows[0]??null;
+ });
+}
+
+export async function failWebsiteSource(scope:EvidenceScope,jobId:string,reasonCode:string,retryable:boolean){
+ return withTenant(scope,async db=>{
+  const result=await db.query("UPDATE evals.website_source_job SET status=CASE WHEN $4 AND attempt_count<3 THEN 'queued' ELSE 'failed' END,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2 AND status='running' RETURNING id,status",[scope.orgId,jobId,reasonCode,retryable]);
+  return result.rows[0]??null;
+ });
+}
+
+export function failWebsitePersistence(scope:EvidenceScope,jobId:string){
+ return withTenant(scope,async db=>{
+  const result=await db.query("UPDATE evals.website_source_job SET status=CASE WHEN artifact_attempt_count<3 THEN 'captured' ELSE 'failed' END,captured_text=CASE WHEN artifact_attempt_count<3 THEN captured_text ELSE NULL END,reason_code='website_storage_unavailable',updated_at=now() WHERE org_id=$1 AND id=$2 AND status='persisting' RETURNING id,status",[scope.orgId,jobId]);
+  return result.rows[0]??null;
+ });
+}
+
 export async function reviseSource(scope: EvidenceScope, sourceId: string, artifactId: string, key: string) {
  const route=`source-revision/${sourceId}`,payload={artifactId};
  const old=await replay(scope,route,key,payload);if(old) return old;
  const a=await withTenant(scope,async db=>required((await db.query("SELECT a.* FROM evals.artifact a JOIN evals.source s ON s.org_id=a.org_id AND s.project_id=a.project_id WHERE s.org_id=$1 AND s.id=$2 AND a.id=$3 AND a.state='ready' AND a.expires_at>now()",[scope.orgId,sourceId,artifactId])).rows[0]));
- const bytes=await readVerified(a.object_key,a.byte_size,a.sha256),extraction=extractSource(bytes,a.media_type);
+ const bytes=await readVerified(a.object_key,a.byte_size,a.sha256),extraction=await extractSource(bytes,a.media_type);
  return withTenant(scope,db=>idempotent(db,scope,route,key,payload,async()=>{
   required((await db.query("SELECT id FROM evals.artifact WHERE org_id=$1 AND id=$2 AND state='ready' AND expires_at>now() FOR SHARE",[scope.orgId,artifactId])).rows[0]);
   return persistSourceRevision(db,scope,sourceId,a,extraction);
@@ -333,8 +416,8 @@ export function getSuiteVersion(scope: EvidenceScope, suiteId: string, versionId
  return withTenant(scope,async db=>required((await db.query('SELECT id,content_hash,manifest FROM evals.suite_version WHERE org_id=$1 AND suite_id=$2 AND id=$3',[scope.orgId,suiteId,versionId])).rows[0]));
 }
 
-function extractSource(bytes:Uint8Array, mediaType:string) {
- try {return extractText(bytes,mediaType);}
+async function extractSource(bytes:Uint8Array, mediaType:string) {
+ try {return await extractText(bytes,mediaType);}
  catch {throw new EvidenceError(422,'Document is unsupported, malformed or exceeds extraction limits');}
 }
 

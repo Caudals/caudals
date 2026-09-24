@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { Pool } from 'pg';
 import { z } from 'zod';
 import { withTenant } from '../../lib/evals/repositories/db';
-import { registerAccount,registerProvider,registerPrice,writeSecret,revokeSecret,setBudget,enqueueProbe,reconcileUnknown } from '../../lib/evals/providers/admin';
+import { registerAccount,registerProvider,registerPrice,writeSecret,revokeSecret,setBudget,enqueueProbe,reconcileUnknown,setGenerationProviderRoute } from '../../lib/evals/providers/admin';
 import { loadKeyring } from '../../lib/evals/security/envelope';
 import { controlWorkflow } from '../../lib/evals/queue/store';
 /** Input JSON comes from stdin. Secret bytes are read from a protected file, never argv. */
 async function main() {
- const command=z.enum(['account','provider','price','secret-write','secret-revoke','budget','probe','reconcile','control']).parse(process.argv[2]);
+ const command=z.enum(['account','provider','price','secret-write','secret-revoke','budget','probe','reconcile','control','generation-route']).parse(process.argv[2]);
  const tenant={orgId:z.string().uuid().parse(process.env.EVALS_ADMIN_ORG_ID),actorId:z.string().min(1).parse(process.env.EVALS_ADMIN_ACTOR_ID)};
  const connectionFile=z.string().min(1).parse(process.env.EVALS_ADMIN_DATABASE_URL_FILE);
  const pool=new Pool({connectionString:readFileSync(connectionFile,'utf8').trim(),max:1});
@@ -22,6 +22,7 @@ async function main() {
     case 'price':return registerPrice(c,tenant,raw);
     case 'budget':return setBudget(c,tenant,raw);
     case 'probe':return enqueueProbe(c,tenant,raw);
+    case 'generation-route':return setGenerationProviderRoute(c,tenant,raw);
     case 'reconcile':return reconcileUnknown(c,tenant,raw);
     case 'secret-revoke':return revokeSecret(c,tenant,z.object({recordId:z.string().uuid()}).strict().parse(raw).recordId);
     case 'secret-write':{

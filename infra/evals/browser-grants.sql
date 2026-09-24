@@ -24,6 +24,11 @@ GRANT UPDATE(status,phase,reason_code,updated_at) ON evals.run TO evals_browser;
 GRANT USAGE ON SEQUENCE evals.execution_event_id_seq TO evals_browser;
 GRANT EXECUTE ON FUNCTION evals.org_id(),evals.actor_id() TO evals_browser;
 
+-- Public website context capture runs in the same isolated browser executor.
+GRANT SELECT ON evals.website_source_job TO evals_browser;
+GRANT UPDATE(status,attempt_count,captured_text,reason_code,updated_at)
+ ON evals.website_source_job TO evals_browser;
+
 -- Reapply after migration 046 when provisioning or rotating the browser login.
 DO $$ BEGIN
  IF to_regclass('evals.target_invocation_ledger') IS NOT NULL THEN

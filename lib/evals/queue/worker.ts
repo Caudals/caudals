@@ -70,6 +70,11 @@ export class InvocationWorker {
    await this.options.tx(tenant,async c=>{
     const current=await lockStep(c,tenant.orgId,step.id);this.checkFence(current.step,step.fence);
     await c.query('INSERT INTO evals.execution_result(org_id,step_id,attempt_id,output,output_hash) VALUES($1,$2,$3,$4,$5)',[tenant.orgId,step.id,attemptId,output,digest(output)]);
+    if(input.generationJobId&&input.generationStep){
+     const next=input.generationStep==='profile'?'profile_ready':'draft_ready';
+     await c.query("UPDATE evals.generation_batch SET status='completed',output=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$4",[tenant.orgId,input.generationJobId,output,input.generationStep]);
+     await c.query("UPDATE evals.generation_job SET status=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.generationJobId,next]);
+    }
     if(input.caseUnitId&&input.caseRevisionId&&input.targetRevisionId) {
      const started=new Date(Date.now()-output.latencyMs).toISOString(),finished=new Date().toISOString(),observationId=randomUUID();
      const unknown={value:null,provenance:'unavailable' as const};
@@ -103,6 +108,7 @@ export class InvocationWorker {
    const previous=(await c.query('SELECT status,ordinal FROM evals.execution_attempt WHERE org_id=$1 AND step_id=$2 ORDER BY ordinal DESC LIMIT 1',[tenant.orgId,step.id])).rows[0];
    if(previous && (previous.ordinal>=3 || previous.status==='unknown'||previous.status==='dispatching'))throw new Error('attempt_review_required');
    const input=invocationSchema.parse(step.input), {provider,price,inputBound}=await loadProvider(c,input);
+   if(input.generationJobId&&input.generationStep)await c.query("UPDATE evals.generation_batch SET status='running',attempt_count=LEAST(attempt_count+1,3),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3",[tenant.orgId,input.generationJobId,input.generationStep]);
    const amount=worstCase(price,inputBound,input.maxOutputTokens),attemptId=randomUUID();
    const updated=(await c.query("UPDATE evals.workflow_step SET status='running',fence=fence+1,lease_owner=$3,lease_until=now()+$4::int*interval '1 second',updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *",[tenant.orgId,step.id,this.options.workerId,this.lease])).rows[0] as Step;
    await c.query(`INSERT INTO evals.execution_attempt(id,org_id,step_id,fence,ordinal,provider_revision_id,price_revision_id,status,token_bound)
@@ -136,6 +142,10 @@ export class InvocationWorker {
    const delay=Math.max(failure?.retryAfterMs??0,1000*2**attempt.ordinal+Math.floor(Math.random()*1000));
    await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,not_before=now()+$5::int*interval '1 millisecond',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state,reason,delay]);
    const parsedInput=invocationSchema.parse(step.input);
+   if(parsedInput.generationJobId&&parsedInput.generationStep&&!retry){
+    await c.query("UPDATE evals.generation_batch SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$4",[tenant.orgId,parsedInput.generationJobId,reason,parsedInput.generationStep]);
+    await c.query("UPDATE evals.generation_job SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,parsedInput.generationJobId,reason]);
+   }
    if(parsedInput.caseUnitId&&!retry){await c.query('UPDATE evals.case_unit SET status=$3,attempt_id=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,parsedInput.caseUnitId,unknown?'unknown_external_outcome':failure?.code==='network_unavailable'?'transport_error':failure?.code==='service_unavailable'?'target_error':current.workflow.status==='cancel_requested'?'canceled':'target_error',attemptId,reason]);await projectRun(c,tenant.orgId,current.workflow.run_id);}
    if(retry)await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+$4::int*interval '1 millisecond')",[tenant.orgId,step.id,step.step_kind,delay]);
    if(failure)await this.health(c,providerId,failure.code);
@@ -158,6 +168,11 @@ export class InvocationWorker {
     await c.query("UPDATE evals.execution_attempt SET status=$3,reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attempt.id,attempt.status==='dispatching'?'unknown':'canceled']);
    }
    const state=unknown?'unknown':workflow.status==='cancel_requested'?'canceled':attempts.some(a=>a.ordinal>=3)?'paused':'queued';
+   const recoveredInput=invocationSchema.safeParse(step.input);
+   if(recoveredInput.success&&recoveredInput.data.generationJobId&&recoveredInput.data.generationStep&&state!=='queued'){
+    await c.query("UPDATE evals.generation_batch SET status='paused',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3",[tenant.orgId,recoveredInput.data.generationJobId,recoveredInput.data.generationStep]);
+    await c.query("UPDATE evals.generation_job SET status='paused',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,recoveredInput.data.generationJobId]);
+   }
    await c.query("UPDATE evals.workflow_step SET status=$3,fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state]);
    if(state==='queued')await c.query('INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)',[tenant.orgId,step.id,step.step_kind]);
    if(unknown){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectRun(c,tenant.orgId,workflow.run_id);}}

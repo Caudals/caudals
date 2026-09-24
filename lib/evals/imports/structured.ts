@@ -18,24 +18,51 @@ function csvRows(text:string):string[][] {
     else field+=char;
   }
   if(quoted)throw new Error("csv_quote_unclosed");
-  if(field||row.length){row.push(field.replace(/\r$/,""));rows.push(row);} return rows;
+  if(field||row.length){row.push(field.replace(/\r$/,""));rows.push(row);}
+  if(rows.length>25000||rows.some(item=>item.length>256||item.some(cell=>cell.length>25000)))throw new Error("csv_resource_limit");
+  return rows;
 }
-function xmlText(input:string):string{return input.replace(/<[^>]+>/g,"").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");}
+function xmlText(input:string):string{return input.replace(/<[^>]+>/g,"").replace(/&([^;]{1,32});/g,(_match,entity:string)=>{const named:Record<string,string>={lt:"<",gt:">",quot:'"',apos:"'",amp:"&"};if(named[entity]!==undefined)return named[entity];if(!/^#(?:[0-9]+|x[0-9a-f]+)$/i.test(entity))throw new Error("xlsx_entity_unsupported");const code=entity[1]==="x"?parseInt(entity.slice(2),16):Number(entity.slice(1));if(!code||code>0x10ffff||(code>=0xd800&&code<=0xdfff))throw new Error("xlsx_entity_invalid");return String.fromCodePoint(code);});}
 function columnIndex(reference:string):number {let value=0;for(const char of reference.match(/^[A-Z]+/)?.[0]??"")value=value*26+char.charCodeAt(0)-64;return value-1;}
 async function xlsxRows(bytes:Uint8Array):Promise<string[][]>{
-  const zip=await JSZip.loadAsync(bytes,{checkCRC32:true});const names=Object.keys(zip.files);
-  if(names.length>256||names.some(name=>name.includes("..")||name.startsWith("/")))throw new Error("xlsx_invalid");
+  const zip=await JSZip.loadAsync(bytes,{checkCRC32:false});const names=Object.keys(zip.files);
+  if(names.length>128||names.some(name=>name.includes("..")||name.startsWith("/")||name.includes("\\")))throw new Error("xlsx_invalid");
   if(names.some(name=>/vbaProject|externalLink|embeddings\//i.test(name)))throw new Error("xlsx_unsafe_content");
+  let expanded=0;
+  for(const entry of Object.values(zip.files)){
+    if(entry.dir)continue;
+    const meta=(entry as unknown as {_data?:{compressedSize?:number;uncompressedSize?:number}})._data;
+    const compressed=meta?.compressedSize,uncompressed=meta?.uncompressedSize;
+    if(!Number.isSafeInteger(compressed)||!Number.isSafeInteger(uncompressed)||compressed!<0||uncompressed!<0||uncompressed!>10_000_000||uncompressed!>Math.max(1024,compressed!*200))throw new Error("xlsx_expansion_limit");
+    expanded+=uncompressed!;if(expanded>32_000_000)throw new Error("xlsx_expansion_limit");
+  }
   const sheet=zip.file("xl/worksheets/sheet1.xml");if(!sheet)throw new Error("xlsx_sheet_missing");
-  const sharedFile=zip.file("xl/sharedStrings.xml");const shared=sharedFile?[...(await sharedFile.async("string")).matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map(match=>xmlText(match[1])):[];
-  const xml=await sheet.async("string");if(xml.length>10_000_000)throw new Error("xlsx_too_large");
+  const sharedFile=zip.file("xl/sharedStrings.xml");const sharedXml=sharedFile?await sharedFile.async("string"):"";if(sharedXml.length>10_000_000||/<!DOCTYPE|<!ENTITY/i.test(sharedXml))throw new Error("xlsx_unsafe_xml");const shared=[...sharedXml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map(match=>xmlText(match[1]));
+  const xml=await sheet.async("string");if(xml.length>10_000_000||/<!DOCTYPE|<!ENTITY/i.test(xml))throw new Error("xlsx_too_large");
   const rows:string[][]=[];
   for(const rowMatch of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {const row:string[]=[];
-    for(const cell of rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)){const ref=/\br="([A-Z]+\d+)"/.exec(cell[1])?.[1];if(!ref)continue;const index=columnIndex(ref);if(index>1000)throw new Error("xlsx_too_wide");const formula=/<f\b/.test(cell[2]);const value=/<v\b[^>]*>([\s\S]*?)<\/v>/.exec(cell[2])?.[1];const inline=/<is\b[^>]*>([\s\S]*?)<\/is>/.exec(cell[2])?.[1];if(formula&&value===undefined)throw new Error("xlsx_formula_without_cached_value");let text=value??(inline?xmlText(inline):"");if(/\bt="s"/.test(cell[1]))text=shared[Number(text)]??"";else text=xmlText(text);row[index]=text;}
-    rows.push(Array.from({length:row.length},(_,index)=>row[index]??""));
+    for(const cell of rowMatch[1].matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)){const ref=/\br="([A-Z]+\d+)"/.exec(cell[1])?.[1];if(!ref)continue;const index=columnIndex(ref);if(index>255)throw new Error("xlsx_too_wide");const formula=/<f\b/.test(cell[2]);const value=/<v\b[^>]*>([\s\S]*?)<\/v>/.exec(cell[2])?.[1];const inline=/<is\b[^>]*>([\s\S]*?)<\/is>/.exec(cell[2])?.[1];if(formula&&value===undefined)throw new Error("xlsx_formula_without_cached_value");let text=value??(inline?xmlText(inline):"");if(/\bt="s"/.test(cell[1])){const position=Number(text);if(!Number.isInteger(position)||position<0||position>=shared.length)throw new Error("xlsx_shared_string_missing");text=shared[position];}else text=xmlText(text);if(text.length>25000)throw new Error("xlsx_cell_too_large");row[index]=text;}
+    rows.push(Array.from({length:row.length},(_,index)=>row[index]??""));if(rows.length>25000)throw new Error("xlsx_row_limit");
   }
   return rows;
 }
+
+export async function extractTabularText(bytes:Uint8Array,format:"csv"|"xlsx"):Promise<string>{
+  if(bytes.byteLength>25_000_000)throw new Error("source_too_large");
+  const rows=format==="xlsx"?await xlsxRows(bytes):csvRows(new TextDecoder("utf-8",{fatal:true}).decode(bytes).replace(/^\uFEFF/,""));
+  if(!rows.length||!rows[0].some((cell)=>cell.trim()))throw new Error("table_header_missing");
+  const headers=rows[0].map((cell,index)=>cell.trim()||("Column "+(index+1)));
+  const output=["Columns: "+headers.join(" | ")];
+  let size=output[0].length;
+  for(let rowIndex=1;rowIndex<rows.length;rowIndex++){
+    const values=rows[rowIndex].map((value,index)=>({name:headers[index]??("Column "+(index+1)),value})).filter((item)=>item.value.length>0);
+    if(!values.length)continue;
+    const line="Row "+(rowIndex+1)+": "+values.map((item)=>item.name+": "+item.value).join(" | ");
+    size+=line.length+1;if(size>1_000_000)throw new Error("source_extraction_limit");output.push(line);
+  }
+  return output.join("\n");
+}
+
 function records(rows:string[][]):{headers:string[];records:Record<string,string>[]} {const headers=(rows.shift()??[]).map(x=>x.trim());if(!headers.length||new Set(headers).size!==headers.length||headers.some(x=>!x))throw new Error("headers_invalid");return {headers,records:rows.filter(row=>row.some(Boolean)).map(row=>Object.fromEntries(headers.map((header,index)=>[header,row[index]??""])))};}
 function mapRows(headers:string[],records:Record<string,string>[],mapping:ColumnMapping,intent:z.infer<typeof importIntentSchema>,limit:number):ImportPreview {
   const needed=[mapping.case_id,mapping.input,...(intent==="questions_with_references"?[mapping.reference_answer]:[]),...(intent==="recorded_answers"||intent==="manual_answers"?[mapping.system_answer]:[])];

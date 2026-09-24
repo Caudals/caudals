@@ -8,7 +8,7 @@ async function server(handler:http.RequestListener) {
  const address=server.address();if(!address||typeof address==='string')throw new Error();
  const endpoint=`http://127.0.0.1:${address.port}/v1`;
  const provider:ProviderRevision={id:randomUUID(),account_id:randomUUID(),adapter:'dgx',endpoint,model_id:'fixture',roles:['target'],capabilities:{text:true,boundedTokens:true},context_limit:2048,output_limit:128,data_classes:['test'],regions:['EU'],concurrency_limit:1,rpm:100,tpm:100000,retired_at:null};
- const input:Invocation={probe:false,probeKind:'text',providerRevisionId:provider.id,priceRevisionId:randomUUID(),workspaceBudgetId:randomUUID(),runBudgetId:randomUUID(),role:'target',dataClass:'test',region:'EU',routing:'local_only',approvedProviderIds:[],messages:[{role:'user',content:'Hello'}],maxOutputTokens:32,timeoutMs:150,internalCostPerSecond:'0'};
+ const input:Invocation={probe:false,probeKind:'text',outputFormat:'text',providerRevisionId:provider.id,priceRevisionId:randomUUID(),workspaceBudgetId:randomUUID(),runBudgetId:randomUUID(),role:'target',dataClass:'test',region:'EU',routing:'local_only',approvedProviderIds:[],messages:[{role:'user',content:'Hello'}],maxOutputTokens:32,timeoutMs:150,internalCostPerSecond:'0'};
  return {provider,input,endpoint,close:()=>new Promise<void>(resolve=>{server.closeAllConnections();server.close(()=>resolve());})};
 }
 describe('OpenAI-compatible adapter wire contract',()=>{

@@ -12,8 +12,15 @@ import {
 import { BrowserJobWorker } from "../../lib/evals/queue/browser-worker";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { checkBrowserDestination } from "./egress-client";
+import { processWebsiteSourceOne } from "./website-source-worker";
 
 let startupPhase = "configuration";
+let browserBusy = false;
+async function withBrowserSlot<T>(work: () => Promise<T>): Promise<T> {
+  while (browserBusy) await new Promise((resolve) => setTimeout(resolve, 100));
+  browserBusy = true;
+  try { return await work(); } finally { browserBusy = false; }
+}
 
 function safeErrorCode(error: unknown) {
   if (!error || typeof error !== "object" || !("code" in error)) return undefined;
@@ -59,7 +66,7 @@ async function main() {
         for (const job of jobs) {
           if (!orgs.includes(job.data.orgId)) throw new Error("browser_tenant_denied");
           if (!(await worker.canHandle(job.data))) throw new Error("browser_job_invalid");
-          await worker.handle(job.data);
+          await withBrowserSlot(() => worker.handle(job.data));
         }
       },
     );
@@ -77,6 +84,14 @@ async function main() {
         await worker.recover(tenant);
         startupPhase = "outbox_dispatch";
         await dispatchOutbox(boss, withTenant, tenant, 10);
+        if (!browserBusy) {
+          startupPhase = "website_source_capture";
+          await withBrowserSlot(() => processWebsiteSourceOne({
+            orgId, actorId, browser,
+            destinationCheck: (url) => checkBrowserDestination(url, egressHost, egressPort),
+            onPage: () => writeFileSync("/tmp/evals-browser-heartbeat", String(Date.now())),
+          }));
+        }
       }
       writeFileSync("/tmp/evals-browser-heartbeat", String(Date.now()));
       await new Promise((resolve) => setTimeout(resolve, 1_000));

@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { extractText, MAX_SOURCE_BYTES } from '@/lib/evals/storage/text';
 import { objectKey } from '@/lib/evals/storage/private';
 describe('bounded initial text extraction', () => {
- it('anchors reconstruct UTF-8 source using declared UTF-16 offsets', () => {
+ it('anchors reconstruct UTF-8 source using declared UTF-16 offsets', async () => {
   const text = 'A🙂 paragraph\n'.repeat(500);
-  const result = extractText(Buffer.from(text),'text/plain');
+  const result = await extractText(Buffer.from(text),'text/plain');
   expect(result.chunks.map(c=>c.excerpt).join('')).toBe(text);
   for (const c of result.chunks) expect(text.slice(c.anchor.start,c.anchor.end)).toBe(c.excerpt);
  });
- it('rejects invalid, oversized, binary, HTML and unsupported documents', () => {
-  for (const [bytes,type] of [[Buffer.from([255]),'text/plain'],[Buffer.alloc(MAX_SOURCE_BYTES+1),'text/plain'],[Buffer.from('PK\0'),'text/plain'],[Buffer.from('<script>alert(1)</script>'),'text/plain'],[Buffer.from('%PDF'),'application/pdf'],[Buffer.from(''),'text/plain']] as const) expect(()=>extractText(bytes,type)).toThrow();
+ it('rejects invalid, oversized, binary, HTML and unsupported documents', async () => {
+  for (const [bytes,type] of [[Buffer.from([255]),'text/plain'],[Buffer.alloc(MAX_SOURCE_BYTES+1),'text/plain'],[Buffer.from('PK\0'),'text/plain'],[Buffer.from('<script>alert(1)</script>'),'text/plain'],[Buffer.from('%PDF'),'application/pdf'],[Buffer.from(''),'text/plain']] as const) await expect(extractText(bytes,type)).rejects.toThrow();
  });
  it('scopes random object paths without user filenames', () => {
   const org='11111111-1111-4111-8111-111111111111', id='22222222-2222-4222-8222-222222222222';
@@ -28,15 +28,15 @@ async function docx(xml:string, extra?:[string,string]) {
 }
 describe('bounded DOCX extraction',()=>{
  it('extracts text, paragraph and entities with traceable extracted-text offsets',async()=>{
-  const result=extractText(await docx('<w:document><w:body><w:p><w:r><w:t>A &amp; B &#x1f642;</w:t></w:r></w:p></w:body></w:document>'),DOCX_TYPE);
+  const result=await extractText(await docx('<w:document><w:body><w:p><w:r><w:t>A &amp; B &#x1f642;</w:t></w:r></w:p></w:body></w:document>'),DOCX_TYPE);
   expect(result.extractionVersion).toBe('docx-text-v1');expect(result.chunks[0].excerpt).toBe('A & B 🙂\n');
  });
  it('rejects macros, DTDs, excessive decompression, nesting and malformed XML',async()=>{
-  for(const bytes of [await docx('<w:document/>',['word/vbaProject.bin','macro']),await docx('<!DOCTYPE w [<!ENTITY x SYSTEM "file:///etc/passwd">]><w:document/>'),await docx('<w:t>'+ 'x'.repeat(5*1024*1024)+'</w:t>'),await docx('<w:p>'.repeat(129)+'</w:p>'.repeat(129)),await docx('<w:p><w:t>broken</w:p>'),await docx('<'.repeat(100000))]) expect(()=>extractText(bytes,DOCX_TYPE)).toThrow();
+  for(const bytes of [await docx('<w:document/>',['word/vbaProject.bin','macro']),await docx('<!DOCTYPE w [<!ENTITY x SYSTEM "file:///etc/passwd">]><w:document/>'),await docx('<w:t>'+ 'x'.repeat(5*1024*1024)+'</w:t>'),await docx('<w:p>'.repeat(129)+'</w:p>'.repeat(129)),await docx('<w:p><w:t>broken</w:p>'),await docx('<'.repeat(100000))]) await expect(extractText(bytes,DOCX_TYPE)).rejects.toThrow();
  });
  it('bounds actual inflation even if the ZIP directory lies about expanded size',async()=>{
   const bytes=await docx('<w:t>'+'x'.repeat(5*1024*1024)+'</w:t>');
   for(let i=0;i<bytes.length-46;i++) if(bytes.readUInt32LE(i)===0x02014b50 && bytes.subarray(i+46,i+46+bytes.readUInt16LE(i+28)).toString()==='word/document.xml') bytes.writeUInt32LE(1,i+24);
-  expect(()=>extractText(bytes,DOCX_TYPE)).toThrow();
+  await expect(extractText(bytes,DOCX_TYPE)).rejects.toThrow();
  });
 });

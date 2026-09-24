@@ -32,7 +32,7 @@ export async function fixture() {
   const runId=randomUUID(),workflowId=randomUUID(),runBudgetId=randomUUID();
   return tx(tenant,async c=>{
    await c.query("INSERT INTO evals.execution_budget(id,org_id,kind,scope_id,currency,ceiling) VALUES($1,$2,'run',$3,'EUR',100)",[runBudgetId,orgId,runId]);
-   const input:Invocation={probe:false,probeKind:'text',providerRevisionId:providerId,priceRevisionId:priceId,workspaceBudgetId,runBudgetId,role:'target',dataClass:'test',region:'EU',routing:'approved_providers',approvedProviderIds:[providerId],messages:[{role:'user',content:'hello'}],maxOutputTokens:128,timeoutMs:1000,internalCostPerSecond:'0',...overrides};
+   const input:Invocation={probe:false,probeKind:'text',outputFormat:'text',providerRevisionId:providerId,priceRevisionId:priceId,workspaceBudgetId,runBudgetId,role:'target',dataClass:'test',region:'EU',routing:'approved_providers',approvedProviderIds:[providerId],messages:[{role:'user',content:'hello'}],maxOutputTokens:128,timeoutMs:1000,internalCostPerSecond:'0',...overrides};
    const stepId=await enqueueInvocation(c,tenant,{workflowId,runId,planHash:'a'.repeat(64),kind:'execute_api',version:1,input});
    const step=(await c.query('SELECT * FROM evals.workflow_step WHERE id=$1',[stepId])).rows[0];
    return {job:{orgId,stepId,inputHash:step.input_hash},workflowId,runId,runBudgetId,input};

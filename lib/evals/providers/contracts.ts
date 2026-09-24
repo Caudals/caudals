@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export const invocationSchema=z.object({
-  probe:z.boolean().default(false), probeKind:z.enum(['text','json_object','tools']).default('text'), providerRevisionId:z.string().uuid(), priceRevisionId:z.string().uuid(), secretVersionId:z.string().uuid().optional(),
+  probe:z.boolean().default(false), probeKind:z.enum(['text','json_object','tools']).default('text'), outputFormat:z.enum(['text','json_object']).default('text'), generationJobId:z.string().uuid().optional(), generationStep:z.enum(['profile','draft']).optional(), providerRevisionId:z.string().uuid(), priceRevisionId:z.string().uuid(), secretVersionId:z.string().uuid().optional(),
   workspaceBudgetId:z.string().uuid(), runBudgetId:z.string().uuid(),
   role:z.enum(['target','generator','context_analyzer','judge','adjudicator','report_writer','embedding']),
   dataClass:z.string().min(1), region:z.string().min(1), routing:z.enum(['local_only','approved_providers']),
@@ -13,7 +13,7 @@ export const invocationSchema=z.object({
 export type Invocation=z.infer<typeof invocationSchema>;
 export interface ProviderRevision {
  id:string; account_id:string; adapter:'dgx'|'openai_compatible'; endpoint:string; model_id:string;
- roles:string[]; capabilities:{text?:boolean; boundedTokens?:boolean; probeApproved?:boolean}; context_limit:number;output_limit:number;
+ roles:string[]; capabilities:{text?:boolean; boundedTokens?:boolean; jsonObject?:boolean; probeApproved?:boolean}; context_limit:number;output_limit:number;
  data_classes:string[]; regions:string[]; concurrency_limit:number; rpm:number;tpm:number; retired_at:Date|null;
 }
 export class ProviderFailure extends Error {

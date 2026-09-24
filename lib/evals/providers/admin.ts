@@ -11,7 +11,7 @@ const money=z.string().refine(v=>{try{units(v);return true;}catch{return false;}
 export const providerConfigSchema=z.object({
  accountId:z.string().uuid(),adapter:z.enum(['dgx','openai_compatible']),endpoint:z.string().url(),modelId:z.string().min(1).max(200),
  roles:z.array(z.enum(['target','generator','context_analyzer','judge','adjudicator','report_writer','embedding'])).min(1),
- capabilities:z.object({text:z.boolean().default(false),boundedTokens:z.boolean().default(false),probeApproved:z.boolean().default(false)}).strict(),
+ capabilities:z.object({text:z.boolean().default(false),boundedTokens:z.boolean().default(false),jsonObject:z.boolean().default(false),probeApproved:z.boolean().default(false)}).strict(),
  contextLimit:z.number().int().min(2048).max(2000000),outputLimit:z.number().int().min(1).max(32768),
  dataClasses:z.array(z.string()).min(1),regions:z.array(z.string()).min(1),licenseRestrictions:z.string().max(2000).optional(),
  concurrencyLimit:z.number().int().min(1).max(16).default(1),rpm:z.number().int().positive(),tpm:z.number().int().positive(),
@@ -84,4 +84,17 @@ export async function reconcileUnknown(c:PoolClient,tenant:Tenant,raw:unknown) {
  await c.query('SELECT id FROM evals.workflow_step WHERE org_id=$1 AND id=$2 FOR UPDATE',[tenant.orgId,row.step_id]);
  await settle(c,tenant.orgId,v.attemptId,v.actual,'reported_usage');await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[v.attemptId]);
  await event(c,tenant.orgId,row.workflow_id,'liability_reconciled',v.evidenceId);await audit(c,tenant,'attempt.reconciled',v.attemptId);return {id:v.attemptId};
+}
+
+
+export async function setGenerationProviderRoute(c:PoolClient,tenant:Tenant,raw:unknown) {
+ await admin(c,tenant);
+ const value=z.object({role:z.enum(['context_analyzer','generator']),providerRevisionId:z.string().uuid(),priceRevisionId:z.string().uuid(),dataClass:z.string().min(1).max(100),region:z.string().min(1).max(100),internalCostPerSecond:money}).strict().parse(raw);
+ const provider=(await c.query('SELECT adapter,roles,capabilities,data_classes,regions,retired_at FROM evals.provider_revision WHERE id=$1',[value.providerRevisionId])).rows[0];
+ if(!provider||provider.adapter!=='dgx'||provider.retired_at||!provider.roles.includes(value.role)||!provider.capabilities.text||!provider.capabilities.boundedTokens||!provider.capabilities.jsonObject||!provider.data_classes.includes(value.dataClass)||!provider.regions.includes(value.region))throw new Error('generation_provider_not_approved');
+ const price=(await c.query('SELECT id FROM evals.price_revision WHERE id=$1 AND provider_revision_id=$2 AND effective_at<=now()',[value.priceRevisionId,value.providerRevisionId])).rows[0];
+ if(!price)throw new Error('generation_price_revision_unavailable');
+ await c.query(`INSERT INTO evals.generation_provider_route(org_id,role,provider_revision_id,price_revision_id,data_class,region,internal_cost_per_second,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(org_id,role) DO UPDATE SET provider_revision_id=excluded.provider_revision_id,price_revision_id=excluded.price_revision_id,data_class=excluded.data_class,region=excluded.region,internal_cost_per_second=excluded.internal_cost_per_second,updated_by=excluded.updated_by,updated_at=now()`,[tenant.orgId,value.role,value.providerRevisionId,value.priceRevisionId,value.dataClass,value.region,value.internalCostPerSecond,tenant.actorId]);
+ await audit(c,tenant,'generation.provider_route.updated',value.providerRevisionId);
+ return {role:value.role,providerRevisionId:value.providerRevisionId};
 }
