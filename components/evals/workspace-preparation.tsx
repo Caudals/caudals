@@ -238,7 +238,7 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     setPending(true); setError("");
     try {
       const sourceRevisionIds = (sources.length ? sources : [source]).map((item) => item.revisionId);
-      const input = { mode: "automatic", orgId, sourceRevisionIds, title: evaluation.title + " test set", executionMode, promptRevision: "dgx-context-cases-v1", maxCases: 10 };
+      const input = { mode: "automatic", orgId, sourceRevisionIds, title: evaluation.title + " test set", executionMode, promptRevision: "dgx-context-cases-v2", maxCases: 10 };
       const started = await evalRequest<{ jobId: string }>("/evaluations/" + evaluation.id + "/generate", "POST", input, await stableKey("evaluation-auto-generation", input));
       setAutoJobId(started.jobId);
       setPending(false);
