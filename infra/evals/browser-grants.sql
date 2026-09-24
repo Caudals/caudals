@@ -19,7 +19,7 @@ GRANT UPDATE(status,fence,lease_owner,lease_until,reason_code,updated_at)
  ON evals.workflow_step TO evals_browser;
 GRANT UPDATE(delivered_at) ON evals.outbox_event TO evals_browser;
 GRANT UPDATE(status,attempt_id,reason_code,updated_at) ON evals.case_unit TO evals_browser;
-GRANT UPDATE(status,reason_code,finished_at) ON evals.target_attempt TO evals_browser;
+GRANT UPDATE(status,reason_code,dispatched_at,finished_at) ON evals.target_attempt TO evals_browser;
 GRANT UPDATE(status,phase,reason_code,updated_at) ON evals.run TO evals_browser;
 GRANT USAGE ON SEQUENCE evals.execution_event_id_seq TO evals_browser;
 GRANT EXECUTE ON FUNCTION evals.org_id(),evals.actor_id() TO evals_browser;
