@@ -328,6 +328,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const evaluations = (
       await db.query(
         `SELECT e.*,p.title AS project_title,p.description AS project_description,
+          COALESCE((SELECT array_agg(s.id ORDER BY s.created_at,s.id) FROM evals.source s WHERE s.org_id=e.org_id AND s.evaluation_id=e.id),ARRAY[]::uuid[]) AS source_ids,
           (SELECT sr.source_id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_id,
           (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
           (SELECT r.id FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_id,

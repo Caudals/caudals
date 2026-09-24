@@ -12,6 +12,7 @@ type Evaluation = {
   project_description: string;
   latest_source_id: string | null;
   latest_source_revision_id: string | null;
+  source_ids?: string[];
   preparation_status: string;
 };
 type SourceDetail = {
@@ -57,13 +58,27 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
   const autoResumeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!evaluation.latest_source_id || !evaluation.latest_source_revision_id) return;
+    const sourceIds = evaluation.source_ids?.length
+      ? evaluation.source_ids
+      : evaluation.latest_source_id ? [evaluation.latest_source_id] : [];
+    if (!sourceIds.length) return;
     let live = true;
-    void evalRequest<SourceDetail>(`/sources/${evaluation.latest_source_id}?orgId=${orgId}`)
-      .then((detail) => { if (live) { const prepared: PreparedSource = { id: evaluation.latest_source_id!, revisionId: evaluation.latest_source_revision_id!, chunks: detail.chunks, kind: detail.websiteCapture ? "website" : "document" }; setSource(prepared); setSources([prepared]); } })
-      .catch(() => { if (live) setError("The document could not be loaded. Retry or ask Caudals for help."); });
+    void Promise.all(sourceIds.map(async (id): Promise<PreparedSource | null> => {
+      const detail = await evalRequest<SourceDetail>(`/sources/${id}?orgId=${orgId}`);
+      const revisionId = detail.revisions?.[0]?.id ?? detail.ingestion?.source_revision_id
+        ?? (id === evaluation.latest_source_id ? evaluation.latest_source_revision_id : null);
+      return revisionId ? { id, revisionId, chunks: detail.chunks, kind: detail.websiteCapture ? "website" : "document" } : null;
+    }))
+      .then((items) => {
+        if (!live) return;
+        const prepared = items.filter((item): item is PreparedSource => item !== null);
+        setSources(prepared);
+        setSource(prepared[0] ?? null);
+        setAnchor((current) => current || prepared[0]?.chunks[0]?.id || "");
+      })
+      .catch(() => { if (live) setError("The source material could not be loaded. Retry or ask Caudals for help."); });
     return () => { live = false; };
-  }, [evaluation.latest_source_id, evaluation.latest_source_revision_id, orgId]);
+  }, [evaluation.id, evaluation.source_ids, evaluation.latest_source_id, evaluation.latest_source_revision_id, orgId]);
 
 
   async function upload(event: React.FormEvent<HTMLFormElement>) {

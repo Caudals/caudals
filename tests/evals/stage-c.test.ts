@@ -136,13 +136,14 @@ describe("WP-11 approved test-set gate", () => {
   });
   it("projects workspace systems without connector credentials or operator-only fields", () => {
     const view = customerWorkspaceView({
-      evaluations: [{ id: "eval-1", title: "Fixture", project_id: "project-1", internal_note: "private-note" }],
+      evaluations: [{ id: "eval-1", title: "Fixture", project_id: "project-1", source_ids: ["document-source", "website-source"], internal_note: "private-note" }],
       systems: [{ id: "target-1", project_id: "project-1", title: "Fixture", target_revision_id: "revision-1", document: { kind: "website", endpoint: "https://example.test", login_session_id: "private-session" }, capability_report: "private-capabilities" }],
       reports: [],
       entitlement: { max_active_runs: 1, monthly_spend_limit: "10", currency: "EUR", allowed_connection_types: ["website"], can_export: true, internal_grant: "private-grant" },
       usage: { settled: "0", outstanding: "0", internal_cost: "private-cost" },
       preferences: { completion: true, required_input: true, failure: true, email: false },
     });
+    expect(view.evaluations[0].source_ids).toEqual(["document-source", "website-source"]);
     expect(view.systems[0].document).toEqual({ kind: "website" });
     expect(JSON.stringify(view)).not.toMatch(/private-|endpoint|capability_report/);
   });

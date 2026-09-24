@@ -18,6 +18,7 @@ export function customerWorkspaceView(value: Summary) {
       project_description: item.project_description,
       latest_source_id: item.latest_source_id,
       latest_source_revision_id: item.latest_source_revision_id,
+      source_ids: item.source_ids,
       preparation_status: item.preparation_status,
       reason_code: item.reason_code,
       selected_suite_version_id: item.selected_suite_version_id,
