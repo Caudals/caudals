@@ -629,6 +629,7 @@ test("Stage C result inspector is nonmodal on desktop and modal with focus on mo
   await expect(page.getByRole("dialog")).toContainText("30-day policy");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Refund eligibility/ })).toBeFocused();
 });
 test("retry after a lost response reuses the same creation key", async ({
   page,

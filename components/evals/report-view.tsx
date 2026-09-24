@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { evalRequest } from "./api";
@@ -29,12 +29,20 @@ function ResultInspector({ results }: { results: Result[] }) {
     () => false,
   );
   const [selected, setSelected] = useState<Result | null>(null);
+  const resultTrigger = useRef<HTMLButtonElement | null>(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => {
+    if (!selected && restoreFocus.current) {
+      restoreFocus.current = false;
+      resultTrigger.current?.focus();
+    }
+  }, [selected]);
   return <section className="eval-results-layout">
     <div className="eval-results-list" aria-label={t("results")}>
-      {results.map((item) => <button type="button" className="eval-result-row" data-selected={selected?.assessment_id === item.assessment_id} key={item.assessment_id} onClick={() => setSelected(item)}><span>{item.title}</span><span className="p-row" style={{ gap: 6, marginTop: 4 }}><StatusBadge value={item.outcome} /><small>{item.review_status.replaceAll("_", " ")}</small></span></button>)}
+      {results.map((item) => <button type="button" className="eval-result-row" data-selected={selected?.assessment_id === item.assessment_id} key={item.assessment_id} onClick={(event) => { resultTrigger.current = event.currentTarget; setSelected(item); }}><span>{item.title}</span><span className="p-row" style={{ gap: 6, marginTop: 4 }}><StatusBadge value={item.outcome} /><small>{item.review_status.replaceAll("_", " ")}</small></span></button>)}
     </div>
     {selected && <aside className="eval-result-desktop" aria-live="polite"><ResultEvidence result={selected} /></aside>}
-    <Dialog open={mobile && !!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+    <Dialog open={mobile && !!selected} onOpenChange={(open) => { if (!open) { restoreFocus.current = true; setSelected(null); } }}>
       {selected && <DialogContent className="p-dialog eval-result-mobile"><DialogHeader><DialogTitle>{selected.title}</DialogTitle><DialogDescription>{selected.outcome} · {selected.review_status}</DialogDescription></DialogHeader><ResultEvidence result={selected} /></DialogContent>}
     </Dialog>
   </section>;
