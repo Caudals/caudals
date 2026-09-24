@@ -13,6 +13,14 @@ import { BrowserJobWorker } from "../../lib/evals/queue/browser-worker";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { checkBrowserDestination } from "./egress-client";
 
+let startupPhase = "configuration";
+
+function safeErrorCode(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return undefined;
+  const code = error.code;
+  return typeof code === "string" && /^[A-Z0-9_]{1,32}$/.test(code) ? code : undefined;
+}
+
 async function main() {
   if (process.env.EVALS_BROWSER_ENABLED !== "true") throw new Error("browser_disabled");
   const orgs = z
@@ -24,6 +32,7 @@ async function main() {
   const egressHost = z.string().min(1).parse(process.env.EVALS_BROWSER_EGRESS_HOST);
   const egressPort = z.coerce.number().int().min(1).max(65535)
     .parse(process.env.EVALS_BROWSER_EGRESS_PORT);
+  startupPhase = "chromium_launch";
   const browser = await chromium.launch({
     headless: true,
     proxy: { server: `http://${egressHost}:${egressPort}` },
@@ -40,7 +49,9 @@ async function main() {
     destinationCheck: (url) => checkBrowserDestination(url, egressHost, egressPort),
   });
   try {
+    startupPhase = "queue_start";
     await startBoss(boss);
+    startupPhase = "queue_registration";
     await boss.work<JobData>(
       "execute_browser",
       { batchSize: 1, pollingIntervalSeconds: 2 },
@@ -62,7 +73,9 @@ async function main() {
     while (!stopping) {
       for (const orgId of orgs) {
         const tenant = { orgId, actorId };
+        startupPhase = "workflow_recovery";
         await worker.recover(tenant);
+        startupPhase = "outbox_dispatch";
         await dispatchOutbox(boss, withTenant, tenant, 10);
       }
       writeFileSync("/tmp/evals-browser-heartbeat", String(Date.now()));
@@ -75,12 +88,13 @@ async function main() {
   }
 }
 
-main().catch(() => {
-  console.error(
-    JSON.stringify({
-      event: "browser_worker_stopped",
-      reason: "configuration_or_runtime_failure",
-    }),
-  );
+main().catch((error: unknown) => {
+  console.error(JSON.stringify({
+    event: "browser_worker_stopped",
+    reason: "configuration_or_runtime_failure",
+    phase: startupPhase,
+    errorType: error instanceof Error ? error.name : "unknown",
+    errorCode: safeErrorCode(error),
+  }));
   process.exitCode = 1;
 });

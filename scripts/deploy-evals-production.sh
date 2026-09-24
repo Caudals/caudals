@@ -45,8 +45,7 @@ docker run --rm --network dokploy-network --user 0 \
   --mount "type=bind,src=$state_dir/evals_queue.url,dst=/run/secrets/evals_queue_database_url,readonly" \
   -e EVALS_ENV=production -e EVALS_QUEUE_SCHEMA=evals_queue_prod \
   -e EVALS_QUEUE_DATABASE_URL_FILE=/run/secrets/evals_queue_database_url \
-  "$EVALS_WORKER_IMAGE" node --conditions=react-server --import tsx -e \
-  "import('./lib/evals/queue/boss.ts').then(async m=>{const b=m.createBoss(process.env,{bootstrap:true});try{await m.startBoss(b)}finally{await b.stop({graceful:true})}})"
+  "$EVALS_WORKER_IMAGE" node --conditions=react-server --import tsx services/evals-worker/bootstrap-queue.ts
 
 docker stack deploy --with-registry-auth -c "$repo_dir/infra/evals/production-stack.yml" caudals-evals
 for service in worker scheduler documents browser browser-egress; do
