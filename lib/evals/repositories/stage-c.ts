@@ -885,17 +885,18 @@ export function createRegressionDraft(
       ).rows[0],
     );
     assertRegressionEligible(source);
-    return (
-      await db.query(
-        `INSERT INTO evals.regression_case(
-           org_id,project_id,source_observation_id,source_case_revision_id
-         ) VALUES($1,$2,$3,$4)
-         ON CONFLICT(org_id,source_observation_id) DO UPDATE
-           SET source_observation_id=EXCLUDED.source_observation_id
-         RETURNING id,redaction_status,validation_status`,
-        [scope.orgId, source.project_id, source.id, source.case_revision_id],
-      )
-    ).rows[0];
+    const inserted = await db.query(
+      "INSERT INTO evals.regression_case(org_id,project_id,source_observation_id,source_case_revision_id) " +
+      "VALUES($1,$2,$3,$4) ON CONFLICT(org_id,source_observation_id) DO NOTHING " +
+      "RETURNING id,redaction_status,validation_status",
+      [scope.orgId, source.project_id, source.id, source.case_revision_id],
+    );
+    if (inserted.rows[0]) return inserted.rows[0];
+    return required((await db.query(
+      "SELECT id,redaction_status,validation_status FROM evals.regression_case " +
+      "WHERE org_id=$1 AND source_observation_id=$2",
+      [scope.orgId, source.id],
+    )).rows[0]);
   });
 }
 
