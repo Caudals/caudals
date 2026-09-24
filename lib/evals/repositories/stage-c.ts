@@ -763,7 +763,7 @@ export function controlRun(
   return withTenant(scope, async (db) => {
     const workflow = (
       await db.query(
-        "SELECT id FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
+        "SELECT id,status FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
         [scope.orgId, runId],
       )
     ).rows[0];
@@ -780,6 +780,27 @@ export function controlRun(
       return {runId,action};
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
+    if (action === "cancel" && !["completed","partial","failed"].includes(workflow.status)) {
+      await db.query(
+        "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",
+        [scope.orgId, runId],
+      );
+      await db.query(
+        `UPDATE evals.run SET
+          status=CASE WHEN EXISTS(
+            SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='running'
+          ) THEN 'cancel_requested'
+          WHEN EXISTS(
+            SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status IN ('succeeded','unknown_external_outcome')
+          ) THEN 'partial' ELSE 'canceled' END,
+          phase=CASE WHEN EXISTS(
+            SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='running'
+          ) THEN phase ELSE 'done' END,
+          reason_code='run_canceled',updated_at=now()
+          WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed')`,
+        [scope.orgId, runId],
+      );
+    }
     return { runId, action };
   });
 }

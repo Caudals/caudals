@@ -6,6 +6,7 @@ import { enqueueTargetExecution } from "../../lib/evals/queue/store";
 import type { TenantTransaction } from "../../lib/evals/queue/store";
 import { TargetExecutionWorker } from "../../lib/evals/queue/target-worker";
 import { targetCapacity } from "../../lib/evals/queue/target-ledger";
+import { controlRun } from "../../lib/evals/repositories/stage-c";
 import { targetConfigSchema } from "../../lib/evals/contracts/connectors";
 import { observationSchema } from "../../lib/evals/contracts/results";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
@@ -64,5 +65,15 @@ describe.skipIf(!ownerUrl||!runtimeUrl)("Stage B target execution on PostgreSQL"
   const deferred=await tx(tenant,async c=>({step:(await c.query("SELECT status,not_before FROM evals.workflow_step WHERE id=$1",[deferredStepId])).rows[0],attempts:Number((await c.query("SELECT count(*) FROM evals.target_attempt WHERE step_id=$1",[deferredStepId])).rows[0].count),futureOutbox:Number((await c.query("SELECT count(*) FROM evals.outbox_event WHERE step_id=$1 AND available_at>now()",[deferredStepId])).rows[0].count)}));
   expect(deferred.step.status).toBe("queued");expect(deferred.step.not_before.getTime()).toBeGreaterThan(Date.now());
   expect(deferred.attempts).toBe(0);expect(deferred.futureOutbox).toBeGreaterThan(0);expect(calls).toBe(1);
+  await controlRun(tenant,deferredRunId,"cancel");
+  const canceled=await tx(tenant,async c=>({
+   run:(await c.query("SELECT status,reason_code FROM evals.run WHERE id=$1",[deferredRunId])).rows[0],
+   unit:(await c.query("SELECT status,reason_code FROM evals.case_unit WHERE id=$1",[deferredUnitId])).rows[0],
+   workflow:(await c.query("SELECT status FROM evals.execution_workflow WHERE id=$1",[deferredWorkflowId])).rows[0],
+   step:(await c.query("SELECT status FROM evals.workflow_step WHERE id=$1",[deferredStepId])).rows[0],
+  }));
+  expect(canceled).toMatchObject({run:{status:"canceled",reason_code:"run_canceled"},unit:{status:"canceled",reason_code:"run_canceled"},workflow:{status:"canceled"},step:{status:"canceled"}});
+  await controlRun(tenant,deferredRunId,"cancel");
+  expect((await tx(tenant,async c=>(await c.query("SELECT status FROM evals.run WHERE id=$1",[deferredRunId])).rows[0].status))).toBe("canceled");
  },30000);
 });
