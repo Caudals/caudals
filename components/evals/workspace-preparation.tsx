@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { evalRequest } from "./api";
 import { Status } from "./primitives";
@@ -65,25 +65,6 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     return () => { live = false; };
   }, [evaluation.latest_source_id, evaluation.latest_source_revision_id, orgId]);
 
-  useEffect(() => {
-    if (!["needs_review", "profiling", "generating", "needs_input"].includes(evaluation.preparation_status)) return;
-    let live = true;
-    void Promise.all([
-      evalRequest<{ draft: Draft | null; casePreviews: CasePreview[]; questions: ContextQuestion[] }>("/evaluations/" + evaluation.id + "/context?orgId=" + orgId),
-      evalRequest<{ status: string; job: { id: string } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId),
-    ]).then(([context, generation]) => {
-      if (!live) return;
-      setContextQuestions(context.questions ?? []);
-      if (context.draft) { setDraft(context.draft); setCasePreviews(context.casePreviews ?? []); }
-      if (!generation.job) return;
-      setAutoJobId(generation.job.id);
-      if (generation.status === "needs_input") return;
-      if (["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation.status)) {
-        void continueAutomaticGeneration(generation.job.id);
-      }
-    }).catch(() => { if (live) setError("Preparation could not be resumed. Ask Caudals for help."); });
-    return () => { live = false; };
-  }, [evaluation.id, evaluation.preparation_status, orgId]);
 
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -182,7 +163,7 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     finally { setPending(false); }
   }
 
-  async function continueAutomaticGeneration(jobId: string) {
+  const continueAutomaticGeneration = useCallback(async (jobId: string) => {
     if (autoResumeRef.current === jobId) return;
     autoResumeRef.current = jobId;
     setAutoJobId(jobId);
@@ -222,7 +203,27 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
       throw new Error("Preparation is still running. Reopen this evaluation to resume its saved progress.");
     } catch (value) { setError(value instanceof Error ? value.message : "The dataset could not be generated."); }
     finally { autoResumeRef.current = null; setPending(false); }
-  }
+  }, [evaluation.id, orgId, onReady]);
+
+  useEffect(() => {
+    if (!["needs_review", "profiling", "generating", "needs_input"].includes(evaluation.preparation_status)) return;
+    let live = true;
+    void Promise.all([
+      evalRequest<{ draft: Draft | null; casePreviews: CasePreview[]; questions: ContextQuestion[] }>("/evaluations/" + evaluation.id + "/context?orgId=" + orgId),
+      evalRequest<{ status: string; job: { id: string } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId),
+    ]).then(([context, generation]) => {
+      if (!live) return;
+      setContextQuestions(context.questions ?? []);
+      if (context.draft) { setDraft(context.draft); setCasePreviews(context.casePreviews ?? []); }
+      if (!generation.job) return;
+      setAutoJobId(generation.job.id);
+      if (generation.status === "needs_input") return;
+      if (["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation.status)) {
+        void continueAutomaticGeneration(generation.job.id);
+      }
+    }).catch(() => { if (live) setError("Preparation could not be resumed. Ask Caudals for help."); });
+    return () => { live = false; };
+  }, [continueAutomaticGeneration, evaluation.id, evaluation.preparation_status, orgId]);
 
   async function generateAutomatically() {
     if (!source || pending) return;

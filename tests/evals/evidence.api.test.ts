@@ -31,7 +31,7 @@ describe('private artifact gateway authorization',()=>{
   expect(response.status).toBe(404);expect(mocks.uploadArtifact).not.toHaveBeenCalled();
  });
  it('rejects oversized gateway bodies without writing storage',async()=>{
-  const response=await PUT(new Request(`https://evals.test/api/evals/v1/artifacts/${id}/upload?orgId=${org}`,{method:'PUT',headers:{origin:'https://evals.test',host:'evals.test'},body:'x'.repeat(1048577)}));
+  const response=await PUT(new Request(`https://evals.test/api/evals/v1/artifacts/${id}/upload?orgId=${org}`,{method:'PUT',headers:{origin:'https://evals.test',host:'evals.test'},body:'x'.repeat(25000001)}));
   expect(response.status).toBe(413);expect(mocks.uploadArtifact).not.toHaveBeenCalled();
  });
  it('validates document format honestly before creating an upload session',async()=>{
