@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { evalRequest } from "./api";
 import { Status } from "./primitives";
 
@@ -254,7 +255,15 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     try {
       const sourceRevisionIds = (sources.length ? sources : [source]).map((item) => item.revisionId);
       const input = { mode: "automatic", orgId, sourceRevisionIds, title: evaluation.title + " test set", executionMode, promptRevision: "dgx-context-cases-v2", maxCases: 10 };
-      const started = await evalRequest<{ jobId: string }>("/evaluations/" + evaluation.id + "/generate", "POST", input, await stableKey("evaluation-auto-generation", input));
+      const previous = await evalRequest<{ status: string; job: { id: string } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId);
+      if (previous.job && ["profiling", "profile_ready", "drafting", "draft_ready", "needs_input"].includes(previous.status)) {
+        setAutoJobId(previous.job.id);
+        await continueAutomaticGeneration(previous.job.id);
+        return;
+      }
+      const stableRequestKey = await stableKey("evaluation-auto-generation", input);
+      const idempotencyKey = generationStartIdempotencyKey(stableRequestKey, { status: previous.status, jobId: previous.job?.id ?? null });
+      const started = await evalRequest<{ jobId: string }>("/evaluations/" + evaluation.id + "/generate", "POST", input, idempotencyKey);
       setAutoJobId(started.jobId);
       setPending(false);
       await continueAutomaticGeneration(started.jobId);
