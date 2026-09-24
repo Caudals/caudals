@@ -155,10 +155,7 @@ test.describe("public navigation", () => {
       "/es/contact",
     );
     await expect(nav.getByRole("link", { name: "Blog" })).toHaveCount(0);
-    await expect(nav.getByRole("link", { name: "Newsletter" })).toHaveAttribute(
-      "href",
-      "/es/newsletter",
-    );
+    await expect(nav.getByRole("link", { name: "Newsletter" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Comenzar" })).toHaveAttribute(
       "href",
       "/es/contact",

@@ -42,7 +42,6 @@ describe("seo helpers", () => {
         "/legal/notice",
         "/legal/privacy",
         "/legal/terms",
-        "/newsletter",
       ]
     );
   });

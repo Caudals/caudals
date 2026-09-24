@@ -34,8 +34,8 @@ export async function GET() {
     }),
   );
 
-  // Blog posts are temporarily hidden, so post sitemap serves only newsletter issues.
+  // Blog posts and newsletter issues are temporarily hidden.
   return xmlResponse(
-    renderUrlSet(newsletterEntries),
+    renderUrlSet([]),
   );
 }

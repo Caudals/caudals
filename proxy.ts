@@ -166,12 +166,17 @@ export async function proxy(request: NextRequest) {
     return redirectAnonymousAdminRequest(request);
   }
 
-  // Blog is temporarily hidden: redirect any blog requests to home (307 Temporary Redirect).
+  // Blog and Newsletter are temporarily hidden: redirect requests to home (307 Temporary Redirect).
   if (!isAppHost) {
-    const { locale: blogPathLocale, pathname: blogBarePathname } = splitLocale(pathname);
-    if (blogBarePathname === "/blog" || blogBarePathname.startsWith("/blog/")) {
+    const { locale: hiddenPathLocale, pathname: hiddenBarePathname } = splitLocale(pathname);
+    if (
+      hiddenBarePathname === "/blog" ||
+      hiddenBarePathname.startsWith("/blog/") ||
+      hiddenBarePathname === "/newsletter" ||
+      hiddenBarePathname.startsWith("/newsletter/")
+    ) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = blogPathLocale ? `/${blogPathLocale}` : "/";
+      redirectUrl.pathname = hiddenPathLocale ? `/${hiddenPathLocale}` : "/";
       return NextResponse.redirect(redirectUrl, 307);
     }
   }

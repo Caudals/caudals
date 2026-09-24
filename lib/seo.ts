@@ -77,7 +77,8 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   { pathname: "/legal/notice", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },
   { pathname: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
+  // Temporarily hidden:
+  // { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
 ];
 
 type PublicMetadataOptions = {

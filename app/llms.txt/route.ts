@@ -50,10 +50,6 @@ ${renderEvaluationOverviewMarkdown(t)}
 - [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
 - [Reservar una llamada](${url("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 
-## Newsletter
-
-- [Data Unfiltered](${url("/newsletter")}): análisis periódico sobre herramientas de IA y los datos que utilizan los modelos.
-${newsletterLinks || "- Los números publicados aparecerán en esta sección."}
 
 ## Información legal
 

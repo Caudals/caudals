@@ -15,5 +15,5 @@ export const publicNavigationLinks: readonly PublicNavigationLink[] = [
   { href: "/contact", labelKey: "contact" },
   // Temporarily hidden:
   // { href: "/blog", labelKey: "blog" },
-  { href: "/newsletter", labelKey: "newsletter" },
+  // { href: "/newsletter", labelKey: "newsletter" },
 ] as const;
