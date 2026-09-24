@@ -8,7 +8,7 @@ import { sourceSchema } from "../contracts/cases";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { EvalError } from "../domain/errors";
 import { enqueueInvocation, event, digest, type Tenant } from "../queue/store";
-import { invocationSchema } from "../providers/contracts";
+import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { prepareGroundedSuiteOnce } from "./managed";
@@ -81,7 +81,7 @@ function makeInvocation(args: {
     providerRevisionId: args.route.provider_revision_id, priceRevisionId: args.route.price_revision_id,
     workspaceBudgetId: args.workspaceBudgetId, runBudgetId: args.runBudgetId, role: args.route.role,
     dataClass: args.route.data_class, region: args.route.region, routing: "local_only", approvedProviderIds: [],
-    messages: args.messages, maxOutputTokens: Math.min(4096, args.route.output_limit), timeoutMs: 120000,
+    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit), timeoutMs: 120000,
     internalCostPerSecond: args.route.internal_cost_per_second,
   });
 }
@@ -193,8 +193,9 @@ async function queueDraftGeneration(
   profileRevisionId: string, contextModelRevisionId: string,
 ) {
   const coverage=planCoverage(profile,job.requested_case_count);
+  const draftVersion=Number((await db.query("SELECT COALESCE(MAX(version),0)::int AS version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft'",[scope.orgId,job.id])).rows[0].version)+1;
   await db.query("UPDATE evals.generation_job SET status='drafting',profile_revision_id=$3,coverage_plan=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,profileRevisionId,coverage]);
-  await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'plan',$4,1,$5,$6,'completed',1,$7) ON CONFLICT(org_id,generation_job_id,step_kind) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,digest({profile:profile.content_hash,coverage}),job.prompt_revision,contextModelRevisionId,coverage]);
+  await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'plan',$4,1,$5,$6,'completed',1,$7) ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,digest({profile:profile.content_hash,coverage}),job.prompt_revision,contextModelRevisionId,coverage]);
   const draftRoute=(await db.query("SELECT r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second,p.output_limit,p.context_limit,p.adapter,p.model_id,pr.currency FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id) WHERE r.org_id=$1 AND r.role='generator'",[scope.orgId])).rows[0] as GenerationRoute|undefined;
   if(!draftRoute)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The DGX generator route is not configured.");
   if(draftRoute.adapter!=="dgx"||draftRoute.currency!==job.currency)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The configured generator route no longer matches this job's local model and currency policy.");
@@ -211,8 +212,8 @@ async function queueDraftGeneration(
   const plan=planHash(job);
   if(workflow.rows[0].plan_hash!==plan)throw new EvalError("GENERATION_INVALID",409,"The frozen generation plan changed.");
   const draftHash=digest({step:"draft",jobId:job.id,profile:profile.content_hash,coverage,providerRevisionId:draftRoute.provider_revision_id,priceRevisionId:draftRoute.price_revision_id});
-  await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count) VALUES($1,$2,$3,'draft',$4,1,$5,$6,'queued',0) ON CONFLICT(org_id,generation_job_id,step_kind) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,draftHash,job.prompt_revision,draftRoute.provider_revision_id]);
-  const stepId=await enqueueInvocation(db,scope as Tenant,{workflowId:job.workflow_id,runId:job.id,planHash:plan,kind:"generate",version:1,input:invocation});
+  await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count) VALUES($1,$2,$3,'draft',$4,$5,$6,$7,'queued',0) ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,draftHash,draftVersion,job.prompt_revision,draftRoute.provider_revision_id]);
+  const stepId=await enqueueInvocation(db,scope as Tenant,{workflowId:job.workflow_id,runId:job.id,planHash:plan,kind:"generate",version:draftVersion,input:invocation});
   await event(db,scope.orgId,job.workflow_id,"generation_draft_queued");
   await db.query("UPDATE evals.evaluation SET preparation_status='generating',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
   return {status:"drafting",jobId:job.id,stepId};
@@ -223,6 +224,22 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
   const prepared=await withTenant(scope,async db=>{
     const job=(await db.query("SELECT * FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 AND id=$3 FOR UPDATE",[scope.orgId,evaluationId,jobId])).rows[0] as GenerationJobRecord|undefined;
     if(!job)throw new EvalError("SCOPE_DENIED",404);
+    const retryable=(await db.query(`SELECT s.id,s.version,b.status AS batch_status
+      FROM evals.workflow_step s JOIN evals.generation_batch b
+        ON b.org_id=s.org_id AND b.generation_job_id=$3 AND b.step_kind='draft' AND b.version=s.version
+      WHERE s.org_id=$1 AND s.workflow_id=$2 AND s.step_kind='generate' AND s.status='paused'
+        AND s.reason_code='invocation_configuration_invalid' AND s.input->>'generationJobId'=$3
+        AND b.status IN ('queued','paused')
+        AND NOT EXISTS (SELECT 1 FROM evals.execution_attempt a WHERE a.org_id=s.org_id AND a.step_id=s.id)
+      ORDER BY s.version DESC LIMIT 1 FOR UPDATE OF s,b`,[scope.orgId,job.workflow_id,job.id])).rows[0];
+    if(retryable){
+      await db.query("UPDATE evals.workflow_step SET status='failed',reason_code='superseded_by_configuration_retry',updated_at=now() WHERE org_id=$1 AND id=$2 AND status='paused'",[scope.orgId,retryable.id]);
+      await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='superseded_by_configuration_retry',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' AND version=$3",[scope.orgId,job.id,retryable.version]);
+      await db.query("UPDATE evals.generation_job SET status='profile_ready',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id]);
+      await db.query("UPDATE evals.evaluation SET preparation_status='generating',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
+      await event(db,scope.orgId,job.workflow_id,"generation_pre_dispatch_retry","invocation_configuration_invalid");
+      job.status="profile_ready";job.reason_code=null;
+    }
     if(job.status==="needs_input"){
       const rows=(await db.query("SELECT id,field,question,critical,status,answer FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 AND generation_job_id=$3 ORDER BY critical DESC,created_at,id",[scope.orgId,evaluationId,job.id])).rows;
       const open=rows.filter((row)=>row.critical&&row.status==="open");
@@ -285,9 +302,9 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       const {anchors}=anchorMaterial(sourceRows);
       let parsed;
       try{parsed=validateAutogeneratedDraft(await modelResult(db,scope.orgId,job.workflow_id,"draft",job.id),anchors);}catch(error){
-        const batch=(await db.query("SELECT id FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft'",[scope.orgId,job.id])).rows[0];
+        const batch=(await db.query("SELECT id,version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];
         if(batch)await db.query("INSERT INTO evals.case_quarantine(org_id,evaluation_id,generation_batch_id,draft,reason_code,schema_errors) VALUES($1,$2,$3,$4,'generated_draft_invalid',$5)",[scope.orgId,evaluationId,batch.id,{output_error:error instanceof Error?error.message:"invalid_output"},JSON.stringify([error instanceof Error?error.message:"invalid_output"])]);
-        await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft'",[scope.orgId,job.id]);
+        await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' AND version=$3",[scope.orgId,job.id,batch?.version]);
         await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id]);
         await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
         return {status:"quarantined",jobId:job.id,reasonCode:"generated_draft_invalid",detail:error instanceof Error?error.message:"Draft validation failed."};
@@ -310,7 +327,8 @@ export function getAutomaticGeneration(scope: EvidenceScope, evaluationId: strin
       FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 AND ($3::uuid IS NULL OR id=$3)
       ORDER BY created_at DESC,id DESC LIMIT 1`,[scope.orgId,evaluationId,jobId??null])).rows[0];
     if(!job)return {status:"idle",job:null,batches:[]};
-    const batches=(await db.query("SELECT step_kind,status,attempt_count,reason_code,updated_at FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 ORDER BY created_at,id",[scope.orgId,job.id])).rows;
-    return {status:job.status,job:{id:job.id,reasonCode:job.reason_code,profileRevisionId:job.profile_revision_id,suiteId:job.suite_id,suiteVersionId:job.suite_version_id,createdAt:job.created_at,updatedAt:job.updated_at},batches};
+    const pausedStep=(await db.query("SELECT reason_code FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND status='paused' ORDER BY version DESC,updated_at DESC LIMIT 1",[scope.orgId,job.workflow_id])).rows[0];
+    const batches=(await db.query("SELECT step_kind,version,status,attempt_count,reason_code,updated_at FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 ORDER BY created_at,id",[scope.orgId,job.id])).rows;
+    return {status:pausedStep?"paused":job.status,job:{id:job.id,reasonCode:job.reason_code??pausedStep?.reason_code??null,profileRevisionId:job.profile_revision_id,suiteId:job.suite_id,suiteVersionId:job.suite_version_id,createdAt:job.created_at,updatedAt:job.updated_at},batches};
   });
 }

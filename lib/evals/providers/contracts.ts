@@ -10,6 +10,12 @@ export const invocationSchema=z.object({
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
 }).strict();
+export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number):number {
+ const promptBytes=Buffer.byteLength(JSON.stringify(messages),"utf8");
+ const maximum=Math.min(4096,outputLimit,contextLimit-promptBytes-1024);
+ if(!Number.isInteger(maximum)||maximum<128)throw new Error("context_bound_exceeded");
+ return maximum;
+}
 export type Invocation=z.infer<typeof invocationSchema>;
 export interface ProviderRevision {
  id:string; account_id:string; adapter:'dgx'|'openai_compatible'; endpoint:string; model_id:string;

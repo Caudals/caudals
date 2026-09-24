@@ -12,7 +12,7 @@ async function main(){
  const migrations=await pool.query("SELECT name FROM public.evals_migration_history WHERE name LIKE '%_evals_%' ORDER BY name");
  const tables=await pool.query("SELECT count(*)::int AS count FROM pg_tables WHERE schemaname='evals'");
  if(roles.rows.length<6||roles.rows.some(role=>role.rolsuper||role.rolbypassrls)||!scheduler.rows[0]?.inherits_runtime)throw new Error("Evaluation service roles are missing, privileged, or the scheduler lacks tenant runtime grants.");
- const needed=["034_evals_connections.sql","035_evals_generation.sql","036_evals_scoring.sql","037_evals_reports.sql","038_evals_operations.sql","039_evals_stage_c.sql","046_evals_target_usage.sql","047_evals_website_recipe_source_grant.sql","048_evals_browser_target_usage_grant.sql","049_evals_browser_dispatch_timestamp_grant.sql","050_evals_automatic_generation.sql","051_evals_source_ingestion.sql","052_evals_website_context.sql","053_evals_generation_runtime_catalog_grants.sql","054_evals_generation_runtime_context_question_grant.sql"];
+ const needed=["034_evals_connections.sql","035_evals_generation.sql","036_evals_scoring.sql","037_evals_reports.sql","038_evals_operations.sql","039_evals_stage_c.sql","046_evals_target_usage.sql","047_evals_website_recipe_source_grant.sql","048_evals_browser_target_usage_grant.sql","049_evals_browser_dispatch_timestamp_grant.sql","050_evals_automatic_generation.sql","051_evals_source_ingestion.sql","052_evals_website_context.sql","053_evals_generation_runtime_catalog_grants.sql","054_evals_generation_runtime_context_question_grant.sql","055_evals_generation_batch_step_versions.sql"];
  if(needed.some(name=>!migrations.rows.some(row=>row.name===name)))throw new Error("Stage B migrations are incomplete.");
  const usage=await pool.query(`SELECT
    has_table_privilege('evals_browser','evals.target_invocation_ledger','SELECT') AS can_select,
@@ -38,6 +38,16 @@ async function main(){
    has_column_privilege('evals_runtime','evals.context_question','critical','UPDATE') AS can_update_critical`);
  if(!contextQuestionGrants.rows[0]?.can_update_question||!contextQuestionGrants.rows[0]?.can_update_critical)
   throw new Error("The evaluation runtime cannot persist generated critical context questions.");
+ const batchVersionIndex=await pool.query("SELECT to_regclass('evals.generation_batch_job_step_version') IS NOT NULL AS ready");
+ if(!batchVersionIndex.rows[0]?.ready)throw new Error("Automatic generation retry versioning is not installed.");
+ const generationRetryAccess=await pool.query(`SELECT
+   has_column_privilege('evals_runtime','evals.workflow_step','status','UPDATE') AS can_update_step_status,
+   has_table_privilege('evals_runtime','evals.workflow_step','SELECT') AS can_read_steps,
+   has_table_privilege('evals_runtime','evals.execution_attempt','SELECT') AS can_read_attempts,
+   has_column_privilege('evals_runtime','evals.generation_batch','status','UPDATE') AS can_update_batch_status`);
+ if(!generationRetryAccess.rows[0]?.can_update_step_status||!generationRetryAccess.rows[0]?.can_read_steps||
+    !generationRetryAccess.rows[0]?.can_read_attempts||!generationRetryAccess.rows[0]?.can_update_batch_status)
+  throw new Error("The evaluation runtime lacks safe pre-dispatch generation retry access.");
  const dispatch=await pool.query("SELECT has_column_privilege('evals_browser','evals.target_attempt','dispatched_at','UPDATE') AS can_timestamp");
  if(!dispatch.rows[0]?.can_timestamp)throw new Error("The browser worker cannot timestamp target dispatch.");
  console.log(JSON.stringify({status:"ready",workersPaused:process.env.EVALS_DISPATCH_ENABLED!=="true",roles:roles.rows.map(role=>role.rolname),tables:tables.rows[0].count}));

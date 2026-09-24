@@ -170,7 +170,7 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     setPending(true); setError("");
     try {
       for (let attempt = 0; attempt < 180; attempt++) {
-        const state = await evalRequest<{ status: string; job: { id: string; suiteId?: string | null; suiteVersionId?: string | null } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId + "&jobId=" + jobId);
+        const state = await evalRequest<{ status: string; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId + "&jobId=" + jobId);
         if (state.status === "needs_review") {
           const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>("/evaluations/" + evaluation.id + "/context?orgId=" + orgId);
           if (review.draft) {
@@ -199,6 +199,9 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
             throw new Error("Answer the open context questions to continue this saved preparation.");
           }
           await evalRequest("/evaluations/" + evaluation.id + "/generate/advance", "POST", { orgId, jobId }, "auto-context-" + jobId);
+        } else if (state.status === "paused" && state.job?.reasonCode === "invocation_configuration_invalid") {
+          const resumed = await evalRequest<{ status: string }>("/evaluations/" + evaluation.id + "/generate/advance", "POST", { orgId, jobId }, "auto-config-retry-" + jobId);
+          if (resumed.status !== "drafting") throw new Error("Preparation is paused for review. Ask Caudals for help before retrying.");
         } else if (["paused", "quarantined", "failed"].includes(state.status)) {
           throw new Error("Preparation paused or failed. Review the source and retry, or ask Caudals for help.");
         }
@@ -214,7 +217,7 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
     let live = true;
     void Promise.all([
       evalRequest<{ draft: Draft | null; casePreviews: CasePreview[]; questions: ContextQuestion[] }>("/evaluations/" + evaluation.id + "/context?orgId=" + orgId),
-      evalRequest<{ status: string; job: { id: string } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId),
+      evalRequest<{ status: string; job: { id: string; reasonCode?: string | null } | null }>("/evaluations/" + evaluation.id + "/generate?orgId=" + orgId),
     ]).then(([context, generation]) => {
       if (!live) return;
       setContextQuestions(context.questions ?? []);
@@ -222,7 +225,8 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
       if (!generation.job) return;
       setAutoJobId(generation.job.id);
       if (generation.status === "needs_input") return;
-      if (["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation.status)) {
+      if (["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation.status) ||
+          generation.status === "paused" && generation.job.reasonCode === "invocation_configuration_invalid") {
         void continueAutomaticGeneration(generation.job.id);
       }
     }).catch(() => { if (live) setError("Preparation could not be resumed. Ask Caudals for help."); });
