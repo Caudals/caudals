@@ -75,13 +75,14 @@ function planHash(job: { id: string; source_revision_ids: string[]; title: strin
 function makeInvocation(args: {
   route: GenerationRoute; jobId: string; step: "profile" | "draft"; workspaceBudgetId: string; runBudgetId: string;
   messages: Array<{ role: "system" | "user"; content: string }>;
+  outputTokenCap?: number;
 }) {
   return invocationSchema.parse({
     probe: false, probeKind: "text", outputFormat: "json_object", generationJobId: args.jobId, generationStep: args.step,
     providerRevisionId: args.route.provider_revision_id, priceRevisionId: args.route.price_revision_id,
     workspaceBudgetId: args.workspaceBudgetId, runBudgetId: args.runBudgetId, role: args.route.role,
     dataClass: args.route.data_class, region: args.route.region, routing: "local_only", approvedProviderIds: [],
-    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit), timeoutMs: 120000,
+    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), timeoutMs: 120000,
     internalCostPerSecond: args.route.internal_cost_per_second,
   });
 }
@@ -213,7 +214,7 @@ async function queueDraftGeneration(
   const workspaceBudget=budgetIds.find((item)=>item.kind==="workspace"),runBudget=budgetIds.find((item)=>item.kind==="run");
   if(!workspaceBudget||!runBudget)throw new EvalError("BUDGET_UNAVAILABLE",409);
   const material=docs.map((source)=>({sourceRevisionId:source.revision_id,title:source.title,anchors:source.anchors.map((anchor)=>({anchorId:anchor.id,excerpt:anchor.excerpt}))}));
-  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,messages:[
+  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:768,messages:[
     {role:"system",content:draftSystemPrompt()},
     {role:"user",content:canonicalJson({profile,coverage,maxCases:job.requested_case_count,sources:material})},
   ]});

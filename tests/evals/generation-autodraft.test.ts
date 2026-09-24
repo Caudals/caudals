@@ -23,6 +23,7 @@ describe("DGX generation context bounds", () => {
     const output = boundedOutputTokens(messages, 8192, 4096);
     expect(output).toBe(Math.min(4096, 8192 - bytes - 1024));
     expect(bytes + 1024 + output).toBeLessThanOrEqual(8192);
+    expect(boundedOutputTokens(messages, 8192, 4096, 768)).toBe(768);
   });
 
   it("rejects prompts that leave too little room for a useful bounded response", () => {
