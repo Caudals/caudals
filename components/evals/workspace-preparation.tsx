@@ -193,8 +193,12 @@ export function PrepareEvaluation({ orgId, evaluation, executionMode = "deployed
           if (prepared.status === "quarantined") throw new Error("The generated draft did not pass source and schema checks. No cases were released; review the source before starting a new draft.");
         } else if (state.status === "needs_input") {
           const context = await evalRequest<{ questions: ContextQuestion[] }>("/evaluations/" + evaluation.id + "/context?orgId=" + orgId);
-          setContextQuestions(context.questions ?? []);
-          throw new Error("Answer the open context questions to continue this saved preparation.");
+          const questions = context.questions ?? [];
+          setContextQuestions(questions);
+          if (questions.some((item) => item.critical && item.status === "open")) {
+            throw new Error("Answer the open context questions to continue this saved preparation.");
+          }
+          await evalRequest("/evaluations/" + evaluation.id + "/generate/advance", "POST", { orgId, jobId }, "auto-context-" + jobId);
         } else if (["paused", "quarantined", "failed"].includes(state.status)) {
           throw new Error("Preparation paused or failed. Review the source and retry, or ask Caudals for help.");
         }
