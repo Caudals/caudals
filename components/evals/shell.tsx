@@ -31,9 +31,16 @@ import {
   PanelLeftOpen,
   Plug,
   Settings,
-  SlidersHorizontal,
   Users,
   Unplug,
+  Cpu,
+  Activity,
+  Wallet,
+  UserCog,
+  ScrollText,
+  ListChecks,
+  FileStack,
+  Boxes,
 } from "lucide-react";
 import {
   Sheet,
@@ -74,6 +81,13 @@ const CRUMBS: Record<string, string> = {
   invitations: t("invitations"),
   new: t("newEvaluationAction"),
   "test-sets": "Test sets",
+  library: "Library",
+  sources: "Sources",
+  "domain-packs": "Domain packs",
+  inference: "Inference",
+  usage: "Usage & budgets",
+  accounts: "Accounts",
+  audit: "Audit log",
 };
 
 function crumbLabel(segment: string) {
@@ -104,14 +118,26 @@ function navFor(identity: EvalIdentity, expert = false, hasTestSets = false): Na
       {
         label: "Library",
         items: [
+          { href: "/ops/library/test-sets", label: "Test sets", icon: <ListChecks /> },
+          { href: "/ops/library/sources", label: "Sources", icon: <FileStack /> },
+          { href: "/ops/library/domain-packs", label: "Domain packs", icon: <Boxes /> },
           { href: "/ops/improvements", label: t("improvementDatasets"), icon: <DatabaseZap /> },
         ],
       },
       {
         label: "Platform",
         items: [
+          { href: "/ops/platform", label: "Providers & models", icon: <Cpu /> },
+          { href: "/ops/platform/inference", label: "Inference", icon: <Activity /> },
+          { href: "/ops/platform/usage", label: "Usage & budgets", icon: <Wallet /> },
+          { href: "/ops/platform/accounts", label: "Accounts", icon: <UserCog /> },
+          { href: "/ops/platform/audit", label: "Audit log", icon: <ScrollText /> },
+        ],
+      },
+      {
+        label: "Experts",
+        items: [
           { href: "/ops/experts", label: t("expertWork"), icon: <Users /> },
-          { href: "/ops/platform", label: t("platform"), icon: <SlidersHorizontal /> },
         ],
       },
     );
@@ -152,7 +178,7 @@ function navFor(identity: EvalIdentity, expert = false, hasTestSets = false): Na
 }
 
 function isCurrent(pathname: string, href: string) {
-  if (href === "/ops") return pathname === "/ops";
+  if (href === "/ops" || href === "/ops/platform") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

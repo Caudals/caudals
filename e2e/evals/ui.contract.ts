@@ -1229,3 +1229,53 @@ test("result review queue records attributed decisions with a required reason", 
   await expect(page.getByRole("heading", { name: "No results need review" })).toBeVisible();
   expect(decisions).toEqual([{ orgId: actionOrg, assessmentId: "00000000-0000-4000-8000-000000000401", decision: "override", reason: "The answer states the documented window.", outcome: "pass", criteria: [{ criterion_id: "grounding", score: 1, rationale: "The answer states the documented window." }] }]);
 });
+
+test("platform console hides endpoints and keys and asks for a fresh sign-in on sensitive changes", async ({ page }) => {
+  const posted: unknown[] = [];
+  await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
+  await page.route("**/api/evals/v1/providers?**", (route) => route.fulfill({ json: { data: {
+    accounts: [{ id: "00000000-0000-4000-8000-000000000501", name: "Local DGX", currency: "EUR", ceiling: "100", settled: "0", reserved: "0", enabled: true }],
+    revisions: [{ id: "00000000-0000-4000-8000-000000000502", account_id: "00000000-0000-4000-8000-000000000501", adapter: "dgx", model_id: "llama3.1:8b", roles: ["generator", "judge"], capabilities: { text: true, jsonObject: true }, context_limit: 8192, output_limit: 1024, data_classes: ["synthetic"], regions: ["private_wireguard"], endpoint_host: "private DGX route", health: "healthy", last_probe_at: null, retired_at: null, price: { id: "p", currency: "EUR", input: "0", output: "0" } }],
+    secrets: [],
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/models/routes", (route) => route.fulfill({ json: { data: [{ org_id: actionOrg, workspace: "Example client", role: "judge", provider_revision_id: "00000000-0000-4000-8000-000000000502", price_revision_id: "p", data_class: "synthetic", region: "private_wireguard", internal_cost_per_second: "0.0001", updated_at: new Date().toISOString() }], meta: {} } }));
+  await page.route("**/api/evals/v1/budgets/**", (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ status: 401, json: { error: { code: "REAUTHENTICATION_REQUIRED", message: "Sign in again to confirm this platform change.", field_errors: [], request_id: "r", retryable: false } } }); });
+  await page.goto("/ops/platform");
+  await expect(page.getByRole("rowheader", { name: /llama3\.1:8b/ })).toBeVisible();
+  await expect(page.getByText(/private DGX route/).first()).toBeVisible();
+  await expect(page.getByText(/192\.168|11434/)).toHaveCount(0);
+  await page.getByLabel("Reason").first().fill("Pause for rotation");
+  await page.getByRole("button", { name: "Save" }).first().click();
+  await expect(page.getByText("Sign in again to confirm this platform change.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in again" })).toHaveAttribute("href", /\/workspace\/sign-in\?next=/);
+  expect(posted).toEqual([expect.objectContaining({ targetKind: "provider_account", reason: "Pause for rotation", enabled: true })]);
+  await page.goto("/ops/platform?readonly");
+  await expect(page.getByText(/Changes need a platform administrator/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Register a model revision" })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("usage amendments require a reason and send the entitlement change", async ({ page }) => {
+  const posted: Array<Record<string, unknown>> = [];
+  await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
+  await page.route("**/api/evals/v1/usage?**", (route) => route.fulfill({ json: { data: {
+    budgets: [{ id: "b", kind: "workspace", scope_id: actionOrg, currency: "EUR", ceiling: "500", settled: "12.5", reserved: "1" }],
+    entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website", "imported_responses"], can_schedule: false, can_export: true, review_allowance: 0, version: 1 },
+    evaluations: [], amendments: [], targetCalls: { calls: 3, unknown: 0 },
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/budgets/**", (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ json: { data: { amendmentId: "x" }, meta: {} } }); });
+  await page.goto("/ops/platform/usage");
+  await page.getByLabel("Scheduled monitoring").check();
+  await page.getByLabel("Active run allowance").fill("3");
+  await page.locator("#ent-reason").fill("Monitoring subscription signed");
+  await page.getByRole("button", { name: "Amend entitlements" }).click();
+  await expect(page.getByText(/Amendment recorded/)).toBeVisible();
+  expect(posted[0]).toMatchObject({ targetKind: "entitlement", canSchedule: true, maxActiveRuns: 3, reason: "Monitoring subscription signed", allowedConnectionTypes: ["website", "imported_responses"] });
+});
+
+test("domain packs list their rubric, evaluators and prohibited assumptions", async ({ page }) => {
+  await page.route("**/api/evals/v1/domain-packs", (route) => route.fulfill({ json: { data: [{ id: "generic-grounded-qa", version: "1", title: "Generic grounded Q&A", status: "active", summary: "Grounded questions.", taskTypes: ["grounded_qa"], requiredContext: ["purpose"], sourceHierarchy: ["customer policy"], rubricCriteria: [{ id: "correctness", description: "Correct." }], deterministicEvaluators: ["claims"], prohibitedAssumptions: ["Remembered laws"], reviewGuidelines: "Review critical cases." }], meta: {} } }));
+  await page.goto("/ops/library/domain-packs");
+  await expect(page.getByRole("heading", { name: "Generic grounded Q&A" })).toBeVisible();
+  await expect(page.getByText("Remembered laws")).toBeVisible();
+});

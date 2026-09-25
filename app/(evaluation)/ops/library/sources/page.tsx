@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { requirePageIdentity } from "@/components/evals/page-identity";
 import { EvalShell } from "@/components/evals/shell";
-import { PlatformConsole } from "@/components/evals/platform-console";
+import { OperatorLibrary } from "@/components/evals/operator-library";
 
 export default async function Page() {
-  const identity = await requirePageIdentity("/ops/platform");
+  const identity = await requirePageIdentity("/ops/library/sources");
   if (!identity.platformRole) redirect("/workspace/evaluations");
-  return <EvalShell identity={identity}><PlatformConsole section="providers" admin={identity.platformRole === "platform_admin"} /></EvalShell>;
+  return <EvalShell identity={identity}><OperatorLibrary section="sources" /></EvalShell>;
 }

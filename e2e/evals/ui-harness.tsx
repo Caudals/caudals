@@ -5,6 +5,8 @@ import { ClientManagement } from "../../components/evals/client-management";
 import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceReports, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
 import { AuthenticatedReport, ReportView } from "../../components/evals/report-view";
 import { AssessmentReviewQueue } from "../../components/evals/assessment-review";
+import { PlatformConsole } from "../../components/evals/platform-console";
+import { OperatorLibrary } from "../../components/evals/operator-library";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
@@ -71,6 +73,12 @@ const content =
     <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
     <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
+  ) : location.pathname === "/ops/platform" ? (
+    <PlatformConsole section="providers" admin={!location.search.includes("readonly")} />
+  ) : location.pathname === "/ops/platform/usage" ? (
+    <PlatformConsole section="usage" admin />
+  ) : location.pathname === "/ops/library/domain-packs" ? (
+    <OperatorLibrary section="domain-packs" />
   ) : location.pathname === "/ops/review" ? (
     <AssessmentReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (

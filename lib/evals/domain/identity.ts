@@ -8,6 +8,8 @@ export type EvalIdentity = {
   user: { id: string; email: string; name: string };
   platformRole: "platform_admin" | "operator" | null;
   workspaces: { id: string; name: string; role: "owner" | "editor" | "viewer" | "operator" }[];
+  /** When the current sign-in happened; sensitive platform changes require a recent one. */
+  sessionCreatedAt?: string;
 };
 export async function requireIdentity(headerStore?: Headers): Promise<EvalIdentity> {
   const h = headerStore ?? await headers();
@@ -17,7 +19,8 @@ export async function requireIdentity(headerStore?: Headers): Promise<EvalIdenti
   return withTenant({orgId:"",actorId:session.user.id}, async client => {
     const roles = await client.query<{role: EvalIdentity["platformRole"]}>("SELECT role FROM evals.platform_role WHERE user_id=$1",[session.user.id]);
     const workspaces = await client.query<EvalIdentity["workspaces"][number]>(`SELECT w.id,w.name,COALESCE(m.role,'operator') AS role FROM evals.workspace w LEFT JOIN evals.membership m ON m.org_id=w.id AND m.user_id=$1 ORDER BY w.created_at DESC,w.id LIMIT 100`,[session.user.id]);
-    return {user:{id:session.user.id,email:session.user.email,name:session.user.name},platformRole:roles.rows[0]?.role??null,workspaces:workspaces.rows};
+    const signedInAt=session.session?.createdAt?new Date(session.session.createdAt).toISOString():undefined;
+    return {user:{id:session.user.id,email:session.user.email,name:session.user.name},platformRole:roles.rows[0]?.role??null,workspaces:workspaces.rows,sessionCreatedAt:signedInAt};
   });
 }
 export async function requireWorkspace(identity: EvalIdentity, orgId: string, action: "read"|"write"|"manage" = "read") {

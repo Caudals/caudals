@@ -12,6 +12,7 @@ export class EvalRequestError extends Error {
 }
 
 function getSafeErrorMessage(status: number, code: string): string {
+  if (code === "REAUTHENTICATION_REQUIRED") return t("reauthRequired");
   if (status === 401) return t("expired");
   if (status === 403) return t("forbidden");
   if (status === 404) return t("notFound");

@@ -62,7 +62,11 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='evals_test_runtime') THEN
     CREATE ROLE evals_test_runtime LOGIN PASSWORD 'runtime' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE IN ROLE evals_runtime;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='evals_test_admin') THEN
+    CREATE ROLE evals_test_admin LOGIN PASSWORD 'admin' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE IN ROLE evals_execution_admin;
+  END IF;
 END $$;
 SQL
 echo "export EVALS_TEST_OWNER_URL=$owner_url"
 echo "export EVALS_TEST_DATABASE_URL=postgres://evals_test_runtime:runtime@127.0.0.1:$port/caudals"
+echo "export EVALS_TEST_ADMIN_URL=postgres://evals_test_admin:admin@127.0.0.1:$port/caudals"

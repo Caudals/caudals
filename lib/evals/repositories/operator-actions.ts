@@ -52,3 +52,14 @@ export function listReviewQueue(scope: EvidenceScope, limit = 100) {
       AND NOT EXISTS (SELECT 1 FROM evals.judge_job q WHERE q.org_id=a.org_id AND q.pending_assessment_id=a.id AND q.status='queued')
     ORDER BY (cr.document->>'severity'='critical') DESC, a.created_at LIMIT $2`, [scope.orgId, limit])).rows);
 }
+
+/** Reference material with provenance and extraction state (Library › Sources). */
+export function listSources(scope: EvidenceScope) {
+  return withTenant(scope, async (db) => (await db.query(`SELECT s.id,s.title,s.rights,s.created_at,p.title AS project_title,
+      (SELECT count(*)::int FROM evals.source_revision r WHERE r.org_id=s.org_id AND r.source_id=s.id) AS revisions,
+      (SELECT r.extraction_version FROM evals.source_revision r WHERE r.org_id=s.org_id AND r.source_id=s.id ORDER BY r.created_at DESC LIMIT 1) AS extraction_version,
+      (SELECT jsonb_array_length(r.document->'anchors') FROM evals.source_revision r WHERE r.org_id=s.org_id AND r.source_id=s.id ORDER BY r.created_at DESC LIMIT 1) AS anchors,
+      (SELECT j.status FROM evals.source_ingestion_job j WHERE j.org_id=s.org_id AND j.source_id=s.id ORDER BY j.created_at DESC LIMIT 1) AS ingestion_status
+    FROM evals."source" s JOIN evals.project p ON (p.org_id,p.id)=(s.org_id,s.project_id)
+    WHERE s.org_id=$1 ORDER BY s.created_at DESC LIMIT 200`, [scope.orgId])).rows);
+}

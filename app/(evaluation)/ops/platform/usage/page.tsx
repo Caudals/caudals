@@ -4,7 +4,7 @@ import { EvalShell } from "@/components/evals/shell";
 import { PlatformConsole } from "@/components/evals/platform-console";
 
 export default async function Page() {
-  const identity = await requirePageIdentity("/ops/platform");
+  const identity = await requirePageIdentity("/ops/platform/usage");
   if (!identity.platformRole) redirect("/workspace/evaluations");
-  return <EvalShell identity={identity}><PlatformConsole section="providers" admin={identity.platformRole === "platform_admin"} /></EvalShell>;
+  return <EvalShell identity={identity}><PlatformConsole section="usage" admin={identity.platformRole === "platform_admin"} /></EvalShell>;
 }
