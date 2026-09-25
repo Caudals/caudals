@@ -4,6 +4,7 @@ import { encryptSecret,decryptSecret,type SecretScope } from '../../lib/evals/se
 import { InvocationWorker } from '../../lib/evals/queue/worker';
 import type { Invocation,ProviderRevision } from '../../lib/evals/providers/contracts';
 import { fixture } from './worker-fixture';
+import { stageAOwnerUrl } from './stage-a-env';
 const keys=new Map([['v1',randomBytes(32)],['v2',randomBytes(32)]]);
 const scope:SecretScope={orgId:randomUUID(),recordId:randomUUID(),versionId:randomUUID(),purpose:'provider',scopeId:randomUUID()};
 it('envelope authenticates tenant, scope, purpose, record, version and key version',()=>{
@@ -14,7 +15,7 @@ it('envelope authenticates tenant, scope, purpose, record, version and key versi
  expect(()=>decryptSecret({...encrypted,keyVersion:'v2'},scope,keys)).toThrow('secret_unavailable');
  expect(()=>decryptSecret({...encrypted,value:{...encrypted.value,data:'AAAA'}},scope,keys)).toThrow('secret_unavailable');
 });
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('tenant secret boundaries',()=>{
+describe.skipIf(!stageAOwnerUrl)('tenant secret boundaries',()=>{
  it('decrypts only a reserved scoped invocation, clears the buffer, and honors revocation',async()=>{
   const f=await fixture();try {
    const recordId=randomUUID(),versionId=randomUUID();

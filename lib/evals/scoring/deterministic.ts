@@ -4,8 +4,9 @@ import type { CefCase, Rubric } from "../contracts/cases";
 import { withContentHash } from "../contracts/hashing";
 import { selectJson } from "../connectors/json-mapping";
 import { conditionsPass } from "../execution/scenario-runner";
+import { PENDING_CRITERIA_EXTENSION } from "./judge";
 
-export type CriterionResult={criterionId:string;passed:boolean|null;score:number|null;rationale:string};
+export type CriterionResult={criterionId:string;passed:boolean|null;score:number|null;rationale:string;source?:"deterministic"|"llm_judge"|"human"};
 function candidateText(observation:Observation):string{return [...observation.messages].reverse().find(message=>message.role==="assistant")?.content??"";}
 function candidateValue(text:string):unknown {try{return JSON.parse(text);}catch{return text;}}
 function decimalParts(value:string){const match=/^(-?)(\d+)(?:\.(\d+))?$/.exec(value);if(!match)throw new Error("decimal_invalid");return {negative:match[1]==="-",whole:match[2],fraction:match[3]??""};}
@@ -22,7 +23,7 @@ export function gradeDeterministically(args:{caseRevision:CefCase;observation:Ob
   if(observation.status!=="succeeded") {outcome="unscorable";for(const criterion of rubric.criteria)criteria.push({criterionId:criterion.id,passed:null,score:null,rationale:`Execution ended as ${observation.status}; this is not a model failure.`});}
   else {const text=candidateText(observation),value=candidateValue(text);
     for(const [index,grader] of item.reference.graders.entries()){
-      if(grader.kind==="llm_judge"||grader.kind==="human"){criteria.push({criterionId:rubric.criteria[index]?.id??`grader-${index+1}`,passed:null,score:null,rationale:grader.kind==="llm_judge"?"A versioned rubric judge result is required.":"Human review is required."});continue;}let passed=false,rationale="";
+      if(grader.kind==="llm_judge"||grader.kind==="human"){criteria.push({criterionId:rubric.criteria[index]?.id??`grader-${index+1}`,passed:null,score:null,rationale:grader.kind==="llm_judge"?"A versioned rubric judge result is required.":"Human review is required.",source:grader.kind});continue;}let passed=false,rationale="";
       if(grader.kind==="exact_match"){const actual=selectJson(value,grader.path);passed=typeof actual==="string"&&typeof grader.expected==="string"&&!grader.case_sensitive?actual.toLocaleLowerCase()===grader.expected.toLocaleLowerCase():JSON.stringify(actual)===JSON.stringify(grader.expected);rationale=passed?"Exact expected value matched.":"Exact expected value did not match.";}
       else if(grader.kind==="decimal_equal"){const actual=selectJson(value,grader.path);try{passed=(typeof actual==="string"||typeof actual==="number")&&decimalWithin(String(actual),grader.expected,grader.tolerance);}catch{passed=false;}rationale=passed?`Decimal value matched within ${grader.tolerance} ${grader.unit}.`:`Decimal value did not match ${grader.expected} within ${grader.tolerance} ${grader.unit}.`;}
       else if(grader.kind==="claims"){const lower=text.toLocaleLowerCase();const missing=grader.required.filter(claim=>!lower.includes(claim.toLocaleLowerCase())),prohibited=grader.prohibited.filter(claim=>lower.includes(claim.toLocaleLowerCase()));passed=!missing.length&&!prohibited.length;rationale=passed?"Required claims were present and prohibited claims absent.":`Missing ${missing.length} required and included ${prohibited.length} prohibited claims.`;}
@@ -32,7 +33,10 @@ export function gradeDeterministically(args:{caseRevision:CefCase;observation:Ob
     }
     const passCount=criteria.filter(c=>c.passed).length;if(!criteria.length||criteria.some(c=>c.passed===null))outcome="unscorable";else if(passCount===criteria.length)outcome="pass";else if(passCount===0)outcome="fail";else outcome="partial";
   }
-  const document=withContentHash({schema_version:"1.0" as const,assessment_id:randomUUID(),observation_hash:observation.content_hash,grader_revision_id:args.graderRevisionId,rubric_revision_id:rubric.revision_id,criteria:criteria.map(result=>({criterion_id:result.criterionId,score:result.score,rationale:result.rationale})),outcome,evidence_refs:item.reference.source_refs,rationale:outcome==="unscorable"?(observation.status!=="succeeded"?"No valid model outcome was available for scoring.":"A required judge or human review is pending."):`${criteria.filter(result=>result.passed).length} of ${criteria.length} deterministic checks passed.`,review_status:outcome==="unscorable"||item.severity==="critical"&&outcome==="fail"?"needs_review" as const:"unreviewed" as const,supersedes_assessment_id:null,author:{kind:"grader" as const,id:args.graderRevisionId},override_reason:null,created_at:args.createdAt??new Date().toISOString(),extensions:{}});
+  const document=withContentHash({schema_version:"1.0" as const,assessment_id:randomUUID(),observation_hash:observation.content_hash,grader_revision_id:args.graderRevisionId,rubric_revision_id:rubric.revision_id,criteria:criteria.map(result=>({criterion_id:result.criterionId,score:outcome==="unscorable"?null:result.score,rationale:result.rationale})),outcome,evidence_refs:item.reference.source_refs,rationale:outcome==="unscorable"?(observation.status!=="succeeded"?"No valid model outcome was available for scoring.":"A required judge or human review is pending."):`${criteria.filter(result=>result.passed).length} of ${criteria.length} deterministic checks passed.`,review_status:outcome==="unscorable"||item.severity==="critical"&&outcome==="fail"?"needs_review" as const:"unreviewed" as const,supersedes_assessment_id:null,author:{kind:"grader" as const,id:args.graderRevisionId},override_reason:null,created_at:args.createdAt??new Date().toISOString(),
+    // Deterministic results for a case still waiting on its judge or reviewer. The
+    // assessment itself stays unscorable (null scores) until they are combined.
+    extensions:outcome==="unscorable"&&observation.status==="succeeded"?{[PENDING_CRITERIA_EXTENSION]:criteria.map(result=>({criterion_id:result.criterionId,score:result.score,rationale:result.rationale,source:result.source??"deterministic"}))}:{}});
   return assessmentSchema.parse(document);
 }
 

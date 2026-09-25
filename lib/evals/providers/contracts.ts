@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export const invocationSchema=z.object({
-  probe:z.boolean().default(false), probeKind:z.enum(['text','json_object','tools']).default('text'), outputFormat:z.enum(['text','json_object']).default('text'), generationJobId:z.string().uuid().optional(), generationStep:z.enum(['profile','draft']).optional(), providerRevisionId:z.string().uuid(), priceRevisionId:z.string().uuid(), secretVersionId:z.string().uuid().optional(),
+  probe:z.boolean().default(false), probeKind:z.enum(['text','json_object','tools']).default('text'), outputFormat:z.enum(['text','json_object']).default('text'), generationJobId:z.string().uuid().optional(), generationStep:z.enum(['profile','draft']).optional(), judgeJobId:z.string().uuid().optional(), narrativeJobId:z.string().uuid().optional(), providerRevisionId:z.string().uuid(), priceRevisionId:z.string().uuid(), secretVersionId:z.string().uuid().optional(),
   workspaceBudgetId:z.string().uuid(), runBudgetId:z.string().uuid(),
   role:z.enum(['target','generator','context_analyzer','judge','adjudicator','report_writer','embedding']),
   dataClass:z.string().min(1), region:z.string().min(1), routing:z.enum(['local_only','approved_providers']),
@@ -9,7 +9,15 @@ export const invocationSchema=z.object({
   maxOutputTokens:z.number().int().min(1).max(32768), timeoutMs:z.number().int().min(100).max(900000).default(60000),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
-}).strict().superRefine((input,ctx)=>{if(input.timeoutMs>120000&&(!input.generationJobId||!input.generationStep||input.probe||input.routing!=="local_only"||!(["generator","context_analyzer"] as string[]).includes(input.role)))ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});});
+}).strict().superRefine((input,ctx)=>{
+  // Extended deadlines exist only for bounded internal DGX work: generation,
+  // rubric judging and report narrative. Target and probe calls keep 120 s.
+  const localInternal=!input.probe&&input.routing==="local_only"&&(
+    (!!input.generationJobId&&!!input.generationStep&&(["generator","context_analyzer"] as string[]).includes(input.role))||
+    (!!input.judgeJobId&&input.role==="judge")||
+    (!!input.narrativeJobId&&input.role==="report_writer"));
+  if(input.timeoutMs>120000&&!localInternal)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
+});
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {
  const promptBytes=Buffer.byteLength(JSON.stringify(messages),"utf8");
  const maximum=Math.min(4096,requestCap,outputLimit,contextLimit-promptBytes-1024);

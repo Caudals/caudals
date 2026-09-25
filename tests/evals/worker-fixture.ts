@@ -5,8 +5,9 @@ import { withTenant } from '../../lib/evals/repositories/db';
 import type { TenantTransaction } from '../../lib/evals/queue/store';
 import { enqueueInvocation } from '../../lib/evals/queue/store';
 import type { Invocation } from '../../lib/evals/providers/contracts';
+import { stageAOwnerUrl } from './stage-a-env';
 export async function fixture() {
- const url=new URL(process.env.EVALS_TEST_DATABASE_URL!);
+ const url=new URL(stageAOwnerUrl!);
  if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname))throw new Error('disposable_local_database_required');
  const admin=new Pool({connectionString:url.href,max:2});const database=`evals_wp03_${randomUUID().replaceAll('-','')}`;
  await admin.query(`CREATE DATABASE ${database}`);url.pathname=`/${database}`;

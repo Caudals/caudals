@@ -308,6 +308,13 @@ export const messages = {
   manageCredentials: "Credentials",
   apiKeyOptional: "API key (optional)",
   apiKeyHint: "Sent as a bearer token. Stored encrypted and never shown again.",
+  rubricJudge: "Rubric judge",
+  rubricJudgeHelp: "Model grades for criteria that need judgment. They supersede the pending result, never call the system again, and stay in review until calibration against human decisions is adequate.",
+  judgeCalibration: "Calibration",
+  calibrationExamples: "reviewed examples",
+  calibrationExperimental: "experimental",
+  collectJudgeResults: "Collect judge results",
+  reason: "Reason",
 } as const;
 export type MessageKey = keyof typeof messages;
 export function t(key: MessageKey): string {

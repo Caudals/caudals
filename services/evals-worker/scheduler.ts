@@ -5,6 +5,8 @@ import { loadKeyring } from "../../lib/evals/security/envelope";
 import { tickSchedules } from "../../lib/evals/monitoring/schedules";
 import { tickScheduledAlerts } from "../../lib/evals/monitoring/alerts";
 import { tickWebhookDeliveries } from "../../lib/evals/monitoring/webhooks";
+import { advanceJudgments } from "../../lib/evals/repositories/judging";
+import { advanceReportNarratives } from "../../lib/evals/repositories/narratives";
 
 async function main() {
   if (process.env.EVALS_SCHEDULES_ENABLED !== "true") throw new Error("schedules_disabled");
@@ -30,6 +32,8 @@ async function main() {
             await tickSchedules(scope);
             await tickScheduledAlerts(scope);
             await tickWebhookDeliveries(scope, keys);
+            await advanceJudgments(scope);
+            await advanceReportNarratives(scope);
           } catch {
             healthy = false;
             console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId }));

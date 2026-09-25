@@ -7,6 +7,7 @@ import { createBoss,dispatchOutbox } from '../../lib/evals/queue/boss';
 import { publicAddress } from '../../lib/evals/providers/openai-compatible';
 import { acquireCapacity } from '../../lib/evals/providers/registry';
 import { ProviderFailure } from '../../lib/evals/providers/contracts';
+import { stageAOwnerUrl } from './stage-a-env';
 const output={complete:true,finishReason:'stop',text:'fixture response',usage:{input:10,output:5,cached:0},latencyMs:10};
 it('hashes stable JSON regardless of Postgres key ordering',()=>expect(digest({b:2,a:1})).toBe(digest({a:1,b:2})));
 it('requires explicit environment-matching queue schema',()=>{
@@ -16,7 +17,7 @@ it('blocks private, mapped, metadata and reserved addresses',()=>{
  for(const address of ['127.0.0.1','169.254.169.254','192.168.1.2','::1','::ffff:127.0.0.1','fc00::1','2001:db8::1'])expect(publicAddress(address)).toBe(false);
  expect(publicAddress('8.8.8.8')).toBe(true);expect(publicAddress('2606:4700:4700::1111')).toBe(true);
 });
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('durable worker',()=>{
+describe.skipIf(!stageAOwnerUrl)('durable worker',()=>{
  let f:Fixture;beforeAll(async()=>{f=await fixture();},30000);afterAll(async()=>{await f?.close();});
  const worker=(invoke=vi.fn(async()=>output))=>new InvocationWorker({tx:f.tx,keys:new Map(),actorId:f.tenant.actorId,workerId:randomUUID(),invoke,leaseSeconds:5});
  it('commits before acknowledgement, duplicate delivery makes one paid call and immutable output',async()=>{

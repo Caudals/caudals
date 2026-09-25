@@ -5,17 +5,18 @@ import type { PgBoss } from 'pg-boss';
 import { fixture } from './worker-fixture';
 import { createBoss,dispatchOutbox,startBoss,type JobData } from '../../lib/evals/queue/boss';
 import { InvocationWorker } from '../../lib/evals/queue/worker';
+import { stageAOwnerUrl } from './stage-a-env';
 
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('pg-boss 12.33.1 durable integration',()=>{
+describe.skipIf(!stageAOwnerUrl)('pg-boss 12.33.1 durable integration',()=>{
  it('uses a queue-only owner, survives restart, and consumes actual duplicate deliveries once',async()=>{
   const f=await fixture();const role=`evals_q_${randomUUID().replaceAll('-','')}`,password=randomBytes(24).toString('hex');
-  const admin=new Pool({connectionString:process.env.EVALS_TEST_DATABASE_URL,max:1});let boss:PgBoss|undefined;let queuePool:Pool|undefined;
+  const admin=new Pool({connectionString:stageAOwnerUrl,max:1});let boss:PgBoss|undefined;let queuePool:Pool|undefined;
   try {
    // Both identifiers and password are generated internally, never user input.
    await f.pool.query(`CREATE ROLE ${role} LOGIN PASSWORD '${password}' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`);
    await f.pool.query(`CREATE SCHEMA evals_queue_dev AUTHORIZATION ${role}`);
    const database=(await f.pool.query('SELECT current_database() AS name')).rows[0].name;
-   const url=new URL(process.env.EVALS_TEST_DATABASE_URL!);url.pathname=`/${database}`;url.username=role;url.password=password;
+   const url=new URL(stageAOwnerUrl!);url.pathname=`/${database}`;url.username=role;url.password=password;
    queuePool=new Pool({connectionString:url.href,max:1});
    await expect(queuePool.query('SELECT * FROM evals.execution_workflow')).rejects.toThrow(/permission denied/);
    const make=(bootstrap=false)=>createBoss({EVALS_ENV:'development',EVALS_QUEUE_SCHEMA:'evals_queue_dev',EVALS_QUEUE_DATABASE_URL:url.href},{bootstrap});

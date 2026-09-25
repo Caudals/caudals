@@ -6,9 +6,10 @@ import { createWorkspace,createInvitation,acceptInvitation } from '@/lib/evals/r
 import { requireWorkspace,type EvalIdentity } from '@/lib/evals/domain/identity';
 import { createPrefixedId } from '@/lib/operator/ids';
 import { POST as enroll } from '@/app/api/evals/v1/invitations/enroll/route';
-const enabled=!!process.env.EVALS_TEST_DATABASE_URL;
+import { stageAOwnerUrl } from './stage-a-env';
+const enabled=!!stageAOwnerUrl;
 describe.skipIf(!enabled)('evaluation identity real PostgreSQL',()=>{
- const owner=new Pool({connectionString:process.env.EVALS_TEST_DATABASE_URL,max:2});
+ const owner=new Pool({connectionString:stageAOwnerUrl,max:2});
  const operator:EvalIdentity={user:{id:createPrefixedId('au'),email:`${randomUUID()}@example.test`,name:'Fixture operator'},platformRole:'platform_admin',workspaces:[]};
  const viewer:EvalIdentity={user:{id:createPrefixedId('au'),email:`${randomUUID()}@example.test`,name:'Fixture viewer'},platformRole:null,workspaces:[]};
  let a:string;let b:string;

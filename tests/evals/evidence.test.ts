@@ -2,7 +2,8 @@ import { createPrefixedId } from '@/lib/operator/ids';
 import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
-const url=process.env.EVALS_TEST_DATABASE_URL;
+import { stageAOwnerUrl } from './stage-a-env';
+const url=stageAOwnerUrl;
 const pool=url ? new Pool({connectionString:url,max:1}) : undefined;
 afterAll(async()=>{await pool?.end();});
 async function fixture(fn:(db:PoolClient,a:string,b:string)=>Promise<void>) {

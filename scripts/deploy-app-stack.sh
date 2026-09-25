@@ -113,6 +113,12 @@ if [[ "$build_local" =~ ^(1|true|yes)$ ]]; then
   docker build --pull -t "$versioned_image" "$root"
   deploy_image="$versioned_image"
 else
+  # Free space before pulling: the host cleanup removes only images no service
+  # runs or would roll back to. It exits non-zero while the disk stays above its
+  # warning threshold, which must not block the deploy itself.
+  if systemctl list-unit-files caudals-docker-cleanup.service >/dev/null 2>&1; then
+    systemctl start caudals-docker-cleanup.service >/dev/null 2>&1 || true
+  fi
   docker pull "$versioned_image"
   # A Git commit tag identifies the build, but Swarm must run the registry
   # digest we just pulled so a later tag change cannot alter this release.

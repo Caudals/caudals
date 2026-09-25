@@ -2,12 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { fixture, seedAttempt, type Fixture } from './worker-fixture';
 import { reserve, settle } from '../../lib/evals/budget/ledger';
 import { decimal, units, worstCase } from '../../lib/evals/budget/money';
+import { stageAOwnerUrl } from './stage-a-env';
 it('uses exact nano-unit arithmetic and rounds uncertainty upward',()=>{
  expect(decimal(units('0.1')+units('0.2'))).toBe('0.300000000');
  expect(worstCase({input_price:'0.000000001',output_price:'0',cache_price:'0',tool_price:'0',uncertainty_bps:1},1,0)).toBe('0.000000002');
  expect(()=>units('1e-9')).toThrow('invalid_decimal');expect(()=>units('0.0000000001')).toThrow();
 });
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('atomic three-cap ledger',()=>{
+describe.skipIf(!stageAOwnerUrl)('atomic three-cap ledger',()=>{
  let f:Fixture;beforeAll(async()=>{f=await fixture();},30000);afterAll(async()=>{await f?.close();});
  for(const cap of ['provider','workspace','run'] as const)it(`serializes concurrent ${cap} cap reservations`,async()=>{
   const task=await f.enqueue();

@@ -4,7 +4,8 @@ import { once } from 'node:events';
 import { describe,it,expect } from 'vitest';
 import { fixture } from './worker-fixture';
 import { InvocationWorker } from '@/lib/evals/queue/worker';
-describe.skipIf(!process.env.EVALS_TEST_DATABASE_URL)('actual SIGKILL recovery boundaries',()=>{
+import { stageAOwnerUrl } from './stage-a-env';
+describe.skipIf(!stageAOwnerUrl)('actual SIGKILL recovery boundaries',()=>{
  for(const mode of ['before','after'])it(`preserves accounting when killed ${mode} provider acceptance`,async()=>{
   const f=await fixture();let child:ReturnType<typeof fork>|undefined;
   try{

@@ -28,6 +28,12 @@ worker_tag="mariomedpar/caudals:evals-worker-$commit"
 # Browser and document services share one Playwright image. Commits built
 # before that change published separate tags; keep them deployable.
 playwright_tag="mariomedpar/caudals:evals-playwright-$commit"
+# Free space before pulling: the host cleanup removes only images no service
+# runs or would roll back to. It exits non-zero while the disk stays above its
+# warning threshold, which must not block the deploy itself.
+if systemctl list-unit-files caudals-docker-cleanup.service >/dev/null 2>&1; then
+  systemctl start caudals-docker-cleanup.service >/dev/null 2>&1 || true
+fi
 docker pull "$worker_tag" >/dev/null
 if docker pull "$playwright_tag" >/dev/null 2>&1; then
   document_tag=$playwright_tag
