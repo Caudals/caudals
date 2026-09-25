@@ -11,6 +11,8 @@ import { canonicalJson, withContentHash } from "../contracts/hashing";
 // the same case are kept and outrank it.
 
 export const JUDGE_PROMPT_REVISION = "caudals-rubric-judge-v1";
+/** Stable UUID naming JUDGE_PROMPT_REVISION inside CEF grader records (which require IDs). */
+export const JUDGE_PROMPT_REVISION_ID = "5f0c9d3e-6a1b-4c7e-9f2a-0d4b8e1c7a31";
 export const PENDING_CRITERIA_EXTENSION = "caudals.evals/pending_criteria";
 export const JUDGE_EXTENSION = "caudals.evals/judge";
 

@@ -18,6 +18,7 @@ import { assessmentSchema } from "../contracts/results";
 import { aggregateRun, compareCompatibility, normalizeComparisonPlan, pairedComparison, type UnitOutcome } from "../scoring/aggregate";
 import { groupFailures } from "../scoring/findings";
 import { queueRunJudgments, type JudgeCandidate } from "./judging";
+import { JUDGE_PROMPT_REVISION_ID } from "../scoring/judge";
 import { buildReportSnapshot } from "../reports/contracts";
 import { renderCefJsonl,renderReportHtml,renderResultsCsv } from "../reports/render";
 import { objectKey,readVerified,sealObject } from "../storage/private";
@@ -102,7 +103,8 @@ export function prepareGroundedSuite(
       ON CONFLICT(org_id,evaluation_id,step_kind,input_hash,version) WHERE generation_job_id IS NULL
       DO UPDATE SET updated_at=now() RETURNING *`,batchValues)).rows[0];
   try{
-   const pack=genericGroundedQaPack({sources,questions,authorId:scope.actorId,generation:input.generation?{generatorRevisionId:input.generation.generatorRevisionId,promptRevisionId:input.generation.promptRevisionId}:undefined});
+   const judgeRoute=(await db.query("SELECT provider_revision_id FROM evals.generation_provider_route WHERE org_id=$1 AND role='judge'",[scope.orgId])).rows[0];
+   const pack=genericGroundedQaPack({judge:judgeRoute?{modelRevisionId:judgeRoute.provider_revision_id,promptRevisionId:JUDGE_PROMPT_REVISION_ID}:undefined,sources,questions,authorId:scope.actorId,generation:input.generation?{generatorRevisionId:input.generation.generatorRevisionId,promptRevisionId:input.generation.promptRevisionId}:undefined});
    const suiteId=randomUUID(),suiteVersionId=randomUUID();
    await db.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",[pack.rubric.revision_id,scope.orgId,evaluation.project_id,pack.rubric.content_hash,pack.rubric]);
    for(const item of pack.cases){await db.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)',[item.case_id,scope.orgId,evaluation.project_id]);await db.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[item.revision_id,scope.orgId,item.case_id,item.family_id,item.split,item.content_hash,item,pack.rubric.revision_id]);}
