@@ -113,9 +113,15 @@ jobs:
             repo_dir=/home/caudals/caudals
             cd "$repo_dir"
             git fetch origin main
+            # Skip only when a newer main commit changes worker inputs (and so
+            # builds its own images). Otherwise these are still the newest images.
             if [ "$(git rev-parse origin/main)" != "$DEPLOY_SHA" ]; then
-              echo "A newer main commit superseded this worker deployment."
-              exit 0
+              if ! git diff --quiet "$DEPLOY_SHA" origin/main -- infra/evals lib 'services/evals-*' \
+                  package.json package-lock.json tsconfig.json scripts/deploy-evals-production.sh; then
+                echo "A newer main commit changes worker inputs and supersedes this deployment."
+                exit 0
+              fi
+              echo "Newer main commits do not change worker inputs; deploying these images."
             fi
             worktree="$repo_dir/.worktrees/actions-evals-$DEPLOY_SHA-$DEPLOY_RUN_ID-$DEPLOY_RUN_ATTEMPT"
             git worktree add --detach "$worktree" "$DEPLOY_SHA"

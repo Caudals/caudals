@@ -137,9 +137,16 @@ jobs:
             repo_dir=/home/caudals/caudals
             cd "$repo_dir"
             git fetch origin main
+            # Skip only when a newer main commit changes app inputs (and so
+            # builds its own image); docs- or workflow-only commits do not.
             if [ "$(git rev-parse origin/main)" != "$DEPLOY_SHA" ]; then
-              echo "A newer main commit superseded this deployment."
-              exit 0
+              app_changes=$(git diff --name-only "$DEPLOY_SHA" origin/main \
+                | grep -vE '^(\.github/workflows/|docs/|infra/evals/|scripts/deploy-evals-production\.sh|services/evals-)' || true)
+              if [ -n "$app_changes" ]; then
+                echo "A newer main commit changes app inputs and supersedes this deployment."
+                exit 0
+              fi
+              echo "Newer main commits do not change app inputs; deploying this image."
             fi
             worktree="$repo_dir/.worktrees/actions-app-$DEPLOY_SHA-$DEPLOY_RUN_ID-$DEPLOY_RUN_ATTEMPT"
             git worktree add --detach "$worktree" "$DEPLOY_SHA"

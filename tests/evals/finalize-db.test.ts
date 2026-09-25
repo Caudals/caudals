@@ -33,7 +33,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const steps = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1", [orgId])).rows);
     const tx: TenantTransaction = (tenant, fn) => withTenant(tenant, fn, workerPool);
     const worker = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
-      invoke: async () => ({ text: JSON.stringify({ criteria: [{ criterion_id: rubric.criteria[1].id, verdict: "pass", rationale: "Grounded in the policy.", evidence: "" }] }), complete: true, finishReason: "stop", latencyMs: 10 }) });
+      invoke: async () => ({ text: JSON.stringify({ criteria: [{ criterion_id: rubric.criteria[1].id, verdict: "partial", rationale: "Correct figure without the policy context.", evidence: "" }] }), complete: true, finishReason: "stop", latencyMs: 10 }) });
     for (const step of steps) await worker.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
     expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
 
@@ -45,6 +45,10 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     }));
     expect(state.reports).toEqual([{ publication_status: "published", review_status: "preliminary", scorable: "2" }]);
     expect(state.notifications).toEqual([{ kind: "report_published" }]);
+    // Findings are durable records linked to the assessments that support them.
+    const findings = await withTenant(scope, async (c) => (await c.query("SELECT f.id,(SELECT count(*)::int FROM evals.finding_evidence e WHERE e.finding_id=f.id) AS evidence FROM evals.finding f WHERE f.org_id=$1 AND f.run_id=$2", [orgId, run.id])).rows);
+    expect(findings.length).toBeGreaterThan(0);
+    expect(findings.every((finding) => finding.evidence > 0)).toBe(true);
     expect(await finalizeRuns(scope, 5, modes)).toEqual({ scored: 0, reported: 0, failed: 0, waiting: 0 });
 
     const reportRow = await withTenant(scope, async (c) => (await c.query("SELECT id,current_revision_id FROM evals.report WHERE org_id=$1", [orgId])).rows[0]);
