@@ -38,4 +38,5 @@ async function main() {
   },pool);console.info(JSON.stringify(result));
  }finally{await pool.end();}
 }
-main().catch(()=>{console.error(JSON.stringify({event:'admin_command_failed'}));process.exitCode=1;});
+// Only stable snake_case codes are printed; driver or validation messages may echo input.
+main().catch((error:unknown)=>{const message=error instanceof Error?error.message:'';console.error(JSON.stringify({event:'admin_command_failed',reason:error instanceof z.ZodError?'invalid_input':/^[a-z_]{3,64}$/.test(message)?message:'unexpected_error'}));process.exitCode=1;});

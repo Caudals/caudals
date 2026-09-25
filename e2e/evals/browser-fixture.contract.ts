@@ -11,6 +11,8 @@ import { withContentHash } from "../../lib/evals/contracts/hashing";
 import type { WebsiteRecipe } from "../../lib/evals/contracts/browser";
 
 test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored capture", async () => {
+  // Discovery, reset probes, the follow-up probe and captures share one test.
+  test.setTimeout(60_000);
   const directory = mkdtempSync(join(tmpdir(), "evals-fake-chatbot-"));
   const key = join(directory, "key.pem"), cert = join(directory, "cert.pem");
   execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
@@ -54,7 +56,8 @@ test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored
     }) as WebsiteRecipe;
     const probe = await validateWebsiteRecipe({ browser, recipe, destinationCheck, timeoutMs: 15_000 });
     expect(probe).toMatchObject({ distinct_responses: true, reset_verified: true,
-      streaming_complete: true, duplicate_free: true });
+      streaming_complete: true, duplicate_free: true, multi_turn_verified: true });
+    expect(probe.multi_turn_probe?.response_hash).toMatch(/^[a-f0-9]{64}$/);
     const observation = await invokeWebsite({ browser, recipe, destinationCheck,
       input: { schema_version: "1.0", case_id: "synthetic-case", case_revision_id: "synthetic-case-v1",
         messages: [{ role: "user", content: "fixture question" }], attachments: [], tools: [] },

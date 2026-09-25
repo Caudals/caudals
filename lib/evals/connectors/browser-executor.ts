@@ -70,16 +70,9 @@ export async function waitForCompletion(
   const stableFor =
     recipe.completion.kind === "text_stable" ? recipe.completion.stable_ms : 500;
   while (Date.now() < deadline) {
-    const messages = await textSnapshot(root, recipe);
-    const fresh = newAssistantMessages(previous, messages);
-    candidate =
-      recipe.assistant_extraction === "last_new_message"
-        ? fresh.messages.at(-1) ?? ""
-        : messages.at(-1) ?? "";
-    if (candidate && candidate !== prior) {
-      prior = candidate;
-      changedAt = Date.now();
-    }
+    // Read the completion signal before the text: a widget that swaps in the
+    // final answer and clears its busy state together must not yield the
+    // partial text captured just before the swap.
     let signalReady = true;
     if (recipe.completion.kind === "selector_hidden") {
       const visible = await locator(root, recipe.completion.locator)
@@ -95,6 +88,16 @@ export async function waitForCompletion(
         .catch(() => false);
       if (!enabled) busySeen = true;
       signalReady = busySeen && enabled;
+    }
+    const messages = await textSnapshot(root, recipe);
+    const fresh = newAssistantMessages(previous, messages);
+    candidate =
+      recipe.assistant_extraction === "last_new_message"
+        ? fresh.messages.at(-1) ?? ""
+        : messages.at(-1) ?? "";
+    if (candidate && candidate !== prior) {
+      prior = candidate;
+      changedAt = Date.now();
     }
     if (candidate && signalReady && changedAt && Date.now() - changedAt >= stableFor) {
       return candidate;
@@ -454,6 +457,7 @@ export async function validateWebsiteRecipe(args: {
     );
     duplicateFlags.push((observation.extensions["caudals.evals/browser"] as { duplicate_free?: boolean } | undefined)?.duplicate_free === true);
   }
+  const multiTurn = await probeWebsiteFollowUp(args);
   return browserProbeEvidenceSchema.parse({
     checked_at: new Date().toISOString(),
     messages: prompts.map((prompt, index) => ({
@@ -468,7 +472,54 @@ export async function validateWebsiteRecipe(args: {
     duplicate_free: duplicateFlags.every(Boolean),
     screenshot_artifact_id: null,
     trace_artifact_id: null,
+    multi_turn_verified: multiTurn.verified,
+    multi_turn_probe: multiTurn.probe,
   });
+}
+
+// Sends a follow-up in the same context as a first message. Multi-turn counts as
+// verified only when both turns capture a new, complete, non-duplicated reply;
+// any failure leaves the capability unverified instead of failing the recipe.
+async function probeWebsiteFollowUp(args: {
+  browser: Browser;
+  recipe: WebsiteRecipe;
+  destinationCheck: DestinationCheck;
+  timeoutMs?: number;
+}) {
+  const prompts = [`Conversation check ${randomUUID()}`, `Follow-up check ${randomUUID()}`];
+  const controller = new AbortController();
+  const context: InvocationContext = {
+    run_id: "probe-conversation",
+    target_revision_id: args.recipe.recipe_revision_id,
+    execution_plan_id: "probe-plan-conversation",
+    tenant_scope_handle: "probe",
+    deadline: new Date(Date.now() + (args.timeoutMs ?? 30_000)).toISOString(),
+    attempt_id: "probe-attempt-conversation",
+    scoped_credential_handle: null,
+    destination_policy_id: "public-https-v1",
+    reserved_cost: { amount: "0", currency: "EUR" },
+    signal: controller.signal,
+  };
+  const input = (messages: CandidateInput["messages"]): CandidateInput => ({
+    schema_version: "1.0", case_id: "probe-conversation", case_revision_id: "probe-conversation", messages, attachments: [], tools: [],
+  });
+  const reply = (observation: Awaited<ReturnType<typeof invokeOpenWebsite>>) => ({
+    text: [...observation.messages].reverse().find((message) => message.role === "assistant")?.content ?? "",
+    duplicateFree: (observation.extensions["caudals.evals/browser"] as { duplicate_free?: boolean } | undefined)?.duplicate_free === true,
+  });
+  let session: Awaited<ReturnType<typeof openWebsiteAttemptSession>> | null = null;
+  try {
+    session = await openWebsiteAttemptSession(args);
+    const first = await session.invoke(input([{ role: "user", content: prompts[0] }]), context);
+    const second = await session.invoke(input([...first.messages, { role: "user", content: prompts[1] }]), context);
+    const [a, b] = [reply(first), reply(second)];
+    const verified = Boolean(a.text && b.text && a.text !== b.text && a.duplicateFree && b.duplicateFree);
+    return { verified, probe: verified ? { prompt_hash: sha256(prompts.join("\n")), response_hash: sha256(b.text) } : null };
+  } catch {
+    return { verified: false, probe: null };
+  } finally {
+    await session?.close().catch(() => {});
+  }
 }
 
 export function publicDestinationCheck(lookup?: Lookup): DestinationCheck {

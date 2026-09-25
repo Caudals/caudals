@@ -1057,6 +1057,29 @@ test("workspace owner creates a pinned monitoring schedule", async ({ page }) =>
   await page.getByRole("button", { name: "Create schedule" }).click();
   await expect(page.getByRole("status")).toHaveText("Schedule created.");
   expect(created).toMatchObject({ orgId: id, evaluationId, targetRevisionId, suiteVersionId, cadence: "monthly", dayOfMonth: 31, timezone: "Europe/Madrid", maxRunSpend: "25", currency: "EUR" });
+
+  // Monitoring, token and webhook controls are named, keyboard reachable and fit a phone.
+  await page.setViewportSize({ width: 390, height: 900 });
+  const controls = await page.evaluate(() => [...document.querySelectorAll("main input, main select, main textarea, main button")]
+    .filter((element) => (element as HTMLInputElement).type !== "hidden" && element.checkVisibility()).length);
+  expect(controls).toBeGreaterThan(8);
+  const unnamed = await page.evaluate(() => [...document.querySelectorAll("main input, main select, main textarea, main button")]
+    .filter((element) => {
+      const control = element as HTMLInputElement;
+      if (control.type === "hidden" || !control.checkVisibility()) return false;
+      if (element.tagName === "BUTTON") return !(element.textContent?.trim() || element.getAttribute("aria-label"));
+      return !(control.labels?.length || element.getAttribute("aria-label") || element.getAttribute("aria-labelledby"));
+    }).map((element) => element.outerHTML.slice(0, 80)));
+  expect(unnamed).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByLabel("IANA timezone").focus();
+  let reached = false;
+  for (let step = 0; step < 12 && !reached; step++) {
+    await page.keyboard.press("Tab");
+    reached = await page.evaluate(() => document.activeElement?.textContent?.trim() === "Create schedule");
+  }
+  expect(reached).toBe(true);
+  for (const name of ["Add webhook", "Create token"]) await expect(page.getByRole("button", { name })).toBeVisible();
 });
 
 test("workspace can browse, fork, edit and freeze a test set", async ({ page }) => {

@@ -52,7 +52,9 @@ if [[ -n $pg ]]; then
     SELECT
       (SELECT count(*) FROM evals.outbox_event WHERE delivered_at IS NULL AND available_at < now()-interval '15 minutes'),
       (SELECT count(*) FROM evals.workflow_step WHERE status='running' AND lease_until < now()-interval '10 minutes'),
-      (SELECT count(*) FROM evals.execution_attempt WHERE status='unknown')
+      -- An unknown outcome stays on the attempt as history; only unsettled liability needs action.
+      (SELECT count(*) FROM evals.execution_attempt a WHERE a.status='unknown' AND NOT EXISTS (
+        SELECT 1 FROM evals.budget_reservation r WHERE r.org_id=a.org_id AND r.attempt_id=a.id AND r.state IN ('settled','released')))
         + (SELECT count(*) FROM evals.target_invocation_call WHERE state='unknown' AND dispatched_at > now()-interval '7 days'),
       (SELECT count(*) FROM evals.provider_health h JOIN evals.provider_revision p ON p.id=h.provider_revision_id
         WHERE h.state NOT IN ('healthy','unprobed') AND (p.retired_at IS NULL OR p.retired_at > now())
