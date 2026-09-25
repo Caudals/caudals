@@ -5,7 +5,7 @@ import { reviewAssessment } from "@/lib/evals/repositories/managed";
 export const runtime="nodejs";
 export const POST=api(async(request,identity)=>{
  const input=z.strictObject({orgId:z.uuid(),decision:z.enum(["approve","dispute","override"]),reason:z.string().trim().min(1).max(4000),outcome:z.enum(["pass","partial","fail","unscorable"]).optional(),criteria:z.array(z.strictObject({criterion_id:z.string().min(1).max(200),score:z.number().nonnegative().nullable(),rationale:z.string().min(1).max(4000)})).optional()}).parse(await jsonBody(request));
- const id=z.uuid().parse(new URL(request.url).pathname.split("/").at(-3));
+ const id=z.uuid().parse(new URL(request.url).pathname.split("/").at(-2));
  await requireWorkspace(identity,input.orgId,"write");
  return reviewAssessment({orgId:input.orgId,actorId:identity.user.id},id,input);
 });
