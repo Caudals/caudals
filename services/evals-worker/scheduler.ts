@@ -8,6 +8,8 @@ import { tickWebhookDeliveries } from "../../lib/evals/monitoring/webhooks";
 import { advanceJudgments } from "../../lib/evals/repositories/judging";
 import { advanceReportNarratives } from "../../lib/evals/repositories/narratives";
 import { finalizeRuns } from "../../lib/evals/repositories/finalize";
+import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
+import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 
 async function main() {
   if (process.env.EVALS_SCHEDULES_ENABLED !== "true") throw new Error("schedules_disabled");
@@ -16,6 +18,11 @@ async function main() {
   const keyFile = z.string().min(1).parse(process.env.EVALS_WEBHOOK_KEYRING_FILE);
   const actorId = z.string().min(1).parse(process.env.EVALS_SCHEDULER_ACTOR_ID);
   const keys = loadKeyring(keyFile);
+  // Email is optional: without a provider key the in-app notices still work.
+  let send: SendEmail | null = null;
+  if (process.env.RESEND_API_KEY_FILE || process.env.RESEND_API_KEY) {
+    try { send = await resendSender(); } catch { console.error(JSON.stringify({ event: "email_sender_unavailable" })); }
+  }
   let stopping = false;
   let lastTick = 0;
   const stop = () => { stopping = true; };
@@ -36,9 +43,26 @@ async function main() {
             await advanceJudgments(scope);
             await advanceReportNarratives(scope);
             await finalizeRuns(scope);
+            await queueRequiredInputNotifications(scope);
           } catch {
             healthy = false;
             console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId }));
+          }
+        }
+        // Retention and deletion cover every workspace, not only the dispatch allowlist.
+        try {
+          const lifecycle = await tickLifecycle(actorId);
+          if (lifecycle.workspaces) console.info(JSON.stringify({ event: "lifecycle_tick", ...lifecycle }));
+        } catch {
+          healthy = false;
+          console.error(JSON.stringify({ event: "lifecycle_tick_failed" }));
+        }
+        if (send) {
+          try {
+            const email = await tickEmailNotifications(actorId, send);
+            if (email.sent || email.failed) console.info(JSON.stringify({ event: "email_notifications", ...email }));
+          } catch {
+            console.error(JSON.stringify({ event: "email_notifications_failed" }));
           }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));

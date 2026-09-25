@@ -53,7 +53,19 @@ services:
       EVALS_WEBHOOK_KEYRING_FILE: /run/secrets/evals_webhook_keyring
       EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_SCHEDULER_ACTOR_ID: service:evals-scheduler
-    secrets: [evals_scheduler_database_url,evals_webhook_keyring]
+      # Retention and workspace deletion remove expired private objects.
+      DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
+      DO_SPACES_REGION: us-east-1
+      DO_SPACES_BUCKET: caudals-storage
+      DO_SPACES_FORCE_PATH_STYLE: "true"
+      DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/object_storage_access_key
+      DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/object_storage_secret_key
+      NEXT_PUBLIC_DO_SPACES_CDN_URL: disabled-private-evals
+      # Opt-in notification email (spec 15.5); sender address is not secret.
+      RESEND_API_KEY_FILE: /run/secrets/evals_resend_api_key
+      RESEND_FROM_EMAIL_FILE: /run/secrets/evals_resend_from_email
+      EVALS_APP_URL: https://app.caudals.com
+    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-scheduler-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
       interval: 30s
@@ -65,7 +77,7 @@ services:
       restart_policy: {condition: on-failure, delay: 10s}
       update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
       resources:
-        limits: {cpus: "0.25", memory: 256M}
+        limits: {cpus: "0.25", memory: 384M}
         reservations: {memory: 64M}
     logging:
       driver: json-file
@@ -220,6 +232,8 @@ secrets:
   evals_queue_database_url: {external: true, name: caudals_evals_queue_database_url}
   evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
+  evals_resend_api_key: {external: true, name: caudals_evals_resend_api_key}
+  evals_resend_from_email: {external: true, name: caudals_evals_resend_from_email}
   evals_document_database_url: {external: true, name: caudals_evals_document_database_url}
   evals_browser_database_url: {external: true, name: caudals_evals_browser_database_url}
   evals_browser_queue_database_url: {external: true, name: caudals_evals_browser_queue_database_url}

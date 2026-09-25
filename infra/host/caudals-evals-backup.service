@@ -1,0 +1,13 @@
+[Unit]
+Description=Caudals daily encrypted backup (databases, roles, objects, recovery ledger)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Optional CAUDALS_BACKUP_* overrides, including an approved off-host target.
+EnvironmentFile=-/etc/default/caudals-evals-backup
+ExecStart=/usr/local/sbin/caudals-evals-backup
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h

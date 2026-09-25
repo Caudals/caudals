@@ -1,0 +1,10 @@
+[Unit]
+Description=Caudals operational alerts (queues, DGX, backups, disk, services)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/caudals-evals-health
+ExecStart=/usr/local/sbin/caudals-evals-health
+TimeoutStartSec=5min

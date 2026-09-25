@@ -35,6 +35,7 @@ const migrations=[
  '058_evals_target_credentials.sql',
  '059_evals_rubric_judge.sql',
  '060_evals_platform_admin.sql',
+ '061_evals_deletion_workflow.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

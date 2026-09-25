@@ -1,4 +1,6 @@
 import { createPrefixedId } from '@/lib/operator/ids';
+import { stageAOwnerUrl } from './stage-a-env';
+import { processSourceOne } from '../../services/evals-documents/source-ingestion';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { S3Client, CreateBucketCommand } from '@aws-sdk/client-s3';
@@ -7,11 +9,11 @@ import { createProject, createUpload, finalizeSource, getArtifact, getSource, up
 import { getEvalsPool } from '@/lib/evals/repositories/db';
 import { makeFixture } from './fixtures/contracts-fixtures';
 import { sha256, withContentHash } from '@/lib/evals/contracts/hashing';
-const dbUrl=process.env.EVALS_TEST_DATABASE_URL,endpoint=process.env.EVALS_TEST_S3_ENDPOINT;
+const dbUrl=stageAOwnerUrl,endpoint=process.env.EVALS_TEST_S3_ENDPOINT;
 describe.skipIf(!dbUrl||!endpoint)('live tenant-scoped evidence lifecycle',()=>{
  it('uploads, finalizes, app-downloads and revisions evidence; guessed objects fail across tenants',async()=>{
   if(!endpoint?.startsWith('http://127.0.0.1:') || !dbUrl?.includes('@127.0.0.1:')) throw new Error('Disposable services required');
-  vi.stubEnv('EVALS_DATABASE_URL',process.env.EVALS_TEST_RUNTIME_DATABASE_URL??dbUrl.replace('postgres:evals_test@','evals_runtime:evals_test@'));
+  vi.stubEnv('EVALS_DATABASE_URL',process.env.EVALS_TEST_DOCUMENTS_DATABASE_URL??process.env.EVALS_TEST_RUNTIME_DATABASE_URL??dbUrl.replace('postgres:evals_test@','evals_runtime:evals_test@'));
   vi.stubEnv('DO_SPACES_ENDPOINT',endpoint);vi.stubEnv('DO_SPACES_REGION','us-east-1');vi.stubEnv('DO_SPACES_BUCKET','evals-foundation-test');
   vi.stubEnv('DO_SPACES_ACCESS_KEY_ID','evals_test');vi.stubEnv('DO_SPACES_SECRET_ACCESS_KEY','evals_test_password');vi.stubEnv('DO_SPACES_FORCE_PATH_STYLE','true');
   const storage=new S3Client({endpoint,region:'us-east-1',forcePathStyle:true,credentials:{accessKeyId:'evals_test',secretAccessKey:'evals_test_password'}});
@@ -32,12 +34,19 @@ describe.skipIf(!dbUrl||!endpoint)('live tenant-scoped evidence lifecycle',()=>{
    await uploadArtifact(scope,upload.artifactId,bytes);
    const finalizeKey=randomUUID(),ready=await finalizeSource(scope,upload.sourceId,finalizeKey);
    expect(await finalizeSource(scope,upload.sourceId,finalizeKey)).toEqual(ready);
+   // Extraction is asynchronous: the pending upload is not downloadable until
+   // the document worker seals it and commits the anchored revision.
+   expect(ready).toMatchObject({status:'extracting'});
+   await expect(getArtifact(scope,upload.artifactId)).rejects.toMatchObject({status:404});
+   expect(await processSourceOne(orgId,actorId)).toBe(true);
+   const firstRevision=(await getSource(scope,upload.sourceId)).revisions[0] as {id:string;content_hash:string};
+   const firstRevisionId=firstRevision.id;
    await expect(getArtifact(other,upload.artifactId)).rejects.toMatchObject({status:404});
    await expect(getSource(other,upload.sourceId)).rejects.toMatchObject({status:404});
    await expect(finalizeSource(other,upload.sourceId,randomUUID())).rejects.toMatchObject({status:404});
    expect((await getArtifact(scope,upload.artifactId)).bytes).toEqual(bytes);
    const source=await getSource(scope,upload.sourceId);expect(source.chunks[0].excerpt).toBe(bytes.toString());
-   const revision=await reviseSource(scope,upload.sourceId,upload.artifactId,randomUUID());expect(revision.revisionId).not.toBe(ready.revisionId);
+   const revision=await reviseSource(scope,upload.sourceId,upload.artifactId,randomUUID());expect(revision.revisionId).not.toBe(firstRevisionId);
    expect((await getSource(scope,upload.sourceId)).revisions).toHaveLength(2);
    await expect(uploadArtifact(scope,upload.artifactId,bytes)).rejects.toMatchObject({status:404});
    for(const name of ['single-turn-arithmetic','deterministic-tool-call'] as const) {
@@ -48,10 +57,10 @@ describe.skipIf(!dbUrl||!endpoint)('live tenant-scoped evidence lifecycle',()=>{
     await addRevision(scope,project.id,{kind:'output_schema',document:output},randomUUID());
     const tools=fixture.fixtures.map(f=>withContentHash({...f,revision_id:randomUUID()}));
     for(const tool of tools) await addRevision(scope,project.id,{kind:'tool_fixture',document:tool},randomUUID());
-    const c=withContentHash({...fixture.cases[0],case_id:randomUUID(),revision_id:randomUUID(),scenario:{...fixture.cases[0].scenario,attachments:[{path:upload.artifactPath,sha256:input.sha256,size_bytes:bytes.length,media_type:'text/plain',visibility:'candidate' as const}]},reference:{...fixture.cases[0].reference,rubric_revision_id:rubric.revision_id,source_refs:[{source_revision_id:ready.revisionId,anchor:source.chunks[0].id}],graders:fixture.cases[0].reference.graders.map(g=>g.kind==='json_schema'?{...g,schema_ref:output.id}:g)}});
+    const c=withContentHash({...fixture.cases[0],case_id:randomUUID(),revision_id:randomUUID(),scenario:{...fixture.cases[0].scenario,attachments:[{path:upload.artifactPath,sha256:input.sha256,size_bytes:bytes.length,media_type:'text/plain',visibility:'candidate' as const}]},reference:{...fixture.cases[0].reference,rubric_revision_id:rubric.revision_id,source_refs:[{source_revision_id:firstRevisionId,anchor:source.chunks[0].id}],graders:fixture.cases[0].reference.graders.map(g=>g.kind==='json_schema'?{...g,schema_ref:output.id}:g)}});
     await addRevision(scope,project.id,{kind:'case',document:c},randomUUID());
     const suite=await createSuite(scope,{projectId:project.id,title:'Release'},randomUUID());
-    const manifest=withContentHash({...fixture.manifest,suite_id:suite.id,suite_version_id:randomUUID(),files:[{path:upload.artifactPath,sha256:input.sha256,size_bytes:bytes.length}],output_schema_revisions:[{revision_id:output.id,content_hash:output.content_hash}],fixture_revisions:tools.map(t=>({revision_id:t.revision_id,content_hash:t.content_hash})),case_revisions:[{case_id:c.case_id,revision_id:c.revision_id,content_hash:c.content_hash,family_id:c.family_id,split:c.split,weight:c.weight}],source_revisions:[{revision_id:ready.revisionId,content_hash:ready.contentHash}],rubric_revisions:[{revision_id:rubric.revision_id,content_hash:rubric.content_hash}]});
+    const manifest=withContentHash({...fixture.manifest,suite_id:suite.id,suite_version_id:randomUUID(),files:[{path:upload.artifactPath,sha256:input.sha256,size_bytes:bytes.length}],output_schema_revisions:[{revision_id:output.id,content_hash:output.content_hash}],fixture_revisions:tools.map(t=>({revision_id:t.revision_id,content_hash:t.content_hash})),case_revisions:[{case_id:c.case_id,revision_id:c.revision_id,content_hash:c.content_hash,family_id:c.family_id,split:c.split,weight:c.weight}],source_revisions:[{revision_id:firstRevisionId,content_hash:firstRevision.content_hash}],rubric_revisions:[{revision_id:rubric.revision_id,content_hash:rubric.content_hash}]});
     await patchDraft(scope,suite.id,1,manifest);
     await expect(patchDraft(scope,suite.id,1,manifest)).rejects.toMatchObject({status:409});
     const frozen=await freezeSuite(scope,suite.id,2,randomUUID());

@@ -514,6 +514,12 @@ export const messages = {
   packEvaluators: "Deterministic evaluators",
   packProhibited: "Prohibited assumptions",
   reauthRequired: "Sign in again to confirm this platform change.",
+  deleteWorkspaceData: "Delete workspace data",
+  deleteWorkspaceHelp: "Revokes every share and credential immediately, stops running evaluations, withdraws reports and deletes stored files. A minimal tombstone and deletion record remain; encrypted backups expire on their documented schedule and any restore replays this deletion first. Files already downloaded cannot be recalled.",
+  deletionRequestedAt: "Requested",
+  deletionCompletedAt: "completed",
+  deletionReason: "Reason for deletion",
+  typeWorkspaceName: "To confirm, type",
 } as const;
 export type MessageKey = keyof typeof messages;
 export function t(key: MessageKey): string {

@@ -19,6 +19,20 @@ for network in caudals-evals-browser-internal caudals-evals-browser-outbound; do
   docker network inspect "$network" >/dev/null 2>&1 || { echo "Missing $network. Run provision-evals-production.sh first" >&2; exit 1; }
 done
 
+# Notification email reuses the app's Resend credentials as separate,
+# versioned secrets for the scheduler. Values are read from the root-only app
+# credential file and never printed.
+app_credentials=/root/.caudals/app/credentials.env
+for pair in "RESEND_API_KEY:caudals_evals_resend_api_key" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email"; do
+  key=${pair%%:*}; secret=${pair#*:}
+  if ! docker secret inspect "$secret" >/dev/null 2>&1; then
+    value=$(grep -E "^${key}=" "$app_credentials" 2>/dev/null | head -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
+    [[ -n $value ]] || { echo "Missing $key in $app_credentials" >&2; exit 1; }
+    printf '%s' "$value" | docker secret create "$secret" - >/dev/null
+    unset value
+  fi
+done
+
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \
   infra/evals/Dockerfile infra/evals/Dockerfile.playwright \
