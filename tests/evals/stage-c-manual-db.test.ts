@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import { canonicalJson, sha256, withContentHash } from "../../lib/evals/contracts/hashing";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
-import { applyMatchedAnswers, createReportForRun, createRun, persistImport, scoreRun } from "../../lib/evals/repositories/managed";
+import { applyMatchedAnswers, createReportForRun, createRun, persistImport, reviewAssessment, scoreRun } from "../../lib/evals/repositories/managed";
 import { createSuite, editSuiteDraftCase, freezeSuite, getDraft, getSuiteDraftCases, listSuiteVersions } from "../../lib/evals/repositories/evidence";
 import { controlRun, forkSuite } from "../../lib/evals/repositories/stage-c";
 import { createPrefixedId } from "../../lib/operator/ids";
@@ -99,9 +99,23 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const scored = await scoreRun(scope, runId, "manual-fixture-v1");
     expect(scored.created).toBe(2);
     expect(scored.metrics.n_executed).toBe(2);
+    const scoredAssessments = await withTenant(scope, async connection => (await connection.query(
+      "SELECT a.id FROM evals.assessment a JOIN evals.observation o ON (o.org_id,o.id)=(a.org_id,a.observation_id) WHERE o.run_id=$1 ORDER BY a.created_at,a.id",
+      [runId],
+    )).rows);
+    expect(scoredAssessments).toHaveLength(2);
+    await expect(createReportForRun(scope, { runId, title: "Synthetic manual report", reviewStatus: "reviewed", scorerVersion: "fixture-v1" }, randomUUID()))
+      .rejects.toMatchObject({ code: "SCOPE_DENIED", status: 409 });
     const report = await createReportForRun(scope, { runId, title: "Synthetic manual report", reviewStatus: "preliminary", scorerVersion: "fixture-v1" }, randomUUID());
     expect(report.snapshot.methodology.limitations).toContain("Responses were imported; execution identity, latency and usage may be unavailable.");
     expect(report.snapshot.results).toHaveLength(2);
+    for (const assessment of scoredAssessments) await reviewAssessment(scope, assessment.id, {
+      decision: "approve",
+      reason: "The synthetic source and captured answer were compared; the deterministic assessment is supported.",
+    });
+    const reviewedReport = await createReportForRun(scope, { runId, title: "Reviewed synthetic manual report", reviewStatus: "reviewed", scorerVersion: "fixture-v1" }, randomUUID());
+    expect(reviewedReport.snapshot.results.map(item => item.review_status)).toEqual(["approved", "approved"]);
+    expect(reviewedReport.snapshot.methodology.review_coverage).toContain("individually approved or disputed");
 
     const forkSource = await createSuite(scope, { projectId, title: "Customer source suite" }, randomUUID());
     const template = await withTenant(scope, async connection => (await connection.query(
