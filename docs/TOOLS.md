@@ -398,16 +398,17 @@ Dagster services were removed on 2026-09-10) and their images were pruned on
 `caudals-1` has a 75 GB disk, and every deploy leaves a new image tag behind
 (0.9–2.2 GB of unique layers each; Docker's containerd snapshotter keeps them
 under `/var/lib/containerd`). `caudals-docker-cleanup.timer` runs
-`scripts/host-docker-cleanup.sh` every six hours (00:30, 06:30, 12:30, 18:30
-UTC, ±15 min) and removes:
+`scripts/host-docker-cleanup.sh` every hour (at :30 UTC, ±5 min); a burst of
+deploys can add 10 images in three hours. It removes:
 
-- stopped containers older than 24 h (Swarm keeps one finished task per
-  service: `task-history-limit 1`),
+- stopped Swarm task containers that finished over 1 h ago (Swarm keeps
+  several per service even with `task-history-limit 1`, and each pins its old
+  image), and other stopped containers older than 24 h,
 - images that are not the current or `PreviousSpec` (rollback) image of any
   Swarm service, not used by any container, not in
   `CAUDALS_CLEANUP_KEEP_REPOSITORIES` (default `caudals-postgres`, which is
-  built on the host) and not built or pulled in the last 6 h,
-- build cache older than 48 h, and anonymous volumes no container uses (named
+  built on the host) and not built or pulled in the last 2 h,
+- build cache older than 24 h, and anonymous volumes no container uses (named
   volumes, including the retained legacy ones, are never touched),
 - journal beyond 200 MB and crash dumps older than 7 days.
 

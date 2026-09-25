@@ -6,10 +6,12 @@ set -euo pipefail
 # tag behind (0.9-2.2 GB of unique layers each), so this removes only what no
 # Swarm service, container or in-flight deploy can still need:
 #
-# - stopped containers older than a day,
+# - stopped Swarm task containers finished over an hour ago (Swarm keeps
+#   several per service despite task-history-limit 1, and each pins an old
+#   image), and other stopped containers older than a day,
 # - images that are not the current or rollback (PreviousSpec) image of any
 #   service, not used by any container, and not built or pulled recently,
-# - build cache older than two days,
+# - build cache older than a day,
 # - anonymous volumes no container uses,
 # - journal beyond a size cap and old crash dumps.
 #
@@ -21,9 +23,10 @@ if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   exit 1
 fi
 
-min_image_age_hours="${CAUDALS_CLEANUP_MIN_IMAGE_AGE_HOURS:-6}"
+min_image_age_hours="${CAUDALS_CLEANUP_MIN_IMAGE_AGE_HOURS:-2}"
+swarm_task_age_hours="${CAUDALS_CLEANUP_SWARM_TASK_AGE_HOURS:-1}"
 container_age_hours="${CAUDALS_CLEANUP_CONTAINER_AGE_HOURS:-24}"
-build_cache_age_hours="${CAUDALS_CLEANUP_BUILD_CACHE_AGE_HOURS:-48}"
+build_cache_age_hours="${CAUDALS_CLEANUP_BUILD_CACHE_AGE_HOURS:-24}"
 coredump_age_days="${CAUDALS_CLEANUP_COREDUMP_AGE_DAYS:-7}"
 journal_max_size="${CAUDALS_CLEANUP_JOURNAL_MAX_SIZE:-200M}"
 pressure_percent="${CAUDALS_CLEANUP_PRESSURE_PERCENT:-90}"
@@ -52,8 +55,22 @@ if ((start_percent >= pressure_percent)); then
   build_cache_age_hours=0
 fi
 
-# Stopped containers. Swarm keeps one finished task per service
-# (task-history-limit 1), and those hold their images until removed here.
+# Finished Swarm task containers. Swarm never needs them to roll back (it
+# starts a new task from PreviousSpec), and each one pins its image.
+now="$(date -u +%s)"
+swarm_tasks="$(docker ps -aq --filter label=com.docker.swarm.task.id --filter status=exited --filter status=dead)"
+while IFS= read -r container; do
+  [[ -n $container ]] || continue
+  read -r name finished < <(docker inspect --format '{{.Name}} {{.State.FinishedAt}}' "$container" 2>/dev/null) || continue
+  (((now - $(to_epoch "$finished")) >= swarm_task_age_hours * 3600)) || continue
+  if [[ $dry_run == true ]]; then
+    log "dry-run: docker rm ${name#/}"
+  elif docker rm "$container" >/dev/null 2>&1; then
+    log "removed stopped task ${name#/}"
+  fi
+done <<<"$swarm_tasks"
+
+# Any other stopped container (one-off runs, compose leftovers).
 run docker container prune -f --filter "until=${container_age_hours}h"
 
 # Everything a service runs or would roll back to, and everything a remaining
@@ -80,7 +97,6 @@ while IFS= read -r id; do
 done <<<"$container_images"
 log "protected images: ${#protected[@]}"
 
-now="$(date -u +%s)"
 min_age_seconds=$((min_image_age_hours * 3600))
 removed=0
 refused=0
