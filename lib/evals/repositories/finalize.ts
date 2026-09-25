@@ -1,7 +1,7 @@
 import "server-only";
 import { withTenant } from "./db";
 import type { EvidenceScope } from "./evidence";
-import { createReportForRun, publishReport, scoreRun } from "./managed";
+import { createReportForRun, publishReport, scoreRun, settleRunStatus } from "./managed";
 
 // Automatic finalization of live evaluations (spec §4, §5.2 Screen D, §15.1).
 // A deployed-system run that reaches a terminal state is graded with the
@@ -45,6 +45,7 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
         continue;
       }
       if (run.judging) { result.waiting++; continue; }
+      await settleRunStatus(scope, run.id);
       const report = await createReportForRun(scope, {
         runId: run.id, title: run.title, reviewStatus: "preliminary", scorerVersion: AUTO_REPORT_SCORER,
       }, `auto-report:${run.id}`);

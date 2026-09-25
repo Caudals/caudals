@@ -142,6 +142,8 @@ export async function discoverWebsite(args: {
   url: string;
   destinationCheck: DestinationCheck;
   timeoutMs?: number;
+  /** Receives a viewport-only JPEG with every input masked, for operator assistance. */
+  onScreenshot?: (bytes: Buffer) => void;
 }): Promise<BrowserDiscoverySnapshot> {
   await args.destinationCheck(args.url);
   const context = await args.browser.newContext({
@@ -200,6 +202,18 @@ export async function discoverWebsite(args: {
         has_captcha: /captcha|verify you are human|cloudflare challenge/.test(text),
       };
     })()`);
+    if (args.onScreenshot) {
+      try {
+        await page.setViewportSize({ width: 1024, height: 768 });
+        const bytes = await page.screenshot({
+          type: "jpeg", quality: 45, fullPage: false, timeout: 10_000,
+          mask: [page.locator('input, textarea, [contenteditable="true"], [role="textbox"]')],
+        });
+        if (bytes.length <= 400_000) args.onScreenshot(bytes);
+      } catch {
+        // Evidence is best effort; discovery must not fail because a capture did.
+      }
+    }
     return browserDiscoverySnapshotSchema.parse(snapshot);
   } finally {
     await context.close();

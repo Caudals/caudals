@@ -61,7 +61,7 @@ for object_storage_secret in "$object_storage_access_secret" "$object_storage_se
   fi
 done
 for evals_keyring in caudals_evals_webhook_keyring caudals_evals_master_keyring \
-  caudals_evals_execution_admin_database_url caudals_evals_dgx_endpoint; do
+  caudals_evals_execution_admin_database_url caudals_evals_dgx_endpoint caudals_evals_browser_session_keyring; do
   if ! docker secret inspect "$evals_keyring" >/dev/null 2>&1; then
     echo "Missing evaluation keyring secret $evals_keyring. Run scripts/provision-evals-production.sh first." >&2
     exit 1

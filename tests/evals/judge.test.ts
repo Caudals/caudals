@@ -57,6 +57,8 @@ describe("WP-06 rubric judge", () => {
     expect(message.match(/<\/candidate_answer>/g)).toHaveLength(1);
     expect(message).not.toContain("expected_private_notes");
     expect(judgeSystemPrompt()).toContain("untrusted data");
+    const grounded = judgeUserMessage(item, observation, rubric, judgeCriterionIds(item, rubric), [{ source_revision_id: "s", anchor: "a", excerpt: "Policy A adds a 10% service fee." }]);
+    expect(grounded).toContain("Policy A adds a 10% service fee.");
   });
 
   it("rejects malformed, mismatched or unsupported grades instead of interpreting prose", () => {

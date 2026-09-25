@@ -74,7 +74,9 @@ export async function processDeletionRequests(scope:LifecycleScope){
 
 /** One lifecycle pass for every workspace with due work. */
 export async function tickLifecycle(actorId:string){
- const orgs=await lifecycleDueWorkspaces(actorId);const result={workspaces:orgs.length,scheduled:0,deleted:0,failed:0,deletions:0};
+ const orgs=await lifecycleDueWorkspaces(actorId);const result={workspaces:orgs.length,scheduled:0,deleted:0,failed:0,deletions:0,captures:0};
+ // Browser evidence screenshots expire after seven days across all workspaces.
+ result.captures=await withTenant({orgId:"",actorId},async db=>Number((await db.query("SELECT evals.purge_expired_browser_captures() AS removed")).rows[0].removed));
  for(const orgId of orgs){const scope={orgId,actorId};
   result.scheduled+=await scheduleDueRetention(scope);
   const retention=await processRetention(scope,100);result.deleted+=retention.completed;result.failed+=retention.failed;

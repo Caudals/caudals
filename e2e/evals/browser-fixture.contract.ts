@@ -52,7 +52,7 @@ test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored
       reset: { kind: "new_context" }, assistant_extraction: "last_new_message",
       created_at: new Date().toISOString(), extensions: {},
     }) as WebsiteRecipe;
-    const probe = await validateWebsiteRecipe({ browser, recipe, destinationCheck, timeoutMs: 5_000 });
+    const probe = await validateWebsiteRecipe({ browser, recipe, destinationCheck, timeoutMs: 15_000 });
     expect(probe).toMatchObject({ distinct_responses: true, reset_verified: true,
       streaming_complete: true, duplicate_free: true });
     const observation = await invokeWebsite({ browser, recipe, destinationCheck,

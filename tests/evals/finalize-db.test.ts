@@ -27,6 +27,8 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
 
     expect(await finalizeRuns(scope, 5, modes)).toMatchObject({ scored: 1 });
     expect(await finalizeRuns(scope, 5, modes)).toMatchObject({ waiting: 1, reported: 0 });
+    // Waiting on judge grades is not "partial" work.
+    expect(await phase()).toMatchObject({ status: "completed", phase: "reporting" });
 
     const steps = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1", [orgId])).rows);
     const tx: TenantTransaction = (tenant, fn) => withTenant(tenant, fn, workerPool);
@@ -36,7 +38,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
 
     expect(await finalizeRuns(scope, 5, modes)).toMatchObject({ reported: 1 });
-    expect(await phase()).toMatchObject({ phase: "done" });
+    expect(await phase()).toMatchObject({ status: "completed", phase: "done" });
     const state = await withTenant(scope, async (c) => ({
       reports: (await c.query("SELECT r.publication_status,rr.review_status,rr.snapshot->'metrics'->>'n_scorable' AS scorable FROM evals.report r JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(r.org_id,r.current_revision_id) WHERE r.org_id=$1", [orgId])).rows,
       notifications: (await c.query("SELECT kind FROM evals.notification WHERE org_id=$1", [orgId])).rows,

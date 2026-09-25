@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Browser } from "playwright";
 import type { PoolClient } from "pg";
 import { targetConfigSchema, type InvocationContext, type TargetConfig } from "../contracts/connectors";
@@ -243,18 +243,31 @@ export class BrowserJobWorker {
       let recipe: WebsiteRecipe | null = claimed.candidate.document
         ? websiteRecipeSchema.parse(claimed.candidate.document)
         : null;
+      let screenshot: Buffer | null = null;
       if (!recipe) {
         snapshot = await discoverWebsite({
           browser: this.options.browser,
           url: claimed.config.endpoint,
           destinationCheck: this.destinationCheck,
           timeoutMs: claimed.input.timeoutMs,
+          onScreenshot: (bytes) => { screenshot = bytes; },
         });
         const proposal = knownRecipeProposal(snapshot);
         if (proposal) recipe = websiteRecipeSchema.parse(withContentHash(proposal));
       }
       if (!recipe || snapshot?.has_captcha) {
+        const capture = screenshot as Buffer | null;
         await this.options.tx(tenant, async (client) => {
+          if (capture) {
+            // Seven-day, viewport-only evidence for the operator; never scored.
+            await client.query(
+              `INSERT INTO evals.browser_capture(org_id,target_revision_id,candidate_id,reason_code,media_type,bytes,sha256)
+               VALUES($1,$2,$3,$4,'image/jpeg',$5,$6)`,
+              [tenant.orgId, claimed.input.targetRevisionId, claimed.candidate.id,
+                snapshot?.has_captcha ? "captcha_present" : "recipe_not_found", capture,
+                createHash("sha256").update(capture).digest("hex")],
+            );
+          }
           await client.query(
             `UPDATE evals.website_recipe_candidate SET
                discovery_snapshot=$3,status='needs_operator',reason_code=$4,updated_at=now()

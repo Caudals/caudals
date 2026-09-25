@@ -520,6 +520,16 @@ export const messages = {
   deletionCompletedAt: "completed",
   deletionReason: "Reason for deletion",
   typeWorkspaceName: "To confirm, type",
+  websiteLoginSession: "Login session",
+  websiteLoginSessionHelp: "For a website behind a sign-in: sign in yourself in an isolated browser profile, export its Playwright storage state, and paste it here. Caudals never receives your password, keeps the state encrypted for this site only, and it expires. CAPTCHAs and access controls are never bypassed.",
+  loginSessionState: "Storage state JSON",
+  loginSessionExpiry: "Expires after",
+  saveLoginSession: "Save login session",
+  loginSessionSaved: "Login session saved for this site. A new system version uses it until it expires.",
+  loginSessionRevoked: "Login session revoked.",
+  loginSessionInvalidJson: "Paste the storage state exactly as exported (JSON).",
+  discoveryEvidence: "Discovery evidence",
+  discoveryEvidenceHelp: "Viewport screenshots from failed discovery, with every input masked. Kept for seven days.",
 } as const;
 export type MessageKey = keyof typeof messages;
 export function t(key: MessageKey): string {

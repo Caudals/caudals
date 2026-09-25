@@ -7,7 +7,7 @@ import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { digest, enqueueInvocation, type Tenant } from "../queue/store";
 import {
   JUDGE_EXTENSION, JUDGE_PROMPT_REVISION, calibrationSummary, candidateAnswer, combineJudgeAssessment,
-  judgeCriterionIds, judgeSystemPrompt, judgeUserMessage, parseJudgeOutput, type CalibrationSummary,
+  judgeCriterionIds, judgeSystemPrompt, judgeUserMessage, parseJudgeOutput, type CalibrationSummary, type SourceExcerpt,
 } from "../scoring/judge";
 import { withTenant } from "./db";
 import type { EvidenceScope } from "./evidence";
@@ -30,6 +30,18 @@ async function judgeRoute(db: PoolClient, orgId: string): Promise<JudgeRoute | n
     FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
     JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)
     WHERE r.org_id=$1 AND r.role='judge'`, [orgId])).rows[0] ?? null;
+}
+
+/** Exact excerpts for the anchors a case cites, from its frozen source revisions. */
+async function sourceExcerpts(db: PoolClient, orgId: string, item: CefCase): Promise<SourceExcerpt[]> {
+  const refs = item.reference.source_refs.slice(0, 5);
+  if (!refs.length) return [];
+  const rows = (await db.query("SELECT id,document FROM evals.source_revision WHERE org_id=$1 AND id=ANY($2::uuid[])", [orgId, refs.map((ref) => ref.source_revision_id)])).rows;
+  return refs.flatMap((ref) => {
+    const anchors = (rows.find((row) => row.id === ref.source_revision_id)?.document?.anchors ?? []) as Array<{ id: string; excerpt: string }>;
+    const anchor = anchors.find((candidate) => candidate.id === ref.anchor);
+    return anchor ? [{ source_revision_id: ref.source_revision_id, anchor: ref.anchor, excerpt: anchor.excerpt }] : [];
+  });
 }
 
 /** Called inside the scoring transaction for each new assessment waiting on a judge. */
@@ -61,9 +73,10 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
   for (const candidate of pending) {
     const jobId = randomUUID();
     const criterionIds = judgeCriterionIds(candidate.item, candidate.rubric);
+    const excerpts = await sourceExcerpts(db, scope.orgId, candidate.item);
     const messages = [
       { role: "system" as const, content: judgeSystemPrompt() },
-      { role: "user" as const, content: judgeUserMessage(candidate.item, candidate.observation, candidate.rubric, criterionIds) },
+      { role: "user" as const, content: judgeUserMessage(candidate.item, candidate.observation, candidate.rubric, criterionIds, excerpts) },
     ];
     const invocation = invocationSchema.parse({
       probe: false, probeKind: "text", outputFormat: "json_object", judgeJobId: jobId,
