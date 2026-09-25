@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  capabilitySchema,
   hashSchema,
   idSchema,
   schemaVersionSchema,
@@ -116,6 +117,8 @@ export const browserProbeEvidenceSchema = z.strictObject({
   reset_verified: z.boolean(),
   streaming_complete: z.boolean(),
   duplicate_free: z.boolean(),
+  multi_turn_verified: z.boolean().optional(),
+  multi_turn_probe: z.strictObject({ prompt_hash: hashSchema, response_hash: hashSchema }).nullable().optional(),
   screenshot_artifact_id: idSchema.nullable(),
   trace_artifact_id: idSchema.nullable(),
 });
@@ -156,4 +159,21 @@ export type BrowserDiscoverySnapshot = z.infer<
   typeof browserDiscoverySnapshotSchema
 >;
 export type BrowserProbeEvidence = z.infer<typeof browserProbeEvidenceSchema>;
+
+export function capabilityReportForWebsite(recipe: WebsiteRecipe, evidence?: BrowserProbeEvidence | null) {
+  const supported = new Set([
+    "text",
+    "streaming",
+    ...(recipe.reset.kind === "unsupported" ? [] : ["session_reset"]),
+    ...(recipe.reset.kind !== "unsupported" && evidence?.multi_turn_verified === true ? ["multi_turn"] : []),
+  ]);
+  return {
+    checked_at: new Date().toISOString(),
+    features: capabilitySchema.options.map((capability) => ({
+      capability,
+      status: supported.has(capability) ? ("supported" as const) : ("unknown" as const),
+      evidence_artifact_id: null,
+    })),
+  };
+}
 export type BrowserStorageState = z.infer<typeof browserStorageStateSchema>;

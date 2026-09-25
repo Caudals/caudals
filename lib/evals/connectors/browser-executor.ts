@@ -20,8 +20,7 @@ import {
   type BrowserStorageState,
 } from "../contracts/browser";
 import { observationSchema } from "../contracts/results";
-import { sha256, withContentHash } from "../contracts/hashing";
-import { capabilitySchema } from "../contracts/primitives";
+import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { validatePublicDestination, type Lookup } from "./egress";
 
 type FrameLike = Page | Frame | FrameLocator;
@@ -109,26 +108,6 @@ export function assertScorableWebsiteRecipe(recipe: WebsiteRecipe) {
   if (recipe.completion.kind === "text_stable") {
     throw new Error("website_completion_unverified");
   }
-}
-
-export function capabilityReportForWebsite(recipe: WebsiteRecipe) {
-  const supported = new Set([
-    "text",
-    "streaming",
-    ...(recipe.reset.kind === "unsupported" ? [] : ["session_reset"]),
-  ]);
-  return {
-    checked_at: new Date().toISOString(),
-    features: capabilitySchema.options.map((capability) => ({
-      capability,
-      status: supported.has(capability)
-        ? ("supported" as const)
-        : capability === "multi_turn"
-          ? ("unsupported" as const)
-          : ("unknown" as const),
-      evidence_artifact_id: null,
-    })),
-  };
 }
 
 export async function guardBrowserContext(
@@ -290,6 +269,120 @@ async function openRecipe(args: {
   }
 }
 
+async function invokeOpenWebsite(args: {
+  session: Awaited<ReturnType<typeof openRecipe>>;
+  recipe: WebsiteRecipe;
+  input: CandidateInput;
+  context: InvocationContext;
+}) {
+  assertScorableWebsiteRecipe(args.recipe);
+  if (args.context.signal.aborted) throw new Error("target_execution_aborted");
+  const started = new Date().toISOString();
+  const session = args.session;
+  const previous = await textSnapshot(session.root, args.recipe);
+  const prompt = [...args.input.messages]
+    .reverse()
+    .find((message) => message.role === "user")?.content;
+  if (!prompt) throw new Error("website_prompt_missing");
+  const input = locator(session.root, args.recipe.input).first();
+  await input.fill(prompt);
+  if (args.recipe.submit.kind === "press_enter") await input.press("Enter");
+  else await locator(session.root, args.recipe.submit.locator).first().click();
+  const output = await waitForCompletion(
+    session.root,
+    args.recipe,
+    previous,
+    new Date(args.context.deadline).getTime(),
+  );
+  const captured = newAssistantMessages(previous, await textSnapshot(session.root, args.recipe));
+  if (!captured.messages.length || !captured.duplicateFree) throw new Error("capture_incomplete");
+  const finished = new Date().toISOString();
+  if (args.context.signal.aborted) throw new Error("target_execution_aborted");
+  return observationSchema.parse(
+    withContentHash({
+      schema_version: "1.0" as const,
+      observation_id: randomUUID(),
+      run_id: args.context.run_id,
+      case_revision_id: args.input.case_revision_id,
+      repetition: 0,
+      attempt_id: args.context.attempt_id,
+      target_revision_id: args.context.target_revision_id,
+      started_at: started,
+      finished_at: finished,
+      messages: [
+        ...args.input.messages,
+        { role: "assistant" as const, content: output },
+      ],
+      tool_events: [],
+      artifacts: [],
+      provider_request_id: null,
+      status: "succeeded" as const,
+      error: null,
+      metadata: {
+        latency_ms: {
+          value: Math.max(0, Date.parse(finished) - Date.parse(started)),
+          provenance: "measured" as const,
+        },
+        input_tokens: { value: null, provenance: "unavailable" as const },
+        output_tokens: { value: null, provenance: "unavailable" as const },
+        cost: { value: null, provenance: "unavailable" as const },
+        model_identity: { value: null, provenance: "unavailable" as const },
+      },
+      extensions: {
+        "caudals.evals/browser": {
+          recipe_revision_id: args.recipe.recipe_revision_id,
+          extraction: args.recipe.assistant_extraction,
+          new_message_count: captured.messages.length,
+          duplicate_free: captured.duplicateFree,
+        },
+      },
+    }),
+  );
+}
+
+/** One context belongs to one fenced attempt; subsequent calls keep its widget state. */
+export async function openWebsiteAttemptSession(args: {
+  browser: Browser;
+  recipe: WebsiteRecipe;
+  destinationCheck: DestinationCheck;
+  storageState?: BrowserStorageState;
+}) {
+  assertScorableWebsiteRecipe(args.recipe);
+  const session = await openRecipe(args);
+  let previousMessages: ReturnType<typeof observationSchema.parse>["messages"] | null = null;
+  let identity: { runId: string; targetRevisionId: string; attemptId: string } | null = null;
+  let busy = false;
+  let closed = false;
+  return {
+    async invoke(input: CandidateInput, context: InvocationContext) {
+      if (closed || busy) throw new Error("website_session_unavailable");
+      if (identity && (identity.runId !== context.run_id ||
+        identity.targetRevisionId !== context.target_revision_id ||
+        identity.attemptId !== context.attempt_id)) throw new Error("scenario_identity_mismatch");
+      if (previousMessages && (input.messages.length !== previousMessages.length + 1 ||
+        canonicalJson(input.messages.slice(0, previousMessages.length)) !== canonicalJson(previousMessages) ||
+        input.messages.at(-1)?.role !== "user")) throw new Error("scenario_transcript_mismatch");
+      busy = true;
+      const abort = () => { void session.context.close().catch(() => {}); };
+      context.signal.addEventListener("abort", abort, { once: true });
+      try {
+        const observation = await invokeOpenWebsite({ session, recipe: args.recipe, input, context });
+        identity ??= { runId: context.run_id, targetRevisionId: context.target_revision_id, attemptId: context.attempt_id };
+        previousMessages = observation.messages;
+        return observation;
+      } finally {
+        context.signal.removeEventListener("abort", abort);
+        busy = false;
+      }
+    },
+    async close() {
+      if (closed) return;
+      closed = true;
+      await session.context.close();
+    },
+  };
+}
+
 export async function invokeWebsite(args: {
   browser: Browser;
   recipe: WebsiteRecipe;
@@ -298,71 +391,9 @@ export async function invokeWebsite(args: {
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
 }) {
-  assertScorableWebsiteRecipe(args.recipe);
-  const started = new Date().toISOString();
-  const session = await openRecipe(args);
-  try {
-    const previous = await textSnapshot(session.root, args.recipe);
-    const prompt = [...args.input.messages]
-      .reverse()
-      .find((message) => message.role === "user")?.content;
-    if (!prompt) throw new Error("website_prompt_missing");
-    const input = locator(session.root, args.recipe.input).first();
-    await input.fill(prompt);
-    if (args.recipe.submit.kind === "press_enter") await input.press("Enter");
-    else await locator(session.root, args.recipe.submit.locator).first().click();
-    const output = await waitForCompletion(
-      session.root,
-      args.recipe,
-      previous,
-      new Date(args.context.deadline).getTime(),
-    );
-    const captured = newAssistantMessages(previous, await textSnapshot(session.root, args.recipe));
-    if (!captured.messages.length || !captured.duplicateFree) throw new Error("capture_incomplete");
-    const finished = new Date().toISOString();
-    return observationSchema.parse(
-      withContentHash({
-        schema_version: "1.0" as const,
-        observation_id: randomUUID(),
-        run_id: args.context.run_id,
-        case_revision_id: args.input.case_revision_id,
-        repetition: 0,
-        attempt_id: args.context.attempt_id,
-        target_revision_id: args.context.target_revision_id,
-        started_at: started,
-        finished_at: finished,
-        messages: [
-          ...args.input.messages,
-          { role: "assistant" as const, content: output },
-        ],
-        tool_events: [],
-        artifacts: [],
-        provider_request_id: null,
-        status: "succeeded" as const,
-        error: null,
-        metadata: {
-          latency_ms: {
-            value: Math.max(0, Date.parse(finished) - Date.parse(started)),
-            provenance: "measured" as const,
-          },
-          input_tokens: { value: null, provenance: "unavailable" as const },
-          output_tokens: { value: null, provenance: "unavailable" as const },
-          cost: { value: null, provenance: "unavailable" as const },
-          model_identity: { value: null, provenance: "unavailable" as const },
-        },
-        extensions: {
-          "caudals.evals/browser": {
-            recipe_revision_id: args.recipe.recipe_revision_id,
-            extraction: args.recipe.assistant_extraction,
-            new_message_count: captured.messages.length,
-            duplicate_free: captured.duplicateFree,
-          },
-        },
-      }),
-    );
-  } finally {
-    await session.context.close();
-  }
+  const session = await openWebsiteAttemptSession(args);
+  try { return await session.invoke(args.input, args.context); }
+  finally { await session.close(); }
 }
 
 export async function validateWebsiteRecipe(args: {

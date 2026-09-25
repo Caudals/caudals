@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { discoverWebsite, guardBrowserContext, invokeWebsite, validateWebsiteRecipe, waitForCompletion } from "../../lib/evals/connectors/browser-executor";
+import { discoverWebsite, guardBrowserContext, invokeWebsite, openWebsiteAttemptSession, validateWebsiteRecipe, waitForCompletion } from "../../lib/evals/connectors/browser-executor";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
 import type { WebsiteRecipe } from "../../lib/evals/contracts/browser";
 
@@ -21,13 +21,13 @@ test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored
       <main><h1>Synthetic chatbot fixture</h1><form><label>Question<textarea></textarea></label>
       <button type="submit">Send</button></form><div role="status" id="busy" hidden>Working</div>
       <div role="log"></div></main><script>
-      document.querySelector('form').addEventListener('submit', event => {
+      let turn=0;document.querySelector('form').addEventListener('submit', event => {
         event.preventDefault();const question=document.querySelector('textarea').value;
         const busy=document.querySelector('#busy');busy.hidden=false;
         const answer=document.createElement('p');answer.dataset.messageAuthorRole='assistant';
         document.querySelector('[role=log]').append(answer);
         setTimeout(()=>{answer.textContent='Partial';},100);
-        setTimeout(()=>{answer.textContent='Synthetic answer: '+question;busy.hidden=true;},650);
+        setTimeout(()=>{answer.textContent='Synthetic answer '+(++turn)+': '+question;busy.hidden=true;},650);
       });
       </script></body></html>`);
   });
@@ -65,7 +65,29 @@ test("synthetic HTTPS chatbot completes discovery, two reset probes and a scored
         reserved_cost: { amount: "0", currency: "EUR" }, signal: new AbortController().signal },
     });
     expect(observation.status).toBe("succeeded");
-    expect(observation.messages.at(-1)?.content).toBe("Synthetic answer: fixture question");
+    expect(observation.messages.at(-1)?.content).toBe("Synthetic answer 1: fixture question");
+    const baseContext = { run_id: "synthetic-run", target_revision_id: "synthetic-target",
+      execution_plan_id: "synthetic-plan", tenant_scope_handle: "synthetic",
+      deadline: new Date(Date.now() + 10_000).toISOString(), attempt_id: "synthetic-conversation-attempt",
+      scoped_credential_handle: null, destination_policy_id: "synthetic-local-only",
+      reserved_cost: { amount: "0", currency: "EUR" }, signal: new AbortController().signal };
+    const firstInput = { schema_version: "1.0" as const, case_id: "synthetic-case", case_revision_id: "synthetic-case-v1",
+      messages: [{ role: "user" as const, content: "first turn" }], attachments: [], tools: [] };
+    const attempt = await openWebsiteAttemptSession({ browser, recipe, destinationCheck });
+    try {
+      const first = await attempt.invoke(firstInput, baseContext);
+      expect(first.messages.at(-1)?.content).toBe("Synthetic answer 1: first turn");
+      const secondInput = { ...firstInput, messages: [...first.messages, { role: "user" as const, content: "second turn" }] };
+      await expect(attempt.invoke(secondInput, { ...baseContext, attempt_id: "wrong-attempt" })).rejects.toThrow("scenario_identity_mismatch");
+      const second = await attempt.invoke(secondInput, baseContext);
+      expect(second.messages.at(-1)?.content).toBe("Synthetic answer 2: second turn");
+      expect(second.messages.slice(0, first.messages.length)).toEqual(first.messages);
+    } finally { await attempt.close(); }
+    const resetAttempt = await openWebsiteAttemptSession({ browser, recipe, destinationCheck });
+    try {
+      const reset = await resetAttempt.invoke(firstInput, { ...baseContext, attempt_id: "new-attempt" });
+      expect(reset.messages.at(-1)?.content).toBe("Synthetic answer 1: first turn");
+    } finally { await resetAttempt.close(); }
   } finally {
     await browser.close();
     await new Promise<void>(resolve => server.close(() => resolve()));

@@ -2,15 +2,14 @@ import { randomUUID } from "node:crypto";
 import type { Browser } from "playwright";
 import type { PoolClient } from "pg";
 import { targetConfigSchema, type InvocationContext, type TargetConfig } from "../contracts/connectors";
-import { assertWebsiteRecipeOrigin, websiteRecipeSchema, type WebsiteRecipe } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, capabilityReportForWebsite, websiteRecipeSchema, type WebsiteRecipe } from "../contracts/browser";
 import { browserStorageStateSchema } from "../contracts/browser";
 import type { CandidateInput } from "../contracts/projections";
 import type { Observation } from "../contracts/results";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import {
-  capabilityReportForWebsite,
   discoverWebsite,
-  invokeWebsite,
+  openWebsiteAttemptSession,
   knownRecipeProposal,
   publicDestinationCheck,
   validateWebsiteRecipe,
@@ -59,6 +58,7 @@ async function locked(client: PoolClient, orgId: string, stepId: string) {
 export class BrowserJobWorker {
   private readonly targetWorker: TargetExecutionWorker;
   private readonly destinationCheck: ReturnType<typeof publicDestinationCheck>;
+  private readonly sessions = new Map<string, Awaited<ReturnType<typeof openWebsiteAttemptSession>>>();
 
   constructor(
     private readonly options: {
@@ -80,6 +80,11 @@ export class BrowserJobWorker {
       leaseSeconds: options.leaseSeconds,
       execute: (config, input, context) =>
         this.executeWebsite(config, input, context),
+      onAttemptFinished: async (attemptId) => {
+        const session = this.sessions.get(attemptId);
+        this.sessions.delete(attemptId);
+        if (session) await session.close().catch(() => console.warn("browser_attempt_context_close_failed"));
+      },
     });
   }
 
@@ -91,6 +96,8 @@ export class BrowserJobWorker {
     if (config.kind !== "website" || !config.recipe_revision_id) {
       throw new Error("connection_unsupported");
     }
+    const existing = this.sessions.get(context.attempt_id);
+    if (existing) return existing.invoke(input, context);
     const recipe = await this.options.tx(
       { orgId: context.tenant_scope_handle, actorId: this.options.actorId },
       async (client) => {
@@ -123,14 +130,14 @@ export class BrowserJobWorker {
             },
           )
         : undefined;
-      return await invokeWebsite({
+      const session = await openWebsiteAttemptSession({
         browser: this.options.browser,
         recipe,
-        input,
-        context,
         destinationCheck: this.destinationCheck,
         storageState,
       });
+      this.sessions.set(context.attempt_id, session);
+      return await session.invoke(input, context);
     } finally {
       sessionBytes?.fill(0);
     }
@@ -383,7 +390,7 @@ export class BrowserJobWorker {
           [
             tenant.orgId,
             claimed.input.connectionCheckId,
-            capabilityReportForWebsite(recipe),
+            capabilityReportForWebsite(recipe, evidence),
             { ...evidence, next_target_revision_id: nextTargetRevisionId },
           ],
         );

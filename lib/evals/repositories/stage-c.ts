@@ -10,7 +10,7 @@ import { observationSchema } from "../contracts/results";
 import { gradeDeterministically } from "../scoring/deterministic";
 import { candidateInputSchema } from "../contracts/projections";
 import { toolFixtureSchema, type scenarioSchema } from "../contracts/scenarios";
-import { assertWebsiteRecipeOrigin, websiteRecipeSchema } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, browserProbeEvidenceSchema, capabilityReportForWebsite, websiteRecipeSchema } from "../contracts/browser";
 import {
   browserDiscoverySchema,
   controlWorkflow,
@@ -435,14 +435,12 @@ export function supportsCase(
     (report?.features ?? []).map((item) => [item.capability, item.status]),
   );
   const required = new Set(requiredCapabilities);
-  if (mode === "conversation") required.add("multi_turn");
+  if (mode === "conversation") {
+    required.add("multi_turn");
+    if (config.kind === "website") required.add("session_reset");
+  }
   if (mode === "tool_workflow") required.add("tool_calls");
   if ([...required].some((capability) => statuses.get(capability) !== "supported")) {
-    return false;
-  }
-  // A previously frozen website check may claim multi-turn support. Its
-  // browser executor currently opens a new context for every invocation.
-  if (config.kind === "website" && required.has("multi_turn")) {
     return false;
   }
   if (config.kind === "https_json" && required.has("tool_calls")) {
@@ -536,7 +534,7 @@ export function createSelfServiceRun(
       )).rows[0] ?? null;
       const recipe = config.kind === "website" && config.recipe_revision_id
         ? (await db.query(
-            `SELECT id FROM evals.website_recipe_revision
+            `SELECT id,document,probe_evidence FROM evals.website_recipe_revision
              WHERE org_id=$1 AND id=$2 AND target_id=$3`,
             [scope.orgId, config.recipe_revision_id, target.target_id],
           )).rows[0] ?? null
@@ -627,7 +625,10 @@ export function createSelfServiceRun(
       if (suite.manifest.execution_mode === "imported_responses") {
         throw new EvalError("INPUT_INVALID", 422, "The approved test set requires collected answers.");
       }
-      const capability = connectionCheck?.status === "ready" ? connectionCheck.capability_report : null;
+      const capability = config.kind === "website" && recipe
+        ? capabilityReportForWebsite(websiteRecipeSchema.parse(recipe.document),
+            browserProbeEvidenceSchema.safeParse(recipe.probe_evidence).data ?? null)
+        : connectionCheck?.status === "ready" ? connectionCheck.capability_report : null;
       const fixtureRows = suite.manifest.fixture_revisions?.length
         ? (
             await db.query(

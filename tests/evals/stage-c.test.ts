@@ -4,7 +4,8 @@ import { assertWebsiteRecipeOrigin, browserLocatorSchema, browserStorageStateSch
 import { candidateInputSchema } from "../../lib/evals/contracts/projections";
 import { observationSchema, type Observation } from "../../lib/evals/contracts/results";
 import { scenarioSchema, toolFixtureSchema } from "../../lib/evals/contracts/scenarios";
-import { assertScorableWebsiteRecipe, capabilityReportForWebsite, knownRecipeProposal, newAssistantMessages } from "../../lib/evals/connectors/browser-executor";
+import { assertScorableWebsiteRecipe, knownRecipeProposal, newAssistantMessages } from "../../lib/evals/connectors/browser-executor";
+import { capabilityReportForWebsite } from "../../lib/evals/contracts/browser";
 import { HttpTargetAdapter } from "../../lib/evals/connectors/http-target";
 import { runScenario, ScenarioFailure, toolFinalStatePasses } from "../../lib/evals/execution/scenario-runner";
 import { assertApprovedRunSelection, assertOperatorRecipeAuthority, assertReadyConnection, assertRegressionEligible, assertRegressionReleaseCandidate, assertWebsiteAuthorization, supportsCase } from "../../lib/evals/repositories/stage-c";
@@ -164,18 +165,21 @@ describe("WP-11 approved test-set gate", () => {
 });
 
 describe("WP-09 website execution contracts", () => {
-  it("does not claim a fresh browser context preserves a conversation", () => {
+  it("requires verified reset and persistent-session capability for website conversations", () => {
     const recipe = { reset: { kind: "new_context" } } as Parameters<typeof capabilityReportForWebsite>[0];
-    const report = capabilityReportForWebsite(recipe);
-    expect(report.features.find((feature) => feature.capability === "multi_turn")?.status).toBe("unsupported");
+    const report = capabilityReportForWebsite(recipe, { multi_turn_verified: true } as Parameters<typeof capabilityReportForWebsite>[1]);
+    expect(report.features.find((feature) => feature.capability === "multi_turn")?.status).toBe("supported");
+    expect(capabilityReportForWebsite(recipe).features.find((feature) => feature.capability === "multi_turn")?.status).toBe("unknown");
     const website = { kind: "website" } as TargetConfig;
-    expect(supportsCase(website, ["multi_turn"], report)).toBe(false);
+    expect(supportsCase(website, ["multi_turn"], report, "conversation")).toBe(true);
     expect(supportsCase(website, ["multi_turn"], {
       features: [{ capability: "multi_turn", status: "supported" }],
-    })).toBe(false);
+    }, "conversation")).toBe(false);
     expect(supportsCase(website, ["text"], {
       features: [{ capability: "text", status: "supported" }, { capability: "multi_turn", status: "supported" }],
     }, "conversation")).toBe(false);
+    const unresettable = capabilityReportForWebsite({ reset: { kind: "unsupported" } } as Parameters<typeof capabilityReportForWebsite>[0], { multi_turn_verified: true } as Parameters<typeof capabilityReportForWebsite>[1]);
+    expect(unresettable.features.find((feature) => feature.capability === "multi_turn")?.status).toBe("unknown");
     expect(supportsCase(website, ["text"], null)).toBe(false);
   });
   it("rejects executable or unbounded selectors", () => {
