@@ -81,7 +81,7 @@ Signals: `budget_pauses`, a customer reports "paused at the agreed limit", or se
 
 1. Keep workers paused: scale `caudals-evals_worker`, `_browser`, `_scheduler` and `_documents` to 0 before restoring.
 2. Decrypt the chosen `caudals-daily-*.tar.gz.gpg` with the root-only passphrase into a private directory; verify `MANIFEST.sha256`.
-3. Restore `globals.sql`, then each database dump, into a disposable PostgreSQL first; restore `object-store.tar.gz` into an isolated MinIO and compare object counts.
+3. Restore `globals.sql`, then each database dump, into a disposable PostgreSQL first; restore `object-store.tar.gz` into an isolated MinIO and compare object counts. `sudo scripts/evals/restore-rehearsal.sh` does the database part against the newest archive in a network-less container and removes it afterwards. The dump recreates the `pg_cron` extension, so the restore server must start with `-c shared_preload_libraries=pg_cron -c cron.database_name=caudals`.
 4. Replay newer deletions and revocations before serving any read: decrypt `recovery-control-ledger-latest.csv.gpg` and run `npm run evals:recovery-rehearsal -- <snapshot-UTC>` with dispatch disabled.
 5. Reconcile unknown attempts and reservations (runbook 4) before re-enabling any worker, so no paid call is replayed.
 
