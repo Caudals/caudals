@@ -173,6 +173,9 @@ describe("WP-09 website execution contracts", () => {
     expect(supportsCase(website, ["multi_turn"], {
       features: [{ capability: "multi_turn", status: "supported" }],
     })).toBe(false);
+    expect(supportsCase(website, ["text"], {
+      features: [{ capability: "text", status: "supported" }, { capability: "multi_turn", status: "supported" }],
+    }, "conversation")).toBe(false);
     expect(supportsCase(website, ["text"], null)).toBe(false);
   });
   it("rejects executable or unbounded selectors", () => {

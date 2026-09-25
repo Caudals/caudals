@@ -89,7 +89,7 @@ wait_for_service() {
         fi
       fi
 
-      if [[ "$update_state" == "rollback_completed" && "$actual_image" != "$expected_image" ]]; then
+      if [[ "$update_state" == rollback_* && "$actual_image" != "$expected_image" ]]; then
         break
       fi
     fi

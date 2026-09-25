@@ -426,6 +426,7 @@ export function supportsCase(
   config: TargetConfig,
   requiredCapabilities: string[],
   capabilityReport: unknown,
+  mode: "single_turn" | "next_reply" | "conversation" | "tool_workflow" = "single_turn",
 ) {
   const report = capabilityReport as
     | { features?: Array<{ capability: string; status: string }> }
@@ -433,15 +434,18 @@ export function supportsCase(
   const statuses = new Map(
     (report?.features ?? []).map((item) => [item.capability, item.status]),
   );
-  if (requiredCapabilities.some((capability) => statuses.get(capability) !== "supported")) {
+  const required = new Set(requiredCapabilities);
+  if (mode === "conversation") required.add("multi_turn");
+  if (mode === "tool_workflow") required.add("tool_calls");
+  if ([...required].some((capability) => statuses.get(capability) !== "supported")) {
     return false;
   }
   // A previously frozen website check may claim multi-turn support. Its
   // browser executor currently opens a new context for every invocation.
-  if (config.kind === "website" && requiredCapabilities.includes("multi_turn")) {
+  if (config.kind === "website" && required.has("multi_turn")) {
     return false;
   }
-  if (config.kind === "https_json" && requiredCapabilities.some((item) => item === "tool_calls")) {
+  if (config.kind === "https_json" && required.has("tool_calls")) {
     return false;
   }
   return true;
@@ -690,6 +694,7 @@ export function createSelfServiceRun(
             config,
             item.scenario.required_capabilities,
             capability,
+            item.scenario.mode,
           );
           await db.query(
             `INSERT INTO evals.case_unit(
