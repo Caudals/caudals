@@ -39,3 +39,11 @@ DO $$ BEGIN
     ON evals.target_invocation_ledger TO evals_browser;
  END IF;
 END $$;
+DO $$ BEGIN
+ IF to_regclass('evals.target_invocation_call') IS NOT NULL THEN
+  GRANT SELECT,INSERT ON evals.target_invocation_call TO evals_browser;
+  GRANT UPDATE(state,reported_input_tokens,reported_output_tokens,
+    reported_cost_amount,reported_cost_currency,reported_cost_provenance,
+    reason_code,finished_at) ON evals.target_invocation_call TO evals_browser;
+ END IF;
+END $$;

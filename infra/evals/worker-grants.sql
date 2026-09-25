@@ -24,6 +24,14 @@ DO $$ BEGIN
   GRANT SELECT,INSERT,UPDATE ON evals.target_attempt TO evals_worker;
  END IF;
 END $$;
+DO $$ BEGIN
+ IF to_regclass('evals.target_invocation_call') IS NOT NULL THEN
+  GRANT SELECT,INSERT ON evals.target_invocation_call TO evals_worker;
+  GRANT UPDATE(state,reported_input_tokens,reported_output_tokens,
+    reported_cost_amount,reported_cost_currency,reported_cost_provenance,
+    reason_code,finished_at) ON evals.target_invocation_call TO evals_worker;
+ END IF;
+END $$;
 -- Queue login is a DIFFERENT non-superuser role owning only its dedicated queue
 -- schema/database. Do not grant that identity any evals-domain table access.
 GRANT EXECUTE ON FUNCTION evals.org_id(),evals.actor_id() TO evals_worker;

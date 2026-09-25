@@ -12,7 +12,7 @@ async function main(){
  const migrations=await pool.query("SELECT name FROM public.evals_migration_history WHERE name LIKE '%_evals_%' ORDER BY name");
  const tables=await pool.query("SELECT count(*)::int AS count FROM pg_tables WHERE schemaname='evals'");
  if(roles.rows.length<6||roles.rows.some(role=>role.rolsuper||role.rolbypassrls)||!scheduler.rows[0]?.inherits_runtime)throw new Error("Evaluation service roles are missing, privileged, or the scheduler lacks tenant runtime grants.");
- const needed=["034_evals_connections.sql","035_evals_generation.sql","036_evals_scoring.sql","037_evals_reports.sql","038_evals_operations.sql","039_evals_stage_c.sql","046_evals_target_usage.sql","047_evals_website_recipe_source_grant.sql","048_evals_browser_target_usage_grant.sql","049_evals_browser_dispatch_timestamp_grant.sql","050_evals_automatic_generation.sql","051_evals_source_ingestion.sql","052_evals_website_context.sql","053_evals_generation_runtime_catalog_grants.sql","054_evals_generation_runtime_context_question_grant.sql","055_evals_generation_batch_step_versions.sql","056_evals_generation_batch_retry_across_jobs.sql"];
+ const needed=["034_evals_connections.sql","035_evals_generation.sql","036_evals_scoring.sql","037_evals_reports.sql","038_evals_operations.sql","039_evals_stage_c.sql","046_evals_target_usage.sql","047_evals_website_recipe_source_grant.sql","048_evals_browser_target_usage_grant.sql","049_evals_browser_dispatch_timestamp_grant.sql","050_evals_automatic_generation.sql","051_evals_source_ingestion.sql","052_evals_website_context.sql","053_evals_generation_runtime_catalog_grants.sql","054_evals_generation_runtime_context_question_grant.sql","055_evals_generation_batch_step_versions.sql","056_evals_generation_batch_retry_across_jobs.sql","057_evals_target_turn_usage.sql"];
  if(needed.some(name=>!migrations.rows.some(row=>row.name===name)))throw new Error("Stage B migrations are incomplete.");
  const usage=await pool.query(`SELECT
    has_table_privilege('evals_browser','evals.target_invocation_ledger','SELECT') AS can_select,
@@ -23,6 +23,16 @@ async function main(){
     'reason_code','dispatched_at','finished_at']) AS field`);
  if(!usage.rows[0]?.can_select||!usage.rows[0]?.can_insert||!usage.rows[0]?.can_update)
   throw new Error("The browser worker lacks target invocation ledger grants.");
+ const calls=await pool.query(`SELECT
+   has_table_privilege('evals_runtime','evals.target_invocation_call','SELECT') AS runtime_read,
+   has_table_privilege('evals_worker','evals.target_invocation_call','INSERT') AS worker_insert,
+   has_table_privilege('evals_browser','evals.target_invocation_call','INSERT') AS browser_insert,
+   has_column_privilege('evals_worker','evals.target_invocation_call','state','UPDATE') AS worker_settle,
+   has_column_privilege('evals_browser','evals.target_invocation_call','state','UPDATE') AS browser_settle,
+   EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='evals.target_invocation_ledger'::regclass
+     AND tgname='target_call_record_guard' AND tgenabled='O') AS record_guard`);
+ if(Object.values(calls.rows[0]??{}).some(value=>value!==true))
+  throw new Error("Per-turn target invocation accounting is not ready.");
  const generationCatalog=await pool.query(`SELECT
    (SELECT bool_and(has_column_privilege('evals_runtime','evals.provider_revision',field,'SELECT')) FROM unnest(ARRAY['id','adapter','model_id','context_limit','output_limit']::text[]) AS provider_cols(field)) AS safe_provider_columns,
    NOT has_column_privilege('evals_runtime','evals.provider_revision','endpoint','SELECT') AS endpoint_hidden,
