@@ -75,7 +75,7 @@ SQL
 s3_port="${EVALS_TEST_S3_PORT:-55440}"
 docker rm -f "$name-s3" >/dev/null 2>&1 || true
 docker run -d --platform linux/amd64 --name "$name-s3" -p "127.0.0.1:$s3_port:9000" -e MINIO_ROOT_USER=evals_test \
-  -e MINIO_ROOT_PASSWORD=evals_test_password --memory 256m "${EVALS_TEST_S3_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1}" server /data >/dev/null
+  -e "MINIO_ROOT_PASSWORD=${EVALS_TEST_S3_SECRET:-evals_test_password}" --memory 256m "${EVALS_TEST_S3_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1}" server /data >/dev/null
 for _ in $(seq 1 30); do curl -sf "http://127.0.0.1:$s3_port/minio/health/live" >/dev/null && break; sleep 1; done
 echo "export EVALS_TEST_S3_ENDPOINT=http://127.0.0.1:$s3_port"
 echo "export EVALS_TEST_OWNER_URL=$owner_url"
