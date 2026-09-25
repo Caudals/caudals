@@ -37,6 +37,21 @@ async function boundedBody(request: Request) {
   return requestSchema.parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
 }
 
+/**
+ * Multi-turn policy A fixture: when the latest user turn asks for the total
+ * with the 10% fee, use the most recent subtotal stated anywhere in the user
+ * history. A correct answer therefore proves the whole conversation was sent.
+ */
+function conversationTotal(messages: Array<{ role: string; content: string }>): string | null {
+  const users = messages.filter((message) => message.role === "user").map((message) => message.content);
+  if (!/10% fee/i.test(users.at(-1) ?? "")) return null;
+  const amounts = users.flatMap((content) => [...content.matchAll(/subtotal(?: is|:)?\s*EUR\s*(\d+(?:\.\d{1,2})?)/gi)].map((match) => match[1]));
+  const latest = amounts.at(-1);
+  if (!latest) return null;
+  const cents = Math.round(Number(latest) * 100);
+  return `EUR ${(Math.round(cents * 1.1) / 100).toFixed(2)}`;
+}
+
 export async function POST(request: Request) {
   const headers = { "cache-control": "no-store" };
   if (!authorized(request.headers.get("authorization")))
@@ -46,7 +61,7 @@ export async function POST(request: Request) {
     const prompt = [...input.messages].reverse().find(message => message.role === "user")?.content ?? "";
     const answer = /subtotal of EUR 123\.45/i.test(prompt)
       ? "EUR 135.80"
-      : "This synthetic chatbot answers only the policy A fixture.";
+      : conversationTotal(input.messages) ?? "This synthetic chatbot answers only the policy A fixture.";
     return Response.json({
       id: "caudals-synthetic-fixture",
       object: "chat.completion",

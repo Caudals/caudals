@@ -1,6 +1,6 @@
 # Caudals Evaluations — Product and Technical Implementation Specification
 
-> Status: **Draft v0.1 for founder iteration — implementation has not started.**
+> Status: **Specification v0.1. Stages A–E are implemented and deployed on `app.caudals.com`; per-package evidence, accepted gates and the remaining externally blocked checks are recorded in `docs/evals/work-packages/`** (status lives there, per §21.3).
 > Date: 2026-09-17 · Product language: English · Deployment: `app.caudals.com`
 > Repository: `Caudals/caudals` · Audience: founders, implementation agents, reviewers.
 > This document specifies the new evaluations product from first principles. Earlier offers, sector priorities, manual-pilot prerequisites, route restrictions and proposed evaluation architectures are not requirements for this product. Existing production services must continue working.

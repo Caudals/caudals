@@ -24,6 +24,12 @@ When interacting with production-like resources, use read-first diagnostics and 
 - GitHub CLI (`gh`): CI run and failed-job triage
 - Browser/devtools tooling: route rendering, interaction, console, and network inspection
 
+## Evaluation test fixture (all stages)
+
+`scripts/evals/test-db.sh up` starts a disposable PostgreSQL 16 (pgvector) and a disposable MinIO on loopback, applies every repository migration plus the evaluation migrations through the real migrator, reapplies the service grant scripts, and prints the environment to export (`eval "$(scripts/evals/test-db.sh up)"`). It creates non-owner logins for the web runtime, the document worker and the configuration admin. Then `npx vitest run` runs every unit, contract and database suite (the older Stage A suites read `EVALS_TEST_OWNER_URL` automatically). `scripts/evals/test-db.sh down` removes both containers. MinIO registry images now require authentication; load the production-pinned image from the VPS with `ssh caudals@caudals-1 'sudo docker save quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1' | docker load` if the pull fails. Never point these fixtures at a shared database.
+
+Host jobs on `caudals-1` (daily encrypted backup and ten-minute operational alerts) are installed with `sudo scripts/install-evals-host-jobs.sh`; procedures for every alert are in `docs/evals/runbooks.md`.
+
 ## Evaluation Stage C local checks
 
 Use a disposable local PostgreSQL database and private storage endpoint for integration tests; never point destructive fixtures at the shared production database. Apply migrations 031–042 in order, then exercise tenant queries under a non-owner NOBYPASSRLS role. `npx vitest run tests/evals/stage-c.test.ts` checks website/scenario/customer policy contracts. `npx playwright test --config=e2e/evals/browser-fixture.config.ts` checks isolated browser fixtures, and `npx playwright test --config=e2e/evals/ui.config.ts` checks the invite-only UI harness. Run the two Playwright configs serially because the UI harness binds loopback port 4187. The UI harness does not prove Next.js routing, production network isolation, real widget consent or durable storage.
