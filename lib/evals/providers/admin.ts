@@ -89,7 +89,7 @@ export async function reconcileUnknown(c:PoolClient,tenant:Tenant,raw:unknown) {
 
 export async function setGenerationProviderRoute(c:PoolClient,tenant:Tenant,raw:unknown) {
  await admin(c,tenant);
- const value=z.object({role:z.enum(['context_analyzer','generator']),providerRevisionId:z.string().uuid(),priceRevisionId:z.string().uuid(),dataClass:z.string().min(1).max(100),region:z.string().min(1).max(100),internalCostPerSecond:money}).strict().parse(raw);
+ const value=z.object({role:z.enum(['context_analyzer','generator','judge','report_writer']),providerRevisionId:z.string().uuid(),priceRevisionId:z.string().uuid(),dataClass:z.string().min(1).max(100),region:z.string().min(1).max(100),internalCostPerSecond:money}).strict().parse(raw);
  const provider=(await c.query('SELECT adapter,roles,capabilities,data_classes,regions,retired_at FROM evals.provider_revision WHERE id=$1',[value.providerRevisionId])).rows[0];
  if(!provider||provider.adapter!=='dgx'||provider.retired_at||!provider.roles.includes(value.role)||!provider.capabilities.text||!provider.capabilities.boundedTokens||!provider.capabilities.jsonObject||!provider.data_classes.includes(value.dataClass)||!provider.regions.includes(value.region))throw new Error('generation_provider_not_approved');
  const price=(await c.query('SELECT id FROM evals.price_revision WHERE id=$1 AND provider_revision_id=$2 AND effective_at<=now()',[value.priceRevisionId,value.providerRevisionId])).rows[0];

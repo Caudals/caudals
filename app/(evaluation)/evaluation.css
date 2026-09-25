@@ -463,6 +463,10 @@
   letter-spacing: var(--p-tracking-title);
   margin-bottom: 8px;
 }
+/* A panel that holds several workflows (report actions) separates them. */
+.eval-panel > h3:not(:first-child) {
+  margin-top: 28px;
+}
 .eval-panel > p {
   color: var(--p-text-secondary);
 }

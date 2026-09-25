@@ -77,4 +77,7 @@ regexes = [
   # Obvious placeholders.
   '''(?i)(your|my|the)[-_]?(super)?[-_]?secret''',
   '''(?i)(xxx+|placeholder|changeme|example|dummy|redacted|\.\.\.)''',
+  # Evaluation migration filenames (e.g. 058_evals_target_credentials.sql) name
+  # tables, not secrets; they are recorded verbatim in migration history.
+  '''\b0\d{2}_evals_[a-z0-9_]+\.sql\b''',
 ]

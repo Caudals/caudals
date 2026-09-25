@@ -3,7 +3,8 @@ import { createRoot } from "react-dom/client";
 import { EvalShell } from "../../components/evals/shell";
 import { ClientManagement } from "../../components/evals/client-management";
 import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceReports, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
-import { ReportView } from "../../components/evals/report-view";
+import { AuthenticatedReport, ReportView } from "../../components/evals/report-view";
+import { AssessmentReviewQueue } from "../../components/evals/assessment-review";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
@@ -70,6 +71,10 @@ const content =
     <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
     <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
+  ) : location.pathname === "/ops/review" ? (
+    <AssessmentReviewQueue />
+  ) : location.pathname === "/workspace/reports/actions" ? (
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" workspaces={identity.workspaces} />
   ) : location.pathname === "/workspace/reports/fixture" ? (
     <ReportView report={{
       report_revision_id: "report-v1",

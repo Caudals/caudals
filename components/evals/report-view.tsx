@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { evalRequest } from "./api";
 import { Badge, Loading, PageHeading, Stat, StatGrid, Status, StatusBadge, Tabs } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
+import type { EvalIdentity } from "@/lib/evals/domain/identity";
+import { Button } from "@/components/ui/button";
+import { ReportActions, type ReportRevision } from "./report-actions";
 
 type Tab = "overview" | "findings" | "results" | "improvements" | "methodology";
 type Result = ReportSnapshot["results"][number];
@@ -62,14 +65,26 @@ export function ReportView({ report }: { report: Partial<ReportSnapshot> }) {
   </>;
 }
 
-export function AuthenticatedReport({ reportId }: { reportId: string }) {
+export function AuthenticatedReport({ reportId, workspaces = [] }: { reportId: string; workspaces?: EvalIdentity["workspaces"] }) {
   const orgId = useSearchParams().get("orgId") ?? "";
-  const [report, setReport] = useState<ReportSnapshot | null>(null);
+  const [data, setData] = useState<{ report: { current_revision_id: string | null; publication_status: string }; revisions: ReportRevision[] } | null>(null);
   const [error, setError] = useState("");
-  useEffect(() => { if (!orgId) return; void evalRequest<{ report: { current_revision_id: string }; revisions: Array<{ id: string; snapshot: ReportSnapshot }> }>(`/reports/${reportId}?orgId=${orgId}`).then((data) => setReport(data.revisions.find((item) => item.id === data.report.current_revision_id)?.snapshot ?? data.revisions[0]?.snapshot ?? null)).catch(() => setError(t("error"))); }, [orgId, reportId]);
+  const [preview, setPreview] = useState<Partial<ReportSnapshot> | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const role = workspaces.find((item) => item.id === orgId)?.role ?? "";
+  const load = useCallback(() => { if (orgId) void evalRequest<NonNullable<typeof data>>(`/reports/${reportId}?orgId=${orgId}`).then(setData).catch(() => setError(t("error"))); }, [orgId, reportId]);
+  useEffect(() => { load(); }, [load]);
   if (error) return <Status error>{error}</Status>;
-  if (!report) return <Loading />;
-  return <ReportView report={report} />;
+  if (!data) return <Loading />;
+  const report = data.revisions.find((item) => item.id === data.report.current_revision_id)?.snapshot ?? data.revisions[0]?.snapshot ?? null;
+  if (!report) return <Status>{t("reportNotReady")}</Status>;
+  const canWrite = ["owner", "editor", "operator"].includes(role);
+  const canManage = ["owner", "operator"].includes(role);
+  return <>
+    {showPreview && preview ? <section aria-label={t("sharePreview")}><Status>{t("sharePreviewBanner")}</Status><ReportView report={preview} /></section> : <ReportView report={report} />}
+    {canManage && preview && <div className="eval-actions"><Button variant="outline" onClick={() => setShowPreview((value) => !value)} aria-pressed={showPreview}>{showPreview ? t("closeSharePreview") : t("openSharePreview")}</Button></div>}
+    <ReportActions orgId={orgId} reportId={reportId} revisions={data.revisions} currentRevisionId={data.report.current_revision_id} canWrite={canWrite} canManage={canManage} onChanged={load} onPreview={setPreview} />
+  </>;
 }
 
 export function SharedReport() {

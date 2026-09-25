@@ -383,6 +383,7 @@ test("Stage C customer can see source-backed test-set preparation after connecti
     requests.push("context");
     return route.fulfill({ json: { data: { status: "generating" }, meta: {} } });
   });
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/generate?**`, (route) => route.fulfill({ json: { data: { status: "none", job: null }, meta: {} } }));
   await page.route(`**/api/evals/v1/evaluations/${evaluationId}/generate`, (route) => {
     requests.push("generate"); generated = true;
     return route.fulfill({ json: { data: { status: "needs_review", suiteId, suiteVersionId, suiteDraftVersion: 1 }, meta: {} } });
@@ -436,10 +437,11 @@ test("Stage C customer can upload and finalize a source document", async ({ page
   await page.route("**/api/evals/v1/sources/uploads", (route) => route.fulfill({ json: { data: { sourceId, artifactId, uploadUrl: `/api/evals/v1/artifacts/${artifactId}/upload?orgId=${id}` }, meta: {} } }));
   await page.route(`**/api/evals/v1/artifacts/${artifactId}/upload?**`, (route) => { uploaded = true; return route.fulfill({ json: { data: { uploaded: true }, meta: {} } }); });
   await page.route(`**/api/evals/v1/sources/${sourceId}/finalize`, (route) => { finalized = uploaded; return route.fulfill({ json: { data: { revisionId }, meta: {} } }); });
-  await page.route(`**/api/evals/v1/sources/${sourceId}?**`, (route) => route.fulfill({ json: { data: { id: sourceId, revisions: finalized ? [{ id: revisionId }] : [], chunks: finalized ? [{ id: "00000000-0000-4000-8000-000000000025", excerpt: "Refunds are available within 30 days." }] : [] }, meta: {} } }));
+  // Extraction runs in the document worker; the page polls ingestion until it completes.
+  await page.route(`**/api/evals/v1/sources/${sourceId}?**`, (route) => route.fulfill({ json: { data: { id: sourceId, revisions: finalized ? [{ id: revisionId }] : [], ingestion: finalized ? { status: "completed", source_revision_id: revisionId } : null, chunks: finalized ? [{ id: "00000000-0000-4000-8000-000000000025", excerpt: "Refunds are available within 30 days." }] : [] }, meta: {} } }));
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
-  await page.getByLabel("Policy document").setInputFiles({ name: "refunds.txt", mimeType: "text/plain", buffer: Buffer.from("Refunds are available within 30 days.") });
-  await page.getByRole("button", { name: "Use this document" }).click();
+  await page.getByLabel("Policy documents").setInputFiles({ name: "refunds.txt", mimeType: "text/plain", buffer: Buffer.from("Refunds are available within 30 days.") });
+  await page.getByRole("button", { name: "Add these sources" }).click();
   await expect(page.getByLabel("Example customer question")).toBeVisible();
   expect(uploaded && finalized).toBe(true);
 });
@@ -1135,4 +1137,95 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   await expect(page).toHaveURL(new RegExp(`/workspace/test-sets\\?orgId=${id}`));
   await expect(page.getByText("Support improvements", { exact: true })).toBeVisible();
   expect(saved && frozen).toBe(true);
+});
+
+const actionOrg = "00000000-0000-4000-8000-000000000001";
+const actionReport = "00000000-0000-4000-8000-000000000301";
+function actionSnapshot(id: string, runId: string) {
+  const now = new Date().toISOString();
+  return {
+    schema_version: "1.0", report_revision_id: id, run_id: runId, created_at: now, content_hash: "a".repeat(64),
+    system: { name: "Support assistant", target_revision_id: "target-v1", purpose: "Support", execution_mode: "deployed_system" },
+    scope: { suite_version_id: "suite-v1", evidence_policy: "source_grounded", started_at: now, finished_at: now, languages: ["en"], review_status: "preliminary" },
+    metrics: { n_planned: 2, n_eligible: 2, n_executed: 2, n_scorable: 2, n_pass: 1, n_partial: 0, n_fail: 1, n_unscorable: 0, n_pending: 0, n_unresolved: 0, strict_pass_rate: 0.5, rubric_score: null, assessed_coverage: 1, execution_completion: 1, pass_bounds: null, wilson_interval: null, family_cluster_interval: null, critical_unassessed: 0, headline_status: "complete" },
+    findings: [], improvements: [], takeaways: [{ text: "Refund answers omitted the 30-day window in 1 of 2 tests.", finding_ids: [], assessment_ids: ["a1"] }],
+    results: [{ case_revision_id: "c1", title: "Refund window", topic: "refunds", severity: "high", outcome: "fail", assessment_id: "a1", observation_id: "o1", input: "Refund?", output: "No.", rationale: "Omitted policy.", source_refs: [], review_status: "unreviewed" }],
+    methodology: { cef_version: "1.0", scorer_version: "v1", grader_revisions: [], rubric_revisions: [], source_revisions: [], sampling: "all", exclusions: [], review_coverage: "none", cost: null, limitations: [] },
+  };
+}
+
+test("report actions publish a revision, share a previewed projection once and revoke it", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const revisions = [
+    { id: "00000000-0000-4000-8000-000000000311", run_id: "00000000-0000-4000-8000-000000000321", review_status: "preliminary", created_at: new Date().toISOString(), snapshot: actionSnapshot("00000000-0000-4000-8000-000000000311", "00000000-0000-4000-8000-000000000321") },
+    { id: "00000000-0000-4000-8000-000000000312", run_id: "00000000-0000-4000-8000-000000000321", review_status: "preliminary", created_at: new Date(Date.now() - 60_000).toISOString(), snapshot: actionSnapshot("00000000-0000-4000-8000-000000000312", "00000000-0000-4000-8000-000000000321") },
+  ];
+  let current = revisions[1].id;
+  const requests: string[] = [];
+  let shares: Array<Record<string, unknown>> = [];
+  await page.route(`**/api/evals/v1/reports/${actionReport}?**`, (route) => route.fulfill({ json: { data: { report: { current_revision_id: current, publication_status: "published" }, revisions }, meta: {} } }));
+  await page.route(`**/api/evals/v1/reports/${actionReport}/publish`, (route) => { requests.push("publish"); current = route.request().postDataJSON().revisionId; return route.fulfill({ json: { data: { reportId: actionReport }, meta: {} } }); });
+  await page.route(`**/api/evals/v1/reports/${actionReport}/shares**`, (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { data: shares, meta: {} } });
+    const body = route.request().postDataJSON();
+    requests.push(`share:${body.permittedFields.join(",")}`);
+    shares = [{ id: "00000000-0000-4000-8000-000000000331", report_revision_id: body.reportRevisionId, audience: body.audience, recipient: null, permitted_fields: body.permittedFields, expires_at: body.expiresAt, revoked_at: null, access_count: 0 }];
+    return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000331", token: "tok_fixture" }, meta: {} } });
+  });
+  await page.route("**/api/evals/v1/shares/**", (route) => { requests.push("revoke"); shares = shares.map((item) => ({ ...item, revoked_at: new Date().toISOString() })); return route.fulfill({ json: { data: {}, meta: {} } }); });
+  await page.route("**/api/evals/v1/runs?**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route(`**/api/evals/v1/reports/${actionReport}/narrative**`, (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/exports", (route) => { requests.push("pdf"); return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "queued" }, meta: {} } }); });
+  await page.route("**/api/evals/v1/exports/**", (route) => route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "completed", download_path: "/api/evals/v1/report-artifacts/x" }, meta: {} } }));
+
+  await page.goto(`/workspace/reports/actions?orgId=${actionOrg}&owner`);
+  await expect(page.getByText("Refund answers omitted the 30-day window in 1 of 2 tests.")).toBeVisible();
+  await page.getByRole("row", { name: /00000000/ }).first().getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByText(/Revision published/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Prepare PDF" }).click();
+  await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(/cannot be recalled/).first()).toBeVisible();
+
+  await page.getByLabel("Individual test results with interaction excerpts").uncheck();
+  await page.getByRole("button", { name: "Preview shared view" }).click();
+  await expect(page.getByText(/^Preview: this is exactly what recipients/)).toBeVisible();
+  await page.getByRole("tab", { name: "Test results" }).click();
+  await expect(page.getByRole("button", { name: /Refund window/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close preview" }).click();
+
+  await page.getByRole("button", { name: "Create access" }).click();
+  await expect(page.getByText(/share#token=tok_fixture/)).toBeVisible();
+  await page.getByRole("button", { name: "Revoke" }).click();
+  await expect(page.getByText(/Access revoked/)).toBeVisible();
+  expect(requests).toEqual(["publish", "pdf", "share:system,scope,metrics,takeaways,findings,improvements,methodology", "revoke"]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("viewers see the report without delivery actions", async ({ page }) => {
+  await page.route(`**/api/evals/v1/reports/${actionReport}?**`, (route) => route.fulfill({ json: { data: { report: { current_revision_id: "00000000-0000-4000-8000-000000000311", publication_status: "published" }, revisions: [{ id: "00000000-0000-4000-8000-000000000311", run_id: "r", review_status: "preliminary", created_at: new Date().toISOString(), snapshot: actionSnapshot("00000000-0000-4000-8000-000000000311", "r") }] }, meta: {} } }));
+  await page.goto(`/workspace/reports/actions?orgId=${actionOrg}&viewer`);
+  await expect(page.getByText("Refund answers omitted")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Report actions" })).toHaveCount(0);
+});
+
+test("result review queue records attributed decisions with a required reason", async ({ page }) => {
+  let items = [{ assessment_id: "00000000-0000-4000-8000-000000000401", outcome: "partial", review_status: "needs_review", rationale: "1 criteria graded by the rubric judge.", criteria: [{ criterion_id: "grounding", score: null, rationale: "x" }], case_title: "Refund window", severity: "critical", question: "Can I get a refund?", answer: "Only within 30 days.", expected: "30-day refund window", source_refs: [], evaluation_title: "Support", judge_reason: null, judge_calibration: { examples: 3, agreement: 1, adequate: false } }];
+  const decisions: unknown[] = [];
+  await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
+  await page.route("**/api/evals/v1/reviews**", (route) => {
+    if (route.request().method() === "GET") return route.fulfill({ json: { data: items, meta: {} } });
+    decisions.push(route.request().postDataJSON()); items = [];
+    return route.fulfill({ json: { data: {}, meta: {} } });
+  });
+  await page.goto("/ops/review");
+  await expect(page.getByRole("heading", { name: "Refund window" })).toBeVisible();
+  await expect(page.getByText(/experimental/)).toBeVisible();
+  await page.getByLabel("Override with a new outcome").check();
+  await page.getByLabel("Outcome for an override").selectOption("pass");
+  await page.getByLabel(/Reason/).fill("The answer states the documented window.");
+  await page.getByRole("button", { name: "Record decision" }).click();
+  await expect(page.getByText("Decision recorded.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No results need review" })).toBeVisible();
+  expect(decisions).toEqual([{ orgId: actionOrg, assessmentId: "00000000-0000-4000-8000-000000000401", decision: "override", reason: "The answer states the documented window.", outcome: "pass", criteria: [{ criterion_id: "grounding", score: 1, rationale: "The answer states the documented window." }] }]);
 });
