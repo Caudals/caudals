@@ -40,14 +40,20 @@ jobs:
         include:
           - name: worker
             dockerfile: infra/evals/Dockerfile
-          - name: documents
-            dockerfile: infra/evals/Dockerfile.documents
-          - name: browser
-            dockerfile: infra/evals/Dockerfile.browser
+          - name: playwright
+            dockerfile: infra/evals/Dockerfile.playwright
     steps:
       - uses: actions/checkout@v5
       - name: Validate VPS deployment script
         run: bash -n scripts/deploy-evals-production.sh
+      - name: Check pinned Playwright browser version
+        if: ${{ matrix.name == 'playwright' }}
+        run: |
+          locked=$(node -p "require('./package-lock.json').packages['node_modules/playwright'].version")
+          grep -q "playwright@${locked} install" infra/evals/Dockerfile.playwright || {
+            echo "infra/evals/Dockerfile.playwright must install browsers for playwright@${locked}" >&2
+            exit 1
+          }
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -60,6 +66,11 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:evals-${{ matrix.name }}-${{ github.sha }}
+          # Reusing unchanged dependency layers keeps their digests identical
+          # between releases, so the VPS stores them once for the current and
+          # rollback images instead of once per release.
+          cache-from: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:buildcache-evals-${{ matrix.name }}
+          cache-to: type=registry,ref=docker.io/${{ secrets.DOCKERHUB_REPOSITORY }}:buildcache-evals-${{ matrix.name }},mode=max
 
   deploy-to-vps:
     needs: build-and-push

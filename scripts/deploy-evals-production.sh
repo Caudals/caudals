@@ -21,15 +21,23 @@ done
 
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \
-  infra/evals/Dockerfile infra/evals/Dockerfile.documents infra/evals/Dockerfile.browser \
+  infra/evals/Dockerfile infra/evals/Dockerfile.playwright \
   lib services/evals-worker services/evals-documents services/evals-browser \
   package.json package-lock.json tsconfig.json)}
 worker_tag="mariomedpar/caudals:evals-worker-$commit"
-document_tag="mariomedpar/caudals:evals-documents-$commit"
-browser_tag="mariomedpar/caudals:evals-browser-$commit"
+# Browser and document services share one Playwright image. Commits built
+# before that change published separate tags; keep them deployable.
+playwright_tag="mariomedpar/caudals:evals-playwright-$commit"
 docker pull "$worker_tag" >/dev/null
-docker pull "$document_tag" >/dev/null
-docker pull "$browser_tag" >/dev/null
+if docker pull "$playwright_tag" >/dev/null 2>&1; then
+  document_tag=$playwright_tag
+  browser_tag=$playwright_tag
+else
+  document_tag="mariomedpar/caudals:evals-documents-$commit"
+  browser_tag="mariomedpar/caudals:evals-browser-$commit"
+  docker pull "$document_tag" >/dev/null
+  docker pull "$browser_tag" >/dev/null
+fi
 export EVALS_WORKER_IMAGE EVALS_DOCUMENT_IMAGE EVALS_BROWSER_IMAGE EVALS_WORKER_ORG_IDS EVALS_BROWSER_ORG_IDS
 EVALS_WORKER_IMAGE=$(docker image inspect "$worker_tag" --format '{{index .RepoDigests 0}}')
 EVALS_DOCUMENT_IMAGE=$(docker image inspect "$document_tag" --format '{{index .RepoDigests 0}}')

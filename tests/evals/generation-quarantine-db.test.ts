@@ -59,7 +59,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(quarantined).toMatchObject({ status: "quarantined", errors: ["Source anchor is absent from the frozen revision."] });
     const recorded = await withTenant(scope, async connection => ({
       quarantine: (await connection.query("SELECT schema_errors FROM evals.case_quarantine WHERE org_id=$1 AND evaluation_id=$2", [orgId, evaluationId])).rows[0],
-      batch: (await connection.query("SELECT status FROM evals.generation_batch WHERE org_id=$1 AND evaluation_id=$2", [orgId, evaluationId])).rows[0],
+      batch: (await connection.query("SELECT status FROM evals.generation_batch WHERE org_id=$1 AND evaluation_id=$2 AND step_kind='draft' AND generation_job_id IS NULL", [orgId, evaluationId])).rows[0],
     }));
     expect(recorded).toEqual({
       quarantine: { schema_errors: ["Source anchor is absent from the frozen revision."] },

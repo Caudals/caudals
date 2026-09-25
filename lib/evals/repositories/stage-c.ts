@@ -501,11 +501,20 @@ export function createSelfServiceRun(
              JOIN evals.target t ON (t.org_id,t.id)=(tr.org_id,tr.target_id)
              WHERE tr.org_id=$1 AND t.project_id=$2
                AND ($3::uuid IS NULL OR tr.id=$3)
+               -- A rerun follows a newer revision of the previously selected
+               -- system only when nothing but its credential binding changed,
+               -- so a rotated key takes effect without altering the frozen
+               -- configuration that comparisons rely on.
+               AND ($4::uuid IS NULL OR tr.id=$4 OR EXISTS (
+                 SELECT 1 FROM evals.target_revision s
+                 WHERE s.org_id=$1 AND s.id=$4 AND s.target_id=tr.target_id
+                   AND (s.document - 'credential' - 'target_revision_id')=(tr.document - 'credential' - 'target_revision_id')))
              ORDER BY (tr.document->>'recipe_revision_id' IS NOT NULL) DESC,tr.created_at DESC,tr.id DESC LIMIT 1`,
             [
               scope.orgId,
               evaluation.project_id,
-              input.targetRevisionId ?? evaluation.selected_target_revision_id ?? null,
+              input.targetRevisionId ?? null,
+              input.targetRevisionId ? null : evaluation.selected_target_revision_id ?? null,
             ],
           )
         ).rows[0],

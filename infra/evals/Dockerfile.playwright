@@ -1,0 +1,29 @@
+# One Playwright image for the isolated browser executor, its egress proxy and
+# database relay, and the document/report renderer. The services still run as
+# separate Swarm services with separate credentials, networks and session state;
+# sharing the image only avoids storing two identical multi-GB layer stacks.
+#
+# Only Chromium's headless shell is installed: both services launch
+# `chromium.launch({ headless: true })`, so Firefox, WebKit and headed Chromium
+# from the upstream Playwright image would be unused weight on the VPS disk.
+FROM node:24.21.0-bookworm-slim
+ENV NODE_ENV=production \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    npm_config_update_notifier=false
+WORKDIR /app
+# Browser and system packages depend only on the pinned Playwright version, so
+# this layer is reused across releases until that version changes. Keep the
+# version equal to `node_modules/playwright` in package-lock.json.
+RUN apt-get update \
+ && npx -y playwright@1.63.0 install --with-deps --only-shell chromium \
+ && apt-get install -y --no-install-recommends poppler-utils \
+ && rm -rf /var/lib/apt/lists/* /root/.npm \
+ && chmod -R a+rX /ms-playwright
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --ignore-scripts --no-audit --no-fund && npm cache clean --force
+COPY tsconfig.json ./
+COPY lib ./lib
+COPY services/evals-browser ./services/evals-browser
+COPY services/evals-documents ./services/evals-documents
+USER node
+CMD ["node","--conditions=react-server","--import","tsx","services/evals-browser/main.ts"]

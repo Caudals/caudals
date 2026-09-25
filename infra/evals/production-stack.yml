@@ -173,6 +173,7 @@ services:
       options: {max-size: "10m", max-file: "3"}
   documents:
     image: ${EVALS_DOCUMENT_IMAGE:?Reviewed image digest is required}
+    command: ["node", "--conditions=react-server", "--import=tsx", "services/evals-documents/main.ts"]
     user: "1000:1000"
     read_only: true
     init: true
