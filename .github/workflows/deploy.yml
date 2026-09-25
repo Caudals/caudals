@@ -2,9 +2,27 @@ name: Build and Push Docker image
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths-ignore:
+      - ".github/workflows/**"
+      - "docs/**"
+      - "infra/evals/**"
+      - "scripts/deploy-evals-production.sh"
+      - "services/evals-*/**"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Build a fresh app image or deploy an already-published image
+        required: true
+        default: build-and-deploy
+        type: choice
+        options:
+          - build-and-deploy
+          - deploy-existing-image
+      image_commit:
+        description: Full 40-character commit SHA for an existing image; required for deploy-existing-image
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -15,7 +33,9 @@ env:
 
 jobs:
   build-and-push:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'build-and-deploy' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
@@ -78,10 +98,15 @@ jobs:
 
   deploy-to-vps:
     needs: [build-and-push]
+    if: ${{ always() && (needs.build-and-push.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'deploy-existing-image')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     concurrency:
-      group: production-app-deploy
+      group: production-vps-deploy
       cancel-in-progress: false
+    env:
+      DEPLOY_MODE: ${{ inputs.mode || 'build-and-deploy' }}
+      REQUESTED_IMAGE_COMMIT: ${{ inputs.image_commit || '' }}
     steps:
       - name: Tailscale
         uses: tailscale/github-action@v3
@@ -97,13 +122,27 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA=${{ github.sha }} bash -se" << 'INNEREOF'
-            cd /home/caudals/caudals
+          set -euo pipefail
+          image_sha="$GITHUB_SHA"
+          if [[ "$DEPLOY_MODE" == "deploy-existing-image" ]]; then
+            if [[ ! "$REQUESTED_IMAGE_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
+              echo "A full 40-character image_commit is required for deploy-existing-image." >&2
+              exit 1
+            fi
+            image_sha="$REQUESTED_IMAGE_COMMIT"
+          fi
+
+          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA='$GITHUB_SHA' IMAGE_SHA='$image_sha' DEPLOY_RUN_ID='$GITHUB_RUN_ID' DEPLOY_RUN_ATTEMPT='$GITHUB_RUN_ATTEMPT' bash -se" << 'INNEREOF'
+            set -euo pipefail
+            repo_dir=/home/caudals/caudals
+            cd "$repo_dir"
             git fetch origin main
             if [ "$(git rev-parse origin/main)" != "$DEPLOY_SHA" ]; then
               echo "A newer main commit superseded this deployment."
               exit 0
             fi
-            git reset --hard "$DEPLOY_SHA"
-            sudo CAUDALS_APP_BUILD_LOCAL=false scripts/deploy-app-stack.sh
+            worktree="$repo_dir/.worktrees/actions-app-$DEPLOY_SHA-$DEPLOY_RUN_ID-$DEPLOY_RUN_ATTEMPT"
+            git worktree add --detach "$worktree" "$DEPLOY_SHA"
+            trap 'git -C "$repo_dir" worktree remove --force "$worktree" >/dev/null 2>&1 || true' EXIT
+            sudo env CAUDALS_APP_BUILD_LOCAL=false CAUDALS_APP_BUILD_TAG="$IMAGE_SHA" "$worktree/scripts/deploy-app-stack.sh"
           INNEREOF

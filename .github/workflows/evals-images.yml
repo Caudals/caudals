@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - ".github/workflows/evals-images.yml"
-      - "scripts/deploy-evals-production.sh"
       - "infra/evals/Dockerfile*"
       - "lib/**"
       - "services/evals-*/**"
@@ -13,13 +11,28 @@ on:
       - "package-lock.json"
       - "tsconfig.json"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Build fresh evaluation images or deploy already-published images
+        required: true
+        default: build-and-deploy
+        type: choice
+        options:
+          - build-and-deploy
+          - deploy-existing-images
+      image_commit:
+        description: Full 40-character commit SHA for existing images; required for deploy-existing-images
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   build-and-push:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'build-and-deploy' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -49,11 +62,15 @@ jobs:
 
   deploy-to-vps:
     needs: build-and-push
+    if: ${{ always() && (needs.build-and-push.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'deploy-existing-images')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     concurrency:
-      group: production-evals-deploy
+      group: production-vps-deploy
       cancel-in-progress: false
+    env:
+      DEPLOY_MODE: ${{ inputs.mode || 'build-and-deploy' }}
+      REQUESTED_IMAGE_COMMIT: ${{ inputs.image_commit || '' }}
     steps:
       - name: Tailscale
         uses: tailscale/github-action@v3
@@ -69,7 +86,17 @@ jobs:
 
       - name: Deploy evaluation workers to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA=${{ github.sha }} bash -se" << 'INNEREOF'
+          set -euo pipefail
+          image_commit="$GITHUB_SHA"
+          if [[ "$DEPLOY_MODE" == "deploy-existing-images" ]]; then
+            if [[ ! "$REQUESTED_IMAGE_COMMIT" =~ ^[a-f0-9]{40}$ ]]; then
+              echo "A full 40-character image_commit is required for deploy-existing-images." >&2
+              exit 1
+            fi
+            image_commit="$REQUESTED_IMAGE_COMMIT"
+          fi
+
+          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA='$GITHUB_SHA' IMAGE_COMMIT='$image_commit' DEPLOY_RUN_ID='$GITHUB_RUN_ID' DEPLOY_RUN_ATTEMPT='$GITHUB_RUN_ATTEMPT' bash -se" << 'INNEREOF'
             set -euo pipefail
             repo_dir=/home/caudals/caudals
             cd "$repo_dir"
@@ -78,12 +105,8 @@ jobs:
               echo "A newer main commit superseded this worker deployment."
               exit 0
             fi
-            worktree="$repo_dir/.worktrees/actions-evals-$DEPLOY_SHA"
-            git worktree prune
-            if [ -e "$worktree/.git" ]; then
-              git worktree remove --force "$worktree"
-            fi
+            worktree="$repo_dir/.worktrees/actions-evals-$DEPLOY_SHA-$DEPLOY_RUN_ID-$DEPLOY_RUN_ATTEMPT"
             git worktree add --detach "$worktree" "$DEPLOY_SHA"
             trap 'git -C "$repo_dir" worktree remove --force "$worktree" >/dev/null 2>&1 || true' EXIT
-            sudo EVALS_IMAGE_COMMIT="$DEPLOY_SHA" "$worktree/scripts/deploy-evals-production.sh"
+            sudo env EVALS_IMAGE_COMMIT="$IMAGE_COMMIT" "$worktree/scripts/deploy-evals-production.sh"
           INNEREOF

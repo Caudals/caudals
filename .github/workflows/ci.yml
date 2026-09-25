@@ -35,6 +35,11 @@ jobs:
           echo "npm ci failed after 3 attempts"
           exit 1
 
+      - name: Validate deployment scripts
+        run: |
+          bash -n scripts/deploy-app-stack.sh
+          bash -n scripts/deploy-evals-production.sh
+
       - name: Lint
         run: npm run lint
 
