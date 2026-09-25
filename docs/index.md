@@ -5,7 +5,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 ## Structure
 - `product-specs/overview.md`: canonical product brief for humans, AI assistants, coding agents and collaborators.
 - `product-specs/go-to-market.md`: customer-acquisition playbook.
-- `product-specs/evals-platform-implementation-spec.md`: staged evaluation-product implementation contract; `evals/work-packages/` records work-package status and release gates.
+- `product-specs/evals-platform-implementation-spec.md`: staged evaluation-product implementation contract; `evals/spec-closure-plan.md` tracks the complete closure sequence and `evals/work-packages/` records work-package status and release gates.
 - `product-specs/content-publishing-contract.md`: interface between the Leads Content Suite and the public MDX blog.
 - `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
 - `DESIGN.md`: design system and UI governance. Two languages: the platform system for authenticated surfaces (`packages/brand/platform.css`) and the editorial system for the public site.
