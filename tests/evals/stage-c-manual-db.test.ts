@@ -6,7 +6,7 @@ import { canonicalJson, sha256, withContentHash } from "../../lib/evals/contract
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { applyMatchedAnswers, createReportForRun, createRun, persistImport, scoreRun } from "../../lib/evals/repositories/managed";
 import { createSuite, editSuiteDraftCase, freezeSuite, getDraft, getSuiteDraftCases, listSuiteVersions } from "../../lib/evals/repositories/evidence";
-import { forkSuite } from "../../lib/evals/repositories/stage-c";
+import { controlRun, forkSuite } from "../../lib/evals/repositories/stage-c";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -162,5 +162,21 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const frozenFork = await freezeSuite(scope, fork.suiteId, edited.version, randomUUID());
     expect(frozenFork.manifest.case_revisions.map(item => item.revision_id)).toContain(holdout.revision_id);
     expect((await listSuiteVersions(scope)).find(item => item.suite_id === fork.suiteId)).toMatchObject({ case_count: 1 });
+
+    const cancellable = await createRun(scope, { evaluationId, targetRevisionId, suiteVersionId, executionMode: "imported_responses", plan: { purpose: "Cancel stale imported answers" } }, randomUUID());
+    expect(cancellable.status).toBe("awaiting_answers");
+    expect(await controlRun(scope, cancellable.id, "cancel")).toEqual({ runId: cancellable.id, action: "cancel", status: "canceled" });
+    const cancellation = await withTenant(scope, async connection => ({
+      run: (await connection.query("SELECT status,phase,reason_code FROM evals.run WHERE id=$1", [cancellable.id])).rows[0],
+      cases: (await connection.query("SELECT status,count(*)::int AS count FROM evals.case_unit WHERE run_id=$1 GROUP BY status", [cancellable.id])).rows,
+      audit: Number((await connection.query("SELECT count(*) FROM evals.audit_event WHERE org_id=$1 AND actor_id=$2 AND action='run.canceled' AND subject_id=$3", [orgId, actorId, cancellable.id])).rows[0].count),
+      activeRuns: Number((await connection.query("SELECT count(*) FROM evals.run WHERE org_id=$1 AND status IN ('queued','running','pause_requested','paused','cancel_requested')", [orgId])).rows[0].count),
+    }));
+    expect(cancellation).toEqual({
+      run: { status: "canceled", phase: "done", reason_code: "run_canceled" },
+      cases: [{ status: "canceled", count: 2 }],
+      audit: 1,
+      activeRuns: 0,
+    });
   }, 30000);
 });

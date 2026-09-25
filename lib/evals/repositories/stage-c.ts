@@ -769,19 +769,75 @@ export function controlRun(
       )
     ).rows[0];
     if (!workflow) {
-      const job=(await db.query("SELECT id FROM evals.runner_job WHERE org_id=$1 AND run_id=$2 FOR UPDATE",[scope.orgId,runId])).rows[0];
-      if(!job)throw new EvalError("SCOPE_DENIED",404);
-      if(action!=="cancel")throw new EvalError("CONNECTION_UNSUPPORTED",422,"Private runner jobs can only be canceled here.");
-      await db.query("UPDATE evals.runner_job SET status='canceled' WHERE org_id=$1 AND id=$2 AND status IN ('ready','claimed')",[scope.orgId,job.id]);
-      await db.query("UPDATE evals.case_unit SET status='canceled',reason_code='runner_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status='pending'",[scope.orgId,runId]);
-      await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS(
-        SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='succeeded'
-      ) THEN 'partial' ELSE 'canceled' END,reason_code='runner_canceled',updated_at=now()
-        WHERE org_id=$1 AND id=$2`,[scope.orgId,runId]);
-      return {runId,action};
+      const job = (
+        await db.query(
+          "SELECT id FROM evals.runner_job WHERE org_id=$1 AND run_id=$2 FOR UPDATE",
+          [scope.orgId, runId],
+        )
+      ).rows[0];
+      if (job) {
+        if (action !== "cancel") {
+          throw new EvalError("CONNECTION_UNSUPPORTED", 422, "Private runner jobs can only be canceled here.");
+        }
+        await db.query(
+          "UPDATE evals.runner_job SET status='canceled' WHERE org_id=$1 AND id=$2 AND status IN ('ready','claimed')",
+          [scope.orgId, job.id],
+        );
+        await db.query(
+          "UPDATE evals.case_unit SET status='canceled',reason_code='runner_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status='pending'",
+          [scope.orgId, runId],
+        );
+        await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS(
+          SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='succeeded'
+        ) THEN 'partial' ELSE 'canceled' END,reason_code='runner_canceled',updated_at=now()
+          WHERE org_id=$1 AND id=$2`, [scope.orgId, runId]);
+        return { runId, action };
+      }
+
+      const importedRun = (
+        await db.query(
+          "SELECT execution_mode,status FROM evals.run WHERE org_id=$1 AND id=$2 FOR UPDATE",
+          [scope.orgId, runId],
+        )
+      ).rows[0];
+      if (!importedRun || importedRun.execution_mode !== "imported_responses") {
+        throw new EvalError("SCOPE_DENIED", 404, "This action is not available.");
+      }
+      if (action !== "cancel") {
+        throw new EvalError("SCOPE_DENIED", 409, "Imported-answer runs without a worker can only be canceled.");
+      }
+      const activeStatuses = ["queued", "running", "pause_requested", "paused", "cancel_requested"];
+      if (!activeStatuses.includes(importedRun.status)) {
+        return { runId, action, status: importedRun.status };
+      }
+      const running = Number((await db.query(
+        "SELECT count(*)::int AS count FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status='running'",
+        [scope.orgId, runId],
+      )).rows[0].count);
+      if (running > 0) {
+        throw new EvalError("SCOPE_DENIED", 409, "Wait for the imported answer to finish saving, then cancel the run.");
+      }
+      const hasCompletedAnswers = Boolean((await db.query(
+        "SELECT EXISTS(SELECT 1 FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status IN ('succeeded','unknown_external_outcome')) AS value",
+        [scope.orgId, runId],
+      )).rows[0].value);
+      const status = hasCompletedAnswers ? "partial" : "canceled";
+      await db.query(
+        "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",
+        [scope.orgId, runId],
+      );
+      await db.query(
+        "UPDATE evals.run SET status=$3,phase='done',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND id=$2",
+        [scope.orgId, runId, status],
+      );
+      await db.query(
+        "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'run.canceled',$3)",
+        [scope.orgId, scope.actorId, runId],
+      );
+      return { runId, action, status };
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
-    if (action === "cancel" && !["completed","partial","failed"].includes(workflow.status)) {
+    if (action === "cancel" && !["completed", "partial", "failed"].includes(workflow.status)) {
       await db.query(
         "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",
         [scope.orgId, runId],
