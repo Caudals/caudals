@@ -47,6 +47,12 @@ describe("§15.1 bounded report narrative", () => {
     expect(result.rejected.map((item) => item.reason)).toEqual(["number_not_in_metrics", "prohibited_claim", "no_evidence_cited", "evidence_not_in_snapshot"]);
   });
 
+  it("tolerates empty-string ID lists and ignores identifiers when checking numbers", () => {
+    const result = validateNarrative({ text: JSON.stringify({ takeaways: [{ text: "Case 3f1c2b4a-1111-4222-8333-944455556666 failed: 1 of 4 tests.", finding_ids: "", assessment_ids: ["a3"] }] }), complete: true }, snapshot());
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.accepted).toHaveLength(1);
+  });
+
   it("requires incomplete coverage to lead and rejects prose output", () => {
     expect(validateNarrative({ text: "Great results!", complete: true }, snapshot())).toEqual({ ok: false, reason: "narrative_output_not_json" });
     const incomplete = validateNarrative(output([{ text: "Rounding failed in 1 of 4 tests.", finding_ids: ["f-rounding"], assessment_ids: [] }]), snapshot(true));

@@ -50,11 +50,13 @@ export function narrativeSystemPrompt() {
   ].join(" ");
 }
 
+const idList = z.preprocess((value) => typeof value === "string" ? (value.trim() ? [value.trim()] : []) : value, z.array(z.string()).max(10));
 const outputSchema = z.strictObject({
   takeaways: z.array(z.strictObject({
     text: z.string().trim().min(1).max(280),
-    finding_ids: z.array(z.string()).max(10),
-    assessment_ids: z.array(z.string()).max(10),
+    // Local models sometimes write "" or a bare ID for a list; normalise only that shape.
+    finding_ids: idList,
+    assessment_ids: idList,
   })).min(1).max(8),
 });
 export type NarrativeTakeaway = z.infer<typeof outputSchema>["takeaways"][number];
@@ -94,7 +96,9 @@ export function validateNarrative(output: unknown, snapshot: ReportSnapshot):
     if (!takeaway.finding_ids.length && !takeaway.assessment_ids.length) { reject("no_evidence_cited"); continue; }
     if (takeaway.finding_ids.some((id) => !findings.has(id)) || takeaway.assessment_ids.some((id) => !assessments.has(id))) { reject("evidence_not_in_snapshot"); continue; }
     if (PROHIBITED.test(takeaway.text)) { reject("prohibited_claim"); continue; }
-    const cited = [...takeaway.text.matchAll(/\d+(?:[.,]\d+)?/g)].map((match) => match[0].replace(",", "."));
+    // Identifiers quoted in the text are not quantitative claims.
+    const prose = takeaway.text.replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "").replace(/\b[0-9a-f]{12,}\b/gi, "");
+    const cited = [...prose.matchAll(/\d+(?:[.,]\d+)?/g)].map((match) => match[0].replace(",", "."));
     if (cited.some((value) => !numbers.has(String(Number(value))))) { reject("number_not_in_metrics"); continue; }
     if (accepted.length < 5) accepted.push(takeaway);
   }
