@@ -60,4 +60,64 @@ for service in worker scheduler documents browser browser-egress; do
     docker service update --mount-add "type=tmpfs,destination=/tmp,tmpfs-size=$size" "$name" >/dev/null
   fi
 done
-echo "Deployed evaluation worker images from $commit with separate general and browser workspace allowlists."
+
+wait_for_service() {
+  local name="$1"
+  local expected_image="$2"
+  local require_healthy="${3:-false}"
+  local deadline=$((SECONDS + 300))
+  local actual_image="" replicas="" container_id="" health="" update_state=""
+
+  while (( SECONDS < deadline )); do
+    if actual_image=$(docker service inspect "$name" --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null); then
+      update_state=$(docker service inspect "$name" --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}none{{end}}')
+      replicas=$(docker service ls --format '{{.Name}}|{{.Replicas}}' |
+        awk -F '|' -v name="$name" '$1 == name { print $2 }')
+      container_id=$(docker ps -q --filter "label=com.docker.swarm.service.name=$name" | head -n 1)
+      health="not-running"
+      if [[ -n "$container_id" ]]; then
+        health=$(docker inspect "$container_id" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}running{{end}}')
+      fi
+
+      if [[ "$actual_image" == "$expected_image" && "$replicas" == "1/1" ]]; then
+        if [[ "$require_healthy" == "true" && "$health" == "healthy" ]]; then
+          echo "Verified $name on the expected image and health check."
+          return 0
+        elif [[ "$require_healthy" != "true" && "$health" == "running" ]]; then
+          echo "Verified $name on the expected image and running."
+          return 0
+        fi
+      fi
+
+      if [[ "$update_state" == "rollback_completed" && "$actual_image" != "$expected_image" ]]; then
+        break
+      fi
+    fi
+    sleep 5
+  done
+
+  echo "Evaluation service $name failed to converge (image=${actual_image:-missing}, replicas=${replicas:-missing}, health=${health:-missing}, update=${update_state:-missing})." >&2
+  return 1
+}
+
+# Start the browser only after its database relay and egress gateway are healthy.
+wait_for_service caudals-evals_browser-egress "$EVALS_BROWSER_IMAGE" true
+wait_for_service caudals-evals_browser-db-relay "$EVALS_BROWSER_IMAGE" true
+wait_for_service caudals-evals_worker "$EVALS_WORKER_IMAGE"
+wait_for_service caudals-evals_scheduler "$EVALS_WORKER_IMAGE" true
+wait_for_service caudals-evals_documents "$EVALS_DOCUMENT_IMAGE"
+
+# A concurrent stack update can roll the browser back before these dependencies
+# are ready. Retry only that worker once they are healthy, then enforce its digest.
+if ! wait_for_service caudals-evals_browser "$EVALS_BROWSER_IMAGE" true; then
+  browser_image=$(docker service inspect caudals-evals_browser --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
+  if [[ "$browser_image" != "$EVALS_BROWSER_IMAGE" ]]; then
+    echo "Retrying the browser service after its dependencies became healthy."
+    docker service update --detach=true --image "$EVALS_BROWSER_IMAGE" caudals-evals_browser
+    wait_for_service caudals-evals_browser "$EVALS_BROWSER_IMAGE" true
+  else
+    exit 1
+  fi
+fi
+
+echo "Deployed and verified evaluation worker images from $commit with separate general and browser workspace allowlists."
