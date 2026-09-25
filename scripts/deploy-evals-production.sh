@@ -47,7 +47,24 @@ docker run --rm --network dokploy-network --user 0 \
   -e EVALS_QUEUE_DATABASE_URL_FILE=/run/secrets/evals_queue_database_url \
   "$EVALS_WORKER_IMAGE" node --conditions=react-server --import tsx services/evals-worker/bootstrap-queue.ts
 
+# Keep the browser stopped while its relay and outbound proxy change image.
+# Start it only after both dependencies pass their health checks.
+export EVALS_BROWSER_REPLICAS=0
 docker stack deploy --with-registry-auth -c "$repo_dir/infra/evals/production-stack.yml" caudals-evals
+browser_stop_deadline=$((SECONDS + 120))
+while (( SECONDS < browser_stop_deadline )); do
+  browser_replicas=$(docker service ls --format '{{.Name}}|{{.Replicas}}' |
+    awk -F '|' '$1 == "caudals-evals_browser" { print $2 }')
+  browser_container=$(docker ps -q --filter 'label=com.docker.swarm.service.name=caudals-evals_browser' | head -n 1)
+  if [[ "$browser_replicas" == "0/0" && -z "$browser_container" ]]; then
+    break
+  fi
+  sleep 2
+done
+if [[ "$browser_replicas" != "0/0" || -n "$browser_container" ]]; then
+  echo 'Browser failed to stop before dependency rollout.' >&2
+  exit 1
+fi
 for service in worker scheduler documents browser browser-egress; do
   name="caudals-evals_$service"
   if ! docker service inspect "$name" --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}' |
@@ -106,18 +123,20 @@ wait_for_service caudals-evals_browser-db-relay "$EVALS_BROWSER_IMAGE" true
 wait_for_service caudals-evals_worker "$EVALS_WORKER_IMAGE"
 wait_for_service caudals-evals_scheduler "$EVALS_WORKER_IMAGE" true
 wait_for_service caudals-evals_documents "$EVALS_DOCUMENT_IMAGE"
+docker service scale --detach=true caudals-evals_browser=1 >/dev/null
 
-# A concurrent stack update can roll the browser back before these dependencies
-# are ready. Retry only that worker once they are healthy, then enforce its digest.
-if ! wait_for_service caudals-evals_browser "$EVALS_BROWSER_IMAGE" true; then
-  browser_image=$(docker service inspect caudals-evals_browser --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
-  if [[ "$browser_image" != "$EVALS_BROWSER_IMAGE" ]]; then
-    echo "Retrying the browser service after its dependencies became healthy."
-    docker service update --detach=true --image "$EVALS_BROWSER_IMAGE" caudals-evals_browser
-    wait_for_service caudals-evals_browser "$EVALS_BROWSER_IMAGE" true
-  else
+# A browser task may fail its first start after the dependency transition.
+# Retry that one worker at most twice, with the pinned image and a short pause.
+for attempt in 1 2 3; do
+  if wait_for_service caudals-evals_browser "$EVALS_BROWSER_IMAGE" true; then
+    break
+  fi
+  if [[ $attempt -eq 3 ]]; then
     exit 1
   fi
-fi
+  sleep 20
+  echo "Retrying the browser service after its dependencies became healthy."
+  docker service update --detach=true --force --image "$EVALS_BROWSER_IMAGE" caudals-evals_browser
+done
 
 echo "Deployed and verified evaluation worker images from $commit with separate general and browser workspace allowlists."

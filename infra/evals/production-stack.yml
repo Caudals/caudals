@@ -162,7 +162,7 @@ services:
       retries: 3
       start_period: 90s
     deploy:
-      replicas: 1
+      replicas: ${EVALS_BROWSER_REPLICAS:-1}
       restart_policy: {condition: on-failure, delay: 10s}
       update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
       resources:
