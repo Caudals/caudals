@@ -90,9 +90,16 @@ export function prepareGroundedSuite(
   const questions=input.questions.map(question=>({...question,sourceRevisionId:question.sourceRevisionId??sources[0].revision_id}));
   const batchInputHash=sha256(canonicalJson({sources:sourceRows.map(row=>row.content_hash),questions,promptRevision:input.promptRevision,generation:input.generation??null}));
   const batchStepKind=input.generation?"validate":"draft";
-  const batch=(await db.query(`INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count)
-   VALUES($1,$2,$3,$4,$5,1,$6,$7,'running',1) ON CONFLICT(org_id,evaluation_id,step_kind,input_hash,version)
-   DO UPDATE SET updated_at=now() RETURNING *`,[scope.orgId,evaluationId,input.generation?.generationJobId??null,batchStepKind,batchInputHash,input.promptRevision,input.generation?.modelRevisionId??null])).rows[0];
+  const batchValues=[scope.orgId,evaluationId,input.generation?.generationJobId??null,batchStepKind,batchInputHash,input.promptRevision,input.generation?.modelRevisionId??null];
+  const batch=input.generation
+   ? (await db.query(`INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count)
+      VALUES($1,$2,$3,$4,$5,1,$6,$7,'running',1)
+      ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL
+      DO UPDATE SET updated_at=now() RETURNING *`,batchValues)).rows[0]
+   : (await db.query(`INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count)
+      VALUES($1,$2,$3,$4,$5,1,$6,$7,'running',1)
+      ON CONFLICT(org_id,evaluation_id,step_kind,input_hash,version) WHERE generation_job_id IS NULL
+      DO UPDATE SET updated_at=now() RETURNING *`,batchValues)).rows[0];
   try{
    const pack=genericGroundedQaPack({sources,questions,authorId:scope.actorId,generation:input.generation?{generatorRevisionId:input.generation.generatorRevisionId,promptRevisionId:input.generation.promptRevisionId}:undefined});
    const suiteId=randomUUID(),suiteVersionId=randomUUID();

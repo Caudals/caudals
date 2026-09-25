@@ -19,6 +19,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const orgId = randomUUID(), projectId = randomUUID(), evaluationId = randomUUID(), artifactId = randomUUID();
     const { source } = syntheticAccountingFixture(actorId);
     const scope = { orgId, actorId };
+    const generationJobIds = [randomUUID(), randomUUID()];
     const db = await owner.connect();
     try {
       await db.query("BEGIN");
@@ -34,7 +35,6 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
       await db.query("INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,document,extraction_version) VALUES($1,$2,$3,$4,$5,$6,'utf8-text-v1')",
         [source.revision_id, orgId, source.source_id, artifactId, source.content_hash, source]);
       await db.query("INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,commercial_cap,currency) VALUES($1,$2,$3,'Generation fixture','source_grounded',1,'EUR')", [evaluationId, orgId, projectId]);
-      const generationJobIds = [randomUUID(), randomUUID()];
       for (const generationJobId of generationJobIds) {
         await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,status,created_by)
           VALUES($1,$2,$3,$4,'Retry fixture','imported_responses',$5,'schema-retry-v1',$6,1,'profiling',$7)`,
@@ -69,5 +69,26 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
       ...input, questions: [{ ...input.questions[0], anchor: source.anchors[0].id }],
     }, randomUUID());
     expect(corrected).toMatchObject({ status: "needs_review", cases: 1 });
+
+    const generatedInput = {
+      ...input,
+      generation: {
+        generationJobId: generationJobIds[0],
+        generatorRevisionId: randomUUID(),
+        promptRevisionId: randomUUID(),
+        modelRevisionId: null,
+      },
+    };
+    const generatedQuarantined = await prepareGroundedSuiteOnce(scope, evaluationId, generatedInput, randomUUID());
+    expect(generatedQuarantined).toMatchObject({ status: "quarantined" });
+    const generatedCorrected = await prepareGroundedSuiteOnce(scope, evaluationId, {
+      ...generatedInput, questions: [{ ...input.questions[0], anchor: source.anchors[0].id }],
+    }, randomUUID());
+    expect(generatedCorrected).toMatchObject({ status: "needs_review", cases: 1 });
+    const generatedBatch = await withTenant(scope, async connection => (await connection.query(
+      "SELECT status FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='validate'",
+      [orgId, generationJobIds[0]],
+    )).rows[0]);
+    expect(generatedBatch).toEqual({ status: "completed" });
   }, 30000);
 });
