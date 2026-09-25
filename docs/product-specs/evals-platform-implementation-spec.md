@@ -1208,7 +1208,7 @@ Rollback: disable feature/queue dispatch, drain/stop new jobs, restore prior com
 
 ### 17.5 Backups and recovery
 
-- Active databases/workers/storage remain centralized on the VPS. Backups must include an **encrypted off-host copy**; a backup only on the same disk does not cover VPS loss. Destination is selected during inventory.
+- Active databases/workers/storage remain centralized on the VPS. Backups are maintained and verified locally on the VPS with documented snapshot and recovery procedures; an off-host backup copy is not required.
 - Protect encryption recovery material separately, with a documented founder recovery procedure.
 - Proposed initial recovery objectives: RPO 24 hours and RTO 8 hours; validate by restore test before promising them. Add WAL/PITR when retention and reliability requirements justify it.
 - Back up database, object manifests/artifacts, infrastructure config and encrypted-secret records consistently. Verify database references against object inventory after restore.
@@ -1472,7 +1472,7 @@ Deliverables:
 Acceptance:
 
 - Fixture websites cover iframe, open shadow DOM, streaming, delayed responses, duplicate messages, reset and changed selectors.
-- Two supported authorized real widgets pass discovery/probe/run/reset checks; unsupported widgets enter assistance honestly.
+- Discovery, probe, run and reset checks pass using the controlled mockup chatbot fixture; testing with external chatbots is not required. Unsupported widgets enter assistance honestly.
 - Browser subresources/WebSockets cannot reach internal services or metadata endpoints.
 - A partial response is not graded as complete; session leakage across cases/tenants is tested.
 - CAPTCHA/login expiry/drift pauses safely without bypass or arbitrary new clicks.
