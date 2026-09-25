@@ -1,0 +1,13 @@
+[Unit]
+Description=Caudals Docker cleanup (old images, stopped containers, build cache)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Optional CAUDALS_CLEANUP_* overrides; see scripts/host-docker-cleanup.sh.
+EnvironmentFile=-/etc/default/caudals-docker-cleanup
+ExecStart=/usr/local/sbin/caudals-docker-cleanup
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=1h

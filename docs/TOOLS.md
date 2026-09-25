@@ -393,6 +393,37 @@ Dagster services were removed on 2026-09-10) and their images were pruned on
   logs) or the legacy databases is irreversible. It needs separate human
   approval and a verified backup.
 
+## Host Disk Cleanup
+
+`caudals-1` has a 75 GB disk, and every deploy leaves a new image tag behind
+(0.9–2.2 GB of unique layers each; Docker's containerd snapshotter keeps them
+under `/var/lib/containerd`). `caudals-docker-cleanup.timer` runs
+`scripts/host-docker-cleanup.sh` every six hours (00:30, 06:30, 12:30, 18:30
+UTC, ±15 min) and removes:
+
+- stopped containers older than 24 h (Swarm keeps one finished task per
+  service: `task-history-limit 1`),
+- images that are not the current or `PreviousSpec` (rollback) image of any
+  Swarm service, not used by any container, not in
+  `CAUDALS_CLEANUP_KEEP_REPOSITORIES` (default `caudals-postgres`, which is
+  built on the host) and not built or pulled in the last 6 h,
+- build cache older than 48 h, and anonymous volumes no container uses (named
+  volumes, including the retained legacy ones, are never touched),
+- journal beyond 200 MB and crash dumps older than 7 days.
+
+At 90 % or more used it switches to a 1 h image age and prunes all unused build
+cache. It exits 2 (the unit shows as failed) when the disk is still at 85 % or
+more afterwards, because what remains is in use and needs a person.
+
+- Install or update (from the host checkout, after changing the script):
+  `sudo scripts/install-host-docker-cleanup.sh`. The script is copied to
+  `/usr/local/sbin/caudals-docker-cleanup`, so deploys never change it.
+- Preview: `sudo CAUDALS_CLEANUP_DRY_RUN=true caudals-docker-cleanup`.
+- Run now: `sudo systemctl start caudals-docker-cleanup.service`.
+- Logs: `journalctl -u caudals-docker-cleanup.service -n 100`.
+- Overrides: `CAUDALS_CLEANUP_*` variables in
+  `/etc/default/caudals-docker-cleanup` (see the script header).
+
 ## Stripe CLI Usage Pattern
 
 1. Use only for local/test webhook simulation.
@@ -542,6 +573,8 @@ Bootstrap:
   stack and wire the app service to Docker secret-file fallbacks
 - `npm run object-storage:probe`: probe private object-storage health,
   bucket readiness, write/read/delete behavior, and port isolation
+- `sudo scripts/install-host-docker-cleanup.sh`: install the periodic Docker
+  cleanup timer on `caudals-1` — see Host Disk Cleanup
 - Legacy private stacks (frozen): `npm run {cache,labeling,cvat,lakehouse,orchestration,workflow,operations,vector}:deploy`
   and the matching `:probe` scripts — see Legacy Private Stacks
 - `npm run caudals`: legacy operations CLI; pass command arguments after `--`

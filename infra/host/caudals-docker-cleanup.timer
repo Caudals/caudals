@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the Caudals Docker cleanup every six hours
+
+[Timer]
+OnCalendar=*-*-* 00/6:30:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
