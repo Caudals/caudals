@@ -28,7 +28,7 @@ async function extractPdf(bytes:Buffer):Promise<string>{
   const metadata=(await runPoppler("pdfinfo",["-"],bytes,32_000,10_000)).toString("utf8");
   const pageCount=Number(/^Pages:\s+(\d+)$/m.exec(metadata)?.[1]);
   if(!Number.isInteger(pageCount)||pageCount<1||pageCount>500)throw new Error("pdf_page_limit");
-  const text=(await runPoppler("pdftotext",["-layout","-enc","UTF-8","-"],bytes,MAX_SOURCE_EXTRACTED_CHARS*4,20_000)).toString("utf8");
+  const text=(await runPoppler("pdftotext",["-layout","-enc","UTF-8","-","-"],bytes,MAX_SOURCE_EXTRACTED_CHARS*4,20_000)).toString("utf8");
   const pages=text.split("\f");
   if(pages.length>pageCount+1)throw new Error("pdf_page_count_mismatch");
   const normalized=pages.slice(0,pageCount).map((page,index)=>"Page "+(index+1)+":\n"+page.trim()).filter((page)=>page.endsWith(":\n")===false).join("\n\n");

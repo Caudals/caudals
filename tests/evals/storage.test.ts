@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractText, MAX_SOURCE_BYTES } from '@/lib/evals/storage/text';
+import { CSV_TYPE, extractText, MAX_SOURCE_BYTES, XLSX_TYPE } from '@/lib/evals/storage/text';
 import { objectKey } from '@/lib/evals/storage/private';
 describe('bounded initial text extraction', () => {
  it('anchors reconstruct UTF-8 source using declared UTF-16 offsets', async () => {
@@ -38,5 +38,23 @@ describe('bounded DOCX extraction',()=>{
   const bytes=await docx('<w:t>'+'x'.repeat(5*1024*1024)+'</w:t>');
   for(let i=0;i<bytes.length-46;i++) if(bytes.readUInt32LE(i)===0x02014b50 && bytes.subarray(i+46,i+46+bytes.readUInt16LE(i+28)).toString()==='word/document.xml') bytes.writeUInt32LE(1,i+24);
   await expect(extractText(bytes,DOCX_TYPE)).rejects.toThrow();
+ });
+});
+
+describe('bounded tabular source extraction',()=>{
+ it('preserves CSV headers, quoted cells and row context',async()=>{
+  const result=await extractText(Buffer.from('topic,rule\nbilling,"Due, within 30 days"\n'),CSV_TYPE);
+  expect(result.extractionVersion).toBe('csv-table-v1');
+  expect(result.chunks.map(chunk=>chunk.excerpt).join('')).toContain('rule: Due, within 30 days');
+ });
+ it('extracts XLSX inline strings and rejects formulas without cached values',async()=>{
+  const zip=new JSZip();
+  zip.file('xl/worksheets/sheet1.xml','<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>topic</t></is></c><c r="B1" t="inlineStr"><is><t>rule</t></is></c></row><row r="2"><c r="A2" t="inlineStr"><is><t>billing</t></is></c><c r="B2" t="inlineStr"><is><t>invoice due in 30 days</t></is></c></row></sheetData></worksheet>');
+  const result=await extractText(await zip.generateAsync({type:'nodebuffer',compression:'DEFLATE'}),XLSX_TYPE);
+  expect(result.extractionVersion).toBe('xlsx-table-v1');
+  expect(result.chunks.map(chunk=>chunk.excerpt).join('')).toContain('invoice due in 30 days');
+  const unsafe=new JSZip();
+  unsafe.file('xl/worksheets/sheet1.xml','<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>topic</t></is></c></row><row r="2"><c r="A2"><f>1+1</f></c></row></sheetData></worksheet>');
+  await expect(extractText(await unsafe.generateAsync({type:'nodebuffer',compression:'DEFLATE'}),XLSX_TYPE)).rejects.toThrow();
  });
 });
