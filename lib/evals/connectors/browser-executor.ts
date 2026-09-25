@@ -124,7 +124,7 @@ export function capabilityReportForWebsite(recipe: WebsiteRecipe) {
       status: supported.has(capability)
         ? ("supported" as const)
         : capability === "multi_turn"
-          ? ("supported" as const)
+          ? ("unsupported" as const)
           : ("unknown" as const),
       evidence_artifact_id: null,
     })),

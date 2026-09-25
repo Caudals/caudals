@@ -4,10 +4,11 @@ import { assertWebsiteRecipeOrigin, browserLocatorSchema, browserStorageStateSch
 import { candidateInputSchema } from "../../lib/evals/contracts/projections";
 import { observationSchema, type Observation } from "../../lib/evals/contracts/results";
 import { scenarioSchema, toolFixtureSchema } from "../../lib/evals/contracts/scenarios";
-import { assertScorableWebsiteRecipe, knownRecipeProposal, newAssistantMessages } from "../../lib/evals/connectors/browser-executor";
+import { assertScorableWebsiteRecipe, capabilityReportForWebsite, knownRecipeProposal, newAssistantMessages } from "../../lib/evals/connectors/browser-executor";
 import { HttpTargetAdapter } from "../../lib/evals/connectors/http-target";
 import { runScenario, ScenarioFailure, toolFinalStatePasses } from "../../lib/evals/execution/scenario-runner";
-import { assertApprovedRunSelection, assertOperatorRecipeAuthority, assertReadyConnection, assertRegressionEligible, assertRegressionReleaseCandidate, assertWebsiteAuthorization } from "../../lib/evals/repositories/stage-c";
+import { assertApprovedRunSelection, assertOperatorRecipeAuthority, assertReadyConnection, assertRegressionEligible, assertRegressionReleaseCandidate, assertWebsiteAuthorization, supportsCase } from "../../lib/evals/repositories/stage-c";
+import type { TargetConfig } from "../../lib/evals/contracts/connectors";
 import { caseSchema } from "../../lib/evals/contracts/cases";
 import { genericGroundedQaPack, syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { withGenerationSlot } from "../../lib/evals/repositories/managed";
@@ -163,6 +164,17 @@ describe("WP-11 approved test-set gate", () => {
 });
 
 describe("WP-09 website execution contracts", () => {
+  it("does not claim a fresh browser context preserves a conversation", () => {
+    const recipe = { reset: { kind: "new_context" } } as Parameters<typeof capabilityReportForWebsite>[0];
+    const report = capabilityReportForWebsite(recipe);
+    expect(report.features.find((feature) => feature.capability === "multi_turn")?.status).toBe("unsupported");
+    const website = { kind: "website" } as TargetConfig;
+    expect(supportsCase(website, ["multi_turn"], report)).toBe(false);
+    expect(supportsCase(website, ["multi_turn"], {
+      features: [{ capability: "multi_turn", status: "supported" }],
+    })).toBe(false);
+    expect(supportsCase(website, ["text"], null)).toBe(false);
+  });
   it("rejects executable or unbounded selectors", () => {
     expect(browserLocatorSchema.safeParse({ kind: "css", value: "button:has(script)" }).success).toBe(false);
     expect(browserLocatorSchema.safeParse({ kind: "css", value: "div{display:none}" }).success).toBe(false);

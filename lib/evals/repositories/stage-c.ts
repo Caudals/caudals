@@ -422,7 +422,7 @@ export function setNotificationPreferences(
   );
 }
 
-function supportsCase(
+export function supportsCase(
   config: TargetConfig,
   requiredCapabilities: string[],
   capabilityReport: unknown,
@@ -433,7 +433,12 @@ function supportsCase(
   const statuses = new Map(
     (report?.features ?? []).map((item) => [item.capability, item.status]),
   );
-  if (requiredCapabilities.some((capability) => statuses.get(capability) === "unsupported")) {
+  if (requiredCapabilities.some((capability) => statuses.get(capability) !== "supported")) {
+    return false;
+  }
+  // A previously frozen website check may claim multi-turn support. Its
+  // browser executor currently opens a new context for every invocation.
+  if (config.kind === "website" && requiredCapabilities.includes("multi_turn")) {
     return false;
   }
   if (config.kind === "https_json" && requiredCapabilities.some((item) => item === "tool_calls")) {
