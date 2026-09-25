@@ -12,7 +12,7 @@ import type { InvocationContext } from "../contracts/connectors";
 import {
   browserDiscoverySnapshotSchema,
   browserProbeEvidenceSchema,
-  browserStorageStateSchema,
+  scopedBrowserStorageState,
   type BrowserDiscoverySnapshot,
   type BrowserLocator,
   type BrowserProbeEvidence,
@@ -270,7 +270,7 @@ async function openRecipe(args: {
   const context = await args.browser.newContext({
     acceptDownloads: false,
     serviceWorkers: "block",
-    ...(args.storageState ? { storageState: browserStorageStateSchema.parse(args.storageState) } : {}),
+    ...(args.storageState ? { storageState: scopedBrowserStorageState(args.storageState, args.recipe.start_url) } : {}),
   });
   try {
     await guardBrowserContext(context, args.destinationCheck);

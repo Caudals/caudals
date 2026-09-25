@@ -137,6 +137,19 @@ export const browserStorageStateSchema = z.strictObject({
   })).max(20),
 });
 
+/** A captured login may only preload state for the attested website. */
+export function scopedBrowserStorageState(raw: unknown, authorizedUrl: string): BrowserStorageState {
+  const state = browserStorageStateSchema.parse(raw);
+  const host = new URL(authorizedUrl).hostname.toLowerCase();
+  if (state.cookies.some((cookie) => cookie.domain.replace(/^\./, "").toLowerCase() !== host)) {
+    throw new Error("browser_session_scope_mismatch");
+  }
+  if (state.origins.some((origin) => new URL(origin.origin).origin !== new URL(authorizedUrl).origin)) {
+    throw new Error("browser_session_scope_mismatch");
+  }
+  return state;
+}
+
 export type BrowserLocator = z.infer<typeof browserLocatorSchema>;
 export type WebsiteRecipe = z.infer<typeof websiteRecipeSchema>;
 export type BrowserDiscoverySnapshot = z.infer<

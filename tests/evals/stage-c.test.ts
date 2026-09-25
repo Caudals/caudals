@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
-import { assertWebsiteRecipeOrigin, browserLocatorSchema, browserStorageStateSchema } from "../../lib/evals/contracts/browser";
+import { assertWebsiteRecipeOrigin, browserLocatorSchema, browserStorageStateSchema, scopedBrowserStorageState } from "../../lib/evals/contracts/browser";
 import { candidateInputSchema } from "../../lib/evals/contracts/projections";
 import { observationSchema, type Observation } from "../../lib/evals/contracts/results";
 import { scenarioSchema, toolFixtureSchema } from "../../lib/evals/contracts/scenarios";
@@ -33,6 +33,19 @@ const context = {
   reserved_cost: { amount: "0", currency: "EUR" },
   signal: new AbortController().signal,
 };
+
+describe("browser login-state scope", () => {
+  const state = {
+    cookies: [{ name: "session", value: "fixture", domain: "chat.example.test", path: "/", expires: -1, httpOnly: true, secure: true, sameSite: "Lax" as const }],
+    origins: [{ origin: "https://chat.example.test", localStorage: [{ name: "login", value: "fixture" }] }],
+  };
+  it("accepts only state for the attested origin", () => {
+    expect(scopedBrowserStorageState(state, "https://chat.example.test/support")).toEqual(state);
+    expect(() => scopedBrowserStorageState({ ...state, cookies: [{ ...state.cookies[0], domain: ".example.test" }] }, "https://chat.example.test/support")).toThrow("browser_session_scope_mismatch");
+    expect(() => scopedBrowserStorageState({ ...state, origins: [{ ...state.origins[0], origin: "https://other.example.test" }] }, "https://chat.example.test/support")).toThrow("browser_session_scope_mismatch");
+    expect(() => scopedBrowserStorageState(state, "https://chat.example.test:8443/support")).toThrow("browser_session_scope_mismatch");
+  });
+});
 
 function observation(input: ReturnType<typeof candidateInputSchema.parse>, answer: string, toolEvents: Observation["tool_events"] = []) {
   const now = new Date().toISOString();
