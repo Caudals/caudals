@@ -5,7 +5,7 @@ test.describe("core role smoke", () => {
     await page.goto("/");
     await expect(page.locator("main h1").first()).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /subscribe|suscribirse/i })
+      page.locator("main").getByRole("link", { name: /free diagnostic|diagnóstico inicial gratuito/i }).first()
     ).toBeVisible();
   });
 
