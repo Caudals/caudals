@@ -1038,13 +1038,15 @@
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(ellipse 58% 68% at 50% 50%, rgba(10, 10, 9, 0.62), rgba(10, 10, 9, 0.12)),
+    radial-gradient(ellipse 65% 75% at 50% 50%, rgba(10, 10, 9, 0.78), rgba(10, 10, 9, 0.55)),
+    linear-gradient(rgba(10, 10, 9, 0.45), rgba(10, 10, 9, 0.55)),
     url("/images/landing/cta-office.webp") 62% 50% / cover no-repeat;
 }
 @media (max-width: 700px) {
   .lp-cta-card::before {
     background:
-      radial-gradient(ellipse 80% 70% at 50% 50%, rgba(10, 10, 9, 0.66), rgba(10, 10, 9, 0.2)),
+      radial-gradient(ellipse 85% 80% at 50% 50%, rgba(10, 10, 9, 0.8), rgba(10, 10, 9, 0.6)),
+      linear-gradient(rgba(10, 10, 9, 0.45), rgba(10, 10, 9, 0.55)),
       url("/images/landing/cta-office-sm.webp") 62% 50% / cover no-repeat;
   }
 }
@@ -1067,7 +1069,7 @@
   max-width: 46ch;
   font-size: clamp(16px, 1.3vw, 18px);
   line-height: 1.6;
-  color: rgba(245, 244, 240, 0.76);
+  color: rgba(245, 244, 240, 0.88);
 }
 .lp-cta-act {
   display: flex;
