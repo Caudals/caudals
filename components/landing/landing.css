@@ -374,21 +374,23 @@
 @media (prefers-reduced-motion: no-preference) {
   /* Conversation entrance when a sector becomes active */
   .hc-conv[data-active="true"] {
-    animation: hc-conv-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: hc-conv-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  /* Question and answer messages cascade in briskly and gracefully */
-  .hc-conv[data-active="true"] .hc-u,
-  .hc-conv[data-active="true"] .hc-row {
-    animation: hc-msg-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-play-state: paused;
-  }
+  /* User questions float in from the right */
   .hc-conv[data-active="true"] .hc-u {
-    animation-delay: calc(var(--i) * 0.22s + 0.05s);
+    animation: hc-msg-user 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-play-state: paused;
+    animation-delay: calc(var(--i) * 0.24s + 0.05s);
   }
+
+  /* AI answers float in from the left */
   .hc-conv[data-active="true"] .hc-row {
-    animation-delay: calc(var(--i) * 0.22s + 0.16s);
+    animation: hc-msg-bot 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-play-state: paused;
+    animation-delay: calc(var(--i) * 0.24s + 0.16s);
   }
+
   .hc-conv[data-active="true"][data-play="true"] .hc-u,
   .hc-conv[data-active="true"][data-play="true"] .hc-row {
     animation-play-state: running;
@@ -396,14 +398,14 @@
 
   /* The audit verdict mark pops in with an energetic spring bounce */
   .hc-conv[data-active="true"][data-play="true"] .hc-mark {
-    animation: hc-mark-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-    animation-delay: calc(var(--i) * 0.22s + 0.26s);
+    animation: hc-mark-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: calc(var(--i) * 0.24s + 0.28s);
   }
 }
 @keyframes hc-conv-in {
   0% {
     opacity: 0;
-    transform: translateY(20px) scale(0.98);
+    transform: translateY(22px) scale(0.97);
     filter: blur(6px);
   }
   65% {
@@ -415,26 +417,39 @@
     filter: blur(0);
   }
 }
-@keyframes hc-msg-in {
+@keyframes hc-msg-user {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.96);
+    transform: translateX(24px) translateY(8px) scale(0.96);
   }
   75% {
-    transform: translateY(-1px) scale(1.008);
+    transform: translateX(-1px) translateY(-1px) scale(1.008);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(0) translateY(0) scale(1);
+  }
+}
+@keyframes hc-msg-bot {
+  0% {
+    opacity: 0;
+    transform: translateX(-24px) translateY(8px) scale(0.96);
+  }
+  75% {
+    transform: translateX(1px) translateY(-1px) scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
   }
 }
 @keyframes hc-mark-pop {
   0% {
     opacity: 0;
-    transform: scale(0.3) rotate(-20deg);
+    transform: scale(0.2) rotate(-25deg);
   }
-  75% {
-    transform: scale(1.15) rotate(4deg);
+  70% {
+    transform: scale(1.2) rotate(4deg);
   }
   100% {
     opacity: 1;
