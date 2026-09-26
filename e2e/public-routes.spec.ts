@@ -157,7 +157,7 @@ test.describe("public navigation", () => {
     );
     await expect(nav.getByRole("link", { name: "Blog" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Newsletter" })).toHaveCount(0);
-    await expect(nav.getByRole("link", { name: "Diagnóstico gratuito" })).toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "Comenzar" })).toHaveAttribute(
       "href",
       "/es/contact?offer=reality-check",
     );

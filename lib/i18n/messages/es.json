@@ -4,7 +4,7 @@
     "logoAlt": "Logotipo de Caudals",
     "toggleMenu": "Abrir menú",
     "howItWorks": "Cómo funciona",
-    "diagnostic": "Diagnóstico gratuito",
+    "diagnostic": "Comenzar",
     "contact": "Contacto",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -155,7 +155,7 @@
     "how": {
       "title": "Cómo funciona",
       "description": "Reunimos tu documentación, las preguntas que hacen de verdad tus clientes y el criterio de nuestros expertos, y con ello escribimos un examen con las respuestas correctas. Se lo hacemos a tu IA como lo haría un cliente, corregimos cada respuesta con su fuente y te entregamos un informe con lo que falla y cómo arreglarlo.",
-      "figure": "Tu documentación, preguntas reales de clientes y nuestros expertos se convierten en un examen. Se lo hacemos a tu IA, corregimos cada respuesta con la fuente y explicamos los resultados en un informe. Cada mes, preguntas nuevas inician otra prueba.",
+      "figure": "Tu documentación, preguntas reales de clientes y nuestros expertos se convierten en un examen. Se lo hacemos a tu IA, corregimos cada respuesta con la fuente y explicamos los resultados en un informe.",
       "docs": "Tu documentación",
       "questions": "Preguntas reales",
       "experts": "Nuestros expertos",
@@ -166,8 +166,7 @@
       "graded": "Respuestas corregidas",
       "gradedNote": "contrastadas con la fuente",
       "report": "Informe",
-      "reportNote": "nota · causas · soluciones",
-      "loop": "cada mes: preguntas nuevas y otra prueba"
+      "reportNote": "nota · causas · soluciones"
     },
     "exam": {
       "title": "Un examen hecho con tus propios documentos",

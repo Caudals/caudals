@@ -82,6 +82,6 @@ describe("createTranslator", () => {
 describe("scopeTranslator", () => {
   it("resolves keys relative to its namespace", () => {
     const t = scopeTranslator(createTranslator("es"), "nav");
-    expect(t("diagnostic")).toBe("Diagnóstico gratuito");
+    expect(t("diagnostic")).toBe("Comenzar");
   });
 });

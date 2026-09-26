@@ -4,7 +4,7 @@
     "logoAlt": "Caudals logo",
     "toggleMenu": "Toggle menu",
     "howItWorks": "How it works",
-    "diagnostic": "Free diagnostic",
+    "diagnostic": "Get started",
     "contact": "Contact",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -155,7 +155,7 @@
     "how": {
       "title": "How it works",
       "description": "We gather your documents, the questions your customers really ask and our experts' judgment, and turn them into an exam with the correct answers. We put it to your AI as a customer would, grade every answer against its source and give you a report on what fails and how to fix it.",
-      "figure": "Your documents, real customer questions and our experts become an exam. We put it to your AI, grade every answer against the source and explain the results in a report. Every month, new questions start a new run.",
+      "figure": "Your documents, real customer questions and our experts become an exam. We put it to your AI, grade every answer against the source and explain the results in a report.",
       "docs": "Your documents",
       "questions": "Real questions",
       "experts": "Our experts",
@@ -166,8 +166,7 @@
       "graded": "Graded answers",
       "gradedNote": "checked against the source",
       "report": "Report",
-      "reportNote": "score · causes · fixes",
-      "loop": "every month: new questions, a new run"
+      "reportNote": "score · causes · fixes"
     },
     "exam": {
       "title": "An exam built from your own documents",

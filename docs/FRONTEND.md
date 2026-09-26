@@ -15,7 +15,7 @@ Implementation rules for the public funnel, the internal Operator Console, and t
   platform system (`packages/brand/platform.css`, `.p-root`); the public site
   keeps the editorial system (`packages/brand/tokens.css`, `app/globals.css`).
   `docs/DESIGN.md` is the authority for both and states which applies where.
-- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces "How it works" (the landing's `#how-it-works` anchor) and Contact, plus the rounded "Free diagnostic" CTA; Blog and Newsletter are temporarily hidden from it. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
+- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces "How it works" (the landing's `#how-it-works` anchor) and Contact, plus the rounded "Get started" / "Comenzar" CTA; Blog and Newsletter are temporarily hidden from it. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
 - The deployed private surface is the legacy Operator Console (`/admin`) with its sign-in (`/auth/*`). The separate evaluation product routes (`/ops`, `/workspace`, `/evaluation-entry`, `/share`) exist in code but are not production-released.
 - The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 

@@ -398,7 +398,6 @@
   justify-items: center;
   gap: 24px;
   padding-block: 30px 34px;
-  border-block: 1px solid var(--line2);
 }
 .lp-logo-rows {
   display: grid;

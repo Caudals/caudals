@@ -128,7 +128,7 @@ export function PipelineDiagram() {
 
   return (
     <div className="dg dg-bare">
-      <svg className="dg-desk" viewBox="0 0 1100 340" role="img" aria-label={t("figure")}>
+      <svg className="dg-desk" viewBox="0 0 1100 330" role="img" aria-label={t("figure")}>
         <defs>
           {DESK_PATHS.map((d, i) => (
             <path key={deskIds[i]} id={deskIds[i]} d={d} />
@@ -138,9 +138,7 @@ export function PipelineDiagram() {
           {deskIds.map((id) => (
             <use key={id} href={`#${id}`} />
           ))}
-          <path className="dash" d="M1010 268 L 1010 304 L 349 304 L 349 270" />
         </g>
-        <path className="lm" d="M352.8 277 L349 270 L345.2 277" />
         <Docs />
         <Chat />
         <Experts />
@@ -164,12 +162,11 @@ export function PipelineDiagram() {
         <Report x={973} y={116} />
         <text x="1010" y="236" className="t" textAnchor="middle">{t("report")}</text>
         <text x="1010" y="256" className="s" textAnchor="middle">{t("reportNote")}</text>
-        <text x="680" y="326" className="s" textAnchor="middle">{t("loop")}</text>
 
         {moving ? <Dots ids={deskIds} timing={TIMING} /> : null}
       </svg>
 
-      <svg className="dg-mob" viewBox="0 0 360 644" role="img" aria-label={t("figure")}>
+      <svg className="dg-mob" viewBox="0 0 360 590" role="img" aria-label={t("figure")}>
         <defs>
           {MOB_PATHS.map((d, i) => (
             <path key={mobIds[i]} id={mobIds[i]} d={d} />
@@ -179,9 +176,7 @@ export function PipelineDiagram() {
           {mobIds.map((id) => (
             <use key={id} href={`#${id}`} />
           ))}
-          <path className="dash" d="M74 580 V 606 H 14 V 183 H 29" />
         </g>
-        <path className="lm" d="M23 186.8 L30 183 L23 179.2" />
         <g transform="translate(25 -26)">
           <Docs />
         </g>
@@ -213,7 +208,6 @@ export function PipelineDiagram() {
         </g>
         <text x="128" y="528" className="t">{t("report")}</text>
         <text x="128" y="546" className="s">{t("reportNote")}</text>
-        <text x="14" y="632" className="s">{t("loop")}</text>
 
         {moving ? <Dots ids={mobIds} timing={TIMING} /> : null}
       </svg>
