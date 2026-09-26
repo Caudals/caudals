@@ -42,7 +42,6 @@ export function HeroChat() {
   const [index, setIndex] = useState(0);
   const [ready, setReady] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
   const [openTurn, setOpenTurn] = useState<string | null>(null);
@@ -85,7 +84,7 @@ export function HeroChat() {
   }, []);
 
   // Sectors keep cycling under reduced motion too: only the movement goes.
-  const held = paused || hovering || focusInside || openTurn !== null || !inView || pageHidden;
+  const held = hovering || focusInside || openTurn !== null || !inView || pageHidden;
   const sector = SECTORS[index];
   const next = useCallback(() => goTo((index + 1) % SECTORS.length), [goTo, index]);
   useAutoAdvance(index, SECTOR_SECONDS * 1000, ready && !held && !leaving, next);
@@ -110,49 +109,6 @@ export function HeroChat() {
       <noscript>
         <style>{".hc-conv .hc-u,.hc-conv .hc-row{animation:none!important}"}</style>
       </noscript>
-
-      <div className="hc-head">
-        <p className="hc-sector">
-          <b>{t(`sectors.${sector.id}.name`)}</b>
-          <span>{t(`sectors.${sector.id}.channel`)}</span>
-        </p>
-        <div className="hc-ctrl">
-          <div className="hc-dots" role="group" aria-label={t("sectorsLabel")}>
-            {SECTORS.map((item, i) => (
-              <button
-                key={item.id}
-                type="button"
-                className="hc-dot"
-                aria-label={t("show", { sector: t(`sectors.${item.id}.name`) })}
-                aria-current={i === index}
-                onClick={() => i !== index && goTo(i)}
-              >
-                <i />
-              </button>
-            ))}
-          </div>
-          {ready ? (
-            <button
-              type="button"
-              className="hc-pause"
-              aria-label={paused ? t("play") : t("pause")}
-              aria-pressed={paused}
-              onClick={() => setPaused((value) => !value)}
-            >
-              {paused ? (
-                <svg viewBox="0 0 10 10" aria-hidden="true">
-                  <path d="M2.5 1.2v7.6L8.8 5z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 10 10" aria-hidden="true">
-                  <rect x="2" y="1.5" width="2.2" height="7" rx=".4" />
-                  <rect x="5.8" y="1.5" width="2.2" height="7" rx=".4" />
-                </svg>
-              )}
-            </button>
-          ) : null}
-        </div>
-      </div>
 
       {/* Every sector sits in the same grid cell, so the chat always takes the
           height of the longest conversation and never shifts the page. */}
@@ -201,14 +157,19 @@ export function HeroChat() {
                         {answer.after}
                       </button>
                       <VerdictMark ok={ok} className="hc-mark" />
-                      <div id={noteId} className="hc-note" role="note">
+                      <div id={noteId} className="hc-note" role="note" data-ok={ok}>
                         <p className="hc-v">
                           <VerdictMark ok={ok} />
                           <span>{t(`verdicts.${verdict}`)}</span>
                         </p>
                         <p className="hc-why">{t(`sectors.${item.id}.${turn}.why`)}</p>
                         <p className="hc-src">
-                          {t("source")}: {t(`sectors.${item.id}.${turn}.src`)}
+                          <svg viewBox="0 0 14 16" aria-hidden="true">
+                            <path d="M2.5 1.5h6l3 3v10h-9z" />
+                            <path d="M5 7.5h4.5M5 10h4.5M5 12.5h3" />
+                          </svg>
+                          <span className="sr-only">{t("source")}: </span>
+                          {t(`sectors.${item.id}.${turn}.src`)}
                         </p>
                       </div>
                     </div>
@@ -220,10 +181,20 @@ export function HeroChat() {
         })}
       </div>
 
-      <p className="hc-hint">
-        <span className="pointer">{t("hintPointer")}</span>
-        <span className="touch">{t("hintTouch")}</span>
-      </p>
+      <div className="hc-dots" role="group" aria-label={t("sectorsLabel")}>
+        {SECTORS.map((item, i) => (
+          <button
+            key={item.id}
+            type="button"
+            className="hc-dot"
+            aria-label={t("show", { sector: t(`sectors.${item.id}.name`) })}
+            aria-current={i === index}
+            onClick={() => i !== index && goTo(i)}
+          >
+            <i />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

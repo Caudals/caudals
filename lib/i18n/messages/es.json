@@ -13,7 +13,7 @@
   },
   "hero": {
     "headline": "Enseñamos a tu IA a pensar como un *experto*.",
-    "subtitle": "Medimos dónde falla tu IA y profesionales de tu sector crean los datos que lo corrigen.",
+    "subtitle": "Detectamos los fallos de tu IA y trabajamos con profesionales de tu sector para crear los datos que los resuelven.",
     "primaryCta": "Diagnóstico inicial gratuito",
     "secondaryCta": "O reserva una llamada de 30 minutos."
   },
@@ -21,10 +21,6 @@
     "label": "Conversaciones de ejemplo, revisadas por Caudals",
     "sectorsLabel": "Sector",
     "show": "Ver {sector}",
-    "pause": "Pausar los ejemplos",
-    "play": "Reanudar los ejemplos",
-    "hintPointer": "Ejemplos ilustrativos. Pasa el cursor por una respuesta para ver la corrección.",
-    "hintTouch": "Ejemplos ilustrativos. Toca una respuesta para ver la corrección.",
     "source": "Fuente",
     "verdicts": {
       "correct": "Correcta",
@@ -151,14 +147,14 @@
     "label": "Con el apoyo de"
   },
   "problem": {
-    "lead": "La mayoría de las empresas descubre que su IA se equivoca cuando un cliente se queja.",
-    "cost": "Para entonces, esa respuesta ya ha costado dinero: devoluciones, reclamaciones y clientes que no vuelven."
+    "lead": "La mayoría de las empresas descubre que su IA se equivoca cuando un cliente se queja, y para entonces ya le ha costado dinero.",
+    "solution": "Nosotros encontramos esos fallos antes y creamos los datos que tu IA necesita para dejar de cometerlos."
   },
   "steps": {
     "label": "Cómo trabaja Caudals",
     "how": {
       "title": "Cómo funciona",
-      "description": "Preparamos un examen para tu IA, le hacemos las preguntas como lo haría un cliente y corregimos cada respuesta.",
+      "description": "Reunimos tu documentación, las preguntas que hacen de verdad tus clientes y el criterio de nuestros expertos, y con ello escribimos un examen con las respuestas correctas. Se lo hacemos a tu IA como lo haría un cliente, corregimos cada respuesta con su fuente y te entregamos un informe con lo que falla y cómo arreglarlo.",
       "figure": "Tu documentación, preguntas reales de clientes y nuestros expertos se convierten en un examen. Se lo hacemos a tu IA, corregimos cada respuesta con la fuente y explicamos los resultados en un informe. Cada mes, preguntas nuevas inician otra prueba.",
       "docs": "Tu documentación",
       "questions": "Preguntas reales",
@@ -175,18 +171,15 @@
     },
     "exam": {
       "title": "Un examen hecho con tus propios documentos",
-      "description": "Cada pregunta lleva su respuesta correcta y la página de la que sale. Cuando tu IA falla, te decimos por qué.",
+      "description": "Cada pregunta del examen lleva su respuesta correcta y la página exacta de la que sale, así que nadie puede discutir el resultado. Cuando tu IA se equivoca, te decimos de cuál de estas cinco maneras ha fallado, para que sepas si hay que corregir los documentos o el sistema.",
       "causesLabel": "Cinco maneras de equivocarse",
-      "example": "Ejemplo ilustrativo",
-      "question": "Pregunta",
-      "aiAnswer": "Tu IA respondió",
-      "key": "La respuesta correcta, según tus documentos",
+      "aiAnswer": "Según tu IA",
+      "key": "Respuesta correcta, según tus documentos",
       "causes": {
         "invented": {
           "name": "Respuesta inventada",
           "description": "Dice algo que ningún documento respalda.",
           "example": {
-            "sector": "Seguro de hogar",
             "q": "¿Me cubren las joyas si entran a robar en casa?",
             "a": "Sí, todas tus joyas están cubiertas, sin límite.",
             "doc": "Las joyas están cubiertas hasta 3.000 €, y solo si estaban en una caja fuerte.",
@@ -197,7 +190,6 @@
           "name": "Documento desactualizado",
           "description": "Responde con una versión que ya no está en vigor.",
           "example": {
-            "sector": "Telecomunicaciones",
             "q": "¿Cuánto cuesta el paquete de fibra y móvil?",
             "a": "39,90 € al mes.",
             "doc": "44,90 € al mes desde el 1 de septiembre de 2026.",
@@ -208,7 +200,6 @@
           "name": "Fuente equivocada",
           "description": "Encuentra un documento, pero no el que toca.",
           "example": {
-            "sector": "Posventa industrial",
             "q": "¿A qué par se aprietan los tornillos de culata de la bomba K-400?",
             "a": "45 Nm, en una sola pasada.",
             "doc": "60 Nm, en dos pasadas. Los 45 Nm son el dato de la K-300.",
@@ -219,7 +210,6 @@
           "name": "Laguna de conocimiento",
           "description": "La respuesta no está escrita en ningún sitio.",
           "example": {
-            "sector": "Energía",
             "q": "¿Me pagáis por la energía que sobra de mis placas solares?",
             "a": "Sí, 0,15 € por cada kWh que viertas a la red.",
             "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan.",
@@ -230,7 +220,6 @@
           "name": "Fuera de alcance",
           "description": "Responde lo que debería pasar a una persona.",
           "example": {
-            "sector": "Sanidad privada",
             "q": "¿Puedo tomar ibuprofeno con mis pastillas de la tensión?",
             "a": "Sí, puedes tomarlos juntos sin problema.",
             "doc": "Las dudas sobre medicación se derivan a un médico o farmacéutico.",
@@ -241,7 +230,7 @@
     },
     "experts": {
       "title": "Una red de expertos de tu sector",
-      "description": "Peritos de seguros, abogados, ingenieros y médicos escriben y revisan cada pregunta, y crean los datos que le faltan a tu IA.",
+      "description": "Trabajamos con profesionales en activo de cada sector. Escriben y revisan las preguntas del examen y, a partir de los fallos que encontramos, crean los datos que le faltan a tu IA para responder bien: desde documentación que no existía hasta casos reales resueltos paso a paso.",
       "whoLabel": "Quién escribe",
       "whatLabel": "Qué crean",
       "roles": {
@@ -253,36 +242,31 @@
         "clinicians": "Médicos y enfermeras"
       },
       "data": {
-        "exams": {
-          "name": "Exámenes más amplios",
-          "description": "Preguntas y casos límite nuevos cada mes",
-          "use": "para detectar lo que se rompe"
-        },
         "qa": {
           "name": "Preguntas y respuestas",
-          "description": "Pares basados en tus documentos y en la práctica diaria",
-          "use": "para enseñar con ejemplos"
+          "description": "Pares basados en tus documentos y en la práctica diaria"
         },
         "docs": {
           "name": "Documentación que falta",
-          "description": "Lo que tus documentos no dicen, o dicen dos veces",
-          "use": "para lo que consulta tu IA"
+          "description": "Lo que tus documentos no dicen, o dicen dos veces"
         },
         "reasoning": {
           "name": "Razonamiento paso a paso",
-          "description": "Casos reales resueltos como lo haría un profesional",
-          "use": "para enseñar criterio"
+          "description": "Casos reales resueltos como lo haría un profesional"
         },
         "preferences": {
           "name": "Preferencias",
-          "description": "Ordenar y corregir respuestas candidatas",
-          "use": "para elegir la mejor respuesta"
+          "description": "Ordenar y corregir respuestas candidatas"
+        },
+        "exams": {
+          "name": "Exámenes más amplios",
+          "description": "Preguntas y casos límite nuevos cada mes"
         }
       }
     },
     "deliver": {
       "title": "Lo que recibes",
-      "description": "Un informe pensado para quien es responsable del asistente, no para ingenieros: tu nota, cada respuesta errónea con su fuente y qué corregir primero.",
+      "description": "Un informe claro, pensado para quien es responsable del asistente y no para ingenieros: tu nota, cada respuesta errónea junto a su fuente, por qué ocurrió y qué corregir primero. Te lo presentamos en directo y el examen es tuyo para siempre.",
       "figure": "Cuatro entregables: el informe, tu examen, una presentación en directo y, con la suscripción, avisos mensuales.",
       "reportTag": "Diagnóstico",
       "reportScore": "correctas",
@@ -309,15 +293,14 @@
       }
     },
     "improve": {
-      "title": "Y sigue mejorando",
-      "description": "Tus documentos cambian y tu IA se actualiza. Cada mes añadimos unas 25 preguntas, repetimos el examen y te avisamos si algo se rompe.",
+      "title": "Mejora continua",
+      "description": "Tus documentos cambian, tu IA se actualiza y tus clientes preguntan cosas nuevas. Cada mes añadimos unas 25 preguntas, repetimos el examen, te avisamos si algo se rompe y nuestros expertos crean los datos que cierran cada nueva laguna.",
       "figure": "El piloto empieza con 150 preguntas y cada mes suma 25, hasta llegar a 300 a los seis meses.",
       "pilot": "Piloto",
       "month": "M{n}",
       "legendPilot": "preguntas del piloto",
       "legendBefore": "añadidas antes",
-      "legendNow": "añadidas este mes",
-      "unit": "1 cuadrado = 5 preguntas"
+      "legendNow": "añadidas este mes"
     }
   },
   "howItWorks": {
@@ -386,14 +369,13 @@
     }
   },
   "cta": {
-    "eyebrow": "Diagnóstico gratuito · informe en 48 horas",
-    "title": "Descubre en qué falla tu IA antes que tus clientes.",
-    "subtitle": "Envíanos el enlace de tu asistente y le haremos cuarenta preguntas. Sin accesos ni contratos.",
+    "title": "Haz que tu IA responda como un experto.",
+    "subtitle": "Empieza con un diagnóstico gratuito: le hacemos cuarenta preguntas a tu asistente y en 48 horas te decimos qué falla y qué datos necesita para mejorar.",
     "primaryCta": "Diagnóstico inicial gratuito",
     "secondaryCta": "Reserva una llamada de 30 minutos"
   },
   "footer": {
-    "tagline": "Evaluación independiente para asistentes y agentes de IA, con respuestas de referencia validadas por expertos de dominio.",
+    "tagline": "Evaluación independiente de asistentes de IA, con respuestas validadas por expertos de cada sector.",
     "askAi": "Pregunta a una IA sobre Caudals",
     "askAiPrompt": "¿Qué es Caudals? Explica cómo evalúa asistentes de IA a partir de baterías de prueba creadas con la documentación de cada empresa y expertos de dominio, y cómo cada evaluación evoluciona hacia datasets específicos. Basa el resumen en su web: https://caudals.com.",
     "explore": "Explorar",

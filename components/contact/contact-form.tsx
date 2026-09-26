@@ -316,7 +316,7 @@ export function ContactForm({ requestedOffer }: ContactFormProps) {
 
             <div className="space-y-8 border-t border-black/[0.08] pt-8">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                <p className="text-xs font-medium text-gray-500">
                   {t("systemHeading")}
                 </p>
                 <h2 className="mt-2 text-xl font-normal tracking-tight text-black">

@@ -292,16 +292,17 @@ Two selector techniques appear throughout and are deliberate:
 - Tokens: `packages/brand/tokens.css` (`--ds-*`), consumed via `app/globals.css`. The landing adds its own scoped palette in `components/landing/landing.css` (`.lp`), with the same values.
 - Warm paper canvas `#f5f4f0`, white paper `#ffffff` for sheets and bubbles, ink `#141413`, secondary ink `#3b3a36`, muted `#6b6a63` (4.9:1 on the canvas), hairlines `#dcdad3` / `#e9e7e1`.
 - **No colour accent.** Teal and emerald are gone from every public surface; the `--ds-accent*` names remain for existing consumers and resolve to ink. A verdict is a solid ink cross or an outlined ink tick, always next to a word.
-- Type: Geist (text), Newsreader (display, light 300, with italic for the one emphasised word), Geist Mono (uppercase labels, sources, captions). Loaded with `next/font` in `app/[locale]/layout.tsx` and exposed as `font-mk-sans`, `font-mk-serif`, `font-mk-mono`.
+- Type: Geist for everything, titles included (400, tight tracking). Newsreader only for the hero's italic word, the problem statement and document excerpts. Geist Mono only for small figures inside diagrams. Loaded with `next/font` in `app/[locale]/layout.tsx` and exposed as `font-mk-sans`, `font-mk-serif`, `font-mk-mono`.
+- **No all-caps with letter-spacing anywhere on the public site.** Labels are sentence case, Geist 500, muted.
 - The hero headline is Geist 400 with one Newsreader italic word, marked `*like this*` in the message files so each locale picks its own.
 - Primary CTAs are near-black **pills**; on the dark closing card they invert to paper. Secondary actions are underlined text links or ghost pills.
-- Page order: hero with the checked chat, partner logos (two rows, one ink), the problem in two serif sentences, five numbered steps (numeral · title · one line · figure), the closing CTA over a blurred black-and-white photograph, footer. No pricing, FAQ or testimonial sections.
+- Page order: hero with the checked chat (sector indicator underneath), partner logos (two rows, one ink), the problem and our answer in two serif sentences, five numbered steps (numeral · title · a short paragraph · a full-width figure), the closing CTA over a blurred black-and-white photograph, footer. No pricing, FAQ or testimonial sections.
 - Figures sit on the canvas with no card: line drawings map their paper fills to the canvas (`.dg-bare`). Diagrams that do not scale to a phone ship a mobile drawing (`.dg-desk` / `.dg-mob`); charts are HTML so text stays legible.
-- Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade. Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen, and the hero has a pause button. Under reduced motion nothing moves; the hero still changes sector.
+- Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade. Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen; the hero's sector indicator lets a visitor pick one. Under reduced motion nothing moves; the hero still changes sector.
 - Container `max-width: 1200px`, gutters `clamp(16px, 4vw, 40px)`. No emoji, no gradients as decoration, no parallax.
 - Offers come from `lib/public/evaluation-offers.ts` and appear only in `/llms.txt`, agent markdown and structured data; the landing shows no prices.
 
-Do not import `platform.css` here, and do not carry the Newsreader display type into the platform.
+Do not import `platform.css` here, and do not carry Newsreader into the platform.
 
 ---
 

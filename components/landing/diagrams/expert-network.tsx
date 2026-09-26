@@ -1,27 +1,31 @@
 "use client";
 
 import type { ReactNode } from "react";
+import {
+  Calculator,
+  ClipboardCheck,
+  FileSearch,
+  Scale,
+  Stethoscope,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslations } from "@/lib/i18n/context";
 
-const ROLES = ["adjusters", "claims", "lawyers", "tax", "engineers", "clinicians"] as const;
+/** Who in the network writes, each with the tool of their trade. */
+const ROLES: readonly { id: "adjusters" | "claims" | "lawyers" | "tax" | "engineers" | "clinicians"; icon: LucideIcon }[] = [
+  { id: "adjusters", icon: FileSearch },
+  { id: "claims", icon: ClipboardCheck },
+  { id: "lawyers", icon: Scale },
+  { id: "tax", icon: Calculator },
+  { id: "engineers", icon: Wrench },
+  { id: "clinicians", icon: Stethoscope },
+];
 
 type DataId = "exams" | "qa" | "docs" | "reasoning" | "preferences";
 
 /** One glyph per kind of data our experts build, drawn on a 48 × 48 grid. */
 const DATA: readonly { id: DataId; icon: ReactNode }[] = [
-  {
-    id: "exams",
-    icon: (
-      <>
-        <rect x="8" y="8" width="10" height="10" />
-        <rect x="20" y="8" width="10" height="10" />
-        <rect x="32" y="8" width="10" height="10" className="k" />
-        <rect x="8" y="20" width="10" height="10" />
-        <rect x="20" y="20" width="10" height="10" className="k" />
-        <rect x="32" y="20" width="10" height="10" className="k" />
-      </>
-    ),
-  },
   {
     id: "qa",
     icon: (
@@ -63,6 +67,19 @@ const DATA: readonly { id: DataId; icon: ReactNode }[] = [
       </>
     ),
   },
+  {
+    id: "exams",
+    icon: (
+      <>
+        <rect x="8" y="8" width="10" height="10" />
+        <rect x="20" y="8" width="10" height="10" />
+        <rect x="32" y="8" width="10" height="10" className="k" />
+        <rect x="8" y="20" width="10" height="10" />
+        <rect x="20" y="20" width="10" height="10" className="k" />
+        <rect x="32" y="20" width="10" height="10" className="k" />
+      </>
+    ),
+  },
 ];
 
 /** Step 3: who in our network writes, and the data they build from what the exam finds. */
@@ -74,13 +91,10 @@ export function ExpertNetwork() {
       <div>
         <p className="lp-label">{t("whoLabel")}</p>
         <ul className="ex-roles">
-          {ROLES.map((role) => (
-            <li key={role}>
-              <svg viewBox="0 0 22 22" aria-hidden="true">
-                <circle cx="11" cy="7.5" r="3.6" />
-                <path d="M4.2 19c.5-4.2 3.2-6.6 6.8-6.6s6.3 2.4 6.8 6.6" />
-              </svg>
-              {t(`roles.${role}`)}
+          {ROLES.map(({ id, icon: Icon }) => (
+            <li key={id}>
+              <Icon aria-hidden="true" strokeWidth={1.25} />
+              {t(`roles.${id}`)}
             </li>
           ))}
         </ul>
@@ -95,7 +109,6 @@ export function ExpertNetwork() {
               </svg>
               <b>{t(`data.${id}.name`)}</b>
               <span>{t(`data.${id}.description`)}</span>
-              <em>{t(`data.${id}.use`)}</em>
             </li>
           ))}
         </ul>

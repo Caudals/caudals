@@ -19,7 +19,6 @@ export function CTASection() {
             decoding="async"
           />
         </picture>
-        <p className="lp-cta-eyebrow">{t("eyebrow")}</p>
         <h2 id="cta-title" className="lp-cta-h">
           {t("title")}
         </h2>

@@ -83,7 +83,7 @@ export function EvalDatasetPlanner() {
   return (
     <div className="my-10 border border-black/[0.08] rounded-xl overflow-hidden bg-background shadow-xs">
       <div className="px-6 py-4 border-b border-black/[0.08] bg-black/[0.02]">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-semibold text-gray-500">
           Interactive · Eval Dataset Planner
         </p>
       </div>
@@ -91,7 +91,7 @@ export function EvalDatasetPlanner() {
       <div className="p-6 space-y-6">
         {/* Task type */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+          <p className="text-xs font-semibold text-gray-500 mb-3">
             Task type
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -117,7 +117,7 @@ export function EvalDatasetPlanner() {
 
         {/* Maturity level */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+          <p className="text-xs font-semibold text-gray-500 mb-3">
             Model maturity
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -144,7 +144,7 @@ export function EvalDatasetPlanner() {
         {/* Results */}
         <div className="rounded-lg border border-black/[0.08] overflow-hidden bg-background">
           <div className="bg-black/[0.02] px-5 py-3 border-b border-black/[0.08]">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+            <p className="text-xs font-semibold text-gray-500">
               Recommended dataset size
             </p>
           </div>

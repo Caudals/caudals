@@ -36,7 +36,7 @@ export function BlogPostVisual({
       <div className="absolute left-[18%] top-[42%] h-3 w-3 -translate-y-1/2 rounded-full bg-[#141413]" />
       <div className="absolute right-[18%] top-[42%] h-3 w-3 -translate-y-1/2 rounded-full bg-slate-400" />
       <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/80 bg-white/88 p-4 backdrop-blur-sm">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#3b3a36]">
+        <p className="text-[10px] font-semibold text-[#3b3a36]">
           {category}
         </p>
         <div className="mt-3 space-y-2">

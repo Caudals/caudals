@@ -112,7 +112,7 @@ export function PreferencePairPlanner() {
   return (
     <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
       <div className="border-b border-black/[0.08] px-6 py-4">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-medium text-gray-500">
           Preference pair estimator
         </p>
       </div>
@@ -188,7 +188,7 @@ export function PreferencePairPlanner() {
       {/* Result */}
       <div className="border-t border-black/[0.08] px-6 py-6 bg-black/[0.02]">
         <div className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">
+          <p className="text-xs font-medium text-gray-500 mb-1">
             Estimated comparison pairs
           </p>
           <p className="text-4xl font-light tracking-tight text-black">
@@ -199,19 +199,19 @@ export function PreferencePairPlanner() {
 
         <div className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-400 mb-1">
               On model stage
             </p>
             <p className="text-sm text-gray-700 leading-relaxed">{result.rewardModelNote}</p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-400 mb-1">
               On task design
             </p>
             <p className="text-sm text-gray-700 leading-relaxed">{result.taskNote}</p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-400 mb-1">
               On annotators
             </p>
             <p className="text-sm text-gray-700 leading-relaxed">{result.annotatorNote}</p>

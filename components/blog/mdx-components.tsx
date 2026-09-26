@@ -51,7 +51,7 @@ function Callout({ children, title }: CalloutProps) {
   return (
     <aside className="my-8 border-l-2 border-black pl-6 py-2 text-black">
       {title ? (
-        <p className="mb-2 text-xs font-medium uppercase tracking-widest">
+        <p className="mb-2 text-xs font-medium">
           {title}
         </p>
       ) : null}
@@ -134,7 +134,7 @@ export const mdxComponents = {
   ),
   th: ({ className, ...props }: ComponentPropsWithoutRef<"th">) => (
     <th
-      className={cn("border-b border-black py-4 pr-4 align-bottom font-medium uppercase tracking-widest text-xs text-gray-500", className)}
+      className={cn("border-b border-black py-4 pr-4 align-bottom font-medium text-xs text-gray-500", className)}
       {...props}
     />
   ),

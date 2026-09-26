@@ -8,15 +8,15 @@ import { useTranslations } from "@/lib/i18n/context";
  */
 const ROWS = [
   [
-    { name: "FUESCYL · Junta de Castilla y León", src: "/logos/fuescyl-jcyl.png", h: 34 },
-    { name: "Iniciativa Campus Emprendedor", src: "/logos/campus-emprendedor.png", h: 38 },
-    { name: "Santander X", src: "/logos/santander-x.png", h: 16.5 },
-    { name: "Universidad de Valladolid", src: "/logos/uva.png", h: 36 },
+    { name: "FUESCYL · Junta de Castilla y León", src: "/logos/fuescyl-jcyl.png", h: 40.8 },
+    { name: "Iniciativa Campus Emprendedor", src: "/logos/campus-emprendedor.png", h: 45.6 },
+    { name: "Santander X", src: "/logos/santander-x.png", h: 19.8 },
+    { name: "Universidad de Valladolid", src: "/logos/uva.png", h: 43.2 },
   ],
   [
-    { name: "Fundación UVa", src: "/logos/fundacion-uva.png", h: 26 },
-    { name: "Ayuntamiento de Valladolid", src: "/logos/ayuntamiento-valladolid.png", h: 32 },
-    { name: "Consolida Startup", src: "/logos/consolida-startup.png", h: 18 },
+    { name: "Fundación UVa", src: "/logos/fundacion-uva.png", h: 31.2 },
+    { name: "Ayuntamiento de Valladolid", src: "/logos/ayuntamiento-valladolid.png", h: 38.4 },
+    { name: "Consolida Startup", src: "/logos/consolida-startup.png", h: 21.6 },
   ],
 ] as const;
 

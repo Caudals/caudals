@@ -141,12 +141,6 @@ export function FailureModes() {
         key={cause}
         data-enter={!reducedMotion}
       >
-        <div className="fw-meta">
-          <p className="lp-label">
-            {t("question")} · {t(`causes.${cause}.example.sector`)}
-          </p>
-          <p className="lp-label">{t("example")}</p>
-        </div>
         <div className="fw-q">
           <p>{t(`causes.${cause}.example.q`)}</p>
         </div>

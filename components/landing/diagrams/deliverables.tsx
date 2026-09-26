@@ -110,8 +110,8 @@ export function Deliverables() {
   const t = useTranslations("steps.deliver");
 
   const art = {
-    report: <Report tag={t("reportTag").toLocaleUpperCase()} score={t("reportScore")} />,
-    exam: <Exam tag={t("examTag").toLocaleUpperCase()} />,
+    report: <Report tag={t("reportTag")} score={t("reportScore")} />,
+    exam: <Exam tag={t("examTag")} />,
     readout: <Readout />,
     alerts: <Alerts tag={t("alertTag")} text={t("alertText")} />,
   };

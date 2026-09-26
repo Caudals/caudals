@@ -56,7 +56,6 @@ export function GrowthChart() {
           <i className="n" />
           {t("legendNow")}
         </li>
-        <li className="unit">{t("unit")}</li>
       </ul>
     </div>
   );

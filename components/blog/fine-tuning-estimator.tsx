@@ -105,7 +105,7 @@ export function FineTuningEstimator() {
   return (
     <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
       <div className="border-b border-black/[0.08] px-6 py-4">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-medium text-gray-500">
           Fine-tuning data estimator
         </p>
       </div>
@@ -182,7 +182,7 @@ export function FineTuningEstimator() {
       <div className="border-t border-black/[0.08] px-6 py-6 bg-black/[0.02]">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-gray-500 mb-1">
+            <p className="text-xs font-medium text-gray-500 mb-1">
               Estimated range
             </p>
             <p className="text-4xl font-light tracking-tight text-black">

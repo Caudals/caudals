@@ -94,11 +94,11 @@ export function MarketingFooter() {
             </Link>
           </div>
           <div>
-            <p className="font-mk-mono mb-4 text-[11px] font-medium uppercase tracking-[0.09em] text-[#6b6a63]">
+            <p className="mb-4 text-sm font-medium text-[#141413]">
               {t("explore")}
             </p>
             <ul className="space-y-2.5 text-sm text-[#3b3a36]">
-              {publicNavigationLinks.map((link) => (
+              {[{ href: "/#how-it-works", labelKey: "howItWorks" } as const, ...publicNavigationLinks].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="transition-colors hover:text-[#141413]">
                     {tNav(link.labelKey)}
@@ -113,7 +113,7 @@ export function MarketingFooter() {
             </ul>
           </div>
           <div>
-            <p className="font-mk-mono mb-4 text-[11px] font-medium uppercase tracking-[0.09em] text-[#6b6a63]">
+            <p className="mb-4 text-sm font-medium text-[#141413]">
               {t("legalHeading")}
             </p>
             <ul className="space-y-2.5 text-sm text-[#3b3a36]">

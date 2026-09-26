@@ -63,7 +63,7 @@ export function ActiveLearningLoop() {
     <div className="my-10 border border-black/[0.08] rounded-xl overflow-hidden bg-background shadow-xs">
       {/* Header */}
       <div className="px-6 py-4 border-b border-black/[0.08] bg-black/[0.02]">
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-semibold text-gray-500">
           Interactive · Active Learning Loop
         </p>
       </div>
@@ -136,7 +136,7 @@ export function ActiveLearningLoop() {
       <div className="mx-6 mb-6 mt-4 rounded-lg border border-black/[0.08] bg-black/[0.02] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#3b3a36] mb-1">
+            <p className="text-xs font-semibold text-[#3b3a36] mb-1">
               Step {step.id} of {steps.length}
             </p>
             <h3 className="text-base font-semibold text-gray-900 mb-2">

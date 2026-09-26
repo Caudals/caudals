@@ -150,10 +150,7 @@ test.describe("public navigation", () => {
     await page.goto("/es");
 
     const nav = page.locator("header nav").first();
-    await expect(nav.getByRole("link", { name: "Cómo funciona" })).toHaveAttribute(
-      "href",
-      "/es#how-it-works",
-    );
+    await expect(nav.getByRole("link", { name: "Cómo funciona" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Contacto" })).toHaveAttribute(
       "href",
       "/es/contact",

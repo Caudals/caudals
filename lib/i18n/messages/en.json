@@ -13,7 +13,7 @@
   },
   "hero": {
     "headline": "We teach your AI to think like an *expert*.",
-    "subtitle": "We measure where your AI fails, and professionals from your sector create the data that fixes it.",
+    "subtitle": "We find where your AI fails and work with professionals from your sector to create the data that fixes it.",
     "primaryCta": "Get a free diagnostic",
     "secondaryCta": "Or book a 30-minute call."
   },
@@ -21,10 +21,6 @@
     "label": "Example conversations, checked by Caudals",
     "sectorsLabel": "Sector",
     "show": "Show {sector}",
-    "pause": "Pause the examples",
-    "play": "Play the examples",
-    "hintPointer": "Illustrative examples. Point at an answer to see our check.",
-    "hintTouch": "Illustrative examples. Tap an answer to see our check.",
     "source": "Source",
     "verdicts": {
       "correct": "Correct",
@@ -151,14 +147,14 @@
     "label": "Backed by"
   },
   "problem": {
-    "lead": "Most companies find out their AI is wrong when a customer complains.",
-    "cost": "By then, that answer has already cost money: refunds, claims and customers who don't come back."
+    "lead": "Most companies find out their AI is wrong when a customer complains, and by then it has already cost money.",
+    "solution": "We find those failures first, then create the data your AI needs to stop making them."
   },
   "steps": {
     "label": "How Caudals works",
     "how": {
       "title": "How it works",
-      "description": "We write an exam for your AI, ask it the questions the way a customer would, and grade every answer.",
+      "description": "We gather your documents, the questions your customers really ask and our experts' judgment, and turn them into an exam with the correct answers. We put it to your AI as a customer would, grade every answer against its source and give you a report on what fails and how to fix it.",
       "figure": "Your documents, real customer questions and our experts become an exam. We put it to your AI, grade every answer against the source and explain the results in a report. Every month, new questions start a new run.",
       "docs": "Your documents",
       "questions": "Real questions",
@@ -175,18 +171,15 @@
     },
     "exam": {
       "title": "An exam built from your own documents",
-      "description": "Every question comes with its correct answer and the page it comes from. When your AI fails, we tell you why.",
+      "description": "Every question comes with its correct answer and the exact page it comes from, so no one can dispute the result. When your AI gets something wrong, we tell you which of these five ways it failed, so you know whether to fix your documents or your system.",
       "causesLabel": "Five ways an AI gets it wrong",
-      "example": "Illustrative example",
-      "question": "Question",
-      "aiAnswer": "Your AI answered",
-      "key": "The correct answer, from your documents",
+      "aiAnswer": "Your AI says",
+      "key": "Correct answer, from your documents",
       "causes": {
         "invented": {
           "name": "Invented answer",
           "description": "It says something no document supports.",
           "example": {
-            "sector": "Home insurance",
             "q": "Is my jewelry covered if my home is burgled?",
             "a": "Yes, all your jewelry is covered, with no limit.",
             "doc": "Jewelry is covered up to €3,000, and only if it was kept in a safe.",
@@ -197,7 +190,6 @@
           "name": "Outdated document",
           "description": "It answers from a version that no longer applies.",
           "example": {
-            "sector": "Telecoms",
             "q": "How much is the fiber and mobile bundle?",
             "a": "€39.90 a month.",
             "doc": "€44.90 a month since September 1, 2026.",
@@ -208,7 +200,6 @@
           "name": "Wrong source",
           "description": "It finds a document, just not the right one.",
           "example": {
-            "sector": "Industrial after-sales",
             "q": "What torque do the head bolts on the K-400 pump take?",
             "a": "45 Nm, in a single pass.",
             "doc": "60 Nm, tightened in two passes. 45 Nm is the figure for the K-300.",
@@ -219,7 +210,6 @@
           "name": "Knowledge gap",
           "description": "The answer isn't written down anywhere.",
           "example": {
-            "sector": "Energy",
             "q": "Do you pay me for the surplus from my solar panels?",
             "a": "Yes, €0.15 for every kWh you export.",
             "doc": "No document covers this. Our experts write it.",
@@ -230,7 +220,6 @@
           "name": "Out of scope",
           "description": "It answers what it should pass to a person.",
           "example": {
-            "sector": "Private healthcare",
             "q": "Can I take ibuprofen with my blood pressure pills?",
             "a": "Yes, it's fine to take them together.",
             "doc": "Questions about medication are referred to a doctor or pharmacist.",
@@ -241,7 +230,7 @@
     },
     "experts": {
       "title": "A network of experts in your sector",
-      "description": "Insurance adjusters, lawyers, engineers and doctors write and review every question, then build the data your AI is missing.",
+      "description": "We work with practicing professionals in each sector. They write and review the exam questions and, from the failures we find, create the data your AI is missing to answer correctly: from documentation that didn't exist to real cases solved step by step.",
       "whoLabel": "Who writes",
       "whatLabel": "What they build",
       "roles": {
@@ -253,36 +242,31 @@
         "clinicians": "Doctors and nurses"
       },
       "data": {
-        "exams": {
-          "name": "Larger exams",
-          "description": "New questions and edge cases every month",
-          "use": "to catch what breaks"
-        },
         "qa": {
           "name": "Questions and answers",
-          "description": "Pairs grounded in your documents and daily practice",
-          "use": "to teach by example"
+          "description": "Pairs grounded in your documents and daily practice"
         },
         "docs": {
           "name": "Missing documentation",
-          "description": "What your documents don't say, or say twice",
-          "use": "for what your AI reads"
+          "description": "What your documents don't say, or say twice"
         },
         "reasoning": {
           "name": "Step-by-step reasoning",
-          "description": "Real cases solved the way a professional would",
-          "use": "to teach judgment"
+          "description": "Real cases solved the way a professional would"
         },
         "preferences": {
           "name": "Preferences",
-          "description": "Ranking and correcting candidate answers",
-          "use": "to pick the better answer"
+          "description": "Ranking and correcting candidate answers"
+        },
+        "exams": {
+          "name": "Larger exams",
+          "description": "New questions and edge cases every month"
         }
       }
     },
     "deliver": {
       "title": "What you receive",
-      "description": "A report written for whoever owns the assistant, not for engineers: your score, every wrong answer with its source, and what to fix first.",
+      "description": "A clear report written for whoever owns the assistant, not for engineers: your score, every wrong answer next to its source, why it happened and what to fix first. We walk your team through it live, and the exam is yours to keep.",
       "figure": "Four deliverables: the report, your exam, a live walkthrough and, with the subscription, monthly alerts.",
       "reportTag": "Diagnostic",
       "reportScore": "correct",
@@ -309,15 +293,14 @@
       }
     },
     "improve": {
-      "title": "And it keeps improving",
-      "description": "Your documents change and your AI gets updated. Every month we add about 25 questions, run the exam again and tell you if anything breaks.",
+      "title": "Continuous improvement",
+      "description": "Your documents change, your AI gets updated and your customers ask new things. Every month we add about 25 questions, run the exam again, alert you if anything breaks, and our experts create the data that closes each new gap.",
       "figure": "The pilot starts with 150 questions and each month adds 25, reaching 300 after six months.",
       "pilot": "Pilot",
       "month": "M{n}",
       "legendPilot": "pilot questions",
       "legendBefore": "added before",
-      "legendNow": "added this month",
-      "unit": "1 square = 5 questions"
+      "legendNow": "added this month"
     }
   },
   "howItWorks": {
@@ -386,14 +369,13 @@
     }
   },
   "cta": {
-    "eyebrow": "Free diagnostic · report in 48 hours",
-    "title": "Find out what your AI gets wrong before your customers do.",
-    "subtitle": "Send us the link to your assistant and we'll put forty questions to it. No access or contract needed.",
+    "title": "Make your AI answer like an expert.",
+    "subtitle": "Start with a free diagnostic: we put forty questions to your assistant and, within 48 hours, tell you what fails and what data it needs to improve.",
     "primaryCta": "Get a free diagnostic",
     "secondaryCta": "Book a 30-minute call"
   },
   "footer": {
-    "tagline": "Independent evaluation for AI assistants, with answer keys signed off by domain experts.",
+    "tagline": "Independent evaluation for AI assistants, with answers validated by experts in each sector.",
     "askAi": "Ask AI about Caudals",
     "askAiPrompt": "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
     "explore": "Explore",

@@ -135,7 +135,7 @@ export function DataSourceQuiz() {
     <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
       {/* Header */}
       <div className="border-b border-black/[0.08] px-6 py-4">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-medium text-gray-500">
           Interactive tool
         </p>
         <h3 className="mt-1 text-xl font-normal text-black">
@@ -172,7 +172,7 @@ export function DataSourceQuiz() {
         {/* Question */}
         {currentQuestion && (
           <div className="max-w-lg">
-            <p className="mb-1 text-xs font-medium uppercase tracking-widest text-gray-400">
+            <p className="mb-1 text-xs font-medium text-gray-400">
               Question {step} of {total}
             </p>
             <p className="mt-4 text-xl font-normal text-black leading-snug mb-3">
@@ -199,7 +199,7 @@ export function DataSourceQuiz() {
         {/* Result */}
         {isResult && recommendation && (
           <div className="max-w-lg">
-            <p className="mb-1 text-xs font-medium uppercase tracking-widest text-gray-400">
+            <p className="mb-1 text-xs font-medium text-gray-400">
               Recommendation
             </p>
             <h4 className="mt-4 text-2xl font-normal text-black mb-1">

@@ -46,7 +46,7 @@ export function DataBudgetCalculator() {
   return (
     <div className="my-10 rounded-xl border border-black/[0.08] bg-background shadow-xs overflow-hidden">
       <div className="border-b border-black/[0.08] px-6 py-4">
-        <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+        <p className="text-xs font-medium text-gray-500">
           Interactive tool
         </p>
         <h3 className="mt-1 text-xl font-normal text-black">
@@ -57,7 +57,7 @@ export function DataBudgetCalculator() {
       <div className="grid grid-cols-1 gap-0 md:grid-cols-2">
         {/* Inputs */}
         <div className="border-b border-black/[0.08] px-6 py-6 md:border-b-0 md:border-r md:border-black/[0.08]">
-          <p className="mb-6 text-xs font-medium uppercase tracking-widest text-gray-400">
+          <p className="mb-6 text-xs font-medium text-gray-400">
             Parameters
           </p>
           <div className="space-y-6">
@@ -111,7 +111,7 @@ export function DataBudgetCalculator() {
 
         {/* Output */}
         <div className="px-6 py-6">
-          <p className="mb-6 text-xs font-medium uppercase tracking-widest text-gray-400">
+          <p className="mb-6 text-xs font-medium text-gray-400">
             Estimated budget
           </p>
           <div className="space-y-3">
@@ -136,7 +136,7 @@ export function DataBudgetCalculator() {
             />
             <div className="border-t border-black pt-4 mt-4">
               <div className="flex items-baseline justify-between">
-                <span className="text-sm font-medium uppercase tracking-widest text-black">
+                <span className="text-sm font-medium text-black">
                   Total estimate
                 </span>
                 <span className="text-2xl font-normal text-black">

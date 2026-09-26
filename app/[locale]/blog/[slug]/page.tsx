@@ -142,13 +142,13 @@ export default async function BlogPostPage({
 
         {(adjacentPosts.previous || adjacentPosts.next) ? (
           <section className="mt-24 border-t border-gray-200 pt-16 flex flex-col md:flex-row justify-between gap-12">
-            <h2 className="text-sm uppercase tracking-widest text-gray-500 md:w-1/3">
+            <h2 className="text-sm text-gray-500 md:w-1/3">
               {t("furtherReading")}
             </h2>
             <div className="flex flex-col items-end gap-12 text-right md:w-2/3">
               {adjacentPosts.next ? (
                 <div className="max-w-md">
-                  <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">{t("next")}</p>
+                  <p className="text-xs text-gray-400 mb-2">{t("next")}</p>
                   <Link href={`/blog/${adjacentPosts.next.slug}`} className="block group">
                     <h3 className="text-2xl font-normal text-black group-hover:text-gray-600 transition-colors">
                       {adjacentPosts.next.title}
@@ -158,7 +158,7 @@ export default async function BlogPostPage({
               ) : null}
               {adjacentPosts.previous ? (
                 <div className="max-w-md">
-                  <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">{t("previous")}</p>
+                  <p className="text-xs text-gray-400 mb-2">{t("previous")}</p>
                   <Link href={`/blog/${adjacentPosts.previous.slug}`} className="block group">
                     <h3 className="text-2xl font-normal text-black group-hover:text-gray-600 transition-colors">
                       {adjacentPosts.previous.title}
