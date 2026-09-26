@@ -18,11 +18,11 @@ type Verdict = "correct" | "invented" | "outdated" | "wrongSource" | "gap" | "ou
  * the verdict our check gives each answer.
  */
 const SECTORS = [
-  { id: "insurance", turns: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]] },
-  { id: "legal", turns: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]] },
-  { id: "energy", turns: [["t1", "correct"], ["t2", "wrongSource"], ["t3", "outOfScope"]] },
-  { id: "banking", turns: [["t1", "gap"], ["t2", "correct"], ["t3", "outOfScope"]] },
   { id: "telecom", turns: [["t1", "outdated"], ["t2", "correct"], ["t3", "invented"]] },
+  { id: "legal", turns: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]] },
+  { id: "banking", turns: [["t1", "gap"], ["t2", "correct"], ["t3", "outOfScope"]] },
+  { id: "energy", turns: [["t1", "correct"], ["t2", "wrongSource"], ["t3", "outOfScope"]] },
+  { id: "insurance", turns: [["t1", "invented"], ["t2", "correct"], ["t3", "outOfScope"]] },
 ] as const satisfies readonly {
   id: string;
   turns: readonly (readonly ["t1" | "t2" | "t3", Verdict])[];
@@ -47,11 +47,9 @@ export function HeroChat() {
   const [openTurn, setOpenTurn] = useState<string | null>(null);
   const [pageHidden, setPageHidden] = useState(false);
 
-  // A different sector on every visit: chosen after hydration, so the server
-  // and the first client render agree.
+  // Ready after hydration so the server and first client render agree.
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      setIndex(Math.floor(Math.random() * SECTORS.length));
       setReady(true);
     });
     return () => cancelAnimationFrame(frame);
