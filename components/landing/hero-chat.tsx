@@ -30,7 +30,7 @@ const SECTORS = [
 
 /** How long one sector stays on screen before the next one plays. */
 const SECTOR_SECONDS = 10;
-const LEAVE_MS = 350;
+const LEAVE_MS = 280;
 
 export function HeroChat() {
   const t = useTranslations("heroChat");
