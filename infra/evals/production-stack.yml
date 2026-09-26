@@ -232,8 +232,8 @@ secrets:
   evals_queue_database_url: {external: true, name: caudals_evals_queue_database_url}
   evals_master_keyring: {external: true, name: caudals_evals_master_keyring}
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
-  evals_resend_api_key: {external: true, name: caudals_evals_resend_api_key}
-  evals_resend_from_email: {external: true, name: caudals_evals_resend_from_email}
+  evals_resend_api_key: {external: true, name: "${EVALS_RESEND_API_KEY_SECRET:?Versioned Resend key secret is required}"}
+  evals_resend_from_email: {external: true, name: "${EVALS_RESEND_FROM_EMAIL_SECRET:?Versioned Resend sender secret is required}"}
   evals_document_database_url: {external: true, name: caudals_evals_document_database_url}
   evals_browser_database_url: {external: true, name: caudals_evals_browser_database_url}
   evals_browser_queue_database_url: {external: true, name: caudals_evals_browser_queue_database_url}

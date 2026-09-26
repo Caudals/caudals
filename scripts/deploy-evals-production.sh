@@ -23,14 +23,22 @@ done
 # versioned secrets for the scheduler. Values are read from the root-only app
 # credential file and never printed.
 app_credentials=/root/.caudals/app/credentials.env
-for pair in "RESEND_API_KEY:caudals_evals_resend_api_key" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email"; do
-  key=${pair%%:*}; secret=${pair#*:}
-  if ! docker secret inspect "$secret" >/dev/null 2>&1; then
-    value=$(grep -E "^${key}=" "$app_credentials" 2>/dev/null | head -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//')
-    [[ -n $value ]] || { echo "Missing $key in $app_credentials" >&2; exit 1; }
-    printf '%s' "$value" | docker secret create "$secret" - >/dev/null
-    unset value
-  fi
+# credentials.env is written shell-quoted by scripts/set-app-credentials.sh.
+credential() { python3 -c 'import shlex,sys
+for line in open(sys.argv[2]):
+    name,sep,raw=line.rstrip("\n").partition("=")
+    if sep and name==sys.argv[1]:
+        print(" ".join(shlex.split(raw)),end=""); break' "$1" "$app_credentials" 2>/dev/null; }
+# Secrets are immutable, so each is named by a hash of its value; a changed
+# credential gets a new secret and the stack switches to it on deploy.
+for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SECRET" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email:EVALS_RESEND_FROM_EMAIL_SECRET"; do
+  IFS=: read -r key base variable <<<"$pair"
+  value=$(credential "$key")
+  [[ -n $value ]] || { echo "Missing $key in $app_credentials" >&2; exit 1; }
+  secret="${base}_$(printf '%s' "$value" | sha256sum | cut -c1-12)"
+  docker secret inspect "$secret" >/dev/null 2>&1 || printf '%s' "$value" | docker secret create "$secret" - >/dev/null
+  unset value
+  export "$variable=$secret"
 done
 
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \

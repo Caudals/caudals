@@ -91,7 +91,12 @@ done
 
 body=$(printf '%s\n' "${messages[@]}"; printf '\nHost: caudals-1 · %s UTC\nRunbooks: docs/evals/runbooks.md\n' "$(date -u '+%F %H:%M')")
 if [[ $dry_run == true ]]; then printf '%s\n' "$body"; exit 0; fi
-value() { grep -E "^$1=" "$credentials" | head -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
+# credentials.env is written shell-quoted by scripts/set-app-credentials.sh.
+value() { python3 -c 'import shlex,sys
+for line in open(sys.argv[2]):
+    name,sep,raw=line.rstrip("\n").partition("=")
+    if sep and name==sys.argv[1]:
+        print(" ".join(shlex.split(raw)),end=""); break' "$1" "$credentials" 2>/dev/null; }
 to=${CAUDALS_ALERT_EMAIL:-$(value COLLABORATION_NOTIFICATION_EMAIL)}
 from=$(value RESEND_FROM_EMAIL)
 key=$(value RESEND_API_KEY)
