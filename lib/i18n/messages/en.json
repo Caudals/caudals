@@ -3,7 +3,8 @@
     "brand": "Caudals",
     "logoAlt": "Caudals logo",
     "toggleMenu": "Toggle menu",
-    "getStarted": "Get started",
+    "howItWorks": "How it works",
+    "diagnostic": "Free diagnostic",
     "contact": "Contact",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -11,16 +12,313 @@
     "switchLanguage": "Change language"
   },
   "hero": {
-    "headline": "We evaluate your AI to teach it to think like an *expert*.",
-    "subtitle": "We test where your AI fails, and deploy practicing domain experts to build the data that resolves it.",
-    "primaryCta": "Get a free Initial Diagnostic",
-    "note": "We put forty questions from your own documentation to your assistant. Report in 48 hours, free.",
+    "headline": "We teach your AI to think like an *expert*.",
+    "subtitle": "We measure where your AI fails, and professionals from your sector create the data that fixes it.",
+    "primaryCta": "Get a free diagnostic",
     "secondaryCta": "Or book a 30-minute call."
   },
-  "socialProof": {
-    "eyebrow": "Recognition & partners",
-    "title": "Recognitions and institutions we've worked with",
-    "subtitle": "Backed by leading institutions, programs, and public organizations across our journey."
+  "heroChat": {
+    "label": "Example conversations, checked by Caudals",
+    "sectorsLabel": "Sector",
+    "show": "Show {sector}",
+    "pause": "Pause the examples",
+    "play": "Play the examples",
+    "hintPointer": "Illustrative examples. Point at an answer to see our check.",
+    "hintTouch": "Illustrative examples. Tap an answer to see our check.",
+    "source": "Source",
+    "verdicts": {
+      "correct": "Correct",
+      "invented": "Invented answer",
+      "outdated": "Outdated document",
+      "wrongSource": "Wrong source",
+      "gap": "Knowledge gap",
+      "outOfScope": "Out of scope"
+    },
+    "sectors": {
+      "insurance": {
+        "name": "Health insurance",
+        "channel": "Web assistant",
+        "t1": {
+          "q": "I took out my policy last month. Can I book a filling?",
+          "a": "Of course! *Dental treatment is covered from day one.*",
+          "why": "Article 6.2 sets a six-month waiting period for dental treatment.",
+          "src": "General conditions · art. 6.2"
+        },
+        "t2": {
+          "q": "How much is a filling at your partner dentists?",
+          "a": "€35 with your policy.",
+          "why": "Matches the 2026 dental price list.",
+          "src": "Dental price list 2026"
+        },
+        "t3": {
+          "q": "My chest hurts when I climb stairs. Is that normal?",
+          "a": "*It's probably just tiredness, nothing to worry about.*",
+          "why": "It should advise seeing a doctor and offer to connect them with a person.",
+          "src": "Referral policy · section 2"
+        }
+      },
+      "legal": {
+        "name": "Legal",
+        "channel": "Law firm chatbot",
+        "t1": {
+          "q": "I was fired today. How long do I have to challenge it?",
+          "a": "*You have 30 calendar days from the dismissal letter.*",
+          "why": "The deadline is 20 working days, not 30 calendar days.",
+          "src": "Workers' Statute · art. 59.3"
+        },
+        "t2": {
+          "q": "Do I have to file a tax return if I only earned €20,000 from one employer?",
+          "a": "No. With a single employer, you only have to file above €22,000.",
+          "why": "Matches the filing thresholds in the income tax guide.",
+          "src": "Income tax guide · who must file"
+        },
+        "t3": {
+          "q": "Should I sign the final settlement my company gave me?",
+          "a": "*Yes, sign it. The amount is correct.*",
+          "why": "It can't validate a settlement it hasn't reviewed. It should offer a meeting with a lawyer.",
+          "src": "Assistant scope · referrals"
+        }
+      },
+      "energy": {
+        "name": "Energy",
+        "channel": "WhatsApp assistant",
+        "t1": {
+          "q": "What does electricity cost at night on my time-of-use plan?",
+          "a": "€0.09 per kWh from midnight to 8 a.m.",
+          "why": "Matches the current rate sheet.",
+          "src": "Time-of-use plan · 2026 rate sheet"
+        },
+        "t2": {
+          "q": "Can I get the bono social discount?",
+          "a": "*Yes, every customer on our fixed plan qualifies.*",
+          "why": "It quoted the fixed-plan FAQ. The bono social depends on household income and requires the regulated tariff.",
+          "src": "Bono social guide · requirements"
+        },
+        "t3": {
+          "q": "It smells like gas in my kitchen. What should I do?",
+          "a": "*Send us a photo of your meter and we'll check it within 48 hours.*",
+          "why": "It's an emergency. It must give the 24-hour emergency number right away.",
+          "src": "Emergency protocol"
+        }
+      },
+      "banking": {
+        "name": "Banking",
+        "channel": "In-app assistant",
+        "t1": {
+          "q": "What does it cost to withdraw cash in the US with my card?",
+          "a": "*Cash withdrawals abroad are free.*",
+          "why": "The fee schedule only covers the eurozone, so it guessed. That needs to be written down.",
+          "src": "Fee schedule · eurozone only"
+        },
+        "t2": {
+          "q": "Can I cancel an instant transfer I sent an hour ago?",
+          "a": "No, instant transfers can't be cancelled once sent.",
+          "why": "Matches the payment services terms.",
+          "src": "Payment services terms · section 4"
+        },
+        "t3": {
+          "q": "Should I move my savings into your investment fund?",
+          "a": "*Yes, it's the best option for your profile.*",
+          "why": "That's personal investment advice. It should refer them to a licensed adviser.",
+          "src": "Assistant scope · no advice"
+        }
+      },
+      "telecom": {
+        "name": "Telecoms",
+        "channel": "Web chat",
+        "t1": {
+          "q": "If I cancel my fiber now, do I have to pay anything?",
+          "a": "*No, you can leave at any time, free of charge.*",
+          "why": "It read the 2024 terms. Since March 2026, leaving in the first 12 months costs up to €150.",
+          "src": "Terms of service · March 2026 · clause 9"
+        },
+        "t2": {
+          "q": "Do I keep my number if I switch to you?",
+          "a": "Yes, and we handle the transfer for you.",
+          "why": "Matches the number portability page.",
+          "src": "Help center · portability"
+        },
+        "t3": {
+          "q": "My internet is slow today. Can you speed it up?",
+          "a": "Done! *I've doubled your speed at no extra cost.*",
+          "why": "It can't change a line. It should run a line test or book a technician.",
+          "src": "Assistant scope · allowed actions"
+        }
+      }
+    }
+  },
+  "partners": {
+    "label": "Backed by"
+  },
+  "problem": {
+    "lead": "Most companies find out their AI is wrong when a customer complains.",
+    "cost": "By then, that answer has already cost money: refunds, claims and customers who don't come back."
+  },
+  "steps": {
+    "label": "How Caudals works",
+    "how": {
+      "title": "How it works",
+      "description": "We write an exam for your AI, ask it the questions the way a customer would, and grade every answer.",
+      "figure": "Your documents, real customer questions and our experts become an exam. We put it to your AI, grade every answer against the source and explain the results in a report. Every month, new questions start a new run.",
+      "docs": "Your documents",
+      "questions": "Real questions",
+      "experts": "Our experts",
+      "exam": "Exam",
+      "examNote": "questions + correct answers",
+      "ai": "Your AI",
+      "aiNote": "asked like a customer",
+      "graded": "Graded answers",
+      "gradedNote": "checked against the source",
+      "report": "Report",
+      "reportNote": "score · causes · fixes",
+      "loop": "every month: new questions, a new run"
+    },
+    "exam": {
+      "title": "An exam built from your own documents",
+      "description": "Every question comes with its correct answer and the page it comes from. When your AI fails, we tell you why.",
+      "causesLabel": "Five ways an AI gets it wrong",
+      "example": "Illustrative example",
+      "question": "Question",
+      "aiAnswer": "Your AI answered",
+      "key": "The correct answer, from your documents",
+      "causes": {
+        "invented": {
+          "name": "Invented answer",
+          "description": "It says something no document supports.",
+          "example": {
+            "sector": "Home insurance",
+            "q": "Is my jewelry covered if my home is burgled?",
+            "a": "Yes, all your jewelry is covered, with no limit.",
+            "doc": "Jewelry is covered up to €3,000, and only if it was kept in a safe.",
+            "src": "Home policy · art. 14"
+          }
+        },
+        "outdated": {
+          "name": "Outdated document",
+          "description": "It answers from a version that no longer applies.",
+          "example": {
+            "sector": "Telecoms",
+            "q": "How much is the fiber and mobile bundle?",
+            "a": "€39.90 a month.",
+            "doc": "€44.90 a month since September 1, 2026.",
+            "src": "Price list · September 2026"
+          }
+        },
+        "wrongSource": {
+          "name": "Wrong source",
+          "description": "It finds a document, just not the right one.",
+          "example": {
+            "sector": "Industrial after-sales",
+            "q": "What torque do the head bolts on the K-400 pump take?",
+            "a": "45 Nm, in a single pass.",
+            "doc": "60 Nm, tightened in two passes. 45 Nm is the figure for the K-300.",
+            "src": "K-400 service manual · p. 48"
+          }
+        },
+        "gap": {
+          "name": "Knowledge gap",
+          "description": "The answer isn't written down anywhere.",
+          "example": {
+            "sector": "Energy",
+            "q": "Do you pay me for the surplus from my solar panels?",
+            "a": "Yes, €0.15 for every kWh you export.",
+            "doc": "No document covers this. Our experts write it.",
+            "src": "Searched: rate sheets, FAQ and contract"
+          }
+        },
+        "outOfScope": {
+          "name": "Out of scope",
+          "description": "It answers what it should pass to a person.",
+          "example": {
+            "sector": "Private healthcare",
+            "q": "Can I take ibuprofen with my blood pressure pills?",
+            "a": "Yes, it's fine to take them together.",
+            "doc": "Questions about medication are referred to a doctor or pharmacist.",
+            "src": "Assistant scope · medical referrals"
+          }
+        }
+      }
+    },
+    "experts": {
+      "title": "A network of experts in your sector",
+      "description": "Insurance adjusters, lawyers, engineers and doctors write and review every question, then build the data your AI is missing.",
+      "whoLabel": "Who writes",
+      "whatLabel": "What they build",
+      "roles": {
+        "adjusters": "Insurance adjusters",
+        "claims": "Claims handlers",
+        "lawyers": "Lawyers",
+        "tax": "Tax advisers",
+        "engineers": "After-sales engineers",
+        "clinicians": "Doctors and nurses"
+      },
+      "data": {
+        "exams": {
+          "name": "Larger exams",
+          "description": "New questions and edge cases every month",
+          "use": "to catch what breaks"
+        },
+        "qa": {
+          "name": "Questions and answers",
+          "description": "Pairs grounded in your documents and daily practice",
+          "use": "to teach by example"
+        },
+        "docs": {
+          "name": "Missing documentation",
+          "description": "What your documents don't say, or say twice",
+          "use": "for what your AI reads"
+        },
+        "reasoning": {
+          "name": "Step-by-step reasoning",
+          "description": "Real cases solved the way a professional would",
+          "use": "to teach judgment"
+        },
+        "preferences": {
+          "name": "Preferences",
+          "description": "Ranking and correcting candidate answers",
+          "use": "to pick the better answer"
+        }
+      }
+    },
+    "deliver": {
+      "title": "What you receive",
+      "description": "A report written for whoever owns the assistant, not for engineers: your score, every wrong answer with its source, and what to fix first.",
+      "figure": "Four deliverables: the report, your exam, a live walkthrough and, with the subscription, monthly alerts.",
+      "reportTag": "Diagnostic",
+      "reportScore": "correct",
+      "examTag": "Exam · 300 questions",
+      "alertTag": "Month 4",
+      "alertText": "2 answers got worse",
+      "items": {
+        "report": {
+          "name": "The report",
+          "description": "score, errors and fixes"
+        },
+        "exam": {
+          "name": "Your exam",
+          "description": "every question, yours to keep"
+        },
+        "readout": {
+          "name": "A live walkthrough",
+          "description": "we go through it with your team"
+        },
+        "alerts": {
+          "name": "Monthly alerts",
+          "description": "when something breaks"
+        }
+      }
+    },
+    "improve": {
+      "title": "And it keeps improving",
+      "description": "Your documents change and your AI gets updated. Every month we add about 25 questions, run the exam again and tell you if anything breaks.",
+      "figure": "The pilot starts with 150 questions and each month adds 25, reaching 300 after six months.",
+      "pilot": "Pilot",
+      "month": "M{n}",
+      "legendPilot": "pilot questions",
+      "legendBefore": "added before",
+      "legendNow": "added this month",
+      "unit": "1 square = 5 questions"
+    }
   },
   "howItWorks": {
     "eyebrow": "How it works",
@@ -43,130 +341,6 @@
       "build": {
         "label": "Build",
         "description": "The gaps we find become the datasets that close them, and a re-run proves the score moved."
-      }
-    }
-  },
-  "useCases": {
-    "eyebrow": "What we evaluate",
-    "title": "Systems where a wrong answer costs money",
-    "subtitle": "We test text and document AI: the assistants your customers talk to and the ones your teams rely on.",
-    "systems": {
-      "assistants": {
-        "title": "Customer assistants and chatbots",
-        "description": "On your website, in your app or on WhatsApp."
-      },
-      "voice": {
-        "title": "Voice and IVR agents",
-        "description": "The ones that answer your phone lines."
-      },
-      "internal": {
-        "title": "Internal assistants",
-        "description": "Over HR policy, sales material or technical manuals."
-      },
-      "documents": {
-        "title": "Document pipelines",
-        "description": "Triage, classification and extraction."
-      },
-      "product": {
-        "title": "AI features in your product",
-        "description": "Quote assistants, clause analysers and valuation explanations."
-      },
-      "support": {
-        "title": "Technical support and after-sales",
-        "description": "Machinery manuals, part numbers and workshop procedures."
-      }
-    }
-  },
-  "features": {
-    "eyebrow": "Why Caudals",
-    "title": "We deliver verifiable evidence",
-    "capabilities": {
-      "answerKeys": {
-        "title": "Answer keys signed by domain experts",
-        "description": "Every case cites your documentation, and our domain experts verify and sign off the answer key before anything runs."
-      },
-      "causes": {
-        "title": "Every failure has a cause",
-        "description": "Knowledge gap, retrieval miss, invented answer or outdated document: you know whether to fix the documentation or the system."
-      },
-      "language": {
-        "title": "Real-world language and edge cases",
-        "description": "Cases reflect how real customers write: typos, regional phrasing, industry jargon, and mixed Spanish and English where relevant."
-      },
-      "credentials": {
-        "title": "No production credentials needed",
-        "description": "We test public interfaces as a customer would, you run our probe inside your network, or we score past conversations."
-      },
-      "reproducible": {
-        "title": "Runs you can reproduce",
-        "description": "Every run keeps its suite version, model fingerprint and grader, so a silent model change by your vendor shows up in the numbers."
-      },
-      "ownership": {
-        "title": "A test set you own",
-        "description": "You keep the golden set as JSONL, and it grows every month with new questions and new data."
-      }
-    }
-  },
-  "stats": {
-    "eyebrow": "What to expect",
-    "title": "Small enough to start this month",
-    "subtitle": "No platform to adopt. We do the work and hand you the evidence.",
-    "items": {
-      "diagnostic": {
-        "value": "48 h",
-        "label": "Initial Diagnostic",
-        "description": "Forty questions to your public assistant, with the report two days later."
-      },
-      "cases": {
-        "value": "150–300",
-        "label": "Cases in a pilot",
-        "description": "Drawn from your documentation, real customer questions and our domain experts."
-      },
-      "session": {
-        "value": "90 min",
-        "label": "With our domain experts",
-        "description": "One structured session defines what a correct answer is."
-      },
-      "readout": {
-        "value": "2 weeks",
-        "label": "To a live readout",
-        "description": "From kickoff to the report, presented to your team."
-      }
-    }
-  },
-  "partnerships": {
-    "eyebrow": "Start here",
-    "title": "Start with a free Initial Diagnostic",
-    "body": "Send us the link to your assistant. We ask it forty questions whose answers are in your own public documentation and send you a six-page report within 48 hours. No access, no contract and no sales pitch inside.",
-    "primaryCta": "Request free diagnostic",
-    "secondaryCta": "Or book a 30-min call",
-    "note": "Is your system internal? We can run our probe inside your network or score past conversations instead.",
-    "highlights": {
-      "public": {
-        "title": "Public, like a customer",
-        "description": "We use your public interface at human pace with fictional personas. No accounts, no personal data and no load testing."
-      },
-      "report": {
-        "title": "A report you can use",
-        "description": "Your score, the failure categories and seven annotated transcripts, each next to the source it contradicts."
-      },
-      "readout": {
-        "title": "A 30-minute readout",
-        "description": "We walk you through the failures. If you want to go further, the next step is a Pilot Evaluation."
-      }
-    },
-    "metrics": {
-      "reply": {
-        "label": "First reply",
-        "value": "24 h"
-      },
-      "report": {
-        "label": "Report ready in",
-        "value": "48 h"
-      },
-      "cost": {
-        "label": "Cost",
-        "value": "Free"
       }
     }
   },
@@ -211,85 +385,14 @@
       }
     }
   },
-  "testimonials": {
-    "eyebrow": "Customer stories",
-    "title": "Teams shipping production AI trust Caudals",
-    "items": {
-      "helioLabs": {
-        "quote": "Caudals unlocked a global contributor base that matched our medical imaging criteria in record time. The review tooling kept clinicians in control of every approval.",
-        "name": "Dr. Anika Forster",
-        "role": "Director of Data Science, HelioLabs"
-      },
-      "polyphonic": {
-        "quote": "Within two weeks we launched three multimodal programs across Spanish and Korean markets. Contributor training modules reduced rework by over 60%.",
-        "name": "Joel Reyes",
-        "role": "Lead Researcher, Polyphonic AI"
-      },
-      "northwind": {
-        "quote": "The partnership team felt like an extension of ours—designing incentives, QA policies, and even helping us publish a public dataset for the research community.",
-        "name": "Mina Patel",
-        "role": "Head of AI Innovation, Northwind Robotics"
-      }
-    }
-  },
-  "faq": {
-    "eyebrow": "FAQ",
-    "title": "What teams ask before an evaluation",
-    "footnote": "Have a different question? Contact us and we'll get back to you within 24 hours.",
-    "items": {
-      "scope": {
-        "question": "What do you evaluate?",
-        "answer": "Text and document AI systems: customer assistants and chatbots on the web, in apps or on WhatsApp, voice and IVR agents, internal assistants over policies and manuals, document triage and extraction pipelines, and AI features inside products. We focus on systems where a wrong answer costs money."
-      },
-      "answerKey": {
-        "question": "Who decides what the correct answer is?",
-        "answer": "Your documentation and our domain experts. Every case cites the document it comes from, and our domain experts sign off the answer key in a structured session before we run anything, so the results can't be disputed later."
-      },
-      "access": {
-        "question": "Do you need access to our systems?",
-        "answer": "No. We can test a public interface the way a customer would, you can run our probe inside your own network and send back a signed results file, or we can score a sample of past conversations. We never need to hold production credentials."
-      },
-      "data": {
-        "question": "What happens to our documents and data?",
-        "answer": "Personal data is redacted as soon as we receive it, content is processed on EU infrastructure, and every paid engagement has an NDA and a data-processing agreement. The golden set is yours. We delete everything 12 months after the engagement ends, or sooner if you ask."
-      },
-      "platforms": {
-        "question": "How is this different from an evaluation platform?",
-        "answer": "Evaluation platforms are tools for developers who already have a test set. We write the test set: questions from your documents, your customers and our domain experts, graded with deterministic checks, a calibrated AI judge and human review."
-      },
-      "certification": {
-        "question": "Do you certify our AI or make it AI Act compliant?",
-        "answer": "No. We measure and produce evidence: a scored, reproducible record of how your system behaves. That record is useful supporting documentation, but it is not a certification or a conformity assessment."
-      },
-      "after": {
-        "question": "What happens after the report?",
-        "answer": "The evaluation can keep running with a monthly subscription: new questions, new data and regression alerts every month. When it shows missing or contradictory knowledge, we build the data that closes the gap, and a re-run proves the score moved."
-      }
-    }
-  },
   "cta": {
-    "title": "Find out what your AI gets wrong before your customers do",
-    "subtitle": "Send us the link to your assistant, or tell us about an internal one. We reply within 24 hours with the right starting point.",
-    "primaryCta": "Get a free Initial Diagnostic",
-    "secondaryCta": "Book a 30-minute call",
-    "newsletterNote": "Not ready to talk yet? Get our newsletter every two weeks. One click to unsubscribe.",
-    "emailPlaceholder": "Your email address",
-    "subscribe": "Subscribe",
-    "getStarted": "Get started",
-    "assurances": {
-      "eu": {
-        "label": "EU data processing"
-      },
-      "experts": {
-        "label": "Our domain experts sign off the answer key"
-      },
-      "noCommitment": {
-        "label": "No commitment to start"
-      }
-    }
+    "eyebrow": "Free diagnostic · report in 48 hours",
+    "title": "Find out what your AI gets wrong before your customers do.",
+    "subtitle": "Send us the link to your assistant and we'll put forty questions to it. No access or contract needed.",
+    "primaryCta": "Get a free diagnostic",
+    "secondaryCta": "Book a 30-minute call"
   },
   "footer": {
-    "brand": "Caudals",
     "tagline": "Independent evaluation for AI assistants, with answer keys signed off by domain experts.",
     "askAi": "Ask AI about Caudals",
     "askAiPrompt": "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",

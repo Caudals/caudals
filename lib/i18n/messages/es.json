@@ -3,7 +3,8 @@
     "brand": "Caudals",
     "logoAlt": "Logotipo de Caudals",
     "toggleMenu": "Abrir menú",
-    "getStarted": "Comenzar",
+    "howItWorks": "Cómo funciona",
+    "diagnostic": "Diagnóstico gratuito",
     "contact": "Contacto",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -11,16 +12,313 @@
     "switchLanguage": "Cambiar idioma"
   },
   "hero": {
-    "headline": "Evaluamos a tu IA para enseñarle a pensar como un *experto*.",
-    "subtitle": "Medimos dónde falla tu IA y movilizamos a profesionales de cada sector para crear los datos que lo resuelven",
+    "headline": "Enseñamos a tu IA a pensar como un *experto*.",
+    "subtitle": "Medimos dónde falla tu IA y profesionales de tu sector crean los datos que lo corrigen.",
     "primaryCta": "Diagnóstico inicial gratuito",
-    "note": "Formulamos cuarenta preguntas a tu asistente basadas en tu propia documentación. Informe en 48 horas, gratis.",
     "secondaryCta": "O reserva una llamada de 30 minutos."
   },
-  "socialProof": {
-    "eyebrow": "Reconocimientos y socios",
-    "title": "Reconocimientos e instituciones con las que hemos trabajado",
-    "subtitle": "Respaldado por instituciones líderes, programas y organizaciones públicas a lo largo de nuestra trayectoria."
+  "heroChat": {
+    "label": "Conversaciones de ejemplo, revisadas por Caudals",
+    "sectorsLabel": "Sector",
+    "show": "Ver {sector}",
+    "pause": "Pausar los ejemplos",
+    "play": "Reanudar los ejemplos",
+    "hintPointer": "Ejemplos ilustrativos. Pasa el cursor por una respuesta para ver la corrección.",
+    "hintTouch": "Ejemplos ilustrativos. Toca una respuesta para ver la corrección.",
+    "source": "Fuente",
+    "verdicts": {
+      "correct": "Correcta",
+      "invented": "Respuesta inventada",
+      "outdated": "Documento desactualizado",
+      "wrongSource": "Fuente equivocada",
+      "gap": "Laguna de conocimiento",
+      "outOfScope": "Fuera de alcance"
+    },
+    "sectors": {
+      "insurance": {
+        "name": "Seguros de salud",
+        "channel": "Asistente web",
+        "t1": {
+          "q": "Contraté la póliza el mes pasado. ¿Puedo pedir cita para un empaste?",
+          "a": "¡Claro! *El tratamiento dental está cubierto desde el primer día.*",
+          "why": "El artículo 6.2 fija seis meses de carencia para el tratamiento dental.",
+          "src": "Condiciones generales · art. 6.2"
+        },
+        "t2": {
+          "q": "¿Cuánto cuesta un empaste en vuestros dentistas concertados?",
+          "a": "35 € con tu póliza.",
+          "why": "Coincide con el baremo dental de 2026.",
+          "src": "Baremo dental 2026"
+        },
+        "t3": {
+          "q": "Me duele el pecho al subir escaleras. ¿Es normal?",
+          "a": "*Seguramente es cansancio, no te preocupes.*",
+          "why": "Debería recomendar ir al médico y ofrecer hablar con una persona.",
+          "src": "Protocolo de derivación · apartado 2"
+        }
+      },
+      "legal": {
+        "name": "Legal",
+        "channel": "Chatbot de un despacho",
+        "t1": {
+          "q": "Me han despedido hoy. ¿Cuánto tiempo tengo para reclamar?",
+          "a": "*Tienes 30 días naturales desde la carta de despido.*",
+          "why": "El plazo es de 20 días hábiles, no de 30 naturales.",
+          "src": "Estatuto de los Trabajadores · art. 59.3"
+        },
+        "t2": {
+          "q": "¿Tengo que hacer la renta si solo cobré 20.000 € de mi empresa?",
+          "a": "No. Con un solo pagador, solo es obligatoria a partir de 22.000 €.",
+          "why": "Coincide con los límites de la guía de la renta.",
+          "src": "Guía de la renta · obligados a declarar"
+        },
+        "t3": {
+          "q": "¿Firmo el finiquito que me ha dado la empresa?",
+          "a": "*Sí, fírmalo: la cantidad es correcta.*",
+          "why": "No puede validar un finiquito que no ha revisado. Debería ofrecer una cita con un abogado.",
+          "src": "Alcance del asistente · derivaciones"
+        }
+      },
+      "energy": {
+        "name": "Energía",
+        "channel": "Asistente de WhatsApp",
+        "t1": {
+          "q": "¿Cuánto cuesta la luz por la noche con mi tarifa por tramos?",
+          "a": "0,09 € el kWh de 00:00 a 08:00.",
+          "why": "Coincide con la hoja de precios vigente.",
+          "src": "Tarifa por tramos · precios 2026"
+        },
+        "t2": {
+          "q": "¿Puedo pedir el bono social?",
+          "a": "*Sí, todos los clientes con tarifa fija lo tienen.*",
+          "why": "Citó las preguntas frecuentes de la tarifa fija. El bono social depende de la renta del hogar y exige la tarifa regulada.",
+          "src": "Guía del bono social · requisitos"
+        },
+        "t3": {
+          "q": "Huele a gas en mi cocina. ¿Qué hago?",
+          "a": "*Envíanos una foto del contador y lo revisamos en 48 horas.*",
+          "why": "Es una emergencia. Debe dar el teléfono de urgencias 24 horas de inmediato.",
+          "src": "Protocolo de emergencias"
+        }
+      },
+      "banking": {
+        "name": "Banca",
+        "channel": "Asistente de la app",
+        "t1": {
+          "q": "¿Cuánto cuesta sacar dinero en Estados Unidos con mi tarjeta?",
+          "a": "*Sacar dinero en el extranjero es gratis.*",
+          "why": "El libro de tarifas solo cubre la zona euro, así que improvisó. Hay que dejarlo por escrito.",
+          "src": "Libro de tarifas · solo zona euro"
+        },
+        "t2": {
+          "q": "¿Puedo anular una transferencia inmediata que hice hace una hora?",
+          "a": "No, las transferencias inmediatas no se pueden anular una vez enviadas.",
+          "why": "Coincide con el contrato de servicios de pago.",
+          "src": "Contrato de servicios de pago · apartado 4"
+        },
+        "t3": {
+          "q": "¿Paso mis ahorros a vuestro fondo de inversión?",
+          "a": "*Sí, es la mejor opción para tu perfil.*",
+          "why": "Eso es asesoramiento de inversión personal. Debería derivar a un asesor autorizado.",
+          "src": "Alcance del asistente · sin asesoramiento"
+        }
+      },
+      "telecom": {
+        "name": "Telecomunicaciones",
+        "channel": "Chat web",
+        "t1": {
+          "q": "Si doy de baja la fibra ahora, ¿tengo que pagar algo?",
+          "a": "*No, puedes irte cuando quieras, sin coste.*",
+          "why": "Leyó las condiciones de 2024. Desde marzo de 2026, irse en los primeros 12 meses cuesta hasta 150 €.",
+          "src": "Condiciones del servicio · marzo 2026 · cláusula 9"
+        },
+        "t2": {
+          "q": "¿Mantengo mi número si me cambio a vosotros?",
+          "a": "Sí, y nosotros nos encargamos de la portabilidad.",
+          "why": "Coincide con la página de portabilidad.",
+          "src": "Centro de ayuda · portabilidad"
+        },
+        "t3": {
+          "q": "Hoy internet me va lento. ¿Podéis subirme la velocidad?",
+          "a": "¡Hecho! *Te he duplicado la velocidad sin coste.*",
+          "why": "No puede cambiar una línea. Debería lanzar un test de línea o pedir un técnico.",
+          "src": "Alcance del asistente · acciones permitidas"
+        }
+      }
+    }
+  },
+  "partners": {
+    "label": "Con el apoyo de"
+  },
+  "problem": {
+    "lead": "La mayoría de las empresas descubre que su IA se equivoca cuando un cliente se queja.",
+    "cost": "Para entonces, esa respuesta ya ha costado dinero: devoluciones, reclamaciones y clientes que no vuelven."
+  },
+  "steps": {
+    "label": "Cómo trabaja Caudals",
+    "how": {
+      "title": "Cómo funciona",
+      "description": "Preparamos un examen para tu IA, le hacemos las preguntas como lo haría un cliente y corregimos cada respuesta.",
+      "figure": "Tu documentación, preguntas reales de clientes y nuestros expertos se convierten en un examen. Se lo hacemos a tu IA, corregimos cada respuesta con la fuente y explicamos los resultados en un informe. Cada mes, preguntas nuevas inician otra prueba.",
+      "docs": "Tu documentación",
+      "questions": "Preguntas reales",
+      "experts": "Nuestros expertos",
+      "exam": "Examen",
+      "examNote": "preguntas y respuestas correctas",
+      "ai": "Tu IA",
+      "aiNote": "preguntada como un cliente",
+      "graded": "Respuestas corregidas",
+      "gradedNote": "contrastadas con la fuente",
+      "report": "Informe",
+      "reportNote": "nota · causas · soluciones",
+      "loop": "cada mes: preguntas nuevas y otra prueba"
+    },
+    "exam": {
+      "title": "Un examen hecho con tus propios documentos",
+      "description": "Cada pregunta lleva su respuesta correcta y la página de la que sale. Cuando tu IA falla, te decimos por qué.",
+      "causesLabel": "Cinco maneras de equivocarse",
+      "example": "Ejemplo ilustrativo",
+      "question": "Pregunta",
+      "aiAnswer": "Tu IA respondió",
+      "key": "La respuesta correcta, según tus documentos",
+      "causes": {
+        "invented": {
+          "name": "Respuesta inventada",
+          "description": "Dice algo que ningún documento respalda.",
+          "example": {
+            "sector": "Seguro de hogar",
+            "q": "¿Me cubren las joyas si entran a robar en casa?",
+            "a": "Sí, todas tus joyas están cubiertas, sin límite.",
+            "doc": "Las joyas están cubiertas hasta 3.000 €, y solo si estaban en una caja fuerte.",
+            "src": "Póliza de hogar · art. 14"
+          }
+        },
+        "outdated": {
+          "name": "Documento desactualizado",
+          "description": "Responde con una versión que ya no está en vigor.",
+          "example": {
+            "sector": "Telecomunicaciones",
+            "q": "¿Cuánto cuesta el paquete de fibra y móvil?",
+            "a": "39,90 € al mes.",
+            "doc": "44,90 € al mes desde el 1 de septiembre de 2026.",
+            "src": "Tarifas · septiembre 2026"
+          }
+        },
+        "wrongSource": {
+          "name": "Fuente equivocada",
+          "description": "Encuentra un documento, pero no el que toca.",
+          "example": {
+            "sector": "Posventa industrial",
+            "q": "¿A qué par se aprietan los tornillos de culata de la bomba K-400?",
+            "a": "45 Nm, en una sola pasada.",
+            "doc": "60 Nm, en dos pasadas. Los 45 Nm son el dato de la K-300.",
+            "src": "Manual de servicio K-400 · p. 48"
+          }
+        },
+        "gap": {
+          "name": "Laguna de conocimiento",
+          "description": "La respuesta no está escrita en ningún sitio.",
+          "example": {
+            "sector": "Energía",
+            "q": "¿Me pagáis por la energía que sobra de mis placas solares?",
+            "a": "Sí, 0,15 € por cada kWh que viertas a la red.",
+            "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan.",
+            "src": "Buscado en: tarifas, preguntas frecuentes y contrato"
+          }
+        },
+        "outOfScope": {
+          "name": "Fuera de alcance",
+          "description": "Responde lo que debería pasar a una persona.",
+          "example": {
+            "sector": "Sanidad privada",
+            "q": "¿Puedo tomar ibuprofeno con mis pastillas de la tensión?",
+            "a": "Sí, puedes tomarlos juntos sin problema.",
+            "doc": "Las dudas sobre medicación se derivan a un médico o farmacéutico.",
+            "src": "Alcance del asistente · derivación médica"
+          }
+        }
+      }
+    },
+    "experts": {
+      "title": "Una red de expertos de tu sector",
+      "description": "Peritos de seguros, abogados, ingenieros y médicos escriben y revisan cada pregunta, y crean los datos que le faltan a tu IA.",
+      "whoLabel": "Quién escribe",
+      "whatLabel": "Qué crean",
+      "roles": {
+        "adjusters": "Peritos de seguros",
+        "claims": "Tramitadores de siniestros",
+        "lawyers": "Abogados",
+        "tax": "Asesores fiscales",
+        "engineers": "Técnicos de posventa",
+        "clinicians": "Médicos y enfermeras"
+      },
+      "data": {
+        "exams": {
+          "name": "Exámenes más amplios",
+          "description": "Preguntas y casos límite nuevos cada mes",
+          "use": "para detectar lo que se rompe"
+        },
+        "qa": {
+          "name": "Preguntas y respuestas",
+          "description": "Pares basados en tus documentos y en la práctica diaria",
+          "use": "para enseñar con ejemplos"
+        },
+        "docs": {
+          "name": "Documentación que falta",
+          "description": "Lo que tus documentos no dicen, o dicen dos veces",
+          "use": "para lo que consulta tu IA"
+        },
+        "reasoning": {
+          "name": "Razonamiento paso a paso",
+          "description": "Casos reales resueltos como lo haría un profesional",
+          "use": "para enseñar criterio"
+        },
+        "preferences": {
+          "name": "Preferencias",
+          "description": "Ordenar y corregir respuestas candidatas",
+          "use": "para elegir la mejor respuesta"
+        }
+      }
+    },
+    "deliver": {
+      "title": "Lo que recibes",
+      "description": "Un informe pensado para quien es responsable del asistente, no para ingenieros: tu nota, cada respuesta errónea con su fuente y qué corregir primero.",
+      "figure": "Cuatro entregables: el informe, tu examen, una presentación en directo y, con la suscripción, avisos mensuales.",
+      "reportTag": "Diagnóstico",
+      "reportScore": "correctas",
+      "examTag": "Examen · 300 preguntas",
+      "alertTag": "Mes 4",
+      "alertText": "2 respuestas han empeorado",
+      "items": {
+        "report": {
+          "name": "El informe",
+          "description": "nota, errores y soluciones"
+        },
+        "exam": {
+          "name": "Tu examen",
+          "description": "cada pregunta, tuya para siempre"
+        },
+        "readout": {
+          "name": "Una presentación en directo",
+          "description": "lo repasamos con tu equipo"
+        },
+        "alerts": {
+          "name": "Avisos mensuales",
+          "description": "cuando algo se rompe"
+        }
+      }
+    },
+    "improve": {
+      "title": "Y sigue mejorando",
+      "description": "Tus documentos cambian y tu IA se actualiza. Cada mes añadimos unas 25 preguntas, repetimos el examen y te avisamos si algo se rompe.",
+      "figure": "El piloto empieza con 150 preguntas y cada mes suma 25, hasta llegar a 300 a los seis meses.",
+      "pilot": "Piloto",
+      "month": "M{n}",
+      "legendPilot": "preguntas del piloto",
+      "legendBefore": "añadidas antes",
+      "legendNow": "añadidas este mes",
+      "unit": "1 cuadrado = 5 preguntas"
+    }
   },
   "howItWorks": {
     "eyebrow": "Cómo funciona",
@@ -43,130 +341,6 @@
       "build": {
         "label": "Construir",
         "description": "Las lagunas que encontramos se convierten en los datasets que las cierran, y una nueva ejecución demuestra que la puntuación ha mejorado."
-      }
-    }
-  },
-  "useCases": {
-    "eyebrow": "Qué evaluamos",
-    "title": "Sistemas donde una respuesta incorrecta cuesta dinero",
-    "subtitle": "Probamos la IA de texto y documentos: los asistentes con los que hablan tus clientes y aquellos en los que confían tus equipos.",
-    "systems": {
-      "assistants": {
-        "title": "Asistentes de atención al cliente y chatbots",
-        "description": "En tu web, en tu app o en WhatsApp."
-      },
-      "voice": {
-        "title": "Agentes de voz e IVR",
-        "description": "Los que atienden tus líneas telefónicas."
-      },
-      "internal": {
-        "title": "Asistentes internos",
-        "description": "Sobre política de RRHH, material de ventas o manuales técnicos."
-      },
-      "documents": {
-        "title": "Sistemas de procesamiento de documentos",
-        "description": "Triaje, clasificación y extracción."
-      },
-      "product": {
-        "title": "Funcionalidades de IA en tu producto",
-        "description": "Asistentes de cotización, analizadores de cláusulas y explicaciones de valoración."
-      },
-      "support": {
-        "title": "Soporte técnico y posventa",
-        "description": "Manuales de maquinaria, referencias de piezas y procedimientos de taller."
-      }
-    }
-  },
-  "features": {
-    "eyebrow": "Por qué Caudals",
-    "title": "Entregamos evidencia contrastable",
-    "capabilities": {
-      "answerKeys": {
-        "title": "Respuestas validadas por expertos de dominio",
-        "description": "Cada caso cita tu documentación y nuestros expertos de dominio verifican y validan las respuestas antes de ejecutar nada."
-      },
-      "causes": {
-        "title": "Cada fallo tiene una causa",
-        "description": "Falta de conocimiento, fallo en la búsqueda, respuesta inventada o documento obsoleto: sabrás si debes arreglar la documentación o el sistema."
-      },
-      "language": {
-        "title": "Lenguaje real y casos límite",
-        "description": "Los casos reflejan cómo escriben los clientes reales: errores tipográficos, modismos regionales, jerga del sector y mezclas de español e inglés."
-      },
-      "credentials": {
-        "title": "Sin necesidad de credenciales de producción",
-        "description": "Probamos las interfaces públicas como un cliente, ejecutas nuestra prueba dentro de tu red, o evaluamos conversaciones pasadas."
-      },
-      "reproducible": {
-        "title": "Ejecuciones reproducibles",
-        "description": "Cada ejecución guarda la versión, la huella del modelo y el evaluador, para que cualquier cambio silencioso de tu proveedor se refleje en los números."
-      },
-      "ownership": {
-        "title": "Un dataset de pruebas que es tuyo",
-        "description": "Conservas el conjunto de pruebas en formato JSONL, y crece cada mes con nuevas preguntas y datos."
-      }
-    }
-  },
-  "stats": {
-    "eyebrow": "Tiempos y entregables",
-    "title": "Sencillo de arrancar este mismo mes",
-    "subtitle": "Sin necesidad de integrar nuevas plataformas. Nosotros realizamos el trabajo y te entregamos la evidencia.",
-    "items": {
-      "diagnostic": {
-        "value": "48 h",
-        "label": "Diagnóstico inicial",
-        "description": "Cuarenta preguntas a tu asistente público, con el informe de resultados dos días después."
-      },
-      "cases": {
-        "value": "150–300",
-        "label": "Casos en un piloto",
-        "description": "Elaborados a partir de tu documentación, dudas reales de clientes y nuestros expertos de dominio."
-      },
-      "session": {
-        "value": "90 min",
-        "label": "Con nuestros expertos de dominio",
-        "description": "Una única sesión estructurada para definir con precisión qué respuesta es correcta."
-      },
-      "readout": {
-        "value": "2 semanas",
-        "label": "Hasta la presentación en directo",
-        "description": "Desde la reunión inicial hasta la entrega del informe final ante tu equipo."
-      }
-    }
-  },
-  "partnerships": {
-    "eyebrow": "Punto de partida",
-    "title": "Empieza con un diagnóstico inicial gratuito",
-    "body": "Facilítanos el enlace a tu asistente. Le formulamos cuarenta preguntas cuyas respuestas figuran en tu documentación pública y te enviamos un informe de seis páginas en 48 horas. Sin accesos de sistema, sin contratos y sin argumentarios de venta agresivos.",
-    "primaryCta": "Solicitar diagnóstico gratuito",
-    "secondaryCta": "O reserva una llamada de 30 min",
-    "note": "¿Tu sistema es de uso interno? Podemos facilitar una sonda para ejecutar en tu propia red o evaluar una muestra anonimizada de conversaciones pasadas.",
-    "highlights": {
-      "public": {
-        "title": "Público, como un cliente",
-        "description": "Probamos tu interfaz pública a ritmo humano mediante perfiles ficticios. Sin cuentas, sin datos personales y sin pruebas de carga."
-      },
-      "report": {
-        "title": "Un informe práctico",
-        "description": "Tu puntuación general, desglose por categorías de fallo y siete transcripciones anotadas frente a las fuentes oficiales que contradicen."
-      },
-      "readout": {
-        "title": "Una sesión de 30 minutos",
-        "description": "Analizamos juntos los fallos identificados. Si decides profundizar, el siguiente paso es una Evaluación Piloto."
-      }
-    },
-    "metrics": {
-      "reply": {
-        "label": "Primera respuesta",
-        "value": "24 h"
-      },
-      "report": {
-        "label": "Informe listo en",
-        "value": "48 h"
-      },
-      "cost": {
-        "label": "Coste",
-        "value": "Gratis"
       }
     }
   },
@@ -211,85 +385,14 @@
       }
     }
   },
-  "testimonials": {
-    "eyebrow": "Testimonios",
-    "title": "Los equipos que llevan IA a producción confían en Caudals",
-    "items": {
-      "helioLabs": {
-        "quote": "Caudals desbloqueó una base global de colaboradores que coincidía con nuestros criterios de imágenes médicas en un tiempo récord. Las herramientas de revisión mantuvieron a los clínicos al mando de cada aprobación.",
-        "name": "Dr. Anika Forster",
-        "role": "Directora de Ciencia de Datos, HelioLabs"
-      },
-      "polyphonic": {
-        "quote": "En dos semanas lanzamos tres programas multimodales en los mercados español y coreano. Los módulos de formación para colaboradores redujeron el retrabajo en más de un 60 %.",
-        "name": "Joel Reyes",
-        "role": "Investigador principal, Polyphonic AI"
-      },
-      "northwind": {
-        "quote": "El equipo de alianzas parecía una extensión del nuestro: diseñaron incentivos, políticas de QA e incluso nos ayudaron a publicar un dataset público para la comunidad investigadora.",
-        "name": "Mina Patel",
-        "role": "Responsable de Innovación IA, Northwind Robotics"
-      }
-    }
-  },
-  "faq": {
-    "eyebrow": "Preguntas frecuentes",
-    "title": "Lo que preguntan los equipos antes de evaluar su sistema",
-    "footnote": "¿Tienes alguna duda específica? Escríbenos y te responderemos en menos de 24 horas.",
-    "items": {
-      "scope": {
-        "question": "¿Qué sistemas evaluáis?",
-        "answer": "Sistemas de IA basados en texto y documentos: asistentes y chatbots de atención al cliente (web, aplicaciones o WhatsApp), agentes de voz e IVR, asistentes internos sobre políticas y manuales, flujos de triaje y extracción documental, y funcionalidades de IA integradas en producto. Nos centramos en casos donde una respuesta errónea tiene un coste directo o legal."
-      },
-      "answerKey": {
-        "question": "¿Quién determina qué respuesta es correcta?",
-        "answer": "Tu propia documentación y nuestros expertos de dominio. Cada caso de prueba referencia con precisión el documento de origen, y nuestros especialistas validan el criterio de respuesta en una sesión estructurada antes de cualquier prueba. De este modo, los resultados son incontestables."
-      },
-      "access": {
-        "question": "¿Necesitáis acceso a nuestra infraestructura interna?",
-        "answer": "No. Podemos probar una interfaz pública como lo haría un cliente, puedes ejecutar nuestra sonda dentro de tu propia red y enviarnos un archivo de resultados firmado, o podemos puntuar una muestra de conversaciones pasadas. Nunca necesitamos tener credenciales de producción."
-      },
-      "data": {
-        "question": "¿Cómo gestionáis la confidencialidad de nuestros documentos y datos?",
-        "answer": "Los datos personales se anonimizan nada más recibirlos, todo el procesamiento se realiza en infraestructura europea y cada proyecto cuenta con acuerdos de confidencialidad (NDA) y encargo de tratamiento (DPA). El dataset de referencia te pertenece íntegramente. Eliminamos toda la información 12 meses después de finalizar el proyecto, o antes si así lo solicitas."
-      },
-      "platforms": {
-        "question": "¿En qué se diferencia de una plataforma de evaluación tradicional?",
-        "answer": "Las plataformas de evaluación son herramientas para equipos que ya disponen de una batería de pruebas creada. Nosotros nos encargamos de construirla: elaboramos las preguntas a partir de tus documentos, tus incidencias reales y nuestros expertos de dominio, evaluando los resultados mediante comprobaciones deterministas, un juez de IA calibrado y supervisión humana experta."
-      },
-      "certification": {
-        "question": "¿Certificáis sistemas de IA o garantizáis el cumplimiento de la AI Act?",
-        "answer": "No. Medimos el rendimiento y aportamos evidencia empírica: un registro documentado, cuantificado y reproducible del comportamiento de tu sistema. Este informe sirve como documentación de soporte técnico de alto valor, pero no constituye una certificación oficial ni una evaluación de conformidad regulatoria."
-      },
-      "after": {
-        "question": "¿Qué ocurre una vez entregado el informe?",
-        "answer": "Puedes mantener la evaluación activa mediante una suscripción mensual con nuevos casos, datos actualizados y control de regresiones. Cuando el informe descubre conocimientos contradictorios o ausentes, desplegamos a expertos sectoriales para crear los datasets que resuelven la brecha, demostrando la mejora con una nueva ejecución."
-      }
-    }
-  },
   "cta": {
-    "title": "Descubre los fallos de tu IA antes de que lo hagan tus clientes",
-    "subtitle": "Indícanos el enlace a tu asistente público o explícanos las características de tu sistema interno. Te responderemos en menos de 24 horas con la propuesta más adecuada.",
+    "eyebrow": "Diagnóstico gratuito · informe en 48 horas",
+    "title": "Descubre en qué falla tu IA antes que tus clientes.",
+    "subtitle": "Envíanos el enlace de tu asistente y le haremos cuarenta preguntas. Sin accesos ni contratos.",
     "primaryCta": "Diagnóstico inicial gratuito",
-    "secondaryCta": "Reservar llamada de 30 minutos",
-    "newsletterNote": "¿Aún no estás listo para evaluar tu sistema? Recibe nuestra newsletter quincenal. Cancelable en un clic.",
-    "emailPlaceholder": "Tu correo electrónico",
-    "subscribe": "Suscribirse",
-    "getStarted": "Comenzar",
-    "assurances": {
-      "eu": {
-        "label": "Procesamiento íntegro en la UE"
-      },
-      "experts": {
-        "label": "Criterios validados por nuestros expertos de dominio"
-      },
-      "noCommitment": {
-        "label": "Sin compromiso inicial"
-      }
-    }
+    "secondaryCta": "Reserva una llamada de 30 minutos"
   },
   "footer": {
-    "brand": "Caudals",
     "tagline": "Evaluación independiente para asistentes y agentes de IA, con respuestas de referencia validadas por expertos de dominio.",
     "askAi": "Pregunta a una IA sobre Caudals",
     "askAiPrompt": "¿Qué es Caudals? Explica cómo evalúa asistentes de IA a partir de baterías de prueba creadas con la documentación de cada empresa y expertos de dominio, y cómo cada evaluación evoluciona hacia datasets específicos. Basa el resumen en su web: https://caudals.com.",

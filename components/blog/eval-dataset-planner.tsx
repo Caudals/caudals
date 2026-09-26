@@ -102,11 +102,11 @@ export function EvalDatasetPlanner() {
                 className={cn(
                   "text-left rounded-lg border px-4 py-3 transition-all duration-150",
                   task === t.value
-                    ? "border-emerald-600 bg-emerald-50"
+                    ? "border-[#141413] bg-black/[0.04]"
                     : "border-black/[0.08] bg-background hover:border-black/[0.18] hover:bg-black/[0.015]"
                 )}
               >
-                <p className={cn("text-sm font-medium", task === t.value ? "text-emerald-700" : "text-gray-900")}>
+                <p className={cn("text-sm font-medium", task === t.value ? "text-[#141413]" : "text-gray-900")}>
                   {t.label}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
@@ -128,11 +128,11 @@ export function EvalDatasetPlanner() {
                 className={cn(
                   "text-left rounded-lg border px-4 py-3 transition-all duration-150",
                   maturity === m.value
-                    ? "border-emerald-600 bg-emerald-50"
+                    ? "border-[#141413] bg-black/[0.04]"
                     : "border-black/[0.08] bg-background hover:border-black/[0.18] hover:bg-black/[0.015]"
                 )}
               >
-                <p className={cn("text-sm font-medium", maturity === m.value ? "text-emerald-700" : "text-gray-900")}>
+                <p className={cn("text-sm font-medium", maturity === m.value ? "text-[#141413]" : "text-gray-900")}>
                   {m.label}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">{m.desc}</p>
@@ -166,9 +166,9 @@ export function EvalDatasetPlanner() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-md bg-emerald-50 px-4 py-3">
-              <p className="text-sm font-medium text-emerald-800">Total recommended</p>
-              <p className="text-xl font-semibold text-emerald-700">{rec.total.toLocaleString()} examples</p>
+            <div className="flex items-center justify-between rounded-md bg-black/[0.04] px-4 py-3">
+              <p className="text-sm font-medium text-[#141413]">Total recommended</p>
+              <p className="text-xl font-semibold text-[#141413]">{rec.total.toLocaleString()} examples</p>
             </div>
 
             {rec.notes.length > 0 && (

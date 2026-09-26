@@ -24,12 +24,15 @@ import { LocaleLink as Link } from "@/components/i18n/locale-link";
 
 interface HeaderProps {
   links?: readonly PublicNavigationLink[];
-  translucent?: boolean;
 }
 
-const REQUEST_ACCESS_CTA = "/contact";
+/** The free diagnostic, preselected on the contact form. */
+const DIAGNOSTIC_CTA = "/contact?offer=reality-check";
 
-export function Header({ links, translucent = false }: HeaderProps) {
+const pillClass =
+  "rounded-full bg-[#141413] px-4 text-[13px] font-medium text-[#f5f4f0] transition-[opacity,transform] duration-200 hover:bg-[#141413] hover:opacity-85 active:scale-[0.97]";
+
+export function Header({ links }: HeaderProps) {
   const t = useTranslations("nav");
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -37,7 +40,8 @@ export function Header({ links, translucent = false }: HeaderProps) {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
-    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -46,14 +50,12 @@ export function Header({ links, translucent = false }: HeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
-        isScrolled
-          ? "bg-background/40 backdrop-blur-[22px]"
-          : "bg-transparent",
+        "font-mk-sans sticky top-0 z-50 w-full transition-colors duration-300",
+        isScrolled ? "bg-background/80 backdrop-blur-[14px] backdrop-saturate-150" : "bg-transparent",
       )}
     >
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-8 px-6 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-2.5 shrink-0 transition-opacity hover:opacity-90">
+      <div className="mx-auto flex h-16 w-full max-w-[1200px] items-center justify-between gap-8 px-[clamp(16px,4vw,40px)]">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90">
           <Image
             src="/caudals_logo_black.svg"
             alt={t("logoAlt")}
@@ -62,35 +64,35 @@ export function Header({ links, translucent = false }: HeaderProps) {
             className="h-7 w-7"
             priority
           />
-          <span className="text-xl font-medium tracking-tight text-black">
+          <span className="text-xl font-medium tracking-tight text-[#141413]">
             {t("brand")}
           </span>
         </Link>
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-7 md:flex">
           {navLinks.map(({ href, labelKey }) => (
             <Link
               key={href}
               href={href}
-              className="text-[14px] font-medium text-gray-600 transition-colors hover:text-black"
+              className="text-[14px] text-[#3b3a36] transition-colors hover:text-[#141413]"
             >
               {t(labelKey)}
             </Link>
           ))}
           <LanguageSwitcher />
-          <Button size="sm" asChild className="rounded-md px-5 bg-black text-white hover:bg-black/90">
-            <Link href={REQUEST_ACCESS_CTA}>{t("getStarted")}</Link>
+          <Button size="sm" asChild className={cn("h-9", pillClass)}>
+            <Link href={DIAGNOSTIC_CTA}>{t("diagnostic")}</Link>
           </Button>
         </nav>
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-auto md:hidden text-black hover:bg-black/5">
+            <Button variant="ghost" size="icon" className="ml-auto text-[#141413] hover:bg-black/5 md:hidden">
               <Menu className="h-5 w-5" />
               <span className="sr-only">{t("toggleMenu")}</span>
             </Button>
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="bg-background px-0 pb-0 pt-0 text-black border-l border-black/[0.08]"
+            className="border-l border-black/[0.08] bg-background px-0 pb-0 pt-0 text-[#141413]"
           >
             <div className="flex h-full flex-col">
               <SheetHeader className="border-b border-black/[0.08] px-6 pb-5 pt-6">
@@ -104,7 +106,7 @@ export function Header({ links, translucent = false }: HeaderProps) {
                     className="h-6 w-6"
                     priority
                   />
-                  <span className="text-lg font-bold text-black">{t("brand")}</span>
+                  <span className="text-lg font-medium text-[#141413]">{t("brand")}</span>
                 </Link>
               </SheetHeader>
 
@@ -112,17 +114,14 @@ export function Header({ links, translucent = false }: HeaderProps) {
                 <div className="flex flex-col gap-6 py-8">
                   {navLinks.map(({ href, labelKey }) => (
                     <SheetClose asChild key={href}>
-                      <Link
-                        href={href}
-                        className="text-lg font-bold text-gray-600 hover:text-black"
-                      >
+                      <Link href={href} className="text-lg text-[#3b3a36] hover:text-[#141413]">
                         {t(labelKey)}
                       </Link>
                     </SheetClose>
                   ))}
                   <SheetClose asChild>
-                    <Button size="sm" asChild className="w-full rounded-md bg-black text-white hover:bg-black/90">
-                      <Link href={REQUEST_ACCESS_CTA}>{t("getStarted")}</Link>
+                    <Button size="sm" asChild className={cn("h-10 w-full", pillClass)}>
+                      <Link href={DIAGNOSTIC_CTA}>{t("diagnostic")}</Link>
                     </Button>
                   </SheetClose>
                   <LanguageSwitcher className="pt-2 text-base" />

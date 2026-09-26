@@ -83,9 +83,9 @@ export function ActiveLearningLoop() {
                     className={cn(
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-200 focus:outline-none",
                       isActive
-                        ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                        ? "border-[#141413] bg-[#141413] text-white shadow-sm"
                         : isDone
-                          ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+                          ? "border-[#141413] bg-black/[0.04] text-[#141413]"
                           : "border-black/[0.12] bg-background text-neutral-400 hover:border-black/[0.25]"
                     )}
                   >
@@ -108,7 +108,7 @@ export function ActiveLearningLoop() {
                     className={cn(
                       "mt-2 text-center text-[11px] leading-tight px-1 transition-colors",
                       isActive
-                        ? "text-emerald-700 font-medium"
+                        ? "text-[#141413] font-medium"
                         : "text-gray-400"
                     )}
                   >
@@ -121,7 +121,7 @@ export function ActiveLearningLoop() {
                     <div
                       className={cn(
                         "h-px w-full transition-colors duration-300",
-                        i < activeStep ? "bg-emerald-400" : "bg-black/[0.08]"
+                        i < activeStep ? "bg-[#6b6a63]" : "bg-black/[0.08]"
                       )}
                     />
                   </div>
@@ -136,7 +136,7 @@ export function ActiveLearningLoop() {
       <div className="mx-6 mb-6 mt-4 rounded-lg border border-black/[0.08] bg-black/[0.02] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700 mb-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#3b3a36] mb-1">
               Step {step.id} of {steps.length}
             </p>
             <h3 className="text-base font-semibold text-gray-900 mb-2">
@@ -147,8 +147,8 @@ export function ActiveLearningLoop() {
             </p>
           </div>
         </div>
-        <div className="mt-4 inline-flex items-center rounded-md bg-emerald-50 px-3 py-1.5">
-          <span className="text-xs font-medium text-emerald-700">{step.stat}</span>
+        <div className="mt-4 inline-flex items-center rounded-md bg-black/[0.04] px-3 py-1.5">
+          <span className="text-xs font-medium text-[#141413]">{step.stat}</span>
         </div>
       </div>
 
@@ -184,7 +184,7 @@ export function ActiveLearningLoop() {
               className={cn(
                 "h-1.5 rounded-full transition-all duration-200",
                 i === activeStep
-                  ? "w-4 bg-emerald-600"
+                  ? "w-4 bg-[#141413]"
                   : "w-1.5 bg-gray-300 hover:bg-gray-400"
               )}
             />

@@ -85,6 +85,11 @@
   --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-family-serif: "New York", "Iowa", "Georgia", serif;
 
+  /* Marketing type, loaded by app/[locale]/layout.tsx: font-mk-sans, font-mk-serif, font-mk-mono */
+  --font-mk-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mk-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-mk-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
   --ease-soft-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
   --breakpoint-2xl: 1280px;

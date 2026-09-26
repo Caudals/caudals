@@ -63,8 +63,8 @@ describe("dictionaries", () => {
 
 describe("createTranslator", () => {
   it("resolves a nested key in the requested locale", () => {
-    expect(createTranslator("es")("nav.getStarted")).toBe("Comenzar");
-    expect(createTranslator("en")("nav.getStarted")).toBe("Get started");
+    expect(createTranslator("es")("nav.contact")).toBe("Contacto");
+    expect(createTranslator("en")("nav.contact")).toBe("Contact");
   });
 
   it("fills interpolation slots", () => {
@@ -82,6 +82,6 @@ describe("createTranslator", () => {
 describe("scopeTranslator", () => {
   it("resolves keys relative to its namespace", () => {
     const t = scopeTranslator(createTranslator("es"), "nav");
-    expect(t("getStarted")).toBe("Comenzar");
+    expect(t("diagnostic")).toBe("Diagnóstico gratuito");
   });
 });

@@ -36,7 +36,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         return (
           <span key={locale} className="flex items-center">
             {index > 0 ? (
-              <span aria-hidden className="select-none px-1 text-gray-300">
+              <span aria-hidden className="select-none px-1 text-[#cfcdc6]">
                 ·
               </span>
             ) : null}
@@ -49,8 +49,8 @@ export function LanguageSwitcher({ className }: { className?: string }) {
               onClick={() => rememberLocale(locale)}
               className={cn(
                 "rounded px-1 py-0.5 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40",
-                isActive ? "text-black" : "text-gray-400 hover:text-black",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30",
+                isActive ? "text-[#141413]" : "text-[#8c8b84] hover:text-[#141413]",
               )}
             >
               {localeShortLabels[locale]}

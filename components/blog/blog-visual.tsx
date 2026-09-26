@@ -30,13 +30,13 @@ export function BlogPostVisual({
       )}
     >
       <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(to_right,rgba(148,163,184,0.11)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.11)_1px,transparent_1px)] [background-size:36px_36px]" />
-      <div className="absolute -left-6 top-8 h-24 w-24 rounded-full border border-emerald-200/80 bg-white/70" />
+      <div className="absolute -left-6 top-8 h-24 w-24 rounded-full border border-black/[0.12] bg-white/70" />
       <div className="absolute right-8 top-10 h-14 w-24 rounded-full border border-slate-200/80 bg-white/80" />
       <div className="absolute left-[18%] top-[42%] h-px w-[64%] bg-slate-300/80" />
-      <div className="absolute left-[18%] top-[42%] h-3 w-3 -translate-y-1/2 rounded-full bg-emerald-500" />
+      <div className="absolute left-[18%] top-[42%] h-3 w-3 -translate-y-1/2 rounded-full bg-[#141413]" />
       <div className="absolute right-[18%] top-[42%] h-3 w-3 -translate-y-1/2 rounded-full bg-slate-400" />
       <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/80 bg-white/88 p-4 backdrop-blur-sm">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#3b3a36]">
           {category}
         </p>
         <div className="mt-3 space-y-2">

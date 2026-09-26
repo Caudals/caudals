@@ -89,7 +89,7 @@ export default async function NewsletterPage({ params }: NewsletterIndexProps) {
                       : ""}
                     {formatDate(issue.sent_at, locale)}
                   </p>
-                  <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-emerald-700">
+                  <h2 className="text-2xl font-medium tracking-tight transition group-hover:text-black/60">
                     {issue.title}
                   </h2>
                   {issue.dek && (

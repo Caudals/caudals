@@ -8,8 +8,8 @@ import type { NamespaceKeys, Translator } from "@/lib/i18n/messages";
  * in `lib/i18n/messages/*.json` under the `howItWorks` and `pricing`
  * namespaces, so a wording change is a message edit and never touches code.
  *
- * The landing page, `/llms.txt`, the markdown served to agents and the home
- * page structured data all read from here.
+ * `/llms.txt`, the markdown served to agents and the home page structured
+ * data read from here. The landing page itself shows no prices.
  */
 
 export type EvaluationStepId = "evaluate" | "report" | "subscribe" | "build";
@@ -35,14 +35,14 @@ export type EvaluationOffer = {
   pricing: "free" | "quoted";
   /** How many `includeN` bullets this offer defines in the message files. */
   includeCount: number;
-  /** Whether this offer is the visually emphasised one in the pricing grid. */
+  /** Whether this offer is the one to lead with when offers are listed. */
   featured: boolean;
 };
 
 export const EVALUATION_OFFERS = [
   {
     id: "realityCheck",
-    slug: "diagnostic",
+    slug: "reality-check",
     pricing: "free",
     includeCount: 3,
     featured: false,

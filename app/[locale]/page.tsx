@@ -123,7 +123,7 @@ function buildHomeStructuredData(locale: Locale) {
             "@type": "Offer",
             name: t(`pricing.offers.${offer.id}.name`),
             description: t(`pricing.offers.${offer.id}.summary`),
-            url: `${homeUrl}#pricing`,
+            url: `${buildMarketingUrl(localizePathname("/contact", locale))}?offer=${offer.slug}`,
             priceSpecification: offerPriceSpecification(offer),
           })),
         },

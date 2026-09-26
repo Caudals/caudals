@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 import { locales, type Locale } from "@/lib/i18n/config";
 import { LocaleProvider } from "@/lib/i18n/context";
@@ -12,6 +13,18 @@ import {
   SITE_KEYWORDS,
   SITE_NAME,
 } from "@/lib/seo";
+
+// The marketing type system: Geist for text, Newsreader for display and
+// Geist Mono for labels. Loaded here so only the public site downloads them.
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+  variable: "--font-newsreader",
+  display: "swap",
+});
 
 /**
  * Public marketing layout, one subtree per locale.
@@ -61,8 +74,11 @@ export default async function LocaleLayout({
   return (
     <LocaleProvider locale={locale}>
       <HtmlLang locale={locale} />
-      {children}
-      <CookieConsentBanner />
+      {/* `contents` keeps the wrapper out of layout; it only carries the font variables. */}
+      <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} contents`}>
+        {children}
+        <CookieConsentBanner />
+      </div>
     </LocaleProvider>
   );
 }

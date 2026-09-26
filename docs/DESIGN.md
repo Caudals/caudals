@@ -287,19 +287,21 @@ Two selector techniques appear throughout and are deliberate:
 
 ## 13. The public site
 
-`caudals.com` keeps its editorial language, unchanged by the platform redesign. It is scheduled for its own pass; until then these rules stand.
+`caudals.com` uses the **Paper** language chosen from the 2026-09 redesign mockup (`c-design/landing-redesign`, variant 1 and the hero study): a calm research-report page, monochrome by rule.
 
-- Tokens: `packages/brand/tokens.css` (`--ds-*`), consumed via `app/globals.css`.
-- Off-white canvas `#fbfaf8`, white cards, near-black type `#111827`, three-tier grey.
-- **Headings are `font-normal` (400)** — the opposite of the platform. This is the point of difference between a document and an instrument.
-- One serif italic word inside a neutral display headline (`font-serif italic`, `--ds-accent-teal`) is the signature move.
-- Emerald/teal (`--ds-accent` `#059669`) is the brand accent: eyebrows, status, focus, soft pills. **Primary CTAs are near-black, never teal.**
-- Sections `py-24 sm:py-32`, container `max-w-5xl`, gutters `px-6 sm:px-8 lg:px-12`.
-- One ease: `cubic-bezier(0.22, 1, 0.36, 1)`. Entrance reveals `opacity 0→1, y 20→0, 500–800ms`, stagger `0.05–0.1s`. No bounces.
-- No emoji, no purple-blue gradients, no harsh shadows, no parallax beyond the hero Spline scene.
-- Offers come from `lib/public/evaluation-offers.ts`; only the free Reality Check is priced.
+- Tokens: `packages/brand/tokens.css` (`--ds-*`), consumed via `app/globals.css`. The landing adds its own scoped palette in `components/landing/landing.css` (`.lp`), with the same values.
+- Warm paper canvas `#f5f4f0`, white paper `#ffffff` for sheets and bubbles, ink `#141413`, secondary ink `#3b3a36`, muted `#6b6a63` (4.9:1 on the canvas), hairlines `#dcdad3` / `#e9e7e1`.
+- **No colour accent.** Teal and emerald are gone from every public surface; the `--ds-accent*` names remain for existing consumers and resolve to ink. A verdict is a solid ink cross or an outlined ink tick, always next to a word.
+- Type: Geist (text), Newsreader (display, light 300, with italic for the one emphasised word), Geist Mono (uppercase labels, sources, captions). Loaded with `next/font` in `app/[locale]/layout.tsx` and exposed as `font-mk-sans`, `font-mk-serif`, `font-mk-mono`.
+- The hero headline is Geist 400 with one Newsreader italic word, marked `*like this*` in the message files so each locale picks its own.
+- Primary CTAs are near-black **pills**; on the dark closing card they invert to paper. Secondary actions are underlined text links or ghost pills.
+- Page order: hero with the checked chat, partner logos (two rows, one ink), the problem in two serif sentences, five numbered steps (numeral · title · one line · figure), the closing CTA over a blurred black-and-white photograph, footer. No pricing, FAQ or testimonial sections.
+- Figures sit on the canvas with no card: line drawings map their paper fills to the canvas (`.dg-bare`). Diagrams that do not scale to a phone ship a mobile drawing (`.dg-desk` / `.dg-mob`); charts are HTML so text stays legible.
+- Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade. Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen, and the hero has a pause button. Under reduced motion nothing moves; the hero still changes sector.
+- Container `max-width: 1200px`, gutters `clamp(16px, 4vw, 40px)`. No emoji, no gradients as decoration, no parallax.
+- Offers come from `lib/public/evaluation-offers.ts` and appear only in `/llms.txt`, agent markdown and structured data; the landing shows no prices.
 
-Do not import `platform.css` here, and do not carry the serif italic or emerald accent into the platform.
+Do not import `platform.css` here, and do not carry the Newsreader display type into the platform.
 
 ---
 
@@ -307,4 +309,5 @@ Do not import `platform.css` here, and do not carry the serif italic or emerald 
 
 | Date | Change |
 | --- | --- |
+| 2026-09-26 | Public site moves to the Paper language: warm canvas, no colour accent (teal removed), Geist + Newsreader + Geist Mono, shorter landing with five illustrated steps. §13 rewritten. |
 | 2026-09-20 | Platform redesign. New ElevenLabs-inspired system in `packages/brand/platform.css`; monochrome chrome with semantic-only colour; three-plane shell; expanded primitive kit; dark-ready tokens. Marketing language unchanged, now documented separately in §13. |

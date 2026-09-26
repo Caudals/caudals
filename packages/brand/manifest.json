@@ -6,13 +6,13 @@
     "avoid": ["AI hype", "fake urgency", "absolute compliance claims", "invented proof", "hashtag walls", "emoji bullets"]
   },
   "tokens": {
-    "canvas": "#f9fafb",
+    "canvas": "#f5f4f0",
     "surface": "#ffffff",
-    "textPrimary": "#111827",
-    "textSecondary": "#6b7280",
-    "accent": "#059669",
-    "accentTeal": "#0f766e",
-    "ctaBackground": "#111827",
+    "textPrimary": "#141413",
+    "textSecondary": "#6b6a63",
+    "accent": "#141413",
+    "accentTeal": "#141413",
+    "ctaBackground": "#141413",
     "radiusLarge": "12px",
     "radiusExtraLarge": "16px"
   },

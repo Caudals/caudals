@@ -1,28 +1,30 @@
+/* Marketing tokens: warm paper canvas, near-black ink, no colour accent.
+   The accent names are kept for existing consumers; they resolve to ink. */
 :root {
-  --ds-canvas: #fbfaf8;
-  --ds-sidebar-bg: #fbfaf8;
-  --ds-surface: #fbfaf8;
-  --ds-surface-muted: #f4f4f2;
+  --ds-canvas: #f5f4f0;
+  --ds-sidebar-bg: #f5f4f0;
+  --ds-surface: #f5f4f0;
+  --ds-surface-muted: #ecebe6;
   --ds-border-soft: rgba(0, 0, 0, 0.06);
   --ds-border-strong: rgba(0, 0, 0, 0.12);
-  --ds-text-primary: #111827;
-  --ds-text-secondary: #6b7280;
-  --ds-text-tertiary: #9ca3af;
+  --ds-text-primary: #141413;
+  --ds-text-secondary: #6b6a63;
+  --ds-text-tertiary: #8c8b84;
   --ds-text-inverse: #ffffff;
-  --ds-accent: #059669;
-  --ds-accent-hover: #047857;
-  --ds-accent-soft: #ecfdf5;
-  --ds-accent-soft-2: #d1fae5;
-  --ds-accent-text: #047857;
-  --ds-accent-teal: #0f766e;
+  --ds-accent: #141413;
+  --ds-accent-hover: #3b3a36;
+  --ds-accent-soft: #ecebe6;
+  --ds-accent-soft-2: #e6e4de;
+  --ds-accent-text: #141413;
+  --ds-accent-teal: #141413;
   --ds-danger: #dc2626;
   --ds-danger-soft: #fef2f2;
   --ds-warning: #d97706;
   --ds-warning-soft: #fffbeb;
   --ds-info: #2563eb;
   --ds-info-soft: #eff6ff;
-  --ds-cta-bg: #111827;
-  --ds-cta-bg-hover: #1f2937;
+  --ds-cta-bg: #141413;
+  --ds-cta-bg-hover: #3b3a36;
   --ds-cta-text: #ffffff;
   --ds-radius-xs: 6px;
   --ds-radius-sm: 8px;

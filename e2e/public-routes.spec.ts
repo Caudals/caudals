@@ -150,15 +150,19 @@ test.describe("public navigation", () => {
     await page.goto("/es");
 
     const nav = page.locator("header nav").first();
+    await expect(nav.getByRole("link", { name: "Cómo funciona" })).toHaveAttribute(
+      "href",
+      "/es#how-it-works",
+    );
     await expect(nav.getByRole("link", { name: "Contacto" })).toHaveAttribute(
       "href",
       "/es/contact",
     );
     await expect(nav.getByRole("link", { name: "Blog" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Newsletter" })).toHaveCount(0);
-    await expect(nav.getByRole("link", { name: "Comenzar" })).toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "Diagnóstico gratuito" })).toHaveAttribute(
       "href",
-      "/es/contact",
+      "/es/contact?offer=reality-check",
     );
   });
 });

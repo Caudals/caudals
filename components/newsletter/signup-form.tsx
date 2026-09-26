@@ -46,7 +46,7 @@ export function NewsletterSignupForm({ source, compact = false }: Props) {
 
   if (state === "done") {
     return (
-      <p className="text-base font-medium text-teal-700">
+      <p className="text-base font-medium text-[#141413]">
         {t("confirm")}
       </p>
     );
