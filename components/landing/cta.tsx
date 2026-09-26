@@ -3,22 +3,13 @@
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { useTranslations } from "@/lib/i18n/context";
 
-/** Closing call to action, over a blurred black-and-white office at night. */
+/** Closing call to action, over a blurred black-and-white office at night (a CSS background, see landing.css). */
 export function CTASection() {
   const t = useTranslations("cta");
 
   return (
     <section className="lp-wrap lp-cta" aria-labelledby="cta-title">
       <div className="lp-cta-card">
-        <picture>
-          <source media="(max-width: 700px)" srcSet="/images/landing/cta-office-sm.webp" />
-          <img
-            src="/images/landing/cta-office.webp"
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />
-        </picture>
         <h2 id="cta-title" className="lp-cta-h">
           {t("title")}
         </h2>
