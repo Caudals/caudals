@@ -36,6 +36,15 @@ describe("seo helpers", () => {
     expect(getIndexableMarketingRoutes().map((route) => route.pathname)).toEqual(
       [
         "/",
+        "/sectors",
+        "/sectors/insurance",
+        "/sectors/industrial-after-sales",
+        "/sectors/healthcare",
+        "/sectors/banking",
+        "/sectors/energy",
+        "/sectors/telecom",
+        "/sectors/legal-and-advisory",
+        "/sectors/travel",
         "/call",
         "/contact",
         "/legal/cookies",

@@ -698,6 +698,9 @@ Operational env controls:
   funnel; the removed marketplace pages simply do not exist in the build.
 - Cloudflare managed crawler controls can prepend bot-specific rules to the application's `/robots.txt`. After changing crawler policy, verify the production response itself—not only `app/robots.ts`—and configure Cloudflare AI crawler controls so they do not contradict the application's public-content allow rules for search and AI discovery bots.
 - SEO/GEO release checks should fetch `/robots.txt`, `/sitemap.xml`, every referenced subsitemap, and `/llms.txt` through the public Cloudflare hostname, then confirm that private routes remain absent.
+- After a deploy that adds or changes public pages, run `npm run seo:indexnow`. It submits every URL in `/page-sitemap.xml` to IndexNow (Bing, and through it ChatGPT search and Copilot). The key is public by design and is served from `public/<key>.txt`; the script and that file must change together.
+- Search-console verification tags come from `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` (or their `NEXT_PUBLIC_` forms) at build time.
+- A crawler's view of a page: `curl -A "GPTBot/1.2" https://caudals.com/es/contact` must show `<title>`, the canonical and the `hreflang` set inside `<head>`, and `<html lang>` must match the URL's locale.
 
 ## Route Surface Gate
 

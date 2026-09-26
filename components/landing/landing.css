@@ -204,9 +204,37 @@
   align-content: start;
   padding-block: 20px 12px;
 }
+.hc-conv {
+  transition:
+    opacity 0.2s var(--ease),
+    visibility 0s;
+}
 .hc-conv[data-active="false"] {
   visibility: hidden;
   pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.18s ease-out,
+    visibility 0s linear 0.18s;
+}
+/* A new sector's conversation writes itself in: each bubble, question then
+   answer, rises a few pixels out of a soft blur while the old one fades. */
+@media (prefers-reduced-motion: no-preference) {
+  .hc-conv[data-enter="true"] .hc-u,
+  .hc-conv[data-enter="true"] .hc-row {
+    animation: hc-in 0.55s var(--ease) both;
+    animation-delay: calc(var(--i) * 0.14s + 0.08s);
+  }
+  .hc-conv[data-enter="true"] .hc-row {
+    animation-delay: calc(var(--i) * 0.14s + 0.15s);
+  }
+}
+@keyframes hc-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
 }
 .hc-x {
   display: grid;
@@ -1066,6 +1094,214 @@
   outline-color: #f5f4f0;
 }
 
+/* ── sector pages and the sectors hub ── */
+.lp-crumbs {
+  padding-top: clamp(14px, 2vw, 24px);
+}
+.lp-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--mute);
+}
+.lp-crumbs li + li::before {
+  content: "/";
+  margin-right: 6px;
+  color: var(--line);
+}
+.lp-crumbs a {
+  transition: color 0.2s;
+}
+.lp-crumbs a:hover {
+  color: var(--ink);
+}
+.lp-crumbs [aria-current] {
+  color: var(--ink2);
+}
+.sx-hero {
+  padding-top: clamp(24px, 3.5vw, 48px);
+}
+.sx-hero .lp-label + .sx-h1 {
+  margin-top: 14px;
+}
+.sx-h1 {
+  max-width: 15ch;
+}
+.sx-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 56px);
+}
+.sx-lists ul {
+  margin-top: 14px;
+  border-top: 1px solid var(--ink);
+}
+.sx-lists li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: clamp(15.5px, 1.3vw, 17px);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.sx-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: clamp(24px, 4vw, 64px);
+  padding-block: clamp(44px, 5.5vw, 76px) clamp(56px, 7vw, 96px);
+}
+.sx-faq-list {
+  border-top: 1px solid var(--ink);
+}
+.sx-faq details {
+  border-bottom: 1px solid var(--line);
+}
+.sx-faq summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.sx-faq summary::-webkit-details-marker {
+  display: none;
+}
+.sx-faq summary h3 {
+  font: 500 clamp(16px, 1.35vw, 18px)/1.4 var(--sans);
+  letter-spacing: -0.015em;
+}
+.sx-faq-mark {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 5px;
+}
+.sx-faq-mark::before,
+.sx-faq-mark::after {
+  content: "";
+  position: absolute;
+  inset: 6px 0 auto;
+  height: 1.5px;
+  background: var(--ink);
+  transition: transform 0.3s var(--ease);
+}
+.sx-faq-mark::after {
+  transform: rotate(90deg);
+}
+.sx-faq details[open] .sx-faq-mark::after {
+  transform: rotate(0deg);
+}
+.sx-faq details p {
+  max-width: 64ch;
+  padding-bottom: 22px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--ink2);
+}
+.sx-related {
+  padding-bottom: clamp(56px, 7vw, 96px);
+}
+.sx-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+.sx-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  height: 100%;
+  padding: 20px 44px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  transition:
+    border-color 0.2s,
+    transform 0.2s var(--ease);
+}
+.sx-card b {
+  font: 500 16px/1.3 var(--sans);
+  letter-spacing: -0.015em;
+}
+.sx-card span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+.sx-card i,
+.sx-hub-row i {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-style: normal;
+  color: var(--mute);
+  transition:
+    transform 0.3s var(--ease),
+    color 0.2s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sx-card:hover {
+    border-color: var(--ink);
+  }
+  .sx-card:hover i,
+  .sx-hub-row:hover i {
+    color: var(--ink);
+    transform: translateX(3px);
+  }
+}
+.sx-card:active {
+  transform: scale(0.99);
+}
+.sx-hub {
+  padding-bottom: clamp(56px, 8vw, 112px);
+}
+.sx-hub-list {
+  margin-top: 14px;
+  border-top: 1px solid var(--ink);
+}
+.sx-hub-list li {
+  border-bottom: 1px solid var(--line);
+}
+.sx-hub-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) minmax(0, 4fr);
+  gap: 8px clamp(20px, 3vw, 40px);
+  align-items: baseline;
+  padding: 24px 40px 24px 0;
+}
+.sx-hub-row i {
+  top: 24px;
+  right: 4px;
+}
+.sx-hub-row h3 {
+  font: 400 clamp(22px, 2vw, 28px)/1.15 var(--sans);
+  letter-spacing: -0.03em;
+}
+.sx-hub-row p {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+.sx-hub-row .sx-hub-for {
+  font-size: 14px;
+  color: var(--mute);
+}
+.sx-hub-for span {
+  font-weight: 500;
+  color: var(--ink2);
+}
+.sx-404 {
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  padding-block: clamp(64px, 10vw, 140px);
+}
+
 /* ── responsive ── */
 @media (max-width: 980px) {
   .lp-hero {
@@ -1111,6 +1347,12 @@
     column-gap: 22px;
     padding-bottom: 0;
   }
+  .sx-faq {
+    grid-template-columns: 1fr;
+  }
+  .sx-hub-row {
+    grid-template-columns: 1fr;
+  }
 
 }
 @media (max-width: 760px) {
@@ -1148,6 +1390,9 @@
   .hc-note {
     min-width: 0;
     width: min(340px, 86vw);
+  }
+  .sx-lists {
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 480px) {

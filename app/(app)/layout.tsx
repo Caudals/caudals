@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ReactNode } from "react";
 import { AppShell } from "@/components/app/app-shell";
+import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import { buildNoIndexMetadata } from "@/lib/seo";
 // The legacy operator console is frozen scope (see AGENTS.md): it is maintained,
 // not extended. It still adopts the platform token layer so `/admin` reads as
@@ -16,15 +17,21 @@ import "@/packages/brand/platform.css";
  */
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = buildNoIndexMetadata(
-  "Caudals app",
-  "Authenticated workspace for internal and migration-only app surfaces."
-);
+export const metadata: Metadata = {
+  ...rootMetadata,
+  ...buildNoIndexMetadata(
+    "Caudals app",
+    "Authenticated workspace for internal and migration-only app surfaces."
+  ),
+};
 
 export default function AppLayout({ children }: { children: ReactNode }) {
+  // One of the app's root layouts: internal surfaces are English-only.
   return (
-    <div className="p-root" data-surface="admin">
-      <AppShell>{children}</AppShell>
-    </div>
+    <RootDocument lang="en">
+      <div className="p-root" data-surface="admin">
+        <AppShell>{children}</AppShell>
+      </div>
+    </RootDocument>
   );
 }

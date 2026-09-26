@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  findInternalPathnameInAnyLocale,
   hasUnsupportedLocalePrefix,
   isNonLocalizedPath,
   localizePathname,
   normalizePathname,
   splitLocale,
   switchLocalePathname,
+  toInternalPathname,
+  toPublicPathname,
 } from "@/lib/i18n/routing";
 
 describe("normalizePathname", () => {
@@ -111,5 +114,38 @@ describe("hasUnsupportedLocalePrefix", () => {
     expect(hasUnsupportedLocalePrefix("/es/blog")).toBe(false);
     expect(hasUnsupportedLocalePrefix("/blog")).toBe(false);
     expect(hasUnsupportedLocalePrefix("/contact")).toBe(false);
+  });
+});
+
+describe("translated paths", () => {
+  it("localizes sector pages with each language's own slug", () => {
+    expect(localizePathname("/sectors", "es")).toBe("/es/sectores");
+    expect(localizePathname("/sectors", "en")).toBe("/en/sectors");
+    expect(localizePathname("/sectors/insurance", "es")).toBe("/es/sectores/seguros");
+    expect(localizePathname("/sectors/insurance", "en")).toBe("/en/sectors/insurance");
+    expect(localizePathname("/sectors/industrial-after-sales", "es")).toBe(
+      "/es/sectores/posventa-industrial",
+    );
+  });
+
+  it("maps public slugs back to the internal route", () => {
+    expect(toInternalPathname("/sectores/seguros", "es")).toBe("/sectors/insurance");
+    expect(toInternalPathname("/sectores", "es")).toBe("/sectors");
+    // Untranslated and already-internal paths pass through.
+    expect(toInternalPathname("/contact", "es")).toBe("/contact");
+    expect(toInternalPathname("/sectors/insurance", "es")).toBe("/sectors/insurance");
+    expect(toPublicPathname("/contact", "es")).toBe("/contact");
+  });
+
+  it("recognises a slug typed under the wrong language", () => {
+    expect(findInternalPathnameInAnyLocale("/sectores/banca")).toBe("/sectors/banking");
+    expect(findInternalPathnameInAnyLocale("/contact")).toBeNull();
+  });
+
+  it("keeps the reader on the same sector when switching language", () => {
+    expect(switchLocalePathname("/es/sectores/seguros", "en")).toBe("/en/sectors/insurance");
+    expect(switchLocalePathname("/en/sectors/insurance", "es")).toBe("/es/sectores/seguros");
+    // The internal form (what a rewritten request may report) switches the same way.
+    expect(switchLocalePathname("/es/sectors/insurance", "en")).toBe("/en/sectors/insurance");
   });
 });

@@ -14,6 +14,7 @@ export function GET() {
       pathname: route.pathname,
       changefreq: route.changeFrequency,
       priority: route.priority,
+      lastmod: route.lastModified,
     }),
   );
 

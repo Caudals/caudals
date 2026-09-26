@@ -182,6 +182,13 @@ export const evaluationRequestFormSchema = z.object({
 export type EvaluationRequestFormValues = z.infer<typeof evaluationRequestFormSchema>;
 
 /** Reads the `?offer=` hint that pricing and hero links pass to `/contact`. */
+/** Reads a `?sector=` query value; sector pages link to the form with their id. */
+export function parseRequestedSector(
+  value: string | undefined,
+): EvaluationSector | undefined {
+  return evaluationSectors.find((sector) => sector === value);
+}
+
 export function parseRequestedOffer(
   value: string | undefined,
 ): EvaluationRequestOffer | undefined {

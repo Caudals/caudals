@@ -7,8 +7,12 @@ import {
 } from "@/lib/i18n/config";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { localizePathname } from "@/lib/i18n/routing";
+import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 
 export const SITE_NAME = "Caudals";
+
+/** The brand's X account, declared as `twitter:site` on every public page. */
+export const TWITTER_HANDLE = "@caudalshq";
 
 /**
  * Site-level title and description per locale. Each language carries its own
@@ -65,10 +69,33 @@ export type IndexableMarketingRoute = {
   pathname: string;
   changeFrequency: NonNullable<MetadataRoute.Sitemap[number]["changeFrequency"]>;
   priority: number;
+  /**
+   * Date the page's content last changed (YYYY-MM-DD), emitted as `<lastmod>`.
+   * Update it with the copy; leave it out rather than guess, because search
+   * engines stop trusting a lastmod that changes when the page does not.
+   */
+  lastModified?: string;
 };
 
+/** Content date of the sector pages; bump it when their copy changes. */
+const SECTOR_PAGES_UPDATED = "2026-09-27";
+
 const MARKETING_ROUTES: IndexableMarketingRoute[] = [
-  { pathname: "/", changeFrequency: "weekly", priority: 1 },
+  { pathname: "/", changeFrequency: "weekly", priority: 1, lastModified: "2026-09-26" },
+  {
+    pathname: SECTORS_HUB_PATH,
+    changeFrequency: "monthly",
+    priority: 0.9,
+    lastModified: SECTOR_PAGES_UPDATED,
+  },
+  ...SECTOR_IDS.map(
+    (id): IndexableMarketingRoute => ({
+      pathname: sectorPath(id),
+      changeFrequency: "monthly",
+      priority: 0.9,
+      lastModified: SECTOR_PAGES_UPDATED,
+    }),
+  ),
   // Temporarily hidden:
   // { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
@@ -88,6 +115,11 @@ type PublicMetadataOptions = {
   pathname: string;
   /** Language of the page being rendered. Drives canonical, hreflang and og:locale. */
   locale?: Locale;
+  /**
+   * An explicit share image. Leave it out on pages under `app/[locale]`: the
+   * nearest `opengraph-image.tsx` then supplies a 1200 × 630 card, which X
+   * also uses in the absence of `twitter:image`.
+   */
   imagePath?: string;
   type?: "website" | "article";
   noIndex?: boolean;
@@ -202,7 +234,7 @@ export function buildPublicMetadata({
   description,
   pathname,
   locale = defaultLocale,
-  imagePath = DEFAULT_SOCIAL_IMAGE_PATH,
+  imagePath,
   type = "website",
   noIndex = false,
   publishedTime,
@@ -216,7 +248,7 @@ export function buildPublicMetadata({
   // The canonical URL carries this page's own locale prefix, and every
   // supported locale is published as an hreflang alternate alongside it.
   const url = buildMarketingUrl(localizePathname(pathname, locale));
-  const imageUrl = buildMarketingUrl(imagePath);
+  const imageUrl = imagePath ? buildMarketingUrl(imagePath) : undefined;
 
   return {
     ...(documentTitle ? { title: documentTitle } : {}),
@@ -235,12 +267,7 @@ export function buildPublicMetadata({
       alternateLocale: locales
         .filter((candidate) => candidate !== locale)
         .map((candidate) => localeOpenGraph[candidate]),
-      images: [
-        {
-          url: imageUrl,
-          alt: resolvedTitle,
-        },
-      ],
+      ...(imageUrl ? { images: [{ url: imageUrl, alt: resolvedTitle }] } : {}),
       ...(type === "article"
         ? {
             publishedTime,
@@ -252,9 +279,10 @@ export function buildPublicMetadata({
     },
     twitter: {
       card: "summary_large_image",
+      site: TWITTER_HANDLE,
       title: resolvedTitle,
       description,
-      images: [imageUrl],
+      ...(imageUrl ? { images: [imageUrl] } : {}),
     },
   };
 }

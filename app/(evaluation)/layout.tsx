@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import "./evaluation.css";
 /**
  * Authenticated, per-request surface: it reads the operator session, so it must
@@ -10,6 +11,7 @@ import "./evaluation.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  ...rootMetadata,
   title: "Evaluations | Caudals",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
@@ -19,5 +21,6 @@ export default async function EvaluationLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  // One of the app's root layouts: internal surfaces are English-only.
+  return <RootDocument lang="en">{children}</RootDocument>;
 }

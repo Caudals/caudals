@@ -5,6 +5,13 @@ import type { MessageKey } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/config";
 import { localizePathname } from "@/lib/i18n/routing";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import {
+  SECTOR_IDS,
+  SECTORS_HUB_PATH,
+  sectorPath,
+  type SectorId,
+} from "@/lib/public/sectors";
+import { getSectorCopy, type FailureCause } from "@/lib/sectors/content";
 import { buildMarketingUrl, getIndexableMarketingRoutes } from "@/lib/seo";
 
 /**
@@ -35,11 +42,75 @@ const LEGAL_DOCUMENTS = {
   "/legal/terms": "terms",
 } as const;
 
+/** Internal pathname → sector, for the sector pages. */
+const SECTOR_PAGES = new Map<string, SectorId>(
+  SECTOR_IDS.map((id) => [sectorPath(id), id]),
+);
+
 export function isStaticMarkdownPage(pathname: string) {
   return (
     Object.hasOwn(STATIC_PAGES, pathname) ||
-    Object.hasOwn(LEGAL_DOCUMENTS, pathname)
+    Object.hasOwn(LEGAL_DOCUMENTS, pathname) ||
+    pathname === SECTORS_HUB_PATH ||
+    SECTOR_PAGES.has(pathname)
   );
+}
+
+const FAILURE_ORDER: readonly FailureCause[] = [
+  "invented",
+  "outdated",
+  "wrongSource",
+  "gap",
+  "outOfScope",
+];
+
+/** A sector page as prose: every section an agent would otherwise have to scrape. */
+function renderSectorBody(id: SectorId, locale: Locale) {
+  const copy = getSectorCopy(id, locale);
+  const t = getTranslator(locale);
+  const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join("\n");
+
+  const failures = FAILURE_ORDER.map((cause) => {
+    const example = copy.failures.examples[cause];
+    return [
+      `### ${t(`steps.exam.causes.${cause}.name`)}`,
+      "",
+      t(`steps.exam.causes.${cause}.description`),
+      "",
+      `- ${t("agents.question")}: “${example.q}”`,
+      `- ${t("steps.exam.aiAnswer")}: “${example.a}”`,
+      `- ${t("steps.exam.key")}: ${example.doc} (${example.src})`,
+    ].join("\n");
+  }).join("\n\n");
+
+  return [
+    copy.subtitle,
+    `${copy.stakes.lead} ${copy.stakes.solution}`,
+    `**${t("sectors.audienceLabel")}:** ${copy.audience}`,
+    `## ${copy.tested.title}`,
+    copy.tested.description,
+    `### ${t("sectors.systemsLabel")}`,
+    list(copy.tested.systems),
+    `### ${t("sectors.topicsLabel")}`,
+    list(copy.tested.topics),
+    `## ${copy.failures.title}`,
+    copy.failures.description,
+    failures,
+    `## ${copy.experts.title}`,
+    copy.experts.description,
+    list(copy.experts.roles.map((role) => role.label)),
+    list(copy.experts.datasets.map((item) => `**${item.name}:** ${item.description}`)),
+    `## ${t("sectors.faqTitle")}`,
+    copy.faq.map((item) => `### ${item.q}\n\n${item.a}`).join("\n\n"),
+  ].join("\n\n");
+}
+
+function renderSectorsHubBody(locale: Locale) {
+  return SECTOR_IDS.map((id) => {
+    const copy = getSectorCopy(id, locale);
+    const url = buildMarketingUrl(localizePathname(sectorPath(id), locale));
+    return `- [${copy.name}](${url}): ${copy.summary}`;
+  }).join("\n");
 }
 
 /** Related links, so an agent landing on one page can reach the rest of the site. */
@@ -64,7 +135,17 @@ export async function renderStaticPageMarkdown(
   let body: string | undefined;
 
   const legalId = LEGAL_DOCUMENTS[pathname as keyof typeof LEGAL_DOCUMENTS];
-  if (legalId) {
+  const sectorId = SECTOR_PAGES.get(pathname);
+  if (sectorId) {
+    const copy = getSectorCopy(sectorId, locale);
+    title = copy.metaTitle;
+    description = copy.metaDescription;
+    body = renderSectorBody(sectorId, locale);
+  } else if (pathname === SECTORS_HUB_PATH) {
+    title = t("sectors.hubMetaTitle");
+    description = t("sectors.hubSubtitle");
+    body = renderSectorsHubBody(locale);
+  } else if (legalId) {
     const { getLegalDocument } = await import("@/lib/legal/documents");
     const document = getLegalDocument(legalId, locale);
     title = document.title;

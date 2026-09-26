@@ -6,7 +6,14 @@
  * the rendering layers cannot drift apart.
  */
 
-import { isLocale, type Locale } from "./config";
+import {
+  SECTOR_IDS,
+  SECTOR_SLUGS,
+  SECTORS_HUB_PATH,
+  SECTORS_HUB_SEGMENT,
+  sectorPath,
+} from "@/lib/public/sectors";
+import { isLocale, locales, type Locale } from "./config";
 
 /**
  * Header the proxy stamps with the resolved request pathname, so the document
@@ -97,24 +104,100 @@ export function splitLocale(pathname: string): {
 }
 
 /**
- * Builds the locale-prefixed path for a locale-free pathname.
- * `("/blog", "es")` → `"/es/blog"`; `("/", "en")` → `"/en"`.
+ * Pages whose public path is translated per locale.
+ *
+ * Code always names a page by its internal, locale-free pathname — the folder
+ * under `app/[locale]` (`/sectors/insurance`). Visitors and crawlers see the
+ * translated form (`/es/sectores/seguros`); the proxy rewrites it back to the
+ * internal path. Pages not listed here use the same path in every locale.
+ */
+const TRANSLATED_PATHS: ReadonlyMap<string, Record<Locale, string>> = new Map([
+  [
+    SECTORS_HUB_PATH,
+    Object.fromEntries(
+      locales.map((locale) => [locale, `/${SECTORS_HUB_SEGMENT[locale]}`]),
+    ) as Record<Locale, string>,
+  ],
+  ...SECTOR_IDS.map(
+    (id) =>
+      [
+        sectorPath(id),
+        Object.fromEntries(
+          locales.map((locale) => [
+            locale,
+            `/${SECTORS_HUB_SEGMENT[locale]}/${SECTOR_SLUGS[id][locale]}`,
+          ]),
+        ) as Record<Locale, string>,
+      ] as const,
+  ),
+]);
+
+/** Public path → internal path, per locale. */
+function buildInternalPaths(locale: Locale): ReadonlyMap<string, string> {
+  return new Map(
+    [...TRANSLATED_PATHS].map(([internal, byLocale]) => [byLocale[locale], internal]),
+  );
+}
+
+const INTERNAL_PATHS: Record<Locale, ReadonlyMap<string, string>> = {
+  en: buildInternalPaths("en"),
+  es: buildInternalPaths("es"),
+};
+
+/**
+ * The public, locale-free form of an internal pathname in a given locale.
+ * `("/sectors/insurance", "es")` → `"/sectores/seguros"`.
+ */
+export function toPublicPathname(pathname: string, locale: Locale): string {
+  const normalized = normalizePathname(pathname);
+  return TRANSLATED_PATHS.get(normalized)?.[locale] ?? normalized;
+}
+
+/**
+ * The internal pathname behind a public, locale-free path in a given locale.
+ * `("/sectores/seguros", "es")` → `"/sectors/insurance"`. Paths that are not
+ * translated, or are already internal, come back unchanged.
+ */
+export function toInternalPathname(pathname: string, locale: Locale): string {
+  const normalized = normalizePathname(pathname);
+  return INTERNAL_PATHS[locale].get(normalized) ?? normalized;
+}
+
+/**
+ * The internal pathname a public path names in *another* locale — for a
+ * visitor who kept `/sectores/seguros` but switched the prefix to `/en`.
+ */
+export function findInternalPathnameInAnyLocale(pathname: string): string | null {
+  const normalized = normalizePathname(pathname);
+  for (const locale of locales) {
+    const internal = INTERNAL_PATHS[locale].get(normalized);
+    if (internal) return internal;
+  }
+  return null;
+}
+
+/**
+ * Builds the locale-prefixed public path for an internal, locale-free pathname.
+ * `("/blog", "es")` → `"/es/blog"`; `("/", "en")` → `"/en"`;
+ * `("/sectors/insurance", "es")` → `"/es/sectores/seguros"`.
  */
 export function localizePathname(pathname: string, locale: Locale): string {
   if (isNonLocalizedPath(pathname)) return normalizePathname(pathname);
-  const normalized = normalizePathname(pathname);
+  const normalized = toPublicPathname(pathname, locale);
   return normalized === "/" ? `/${locale}` : `/${locale}${normalized}`;
 }
 
 /**
  * Rewrites a full path (which may already carry a locale) to another locale,
  * preserving the rest of the path. Used by the language switcher so a visitor
- * stays on the page they are reading.
+ * stays on the page they are reading, including pages whose slug is
+ * translated. Accepts either the public or the internal form of the path.
  */
 export function switchLocalePathname(
   currentPathname: string,
   nextLocale: Locale,
 ): string {
-  const { pathname } = splitLocale(currentPathname);
-  return localizePathname(pathname, nextLocale);
+  const { locale, pathname } = splitLocale(currentPathname);
+  const internal = locale ? toInternalPathname(pathname, locale) : pathname;
+  return localizePathname(internal, nextLocale);
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import { buildNoIndexMetadata } from "@/lib/seo";
 
 /**
@@ -11,11 +12,12 @@ import { buildNoIndexMetadata } from "@/lib/seo";
  */
 export const dynamic = "force-dynamic";
 
-export const metadata = buildNoIndexMetadata(
-  "Caudals",
-  "Authenticated access to Caudals.",
-);
+export const metadata = {
+  ...rootMetadata,
+  ...buildNoIndexMetadata("Caudals", "Authenticated access to Caudals."),
+};
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+  // One of the app's root layouts: internal surfaces are English-only.
+  return <RootDocument lang="en">{children}</RootDocument>;
 }

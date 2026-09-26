@@ -81,7 +81,21 @@ const securityHeaders = [
   },
 ];
 
+// Crawlers that read the served HTML without running JavaScript get metadata
+// blocking in <head> instead of streamed into <body>. This is Next's default
+// list (next/dist/shared/lib/router/utils/html-bots.js) plus the AI search and
+// answer-engine crawlers, so canonical and hreflang reach them on dynamic pages.
+const htmlLimitedBots =
+  /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|cohere-ai|meta-externalagent|Amazonbot|Bytespider|DuckAssistBot|MistralAI-User/i;
+
 const nextConfig = {
+  htmlLimitedBots,
+  experimental: {
+    // The app has several root layouts (one per locale for the public site,
+    // one per internal surface), so a URL that matches none of them needs a
+    // 404 page of its own: `app/global-not-found.tsx`.
+    globalNotFound: true,
+  },
   images: {
     remotePatterns,
     unoptimized: true, // Required for self-hosting (Dokploy) - images are served directly without optimization

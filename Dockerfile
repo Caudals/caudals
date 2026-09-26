@@ -41,6 +41,8 @@ RUN npm ci --omit=dev
 
 COPY --from=build /app/public ./public
 COPY --from=build /app/content ./content
+# Brand fonts read by the Open Graph image routes (next/og cannot use woff2).
+COPY --from=build /app/assets ./assets
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/scripts/check-sentry-config.mjs ./scripts/check-sentry-config.mjs
 

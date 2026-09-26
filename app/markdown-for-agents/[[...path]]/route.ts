@@ -1,5 +1,5 @@
 import { defaultLocale, type Locale } from "@/lib/i18n/config";
-import { splitLocale } from "@/lib/i18n/routing";
+import { splitLocale, toInternalPathname } from "@/lib/i18n/routing";
 import { markdownHeaders } from "@/lib/markdown/negotiation";
 import { isStaticMarkdownPage, renderStaticPageMarkdown } from "@/lib/markdown/pages";
 import {
@@ -50,8 +50,11 @@ export async function GET(
   const requestedPath = `/${(path ?? []).join("/")}`.replace(/\/+$/, "") || "/";
   // The locale comes from the URL, exactly as it does for the HTML pages, so an
   // agent asking for `/es/blog` as markdown gets the Spanish text.
-  const { locale: pathLocale, pathname } = splitLocale(requestedPath);
+  const { locale: pathLocale, pathname: publicPathname } = splitLocale(requestedPath);
   const locale = pathLocale ?? defaultLocale;
+  // Translated slugs (`/es/sectores/seguros`) name the same page as their
+  // internal path, which is what the renderers below are keyed on.
+  const pathname = toInternalPathname(publicPathname, locale);
 
   let body: string | null = null;
   try {

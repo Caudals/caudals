@@ -3,6 +3,8 @@ import { getTranslator } from "@/lib/i18n/server";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
+import { getSectorCopy } from "@/lib/sectors/content";
 import { buildMarketingUrl } from "@/lib/seo";
 
 export const revalidate = 3600;
@@ -21,6 +23,11 @@ export async function GET() {
   /** Spanish is the body language of this file, so links point at `/es`. */
   const url = (pathname: string) =>
     buildMarketingUrl(localizePathname(pathname, "es"));
+
+  const sectorLinks = SECTOR_IDS.map((id) => {
+    const copy = getSectorCopy(id, "es");
+    return `- [${cleanMarkdownLabel(copy.metaTitle)}](${url(sectorPath(id))}): ${copy.summary} Para: ${copy.audience.toLowerCase()}.`;
+  }).join("\n");
 
   const blogLinks = posts
     .map(
@@ -44,6 +51,12 @@ Caudals es una empresa de datos para IA con sede en Valladolid (España). Evalú
 Caudals mide y aporta evidencias: no certifica sistemas de IA ni realiza evaluaciones de conformidad con el Reglamento Europeo de IA.
 
 ${renderEvaluationOverviewMarkdown(t)}
+
+## Sectores
+
+Cada sector tiene su página con ejemplos de fallos reales de asistentes, qué evaluamos, qué expertos validan las respuestas y preguntas frecuentes. [Todos los sectores](${url(SECTORS_HUB_PATH)}).
+
+${sectorLinks}
 
 ## Empezar
 

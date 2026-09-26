@@ -27,13 +27,7 @@ export function VerdictMark({ ok, className }: { ok: boolean; className?: string
   );
 }
 
-/** Splits "text *highlighted* text" into its plain and highlighted parts. */
-export function splitMarked(sentence: string) {
-  const match = /^(.*?)\*(.+?)\*(.*)$/.exec(sentence);
-  return match
-    ? { before: match[1], marked: match[2], after: match[3] }
-    : { before: sentence, marked: "", after: "" };
-}
+export { splitMarked } from "@/lib/marked-text";
 
 /** True while the element is on screen; `once` keeps it true after the first sighting. */
 export function useInView(

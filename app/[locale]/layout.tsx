@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
-import { locales, type Locale } from "@/lib/i18n/config";
+import { localeHtmlLang, locales, type Locale } from "@/lib/i18n/config";
 import { LocaleProvider } from "@/lib/i18n/context";
-import { HtmlLang } from "@/components/i18n/html-lang";
+import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { resolveLocale } from "@/lib/i18n/server";
 import {
@@ -29,6 +29,11 @@ const newsreader = Newsreader({
 /**
  * Public marketing layout, one subtree per locale.
  *
+ * This is a root layout: it renders `<html lang>` from the URL segment, so each
+ * served page declares its own language in the HTML itself. The internal route
+ * groups (`(app)`, `(auth)`, `(evaluation)`) have their own English root
+ * layouts.
+ *
  * Both locales are pre-rendered: `generateStaticParams` lets Next build
  * `/en/...` and `/es/...` at build time, so a visitor is served static HTML in
  * their language rather than a dynamically translated tree.
@@ -46,6 +51,7 @@ export async function generateMetadata({
   const locale = resolveLocale(rawLocale);
 
   return {
+    ...rootMetadata,
     title: {
       // `getSiteTitle` already ends in the brand. Declaring it as `absolute`
       // stops the parent layout's "%s | Caudals" template from appending it a
@@ -70,15 +76,15 @@ export default async function LocaleLayout({
   const { locale: rawLocale } = await params;
   const locale: Locale = resolveLocale(rawLocale);
 
-  // `<html lang>` is set by the root layout from the same URL segment.
   return (
-    <LocaleProvider locale={locale}>
-      <HtmlLang locale={locale} />
-      {/* `contents` keeps the wrapper out of layout; it only carries the font variables. */}
-      <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} contents`}>
-        {children}
-        <CookieConsentBanner />
-      </div>
-    </LocaleProvider>
+    <RootDocument lang={localeHtmlLang[locale]}>
+      <LocaleProvider locale={locale}>
+        {/* `contents` keeps the wrapper out of layout; it only carries the font variables. */}
+        <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} contents`}>
+          {children}
+          <CookieConsentBanner />
+        </div>
+      </LocaleProvider>
+    </RootDocument>
   );
 }

@@ -4,7 +4,7 @@ Two design languages live in this repository. They are deliberately different an
 
 | | **Platform** | **Marketing** |
 | --- | --- | --- |
-| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal/*` |
+| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal/*` |
 | Character | Dense, neutral, instrument-like. An evidence tool. | Editorial, calm, typographic. A point of view. |
 | Source of truth | `packages/brand/platform.css` | `packages/brand/tokens.css`, `app/globals.css` |
 | Governed by | **§1–§12 of this document** | **§13 of this document** |
@@ -301,6 +301,7 @@ Two selector techniques appear throughout and are deliberate:
 - Motion: one ease, `cubic-bezier(0.22, 1, 0.36, 1)`. Entrances rise 14–26px and fade. Anything that advances on its own (hero sectors, step 2 causes) pauses on hover, focus and when off screen; the hero's sector indicator lets a visitor pick one. Under reduced motion nothing moves; the hero still changes sector.
 - Container `max-width: 1200px`, gutters `clamp(16px, 4vw, 40px)`. No emoji, no gradients as decoration, no parallax.
 - Offers come from `lib/public/evaluation-offers.ts` and appear only in `/llms.txt`, agent markdown and structured data; the landing shows no prices.
+- Sector pages share the landing's frame (`components/landing/landing-shell.tsx`) and order: breadcrumb, hero (audience label, headline with one serif word, the sector's own checked conversation), the stakes in two serif sentences, three numbered steps (what we test as two hairline lists · failure modes with the sector's examples · the sector's experts and datasets), a hairline FAQ (`<details>`, a plus that turns into a minus), cards to the other sectors, the closing CTA. The hub lists every sector as a hairline row. Share images use the same canvas, ink and type.
 
 Do not import `platform.css` here, and do not carry Newsreader into the platform.
 
@@ -310,5 +311,6 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-09-27 | Sector pages and the sectors hub join the public site in the Paper language; §13 documents their order. |
 | 2026-09-26 | Public site moves to the Paper language: warm canvas, no colour accent (teal removed), Geist + Newsreader + Geist Mono, shorter landing with five illustrated steps. §13 rewritten. |
 | 2026-09-20 | Platform redesign. New ElevenLabs-inspired system in `packages/brand/platform.css`; monochrome chrome with semantic-only colour; three-plane shell; expanded primitive kit; dark-ready tokens. Marketing language unchanged, now documented separately in §13. |

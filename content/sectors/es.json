@@ -1,0 +1,990 @@
+{
+  "insurance": {
+    "metaTitle": "Evaluación de asistentes de IA y chatbots para aseguradoras",
+    "metaDescription": "Evaluamos chatbots y asistentes de IA de seguros con tu propio condicionado: coberturas, exclusiones, carencias y siniestros. Respuestas validadas por peritos y tramitadores.",
+    "headline": "Una IA de seguros que se sabe la *póliza*",
+    "subtitle": "Examinamos a tu asistente con tu condicionado, pregunta a pregunta, con respuestas revisadas por peritos y tramitadores de siniestros.",
+    "summary": "Coberturas, exclusiones, carencias y siniestros, contrastados con tu propio condicionado.",
+    "audience": "Aseguradoras, compañías de salud, mutuas y corredurías",
+    "stakes": {
+      "lead": "En seguros, una respuesta equivocada no es una mala experiencia: es una reclamación, un siniestro discutido o una póliza que se da de baja.",
+      "solution": "Nosotros contrastamos cada respuesta con tu condicionado antes de que lo hagan tus clientes."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes que usan de verdad tus asegurados, tus corredores y tu equipo, en las preguntas en las que equivocarse cuesta dinero.",
+      "systems": [
+        "Asistentes web y de app para asegurados",
+        "Agentes de WhatsApp y de voz para siniestros",
+        "Copilotos internos para tramitadores y suscriptores",
+        "Asistentes y tarificadores para corredores"
+      ],
+      "topics": [
+        "Coberturas, límites y exclusiones",
+        "Carencias y franquicias",
+        "Cómo y cuándo declarar un siniestro",
+        "Primas, renovaciones y bajas",
+        "Cuadro médico y autorizaciones",
+        "Reclamaciones y paso a una persona"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes de seguros",
+      "description": "Cada pregunta lleva su respuesta correcta y la cláusula de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras, para que sepas si hay que corregir los documentos o el sistema.",
+      "examples": {
+        "invented": {
+          "q": "¿Me dais coche de sustitución mientras el mío está en el taller?",
+          "a": "Sí, durante todo el tiempo que dure la reparación.",
+          "doc": "Vehículo de sustitución hasta 7 días, solo tras un accidente cubierto y solo en la modalidad Todo riesgo.",
+          "src": "Póliza de autos · garantía opcional C.4"
+        },
+        "outdated": {
+          "q": "¿Qué franquicia tiene el Todo riesgo con franquicia?",
+          "a": "300 € por siniestro.",
+          "doc": "400 € por siniestro en las pólizas contratadas o renovadas desde el 1 de enero de 2026.",
+          "src": "Ficha de producto · edición 2026"
+        },
+        "wrongSource": {
+          "q": "¿Mi seguro de salud incluye asistencia médica en el extranjero?",
+          "a": "Sí, hasta 30.000 € en gastos médicos.",
+          "doc": "La modalidad Básica no incluye asistencia en viaje. El límite de 30.000 € es de la modalidad Premium.",
+          "src": "Póliza de salud · modalidad Básica · art. 9"
+        },
+        "gap": {
+          "q": "Si doy de baja el seguro de hogar a mitad de año, ¿me devolvéis lo que queda?",
+          "a": "Sí, los meses no consumidos se devuelven automáticamente.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos redactan la respuesta con tu equipo.",
+          "src": "Buscado en: condiciones generales, preguntas frecuentes y formulario de baja"
+        },
+        "outOfScope": {
+          "q": "Me habéis rechazado el siniestro. ¿Merece la pena ir a juicio?",
+          "a": "No, la decisión es definitiva y no se puede recurrir.",
+          "doc": "Debe explicar el procedimiento de reclamación y ofrecer pasar el caso a una persona.",
+          "src": "Alcance del asistente · reclamaciones"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por quienes tramitan siniestros",
+      "description": "Nuestros expertos en seguros redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Peritos de seguros",
+          "icon": "adjuster"
+        },
+        {
+          "label": "Tramitadores de siniestros",
+          "icon": "claims"
+        },
+        {
+          "label": "Suscriptores",
+          "icon": "calculator"
+        },
+        {
+          "label": "Corredores de seguros",
+          "icon": "handshake"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "qa",
+          "name": "Preguntas sobre coberturas",
+          "description": "Preguntas y respuestas sobre coberturas y exclusiones, basadas en tu condicionado"
+        },
+        {
+          "kind": "docs",
+          "name": "Documentación que falta",
+          "description": "Los procedimientos que tus documentos no explican: devoluciones, cambios y bajas"
+        },
+        {
+          "kind": "reasoning",
+          "name": "Siniestros resueltos paso a paso",
+          "description": "Casos reales razonados como los resolvería un tramitador"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA de seguros evaluáis?",
+        "a": "Asistentes para clientes en la web, la app, WhatsApp o el teléfono, copilotos internos para tramitadores y suscriptores, y las herramientas con las que los corredores tarifican o atienden a sus clientes. Nos centramos en las preguntas en las que equivocarse cuesta dinero: coberturas, exclusiones, carencias, franquicias y siniestros."
+      },
+      {
+        "q": "¿Quién decide cuál es la respuesta correcta?",
+        "a": "Primero, tus documentos: condiciones generales y particulares, fichas de producto y procedimientos. Cada pregunta cita la cláusula de la que sale su respuesta. Nuestros peritos y tramitadores revisan las respuestas, y un experto de tu equipo las valida en una sesión de 90 minutos, para que nadie pueda discutir los resultados después."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas o a datos de asegurados?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tu documentación pública, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas y las lanzas tú."
+      },
+      {
+        "q": "¿Esto ayuda con el Reglamento Europeo de IA?",
+        "a": "Te da evidencias, no un certificado. Los sistemas de IA que evalúan riesgos y fijan precios en seguros de vida y salud son de alto riesgo según el anexo III del Reglamento, con obligaciones desde el 2 de diciembre de 2027. Los asistentes de atención al cliente no suelen serlo, pero tienen que responder bien igualmente. Te entregamos puntuaciones, fallos y un historial de ejecuciones que tu equipo de cumplimiento puede usar. No hacemos evaluaciones de conformidad."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: le hacemos 40 preguntas a tu asistente público y te enviamos los resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "industrial": {
+    "metaTitle": "Evaluación de asistentes de IA para posventa y servicio técnico industrial",
+    "metaDescription": "Evaluamos asistentes de IA de soporte técnico con tus manuales, boletines de servicio y catálogos de recambios: códigos de error, especificaciones, intervalos y referencias.",
+    "headline": "Una IA de posventa que se sabe el *manual*",
+    "subtitle": "Examinamos a tu asistente de soporte técnico con tus manuales, boletines de servicio y catálogos de recambios, con respuestas revisadas por ingenieros de posventa.",
+    "summary": "Códigos de error, pares de apriete, intervalos de mantenimiento y referencias, contrastados con tus manuales.",
+    "audience": "Fabricantes de maquinaria, componentes y equipos, y sus servicios técnicos",
+    "stakes": {
+      "lead": "En posventa, un par de apriete o una referencia equivocada no se queda en la pantalla: acaba montado en una máquina.",
+      "solution": "Nosotros contrastamos a tu asistente con tus manuales, boletines y catálogos de recambios, pregunta a pregunta."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes con los que tus clientes, tus distribuidores y tus técnicos de campo diagnostican, reparan y mantienen tus equipos.",
+      "systems": [
+        "Asistentes de soporte técnico para clientes y distribuidores",
+        "Copilotos para técnicos de campo",
+        "Buscadores sobre manuales, boletines y catálogos de recambios",
+        "Clasificación y reparto de incidencias"
+      ],
+      "topics": [
+        "Códigos de error y diagnóstico",
+        "Pares de apriete, tolerancias y especificaciones",
+        "Intervalos de mantenimiento y consumibles",
+        "Referencias y recambios sustituidos",
+        "Condiciones de garantía",
+        "Seguridad y cuándo escalar"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes técnicos",
+      "description": "Cada pregunta lleva su respuesta correcta y la página de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras: si la respuesta no está escrita, si está desactualizada o si la sacó del manual equivocado.",
+      "examples": {
+        "invented": {
+          "q": "¿El motor del transportador T-20 sigue en garantía a los 26 meses?",
+          "a": "Sí, los motores tienen 36 meses de garantía.",
+          "doc": "Los motores tienen 24 meses de garantía desde la fecha de entrega.",
+          "src": "Condiciones de garantía · art. 3"
+        },
+        "outdated": {
+          "q": "¿Qué referencia tiene el filtro de entrada de la K-400?",
+          "a": "FL-2040.",
+          "doc": "La FL-2040 se sustituyó por la FL-2041 en marzo de 2026.",
+          "src": "Boletín de servicio SB-26-07"
+        },
+        "wrongSource": {
+          "q": "¿Qué aceite lleva el reductor R-12?",
+          "a": "Aceite mineral ISO VG 220.",
+          "doc": "Aceite sintético ISO VG 320. El VG 220 es para el R-10.",
+          "src": "Manual de uso R-12 · p. 31"
+        },
+        "gap": {
+          "q": "¿Puedo usar la dosificadora con sosa cáustica al 40 %?",
+          "a": "Sí, todas nuestras juntas son resistentes a químicos.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan con tu equipo de ingeniería.",
+          "src": "Buscado en: ficha técnica, manual y tabla de compatibilidades"
+        },
+        "outOfScope": {
+          "q": "La prensa hace un ruido raro, pero funciona. ¿Puedo seguir usándola hasta el lunes?",
+          "a": "Sí, si funciona, se puede usar sin problema.",
+          "doc": "Ante cualquier ruido anómalo en una prensa: pararla, bloquearla y llamar al servicio técnico.",
+          "src": "Alcance del asistente · escalado por seguridad"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por quienes reparan máquinas",
+      "description": "Nuestros expertos en posventa redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Ingenieros de posventa",
+          "icon": "wrench"
+        },
+        {
+          "label": "Técnicos de mantenimiento",
+          "icon": "cog"
+        },
+        {
+          "label": "Ingenieros de calidad",
+          "icon": "claims"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Diagnósticos paso a paso",
+          "description": "Averías reales razonadas del síntoma a la reparación, como lo haría un técnico"
+        },
+        {
+          "kind": "docs",
+          "name": "Documentación que falta",
+          "description": "Compatibilidades, procedimientos y casos límite que ningún manual recoge"
+        },
+        {
+          "kind": "exams",
+          "name": "Exámenes más amplios",
+          "description": "Preguntas nuevas cada mes por cada modelo, boletín o recambio sustituido"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA de posventa evaluáis?",
+        "a": "Asistentes de soporte técnico para clientes y distribuidores, copilotos para técnicos de campo, buscadores sobre manuales y catálogos de recambios, y sistemas que clasifican y reparten incidencias. Nos centramos en respuestas que solo pueden estar bien o mal: códigos de error, especificaciones, intervalos y referencias."
+      },
+      {
+        "q": "Nuestra documentación son PDF, planos y boletines antiguos. ¿Es un problema?",
+        "a": "No, es lo habitual. Construimos el examen con los documentos que usa tu asistente, y cada pregunta cita su página. Si dos documentos se contradicen o uno está desactualizado, el informe lo dice. Suele ser lo primero que conviene arreglar."
+      },
+      {
+        "q": "¿Quién escribe las respuestas correctas?",
+        "a": "Primero, tus manuales. Nuestros ingenieros de posventa y técnicos de mantenimiento revisan cada respuesta, y un experto técnico de tu empresa las valida en una sesión de 90 minutos. Estamos en Valladolid y podemos hacer esa sesión en tu planta."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo lo que es público. Para asistentes internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o te damos las preguntas, las lanzas tú y nos envías las respuestas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros expertos, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "healthcare": {
+    "metaTitle": "Evaluación de asistentes de IA para pacientes en sanidad privada",
+    "metaDescription": "Evaluamos asistentes y chatbots de pacientes para clínicas y grupos hospitalarios: preparación de pruebas, precios, conciertos con aseguradoras y derivación a un profesional sanitario.",
+    "headline": "Una IA para pacientes que conoce sus *límites*",
+    "subtitle": "Examinamos a tu asistente de pacientes con tus protocolos y tarifas, con respuestas revisadas por médicos y enfermeras en activo.",
+    "summary": "Preparación de pruebas, precios y conciertos, y saber cuándo pasar el caso a un profesional sanitario.",
+    "audience": "Grupos hospitalarios privados, clínicas, cadenas dentales y centros de diagnóstico",
+    "stakes": {
+      "lead": "En sanidad, a veces la respuesta más importante es «tienes que verte con un médico».",
+      "solution": "Nosotros comprobamos que tu asistente acierta con precios y preparaciones, y que sabe exactamente cuándo derivar."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes que usan los pacientes antes y después de la consulta, y los que usan tu recepción y tu enfermería para consultar protocolos.",
+      "systems": [
+        "Asistentes para pacientes en la web, la app y WhatsApp",
+        "Agentes de voz para citas e ingresos",
+        "Asistentes internos para recepción y protocolos de enfermería",
+        "Instrucciones antes y después de una intervención"
+      ],
+      "topics": [
+        "Preparación de pruebas y cirugías",
+        "Precios y conciertos con aseguradoras",
+        "Citas, ingresos y visitas",
+        "Cuidados después de una intervención",
+        "Síntomas urgentes y derivación",
+        "Lo que solo debe responder un profesional"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes para pacientes",
+      "description": "Cada pregunta lleva su respuesta correcta y el protocolo o la tarifa de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras, y cualquier derivación que no hace cuenta como fallo crítico.",
+      "examples": {
+        "invented": {
+          "q": "¿La resonancia incluye el informe y una consulta de revisión?",
+          "a": "Sí, incluye el informe y una consulta de revisión.",
+          "doc": "El informe del radiólogo está incluido. La consulta de revisión se cita y se factura aparte.",
+          "src": "Tarifas de diagnóstico por imagen"
+        },
+        "outdated": {
+          "q": "¿Puedo ir a fisioterapia en vuestra clínica con mi seguro de salud?",
+          "a": "Sí, con cualquiera de las aseguradoras con las que trabajamos.",
+          "doc": "Desde julio de 2026, la fisioterapia solo está concertada con tres de las aseguradoras.",
+          "src": "Conciertos con aseguradoras · actualización de julio de 2026"
+        },
+        "wrongSource": {
+          "q": "¿Cuántas horas antes de la operación tengo que dejar de comer?",
+          "a": "Cuatro horas antes.",
+          "doc": "Seis horas para alimentos sólidos. Las cuatro horas son para intervenciones en la sala de cirugía menor.",
+          "src": "Instrucciones preoperatorias · cirugía general"
+        },
+        "gap": {
+          "q": "¿Mi pareja puede quedarse a dormir conmigo después de la cesárea?",
+          "a": "No, no se permiten acompañantes por la noche.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan con tu equipo de enfermería.",
+          "src": "Buscado en: guía de ingreso, preguntas frecuentes y folleto de maternidad"
+        },
+        "outOfScope": {
+          "q": "Ayer se me olvidó la pastilla de la tensión. ¿Me tomo dos hoy?",
+          "a": "Sí, tómate dos hoy para compensar.",
+          "doc": "Las dudas sobre dosis se derivan a un médico o farmacéutico. El asistente no debe aconsejar sobre medicación.",
+          "src": "Alcance del asistente · medicación"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas revisadas por profesionales sanitarios",
+      "description": "Médicos y enfermeras en activo revisan cada pregunta con contenido clínico y redactan los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Médicos",
+          "icon": "stethoscope"
+        },
+        {
+          "label": "Enfermeras",
+          "icon": "heart"
+        },
+        {
+          "label": "Coordinadores de atención al paciente",
+          "icon": "calendar"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "docs",
+          "name": "Instrucciones para pacientes",
+          "description": "Preparaciones y cuidados explicados con claridad donde los tuyos faltan o se contradicen"
+        },
+        {
+          "kind": "qa",
+          "name": "Casos de derivación",
+          "description": "Las preguntas que el asistente debe pasar a una persona, y cómo hacerlo"
+        },
+        {
+          "kind": "preferences",
+          "name": "Mejores respuestas",
+          "description": "Respuestas candidatas ordenadas y corregidas por profesionales sanitarios"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA sanitarios evaluáis?",
+        "a": "Asistentes para pacientes en la web, la app, WhatsApp o el teléfono; agentes de citas e ingresos, y asistentes internos con los que recepción y enfermería consultan protocolos. Nos centramos en precios, instrucciones de preparación, conciertos con aseguradoras y derivación a un profesional."
+      },
+      {
+        "q": "¿Esto es consejo médico o una evaluación de producto sanitario?",
+        "a": "Ninguna de las dos cosas. Comprobamos si tu asistente sigue tus propios protocolos y deriva a un profesional cuando debe. La IA que se considera producto sanitario tiene su propia normativa, y eso no lo evaluamos."
+      },
+      {
+        "q": "¿Quién revisa las respuestas clínicas?",
+        "a": "Médicos y enfermeras en activo de nuestra red revisan cada pregunta con contenido clínico, y un profesional de tu centro valida las respuestas. Todo lo que debe pasar a una persona se marca como derivación y, si el asistente no la hace, cuenta como fallo crítico."
+      },
+      {
+        "q": "¿Necesitáis datos de pacientes?",
+        "a": "No. Evaluamos con perfiles de paciente inventados y nunca con datos de salud reales. El diagnóstico gratuito usa solo tu asistente público e información pública. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por profesionales sanitarios cuando hace falta, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "banking": {
+    "metaTitle": "Evaluación de asistentes de IA y chatbots para banca",
+    "metaDescription": "Evaluamos chatbots y asistentes de IA bancarios con tu libro de tarifas y tus condiciones: comisiones, límites, transferencias y tipos, y dónde empieza el asesoramiento.",
+    "headline": "Un asistente bancario que se sabe las *comisiones*",
+    "subtitle": "Examinamos a tu asistente con tu libro de tarifas y las condiciones de tus productos, con respuestas revisadas por especialistas en banca y cumplimiento normativo.",
+    "summary": "Comisiones, límites, transferencias y tipos, y saber dónde acaba la información y empieza el asesoramiento.",
+    "audience": "Bancos regionales, cajas rurales y cooperativas de crédito, financieras y entidades de pago",
+    "stakes": {
+      "lead": "En banca, una comisión o un límite inventados son una reclamación en ciernes y una pérdida de confianza que dura.",
+      "solution": "Nosotros contrastamos cada respuesta con tu libro de tarifas y las condiciones de cada producto."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes que usan tus clientes en la app y por teléfono, y aquellos en los que se apoyan tus oficinas y tu centro de atención.",
+      "systems": [
+        "Asistentes para clientes en la app y la banca online",
+        "Agentes de voz del centro de atención",
+        "Asistentes internos para oficinas y gestores",
+        "Clasificación de documentos y reclamaciones"
+      ],
+      "topics": [
+        "Comisiones y gastos",
+        "Tarjetas, límites y transferencias",
+        "Tipos de interés y condiciones de producto",
+        "Condiciones y documentación de préstamos e hipotecas",
+        "Fraude y bloqueo de tarjetas",
+        "Reclamaciones y asesoramiento regulado"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes bancarios",
+      "description": "Cada pregunta lleva su respuesta correcta y la tarifa o cláusula de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras.",
+      "examples": {
+        "invented": {
+          "q": "¿Me cobráis algo por pagar en dólares con la tarjeta de débito?",
+          "a": "No, los pagos con tarjeta en el extranjero son siempre gratis.",
+          "doc": "Los pagos en divisas distintas del euro tienen una comisión de cambio del 3 %.",
+          "src": "Libro de tarifas · tarjetas"
+        },
+        "outdated": {
+          "q": "¿Qué interés da la cuenta de ahorro?",
+          "a": "Un 2,50 % TAE.",
+          "doc": "Un 1,75 % TAE desde el 1 de septiembre de 2026.",
+          "src": "Ficha de la cuenta de ahorro · septiembre de 2026"
+        },
+        "wrongSource": {
+          "q": "¿Cuánto puedo sacar del cajero al día?",
+          "a": "1.000 € al día.",
+          "doc": "600 € al día con la tarjeta de débito estándar. Los 1.000 € son el límite de la tarjeta Premium.",
+          "src": "Condiciones de tarjetas · límites"
+        },
+        "gap": {
+          "q": "¿Puedo añadir a mi hijo de 16 años como autorizado en mi cuenta?",
+          "a": "Sí, a partir de los 14 años con el consentimiento de ambos padres.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan con tu equipo.",
+          "src": "Buscado en: libro de tarifas, preguntas frecuentes y contrato de cuenta"
+        },
+        "outOfScope": {
+          "q": "Me acaba de aparecer un cargo con tarjeta que no he hecho. ¿Qué hago?",
+          "a": "Espera unos días; puede ser una retención temporal.",
+          "doc": "Bloquear la tarjeta de inmediato y pasar al cliente al equipo de fraude.",
+          "src": "Protocolo de fraude · cargos no reconocidos"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por especialistas en banca",
+      "description": "Nuestros especialistas en banca y cumplimiento normativo redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Gestores de oficina y de atención al cliente",
+          "icon": "bank"
+        },
+        {
+          "label": "Especialistas en cumplimiento normativo",
+          "icon": "shield"
+        },
+        {
+          "label": "Analistas de riesgos",
+          "icon": "calculator"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "qa",
+          "name": "Preguntas sobre productos",
+          "description": "Preguntas y respuestas sobre comisiones, límites y condiciones, basadas en tus contratos"
+        },
+        {
+          "kind": "docs",
+          "name": "Documentación que falta",
+          "description": "Lo que tu libro de tarifas no dice, como las operaciones fuera de la zona euro"
+        },
+        {
+          "kind": "preferences",
+          "name": "Información o asesoramiento",
+          "description": "Respuestas ordenadas según dónde acaba la información y empieza el consejo personal"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA bancarios evaluáis?",
+        "a": "Asistentes para clientes en la app y la banca online, agentes de voz del centro de atención, asistentes internos para oficinas y sistemas que clasifican documentos y reclamaciones. Nos centramos en comisiones, límites, transferencias, tipos y condiciones de producto, y en lo que el asistente no debe responder."
+      },
+      {
+        "q": "¿Cómo tratáis la frontera entre informar y asesorar?",
+        "a": "Todos los exámenes incluyen preguntas que piden un consejo personal, como dónde meter los ahorros o qué producto elegir. La respuesta correcta es derivar a un asesor, y si el asistente da el consejo por su cuenta, cuenta como fallo crítico."
+      },
+      {
+        "q": "¿Esto ayuda con el Reglamento Europeo de IA?",
+        "a": "Te da evidencias, no un certificado. La evaluación de solvencia y el scoring crediticio de personas físicas son de alto riesgo según el anexo III del Reglamento, con obligaciones desde el 2 de diciembre de 2027. Los asistentes para clientes no suelen serlo, pero tienen que responder bien igualmente. Te entregamos puntuaciones, fallos y un historial de ejecuciones. No hacemos evaluaciones de conformidad."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público e información pública, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "energy": {
+    "metaTitle": "Evaluación de asistentes de IA y chatbots para comercializadoras de energía",
+    "metaDescription": "Evaluamos chatbots y asistentes de IA de energía con las tarifas, contratos y protocolos vigentes: precios, potencia, facturas, bono social y emergencias.",
+    "headline": "Un asistente de energía que se sabe la *tarifa*",
+    "subtitle": "Examinamos a tu asistente con las tarifas, contratos y protocolos vigentes hoy, y lo volvemos a comprobar cada mes.",
+    "summary": "Precios, tramos horarios, potencia, facturas, bono social y emergencias, contrastados con las tarifas vigentes.",
+    "audience": "Comercializadoras de electricidad y gas, distribuidoras y empresas de autoconsumo",
+    "stakes": {
+      "lead": "En energía, cada cambio de tarifa es una ocasión para que tu asistente responda con el precio del mes pasado.",
+      "solution": "Nosotros lo contrastamos con las tarifas, contratos y protocolos vigentes hoy, y volvemos a hacerlo cada mes."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes con los que tus clientes entienden su factura, cambian su contrato o avisan de un problema.",
+      "systems": [
+        "Asistentes para clientes en la web, la app y WhatsApp",
+        "Agentes de voz del centro de atención",
+        "Asistentes internos para back office y cambios de comercializadora",
+        "Lectura de facturas y de datos de contador"
+      ],
+      "topics": [
+        "Tarifas, precios y tramos horarios",
+        "Potencia contratada y cambios de comercializadora",
+        "Facturas, pagos e impagos",
+        "Bono social y clientes vulnerables",
+        "Autoconsumo y placas solares",
+        "Emergencias y averías"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes de energía",
+      "description": "Cada pregunta lleva su respuesta correcta y la hoja de precios o el contrato de los que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras.",
+      "examples": {
+        "invented": {
+          "q": "Si contrato las placas solares con vosotros, ¿la instalación es gratis?",
+          "a": "Sí, la instalación siempre está incluida.",
+          "doc": "La instalación solo está incluida con el plan de financiación a 12 meses.",
+          "src": "Oferta solar · condiciones"
+        },
+        "outdated": {
+          "q": "¿A cuánto está el kWh en la tarifa fija?",
+          "a": "A 0,139 € el kWh.",
+          "doc": "A 0,149 € el kWh desde el 1 de septiembre de 2026.",
+          "src": "Tarifa fija · precios de septiembre de 2026"
+        },
+        "wrongSource": {
+          "q": "¿Tengo penalización si me cambio de comercializadora?",
+          "a": "Sí, 50 € por baja anticipada.",
+          "doc": "Los contratos de hogar no tienen penalización por baja. Los 50 € son de los contratos de empresa.",
+          "src": "Contrato de hogar · condiciones generales"
+        },
+        "gap": {
+          "q": "¿Puedo cargar el coche eléctrico por la noche sin subir la potencia contratada?",
+          "a": "Sí, con tu potencia actual es suficiente.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan con tu equipo técnico.",
+          "src": "Buscado en: tarifas, preguntas frecuentes y guía de recarga"
+        },
+        "outOfScope": {
+          "q": "No puedo pagar la factura de este mes. ¿Me vais a cortar la luz?",
+          "a": "Sí, el suministro se corta a los 15 días sin pagar.",
+          "doc": "Debe ofrecer un plan de pago y una persona. Antes de cualquier corte hay un requerimiento formal, y los clientes vulnerables tienen protección adicional.",
+          "src": "Política de cobros · dificultades de pago"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por quienes conocen la factura",
+      "description": "Nuestros especialistas en energía redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Asesores energéticos",
+          "icon": "zap"
+        },
+        {
+          "label": "Especialistas en facturación",
+          "icon": "receipt"
+        },
+        {
+          "label": "Técnicos de servicio",
+          "icon": "wrench"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "exams",
+          "name": "Revisión mensual de tarifas",
+          "description": "Preguntas nuevas cada vez que cambia un precio, una tarifa o una condición"
+        },
+        {
+          "kind": "qa",
+          "name": "Dudas sobre la factura",
+          "description": "Preguntas reales sobre facturas y contratos, respondidas con tus documentos"
+        },
+        {
+          "kind": "docs",
+          "name": "Documentación que falta",
+          "description": "Autoconsumo, coche eléctrico y otros casos que tus documentos no cubren"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA de energía evaluáis?",
+        "a": "Asistentes para clientes en la web, la app y WhatsApp, agentes de voz del centro de atención, asistentes de back office y sistemas que leen facturas y datos de contador. Nos centramos en precios, potencia contratada, facturas, bono social y emergencias."
+      },
+      {
+        "q": "Nuestros precios cambian a menudo. ¿Cómo mantenéis el examen al día?",
+        "a": "Para eso está la suscripción mensual. Cada mes añadimos preguntas sobre lo que ha cambiado, volvemos a pasar el examen completo y te avisamos de todo lo que antes acertaba y ahora falla, antes de que se den cuenta tus clientes."
+      },
+      {
+        "q": "¿Cómo tratáis a los clientes vulnerables y las emergencias?",
+        "a": "Todos los exámenes incluyen preguntas sobre dificultades de pago, bono social y emergencias como un olor a gas. La respuesta correcta suele ser pasar el caso a una persona o dar el teléfono de urgencias, y un fallo ahí cuenta como crítico."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus tarifas públicas, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "telecom": {
+    "metaTitle": "Evaluación de asistentes de IA y chatbots para telecomunicaciones",
+    "metaDescription": "Evaluamos chatbots y asistentes de IA de operadoras con tus tarifas y condiciones vigentes: planes, promociones, permanencias, roaming, portabilidad y facturación.",
+    "headline": "Un asistente de telefonía que se sabe el *contrato*",
+    "subtitle": "Examinamos a tu asistente con tus tarifas y condiciones vigentes, y repetimos el examen cada vez que cambian.",
+    "summary": "Planes, promociones, permanencias, roaming y facturación, contrastados con tus tarifas y condiciones vigentes.",
+    "audience": "Operadoras regionales, proveedores de internet y operadores móviles virtuales",
+    "stakes": {
+      "lead": "En telecomunicaciones, los precios, las promociones y las condiciones cambian cada pocas semanas. Tu asistente tiene que seguirles el ritmo.",
+      "solution": "Nosotros lo contrastamos con tus tarifas y condiciones vigentes, y repetimos la comprobación cada mes."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes con los que tus clientes eligen tarifa, entienden su factura o avisan de una avería.",
+      "systems": [
+        "Asistentes para clientes en la web, la app y WhatsApp",
+        "Agentes de voz e IVR",
+        "Asistentes para tiendas y agentes comerciales",
+        "Clasificación de incidencias técnicas"
+      ],
+      "topics": [
+        "Tarifas, precios y promociones",
+        "Permanencias y bajas",
+        "Roaming y llamadas internacionales",
+        "Portabilidad y cambios de operador",
+        "Instalación y averías",
+        "Reclamaciones de facturación"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes de telecomunicaciones",
+      "description": "Cada pregunta lleva su respuesta correcta y la tarifa o cláusula de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras.",
+      "examples": {
+        "invented": {
+          "q": "¿Tengo el roaming en Marruecos incluido en mi tarifa?",
+          "a": "Sí, el roaming es gratis en todo el mundo.",
+          "doc": "El roaming sin coste adicional se aplica en la UE. Marruecos se factura con las tarifas de la zona 2.",
+          "src": "Tarifas de roaming · zonas"
+        },
+        "outdated": {
+          "q": "¿Cuánta permanencia tengo si me llevo un móvil con la tarifa?",
+          "a": "12 meses.",
+          "doc": "24 meses para los móviles financiados desde julio de 2026.",
+          "src": "Condiciones de financiación de terminales · julio de 2026"
+        },
+        "wrongSource": {
+          "q": "¿Cuántos gigas tengo con la tarifa Básica?",
+          "a": "50 GB al mes.",
+          "doc": "20 GB al mes. Los 50 GB son de la tarifa Plus.",
+          "src": "Ficha de tarifa · Básica"
+        },
+        "gap": {
+          "q": "Si me cambio de casa, ¿la instalación de la fibra en el nuevo domicilio es gratis?",
+          "a": "Sí, el traslado siempre es gratuito.",
+          "doc": "Ningún documento lo cubre. Nuestros expertos lo redactan con tu equipo.",
+          "src": "Buscado en: preguntas frecuentes, contrato y condiciones de instalación"
+        },
+        "outOfScope": {
+          "q": "Me habéis cobrado llamadas que no he hecho. ¿Me devolvéis el dinero ya?",
+          "a": "Hecho, te he devuelto 48 € en tu cuenta.",
+          "doc": "El asistente no puede hacer devoluciones. Una reclamación de facturación abre un caso que gestiona una persona.",
+          "src": "Alcance del asistente · reclamaciones de facturación"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por quienes atienden a clientes",
+      "description": "Nuestros especialistas en telecomunicaciones redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Especialistas en atención al cliente",
+          "icon": "headset"
+        },
+        {
+          "label": "Técnicos de campo",
+          "icon": "router"
+        },
+        {
+          "label": "Especialistas en facturación",
+          "icon": "receipt"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "exams",
+          "name": "Revisión en cada cambio de precio",
+          "description": "Preguntas nuevas para cada promoción, tarifa o condición nueva"
+        },
+        {
+          "kind": "qa",
+          "name": "Dudas de clientes",
+          "description": "Preguntas reales de clientes, respondidas con tus tarifas y condiciones"
+        },
+        {
+          "kind": "reasoning",
+          "name": "Averías resueltas paso a paso",
+          "description": "Problemas de línea e instalación razonados como lo haría un técnico"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA de telecomunicaciones evaluáis?",
+        "a": "Asistentes para clientes en la web, la app y WhatsApp, agentes de voz e IVR, asistentes para tiendas y agentes comerciales, y sistemas que clasifican incidencias técnicas. Nos centramos en precios, condiciones, roaming, portabilidad y facturación, y en lo que el asistente no debe prometer."
+      },
+      {
+        "q": "Nuestras promociones cambian cada pocas semanas. ¿Merece la pena un examen puntual?",
+        "a": "Un examen puntual te dice dónde estás hoy. La suscripción mensual hace que sigas ahí: cada mes añadimos preguntas sobre lo que ha cambiado, volvemos a pasar el examen completo y señalamos cada respuesta que ha empeorado."
+      },
+      {
+        "q": "¿Evaluáis también las acciones, no solo las respuestas?",
+        "a": "Sí. Si tu asistente puede cambiar una tarifa, abrir una incidencia o hacer un abono, comprobamos que solo hace lo que tiene permitido y que nunca dice haber hecho algo que no puede hacer."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus tarifas públicas, con perfiles de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "legal": {
+    "metaTitle": "Evaluación de asistentes de IA para despachos de abogados y asesorías",
+    "metaDescription": "Evaluamos asistentes de IA de despachos y asesorías fiscales, laborales y contables: plazos, calendario fiscal, honorarios y derivación a un profesional, con respuestas validadas por abogados.",
+    "headline": "Un asistente legal que se sabe los *plazos*",
+    "subtitle": "Examinamos a tu asistente con la normativa, tus procedimientos y tus honorarios, con respuestas revisadas por abogados y asesores en ejercicio.",
+    "summary": "Plazos, calendario fiscal, honorarios y saber cuándo derivar a un profesional, revisado por abogados en ejercicio.",
+    "audience": "Despachos de abogados y asesorías fiscales, laborales y contables",
+    "stakes": {
+      "lead": "En un despacho o una asesoría, un plazo equivocado le cuesta al cliente sus derechos, y a la firma su reputación.",
+      "solution": "Nosotros contrastamos a tu asistente con la normativa y tus procedimientos, con respuestas validadas por abogados y asesores en ejercicio."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes a los que tus clientes hacen sus primeras preguntas, y los que usa tu equipo para encontrar precedentes y plantillas.",
+      "systems": [
+        "Asistentes para clientes de despachos de abogados",
+        "Asistentes de asesorías fiscales, laborales y contables",
+        "Asistentes internos sobre precedentes y plantillas",
+        "Clasificación y extracción de documentos"
+      ],
+      "topics": [
+        "Plazos y prescripción",
+        "Impuestos y calendario fiscal",
+        "Laboral y nóminas",
+        "Honorarios y alcance del servicio",
+        "Documentación que debe aportar el cliente",
+        "Cuándo derivar a un profesional"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes legales",
+      "description": "Cada pregunta lleva su respuesta correcta y el artículo, convenio o documento interno del que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras.",
+      "examples": {
+        "invented": {
+          "q": "¿La primera consulta es gratuita?",
+          "a": "Sí, la primera consulta siempre es gratis.",
+          "doc": "La primera consulta de 30 minutos solo es gratuita en asuntos laborales.",
+          "src": "Honorarios · primera consulta"
+        },
+        "outdated": {
+          "q": "¿Cuánto cuesta vuestra cuota mensual de contabilidad para autónomos?",
+          "a": "45 € al mes.",
+          "doc": "55 € al mes en 2026. Los 45 € eran la tarifa de 2025.",
+          "src": "Tarifas de servicios 2026"
+        },
+        "wrongSource": {
+          "q": "¿Cuántos días de vacaciones me corresponden?",
+          "a": "30 días naturales al año.",
+          "doc": "El convenio de este cliente reconoce 31 días naturales. Los 30 son el mínimo legal de la guía general.",
+          "src": "Convenio colectivo · art. 18"
+        },
+        "gap": {
+          "q": "Soy autónomo y trabajo desde casa. ¿Puedo deducirme la factura de la luz?",
+          "a": "Sí, el 100 % de la factura.",
+          "doc": "Ningún documento del despacho lo cubre. Nuestros expertos lo redactan con tu equipo fiscal.",
+          "src": "Buscado en: guía del autónomo, preguntas frecuentes y ficha de servicios"
+        },
+        "outOfScope": {
+          "q": "Me ha llegado un requerimiento de Hacienda. ¿Qué tengo que contestar exactamente?",
+          "a": "Di que el dinero fue una donación de tu familia.",
+          "doc": "Los requerimientos de Hacienda los atiende un asesor. El asistente debe ofrecer una cita.",
+          "src": "Alcance del asistente · derivaciones"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas validadas por profesionales en ejercicio",
+      "description": "Nuestros abogados y asesores redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Abogados",
+          "icon": "scale"
+        },
+        {
+          "label": "Asesores fiscales",
+          "icon": "calculator"
+        },
+        {
+          "label": "Graduados sociales y asesores laborales",
+          "icon": "briefcase"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Casos resueltos paso a paso",
+          "description": "Consultas reales razonadas como lo haría un abogado o un asesor"
+        },
+        {
+          "kind": "qa",
+          "name": "Plazos y calendarios",
+          "description": "Preguntas y respuestas sobre plazos y fechas de presentación, cada una con su fuente"
+        },
+        {
+          "kind": "docs",
+          "name": "Guías para clientes",
+          "description": "Lo que los documentos de tu despacho todavía no explican a los clientes"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA legales evaluáis?",
+        "a": "Asistentes para clientes de despachos y asesorías, asistentes internos sobre precedentes y plantillas, y sistemas que clasifican documentos o extraen datos de ellos. Nos centramos en plazos, calendario fiscal, honorarios y en las preguntas que deben pasar a un profesional."
+      },
+      {
+        "q": "¿Caudals da asesoramiento jurídico?",
+        "a": "No. Comprobamos si las respuestas de tu asistente se ajustan a la normativa, a tus procedimientos y a tus honorarios, y si deriva a un profesional cuando debe. Las respuestas las revisan abogados y asesores en ejercicio y las valida tu propio equipo."
+      },
+      {
+        "q": "La normativa cambia. ¿Cómo mantenéis el examen al día?",
+        "a": "Cada pregunta guarda su fuente y su fecha. Con la suscripción mensual añadimos preguntas cada vez que cambia una norma, un plazo o una tarifa, volvemos a pasar el examen y señalamos cada respuesta que se ha quedado desactualizada."
+      },
+      {
+        "q": "¿Necesitáis acceso a expedientes de clientes?",
+        "a": "No. Evaluamos con supuestos de cliente inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, y nuestros expertos solo ven el material anonimizado que necesita su tarea. También puedes lanzar tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros abogados y asesores, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  },
+  "travel": {
+    "metaTitle": "Evaluación de asistentes de IA y chatbots para viajes y transporte",
+    "metaDescription": "Evaluamos chatbots y asistentes de IA de aerolíneas, tren, autobús y agencias de viajes: cancelaciones, indemnizaciones, equipaje, cambios y pasajeros con movilidad reducida.",
+    "headline": "Un asistente de viajes que conoce los *derechos* del pasajero",
+    "subtitle": "Examinamos a tu asistente con la normativa de derechos del pasajero y tus condiciones de transporte, con respuestas revisadas por especialistas.",
+    "summary": "Cancelaciones, indemnizaciones, equipaje y cambios, contrastados con los derechos del pasajero y tus condiciones.",
+    "audience": "Aerolíneas, operadores de tren y autobús, agencias de viajes y agencias online",
+    "stakes": {
+      "lead": "Cuando un viaje se tuerce, lo primero que hace el pasajero es preguntarle a tu asistente. Lo que responda marca la reclamación que viene después.",
+      "solution": "Nosotros lo contrastamos con la normativa de derechos del pasajero y con tus propias condiciones de transporte."
+    },
+    "tested": {
+      "title": "Qué evaluamos",
+      "description": "Evaluamos los asistentes con los que los pasajeros reservan, cambian y reclaman, sobre todo cuando algo ha salido mal.",
+      "systems": [
+        "Asistentes de reserva y atención de aerolíneas, tren y autobús",
+        "Asistentes de agencias de viajes y agencias online",
+        "Agentes de voz para incidencias y cambios",
+        "Clasificación de reclamaciones y reembolsos"
+      ],
+      "topics": [
+        "Cancelaciones, retrasos e indemnizaciones",
+        "Equipaje permitido y suplementos",
+        "Cambios y reembolsos",
+        "Pasajeros con movilidad reducida",
+        "Mascotas, menores y casos especiales",
+        "Documentación y requisitos de entrada"
+      ]
+    },
+    "failures": {
+      "title": "Dónde fallan los asistentes de viajes",
+      "description": "Cada pregunta lleva su respuesta correcta y la norma o condición de la que sale. Cuando tu asistente falla, te decimos de cuál de estas cinco maneras.",
+      "examples": {
+        "invented": {
+          "q": "Si mi tren llega con 90 minutos de retraso, ¿me devolvéis el billete?",
+          "a": "Sí, el importe completo del billete.",
+          "doc": "El 50 % del billete por retrasos de más de 60 minutos en larga distancia.",
+          "src": "Compromiso de puntualidad · larga distancia"
+        },
+        "outdated": {
+          "q": "¿Cuánto cuesta cambiar la fecha de mi vuelo?",
+          "a": "35 € por pasajero.",
+          "doc": "45 € por pasajero y trayecto desde la temporada de verano de 2026.",
+          "src": "Tarifas de cambio · verano de 2026"
+        },
+        "wrongSource": {
+          "q": "¿Puedo cancelar gratis la reserva del hotel?",
+          "a": "Sí, hasta 24 horas antes de la llegada.",
+          "doc": "Esta reserva es de tarifa no reembolsable. La cancelación gratuita hasta 24 horas es de las tarifas flexibles.",
+          "src": "Condiciones de reserva · tarifa no reembolsable"
+        },
+        "gap": {
+          "q": "¿Mi gato puede viajar conmigo en cabina en un vuelo con escala?",
+          "a": "Sí, las mascotas de menos de 8 kg pueden viajar en cualquier vuelo.",
+          "doc": "Ningún documento cubre los vuelos con escala. Nuestros expertos lo redactan con tu equipo.",
+          "src": "Buscado en: política de mascotas, preguntas frecuentes y condiciones de tarifa"
+        },
+        "outOfScope": {
+          "q": "Mi madre va en silla de ruedas. ¿Puede volar sola la semana que viene?",
+          "a": "Sí, no te preocupes, estará bien.",
+          "doc": "La asistencia se solicita al menos 48 horas antes del vuelo. El asistente debe ofrecer gestionarla con una persona.",
+          "src": "Asistencia a pasajeros con movilidad reducida"
+        }
+      }
+    },
+    "experts": {
+      "title": "Respuestas escritas por quienes gestionan incidencias",
+      "description": "Nuestros especialistas en viajes redactan y revisan cada pregunta y, a partir de los fallos que encontramos, crean los datos que le faltan a tu asistente.",
+      "roles": [
+        {
+          "label": "Especialistas en derechos del pasajero",
+          "icon": "scale"
+        },
+        {
+          "label": "Agentes de viajes",
+          "icon": "plane"
+        },
+        {
+          "label": "Agentes de atención al cliente",
+          "icon": "headset"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Incidencias resueltas paso a paso",
+          "description": "Cancelaciones y retrasos razonados hasta la indemnización o el reembolso correctos"
+        },
+        {
+          "kind": "qa",
+          "name": "Preguntas sobre condiciones",
+          "description": "Preguntas y respuestas sobre tarifas, equipaje y cambios, basadas en tus condiciones"
+        },
+        {
+          "kind": "docs",
+          "name": "Casos especiales",
+          "description": "Mascotas, menores, escalas y otros casos que tus documentos no recogen"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "¿Qué sistemas de IA de viajes evaluáis?",
+        "a": "Asistentes de reserva y atención de aerolíneas y operadores de tren y autobús, asistentes de agencias de viajes y agencias online, agentes de voz para incidencias y sistemas que clasifican reclamaciones y reembolsos. Nos centramos en cancelaciones, indemnizaciones, equipaje y cambios."
+      },
+      {
+        "q": "¿Evaluáis con la normativa de derechos del pasajero?",
+        "a": "Sí. Las preguntas sobre indemnizaciones y asistencia se contrastan con la normativa aplicable, como el Reglamento (CE) 261/2004 en el caso de los vuelos, y con tus propias condiciones de transporte. Cada pregunta cita el artículo o la cláusula de la que sale su respuesta."
+      },
+      {
+        "q": "¿Podéis evaluar situaciones de incidencia?",
+        "a": "Sí. Escribimos supuestos de cancelaciones, retrasos largos, conexiones perdidas y overbooking, y comprobamos qué les dice el asistente a los pasajeros sobre reubicación, reembolsos e indemnizaciones."
+      },
+      {
+        "q": "¿Necesitáis acceso a nuestros sistemas o a datos de pasajeros?",
+        "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público y tus condiciones públicas, con perfiles de pasajero inventados. Para sistemas internos trabajamos con acuerdo de confidencialidad y de encargo de tratamiento en infraestructura europea, o lanzas tú las preguntas."
+      },
+      {
+        "q": "¿Cuánto se tarda y cuánto cuesta empezar?",
+        "a": "El diagnóstico es gratuito: 40 preguntas y resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por nuestros especialistas, dura unas dos semanas y se presupuesta según el alcance, con un precio cerrado antes de empezar."
+      }
+    ]
+  }
+}

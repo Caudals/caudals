@@ -12,6 +12,7 @@ export type PublicNavigationLink = {
 };
 
 export const publicNavigationLinks: readonly PublicNavigationLink[] = [
+  { href: "/sectors", labelKey: "sectors" },
   { href: "/contact", labelKey: "contact" },
   // Temporarily hidden:
   // { href: "/blog", labelKey: "blog" },

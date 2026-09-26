@@ -19,6 +19,7 @@ import {
   evaluationSystemTypes,
   type EvaluationRequestFormValues,
   type EvaluationRequestOffer,
+  type EvaluationSector,
 } from "@/lib/validators/evaluation-request";
 import {
   Form,
@@ -102,14 +103,15 @@ function SelectInput({
 
 type ContactFormProps = {
   requestedOffer?: EvaluationRequestOffer;
+  requestedSector?: EvaluationSector;
 };
 
-export function ContactForm({ requestedOffer }: ContactFormProps) {
+export function ContactForm({ requestedOffer, requestedSector }: ContactFormProps) {
   const [isComplete, setIsComplete] = useState(false);
   const t = useTranslations("contact");
   const formDefaults = useMemo<Partial<EvaluationRequestFormValues>>(
-    () => ({ ...defaultValues, requestedOffer }),
-    [requestedOffer],
+    () => ({ ...defaultValues, requestedOffer, sector: requestedSector }),
+    [requestedOffer, requestedSector],
   );
   const form = useForm<EvaluationRequestFormValues>({
     resolver: zodResolver(evaluationRequestFormSchema),

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/context";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { SECTOR_IDS, sectorPath } from "@/lib/public/sectors";
 
 /** Ids match `footer.legalLinks.*` in the message files. */
 const legalLinks = [
@@ -73,6 +74,7 @@ const socialLinks = [
 export function MarketingFooter() {
   const t = useTranslations("footer");
   const tNav = useTranslations("nav");
+  const tSectors = useTranslations("sectors");
 
   const aiPrompt = t("askAiPrompt");
   const aiLinks = getAskAiLinks(aiPrompt);
@@ -80,7 +82,7 @@ export function MarketingFooter() {
   return (
     <footer className="font-mk-sans border-t border-[#e9e7e1] bg-background text-[#141413]">
       <div className="mx-auto flex max-w-[1200px] flex-col gap-10 px-[clamp(16px,4vw,40px)] pb-10 pt-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_minmax(0,3fr)]">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[minmax(0,4fr)_minmax(0,3fr)_minmax(0,3fr)_minmax(0,3fr)]">
           <div className="max-w-sm">
             <Link href="/" aria-label={tNav("brand")} className="inline-flex transition-opacity hover:opacity-80">
               <Image src="/caudals_logo_black.svg" alt={tNav("logoAlt")} width={28} height={28} className="h-7 w-7" />
@@ -110,6 +112,22 @@ export function MarketingFooter() {
                   {t("bookMeeting")}
                 </Link>
               </li>
+            </ul>
+          </div>
+          <div>
+            <p className="mb-4 text-sm font-medium text-[#141413]">
+              <Link href="/sectors" className="transition-colors hover:text-[#3b3a36]">
+                {t("sectorsHeading")}
+              </Link>
+            </p>
+            <ul className="space-y-2.5 text-sm text-[#3b3a36]">
+              {SECTOR_IDS.map((id) => (
+                <li key={id}>
+                  <Link href={sectorPath(id)} className="transition-colors hover:text-[#141413]">
+                    {tSectors(`names.${id}`)}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>

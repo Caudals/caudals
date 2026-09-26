@@ -7,8 +7,9 @@ import {
   VerdictMark,
 } from "@/components/landing/marks";
 import { useTranslations } from "@/lib/i18n/context";
+import type { FailureCause, FailureExample } from "@/lib/sectors/content";
 
-type CauseId = "invented" | "outdated" | "wrongSource" | "gap" | "outOfScope";
+type CauseId = FailureCause;
 
 /** Line icons, one per cause, drawn on a 26 × 26 grid. */
 const ICONS: Record<CauseId, ReactNode> = {
@@ -56,8 +57,11 @@ const ICONS: Record<CauseId, ReactNode> = {
 const CAUSES: readonly CauseId[] = ["invented", "outdated", "wrongSource", "gap", "outOfScope"];
 const CAUSE_SECONDS = 7;
 
-/** Step 2: the five ways an AI gets it wrong, each shown as one exam question. */
-export function FailureModes() {
+/**
+ * Step 2: the five ways an AI gets it wrong, each shown as one exam question.
+ * The landing uses its own mixed-sector examples; a sector page passes its own.
+ */
+export function FailureModes({ examples }: { examples?: Record<CauseId, FailureExample> } = {}) {
   const t = useTranslations("steps.exam");
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -79,7 +83,13 @@ export function FailureModes() {
     if (focus) tabRefs.current[next]?.focus();
   };
 
-  const doc = t(`causes.${cause}.example.doc`);
+  const example: FailureExample = examples?.[cause] ?? {
+    q: t(`causes.${cause}.example.q`),
+    a: t(`causes.${cause}.example.a`),
+    doc: t(`causes.${cause}.example.doc`),
+    src: t(`causes.${cause}.example.src`),
+  };
+  const doc = example.doc;
   const isGap = cause === "gap";
 
   return (
@@ -142,14 +152,14 @@ export function FailureModes() {
         data-enter={!reducedMotion}
       >
         <div className="fw-q">
-          <p>{t(`causes.${cause}.example.q`)}</p>
+          <p>{example.q}</p>
         </div>
         <div className="fw-cmp">
           <div className="fw-side">
             <p className="lp-label">{t("aiAnswer")}</p>
             <p className="fw-ans">
               <VerdictMark ok={false} />
-              <s>{t(`causes.${cause}.example.a`)}</s>
+              <s>{example.a}</s>
             </p>
           </div>
           <span className="fw-neq" aria-hidden="true">
@@ -158,7 +168,7 @@ export function FailureModes() {
           <div className="fw-side">
             <p className="lp-label">{t("key")}</p>
             <div className={isGap ? "fw-doc is-empty" : "fw-doc"}>
-              <p className="fw-src">{t(`causes.${cause}.example.src`)}</p>
+              <p className="fw-src">{example.src}</p>
               <p>{isGap ? doc : <mark>{doc}</mark>}</p>
             </div>
           </div>

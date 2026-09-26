@@ -1,17 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { Header } from "@/components/ui/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { ContactForm } from "@/components/contact/contact-form";
+import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { useTranslations } from "@/lib/i18n/context";
-import type { EvaluationRequestOffer } from "@/lib/validators/evaluation-request";
+import type {
+  EvaluationRequestOffer,
+  EvaluationSector,
+} from "@/lib/validators/evaluation-request";
 
 type ContactPageContentProps = {
   requestedOffer?: EvaluationRequestOffer;
+  requestedSector?: EvaluationSector;
 };
 
-export function ContactPageContent({ requestedOffer }: ContactPageContentProps) {
+export function ContactPageContent({ requestedOffer, requestedSector }: ContactPageContentProps) {
   const t = useTranslations("contact");
 
   return (
@@ -37,7 +41,7 @@ export function ContactPageContent({ requestedOffer }: ContactPageContentProps) 
         </header>
 
         <section className="w-full">
-          <ContactForm requestedOffer={requestedOffer} />
+          <ContactForm requestedOffer={requestedOffer} requestedSector={requestedSector} />
         </section>
       </main>
       <MarketingFooter />

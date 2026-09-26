@@ -14,6 +14,7 @@ import {
   getSiteDescription,
   SITE_NAME,
 } from "@/lib/seo";
+import { jsonLd } from "@/lib/structured-data";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -76,7 +77,9 @@ function buildHomeStructuredData(locale: Locale) {
         ],
         logo: {
           "@type": "ImageObject",
-          url: buildMarketingUrl("/apple-touch-icon.png"),
+          url: buildMarketingUrl("/android-chrome-512x512.png"),
+          width: 512,
+          height: 512,
         },
         contactPoint: [
           {
@@ -155,9 +158,7 @@ export default async function HomePage({ params }: HomePageProps) {
       <HomePageClient />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(homePageStructuredData),
-        }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(homePageStructuredData) }}
       />
     </>
   );

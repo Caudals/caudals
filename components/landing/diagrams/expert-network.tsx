@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "@/lib/i18n/context";
+import type { DatasetKind } from "@/lib/sectors/content";
 
 /** Who in the network writes, each with the tool of their trade. */
 const ROLES: readonly { id: "adjusters" | "claims" | "lawyers" | "tax" | "engineers" | "clinicians"; icon: LucideIcon }[] = [
@@ -22,7 +23,7 @@ const ROLES: readonly { id: "adjusters" | "claims" | "lawyers" | "tax" | "engine
   { id: "clinicians", icon: Stethoscope },
 ];
 
-type DataId = "exams" | "qa" | "docs" | "reasoning" | "preferences";
+type DataId = DatasetKind;
 
 /** One glyph per kind of data our experts build, drawn on a 48 × 48 grid. */
 const DATA: readonly { id: DataId; icon: ReactNode }[] = [
@@ -82,19 +83,40 @@ const DATA: readonly { id: DataId; icon: ReactNode }[] = [
   },
 ];
 
-/** Step 3: who in our network writes, and the data they build from what the exam finds. */
-export function ExpertNetwork() {
+const DATA_ICONS = Object.fromEntries(DATA.map(({ id, icon }) => [id, icon])) as Record<DataId, ReactNode>;
+
+type ExpertNetworkProps = {
+  /** A sector page's own roles, each with its icon already resolved. */
+  roles?: readonly { label: string; icon: LucideIcon }[];
+  /** A sector page's own datasets, drawn with the shared glyphs. */
+  datasets?: readonly { kind: DataId; name: string; description: string }[];
+};
+
+/**
+ * Step 3: who in our network writes, and the data they build from what the
+ * exam finds. The landing shows the whole network; a sector page its own part.
+ */
+export function ExpertNetwork({ roles, datasets }: ExpertNetworkProps = {}) {
   const t = useTranslations("steps.experts");
+  const roleItems =
+    roles ?? ROLES.map(({ id, icon }) => ({ label: t(`roles.${id}`), icon }));
+  const dataItems =
+    datasets ??
+    DATA.map(({ id }) => ({
+      kind: id,
+      name: t(`data.${id}.name`),
+      description: t(`data.${id}.description`),
+    }));
 
   return (
     <div className="ex">
       <div>
         <p className="lp-label">{t("whoLabel")}</p>
         <ul className="ex-roles">
-          {ROLES.map(({ id, icon: Icon }) => (
-            <li key={id}>
+          {roleItems.map(({ label, icon: Icon }) => (
+            <li key={label}>
               <Icon aria-hidden="true" strokeWidth={1.25} />
-              {t(`roles.${id}`)}
+              {label}
             </li>
           ))}
         </ul>
@@ -102,13 +124,13 @@ export function ExpertNetwork() {
       <div>
         <p className="lp-label">{t("whatLabel")}</p>
         <ul className="ex-cat">
-          {DATA.map(({ id, icon }) => (
-            <li key={id}>
+          {dataItems.map(({ kind, name, description }) => (
+            <li key={name}>
               <svg viewBox="0 0 48 48" aria-hidden="true">
-                {icon}
+                {DATA_ICONS[kind]}
               </svg>
-              <b>{t(`data.${id}.name`)}</b>
-              <span>{t(`data.${id}.description`)}</span>
+              <b>{name}</b>
+              <span>{description}</span>
             </li>
           ))}
         </ul>

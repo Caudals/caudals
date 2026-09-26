@@ -16,6 +16,7 @@
     "evals:release-check": "node --conditions=react-server --import=tsx scripts/evals/release-check.ts",
     "evals:release-check-stage-e": "tsx scripts/evals/release-check-stage-e.ts",
     "blog:preflight": "tsx scripts/preflight-blog.ts",
+    "seo:indexnow": "node scripts/seo/indexnow.mjs",
     "remotion:studio": "remotion studio remotion/index.ts",
     "remotion:compositions": "remotion compositions remotion/index.ts",
     "remotion:still:landscape": "remotion still remotion/index.ts CaudalsLaunchLandscape output/launch-landscape-still.png",

@@ -15,7 +15,7 @@ Implementation rules for the public funnel, the internal Operator Console, and t
   platform system (`packages/brand/platform.css`, `.p-root`); the public site
   keeps the editorial system (`packages/brand/tokens.css`, `app/globals.css`).
   `docs/DESIGN.md` is the authority for both and states which applies where.
-- The public site is the landing page and its funnel: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces "How it works" (the landing's `#how-it-works` anchor) and Contact, plus the rounded "Get started" / "Comenzar" CTA; Blog and Newsletter are temporarily hidden from it. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
+- The public site is the landing page and its funnel: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces Sectors and Contact, plus the rounded "Get started" / "Comenzar" CTA; the footer adds "How it works" (the landing's `#how-it-works` anchor) and one link per sector. Blog and Newsletter are temporarily hidden. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
 - The deployed private surface is the legacy Operator Console (`/admin`) with its sign-in (`/auth/*`). The separate evaluation product routes (`/ops`, `/workspace`, `/evaluation-entry`, `/share`) exist in code but are not production-released.
 - The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 
@@ -25,6 +25,7 @@ Implementation rules for the public funnel, the internal Operator Console, and t
 - Public primary navigation is defined in `lib/navigation/public-links.ts` (currently How it works and Contact; Blog and Newsletter are commented out). The footer may additionally expose meeting booking and legal pages.
 - Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml` and `/page-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files list public content only.
 - `/contact` is the general contact and intake path. It records evaluation requests (`lib/validators/evaluation-request.ts`, `lib/public/evaluation-request-intake.ts`): system type, stage, sector, owner role, what the system answers, an optional URL and the offer to start from. Landing links pass `?offer=reality-check` to preselect the free diagnostic. Keep the quiet form treatment.
+- Sector pages: `lib/public/sectors.ts` holds the sector ids (the same ids as the `/contact` `sector` options) and each locale's slug; page copy lives in `content/sectors/{locale}.json` (`es.json` is type-checked against `en.json`, and `lib/sectors/content.test.ts` guards icons, completeness and claims); short names are in the `sectors.names` messages. Each page reuses the landing's Paper components (hero chat fixed to its sector, failure modes with sector examples, expert network with sector roles), adds a FAQ with `FAQPage` data and links to the form as `/contact?offer=reality-check&sector={id}`, which preselects the sector.
 - Public offers live in `lib/public/evaluation-offers.ts`, shared by `/llms.txt`, agent markdown and home structured data. The landing page has no pricing section. Only the free Reality Check has a price; the Pilot Evaluation and the monthly subscription read "Personalized" and are quoted on scope. Each offer's `slug` is the `offer` value `/contact` accepts.
 - `/call` is the public meeting-booking surface. It embeds the Cal.com inline scheduler (light theme, brand-aligned `cal-brand` accent) configured via the `CALCOM_LINK` env var, mirrors the quiet `/contact` treatment, and renders an explicit fallback panel when no link is configured. Keep it out of the primary landing navigation but cross-linked from `/contact`.
 - Planned `/proof`: public, no signup; it becomes the landing page's primary evidence CTA when it ships. It must enforce IP rate limits, 24-hour upload retention and a daily model-spend cap, and state plainly what is processed and where.
@@ -44,6 +45,12 @@ translated; `/admin`, `/auth/*` and the evaluation surface are English-only.
   each language is indexed independently.
 - An unprefixed public path is redirected once (307) by `proxy.ts` to the
   negotiated locale. An unsupported language prefix (`/fr/blog`) is a 404.
+- Some pages translate their path: `/es/sectores/seguros` is `/en/sectors/insurance`.
+  Code always names a page by its internal path (the folder under `app/[locale]`,
+  e.g. `/sectors/insurance`); `localizePathname` produces the public form,
+  `TRANSLATED_PATHS` in `lib/i18n/routing.ts` defines the pairs, and the proxy
+  rewrites the public slug to the route and 308-redirects the internal form or
+  another language's slug to the canonical URL.
 - `lib/i18n/routing.ts` is the single definition of that shape.
   `isNonLocalizedPath` lists every prefix that stays outside the locale tree —
   the Operator Console, auth, APIs, sitemaps, `robots.txt` and `llms.txt`. Add
@@ -89,15 +96,29 @@ translated; `/admin`, `/auth/*` and the evaluation surface are English-only.
 - Both sitemaps emit one `<url>` per locale, each carrying the whole
   `hreflang` set (`lib/sitemap-xml.ts`).
 - Structured data is built per locale; the Organization node keeps one
-  locale-free `@id` that every localized page references.
+  locale-free `@id` that every localized page references
+  (`lib/structured-data.ts` has the shared builders and a `<`-escaping `jsonLd`).
+- Share images are generated by `opengraph-image.tsx` files (`lib/og/render.tsx`,
+  1200 × 630, Geist and Newsreader from `assets/fonts/`). Do not pass
+  `imagePath` to `buildPublicMetadata` unless a page has its own image; the
+  nearest `opengraph-image` supplies it, and X falls back to `og:image`.
+- `htmlLimitedBots` in `next.config.js` extends Next's list of crawlers that get
+  metadata blocking in `<head>` with the AI search crawlers, which do not run
+  JavaScript. Keep it in step with the AI user agents in `app/robots.ts`.
+- `www.caudals.com` 308-redirects to `caudals.com` in the proxy.
 
 ### Static rendering
 
 - The public tree is prerendered per locale via `generateStaticParams`. Nothing
   in `app/layout.tsx` may read the request — `cookies()` or `headers()` there
   opts *every* route out of static rendering, including the marketing pages.
-- `<html lang>` is corrected inside the locale subtree by
-  `components/i18n/html-lang.tsx`.
+- There is no `app/layout.tsx`. `app/[locale]/layout.tsx` is a root layout that
+  renders `<html lang={locale}>`, so the served HTML declares its language; the
+  internal groups `(app)`, `(auth)` and `(evaluation)` each have an English root
+  layout. All of them render `components/document/root-document.tsx`. A URL
+  under a locale that matches no page renders the localized
+  `app/[locale]/not-found.tsx` (via `app/[locale]/[...missing]`); anything
+  outside every root layout gets `app/global-not-found.tsx`.
 - The internal surfaces declare `export const dynamic = "force-dynamic"` in
   their own group layouts, because they are authenticated and per-request.
 

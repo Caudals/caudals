@@ -6,7 +6,7 @@ Caudals evaluates companies' AI systems and builds custom datasets with freelanc
 
 Current production scope:
 
-- Public marketing, authority and demand capture: `/`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
+- Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
 
@@ -108,7 +108,8 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 
 - App hostnames: `NEXT_PUBLIC_APP_HOSTNAMES`
 - Marketing hostnames: `NEXT_PUBLIC_MARKETING_HOSTNAMES`
-- The public page surface is `/`, `/contact`, `/call`, `/blog`, `/blog/*`,
+- The public page surface is `/`, `/sectors`, `/sectors/*` (Spanish slugs under
+  `/es/sectores/*`), `/contact`, `/call`, `/blog`, `/blog/*`,
   `/newsletter`, `/newsletter/*` and `/legal/*`;
   `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`, the funnel APIs and
   required metadata/assets are the only other routes.

@@ -11,11 +11,14 @@ import {
   negotiateLocale,
 } from "@/lib/i18n/negotiate";
 import {
+  findInternalPathnameInAnyLocale,
   hasUnsupportedLocalePrefix,
   isNonLocalizedPath,
   localizePathname,
   PATHNAME_HEADER,
   splitLocale,
+  toInternalPathname,
+  toPublicPathname,
 } from "@/lib/i18n/routing";
 
 const EVALS_PREFIXES = ["/ops", "/workspace", "/share", "/evaluation-entry"];
@@ -149,6 +152,17 @@ export async function proxy(request: NextRequest) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
+  // One public host. `www.caudals.com` answers with a permanent redirect to
+  // the bare domain, so search engines never index the site twice.
+  const bareMarketingHost = hostname.startsWith("www.") ? hostname.slice(4) : null;
+  if (isMarketingHost && bareMarketingHost && marketingHostnames.includes(bareMarketingHost)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.protocol = "https:";
+    redirectUrl.hostname = bareMarketingHost;
+    redirectUrl.port = "";
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   if (isMarketingHost && isEvalsPath(pathname)) {
     return new NextResponse("Not Found", { status: 404 });
   }
@@ -233,7 +247,11 @@ export async function proxy(request: NextRequest) {
       });
 
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = localizePathname(barePathname, locale);
+      // A translated slug typed without its prefix (`/sectores/seguros`) is
+      // mapped to its page first, then localized for the negotiated language.
+      const internalPathname =
+        findInternalPathnameInAnyLocale(barePathname) ?? barePathname;
+      redirectUrl.pathname = localizePathname(internalPathname, locale);
       // 307 keeps the method and, unlike a 308, lets the negotiated target
       // change later without being cached permanently by browsers.
       const redirect = NextResponse.redirect(redirectUrl, 307);
@@ -241,6 +259,33 @@ export async function proxy(request: NextRequest) {
       // visitor's redirect for another.
       redirect.headers.set("vary", "accept-language, cookie");
       return redirect;
+    }
+
+    // Translated slugs. `/es/sectores/seguros` is served by the internal route
+    // `/es/sectors/insurance`; the internal form, or another language's slug,
+    // is redirected permanently to the one public URL for this locale.
+    const internalPathname = toInternalPathname(barePathname, pathLocale);
+    if (internalPathname !== barePathname) {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = `/${pathLocale}${internalPathname}`;
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set(PATHNAME_HEADER, pathname);
+      return NextResponse.rewrite(rewriteUrl, {
+        request: { headers: requestHeaders },
+      });
+    }
+
+    const canonicalInternal =
+      toPublicPathname(barePathname, pathLocale) !== barePathname
+        ? barePathname
+        : findInternalPathnameInAnyLocale(barePathname);
+    const canonicalPathname = canonicalInternal
+      ? localizePathname(canonicalInternal, pathLocale)
+      : null;
+    if (canonicalPathname && canonicalPathname !== pathname) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = canonicalPathname;
+      return NextResponse.redirect(redirectUrl, 308);
     }
   }
 

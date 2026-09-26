@@ -1,0 +1,990 @@
+{
+  "insurance": {
+    "metaTitle": "AI assistant and chatbot evaluation for insurance",
+    "metaDescription": "We test insurance chatbots and AI assistants against your own policy wording: coverage, exclusions, waiting periods and claims. Answer keys signed off by claims experts.",
+    "headline": "An insurance AI that knows the *policy*",
+    "subtitle": "We test your assistant against your policy wording, question by question, with answer keys reviewed by loss adjusters and claims handlers.",
+    "summary": "Coverage, exclusions, waiting periods and claims: checked against your own policy wording.",
+    "audience": "Insurers, health insurers, mutuals and brokers",
+    "stakes": {
+      "lead": "In insurance, a wrong answer isn't a bad experience. It's a complaint, a disputed claim or a cancelled policy.",
+      "solution": "We check every answer against your policy wording before your customers do."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants your policyholders, brokers and staff actually use, on the questions where a wrong answer has a cost.",
+      "systems": [
+        "Web and app assistants for policyholders",
+        "WhatsApp and voice agents for claims",
+        "Internal copilots for claims handlers and underwriters",
+        "Assistants and quote tools for brokers"
+      ],
+      "topics": [
+        "Coverage, limits and exclusions",
+        "Waiting periods and excesses",
+        "How to report a claim, and the deadlines",
+        "Premiums, renewals and cancellations",
+        "Provider networks and pre-authorisations",
+        "Complaints and handover to a person"
+      ]
+    },
+    "failures": {
+      "title": "Where insurance assistants go wrong",
+      "description": "Every question comes with its correct answer and the clause it comes from. When the assistant fails, we tell you which of five ways it failed, so you know whether to fix the documents or the system.",
+      "examples": {
+        "invented": {
+          "q": "Do I get a courtesy car while mine is in the garage?",
+          "a": "Yes, for as long as the repair takes.",
+          "doc": "A courtesy car for up to 7 days, only after a covered accident and only on the Comprehensive plan.",
+          "src": "Motor policy · optional cover C.4"
+        },
+        "outdated": {
+          "q": "What's the excess on the Comprehensive plan with excess?",
+          "a": "€300 per claim.",
+          "doc": "€400 per claim for policies taken out or renewed from 1 January 2026.",
+          "src": "Product sheet · 2026 edition"
+        },
+        "wrongSource": {
+          "q": "Does my health policy include medical assistance when I travel abroad?",
+          "a": "Yes, up to €30,000 in medical expenses.",
+          "doc": "The Basic plan has no travel assistance. The €30,000 limit belongs to the Premium plan.",
+          "src": "Health policy · Basic plan · art. 9"
+        },
+        "gap": {
+          "q": "If I cancel my home insurance halfway through the year, do you refund the rest?",
+          "a": "Yes, the unused months are refunded automatically.",
+          "doc": "No document covers it. Our experts draft the answer with your team.",
+          "src": "Searched: general conditions, FAQ, cancellation form"
+        },
+        "outOfScope": {
+          "q": "You've rejected my claim. Is it worth taking you to court?",
+          "a": "No, the decision is final and can't be appealed.",
+          "doc": "It should explain the complaints procedure and offer to pass the case to a person.",
+          "src": "Assistant scope · complaints"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by people who handle claims",
+      "description": "Our insurance experts write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Loss adjusters",
+          "icon": "adjuster"
+        },
+        {
+          "label": "Claims handlers",
+          "icon": "claims"
+        },
+        {
+          "label": "Underwriters",
+          "icon": "calculator"
+        },
+        {
+          "label": "Insurance brokers",
+          "icon": "handshake"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "qa",
+          "name": "Coverage Q&A",
+          "description": "Questions and answers on coverage and exclusions, grounded in your policy wording"
+        },
+        {
+          "kind": "docs",
+          "name": "Missing guidance",
+          "description": "The procedures your documents don't explain, such as refunds, changes and cancellations"
+        },
+        {
+          "kind": "reasoning",
+          "name": "Claims solved step by step",
+          "description": "Real cases worked through the way a claims handler would decide them"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which insurance AI systems do you evaluate?",
+        "a": "Customer-facing assistants on the web, in the app, on WhatsApp and on the phone, internal copilots for claims handlers and underwriters, and tools that brokers use to quote or answer clients. We focus on questions where a wrong answer costs money: coverage, exclusions, waiting periods, excesses and claims."
+      },
+      {
+        "q": "Who decides what the correct answer is?",
+        "a": "Your documents first: general and special conditions, product sheets and procedures. Each question cites the clause its answer comes from. Our loss adjusters and claims handlers review the answer key, and your own expert signs it off in a 90-minute session, so the results can't be disputed later."
+      },
+      {
+        "q": "Do you need access to our systems or policyholder data?",
+        "a": "Not to start. The free diagnostic uses only your public assistant and your public documentation, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself."
+      },
+      {
+        "q": "Does this help with the EU AI Act?",
+        "a": "It gives you evidence, not a certificate. AI used for risk assessment and pricing in life and health insurance is high-risk under Annex III of the AI Act, with obligations applying from 2 December 2027. Customer-service assistants are usually not high-risk, but they still have to answer correctly. We provide scores, failures and a run history your compliance team can use. We don't carry out conformity assessments."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: we put 40 questions to your public assistant and send you the results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "industrial": {
+    "metaTitle": "AI assistant evaluation for industrial after-sales and technical support",
+    "metaDescription": "We test technical-support AI assistants against your manuals, service bulletins and parts catalogues: fault codes, specs, intervals and part numbers.",
+    "headline": "An after-sales AI that knows the *manual*",
+    "subtitle": "We test your technical-support assistant against your manuals, service bulletins and parts catalogues, with answer keys reviewed by after-sales engineers.",
+    "summary": "Fault codes, torque specs, maintenance intervals and part numbers: checked against your own manuals.",
+    "audience": "Machinery, component and equipment manufacturers, and their technical services",
+    "stakes": {
+      "lead": "In after-sales, a wrong torque figure or part number doesn't stay on the screen. It ends up on a machine.",
+      "solution": "We check your assistant against your manuals, bulletins and parts catalogues, one question at a time."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants your customers, distributors and field technicians use to diagnose, repair and maintain your equipment.",
+      "systems": [
+        "Technical-support assistants for customers and distributors",
+        "Copilots for field service technicians",
+        "Search over manuals, service bulletins and parts catalogues",
+        "Triage and classification of support tickets"
+      ],
+      "topics": [
+        "Fault codes and diagnosis",
+        "Torque, tolerances and specifications",
+        "Maintenance intervals and consumables",
+        "Part numbers and superseded parts",
+        "Warranty conditions",
+        "Safety procedures and when to escalate"
+      ]
+    },
+    "failures": {
+      "title": "Where technical assistants go wrong",
+      "description": "Every question comes with its correct answer and the page it comes from. When the assistant fails, we tell you which of five ways it failed: the answer isn't written down, it's out of date, or it was found in the wrong manual.",
+      "examples": {
+        "invented": {
+          "q": "Is the T-20 conveyor motor still under warranty after 26 months?",
+          "a": "Yes, motors carry a 36-month warranty.",
+          "doc": "Motors carry a 24-month warranty from the delivery date.",
+          "src": "Warranty conditions · art. 3"
+        },
+        "outdated": {
+          "q": "What's the part number for the K-400 inlet filter?",
+          "a": "FL-2040.",
+          "doc": "FL-2040 was replaced by FL-2041 in March 2026.",
+          "src": "Service bulletin SB-26-07"
+        },
+        "wrongSource": {
+          "q": "Which oil does the R-12 gearbox take?",
+          "a": "ISO VG 220 mineral oil.",
+          "doc": "ISO VG 320 synthetic oil. VG 220 is for the R-10.",
+          "src": "R-12 operating manual · p. 31"
+        },
+        "gap": {
+          "q": "Can I use the dosing unit with 40% caustic soda?",
+          "a": "Yes, all our seals are chemical-resistant.",
+          "doc": "No document covers it. Our experts write it with your engineering team.",
+          "src": "Searched: datasheet, manual, compatibility table"
+        },
+        "outOfScope": {
+          "q": "The press is making a strange noise but still runs. Can I keep using it until Monday?",
+          "a": "Yes, if it still runs, it's safe to use.",
+          "doc": "Any abnormal noise on a press: stop it, lock it out and call the technical service.",
+          "src": "Assistant scope · safety escalation"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by people who repair machines",
+      "description": "Our after-sales experts write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "After-sales engineers",
+          "icon": "wrench"
+        },
+        {
+          "label": "Maintenance technicians",
+          "icon": "cog"
+        },
+        {
+          "label": "Quality engineers",
+          "icon": "claims"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Diagnoses step by step",
+          "description": "Real faults worked through from symptom to repair, the way a technician would"
+        },
+        {
+          "kind": "docs",
+          "name": "Missing documentation",
+          "description": "Compatibilities, procedures and edge cases no manual covers"
+        },
+        {
+          "kind": "exams",
+          "name": "Larger exams",
+          "description": "New questions every month for each new model, bulletin and superseded part"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which after-sales AI systems do you evaluate?",
+        "a": "Technical-support assistants for customers and distributors, copilots for field technicians, search tools over manuals and parts catalogues, and systems that classify and route support tickets. We focus on answers that are either right or wrong: fault codes, specifications, intervals and part numbers."
+      },
+      {
+        "q": "Our documentation is in PDFs, drawings and old bulletins. Is that a problem?",
+        "a": "No, that's the usual starting point. We build the test from the documents your assistant actually uses, and each question cites its page. If two documents contradict each other, or one is out of date, the report says so. That's often the first thing to fix."
+      },
+      {
+        "q": "Who writes the correct answers?",
+        "a": "Your manuals first. Our after-sales engineers and maintenance technicians review every answer, and one of your technical experts signs off the answer key in a 90-minute session. We're based in Valladolid and can hold that session at your plant."
+      },
+      {
+        "q": "Do you need access to our systems?",
+        "a": "Not to start. The free diagnostic uses only what is public. For internal assistants we work under an NDA and a data processing agreement on EU infrastructure, or we give you the questions and you run them yourself and send us the answers."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our experts, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "healthcare": {
+    "metaTitle": "Patient-facing AI assistant evaluation for private healthcare",
+    "metaDescription": "We test patient assistants and chatbots for clinics and hospital groups: preparation instructions, prices, insurer agreements and knowing when to hand over to a clinician.",
+    "headline": "A patient AI that knows its *limits*",
+    "subtitle": "We test your patient assistant against your protocols and price lists, with answer keys reviewed by practising doctors and nurses.",
+    "summary": "Preparation instructions, prices and insurer agreements, and knowing when to hand over to a clinician.",
+    "audience": "Private hospital groups, clinics, dental chains and diagnostic centres",
+    "stakes": {
+      "lead": "In healthcare, sometimes the most important answer is \"you need to see a doctor\".",
+      "solution": "We check that your assistant gets prices and preparation right, and knows exactly when to hand over."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants patients use before and after a visit, and the ones your front desk and nursing staff use to find protocols.",
+      "systems": [
+        "Patient assistants on the web, in the app and on WhatsApp",
+        "Voice agents for appointments and admissions",
+        "Internal assistants for front desk and nursing protocols",
+        "Pre- and post-procedure instruction bots"
+      ],
+      "topics": [
+        "Preparation for tests and surgery",
+        "Prices and insurer agreements",
+        "Appointments, admissions and visiting",
+        "Care instructions after a procedure",
+        "Urgent symptoms and referral",
+        "What only a clinician should answer"
+      ]
+    },
+    "failures": {
+      "title": "Where patient assistants go wrong",
+      "description": "Every question comes with its correct answer and the protocol or price list it comes from. When the assistant fails, we tell you which of five ways it failed, and we treat any missed handover as critical.",
+      "examples": {
+        "invented": {
+          "q": "Does my MRI include the report and a follow-up visit?",
+          "a": "Yes, the report and a follow-up visit are included.",
+          "doc": "The radiologist's report is included. The follow-up visit is booked and billed separately.",
+          "src": "Diagnostic imaging price list"
+        },
+        "outdated": {
+          "q": "Can I use my health insurance for physiotherapy at your clinic?",
+          "a": "Yes, with any of the insurers we work with.",
+          "doc": "Since July 2026, physiotherapy is only covered with three of our partner insurers.",
+          "src": "Insurer agreements · July 2026 update"
+        },
+        "wrongSource": {
+          "q": "How long before my operation should I stop eating?",
+          "a": "Four hours before.",
+          "doc": "Six hours for solid food. The four-hour rule is for procedures in the minor surgery room.",
+          "src": "Pre-operative instructions · general surgery"
+        },
+        "gap": {
+          "q": "Can my partner stay overnight with me after a caesarean?",
+          "a": "No, overnight companions aren't allowed.",
+          "doc": "No document covers it. Our experts write it with your nursing team.",
+          "src": "Searched: admissions guide, FAQ, maternity leaflet"
+        },
+        "outOfScope": {
+          "q": "I forgot my blood pressure pill yesterday. Should I take two today?",
+          "a": "Yes, take two today to make up for it.",
+          "doc": "Questions about doses go to a doctor or pharmacist. The assistant must not advise on medication.",
+          "src": "Assistant scope · medication"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys reviewed by clinicians",
+      "description": "Practising doctors and nurses review every question that touches clinical content, and write the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Doctors",
+          "icon": "stethoscope"
+        },
+        {
+          "label": "Nurses",
+          "icon": "heart"
+        },
+        {
+          "label": "Patient service coordinators",
+          "icon": "calendar"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "docs",
+          "name": "Patient instructions",
+          "description": "Clear preparation and aftercare instructions where yours are missing or contradict each other"
+        },
+        {
+          "kind": "qa",
+          "name": "Handover cases",
+          "description": "Questions the assistant must pass to a person, and how to do it"
+        },
+        {
+          "kind": "preferences",
+          "name": "Better answers",
+          "description": "Candidate answers ranked and corrected by clinicians"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which healthcare AI systems do you evaluate?",
+        "a": "Patient-facing assistants on the web, in the app, on WhatsApp and on the phone; appointment and admissions agents; and internal assistants that front-desk and nursing staff use to look up protocols. We focus on prices, preparation instructions, insurer agreements and handover to a clinician."
+      },
+      {
+        "q": "Is this medical advice, or a medical device assessment?",
+        "a": "Neither. We check whether your assistant follows your own protocols and hands over to a clinician when it should. AI that qualifies as a medical device falls under separate rules that we don't assess."
+      },
+      {
+        "q": "Who reviews the clinical answers?",
+        "a": "Practising doctors and nurses from our expert network review every question that touches clinical content, and one of your clinicians signs off the answer key. Anything that should go to a person is marked as a handover case and scored as critical if the assistant misses it."
+      },
+      {
+        "q": "Do you need patient data?",
+        "a": "No. We test with made-up patient profiles and never with real health data. The free diagnostic uses only your public assistant and public information. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by clinicians where needed, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "banking": {
+    "metaTitle": "AI assistant and chatbot evaluation for banking",
+    "metaDescription": "We test banking chatbots and AI assistants against your fee schedule and product conditions: fees, limits, transfers and rates, and knowing what counts as advice.",
+    "headline": "A banking assistant that knows the *fees*",
+    "subtitle": "We test your assistant against your fee schedule and product conditions, with answer keys reviewed by banking and compliance specialists.",
+    "summary": "Fees, limits, transfers and rates, and knowing where information ends and advice begins.",
+    "audience": "Regional and cooperative banks, lenders, payment and financial services companies",
+    "stakes": {
+      "lead": "In banking, a made-up fee or limit is a complaint waiting to happen, and a loss of trust that lasts.",
+      "solution": "We check every answer against your fee schedule and product conditions."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants customers use in the app and on the phone, and the ones your branch and contact-centre staff rely on.",
+      "systems": [
+        "Customer assistants in the app and online banking",
+        "Voice agents in the contact centre",
+        "Internal assistants for branch and contact-centre staff",
+        "Triage of documents and complaints"
+      ],
+      "topics": [
+        "Fees and charges",
+        "Cards, limits and transfers",
+        "Interest rates and product conditions",
+        "Loan and mortgage conditions and paperwork",
+        "Fraud and blocked cards",
+        "Complaints and regulated advice"
+      ]
+    },
+    "failures": {
+      "title": "Where banking assistants go wrong",
+      "description": "Every question comes with its correct answer and the fee schedule or contract clause it comes from. When the assistant fails, we tell you which of five ways it failed.",
+      "examples": {
+        "invented": {
+          "q": "Is there a charge for paying in dollars with my debit card?",
+          "a": "No, card payments abroad are always free.",
+          "doc": "Card payments in currencies other than the euro carry a 3% exchange fee.",
+          "src": "Fee schedule · cards"
+        },
+        "outdated": {
+          "q": "What interest does the savings account pay?",
+          "a": "2.50% AER.",
+          "doc": "1.75% AER since 1 September 2026.",
+          "src": "Savings account product sheet · September 2026"
+        },
+        "wrongSource": {
+          "q": "What's my daily cash withdrawal limit?",
+          "a": "€1,000 a day.",
+          "doc": "€600 a day on the standard debit card. €1,000 is the Premium card limit.",
+          "src": "Card conditions · limits"
+        },
+        "gap": {
+          "q": "Can I add my 16-year-old as an authorised user on my account?",
+          "a": "Yes, from age 14 with both parents' consent.",
+          "doc": "No document covers it. Our experts write it with your team.",
+          "src": "Searched: fee schedule, FAQ, account contract"
+        },
+        "outOfScope": {
+          "q": "I've just seen a card payment I didn't make. What do I do?",
+          "a": "Wait a few days; it may be a temporary hold.",
+          "doc": "Block the card at once and pass the customer to the fraud team.",
+          "src": "Fraud protocol · unrecognised payments"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by banking specialists",
+      "description": "Our banking and compliance specialists write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Branch and contact-centre specialists",
+          "icon": "bank"
+        },
+        {
+          "label": "Compliance specialists",
+          "icon": "shield"
+        },
+        {
+          "label": "Credit analysts",
+          "icon": "calculator"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "qa",
+          "name": "Product Q&A",
+          "description": "Questions and answers on fees, limits and conditions, grounded in your contracts"
+        },
+        {
+          "kind": "docs",
+          "name": "Missing documentation",
+          "description": "What your fee schedule doesn't say, such as operations outside the eurozone"
+        },
+        {
+          "kind": "preferences",
+          "name": "Information versus advice",
+          "description": "Answers ranked by where information ends and personal advice begins"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which banking AI systems do you evaluate?",
+        "a": "Customer assistants in the app and online banking, contact-centre voice agents, internal assistants for branch staff, and systems that triage documents and complaints. We focus on fees, limits, transfers, rates and product conditions, and on what the assistant must not answer."
+      },
+      {
+        "q": "How do you handle the line between information and financial advice?",
+        "a": "Every test includes questions that ask for personal advice, such as where to put savings or which product to choose. The correct answer is a referral to an adviser, and we score it as critical if the assistant gives the advice itself."
+      },
+      {
+        "q": "Does this help with the EU AI Act?",
+        "a": "It gives you evidence, not a certificate. Credit scoring and creditworthiness assessment of individuals are high-risk under Annex III of the AI Act, with obligations applying from 2 December 2027. Customer assistants are usually not high-risk, but they still have to answer correctly. We provide scores, failures and a run history. We don't carry out conformity assessments."
+      },
+      {
+        "q": "Do you need access to our systems or customer data?",
+        "a": "Not to start. The free diagnostic uses only your public assistant and public information, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "energy": {
+    "metaTitle": "AI assistant and chatbot evaluation for energy retailers",
+    "metaDescription": "We test energy chatbots and AI assistants against the tariffs, contracts and protocols in force: prices, contracted power, bills, social tariffs and emergencies.",
+    "headline": "An energy assistant that knows the *tariff*",
+    "subtitle": "We test your assistant against the tariffs, contracts and protocols in force today, and check it again every month.",
+    "summary": "Prices, time bands, contracted power, bills, social tariffs and emergencies: checked against the tariffs in force.",
+    "audience": "Electricity and gas retailers, utilities and self-consumption companies",
+    "stakes": {
+      "lead": "In energy, every tariff change is a chance for your assistant to quote last month's price.",
+      "solution": "We check it against the tariffs, contracts and protocols in force today, and again every month."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants your customers use to understand their bill, change their contract or report a problem.",
+      "systems": [
+        "Customer assistants on the web, in the app and on WhatsApp",
+        "Voice agents in the contact centre",
+        "Internal assistants for back office and switching",
+        "Processing of bills and meter readings"
+      ],
+      "topics": [
+        "Tariffs, prices and time bands",
+        "Contracted power and switching",
+        "Bills, payments and debt",
+        "Social tariffs and vulnerable customers",
+        "Self-consumption and solar",
+        "Emergencies and faults"
+      ]
+    },
+    "failures": {
+      "title": "Where energy assistants go wrong",
+      "description": "Every question comes with its correct answer and the tariff sheet or contract it comes from. When the assistant fails, we tell you which of five ways it failed.",
+      "examples": {
+        "invented": {
+          "q": "If I get solar panels with you, is installation free?",
+          "a": "Yes, installation is always included.",
+          "doc": "Installation is included only with the 12-month financing plan.",
+          "src": "Solar offer · conditions"
+        },
+        "outdated": {
+          "q": "What's the price per kWh on the fixed tariff?",
+          "a": "€0.139 per kWh.",
+          "doc": "€0.149 per kWh since 1 September 2026.",
+          "src": "Fixed tariff · September 2026 prices"
+        },
+        "wrongSource": {
+          "q": "Do I pay a penalty if I switch to another supplier?",
+          "a": "Yes, €50 for early termination.",
+          "doc": "Household contracts have no early-termination fee. The €50 applies to business contracts.",
+          "src": "Household contract · general conditions"
+        },
+        "gap": {
+          "q": "Can I charge my electric car at night without increasing my contracted power?",
+          "a": "Yes, your current power is enough.",
+          "doc": "No document covers it. Our experts write the guidance with your technical team.",
+          "src": "Searched: tariffs, FAQ, EV charging guide"
+        },
+        "outOfScope": {
+          "q": "I can't pay this month's bill. Are you going to cut me off?",
+          "a": "Yes, supply is cut after 15 days without payment.",
+          "doc": "It should offer a payment plan and a person. Before any cut-off there is formal notice, and vulnerable customers have extra protection.",
+          "src": "Collections policy · payment difficulties"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by people who know the bill",
+      "description": "Our energy specialists write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Energy advisers",
+          "icon": "zap"
+        },
+        {
+          "label": "Billing specialists",
+          "icon": "receipt"
+        },
+        {
+          "label": "Technical service engineers",
+          "icon": "wrench"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "exams",
+          "name": "Monthly tariff checks",
+          "description": "New questions every time a price, tariff or condition changes"
+        },
+        {
+          "kind": "qa",
+          "name": "Bill questions",
+          "description": "Real questions about bills and contracts, answered from your documents"
+        },
+        {
+          "kind": "docs",
+          "name": "Missing guidance",
+          "description": "Self-consumption, electric vehicles and other cases your documents don't cover"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which energy AI systems do you evaluate?",
+        "a": "Customer assistants on the web, in the app and on WhatsApp, contact-centre voice agents, back-office assistants, and systems that read bills and meter data. We focus on prices, contracted power, bills, social tariffs and emergencies."
+      },
+      {
+        "q": "Our prices change often. How do you keep the test up to date?",
+        "a": "That's what the monthly subscription is for. Every month we add new questions for whatever has changed, re-run the whole test and alert you to anything that used to pass and now fails, before customers notice."
+      },
+      {
+        "q": "How do you handle vulnerable customers and emergencies?",
+        "a": "Every test includes questions about payment difficulties, social tariffs and emergencies such as a gas smell. The correct answer is often to hand over to a person or give the emergency number, and we score a miss there as critical."
+      },
+      {
+        "q": "Do you need access to our systems or customer data?",
+        "a": "Not to start. The free diagnostic uses only your public assistant and public tariffs, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "telecom": {
+    "metaTitle": "AI assistant and chatbot evaluation for telecoms",
+    "metaDescription": "We test telecom chatbots and AI assistants against your current price list and terms: plans, promotions, minimum terms, roaming, portability and billing.",
+    "headline": "A telecom assistant that knows the *contract*",
+    "subtitle": "We test your assistant against your current price list and terms, and re-run the test every time they change.",
+    "summary": "Plans, promotions, minimum terms, roaming and billing: checked against your current price list and terms.",
+    "audience": "Regional operators, internet providers and virtual mobile operators",
+    "stakes": {
+      "lead": "In telecoms, prices, promotions and terms change every few weeks. Your assistant has to keep up.",
+      "solution": "We check it against your current price list and terms, and re-run the check every month."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants your customers use to choose a plan, understand a bill or report a fault.",
+      "systems": [
+        "Customer assistants on the web, in the app and on WhatsApp",
+        "Voice agents and IVR",
+        "Assistants for stores and sales agents",
+        "Triage of technical support tickets"
+      ],
+      "topics": [
+        "Plans, prices and promotions",
+        "Minimum terms and cancellations",
+        "Roaming and international calls",
+        "Number portability and switching",
+        "Installation and faults",
+        "Billing disputes"
+      ]
+    },
+    "failures": {
+      "title": "Where telecom assistants go wrong",
+      "description": "Every question comes with its correct answer and the price list or clause it comes from. When the assistant fails, we tell you which of five ways it failed.",
+      "examples": {
+        "invented": {
+          "q": "Is roaming in Morocco included in my plan?",
+          "a": "Yes, roaming is free all over the world.",
+          "doc": "Roaming at no extra cost applies in the EU. Morocco is billed at zone 2 rates.",
+          "src": "Roaming rates · zones"
+        },
+        "outdated": {
+          "q": "How long is the minimum term if I get a phone with my plan?",
+          "a": "12 months.",
+          "doc": "24 months for phones financed since July 2026.",
+          "src": "Device financing conditions · July 2026"
+        },
+        "wrongSource": {
+          "q": "How much data do I get on the Basic plan?",
+          "a": "50 GB a month.",
+          "doc": "20 GB a month. 50 GB is the Plus plan.",
+          "src": "Plan sheet · Basic"
+        },
+        "gap": {
+          "q": "If I move house, is installing fibre at the new address free?",
+          "a": "Yes, moving your line is always free.",
+          "doc": "No document covers it. Our experts write it with your team.",
+          "src": "Searched: FAQ, contract, installation conditions"
+        },
+        "outOfScope": {
+          "q": "I've been charged for calls I never made. Can you refund me now?",
+          "a": "Done, I've refunded €48 to your account.",
+          "doc": "The assistant can't issue refunds. A billing dispute opens a claim handled by a person.",
+          "src": "Assistant scope · billing claims"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by people who handle customers",
+      "description": "Our telecom specialists write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Customer-service specialists",
+          "icon": "headset"
+        },
+        {
+          "label": "Field technicians",
+          "icon": "router"
+        },
+        {
+          "label": "Billing specialists",
+          "icon": "receipt"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "exams",
+          "name": "Checks for every price change",
+          "description": "New questions for each new promotion, plan and condition"
+        },
+        {
+          "kind": "qa",
+          "name": "Customer Q&A",
+          "description": "Real customer questions, answered from your price list and terms"
+        },
+        {
+          "kind": "reasoning",
+          "name": "Faults solved step by step",
+          "description": "Line and installation problems worked through the way a technician would"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which telecom AI systems do you evaluate?",
+        "a": "Customer assistants on the web, in the app and on WhatsApp, voice agents and IVR, assistants for stores and sales agents, and systems that classify technical tickets. We focus on prices, terms, roaming, portability and billing, and on what the assistant must not promise."
+      },
+      {
+        "q": "Our promotions change every few weeks. Is a one-off test worth it?",
+        "a": "A one-off test shows where you stand today. The monthly subscription keeps it that way: each month we add questions for what has changed, re-run the whole test and flag every answer that has got worse."
+      },
+      {
+        "q": "Do you test actions as well as answers?",
+        "a": "Yes. If your assistant can change a plan, open a ticket or issue a credit, we check that it only does what it's allowed to, and that it never claims to have done something it can't."
+      },
+      {
+        "q": "Do you need access to our systems or customer data?",
+        "a": "Not to start. The free diagnostic uses only your public assistant and public price list, with made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "legal": {
+    "metaTitle": "AI assistant evaluation for law firms and advisory firms",
+    "metaDescription": "We test AI assistants for law firms and tax, employment and accounting advisers: deadlines, filing calendars, fees and referral to a professional, with answer keys signed off by lawyers.",
+    "headline": "A legal assistant that knows the *deadlines*",
+    "subtitle": "We test your assistant against the law, your procedures and your fees, with answer keys reviewed by practising lawyers and advisers.",
+    "summary": "Deadlines, filing calendars, fees and knowing when to refer to a professional, reviewed by practising lawyers.",
+    "audience": "Law firms and tax, employment and accounting advisory firms",
+    "stakes": {
+      "lead": "In legal and advisory work, a wrong deadline costs clients their rights, and firms their reputation.",
+      "solution": "We check your assistant against the law and your procedures, with answer keys signed off by practising lawyers and advisers."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants your clients use to ask their first questions, and the ones your team uses to find precedents and templates.",
+      "systems": [
+        "Client-facing assistants for law firms",
+        "Assistants for tax, employment and accounting advisers",
+        "Internal assistants over precedents and templates",
+        "Document classification and extraction"
+      ],
+      "topics": [
+        "Deadlines and time limits",
+        "Tax filings and calendars",
+        "Employment and payroll",
+        "Fees and scope of services",
+        "Documents the client has to provide",
+        "When to refer to a professional"
+      ]
+    },
+    "failures": {
+      "title": "Where legal assistants go wrong",
+      "description": "Every question comes with its correct answer and the article, agreement or internal document it comes from. When the assistant fails, we tell you which of five ways it failed.",
+      "examples": {
+        "invented": {
+          "q": "Is the first consultation free?",
+          "a": "Yes, the first consultation is always free.",
+          "doc": "The first 30-minute consultation is free only for employment cases.",
+          "src": "Fees · first consultation"
+        },
+        "outdated": {
+          "q": "How much is your monthly bookkeeping plan for freelancers?",
+          "a": "€45 a month.",
+          "doc": "€55 a month in 2026. €45 was the 2025 rate.",
+          "src": "Service rates 2026"
+        },
+        "wrongSource": {
+          "q": "How many days of holiday am I entitled to?",
+          "a": "30 calendar days a year.",
+          "doc": "This client's collective agreement grants 31 calendar days. 30 is the statutory minimum from the general guide.",
+          "src": "Collective agreement · art. 18"
+        },
+        "gap": {
+          "q": "I'm a freelancer working from home. Can I deduct my electricity bill?",
+          "a": "Yes, 100% of the bill.",
+          "doc": "No firm document covers it. Our experts write it with your tax team.",
+          "src": "Searched: freelancer guide, FAQ, service sheet"
+        },
+        "outOfScope": {
+          "q": "I've received a notice from the tax authority. What exactly should I reply?",
+          "a": "Say the money was a gift from your family.",
+          "doc": "Tax authority notices must be handled by an adviser. The assistant should book a consultation.",
+          "src": "Assistant scope · referrals"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys signed off by practising professionals",
+      "description": "Our lawyers and advisers write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Lawyers",
+          "icon": "scale"
+        },
+        {
+          "label": "Tax advisers",
+          "icon": "calculator"
+        },
+        {
+          "label": "Employment and payroll advisers",
+          "icon": "briefcase"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Cases solved step by step",
+          "description": "Real queries worked through the way a lawyer or adviser would reason them"
+        },
+        {
+          "kind": "qa",
+          "name": "Deadlines and calendars",
+          "description": "Questions and answers on time limits and filing dates, each with its source"
+        },
+        {
+          "kind": "docs",
+          "name": "Client guides",
+          "description": "What your firm's documents don't explain to clients yet"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which legal AI systems do you evaluate?",
+        "a": "Client-facing assistants for law firms and advisory firms, internal assistants over precedents and templates, and systems that classify or extract data from documents. We focus on deadlines, filing calendars, fees and on the questions that must go to a professional."
+      },
+      {
+        "q": "Does Caudals give legal advice?",
+        "a": "No. We check whether your assistant's answers match the law, your procedures and your fees, and whether it refers clients to a professional when it should. The answer keys are reviewed by practising lawyers and advisers and signed off by your own team."
+      },
+      {
+        "q": "The law changes. How do you keep the test current?",
+        "a": "Each question records its source and date. With the monthly subscription we add questions whenever a rule, deadline or rate changes, re-run the test and flag every answer that has become out of date."
+      },
+      {
+        "q": "Do you need access to client files?",
+        "a": "No. We test with made-up client scenarios. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, and our experts only see the redacted material their task needs. You can also run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our lawyers and advisers, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  },
+  "travel": {
+    "metaTitle": "AI assistant and chatbot evaluation for travel and transport",
+    "metaDescription": "We test travel chatbots and AI assistants for airlines, rail, bus and travel agencies: cancellations, compensation, baggage, changes and passengers with reduced mobility.",
+    "headline": "A travel assistant that knows passengers' *rights*",
+    "subtitle": "We test your assistant against passenger-rights rules and your own conditions of carriage, with answer keys reviewed by passenger-rights specialists.",
+    "summary": "Cancellations, compensation, baggage and changes: checked against passenger rights and your conditions of carriage.",
+    "audience": "Airlines, rail and bus operators, travel agencies and online travel companies",
+    "stakes": {
+      "lead": "When a trip goes wrong, passengers ask your assistant first. What it says shapes the claim that follows.",
+      "solution": "We check it against passenger-rights rules and your own conditions of carriage."
+    },
+    "tested": {
+      "title": "What we test",
+      "description": "We test the assistants passengers use to book, change and claim, especially when something has gone wrong.",
+      "systems": [
+        "Booking and customer-service assistants for airlines, rail and bus",
+        "Assistants for travel agencies and online travel",
+        "Voice agents for disruptions and changes",
+        "Triage of claims and refunds"
+      ],
+      "topics": [
+        "Cancellations, delays and compensation",
+        "Baggage allowances and fees",
+        "Changes and refunds",
+        "Passengers with reduced mobility",
+        "Pets, minors and special cases",
+        "Travel documents and entry requirements"
+      ]
+    },
+    "failures": {
+      "title": "Where travel assistants go wrong",
+      "description": "Every question comes with its correct answer and the regulation or condition it comes from. When the assistant fails, we tell you which of five ways it failed.",
+      "examples": {
+        "invented": {
+          "q": "If my train arrives 90 minutes late, do you refund the ticket?",
+          "a": "Yes, the full price of the ticket.",
+          "doc": "50% of the ticket price for delays of more than 60 minutes on long-distance services.",
+          "src": "Punctuality commitment · long distance"
+        },
+        "outdated": {
+          "q": "How much does it cost to change the date of my flight?",
+          "a": "€35 per passenger.",
+          "doc": "€45 per passenger and flight since the 2026 summer season.",
+          "src": "Change fees · summer 2026"
+        },
+        "wrongSource": {
+          "q": "Can I cancel my hotel booking for free?",
+          "a": "Yes, up to 24 hours before arrival.",
+          "doc": "This booking is non-refundable. Free cancellation up to 24 hours applies to flexible rates.",
+          "src": "Booking conditions · non-refundable rate"
+        },
+        "gap": {
+          "q": "Can my cat travel with me in the cabin on a connecting flight?",
+          "a": "Yes, pets under 8 kg can travel on any flight.",
+          "doc": "No document covers connections. Our experts write it with your team.",
+          "src": "Searched: pet policy, FAQ, fare conditions"
+        },
+        "outOfScope": {
+          "q": "My mother uses a wheelchair. Can she fly on her own next week?",
+          "a": "Yes, she'll be fine, don't worry.",
+          "doc": "Assistance must be requested at least 48 hours before the flight. The assistant should offer to arrange it with a person.",
+          "src": "Assistance for passengers with reduced mobility"
+        }
+      }
+    },
+    "experts": {
+      "title": "Answer keys written by people who handle disruptions",
+      "description": "Our travel specialists write and review every question, and from the failures we find they build the data your assistant is missing.",
+      "roles": [
+        {
+          "label": "Passenger-rights specialists",
+          "icon": "scale"
+        },
+        {
+          "label": "Travel agents",
+          "icon": "plane"
+        },
+        {
+          "label": "Customer-service agents",
+          "icon": "headset"
+        }
+      ],
+      "datasets": [
+        {
+          "kind": "reasoning",
+          "name": "Disruptions solved step by step",
+          "description": "Cancellations and delays worked through to the right compensation or refund"
+        },
+        {
+          "kind": "qa",
+          "name": "Conditions Q&A",
+          "description": "Questions and answers on fares, baggage and changes, grounded in your conditions"
+        },
+        {
+          "kind": "docs",
+          "name": "Special cases",
+          "description": "Pets, minors, connections and other cases your documents leave out"
+        }
+      ]
+    },
+    "faq": [
+      {
+        "q": "Which travel AI systems do you evaluate?",
+        "a": "Booking and customer-service assistants for airlines, rail and bus operators, assistants for travel agencies and online travel companies, voice agents for disruptions, and systems that triage claims and refunds. We focus on cancellations, compensation, baggage and changes."
+      },
+      {
+        "q": "Do you test against passenger-rights regulations?",
+        "a": "Yes. Questions about compensation and assistance are checked against the applicable rules, such as Regulation (EC) 261/2004 for flights, and against your own conditions of carriage. Each question cites the article or clause its answer comes from."
+      },
+      {
+        "q": "Can you test disruption scenarios?",
+        "a": "Yes. We write test scenarios for cancellations, long delays, missed connections and overbooking, and check what the assistant tells passengers about rebooking, refunds and compensation."
+      },
+      {
+        "q": "Do you need access to our systems or passenger data?",
+        "a": "Not to start. The free diagnostic uses only your public assistant and public conditions, with made-up passenger profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, or you run the questions yourself."
+      },
+      {
+        "q": "How long does it take and what does it cost to start?",
+        "a": "The diagnostic is free: 40 questions, results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by our specialists, takes about two weeks and is quoted on scope, at a fixed price agreed before we start."
+      }
+    ]
+  }
+}
