@@ -147,8 +147,8 @@
     "label": "Con el apoyo de"
   },
   "problem": {
-    "lead": "La mayoría de las empresas descubre que su IA se equivoca cuando un cliente se queja, y para entonces ya le ha costado dinero.",
-    "solution": "Nosotros encontramos esos fallos antes y creamos los datos que tu IA necesita para dejar de cometerlos."
+    "lead": "Enterarte de que tu IA se equivoca por la queja de un cliente significa llegar tarde.",
+    "solution": "Nosotros encontramos esos errores antes de que te cuesten dinero y reclamaciones, y generamos los datos que tu sistema necesita para no repetirlos."
   },
   "steps": {
     "label": "Cómo trabaja Caudals",

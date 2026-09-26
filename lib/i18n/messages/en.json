@@ -147,8 +147,8 @@
     "label": "Backed by"
   },
   "problem": {
-    "lead": "Most companies find out their AI is wrong when a customer complains, and by then it has already cost money.",
-    "solution": "We find those failures first, then create the data your AI needs to stop making them."
+    "lead": "Finding out your AI is wrong through a customer complaint means you're already too late.",
+    "solution": "We catch those errors before they cost you money and claims, and build the data your system needs so they don't happen again."
   },
   "steps": {
     "label": "How Caudals works",
