@@ -236,6 +236,24 @@
     filter: blur(3px);
   }
 }
+/* Under reduced motion the new conversation still arrives bubble by bubble,
+   as a fade only: opacity carries the change, nothing moves. More specific
+   than the global `.lp *` reset at the end of this file, which wins otherwise. */
+@media (prefers-reduced-motion: reduce) {
+  .lp .hc-conv[data-enter="true"] .hc-u,
+  .lp .hc-conv[data-enter="true"] .hc-row {
+    animation: hc-fade 0.5s ease-out both !important;
+    animation-delay: calc(var(--i) * 0.14s + 0.08s) !important;
+  }
+  .lp .hc-conv[data-enter="true"] .hc-row {
+    animation-delay: calc(var(--i) * 0.14s + 0.15s) !important;
+  }
+}
+@keyframes hc-fade {
+  from {
+    opacity: 0;
+  }
+}
 .hc-x {
   display: grid;
   gap: 8px;
