@@ -160,7 +160,7 @@
       "questions": "Preguntas reales",
       "experts": "Nuestros expertos",
       "exam": "Examen",
-      "examNote": "preguntas y respuestas correctas",
+      "examNote": "preguntas y soluciones",
       "ai": "Tu IA",
       "aiNote": "preguntada como un cliente",
       "graded": "Respuestas corregidas",
@@ -368,7 +368,7 @@
     }
   },
   "cta": {
-    "title": "Convierte cada error de tu IA en una mejora.",
+    "title": "Convierte cada error de tu IA en una mejora",
     "subtitle": "Empieza con un diagnóstico gratuito: le hacemos cuarenta preguntas a tu asistente y en 48 horas te decimos qué falla y qué datos necesita para mejorar.",
     "primaryCta": "Diagnóstico inicial gratuito",
     "secondaryCta": "Reserva una llamada de 30 minutos"
