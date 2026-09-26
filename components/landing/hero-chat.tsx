@@ -30,7 +30,6 @@ const SECTORS = [
 
 /** How long one sector stays on screen before the next one plays. */
 const SECTOR_SECONDS = 10;
-const LEAVE_MS = 280;
 
 export function HeroChat() {
   const t = useTranslations("heroChat");
@@ -41,7 +40,6 @@ export function HeroChat() {
 
   const [index, setIndex] = useState(0);
   const [ready, setReady] = useState(false);
-  const [leaving, setLeaving] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
   const [openTurn, setOpenTurn] = useState<string | null>(null);
@@ -73,19 +71,14 @@ export function HeroChat() {
   }, [openTurn]);
 
   const goTo = useCallback((next: number) => {
-    setLeaving(true);
-    window.setTimeout(() => {
-      setIndex(next);
-      setOpenTurn(null);
-      setLeaving(false);
-    }, LEAVE_MS);
+    setIndex(next);
+    setOpenTurn(null);
   }, []);
 
   // Sectors keep cycling under reduced motion too: only the movement goes.
   const held = hovering || focusInside || openTurn !== null || !inView || pageHidden;
-  const sector = SECTORS[index];
   const next = useCallback(() => goTo((index + 1) % SECTORS.length), [goTo, index]);
-  useAutoAdvance(index, SECTOR_SECONDS * 1000, ready && !held && !leaving, next);
+  useAutoAdvance(index, SECTOR_SECONDS * 1000, ready && !held, next);
 
   return (
     <div
@@ -104,10 +97,6 @@ export function HeroChat() {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusInside(false);
       }}
     >
-      <noscript>
-        <style>{".hc-conv .hc-u,.hc-conv .hc-row{animation:none!important}"}</style>
-      </noscript>
-
       {/* Every sector sits in the same grid cell, so the chat always takes the
           height of the longest conversation and never shifts the page. */}
       <div className="hc-body" aria-live={held ? "polite" : "off"}>
@@ -123,8 +112,6 @@ export function HeroChat() {
               aria-hidden={!active}
               inert={!active}
               data-active={active}
-              data-play={ready && inView}
-              data-leaving={active && leaving}
             >
               {item.turns.map(([turn, verdict], i) => {
                 const turnKey = `${item.id}-${turn}`;
