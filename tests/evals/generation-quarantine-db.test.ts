@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { prepareGroundedSuiteOnce } from "../../lib/evals/repositories/managed";
+import { addSuiteDraftCase, getTestSetView, removeSuiteDraftCase } from "../../lib/evals/repositories/evidence";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -69,6 +70,19 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
       ...input, questions: [{ ...input.questions[0], anchor: source.anchors[0].id }],
     }, randomUUID());
     expect(corrected).toMatchObject({ status: "needs_review", cases: 1 });
+
+    // The prepared draft can be read with its source excerpt, extended, trimmed and frozen.
+    const suiteId = (corrected as { suiteId: string }).suiteId;
+    const view = await getTestSetView(scope, suiteId);
+    expect(view).toMatchObject({ selected: "draft", draft: { caseCount: 1 } });
+    expect(view.cases[0].excerpts[0].excerpt).toBe(source.anchors[0].excerpt);
+    const added = await addSuiteDraftCase(scope, suiteId, { title: "Refund window", question: "How many days do refunds take?", expected: "30 days", severity: "high" }, randomUUID());
+    const extended = await getTestSetView(scope, suiteId);
+    expect(extended.cases.map((item) => item.document.title)).toContain("Refund window");
+    expect(extended.cases.find((item) => item.caseRevisionId === added.caseRevisionId)?.document.provenance.evidence_level).toBe("customer_supplied_unreviewed");
+    await removeSuiteDraftCase(scope, suiteId, view.cases[0].caseRevisionId);
+    await expect(removeSuiteDraftCase(scope, suiteId, added.caseRevisionId)).rejects.toThrow("at least one question");
+    expect((await getTestSetView(scope, suiteId)).cases).toHaveLength(1);
 
     const generatedInput = {
       ...input,

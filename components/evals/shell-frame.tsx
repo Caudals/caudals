@@ -447,7 +447,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   useEffect(() => {
     if (!orgId) return;
     let live = true;
-    void evalRequest<unknown[]>(`/suites?orgId=${encodeURIComponent(orgId)}`)
+    void evalRequest<unknown[]>(`/suites?orgId=${encodeURIComponent(orgId)}&grouped=1`)
       .then((items) => live && setHasTestSets(items.length > 0))
       .catch(() => live && setHasTestSets(false));
     return () => {

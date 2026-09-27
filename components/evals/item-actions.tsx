@@ -13,13 +13,15 @@ import { Modal, notify } from "./overlays";
 import { t } from "@/lib/evals/messages/en";
 
 export type ItemKind = "evaluations" | "systems" | "test-sets" | "reports" | "sources";
+type DialogKind = ItemKind | "cases";
 
-const DELETE_COPY: Record<ItemKind, { title: string; help: string; done: string }> = {
+const DELETE_COPY: Record<DialogKind, { title: string; help: string; done: string }> = {
   evaluations: { title: t("deleteEvaluation"), help: t("deleteEvaluationHelp"), done: t("evaluationDeleted") },
   systems: { title: t("deleteSystem"), help: t("deleteSystemHelp"), done: t("systemDeleted") },
   "test-sets": { title: t("deleteTestSet"), help: t("deleteTestSetHelp"), done: t("testSetDeleted") },
   reports: { title: t("deleteReport"), help: t("deleteReportHelp"), done: t("reportDeleted") },
   sources: { title: t("removeSource"), help: t("removeSourceHelp"), done: t("sourceRemoved") },
+  cases: { title: t("removeQuestion"), help: t("removeQuestionHelp"), done: t("questionRemoved") },
 };
 
 /** PATCH/DELETE one item through the shared lifecycle endpoint. */
@@ -90,7 +92,7 @@ export function DeleteDialog({
   onClose,
   onConfirm,
 }: {
-  kind: ItemKind;
+  kind: DialogKind;
   name: string;
   onClose: () => void;
   onConfirm: () => Promise<void>;
@@ -122,7 +124,7 @@ export function DeleteDialog({
         <>
           <Action variant="secondary" onClick={onClose}>{t("cancel")}</Action>
           <Action variant="danger" onClick={() => void confirm()} disabled={pending}>
-            {pending ? t("working") : kind === "sources" ? t("remove") : t("delete")}
+            {pending ? t("working") : kind === "sources" || kind === "cases" ? t("remove") : t("delete")}
           </Action>
         </>
       }

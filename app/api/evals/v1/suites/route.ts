@@ -13,5 +13,7 @@ export const GET = api(async (request, identity) => {
  const orgId = z.uuid().parse(url.searchParams.get('orgId'));
  const projectId = url.searchParams.has('projectId') ? z.uuid().parse(url.searchParams.get('projectId')) : undefined;
  await requireWorkspace(identity,orgId,'read');
+ // grouped=1: one row per test set (drafts included) for the Test sets page.
+ if (url.searchParams.get('grouped') === '1') return evidence.listTestSets({orgId,actorId:identity.user.id});
  return evidence.listSuiteVersions({orgId,actorId:identity.user.id},projectId);
 });

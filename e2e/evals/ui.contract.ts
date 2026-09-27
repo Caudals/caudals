@@ -1138,13 +1138,16 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   };
   const released = (suiteId: string, versionId: string, title: string) => ({
     suite_id: suiteId,
-    suite_version_id: versionId,
+    title,
     project_id: "00000000-0000-4000-8000-000000000206",
     project_title: "Customer support",
-    title,
-    content_hash: "a".repeat(64),
+    created_at: "2026-09-24T09:00:00.000Z",
+    latest_version_id: versionId,
     frozen_at: "2026-09-24T10:00:00.000Z",
     case_count: 1,
+    has_draft: false,
+    version_count: 1,
+    used_by: 0,
   });
   await page.route("**/api/evals/v1/**", async (route) => {
     const request = route.request();
@@ -1157,12 +1160,16 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
       expect(request.postDataJSON()).toEqual({ orgId: id, suiteVersionId: sourceVersionId, title: "Support improvements" });
       return route.fulfill({ json: { data: { suiteId: forkSuiteId, draftVersion: 1 }, meta: {} } });
     }
-    if (path === `/api/evals/v1/suites/${forkSuiteId}/cases` && request.method() === "GET") {
+    if (path === `/api/evals/v1/suites/${forkSuiteId}/view` && request.method() === "GET") {
+      const document = saved ? updatedDocument : originalDocument;
+      const full = { ...document, severity: "high", provenance: { evidence_level: saved ? "customer_supplied_unreviewed" : "expert_reviewed" } };
       return route.fulfill({ json: { data: {
-        suiteId: forkSuiteId,
-        suiteTitle: "Support improvements",
-        version: saved ? 2 : 1,
-        cases: [{ caseRevisionId: saved ? newRevisionId : oldRevisionId, document: saved ? updatedDocument : originalDocument }],
+        suite: { id: forkSuiteId, title: "Support improvements", projectId: "00000000-0000-4000-8000-000000000206", createdAt: "2026-09-24T09:00:00.000Z" },
+        draft: frozen ? null : { version: saved ? 2 : 1, caseCount: 1 },
+        versions: frozen ? [{ id: newRevisionId, content_hash: "b".repeat(64), created_at: "2026-09-25T10:00:00.000Z", case_count: 1 }] : [],
+        usedBy: [],
+        selected: frozen ? newRevisionId : "draft",
+        cases: [{ caseRevisionId: saved ? newRevisionId : oldRevisionId, document: full, excerpts: [{ sourceRevisionId: "s1", sourceTitle: "Refund policy", anchor: "a1", excerpt: "Refunds are available within 30 days." }] }],
       }, meta: {} } });
     }
     if (path === `/api/evals/v1/suites/${forkSuiteId}/cases/${oldRevisionId}` && request.method() === "POST") {
@@ -1187,14 +1194,19 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   await page.getByRole("button", { name: "Create copy" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/test-sets/${forkSuiteId}`));
   await expect(page.getByRole("heading", { name: "Support improvements" })).toBeVisible();
+  // Every question is readable with its expected answer and cited source.
+  await expect(page.getByText("How long do I have to request a refund?")).toBeVisible();
+  await expect(page.getByText("30 days", { exact: true })).toBeVisible();
+  await expect(page.getByText("Refund policy")).toBeVisible();
+  await page.getByRole("button", { name: "Edit" }).click();
   await page.getByLabel("Title", { exact: true }).fill("Updated refund window");
   await page.getByLabel("User message", { exact: true }).fill("When does the refund period end?");
   await page.getByLabel("Reference answer").fill("Thirty calendar days");
   await page.getByRole("button", { name: "Save test" }).click();
   await expect(page.getByText("Test saved. Review it before freezing.")).toBeVisible();
+  await expect(page.getByText("When does the refund period end?")).toBeVisible();
   await page.getByRole("button", { name: "Freeze new version" }).click();
-  await expect(page).toHaveURL(new RegExp(`/workspace/test-sets\\?orgId=${id}`));
-  await expect(page.getByText("Support improvements", { exact: true })).toBeVisible();
+  await expect(page.getByText("Frozen", { exact: true }).first()).toBeVisible();
   expect(saved && frozen).toBe(true);
 });
 

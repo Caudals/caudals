@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { api, jsonBody, requireWorkspace } from '@/lib/evals/domain/http';
 import { jsonValueSchema } from '@/lib/evals/contracts/primitives';
-import { editSuiteDraftCase } from '@/lib/evals/repositories/evidence';
+import { editSuiteDraftCase, removeSuiteDraftCase } from '@/lib/evals/repositories/evidence';
 
 export const runtime = 'nodejs';
 export const POST = api(async (request, identity) => {
@@ -11,4 +11,12 @@ export const POST = api(async (request, identity) => {
  const suiteId = z.uuid().parse(segments.at(-3));
  await requireWorkspace(identity,input.orgId,'write');
  return editSuiteDraftCase({orgId:input.orgId,actorId:identity.user.id},suiteId,caseRevisionId,{title:input.title,contents:input.contents,expected:input.expected},request.headers.get('Idempotency-Key') ?? '');
+});
+
+// Remove a question from an editable draft.
+export const DELETE = api(async (request, identity) => {
+ const url = new URL(request.url), segments = url.pathname.split('/');
+ const orgId = z.uuid().parse(url.searchParams.get('orgId'));
+ await requireWorkspace(identity,orgId,'write');
+ return removeSuiteDraftCase({orgId,actorId:identity.user.id},z.uuid().parse(segments.at(-3)),z.uuid().parse(segments.at(-1)));
 });

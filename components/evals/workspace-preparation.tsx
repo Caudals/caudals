@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Globe, Plus, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { evalRequest } from "./api";
-import { Action, Badge, Field, SectionHeading, SelectField, Status, TextArea } from "./primitives";
+import { Action, ActionLink, Badge, Field, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
 import { DeleteDialog, itemRequest } from "./item-actions";
 import { t } from "@/lib/evals/messages/en";
@@ -450,12 +450,15 @@ export function PrepareEvaluation({
   }
 
   async function approve() {
-    if (!draft || pending || !casePreviews.length || casePreviews.some((item) => !item.sourceExcerpt)) return;
+    if (!draft || pending || !casePreviews.length) return;
     setPending("approve");
     setError("");
     try {
-      await evalRequest(`/suites/${draft.suiteId}/versions`, "POST", { orgId, version: draft.suiteDraftVersion }, `suite-freeze-${draft.suiteId}-${draft.suiteDraftVersion}`);
-      await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId: draft.suiteVersionId }, `suite-approve-${evaluation.id}-${draft.suiteVersionId}`);
+      // The test set may have been edited since this page loaded: freeze its current draft and approve that version.
+      const current = await evalRequest<{ draft: Draft | null }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`).then((value) => value.draft ?? draft).catch(() => draft);
+      const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version: current.suiteDraftVersion }, `suite-freeze-${current.suiteId}-${current.suiteDraftVersion}`);
+      const suiteVersionId = frozen?.id ?? current.suiteVersionId;
+      await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId }, `suite-approve-${evaluation.id}-${suiteVersionId}`);
       await onReady();
     } catch (value) {
       setError(value instanceof Error ? value.message : t("approveFailed"));
@@ -503,7 +506,12 @@ export function PrepareEvaluation({
         )}
         <div className="p-prep-actions">
           <span className="p-cell-meta">{t("approveHelp")}</span>
-          <Action onClick={() => void approve()} disabled={!!pending || !casePreviews.length || casePreviews.some((item) => !item.sourceExcerpt)}>
+          {draft && (
+            <ActionLink variant="secondary" href={`/workspace/test-sets/${draft.suiteId}?orgId=${encodeURIComponent(orgId)}&from=${encodeURIComponent(evaluation.id)}`}>
+              {t("reviewEditTestSet")}
+            </ActionLink>
+          )}
+          <Action onClick={() => void approve()} disabled={!!pending || !casePreviews.length}>
             {pending === "approve" ? t("saving") : `${t("approveTestSet")} (${casePreviews.length})`}
           </Action>
         </div>

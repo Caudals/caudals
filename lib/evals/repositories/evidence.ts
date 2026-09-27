@@ -430,3 +430,139 @@ function parseEvidenceBundle(input:unknown) {
   throw new EvidenceError(422,'Bundle content hash mismatch');
  }
 }
+
+/* ------------------------------------------------------ test-set viewer --- */
+
+type CaseView = { caseRevisionId: string; document: ReturnType<typeof caseSchema.parse>; excerpts: Array<{ sourceRevisionId: string; sourceTitle: string; anchor: string; excerpt: string }> };
+
+/** Cases of one manifest with the source excerpts they cite, for reading a test set. */
+async function casesWithExcerpts(db: PoolClient, orgId: string, refs: Array<{ revision_id: string; content_hash: string; split: string }>): Promise<CaseView[]> {
+  const visible = refs.filter((item) => item.split !== "holdout");
+  if (!visible.length) return [];
+  const rows = (await db.query("SELECT id,content_hash,document FROM evals.case_revision WHERE org_id=$1 AND id=ANY($2::uuid[])", [orgId, visible.map((item) => item.revision_id)])).rows;
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const documents = visible.flatMap((reference) => {
+    const row = byId.get(reference.revision_id);
+    return row && row.content_hash === reference.content_hash ? [{ caseRevisionId: row.id as string, document: caseSchema.parse(row.document) }] : [];
+  });
+  const sourceIds = [...new Set(documents.flatMap((item) => item.document.reference.source_refs.map((ref) => ref.source_revision_id)))];
+  const sources = sourceIds.length ? (await db.query("SELECT id,document FROM evals.source_revision WHERE org_id=$1 AND id=ANY($2::uuid[])", [orgId, sourceIds])).rows : [];
+  const sourceById = new Map(sources.map((row) => [row.id as string, row.document as { title: string; anchors: Array<{ id: string; excerpt: string }> }]));
+  return documents.map((item) => ({
+    ...item,
+    excerpts: item.document.reference.source_refs.slice(0, 5).flatMap((ref) => {
+      const source = sourceById.get(ref.source_revision_id);
+      const anchor = source?.anchors.find((candidate) => candidate.id === ref.anchor);
+      return source && anchor ? [{ sourceRevisionId: ref.source_revision_id, sourceTitle: source.title, anchor: ref.anchor, excerpt: anchor.excerpt.slice(0, 4000) }] : [];
+    }),
+  }));
+}
+
+/**
+ * A test set to read: its frozen versions, the editable draft (if any) and the
+ * cases of the requested version (default: the draft, else the newest version).
+ */
+export function getTestSetView(scope: EvidenceScope, suiteId: string, versionId?: string) {
+  return withTenant(scope, async (db) => {
+    const suite = required((await db.query("SELECT id,title,project_id,draft,version,created_at FROM evals.suite WHERE org_id=$1 AND id=$2 AND archived_at IS NULL", [scope.orgId, suiteId])).rows[0]);
+    const versions = (await db.query(`SELECT sv.id,sv.content_hash,sv.created_at,
+        (SELECT count(*)::int FROM evals.suite_case sc JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(sc.org_id,sc.case_revision_id) WHERE sc.org_id=sv.org_id AND sc.suite_version_id=sv.id AND cr.split<>'holdout') AS case_count
+      FROM evals.suite_version sv WHERE sv.org_id=$1 AND sv.suite_id=$2 ORDER BY sv.created_at DESC LIMIT 50`, [scope.orgId, suiteId])).rows;
+    const draftParsed = manifestSchema.safeParse(suite.draft);
+    // A draft is editable when it has not been frozen yet under its current identity.
+    const draft = draftParsed.success && !versions.some((item) => item.id === draftParsed.data.suite_version_id) ? draftParsed.data : null;
+    const usedBy = (await db.query(`SELECT e.id,e.title FROM evals.evaluation e JOIN evals.suite_version sv ON (sv.org_id,sv.id)=(e.org_id,e.selected_suite_version_id)
+      WHERE e.org_id=$1 AND sv.suite_id=$2 AND e.archived_at IS NULL LIMIT 20`, [scope.orgId, suiteId])).rows;
+    let selected: "draft" | string = versionId ?? (draft ? "draft" : versions[0]?.id ?? "draft");
+    let cases: CaseView[] = [];
+    if (selected === "draft" && draft) cases = await casesWithExcerpts(db, scope.orgId, draft.case_revisions);
+    else {
+      const version = versions.find((item) => item.id === selected) ?? versions[0];
+      if (version) {
+        selected = version.id;
+        const manifest = manifestSchema.parse((await db.query("SELECT manifest FROM evals.suite_version WHERE org_id=$1 AND id=$2", [scope.orgId, version.id])).rows[0].manifest);
+        cases = await casesWithExcerpts(db, scope.orgId, manifest.case_revisions);
+      }
+    }
+    return {
+      suite: { id: suite.id, title: suite.title, projectId: suite.project_id, createdAt: suite.created_at },
+      draft: draft ? { version: suite.version, caseCount: draft.case_revisions.filter((item) => item.split !== "holdout").length } : null,
+      versions, usedBy, selected, cases,
+    };
+  });
+}
+
+/** Rewrite the draft manifest with new case references (new identity and hash, like a case edit). */
+async function saveDraftCases(db: PoolClient, suiteId: string, orgId: string, manifest: ReturnType<typeof manifestSchema.parse>, caseRevisions: ReturnType<typeof manifestSchema.parse>["case_revisions"]) {
+  const next = manifestSchema.parse(withContentHash({
+    ...manifest,
+    suite_version_id: randomUUID(),
+    created_at: new Date().toISOString(),
+    case_revisions: caseRevisions,
+    sampling_plan: { ...manifest.sampling_plan, stopping_rules: { ...manifest.sampling_plan.stopping_rules, max_cases: Math.max(1, caseRevisions.length) } },
+  }));
+  return required((await db.query("UPDATE evals.suite SET draft=$3,version=version+1 WHERE org_id=$1 AND id=$2 RETURNING version", [orgId, suiteId, next])).rows[0]).version as number;
+}
+
+async function editableDraft(db: PoolClient, scope: EvidenceScope, suiteId: string) {
+  const suite = required((await db.query("SELECT id,project_id,draft,version FROM evals.suite WHERE org_id=$1 AND id=$2 AND archived_at IS NULL FOR UPDATE", [scope.orgId, suiteId])).rows[0]);
+  const manifest = manifestSchema.parse(suite.draft);
+  verifiedHash(manifest);
+  const frozen = (await db.query("SELECT 1 FROM evals.suite_version WHERE org_id=$1 AND id=$2", [scope.orgId, manifest.suite_version_id])).rowCount;
+  if (frozen) throw new EvidenceError(409, "This version is frozen. Make an editable copy first.");
+  return { suite, manifest };
+}
+
+/** Add a question to an editable draft, modelled on an existing case (same rubric, domain and limits). */
+export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: { title: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical" }, key: string) {
+  return withTenant(scope, (db) => idempotent(db, scope, `suite-case-add/${suiteId}`, key, input, async () => {
+    const { suite, manifest } = await editableDraft(db, scope, suiteId);
+    const templateRef = manifest.case_revisions.find((item) => item.split !== "holdout");
+    if (!templateRef) throw new EvidenceError(422, "Add a first question by generating or importing a test set.");
+    const template = caseSchema.parse(required((await db.query("SELECT document FROM evals.case_revision WHERE org_id=$1 AND id=$2", [scope.orgId, templateRef.revision_id])).rows[0]).document);
+    if (template.scenario.messages.length !== 1 || template.scenario.messages[0].role !== "user") throw new EvidenceError(422, "Questions can only be added to single-question test sets.");
+    const caseId = randomUUID(), revisionId = randomUUID(), familyId = randomUUID(), now = new Date().toISOString();
+    const document = caseSchema.parse(withContentHash({
+      ...template,
+      case_id: caseId, revision_id: revisionId, family_id: familyId,
+      title: input.title, severity: input.severity, split: template.split,
+      scenario: { ...template.scenario, messages: [{ ...template.scenario.messages[0], content: input.question }] },
+      reference: { ...template.reference, expected: input.expected, source_refs: [] },
+      provenance: { ...template.provenance, evidence_level: "customer_supplied_unreviewed" as const, reviewer_ids: [] },
+      extensions: { "caudals.evals/customer-edit": { actor_id: scope.actorId, edited_at: now, added: true } },
+    }));
+    await db.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [caseId, scope.orgId, suite.project_id]);
+    await db.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+      [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
+    const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, [...manifest.case_revisions, { case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight }]);
+    return { suiteId, version, caseRevisionId: revisionId };
+  }));
+}
+
+/** Remove a question from an editable draft; its revision stays for audit. */
+export function removeSuiteDraftCase(scope: EvidenceScope, suiteId: string, caseRevisionId: string) {
+  return withTenant(scope, async (db) => {
+    const { manifest } = await editableDraft(db, scope, suiteId);
+    const remaining = manifest.case_revisions.filter((item) => item.revision_id !== caseRevisionId);
+    if (remaining.length === manifest.case_revisions.length) throw new EvidenceError(404, "Question not found in this draft.");
+    if (!remaining.some((item) => item.split !== "holdout")) throw new EvidenceError(422, "A test set needs at least one question.");
+    const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, remaining);
+    return { suiteId, version };
+  });
+}
+
+/** One row per test set, drafts included: newest frozen version, draft state and usage. */
+export function listTestSets(scope: EvidenceScope) {
+  return withTenant(scope, async (db) => (await db.query(`SELECT s.id AS suite_id,s.title,s.project_id,p.title AS project_title,s.created_at,
+      v.id AS latest_version_id,v.created_at AS frozen_at,
+      COALESCE(v.case_count,jsonb_array_length(COALESCE(s.draft->'case_revisions','[]'::jsonb)))::int AS case_count,
+      (s.draft->>'suite_version_id') IS NOT NULL AND NOT EXISTS (SELECT 1 FROM evals.suite_version x WHERE x.org_id=s.org_id AND x.id::text=s.draft->>'suite_version_id') AS has_draft,
+      (SELECT count(*)::int FROM evals.suite_version x WHERE x.org_id=s.org_id AND x.suite_id=s.id) AS version_count,
+      (SELECT count(*)::int FROM evals.evaluation e JOIN evals.suite_version x ON (x.org_id,x.id)=(e.org_id,e.selected_suite_version_id) WHERE e.org_id=s.org_id AND x.suite_id=s.id AND e.archived_at IS NULL) AS used_by
+    FROM evals.suite s JOIN evals.project p ON (p.org_id,p.id)=(s.org_id,s.project_id)
+    LEFT JOIN LATERAL (
+      SELECT sv.id,sv.created_at,(SELECT count(*) FROM evals.suite_case sc JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(sc.org_id,sc.case_revision_id) WHERE sc.org_id=sv.org_id AND sc.suite_version_id=sv.id AND cr.split<>'holdout') AS case_count
+      FROM evals.suite_version sv WHERE sv.org_id=s.org_id AND sv.suite_id=s.id ORDER BY sv.created_at DESC LIMIT 1) v ON true
+    WHERE s.org_id=$1 AND s.archived_at IS NULL AND (v.id IS NOT NULL OR s.draft ? 'case_revisions')
+    ORDER BY COALESCE(v.created_at,s.created_at) DESC LIMIT 200`, [scope.orgId])).rows);
+}
