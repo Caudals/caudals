@@ -10,7 +10,22 @@ for(const [ip,bits] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0
 const global6=new BlockList();global6.addSubnet('2000::',3,'ipv6');
 for(const [ip,bits] of [['2001::',23],['2001:db8::',32],['2002::',16],['3fff::',20]] as const) forbidden.addSubnet(ip,bits,'ipv6');
 export function publicAddress(ip:string):boolean {return isIP(ip)===4?!forbidden.check(ip,'ipv4'):isIP(ip)===6&&global6.check(ip,'ipv6')&&!forbidden.check(ip,'ipv6');}
-const responseSchema=z.object({id:z.string().max(200).optional(),choices:z.array(z.object({finish_reason:z.string().nullable(),message:z.object({content:z.string().max(1000000).nullable().optional(),tool_calls:z.array(z.object({type:z.literal('function'),function:z.object({name:z.string().max(128),arguments:z.string().max(10000)})})).max(4).optional()})})).min(1),usage:z.object({prompt_tokens:z.number().int().nonnegative(),completion_tokens:z.number().int().nonnegative(),prompt_tokens_details:z.object({cached_tokens:z.number().int().nonnegative()}).optional()}).optional()});
+const responseSchema=z.object({id:z.string().max(200).optional(),choices:z.array(z.object({finish_reason:z.string().nullable(),message:z.object({content:z.string().max(1000000).nullable().optional(),reasoning:z.string().max(2000000).nullable().optional(),reasoning_content:z.string().max(2000000).nullable().optional(),tool_calls:z.array(z.object({type:z.literal('function'),function:z.object({name:z.string().max(128),arguments:z.string().max(10000)})})).max(4).optional()})})).min(1),usage:z.object({prompt_tokens:z.number().int().nonnegative(),completion_tokens:z.number().int().nonnegative(),prompt_tokens_details:z.object({cached_tokens:z.number().int().nonnegative()}).optional()}).optional()});
+const INTERNAL_ROLES=new Set(['generator','context_analyzer','judge','report_writer']);
+/**
+ * Internal engine steps need a bounded JSON answer, not hidden reasoning that
+ * can consume the whole output budget. Ollama (DGX) accepts
+ * reasoning_effort "none" for every model; OpenRouter and OpenAI reasoning
+ * models get the lowest effort. Target calls are left untouched: they
+ * evaluate the model as configured.
+ */
+export function reasoningHint(provider:Pick<ProviderRevision,'adapter'|'model_id'>,hostname:string,input:Pick<Invocation,'role'|'probe'>):Record<string,unknown> {
+ if(input.probe||!INTERNAL_ROLES.has(input.role))return {};
+ if(provider.adapter==='dgx')return {reasoning_effort:'none'};
+ if(hostname==='openrouter.ai')return {reasoning:{effort:'low'}};
+ if(hostname==='api.openai.com'&&/^(o\d|gpt-5)/.test(provider.model_id))return {reasoning_effort:'low'};
+ return {};
+}
 /** No redirect following; DNS is validated and pinned to the actual socket lookup. */
 async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:Buffer|undefined,signal:AbortSignal,dgxEndpoint?:string):Promise<ProviderOutput> {
  const base=new URL(provider.endpoint);
@@ -27,6 +42,7 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  // OpenAI's current models take max_completion_tokens and only the default temperature.
  const openai=provider.adapter!=='dgx'&&hostname==='api.openai.com';
  const payload=JSON.stringify({model:provider.model_id,messages:input.messages,stream:false,...(openai?{max_completion_tokens:input.maxOutputTokens}:{max_tokens:input.maxOutputTokens,temperature:0}),
+  ...reasoningHint(provider,hostname,input),
   ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
   ...(input.probe&&input.probeKind==='tools'?{tools:[{type:'function',function:{name:'probe_echo',description:'Return the requested string; inspection only, never executed.',parameters:{type:'object',properties:{value:{type:'string'}},required:['value'],additionalProperties:false}}}],tool_choice:{type:'function',function:{name:'probe_echo'}}}:{}),
  });
@@ -65,7 +81,8 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
           if(input.probeKind==='tools')supported=complete&&toolCalls?.length===1&&toolCalls[0].name==='probe_echo'&&(()=>{try{return typeof JSON.parse(toolCalls[0].arguments).value==='string';}catch{return false;}})();
           capabilityEvidence={kind:input.probeKind,status:supported?'supported':complete?'unsupported':'unknown',scope:'single_bounded_probe'};
         }
-        finished=true;resolve({text,complete,finishReason:choice.finish_reason??'unknown',...(toolCalls?{toolCalls}:{}),...(capabilityEvidence?{capabilityEvidence}:{}),...(parsed.id?{requestId:parsed.id}:{}),...(usage?{usage}:{}),latencyMs:Date.now()-started});
+        const reasoned=!!(choice.message.reasoning||choice.message.reasoning_content);
+        finished=true;resolve({text,complete,finishReason:reasoned&&!text&&choice.finish_reason==='length'?'reasoning_exhausted':choice.finish_reason??'unknown',...(toolCalls?{toolCalls}:{}),...(capabilityEvidence?{capabilityEvidence}:{}),...(parsed.id?{requestId:parsed.id}:{}),...(usage?{usage}:{}),latencyMs:Date.now()-started});
       }catch{fail(new ProviderFailure('malformed_output','unknown'));}
     });
   });

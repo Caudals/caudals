@@ -22,6 +22,10 @@ const startSchema = z.strictObject({
   maxCases: z.number().int().min(1).max(20).default(10),
 });
 type GenerationRoute = ModelRoute;
+// A full profile runs to ~4k tokens; drafts of ten cases to ~3k. Headroom keeps
+// a verbose model from being cut off mid-JSON.
+const PROFILE_OUTPUT_TOKENS = 8192;
+const DRAFT_OUTPUT_TOKENS = 6144;
 type SourceRecord = { id: string; content_hash: string; document: unknown; title: string; rights: string };
 type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null };
 
@@ -127,7 +131,7 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
     if (!workspaceBudget || workspaceBudget.currency !== evaluation.currency) throw new EvalError("BUDGET_UNAVAILABLE", 409, "A workspace generation budget must be configured before preparing this dataset.");
     const profileFixed = Buffer.byteLength(profileSystemPrompt(), "utf8") + Buffer.byteLength(evaluation.project_description ?? "", "utf8") + 256;
-    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, 4096, profileFixed));
+    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, PROFILE_OUTPUT_TOKENS, profileFixed));
     if (Number(evaluation.commercial_cap) <= 0) throw new EvalError("BUDGET_UNAVAILABLE", 409, "Set a positive evaluation budget before generating a dataset.");
     const jobId = randomUUID(), workflowId = randomUUID(), promptRevisionId = randomUUID();
     const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling)
@@ -138,7 +142,7 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'extract',$4,1,$5,$6,'completed',1,$7)", [scope.orgId,evaluationId,jobId,digest({sourceRevisionIds:input.sourceRevisionIds}),input.promptRevision,profileRoute.provider_revision_id,{sourceRevisionIds:input.sourceRevisionIds,anchorCount:material.reduce((sum,source)=>sum+source.anchors.length,0)}]);
     const profileBatchHash = digest({step:"profile",sourceRevisionIds:input.sourceRevisionIds,promptRevision:input.promptRevision});
     await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count) VALUES($1,$2,$3,'profile',$4,1,$5,$6,'queued',0)", [scope.orgId,evaluationId,jobId,profileBatchHash,input.promptRevision,profileRoute.provider_revision_id]);
-    const invocation = makeInvocation({route:profileRoute,jobId,step:"profile",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,messages:[
+    const invocation = makeInvocation({route:profileRoute,jobId,step:"profile",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:PROFILE_OUTPUT_TOKENS,messages:[
       {role:"system",content:profileSystemPrompt()},
       {role:"user",content:canonicalJson({projectDescription:evaluation.project_description??null,sources:material})},
     ]});
@@ -149,9 +153,17 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
 }
 
 function parseModelJson(output: unknown) {
-  const parsed=z.object({text:z.string().max(1000000),complete:z.boolean()}).parse(output);
-  if(!parsed.complete)throw new Error("incomplete_generation_output");
-  return JSON.parse(parsed.text) as unknown;
+  const parsed=z.object({text:z.string().max(1000000),complete:z.boolean(),finishReason:z.string().optional()}).parse(output);
+  if(parsed.finishReason==="reasoning_exhausted")throw new Error("model_reasoning_exhausted");
+  if(!parsed.complete||!parsed.text.trim())throw new Error("model_output_incomplete");
+  // Some models wrap JSON in a code fence despite json mode.
+  const text=parsed.text.trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"");
+  try{return JSON.parse(text) as unknown;}catch{throw new Error("model_output_not_json");}
+}
+/** A model that returned nothing usable is a model problem, not a source problem. */
+function failureReason(error: unknown, fallback: string) {
+  const message=error instanceof Error?error.message:"";
+  return ["model_reasoning_exhausted","model_output_incomplete","model_output_not_json"].includes(message)?message:fallback;
 }
 
 async function modelResult(db: PoolClient,orgId:string,workflowId:string,step:"profile"|"draft",jobId:string) {
@@ -225,8 +237,8 @@ async function queueDraftGeneration(
   if(!workspaceBudget||!runBudget)throw new EvalError("BUDGET_UNAVAILABLE",409);
   const allMaterial=docs.map((source)=>({sourceRevisionId:source.revision_id,title:source.title,anchors:source.anchors.map((anchor)=>({anchorId:anchor.id,excerpt:anchor.excerpt}))}));
   const draftFixed=Buffer.byteLength(draftSystemPrompt(),"utf8")+Buffer.byteLength(canonicalJson({profile,coverage,maxCases:job.requested_case_count}),"utf8")+256;
-  const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,2048,draftFixed));
-  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:2048,messages:[
+  const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,DRAFT_OUTPUT_TOKENS,draftFixed));
+  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:DRAFT_OUTPUT_TOKENS,messages:[
     {role:"system",content:draftSystemPrompt()},
     {role:"user",content:canonicalJson({profile,coverage,maxCases:job.requested_case_count,sources:material})},
   ]});
@@ -306,10 +318,11 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       } else {
         let inferred;
         try{inferred=validateAutogeneratedProfile(await modelResult(db,scope.orgId,job.workflow_id,"profile",job.id),anchors);}catch(error){
-          await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code='profile_validation_failed',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id]);
-          await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='profile_validation_failed',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='profile'",[scope.orgId,job.id]);
-          await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code='profile_validation_failed',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
-          return {status:"quarantined",jobId:job.id,reasonCode:"profile_validation_failed",detail:error instanceof Error?error.message:"Profile validation failed."};
+          const reason=failureReason(error,"profile_validation_failed");
+          await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,reason]);
+          await db.query("UPDATE evals.generation_batch SET status='failed',reason_code=$3,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='profile'",[scope.orgId,job.id,reason]);
+          await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId,reason]);
+          return {status:"quarantined",jobId:job.id,reasonCode:reason,detail:error instanceof Error?error.message:"Profile validation failed."};
         }
         profile=profileContext(inferred,docs,evaluationId,job.prompt_revision,contextModelRevisionId);
         profileRevisionId=randomUUID();
@@ -333,10 +346,11 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       try{parsed=validateAutogeneratedDraft(await modelResult(db,scope.orgId,job.workflow_id,"draft",job.id),anchors);}catch(error){
         const batch=(await db.query("SELECT id,version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];
         if(batch)await db.query("INSERT INTO evals.case_quarantine(org_id,evaluation_id,generation_batch_id,draft,reason_code,schema_errors) VALUES($1,$2,$3,$4,'generated_draft_invalid',$5)",[scope.orgId,evaluationId,batch.id,{output_error:error instanceof Error?error.message:"invalid_output"},JSON.stringify([error instanceof Error?error.message:"invalid_output"])]);
-        await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' AND version=$3",[scope.orgId,job.id,batch?.version]);
-        await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id]);
-        await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code='generated_draft_invalid',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
-        return {status:"quarantined",jobId:job.id,reasonCode:"generated_draft_invalid",detail:error instanceof Error?error.message:"Draft validation failed."};
+        const reason=failureReason(error,"generated_draft_invalid");
+        await db.query("UPDATE evals.generation_batch SET status='failed',reason_code=$4,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' AND version=$3",[scope.orgId,job.id,batch?.version,reason]);
+        await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,reason]);
+        await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId,reason]);
+        return {status:"quarantined",jobId:job.id,reasonCode:reason,detail:error instanceof Error?error.message:"Draft validation failed."};
       }
       if(parsed.rejectedCases.length){
         const batch=(await db.query("SELECT id FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];

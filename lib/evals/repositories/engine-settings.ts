@@ -5,7 +5,7 @@ import type { PoolClient } from "pg";
 import { z } from "zod";
 import { EvalError } from "../domain/errors";
 import type { EvalIdentity } from "../domain/identity";
-import { publicAddress } from "../providers/openai-compatible";
+import { publicAddress, reasoningHint } from "../providers/openai-compatible";
 import { encryptSecret, decryptSecret, loadKeyring } from "../security/envelope";
 import { connectionSecretScope } from "../security/secrets";
 import { asAdmin, requirePlatformAdmin, requireRecentAuthentication } from "./platform";
@@ -28,6 +28,8 @@ const ROUTE_DATA_CLASS = "customer_confidential";
 const DGX_REGION = "private_wireguard";
 const API_REGION = "external_api";
 const DGX_CONTEXT_CAP = 131_072;
+/** Room for a full profile or draft even from a verbose model. */
+const OUTPUT_LIMIT = 16_384;
 const PRICE = z.string().trim().regex(/^(0|[1-9]\d{0,6})(\.\d{1,6})?$/);
 
 type Connection = {
@@ -279,21 +281,25 @@ export async function testConnection(identity: EvalIdentity, orgId: string, raw:
       messages: [{ role: "user", content: 'Return the JSON object {"ok":true} and nothing else.' }],
       stream: false,
       response_format: { type: "json_object" },
-      ...(openai ? { max_completion_tokens: 64 } : { max_tokens: 64, temperature: 0 }),
+      ...(openai ? { max_completion_tokens: 512 } : { max_tokens: 512, temperature: 0 }),
+      ...reasoningHint({ adapter: target.adapter, model_id: input.modelId }, new URL(target.endpoint).hostname, { role: "generator", probe: false }),
     }));
-    const parsed = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string().nullable().optional() }) })).min(1) }).safeParse(body);
+    const parsed = z.object({ choices: z.array(z.object({ finish_reason: z.string().nullable().optional(), message: z.object({ content: z.string().nullable().optional(), reasoning: z.string().nullable().optional(), reasoning_content: z.string().nullable().optional() }) })).min(1) }).safeParse(body);
     if (!parsed.success) {
       const message = z.object({ error: z.object({ message: z.string() }) }).safeParse(body);
       return { ok: false, latencyMs: Date.now() - started, message: message.success ? message.data.error.message.slice(0, 300) : "The provider answered in an unexpected format." };
     }
-    const text = parsed.data.choices[0].message.content ?? "";
+    const message = parsed.data.choices[0].message;
+    const text = message.content ?? "";
+    const reasons = !!(message.reasoning || message.reasoning_content);
+    if (!text.trim()) return { ok: false, latencyMs: Date.now() - started, message: reasons ? "This is a reasoning model: it used its answer budget on hidden reasoning and returned nothing. Prefer a non-reasoning model for the engine." : "The model returned an empty answer." };
     let json = false;
     try {
       json = typeof JSON.parse(text) === "object";
     } catch {
       json = false;
     }
-    return { ok: true, latencyMs: Date.now() - started, json, message: json ? "The model answered with valid JSON." : "The model answered, but not with clean JSON; generation may need retries." };
+    return { ok: true, latencyMs: Date.now() - started, json, message: (json ? "The model answered with valid JSON." : "The model answered, but not with clean JSON; generation may need retries.") + (reasons ? " It also reasons before answering, which is slower and uses more tokens." : "") };
   } catch (error) {
     return { ok: false, latencyMs: Date.now() - started, message: error instanceof EvalError ? error.message : "The provider did not answer. Check the address, key and model name." };
   } finally {
@@ -339,14 +345,15 @@ async function ensureDgxConnection(c: PoolClient, actorId: string, endpoint: str
 async function ensureRevision(c: PoolClient, actorId: string, input: { accountId: string; adapter: "dgx" | "openai_compatible"; endpoint: string; modelId: string; contextLimit: number }): Promise<string> {
   const existing = (await c.query(`SELECT id FROM evals.provider_revision WHERE account_id=$1 AND adapter=$2 AND endpoint=$3 AND model_id=$4 AND context_limit=$5
       AND retired_at IS NULL AND roles @> $6::text[] AND data_classes @> $7::text[] AND (capabilities->>'jsonObject')::boolean AND (capabilities->>'boundedTokens')::boolean
-    ORDER BY created_at DESC LIMIT 1`, [input.accountId, input.adapter, input.endpoint, input.modelId, input.contextLimit, [...ENGINE_ROLES], [ROUTE_DATA_CLASS]])).rows[0];
+      AND output_limit=$8
+    ORDER BY created_at DESC LIMIT 1`, [input.accountId, input.adapter, input.endpoint, input.modelId, input.contextLimit, [...ENGINE_ROLES], [ROUTE_DATA_CLASS], OUTPUT_LIMIT])).rows[0];
   if (existing) return existing.id;
   const dgx = input.adapter === "dgx";
   const id = (await c.query(`INSERT INTO evals.provider_revision(account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,concurrency_limit,rpm,tpm)
     VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`, [
     input.accountId, input.adapter, input.endpoint, input.modelId, actorId, [...ENGINE_ROLES],
     { text: true, boundedTokens: true, jsonObject: true, probeApproved: false },
-    input.contextLimit, 8192, DATA_CLASSES, [dgx ? DGX_REGION : API_REGION], dgx ? 1 : 4, dgx ? 30 : 120, input.contextLimit * (dgx ? 20 : 40),
+    input.contextLimit, OUTPUT_LIMIT, DATA_CLASSES, [dgx ? DGX_REGION : API_REGION], dgx ? 1 : 4, dgx ? 30 : 120, input.contextLimit * (dgx ? 20 : 40),
   ])).rows[0].id as string;
   await c.query("INSERT INTO evals.provider_health(provider_revision_id,state) VALUES($1,'unprobed') ON CONFLICT DO NOTHING", [id]);
   return id;

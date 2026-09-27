@@ -6,7 +6,7 @@
  * workspace or for this one, from the private DGX Spark or any
  * OpenAI-compatible API. Platform administrators only; keys are write-only.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Cpu, Globe, KeyRound, Plus, RotateCcw, Trash2, Zap } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
@@ -285,19 +285,35 @@ function RouteDialog({
   const connection = connections.find((item) => item.id === connectionId);
   const commercial = connection?.adapter === "openai_compatible";
 
+  // Only the latest request may fill the list: a slow answer from the
+  // previously selected provider must never replace it or pick a model.
+  const request = useRef(0);
   useEffect(() => {
     if (!connectionId) return;
+    const ticket = ++request.current;
     setModels(null);
     setTest(null);
     void listing.run(async () => {
       const list = await evalRequest<Model[]>(`/engine/models?orgId=${encodeURIComponent(orgId)}&connectionId=${encodeURIComponent(connectionId)}`);
-      setModels(list);
-      setModelId((value) => (list.some((item) => item.id === value) ? value : list[0]?.id ?? value));
+      if (ticket === request.current) setModels(list);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionId, orgId]);
 
-  const visible = useMemo(() => (models ?? []).filter((item) => !filter || item.id.toLowerCase().includes(filter.toLowerCase())).slice(0, 300), [models, filter]);
+  function chooseConnection(id: string) {
+    setConnectionId(id);
+    setFilter("");
+    // A model is always an explicit choice; keep the current one only on its own provider.
+    setModelId(id === current?.account_id ? current.model_id : "");
+  }
+
+  const visible = useMemo(() => {
+    const needle = filter.trim().toLowerCase();
+    const list = (models ?? []).filter((item) => !needle || item.id.toLowerCase().includes(needle)).slice(0, 300);
+    // The chosen model stays visible whatever the filter says.
+    const chosen = (models ?? []).find((item) => item.id === modelId);
+    return chosen && !list.includes(chosen) ? [chosen, ...list] : list;
+  }, [models, filter, modelId]);
 
   async function runTest() {
     setTest(null);
@@ -335,7 +351,7 @@ function RouteDialog({
       }
     >
       <form id="engine-route" className="p-stack" onSubmit={save}>
-        <SelectField id="engine-connection" label={t("engineProvider")} value={connectionId} onChange={(event) => setConnectionId(event.target.value)}>
+        <SelectField id="engine-connection" label={t("engineProvider")} value={connectionId} onChange={(event) => chooseConnection(event.target.value)}>
           {connections.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name} — {item.host}
@@ -348,13 +364,22 @@ function RouteDialog({
           <Field id="engine-filter" label={t("engineFilterModels")} value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="gpt, claude, llama…" autoComplete="off" />
         ) : null}
         {models && models.length > 0 ? (
-          <SelectField id="engine-model" label={t("engineModel")} value={modelId} onChange={(event) => setModelId(event.target.value)} size={Math.min(8, Math.max(3, visible.length))}>
-            {visible.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}{item.detail ? ` — ${item.detail}` : ""}
-              </option>
-            ))}
-          </SelectField>
+          <fieldset className="p-fieldset">
+            <legend>{t("engineModel")}</legend>
+            <div role="radiogroup" aria-label={t("engineModel")} style={{ maxHeight: 264, overflowY: "auto", display: "grid", gap: 2 }}>
+              {visible.map((item) => (
+                <label key={item.id} className="p-check" data-selected={item.id === modelId ? "true" : undefined} style={{ padding: "6px 8px", borderRadius: 6, background: item.id === modelId ? "var(--p-surface-3)" : undefined }}>
+                  <input type="radio" name="engine-model" value={item.id} checked={item.id === modelId} onChange={() => setModelId(item.id)} />
+                  <span>
+                    <span className="p-check-label">{item.label}</span>
+                    {item.detail && <span className="p-check-desc">{item.detail}</span>}
+                  </span>
+                </label>
+              ))}
+              {!visible.length && <p className="p-cell-meta">{t("engineNoMatchingModels")}</p>}
+            </div>
+            <span className="p-field-hint">{modelId ? `${t("engineSelectedModel")} ${modelId}` : t("engineSelectAModel")}</span>
+          </fieldset>
         ) : models ? (
           <Field id="engine-model-name" label={t("engineModelName")} value={modelId} onChange={(event) => setModelId(event.target.value)} hint={t("engineModelNameHelp")} required />
         ) : null}

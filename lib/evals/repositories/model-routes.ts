@@ -82,6 +82,6 @@ export async function ensureWorkspaceBudget(db: PoolClient, orgId: string, curre
  * unfocused prompt.
  */
 export function materialBudgetBytes(route: Pick<ModelRoute, "context_limit" | "output_limit">, outputCap: number, fixedBytes: number, cap = 200_000) {
-  const output = Math.min(4096, outputCap, route.output_limit);
+  const output = Math.min(16384, outputCap, route.output_limit);
   return Math.max(0, Math.min(cap, route.context_limit - output - 1024 - fixedBytes - 512));
 }

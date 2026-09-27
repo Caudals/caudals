@@ -63,7 +63,7 @@ export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
   const prep = evaluation.preparation_status;
   if (evaluation.selected_suite_version_id || prep === "ready")
     return { key: "ready", label: "Ready to run", tone: "pass", live: false, step: 2, needsAction: true };
-  if (prep === "needs_review" && /validation|quarantin/.test(evaluation.reason_code ?? ""))
+  if (prep === "needs_review" && /validation|quarantin|^model_/.test(evaluation.reason_code ?? ""))
     return { key: "needs_input", label: "Draft needs another try", tone: "warn", live: false, step: 1, needsAction: true };
   if (prep === "needs_review") return { key: "review_tests", label: "Review test set", tone: "warn", live: false, step: 1, needsAction: true };
   if (prep === "needs_input") return { key: "needs_input", label: "Needs your input", tone: "warn", live: false, step: 1, needsAction: true };

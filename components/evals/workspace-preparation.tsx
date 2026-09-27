@@ -105,6 +105,7 @@ export function PrepareEvaluation({
   const [error, setError] = useState("");
   const [autoJobId, setAutoJobId] = useState<string | null>(null);
   const [generation, setGeneration] = useState<GenerationStatus | null>(null);
+  const [stopReason, setStopReason] = useState<string | null>(null);
   const [contextQuestions, setContextQuestions] = useState<ContextQuestion[]>([]);
   const [contextAnswers, setContextAnswers] = useState<Record<string, string>>({});
   const [showManual, setShowManual] = useState(false);
@@ -286,6 +287,7 @@ export function PrepareEvaluation({
             `/evaluations/${evaluation.id}/generate?orgId=${orgId}&jobId=${jobId}`,
           );
           setGeneration(state.status);
+          setStopReason(state.job?.reasonCode ?? null);
           if (state.status === "needs_review") {
             const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
             if (review.draft) {
@@ -310,7 +312,11 @@ export function PrepareEvaluation({
               await onReady();
               return;
             }
-            if (prepared.status === "quarantined") throw new Error(t("generationQuarantined"));
+            if (prepared.status === "quarantined") {
+              setGeneration("quarantined");
+              setStopReason((prepared as { reasonCode?: string }).reasonCode ?? null);
+              return;
+            }
           } else if (state.status === "needs_input") {
             const context = await evalRequest<{ questions: ContextQuestion[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
             const questions = context.questions ?? [];
@@ -323,7 +329,8 @@ export function PrepareEvaluation({
           } else if (state.status === "paused") {
             throw new Error(t("generationPaused"));
           } else if (["quarantined", "failed"].includes(state.status)) {
-            throw new Error(t("generationFailed"));
+            // The stopped panel explains why, from the job's reason code.
+            return;
           }
           await wait(2000);
         }
@@ -356,6 +363,7 @@ export function PrepareEvaluation({
         if (!state.job) return;
         setAutoJobId(state.job.id);
         setGeneration(state.status);
+        setStopReason(state.job.reasonCode ?? null);
         if (state.status === "needs_input") return;
         if (
           ["profiling", "profile_ready", "drafting", "draft_ready"].includes(state.status) ||
@@ -622,7 +630,7 @@ export function PrepareEvaluation({
           </div>
         ) : (
           <div className="p-generate">
-            {stopped && <Status tone="warn">{t("generationQuarantined")}</Status>}
+            {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}
             <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending}>
               <Sparkles aria-hidden="true" />
               {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
@@ -681,6 +689,20 @@ function RemoveSourceButton({ title, disabled, onClick }: { title: string; disab
       <X aria-hidden="true" />
     </button>
   );
+}
+
+/** Why a generation stopped, in terms of what to do next. */
+export function generationStopMessage(reason: string | null | undefined) {
+  switch (reason) {
+    case "model_reasoning_exhausted":
+      return t("genStopReasoning");
+    case "model_output_incomplete":
+      return t("genStopIncomplete");
+    case "model_output_not_json":
+      return t("genStopNotJson");
+    default:
+      return t("generationQuarantined");
+  }
 }
 
 function humanizeReason(reason: string) {

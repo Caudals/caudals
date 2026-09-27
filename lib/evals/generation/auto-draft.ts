@@ -4,56 +4,140 @@ import { contextProfileSchema, type ContextProfile } from "./context";
 import { withContentHash } from "../contracts/hashing";
 import { languageSchema } from "../contracts/primitives";
 
-const generatedCase = z.strictObject({
+const generatedCase = z.object({
   question: z.string().trim().min(8).max(2000),
   expected: z.string().trim().min(1).max(2000),
   sourceRevisionId: z.uuid(),
   anchorId: z.uuid(),
-  supportingQuote: z.string().trim().min(8).max(1200),
-  severity: z.enum(["low", "medium", "high", "critical"]),
-  difficulty: z.enum(["routine", "advanced", "challenge"]),
+  supportingQuote: z.string().trim().min(8).max(4000),
+  severity: z.enum(["low", "medium", "high", "critical"]).catch("medium"),
+  difficulty: z.enum(["routine", "advanced", "challenge"]).catch("routine"),
 });
-const generatedDraft = z.strictObject({ cases: z.array(generatedCase).min(1).max(20) });
 
 export type AutoDraftCase = z.infer<typeof generatedCase>;
 export type RejectedAutoDraftCase = { index: number; reasonCode: string };
 
-function normalized(text: string) {
-  return text.normalize("NFC").replace(/\s+/gu, " ").trim();
+/* ------------------------------------------------------------- grounding --- */
+
+/**
+ * Models quote sources imperfectly: they drop markdown markers, straighten
+ * quotes, merge list items or cite the neighbouring excerpt. Grounding
+ * compares a canonical form (NFKC, typographic punctuation unified, markup
+ * removed, case-folded, whitespace collapsed), re-points a citation to the
+ * excerpt that actually contains it, and accepts a near-exact quote when at
+ * least 80% of its word trigrams occur in one excerpt. Anything weaker is
+ * rejected, so every accepted citation still points at real source text.
+ */
+export function canonicalText(text: string) {
+  return text
+    .normalize("NFKC")
+    .replace(/[\u2018\u2019\u201A\u201B\u2032]/gu, "'")
+    .replace(/[\u201C\u201D\u201E\u2033]/gu, '"')
+    .replace(/[\u2010-\u2015\u2212]/gu, "-")
+    .replace(/[*_`#>|~]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLocaleLowerCase();
+}
+const NEAR_EXACT = 0.8;
+function trigrams(text: string) {
+  const words = canonicalText(text).split(" ").filter(Boolean);
+  const grams = new Set<string>();
+  for (let index = 0; index + 2 < words.length; index++) grams.add(`${words[index]} ${words[index + 1]} ${words[index + 2]}`);
+  return { words, grams };
+}
+
+export class AnchorIndex {
+  private readonly canon = new Map<string, string>();
+  private readonly grams = new Map<string, Set<string>>();
+  constructor(readonly anchors: Map<string, string>) {}
+  private canonical(key: string) {
+    let value = this.canon.get(key);
+    if (value === undefined) this.canon.set(key, (value = canonicalText(this.anchors.get(key) ?? "")));
+    return value;
+  }
+  private gramsOf(key: string) {
+    let value = this.grams.get(key);
+    if (!value) this.grams.set(key, (value = trigrams(this.anchors.get(key) ?? "").grams));
+    return value;
+  }
+  /** Share of the text's trigrams found in one anchor (1 for an exact canonical substring). */
+  coverage(text: string, key: string) {
+    if (!this.anchors.has(key)) return 0;
+    const needle = canonicalText(text);
+    if (needle && this.canonical(key).includes(needle)) return 1;
+    const { words, grams } = trigrams(text);
+    if (words.length < 3 || !grams.size) return 0;
+    const pool = this.gramsOf(key);
+    let hit = 0;
+    for (const gram of grams) if (pool.has(gram)) hit++;
+    return hit / grams.size;
+  }
+  /** The anchor that supports a quote: the cited one, else one of the same source, else any. */
+  ground(quote: string, sourceRevisionId: string, anchorId: string): { sourceRevisionId: string; anchorId: string; score: number } | null {
+    const preferred = `${sourceRevisionId}:${anchorId}`;
+    const first = this.coverage(quote, preferred);
+    if (first === 1) return { sourceRevisionId, anchorId, score: 1 };
+    let best = { key: preferred, score: first };
+    const keys = [...this.anchors.keys()].sort((a, b) => Number(!a.startsWith(`${sourceRevisionId}:`)) - Number(!b.startsWith(`${sourceRevisionId}:`)));
+    for (const key of keys) {
+      if (key === preferred) continue;
+      const score = this.coverage(quote, key);
+      if (score > best.score) best = { key, score };
+      if (score === 1) break;
+    }
+    if (best.score < NEAR_EXACT) return null;
+    const [source, anchor] = best.key.split(":");
+    return { sourceRevisionId: source, anchorId: anchor, score: best.score };
+  }
 }
 
 /**
- * Validate model proposals against exact extracted evidence before converting
- * them to CEF. This is a provenance/answer-support gate, not human review.
+ * Validate model proposals against extracted evidence before converting them
+ * to CEF. Each case is checked on its own: an unsupported case is dropped with
+ * a reason, the rest continue. This is a provenance gate, not human review.
  */
 export function validateAutogeneratedDraft(value: unknown, anchors: Map<string, string>): { cases: AutoDraftCase[]; rejectedCases: RejectedAutoDraftCase[] } {
-  const parsed = generatedDraft.parse(value);
+  const rawCases = z.object({ cases: z.array(z.unknown()).max(40) }).parse(value).cases;
+  const index = new AnchorIndex(anchors);
   const families = new Set<string>();
   const cases: AutoDraftCase[] = [];
   const rejectedCases: RejectedAutoDraftCase[] = [];
-  for (const [index, item] of parsed.cases.entries()) {
-    const excerpt = anchors.get(`${item.sourceRevisionId}:${item.anchorId}`);
+  for (const [position, raw] of rawCases.entries()) {
+    const parsed = generatedCase.safeParse(raw);
     let reasonCode: string | undefined;
-    if (!excerpt) reasonCode = "source_anchor_missing";
-    else if (!normalized(excerpt).includes(normalized(item.supportingQuote))) reasonCode = "supporting_quote_missing";
-    else if (!normalized(item.supportingQuote).toLocaleLowerCase().includes(normalized(item.expected).toLocaleLowerCase())) reasonCode = "answer_not_supported_by_quote";
-    const family = familyFingerprint(item.question);
-    if (!reasonCode && families.has(family)) reasonCode = "duplicate_question_family";
-    if (reasonCode) {
-      rejectedCases.push({ index: index + 1, reasonCode });
+    let item = parsed.success ? parsed.data : undefined;
+    if (!item) reasonCode = "case_schema_invalid";
+    else {
+      const grounded = index.ground(item.supportingQuote, item.sourceRevisionId, item.anchorId);
+      if (!grounded) reasonCode = anchors.has(`${item.sourceRevisionId}:${item.anchorId}`) ? "supporting_quote_missing" : "source_anchor_missing";
+      else {
+        item = { ...item, sourceRevisionId: grounded.sourceRevisionId, anchorId: grounded.anchorId };
+        const key = `${grounded.sourceRevisionId}:${grounded.anchorId}`;
+        // The expected answer must itself be in the evidence (quote or excerpt).
+        const answerSupported = canonicalText(item.supportingQuote).includes(canonicalText(item.expected)) || index.coverage(item.expected, key) >= (canonicalText(item.expected).split(" ").length >= 6 ? NEAR_EXACT : 1);
+        if (!answerSupported) reasonCode = "answer_not_supported_by_quote";
+      }
+    }
+    if (!reasonCode && item) {
+      const family = familyFingerprint(item.question);
+      if (families.has(family)) reasonCode = "duplicate_question_family";
+      else families.add(family);
+    }
+    if (reasonCode || !item) {
+      rejectedCases.push({ index: position + 1, reasonCode: reasonCode ?? "case_schema_invalid" });
       continue;
     }
-    families.add(family);
-    cases.push(item);
+    if (cases.length < 20) cases.push(item);
   }
   if (!cases.length) throw new Error(rejectedCases[0]?.reasonCode ?? "no_source_grounded_cases");
   return { cases, rejectedCases };
 }
 
-const citation = z.strictObject({
+const citation = z.object({
   sourceRevisionId: z.uuid(),
   anchorId: z.uuid(),
-  quote: z.string().trim().min(8).max(1200),
+  quote: z.string().trim().min(8).max(4000),
 });
 const profileField = z.strictObject({
   value: z.string().trim().min(1).max(2000).nullable(),
@@ -81,6 +165,34 @@ export const autogeneratedProfileSchema = z.strictObject({
   criticalQuestions: z.array(z.strictObject({ field: generatedQuestionField, question: z.string().min(1).max(1000) })).max(50),
 });
 export type AutogeneratedProfile = z.infer<typeof autogeneratedProfileSchema>;
+const SINGLE_FIELDS = ["purpose", "jurisdiction", "asOf"] as const;
+const LIST_FIELDS = ["intendedUsers", "tasks", "languages", "businessBoundaries", "supportedCapabilities", "materialRisks", "allowedActions", "tools"] as const;
+
+/** Coerce a model profile into the contract shape: unknown keys dropped, malformed parts emptied. */
+function lenientProfile(value: unknown): AutogeneratedProfile {
+  const source = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const citations = (raw: unknown) => (Array.isArray(raw) ? raw.flatMap((item) => { const parsed = citation.safeParse(item); return parsed.success ? [parsed.data] : []; }).slice(0, 20) : []);
+  const confidence = (raw: unknown) => (typeof raw === "number" && Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0);
+  const field = (raw: unknown) => {
+    const item = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const text = typeof item.value === "string" && item.value.trim() ? item.value.trim().slice(0, 2000) : null;
+    return { value: text, confidence: text ? confidence(item.confidence) : 0, citations: citations(item.citations) };
+  };
+  const list = (raw: unknown) => {
+    const item = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const values = (Array.isArray(item.values) ? item.values : []).filter((entry): entry is string => typeof entry === "string" && !!entry.trim()).map((entry) => entry.trim().slice(0, 500)).slice(0, 50);
+    return { values, confidence: values.length ? confidence(item.confidence) : 0, citations: citations(item.citations) };
+  };
+  const questions = (Array.isArray(source.criticalQuestions) ? source.criticalQuestions : []).flatMap((item) => {
+    const parsed = z.object({ field: generatedQuestionField, question: z.string().trim().min(1).max(1000) }).safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  }).slice(0, 50);
+  return autogeneratedProfileSchema.parse({
+    ...Object.fromEntries(SINGLE_FIELDS.map((name) => [name, field(source[name])])),
+    ...Object.fromEntries(LIST_FIELDS.map((name) => [name, list(source[name])])),
+    criticalQuestions: questions,
+  });
+}
 
 export function normalizeLanguageTags(values: string[]): string[] {
   const normalized = values.map((value) => {
@@ -102,23 +214,34 @@ export function parseLanguageAnswer(answer: string): string[] {
   catch { throw new Error("context_answer_invalid_language"); }
 }
 
+/**
+ * Keep every profile fact that the sources support. Citations are grounded
+ * like draft quotes; a fact whose citations all fail is treated as unknown
+ * (so the customer is asked instead) rather than failing the whole profile.
+ * Invalid language tags are dropped for the same reason.
+ */
 export function validateAutogeneratedProfile(value: unknown, anchors: Map<string, string>): AutogeneratedProfile {
-  const parsed = autogeneratedProfileSchema.parse(value);
-  parsed.languages.values = normalizeLanguageTags(parsed.languages.values);
-  const fields = Object.entries(parsed).filter(([field]) => field !== "criticalQuestions");
-  for (const [field, raw] of fields) {
-    const item = raw as z.infer<typeof profileField> | z.infer<typeof profileListField>;
-    const populated = "value" in item ? item.value !== null : item.values.length > 0;
-    if (populated && !item.citations.length) throw new Error(`profile_field_uncited:${field}`);
-    for (const ref of item.citations) {
-      const excerpt = anchors.get(`${ref.sourceRevisionId}:${ref.anchorId}`);
-      if (!excerpt) throw new Error("source_anchor_missing");
-      if (!normalized(excerpt).includes(normalized(ref.quote))) throw new Error("profile_quote_missing");
+  const parsed = lenientProfile(value);
+  const index = new AnchorIndex(anchors);
+  const valid: string[] = [];
+  for (const tag of parsed.languages.values) {
+    try { valid.push(...normalizeLanguageTags([tag])); } catch { /* unknown tag: ask instead */ }
+  }
+  parsed.languages.values = [...new Set(valid)];
+  for (const name of [...SINGLE_FIELDS, ...LIST_FIELDS]) {
+    const item = parsed[name] as z.infer<typeof profileField> | z.infer<typeof profileListField>;
+    item.citations = item.citations.flatMap((ref) => {
+      const grounded = index.ground(ref.quote, ref.sourceRevisionId, ref.anchorId);
+      return grounded ? [{ ...ref, sourceRevisionId: grounded.sourceRevisionId, anchorId: grounded.anchorId }] : [];
+    });
+    if (!item.citations.length) {
+      if ("value" in item) item.value = null;
+      else item.values = [];
+      item.confidence = 0;
     }
   }
   return parsed;
 }
-
 
 export type ConfirmedContextAnswer = {
   id: string;

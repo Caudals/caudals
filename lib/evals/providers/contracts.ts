@@ -19,9 +19,10 @@ export const invocationSchema=z.object({
     (!!input.narrativeJobId&&input.role==="report_writer"));
   if(input.timeoutMs>120000&&!localInternal)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
 });
+/** Output bound for one call: the request's cap (default 4096, at most 16384), the model limit and the remaining context. */
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {
  const promptBytes=Buffer.byteLength(JSON.stringify(messages),"utf8");
- const maximum=Math.min(4096,requestCap,outputLimit,contextLimit-promptBytes-1024);
+ const maximum=Math.min(16384,requestCap,outputLimit,contextLimit-promptBytes-1024);
  if(!Number.isInteger(maximum)||maximum<128)throw new Error("context_bound_exceeded");
  return maximum;
 }
