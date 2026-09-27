@@ -6,7 +6,8 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowRight, Download, LifeBuoy, Play, RotateCcw, Square } from "lucide-react";
+import { Activity, ArrowRight, Download, LifeBuoy, Pencil, Play, RotateCcw, Square, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError } from "./api";
 import {
@@ -26,6 +27,7 @@ import {
 } from "./primitives";
 import { OutcomeBar, percent } from "./charts";
 import { ActionMenu } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { PrepareEvaluation } from "./workspace-preparation";
 import { ManualAnswers, publishPreliminaryManualReport } from "./workspace-manual-answers";
 import { NoWorkspace } from "./workspace-evaluations";
@@ -65,6 +67,12 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState<{ message: string; help: string } | null>(null);
   const startKey = useRef(crypto.randomUUID());
+  const router = useRouter();
+  const deletedRef = useRef(false);
+  const items = useItemActions(orgId, async () => {
+    if (deletedRef.current) router.push(withOrg("/workspace/evaluations"));
+    else await reload();
+  });
 
   const evaluation = summary?.evaluations.find((item) => item.id === evaluationId);
   const system = summary?.systems.find((item) => item.project_id === evaluation?.project_id);
@@ -227,6 +235,13 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       : []),
     ...(operator && evaluation.latest_run_id ? [{ label: t("inspectRun"), icon: <Activity />, href: `/ops/runs/${evaluation.latest_run_id}?orgId=${encodeURIComponent(orgId)}` }] : []),
     { label: t("requestAssistance"), icon: <LifeBuoy />, href: `mailto:hello@caudals.com?subject=${encodeURIComponent(`Evaluation assistance: ${evaluation.title}`)}`, external: true },
+    ...(canWrite
+      ? [
+          { separator: true as const },
+          { label: t("rename"), icon: <Pencil />, onSelect: () => { deletedRef.current = false; items.rename("evaluations", evaluation.id, evaluation.title); } },
+          { label: t("delete"), icon: <Trash2 />, tone: "danger" as const, onSelect: () => { deletedRef.current = true; items.remove("evaluations", evaluation.id, evaluation.title); } },
+        ]
+      : []),
   ];
 
   return (
@@ -258,6 +273,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         }
       />
       <Steps steps={stepStates(stage)} label={t("evaluationProgress")} />
+      {items.dialog}
 
       {actionError && (
         <Status error action={<Action variant="secondary" size="sm" onClick={() => setActionError(null)}>{t("dismiss")}</Action>}>

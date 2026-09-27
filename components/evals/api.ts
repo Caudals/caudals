@@ -7,7 +7,7 @@ export class EvalRequestError extends Error {
     serverMessage?: string,
   ) {
     const message = getSafeErrorMessage(status, code, serverMessage);
-    super(status >= 500 && requestId ? `${message} Reference: ${requestId}.` : message);
+    super(status >= 500 && requestId && !["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code) ? `${message} Reference: ${requestId}.` : message);
     this.name = "EvalRequestError";
   }
 }
@@ -33,6 +33,8 @@ function getSafeErrorMessage(status: number, code: string, serverMessage?: strin
   ) return t("invalidInvite");
   if (status === 409) return t("reloadAndRetry");
   if (status === 429) return t("tryAgainShortly");
+  // Configuration gaps (no model, no budget) carry a curated sentence that tells the person what to do.
+  if (status === 503 && serverMessage && ["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code)) return serverMessage;
   if (status >= 500) return t("error");
   return t("checkDetails");
 }

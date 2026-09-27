@@ -6,11 +6,12 @@ import { createBoss, dispatchOutbox, startBoss, type JobData } from '../../lib/e
 import { InvocationWorker } from '../../lib/evals/queue/worker';
 import { loadKeyring } from '../../lib/evals/security/envelope';
 import { TargetExecutionWorker } from '../../lib/evals/queue/target-worker';
+import { workerWorkspaces } from '../../lib/evals/queue/workspaces';
 
 async function main() {
  if(process.env.EVALS_DISPATCH_ENABLED!=='true')throw new Error('dispatch_disabled');
- // Explicit operator-assigned workspaces: the worker cannot discover arbitrary tenant data.
- const orgs=z.array(z.string().uuid()).min(1).parse(JSON.parse(process.env.EVALS_WORKER_ORG_IDS??'[]'));
+ // Operator-assigned workspaces plus every live workspace; each job still runs in its own tenant scope.
+ const orgs=workerWorkspaces(process.env.EVALS_WORKER_ORG_IDS);await orgs.refresh();
  const actorId=z.string().min(1).parse(process.env.EVALS_WORKER_ACTOR_ID);
  const keyFile=z.string().min(1).parse(process.env.EVALS_MASTER_KEYRING_FILE);
  const endpointFile=process.env.EVALS_DGX_ENDPOINT_FILE;
@@ -21,13 +22,13 @@ async function main() {
  try {
  await startBoss(boss);
  for(const queue of ['execute_api','generate','profile','grade'])await boss.work<JobData>(queue,{batchSize:1,pollingIntervalSeconds:2},async (jobs: any[])=>{
-  for(const job of jobs){if(!orgs.includes(job.data.orgId))throw new Error('worker_tenant_denied');if(queue==='execute_api'&&await targetWorker.canHandle(job.data))await targetWorker.handle(job.data);else await worker.handle(job.data);}
+  for(const job of jobs){if(!orgs.has(job.data.orgId))throw new Error('worker_tenant_denied');if(queue==='execute_api'&&await targetWorker.canHandle(job.data))await targetWorker.handle(job.data);else await worker.handle(job.data);}
  });
  let stopping=false;
  const stop=()=>{stopping=true;};process.once('SIGTERM',stop);process.once('SIGINT',stop);
  console.info(JSON.stringify({event:'worker_ready',environment:process.env.EVALS_ENV}));
   while(!stopping) {
-   for(const orgId of orgs) {
+   for(const orgId of await orgs.refresh()) {
     const tenant={orgId,actorId};await targetWorker.recover(tenant);await worker.recover(tenant);await dispatchOutbox(boss,withTenant,tenant,10);
    }
    await new Promise(resolve=>setTimeout(resolve,1000));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Plug, Plus, RefreshCw } from "lucide-react";
+import { KeyRound, Pencil, Plug, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { evalRequest } from "./api";
 import {
   Action,
@@ -18,6 +18,7 @@ import {
   humanize,
 } from "./primitives";
 import { ActionMenu, CopyField, SidePanel, notify } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { TargetCredentials } from "./workspace-credentials";
 import { WebsiteLoginSessions } from "./website-login-sessions";
 import { NoWorkspace } from "./workspace-evaluations";
@@ -41,6 +42,7 @@ export function WorkspaceSystems() {
   const [panelError, setPanelError] = useState("");
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
   const system = summary?.systems.find((item) => item.id === openId) ?? null;
+  const items = useItemActions(orgId, reload);
   const usedBy = (item: WorkspaceSystem) => summary?.evaluations.filter((evaluation) => evaluation.project_id === item.project_id) ?? [];
 
   if (!workspace) return <NoWorkspace />;
@@ -144,6 +146,13 @@ export function WorkspaceSystems() {
                         ? [{ label: t("checkConnection"), icon: <RefreshCw />, onSelect: () => void check(item) }]
                         : []),
                       ...(canWrite && API_KINDS.has(item.document.kind) ? [{ label: t("manageCredentials"), icon: <KeyRound />, onSelect: () => open(item.id) }] : []),
+                      ...(canWrite
+                        ? [
+                            { label: t("rename"), icon: <Pencil />, onSelect: () => items.rename("systems", item.id, item.title) },
+                            { separator: true as const },
+                            { label: t("delete"), icon: <Trash2 />, tone: "danger" as const, onSelect: () => items.remove("systems", item.id, item.title) },
+                          ]
+                        : []),
                     ]}
                   />
                 </td>
@@ -221,6 +230,7 @@ export function WorkspaceSystems() {
           </>
         )}
       </SidePanel>
+      {items.dialog}
     </>
   );
 }

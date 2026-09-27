@@ -44,3 +44,8 @@ DO $$ BEGIN
     ON evals.target_invocation_ledger TO evals_worker;
  END IF;
 END $$;
+DO $$ BEGIN
+ IF to_regclass('evals.provider_connection') IS NOT NULL THEN
+  GRANT SELECT ON evals.provider_connection TO evals_worker;
+ END IF;
+END $$;

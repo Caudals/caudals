@@ -9,6 +9,8 @@ type CaptureOptions = {
   browser: Pick<Browser, "newContext">;
   startUrl: string;
   maxPages: number;
+  /** Wall-clock budget for reading pages after the first (default 150 s). */
+  timeBudgetMs?: number;
   destinationCheck: (url: string) => Promise<void>;
   onPage?: (url: string, pageCount: number) => Promise<void>;
 };
@@ -47,6 +49,9 @@ async function readPage(page: Page): Promise<PageText> {
 export async function captureWebsiteContext(options: CaptureOptions): Promise<{ markdown: string; urls: string[] }> {
   const start = approvedWebsiteUrl(options.startUrl);
   const maxPages = Math.max(1, Math.min(50, Math.floor(options.maxPages)));
+  // A capture is useful long before it is exhaustive: stop reading new pages
+  // after this budget and keep what was read, instead of running for minutes.
+  const deadline = Date.now() + (options.timeBudgetMs ?? 150_000);
   const context: BrowserContext = await options.browser.newContext({
     acceptDownloads: false,
     serviceWorkers: "block",
@@ -72,7 +77,7 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
   let totalChars = 0;
   try {
     const page = await context.newPage();
-    while (queue.length && pages.size < maxPages) {
+    while (queue.length && pages.size < maxPages && (pages.size === 0 || Date.now() < deadline)) {
       const item = queue.shift()!;
       const safe = inScopePage(item.url, start.origin);
       if (!safe || pages.has(safe.href)) continue;
@@ -80,7 +85,7 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
       requestCount = 0;
       let response;
       try {
-        response = await page.goto(safe.href, { waitUntil: "domcontentloaded", timeout: 15_000 });
+        response = await page.goto(safe.href, { waitUntil: "domcontentloaded", timeout: pages.size === 0 ? 30_000 : 12_000 });
       } catch {
         if (pages.size === 0) throw new Error("website_page_unavailable");
         continue;
@@ -103,8 +108,9 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
       const url = finalUrl.href;
       pages.add(url);
       const block = "# " + (captured.title.trim().slice(0, 300) || url) + "\n\nSource URL: " + url + "\n\n" + text;
+      // Keep the pages that fit; a large site is sampled, not rejected.
+      if (totalChars + block.length > MAX_TOTAL_CHARS) break;
       totalChars += block.length;
-      if (totalChars > MAX_TOTAL_CHARS) throw new Error("website_extraction_limit");
       excerpts.push(block);
       await options.onPage?.(url, pages.size);
       if (item.depth === 0) {

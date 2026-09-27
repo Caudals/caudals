@@ -7,10 +7,11 @@
  */
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Building2, Plus } from "lucide-react";
+import { ArrowRight, Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { t } from "@/lib/evals/messages/en";
 import { Action, ActionLink, DataTable, DefinitionList, EmptyState, Field, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
-import { Modal, SidePanel, notify } from "./overlays";
+import { ActionMenu, Modal, SidePanel, notify } from "./overlays";
+import { RenameDialog } from "./item-actions";
 import { InvitationManager } from "./invitation-manager";
 import { useClientSummaries } from "./operator-overview";
 import { evalRequest } from "./api";
@@ -26,6 +27,7 @@ export function ClientManagement() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const keys = useRef(new Map<string, string>());
   const keyFor = (value: string) => {
     let key = keys.current.get(value);
@@ -103,7 +105,7 @@ export function ClientManagement() {
               <SearchInput value={query} onChange={setQuery} label={t("searchClients")} />
             </Toolbar>
           )}
-          <DataTable caption={t("clients")} headers={[t("client"), { label: t("product"), align: "end" }, { label: t("reports"), align: "end" }, { label: t("lastActivity"), align: "end" }]}>
+          <DataTable caption={t("clients")} headers={[t("client"), { label: t("product"), align: "end" }, { label: t("reports"), align: "end" }, { label: t("lastActivity"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
             {visible.map((client) => (
               <tr key={client.id}>
                 <th scope="row">
@@ -119,12 +121,36 @@ export function ClientManagement() {
                 <td className="p-table-action p-cell-meta">
                   <Time value={lastActivity(client.id)} />
                 </td>
+                <td className="p-table-action">
+                  <ActionMenu
+                    label={`${t("moreActions")}: ${client.name}`}
+                    items={[
+                      { label: t("rename"), icon: <Pencil />, onSelect: () => setRenaming({ id: client.id, name: client.name }) },
+                      { separator: true },
+                      { label: t("deleteWorkspace"), icon: <Trash2 />, href: `/workspace/settings?orgId=${encodeURIComponent(client.id)}&tab=danger` },
+                    ]}
+                  />
+                </td>
               </tr>
             ))}
           </DataTable>
         </>
       )}
 
+      {renaming && (
+        <RenameDialog
+          title={t("renameWorkspace")}
+          label={t("workspaceName")}
+          initial={renaming.name}
+          maxLength={120}
+          onClose={() => setRenaming(null)}
+          onSave={async (value) => {
+            await evalRequest(`/workspaces/${renaming.id}`, "PATCH", { name: value });
+            router.refresh();
+            await reload();
+          }}
+        />
+      )}
       <Modal
         open={creating}
         onOpenChange={setCreating}

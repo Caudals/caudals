@@ -6,12 +6,13 @@
  * revisions and draft validated takeaways. Controls appear only for roles the
  * server also enforces.
  */
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, ChevronDown, Download, Eye, GitCompare, History, Share2, Sparkles } from "lucide-react";
+import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, Share2, Sparkles, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionAnchor, Badge, Check, DataTable, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { t } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 
@@ -42,6 +43,9 @@ export function ReportActions({
   onChanged,
   onSelectRevision,
   renderPreview,
+  reportTitle,
+  autoExport = false,
+  onDeleted,
 }: {
   orgId: string;
   reportId: string;
@@ -55,12 +59,23 @@ export function ReportActions({
   onChanged: () => void;
   onSelectRevision: (id: string | null) => void;
   renderPreview: (snapshot: Partial<ReportSnapshot>) => ReactNode;
+  /** The report's own name, used for file names and rename. */
+  reportTitle?: string;
+  /** Start a PDF download on arrival (links such as "Download PDF" in the report list). */
+  autoExport?: boolean;
+  onDeleted?: () => void;
 }) {
   const [dialog, setDialog] = useState<"" | "share" | "compare" | "revisions" | "takeaways" | "release">("");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [error, setError] = useState("");
 
-  // Poll a queued PDF until the document worker finishes it.
+  const title = reportTitle || revision.snapshot.system?.name || t("report");
+  // Downloads carry the report name so the saved file is recognisable.
+  const named = useCallback((path: string) => `${path}${path.includes("?") ? "&" : "?"}name=${encodeURIComponent(title)}`, [title]);
+  const deleting = useRef(false);
+  const items = useItemActions(orgId, () => (deleting.current ? onDeleted?.() : onChanged()));
+
+  // Poll a queued PDF until the document worker finishes it, then download it.
   useEffect(() => {
     if (!exportJob || !["queued", "running"].includes(exportJob.status)) return;
     const timer = window.setTimeout(
@@ -68,32 +83,50 @@ export function ReportActions({
         void evalRequest<ExportJob>(`/exports/${exportJob.id}?orgId=${encodeURIComponent(orgId)}`)
           .then((job) => {
             setExportJob(job);
-            if (job.download_path) notify(t("pdfReady"));
+            if (job.download_path) {
+              notify(t("pdfReady"));
+              window.location.assign(named(job.download_path));
+            } else if (job.status === "failed") setError(t("pdfFailed"));
           })
           .catch(() => undefined),
-      2500,
+      2000,
     );
     return () => window.clearTimeout(timer);
-  }, [exportJob, orgId]);
+  }, [exportJob, orgId, named]);
 
-  async function exportPdf() {
+  const exportPdf = useCallback(async () => {
     setError("");
     try {
-      setExportJob(await evalRequest<ExportJob>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind: "pdf" }, crypto.randomUUID()));
+      const job = await evalRequest<ExportJob>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind: "pdf" }, crypto.randomUUID());
+      if (job.status === "completed" && (job as ExportJob & { artifact_id?: string }).artifact_id) {
+        window.location.assign(named(`/api/evals/v1/report-artifacts/${(job as ExportJob & { artifact_id?: string }).artifact_id}?orgId=${encodeURIComponent(orgId)}`));
+        return;
+      }
+      setExportJob(job);
       notify(t("pdfPreparing"));
     } catch (reason) {
       setError(message(reason));
     }
-  }
-  async function exportFile(kind: "csv" | "cef") {
+  }, [orgId, revision.id, named]);
+  async function exportFile(kind: "csv" | "cef" | "docx") {
     setError("");
     try {
       const artifact = await evalRequest<{ artifactId: string }>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind }, crypto.randomUUID());
-      window.location.assign(`/api/evals/v1/report-artifacts/${artifact.artifactId}?orgId=${encodeURIComponent(orgId)}`);
+      window.location.assign(named(`/api/evals/v1/report-artifacts/${artifact.artifactId}?orgId=${encodeURIComponent(orgId)}`));
     } catch (reason) {
       setError(message(reason));
     }
   }
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoExport || autoStarted.current) return;
+    autoStarted.current = true;
+    const timer = window.setTimeout(() => void exportPdf(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      autoStarted.current = false;
+    };
+  }, [autoExport, exportPdf]);
 
   if (!canWrite) return null;
   const preparing = exportJob && ["queued", "running"].includes(exportJob.status);
@@ -105,7 +138,7 @@ export function ReportActions({
         </span>
       )}
       {exportJob?.download_path ? (
-        <ActionAnchor href={exportJob.download_path} title={t("downloadWarning")}>
+        <ActionAnchor href={named(exportJob.download_path)} title={t("downloadWarning")}>
           <Download aria-hidden="true" />
           {t("downloadPdf")}
         </ActionAnchor>
@@ -129,7 +162,9 @@ export function ReportActions({
         }
         items={[
           { heading: t("downloadWarning") },
-          { label: t("preparePdf"), onSelect: () => void exportPdf() },
+          { label: t("downloadPdfDocument"), icon: <FileText />, onSelect: () => void exportPdf() },
+          { label: t("downloadWordDocument"), icon: <FileText />, onSelect: () => void exportFile("docx") },
+          { separator: true },
           { label: t("downloadCsv"), onSelect: () => void exportFile("csv") },
           { label: t("downloadCef"), onSelect: () => void exportFile("cef") },
         ]}
@@ -143,8 +178,12 @@ export function ReportActions({
           ...(operator && revision.review_status === "preliminary"
             ? [{ separator: true as const }, { label: t("releaseReviewedReport"), icon: <BadgeCheck />, onSelect: () => setDialog("release") }]
             : []),
+          { separator: true as const },
+          { label: t("rename"), icon: <Pencil />, onSelect: () => { deleting.current = false; items.rename("reports", reportId, title); } },
+          { label: t("delete"), icon: <Trash2 />, tone: "danger" as const, onSelect: () => { deleting.current = true; items.remove("reports", reportId, title); } },
         ]}
       />
+      {items.dialog}
       {operator && (
         <ReleaseReviewedDialog open={dialog === "release"} onOpenChange={(value) => setDialog(value ? "release" : "")} orgId={orgId} revision={revision} />
       )}

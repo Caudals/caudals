@@ -1181,7 +1181,8 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   await page.goto(`/workspace/test-sets?orgId=${id}&editor`);
   await expect(page.getByRole("heading", { name: "Test sets" })).toBeVisible();
   await expect(page.getByText("Support source", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Make a copy" }).click();
+  await page.getByRole("button", { name: /^More actions: / }).first().click();
+  await page.getByRole("menuitem", { name: "Make a copy" }).click();
   await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Support improvements");
   await page.getByRole("button", { name: "Create copy" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/test-sets/${forkSuiteId}`));
@@ -1235,6 +1236,8 @@ test("report actions publish a revision, share a previewed projection once and r
   await page.route(`**/api/evals/v1/reports/${actionReport}/narrative**`, (route) => route.fulfill({ json: { data: [], meta: {} } }));
   await page.route("**/api/evals/v1/exports", (route) => { requests.push("pdf"); return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "queued" }, meta: {} } }); });
   await page.route("**/api/evals/v1/exports/**", (route) => route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000341", status: "completed", download_path: "/api/evals/v1/report-artifacts/x" }, meta: {} } }));
+  // The finished PDF downloads as an attachment, so the page stays put.
+  await page.route("**/api/evals/v1/report-artifacts/**", (route) => route.fulfill({ body: "%PDF-1.7", headers: { "content-type": "application/pdf", "content-disposition": 'attachment; filename="report.pdf"' } }));
 
   await page.goto(`/workspace/reports/actions?orgId=${actionOrg}&owner`);
   await expect(page.getByText("Refund answers omitted the 30-day window in 1 of 2 tests.")).toBeVisible();
@@ -1246,7 +1249,7 @@ test("report actions publish a revision, share a previewed projection once and r
 
   await page.getByRole("button", { name: "Download" }).click();
   await expect(page.getByText(/cannot be recalled/).first()).toBeVisible();
-  await page.getByRole("menuitem", { name: "Prepare PDF" }).click();
+  await page.getByRole("menuitem", { name: "PDF document" }).click();
   await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible({ timeout: 10_000 });
 
   await page.getByRole("button", { name: "Share" }).click();

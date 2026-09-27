@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Inbox } from "lucide-react";
+import { Download, FileText, Inbox, Pencil, Trash2 } from "lucide-react";
 import { Action, DataTable, EmptyState, PageHeading, RowTitle, SearchInput, Status, StatusBadge, TableSkeleton, Time, Toolbar } from "./primitives";
 import { Meter, percent } from "./charts";
 import { NoWorkspace } from "./workspace-evaluations";
+import { ActionMenu } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { useWorkspaceSummary } from "./workspace-data";
 import { t } from "@/lib/evals/messages/en";
 
 export function WorkspaceReports() {
-  const { orgId, workspace, withOrg } = useWorkspace();
-  const { summary, error, retry, loading } = useWorkspaceSummary(orgId);
+  const { orgId, workspace, withOrg, canWrite } = useWorkspace();
+  const { summary, error, retry, loading, reload } = useWorkspaceSummary(orgId);
   const [query, setQuery] = useState("");
+  const items = useItemActions(orgId, reload);
   if (!workspace) return <NoWorkspace />;
   const needle = query.trim().toLowerCase();
   const reports = (summary?.reports ?? []).filter((item) => !needle || `${item.title} ${item.system_name ?? ""}`.toLowerCase().includes(needle));
@@ -38,7 +41,7 @@ export function WorkspaceReports() {
             <SearchInput value={query} onChange={setQuery} label={t("searchReports")} />
           </Toolbar>
           {reports.length ? (
-            <DataTable caption={t("reports")} headers={[t("report"), t("strictPassRate"), t("statusLabel"), { label: t("published"), align: "end" }]}>
+            <DataTable caption={t("reports")} headers={[t("report"), t("strictPassRate"), t("statusLabel"), { label: t("published"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
               {reports.map((report) => (
                 <tr key={report.id}>
                   <RowTitle href={withOrg(`/workspace/reports/${report.id}`)} meta={[...new Set([report.system_name, evaluationTitle(report.evaluation_id)].filter(Boolean))].join(" · ") || undefined}>
@@ -65,6 +68,21 @@ export function WorkspaceReports() {
                   <td className="p-table-action p-cell-meta">
                     <Time value={report.revision_created_at ?? report.updated_at ?? null} />
                   </td>
+                  <td className="p-table-action">
+                    <ActionMenu
+                      label={`${t("moreActions")}: ${report.title}`}
+                      items={[
+                        { label: t("downloadPdf"), icon: <Download />, href: withOrg(`/workspace/reports/${report.id}?export=pdf`) },
+                        ...(canWrite
+                          ? [
+                              { label: t("rename"), icon: <Pencil />, onSelect: () => items.rename("reports", report.id, report.title) },
+                              { separator: true as const },
+                              { label: t("delete"), icon: <Trash2 />, tone: "danger" as const, onSelect: () => items.remove("reports", report.id, report.title) },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </td>
                 </tr>
               ))}
             </DataTable>
@@ -75,6 +93,7 @@ export function WorkspaceReports() {
           )}
         </>
       )}
+      {items.dialog}
     </>
   );
 }

@@ -34,14 +34,14 @@ export function listProjects(scope: EvidenceScope, after?: string) {
 export function listSuiteVersions(scope: EvidenceScope, projectId?: string) {
   return withTenant(scope, async db => (await db.query(
     `SELECT s.id AS suite_id,sv.id AS suite_version_id,s.project_id,p.title AS project_title,
-            COALESCE(sv.manifest->>'title',s.title) AS title,sv.content_hash,sv.created_at AS frozen_at,
+            s.title AS title,sv.content_hash,sv.created_at AS frozen_at,
             count(cr.id) FILTER (WHERE cr.split <> 'holdout')::int AS case_count
      FROM evals.suite_version sv
      JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
      JOIN evals.project p ON (p.org_id,p.id)=(s.org_id,s.project_id)
      LEFT JOIN evals.suite_case sc ON (sc.org_id,sc.suite_version_id)=(sv.org_id,sv.id)
      LEFT JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(sc.org_id,sc.case_revision_id)
-     WHERE sv.org_id=$1 AND ($2::uuid IS NULL OR s.project_id=$2)
+     WHERE sv.org_id=$1 AND s.archived_at IS NULL AND ($2::uuid IS NULL OR s.project_id=$2)
      GROUP BY s.id,sv.id,s.project_id,p.title,s.title,sv.manifest,sv.content_hash,sv.created_at
      ORDER BY sv.created_at DESC,sv.id DESC LIMIT 200`,
     [scope.orgId,projectId ?? null],
@@ -98,7 +98,7 @@ export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:stri
   const evaluation=required((await db.query("SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,input.evaluationId])).rows[0]);
   if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,"Website source project does not match evaluation");
   const source=required((await db.query("INSERT INTO evals.source(org_id,project_id,evaluation_id,title,rights) VALUES($1,$2,$3,$4,$5) RETURNING id",[scope.orgId,input.projectId,input.evaluationId,input.title,input.rights])).rows[0]);
-  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,created_by) VALUES($1,$2,$3,$4,$5) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,scope.actorId])).rows[0]);
+  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,created_by) VALUES($1,$2,$3,$4,25,$5) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,scope.actorId])).rows[0]);
   return {sourceId:source.id,jobId:job.id,status:job.status};
  }));
 }

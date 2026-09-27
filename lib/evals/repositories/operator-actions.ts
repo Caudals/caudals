@@ -61,5 +61,5 @@ export function listSources(scope: EvidenceScope) {
       (SELECT jsonb_array_length(r.document->'anchors') FROM evals.source_revision r WHERE r.org_id=s.org_id AND r.source_id=s.id ORDER BY r.created_at DESC LIMIT 1) AS anchors,
       (SELECT j.status FROM evals.source_ingestion_job j WHERE j.org_id=s.org_id AND j.source_id=s.id ORDER BY j.created_at DESC LIMIT 1) AS ingestion_status
     FROM evals."source" s JOIN evals.project p ON (p.org_id,p.id)=(s.org_id,s.project_id)
-    WHERE s.org_id=$1 ORDER BY s.created_at DESC LIMIT 200`, [scope.orgId])).rows);
+    WHERE s.org_id=$1 AND s.archived_at IS NULL ORDER BY s.created_at DESC LIMIT 200`, [scope.orgId])).rows);
 }

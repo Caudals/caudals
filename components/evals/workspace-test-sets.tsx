@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GitFork, ListChecks } from "lucide-react";
+import { GitFork, ListChecks, Pencil, Trash2 } from "lucide-react";
 import type { CefCase } from "@/lib/evals/contracts/cases";
 import { evalRequest } from "./api";
 import {
@@ -21,7 +21,8 @@ import {
   Time,
   Toolbar,
 } from "./primitives";
-import { Modal, notify } from "./overlays";
+import { ActionMenu, Modal, notify } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
@@ -64,6 +65,7 @@ export function WorkspaceTestSets() {
     setItems(null);
     void reload();
   }, [reload]);
+  const actions = useItemActions(orgId, reload);
 
   const projects = useMemo(() => {
     const unique = new Map<string, string>();
@@ -123,10 +125,15 @@ export function WorkspaceTestSets() {
                 </td>
                 <td className="p-table-action">
                   {canWrite && (
-                    <Action variant="ghost" size="sm" onClick={() => { setForking(item); setForkTitle(`Copy of ${item.title}`.slice(0, 200)); }}>
-                      <GitFork aria-hidden="true" />
-                      {t("fork")}
-                    </Action>
+                    <ActionMenu
+                      label={`${t("moreActions")}: ${item.title}`}
+                      items={[
+                        { label: t("fork"), icon: <GitFork />, onSelect: () => { setForking(item); setForkTitle(`Copy of ${item.title}`.slice(0, 200)); } },
+                        { label: t("rename"), icon: <Pencil />, onSelect: () => actions.rename("test-sets", item.suite_id, item.title) },
+                        { separator: true },
+                        { label: t("delete"), icon: <Trash2 />, tone: "danger", onSelect: () => actions.remove("test-sets", item.suite_id, item.title) },
+                      ]}
+                    />
                   )}
                 </td>
               </tr>
@@ -134,6 +141,7 @@ export function WorkspaceTestSets() {
           </DataTable>
         </>
       )}
+      {actions.dialog}
       <Modal
         open={!!forking}
         onOpenChange={(value) => !value && setForking(null)}

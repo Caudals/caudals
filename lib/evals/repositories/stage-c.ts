@@ -328,9 +328,9 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const evaluations = (
       await db.query(
         `SELECT e.*,p.title AS project_title,p.description AS project_description,
-          COALESCE((SELECT array_agg(s.id ORDER BY s.created_at,s.id) FROM evals.source s WHERE s.org_id=e.org_id AND s.evaluation_id=e.id),ARRAY[]::uuid[]) AS source_ids,
-          (SELECT sr.source_id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_id,
-          (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
+          COALESCE((SELECT array_agg(s.id ORDER BY s.created_at,s.id) FROM evals.source s WHERE s.org_id=e.org_id AND s.evaluation_id=e.id AND s.archived_at IS NULL),ARRAY[]::uuid[]) AS source_ids,
+          (SELECT sr.source_id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id AND s.archived_at IS NULL ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_id,
+          (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id AND s.archived_at IS NULL ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
           (SELECT r.id FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_id,
           (SELECT r.status FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_status,
           (SELECT r.phase FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_phase,
@@ -340,7 +340,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
           (SELECT count(*)::int FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id) AS run_count
          FROM evals.evaluation e
          JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id)
-         WHERE e.org_id=$1 ORDER BY e.updated_at DESC,e.id LIMIT 100`,
+         WHERE e.org_id=$1 AND e.archived_at IS NULL ORDER BY e.updated_at DESC,e.id LIMIT 100`,
         [scope.orgId],
       )
     ).rows;
@@ -368,7 +368,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
          ) cc ON true
          LEFT JOIN evals.runner_identity ri ON ri.org_id=t.org_id AND ri.target_id=t.id
            AND ri.id::text=tr.document->>'runner_id'
-         WHERE t.org_id=$1 ORDER BY t.created_at DESC,t.id LIMIT 100`,
+         WHERE t.org_id=$1 AND t.archived_at IS NULL ORDER BY t.created_at DESC,t.id LIMIT 100`,
         [scope.orgId],
       )
     ).rows;
@@ -387,7 +387,8 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
          JOIN evals.report_revision rr
            ON (rr.org_id,rr.id)=(rp.org_id,rp.current_revision_id)
          JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id)
-         WHERE rp.org_id=$1 AND rp.publication_status='published'
+         WHERE rp.org_id=$1 AND rp.publication_status='published' AND rp.archived_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM evals.evaluation ev WHERE ev.org_id=r.org_id AND ev.id=r.evaluation_id AND ev.archived_at IS NOT NULL)
          ORDER BY rp.updated_at DESC,rp.id LIMIT 100`,
         [scope.orgId],
       )

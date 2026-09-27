@@ -1,0 +1,71 @@
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { randomUUID } from "node:crypto";
+import JSZip from "jszip";
+import { buildReportSnapshot } from "../../lib/evals/reports/contracts";
+import { aggregateRun } from "../../lib/evals/scoring/aggregate";
+import { renderReportDocx } from "../../lib/evals/reports/docx";
+import { fitMaterial } from "../../lib/evals/repositories/automatic-generation";
+import { materialBudgetBytes, routingFor, internalTimeoutMs } from "../../lib/evals/repositories/model-routes";
+import { evalRequest } from "../../components/evals/api";
+
+afterEach(() => vi.unstubAllGlobals());
+
+function snapshot() {
+  const now = new Date().toISOString();
+  const results = [0, 1].map((index) => ({
+    case_revision_id: randomUUID(), title: `Case ${index}`, topic: "fees", severity: "high" as const,
+    outcome: index ? "fail" as const : "pass" as const, assessment_id: `a${index}`, observation_id: randomUUID(),
+    input: "What is the fee?\nPlease answer.", output: index ? "No idea \u0007" : "It is 2%.", rationale: "Compared with the policy.", source_refs: [], review_status: "unreviewed",
+  }));
+  return buildReportSnapshot({
+    schema_version: "1.0", report_revision_id: randomUUID(), run_id: randomUUID(), created_at: now,
+    system: { name: "Synthetic assistant", target_revision_id: randomUUID(), purpose: "Fixture", execution_mode: "deployed_system" },
+    scope: { suite_version_id: randomUUID(), evidence_policy: "source_grounded", started_at: now, finished_at: now, languages: ["en"], review_status: "preliminary" },
+    metrics: aggregateRun(results.map((result, index) => ({ id: result.case_revision_id, familyId: `f${index}`, eligible: true, executionStatus: "succeeded", outcome: result.outcome, severity: "high" }))),
+    findings: [{ id: "f1", title: "Fee answers missing", severity: "high", evidence_strength: "observed", frequency_n: 1, frequency_denominator: 2,
+      observation: "One fee answer was missing.", cause_hypothesis: null, recommendation: "Add the fee table.", assessment_ids: ["a1"] }],
+    results, improvements: [],
+    methodology: { cef_version: "1.0", scorer_version: "v1", grader_revisions: [], rubric_revisions: [], source_revisions: [], sampling: "all", exclusions: [], review_coverage: "none", cost: null, limitations: [] },
+  });
+}
+
+describe("report Word export", () => {
+  it("renders a valid .docx with the report sections and strips control characters", async () => {
+    const bytes = await renderReportDocx(snapshot());
+    expect(bytes.subarray(0, 2).toString()).toBe("PK");
+    const xml = await (await JSZip.loadAsync(bytes)).file("word/document.xml")!.async("string");
+    for (const text of ["Synthetic assistant", "Results at a glance", "Findings", "Fee answers missing", "Interaction evidence", "Methodology and limitations"]) expect(xml).toContain(text);
+    expect(xml).not.toContain("\u0007");
+  });
+});
+
+describe("model routing and context fitting", () => {
+  it("keeps DGX work local and sends commercial work only to the chosen revision", () => {
+    expect(routingFor({ adapter: "dgx", provider_revision_id: "p" })).toEqual({ routing: "local_only", approvedProviderIds: [] });
+    expect(routingFor({ adapter: "openai_compatible", provider_revision_id: "p" })).toEqual({ routing: "approved_providers", approvedProviderIds: ["p"] });
+    expect(internalTimeoutMs({ adapter: "dgx" }, 900_000)).toBe(900_000);
+    expect(internalTimeoutMs({ adapter: "openai_compatible" }, 900_000)).toBe(300_000);
+  });
+
+  it("fits excerpts round-robin across sources within the model budget", () => {
+    const excerpt = "x".repeat(1000);
+    const material = [
+      { sourceRevisionId: "website", anchors: Array.from({ length: 20 }, (_, index) => ({ anchorId: `w${index}`, excerpt })) },
+      { sourceRevisionId: "policy", anchors: [{ anchorId: "p0", excerpt }, { anchorId: "p1", excerpt }] },
+    ];
+    const fitted = fitMaterial(material, 5_000);
+    const ids = fitted.flatMap((source) => source.anchors.map((anchor) => anchor.anchorId));
+    expect(ids).toEqual(expect.arrayContaining(["w0", "p0", "w1", "p1"]));
+    expect(Buffer.byteLength(JSON.stringify(fitted))).toBeLessThanOrEqual(5_200);
+    expect(() => fitMaterial(material, 50)).toThrow(/context window/);
+    expect(materialBudgetBytes({ context_limit: 8192, output_limit: 4096 }, 4096, 2000)).toBe(8192 - 4096 - 1024 - 2000 - 512);
+    expect(materialBudgetBytes({ context_limit: 1_000_000, output_limit: 8192 }, 4096, 0)).toBe(200_000);
+  });
+});
+
+describe("configuration errors reach the person", () => {
+  it("shows the curated message for a missing model instead of a bare reference", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "PROVIDER_UNAVAILABLE", message: "No model is set up for test generation.", request_id: "r-1" } }, { status: 503 })));
+    await expect(evalRequest("/evaluations/x/generate", "POST", {})).rejects.toThrow("No model is set up for test generation.");
+  });
+});

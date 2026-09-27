@@ -13,6 +13,7 @@ import { BrowserJobWorker } from "../../lib/evals/queue/browser-worker";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { checkBrowserDestination } from "./egress-client";
 import { processWebsiteSourceOne } from "./website-source-worker";
+import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
 
 let startupPhase = "configuration";
 let browserBusy = false;
@@ -30,10 +31,8 @@ function safeErrorCode(error: unknown) {
 
 async function main() {
   if (process.env.EVALS_BROWSER_ENABLED !== "true") throw new Error("browser_disabled");
-  const orgs = z
-    .array(z.string().uuid())
-    .min(1)
-    .parse(JSON.parse(process.env.EVALS_BROWSER_ORG_IDS ?? "[]"));
+  const orgs = workerWorkspaces(process.env.EVALS_BROWSER_ORG_IDS);
+  await orgs.refresh();
   const actorId = z.string().min(1).parse(process.env.EVALS_BROWSER_ACTOR_ID);
   const keys = loadKeyring(z.string().min(1).parse(process.env.EVALS_BROWSER_SESSION_KEYRING_FILE));
   const egressHost = z.string().min(1).parse(process.env.EVALS_BROWSER_EGRESS_HOST);
@@ -64,7 +63,7 @@ async function main() {
       { batchSize: 1, pollingIntervalSeconds: 2 },
       async (jobs: any[]) => {
         for (const job of jobs) {
-          if (!orgs.includes(job.data.orgId)) throw new Error("browser_tenant_denied");
+          if (!orgs.has(job.data.orgId)) throw new Error("browser_tenant_denied");
           if (!(await worker.canHandle(job.data))) throw new Error("browser_job_invalid");
           await withBrowserSlot(() => worker.handle(job.data));
         }
@@ -78,7 +77,7 @@ async function main() {
     process.once("SIGINT", stop);
     console.info(JSON.stringify({ event: "browser_worker_ready" }));
     while (!stopping) {
-      for (const orgId of orgs) {
+      for (const orgId of await orgs.refresh()) {
         const tenant = { orgId, actorId };
         startupPhase = "workflow_recovery";
         await worker.recover(tenant);

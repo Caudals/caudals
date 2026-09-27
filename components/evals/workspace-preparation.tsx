@@ -9,10 +9,12 @@
  * or retrying a step never duplicates work.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Globe, Plus, Sparkles, Upload } from "lucide-react";
+import { FileText, Globe, Plus, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { evalRequest } from "./api";
 import { Action, Badge, Field, SectionHeading, SelectField, Status, TextArea } from "./primitives";
+import { notify } from "./overlays";
+import { DeleteDialog, itemRequest } from "./item-actions";
 import { t } from "@/lib/evals/messages/en";
 
 type Evaluation = {
@@ -33,6 +35,20 @@ type SourceDetail = {
   websiteCapture?: { id: string; start_url: string; status: string; reason_code: string | null; source_revision_id: string | null } | null;
 };
 type PreparedSource = { id: string; title: string; revisionId: string; chunks: SourceDetail["chunks"]; kind: "document" | "website" };
+/** Material that is still being read (a website capture or document extraction), or that failed. */
+type PendingSource = { id: string; title: string; kind: "document" | "website"; state: "reading" | "failed"; reason: string | null };
+
+/** Ready, still reading, or failed — from one source detail. */
+function sourceState(id: string, detail: SourceDetail, fallbackRevision: string | null): { ready: PreparedSource } | { pending: PendingSource } {
+  const kind = detail.websiteCapture ? "website" : "document";
+  const title = detail.title ?? (detail.websiteCapture?.start_url || t("document"));
+  const revisionId = detail.websiteCapture
+    ? (detail.websiteCapture.status === "completed" && detail.ingestion?.status === "completed" ? detail.websiteCapture.source_revision_id ?? detail.ingestion.source_revision_id : null)
+    : detail.revisions?.[0]?.id ?? detail.ingestion?.source_revision_id ?? fallbackRevision;
+  if (revisionId) return { ready: { id, title, revisionId, chunks: detail.chunks, kind } };
+  const failed = detail.websiteCapture?.status === "failed" || detail.ingestion?.status === "failed";
+  return { pending: { id, title, kind, state: failed ? "failed" : "reading", reason: detail.websiteCapture?.reason_code ?? detail.ingestion?.reason_code ?? null } };
+}
 type Draft = { suiteId: string; suiteVersionId: string; suiteDraftVersion: number };
 type ContextQuestion = { id: string; field: string; question: string; critical: boolean; status: string };
 type CasePreview = { caseRevisionId: string; question: string; approvedAnswer: string; sourceExcerpt: string | null };
@@ -76,6 +92,8 @@ export function PrepareEvaluation({
   onReady: () => Promise<void>;
 }) {
   const [sources, setSources] = useState<PreparedSource[]>([]);
+  const [pendingSources, setPendingSources] = useState<PendingSource[]>([]);
+  const [removing, setRemoving] = useState<{ id: string; title: string } | null>(null);
   const [sourcesLoading, setSourcesLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [casePreviews, setCasePreviews] = useState<CasePreview[]>([]);
@@ -114,21 +132,14 @@ export function PrepareEvaluation({
     }
     let live = true;
     void Promise.all(
-      sourceIds.map(async (id): Promise<PreparedSource | null> => {
-        const detail = await evalRequest<SourceDetail>(`/sources/${id}?orgId=${orgId}`);
-        const revisionId =
-          detail.revisions?.[0]?.id ??
-          detail.ingestion?.source_revision_id ??
-          (id === evaluation.latest_source_id ? evaluation.latest_source_revision_id : null);
-        return revisionId
-          ? { id, title: detail.title ?? t("document"), revisionId, chunks: detail.chunks, kind: detail.websiteCapture ? "website" : "document" }
-          : null;
-      }),
+      sourceIds.map(async (id) =>
+        sourceState(id, await evalRequest<SourceDetail>(`/sources/${id}?orgId=${orgId}`), id === evaluation.latest_source_id ? evaluation.latest_source_revision_id : null)),
     )
       .then((items) => {
         if (!live) return;
-        const prepared = items.filter((item): item is PreparedSource => item !== null);
+        const prepared = items.flatMap((item) => ("ready" in item ? [item.ready] : []));
         setSources(prepared);
+        setPendingSources(items.flatMap((item) => ("pending" in item ? [item.pending] : [])));
         setAnchor((current) => current || prepared[0]?.chunks[0]?.id || "");
       })
       .catch(() => {
@@ -141,6 +152,45 @@ export function PrepareEvaluation({
       live = false;
     };
   }, [evaluation.id, evaluation.source_ids, evaluation.latest_source_id, evaluation.latest_source_revision_id, orgId]);
+
+  // Websites and large documents keep reading in the background, even after a reload.
+  const reading = pendingSources.filter((item) => item.state === "reading").map((item) => item.id).join(",");
+  useEffect(() => {
+    if (!reading) return;
+    let live = true;
+    const timer = window.setTimeout(async () => {
+      for (const id of reading.split(",")) {
+        try {
+          const state = sourceState(id, await evalRequest<SourceDetail>(`/sources/${id}?orgId=${orgId}`), null);
+          if (!live) return;
+          if ("ready" in state) {
+            setPendingSources((current) => current.filter((item) => item.id !== id));
+            remember(state.ready);
+            void onReady();
+          } else if (state.pending.state === "failed") {
+            setPendingSources((current) => current.map((item) => (item.id === id ? state.pending : item)));
+          }
+        } catch {
+          /* try again on the next tick */
+        }
+      }
+      // A fresh array identity re-arms this effect for the next tick.
+      if (live) setPendingSources((current) => [...current]);
+    }, 3_000);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading, orgId, pendingSources]);
+
+  async function removeSource(id: string) {
+    await itemRequest("sources", id, orgId, "DELETE");
+    setSources((current) => current.filter((item) => item.id !== id));
+    setPendingSources((current) => current.filter((item) => item.id !== id));
+    setAnchor("");
+    await onReady();
+  }
 
   function remember(item: PreparedSource) {
     setSources((current) => {
@@ -208,22 +258,12 @@ export function PrepareEvaluation({
     try {
       const input = { orgId, evaluationId: evaluation.id, projectId: evaluation.project_id, url: websiteUrl.trim(), rights: websiteRights };
       const started = await evalRequest<{ sourceId: string; jobId: string }>("/sources/websites", "POST", input, await stableKey("website-source", input));
-      let prepared: PreparedSource | null = null;
-      for (let attempt = 0; attempt < 150; attempt++) {
-        const detail = await evalRequest<SourceDetail>(`/sources/${started.sourceId}?orgId=${orgId}`);
-        if (detail.websiteCapture?.status === "failed") throw new Error(t("websiteCaptureFailed"));
-        if (detail.websiteCapture?.status === "completed" && detail.ingestion?.status === "completed") {
-          const revisionId = detail.websiteCapture.source_revision_id ?? detail.ingestion.source_revision_id;
-          if (revisionId) prepared = { id: started.sourceId, title: detail.title ?? websiteUrl.trim(), revisionId, chunks: detail.chunks, kind: "website" };
-          break;
-        }
-        await wait(2_000);
-      }
-      if (!prepared) throw new Error(t("websiteStillQueued"));
-      remember(prepared);
+      // Reading continues in the background; the list shows its progress.
+      setPendingSources((current) => [...current.filter((item) => item.id !== started.sourceId), { id: started.sourceId, title: websiteUrl.trim(), kind: "website", state: "reading", reason: null }]);
+      notify(t("websiteReadingStarted"));
       setWebsiteUrl("");
       setShowWebsite(false);
-      await onReady();
+      void onReady();
     } catch (value) {
       setError(value instanceof Error ? value.message : t("websiteCaptureFailed"));
     } finally {
@@ -468,7 +508,7 @@ export function PrepareEvaluation({
 
       <section className="p-section p-section-first">
         <SectionHeading title={t("referenceMaterial")}>{t("referenceMaterialHelp")}</SectionHeading>
-        {sources.length > 0 && (
+        {sources.length + pendingSources.length > 0 && (
           <ul className="p-files">
             {sources.map((item) => (
               <li key={item.id}>
@@ -480,9 +520,28 @@ export function PrepareEvaluation({
                 <Badge tone="pass" dot>
                   {t("ready")}
                 </Badge>
+                <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
+              </li>
+            ))}
+            {pendingSources.map((item) => (
+              <li key={item.id}>
+                {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                <span className="p-files-name">{item.title}</span>
+                <span className="p-cell-meta">
+                  {item.state === "failed" ? (item.reason ? humanizeReason(item.reason) : t("websiteCaptureFailed")) : item.kind === "website" ? t("websiteReadingHelp") : t("documentReadingHelp")}
+                </span>
+                {item.state === "failed" ? (
+                  <Badge tone="fail" dot>{t("failedLabel")}</Badge>
+                ) : (
+                  <Badge tone="info" dot live>{item.kind === "website" ? t("readingWebsite") : t("readingDocument")}</Badge>
+                )}
+                <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
               </li>
             ))}
           </ul>
+        )}
+        {removing && (
+          <DeleteDialog kind="sources" name={removing.title} onClose={() => setRemoving(null)} onConfirm={() => removeSource(removing.id)} />
         )}
         {!sources.length && sourcesLoading && <p className="p-cell-meta">{t("loading")}</p>}
         <form className="p-drop" onSubmit={upload}>
@@ -493,12 +552,10 @@ export function PrepareEvaluation({
             <input ref={fileInput} type="file" accept={ACCEPT} multiple onChange={(event) => setFiles(Array.from(event.target.files ?? []))} aria-label={t("chooseDocuments")} />
           </label>
           <div className="p-drop-actions">
-            {!sources.some((item) => item.kind === "website") && (
-              <Action variant="ghost" size="sm" onClick={() => setShowWebsite((value) => !value)} aria-expanded={showWebsite}>
-                <Globe aria-hidden="true" />
-                {t("addWebsite")}
-              </Action>
-            )}
+            <Action variant="ghost" size="sm" onClick={() => setShowWebsite((value) => !value)} aria-expanded={showWebsite}>
+              <Globe aria-hidden="true" />
+              {t("addWebsite")}
+            </Action>
             <span className="p-toolbar-spacer" />
             <Action type="submit" variant="secondary" disabled={!files.length || !!pending}>
               {pending === "upload" ? t("uploadingExtracting") : t("addDocuments")}
@@ -570,7 +627,7 @@ export function PrepareEvaluation({
               <Sparkles aria-hidden="true" />
               {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
             </Action>
-            <span className="p-cell-meta">{sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>
+            <span className="p-cell-meta">{pendingSources.some((item) => item.state === "reading") ? t("generateWaitForReading") : sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>
           </div>
         )}
 
@@ -616,4 +673,25 @@ export function PrepareEvaluation({
       </section>
     </div>
   );
+}
+
+function RemoveSourceButton({ title, disabled, onClick }: { title: string; disabled: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" data-size="sm" aria-label={`${t("removeSource")}: ${title}`} title={t("removeSource")} disabled={disabled} onClick={onClick}>
+      <X aria-hidden="true" />
+    </button>
+  );
+}
+
+function humanizeReason(reason: string) {
+  const known: Record<string, string> = {
+    website_capture_unavailable: "The website could not be read. It may block automated visitors; try a specific page, or upload the content as a document.",
+    website_page_unavailable: "The first page did not load.",
+    website_text_unavailable: "No readable text was found on that page.",
+    website_redirect_scope_denied: "The page redirects to another site. Use the final address.",
+    destination_denied: "That address is not reachable from Caudals.",
+    website_url_invalid: "Use a public https:// address without query strings.",
+    website_worker_interrupted: "Reading was interrupted. Remove it and add it again.",
+  };
+  return known[reason] ?? reason.replaceAll("_", " ");
 }

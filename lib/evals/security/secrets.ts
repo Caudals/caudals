@@ -71,6 +71,11 @@ export function connectionSecretScope(accountId:string):SecretScope {
  * after a reservation exists, and only inside the inference worker.
  */
 export async function connectionInvocationSecret(client:PoolClient,orgId:string,attemptId:string,fence:string,keys:Keyring):Promise<Buffer|undefined> {
+  // Revisions registered before provider connections (or keyless endpoints) carry no connection key.
+  if(!(await client.query("SELECT to_regclass('evals.provider_connection') AS present")).rows[0].present) return undefined;
+  const connected=(await client.query(`SELECT 1 FROM evals.execution_attempt a JOIN evals.provider_revision p ON p.id=a.provider_revision_id
+    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter WHERE a.org_id=$1 AND a.id=$2`,[orgId,attemptId])).rowCount;
+  if(!connected) return undefined;
   const row=(await client.query(`SELECT c.account_id,c.envelope FROM evals.execution_attempt a
     JOIN evals.workflow_step s ON (s.org_id,s.id)=(a.org_id,a.step_id)
     JOIN evals.budget_reservation b ON (b.org_id,b.attempt_id)=(a.org_id,a.id)

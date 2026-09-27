@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { writeFileSync } from "node:fs";
 import { getEvalsPool } from "../../lib/evals/repositories/db";
+import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { tickSchedules } from "../../lib/evals/monitoring/schedules";
 import { tickScheduledAlerts } from "../../lib/evals/monitoring/alerts";
@@ -14,7 +15,8 @@ import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, 
 async function main() {
   if (process.env.EVALS_SCHEDULES_ENABLED !== "true") throw new Error("schedules_disabled");
   z.enum(["production", "development"]).parse(process.env.EVALS_ENV);
-  const orgs = z.array(z.string().uuid()).min(1).parse(JSON.parse(process.env.EVALS_WORKER_ORG_IDS ?? "[]"));
+  const orgs = workerWorkspaces(process.env.EVALS_WORKER_ORG_IDS);
+  await orgs.refresh();
   const keyFile = z.string().min(1).parse(process.env.EVALS_WEBHOOK_KEYRING_FILE);
   const actorId = z.string().min(1).parse(process.env.EVALS_SCHEDULER_ACTOR_ID);
   const keys = loadKeyring(keyFile);
@@ -28,13 +30,13 @@ async function main() {
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
-  console.info(JSON.stringify({ event: "scheduler_ready", workspaces: orgs.length }));
+  console.info(JSON.stringify({ event: "scheduler_ready", workspaces: orgs.current().length }));
   try {
     while (!stopping) {
       if (Date.now() - lastTick >= 60_000) {
         lastTick = Date.now();
         let healthy = true;
-        for (const orgId of orgs) {
+        for (const orgId of await orgs.refresh()) {
           try {
             const scope = { orgId, actorId };
             await tickSchedules(scope);

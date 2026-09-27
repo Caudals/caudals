@@ -1171,6 +1171,17 @@ export const messages = {
   removeSource: "Remove source",
   removeSourceHelp: "It will be removed from this workspace. Existing tests generated from it are kept.",
   sourceRemoved: "Source removed.",
+  downloadPdfDocument: "PDF document",
+  downloadWordDocument: "Word document (.docx)",
+  printReport: "Print or save as PDF",
+  deleteWorkspace: "Delete workspace",
+  websiteReadingStarted: "Reading the website. You can keep working or close this page.",
+  websiteReadingHelp: "Reading up to 25 pages · usually 1–3 minutes",
+  documentReadingHelp: "Extracting text",
+  readingWebsite: "Reading",
+  readingDocument: "Extracting",
+  failedLabel: "Failed",
+  generateWaitForReading: "Material is still being read. Wait for it to be ready to include it in the tests.",
 } as const;
 export type MessageKey = keyof typeof messages;
 export function t(key: MessageKey): string {

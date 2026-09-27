@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Code2, FileSpreadsheet, FlaskConical, Globe, Inbox, Plus, Terminal } from "lucide-react";
+import { Code2, FileSpreadsheet, FlaskConical, Globe, Inbox, Pencil, Plus, Terminal, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
 import {
   Action,
@@ -22,7 +22,8 @@ import {
   Toolbar,
 } from "./primitives";
 import { Meter, percent } from "./charts";
-import { CopyField } from "./overlays";
+import { ActionMenu, CopyField } from "./overlays";
+import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { evaluationStage } from "./evaluation-stage";
@@ -34,9 +35,10 @@ type Filter = "all" | "action" | "progress" | "done";
 
 export function WorkspaceEvaluations() {
   const { orgId, workspace, canWrite, withOrg } = useWorkspace();
-  const { summary, error, retry, loading } = useWorkspaceSummary(orgId);
+  const { summary, error, retry, loading, reload } = useWorkspaceSummary(orgId);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const items = useItemActions(orgId, reload);
 
   const rows = useMemo(() => {
     if (!summary) return [];
@@ -108,7 +110,7 @@ export function WorkspaceEvaluations() {
           {visible.length ? (
             <DataTable
               caption={t("product")}
-              headers={[t("evaluation"), t("statusLabel"), t("latestResult"), { label: t("updated"), align: "end" }]}
+              headers={[t("evaluation"), t("statusLabel"), t("latestResult"), { label: t("updated"), align: "end" }, ...(canWrite ? [{ label: t("actions"), align: "end" as const, hidden: true }] : [])]}
             >
               {visible.map(({ evaluation, report, system, stage }) => (
                 <tr key={evaluation.id}>
@@ -133,6 +135,18 @@ export function WorkspaceEvaluations() {
                   <td className="p-table-action p-cell-meta">
                     <Time value={evaluation.updated_at ?? evaluation.created_at ?? null} />
                   </td>
+                  {canWrite && (
+                    <td className="p-table-action">
+                      <ActionMenu
+                        label={`${t("moreActions")}: ${evaluation.title}`}
+                        items={[
+                          { label: t("rename"), icon: <Pencil />, onSelect: () => items.rename("evaluations", evaluation.id, evaluation.title) },
+                          { separator: true },
+                          { label: t("delete"), icon: <Trash2 />, tone: "danger", onSelect: () => items.remove("evaluations", evaluation.id, evaluation.title) },
+                        ]}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </DataTable>
@@ -143,6 +157,7 @@ export function WorkspaceEvaluations() {
           )}
         </>
       )}
+      {items.dialog}
     </>
   );
 }

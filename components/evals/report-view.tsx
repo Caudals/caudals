@@ -664,7 +664,7 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [data, setData] = useState<{ report: { current_revision_id: string | null; publication_status: string }; revisions: ReportRevision[] } | null>(null);
+  const [data, setData] = useState<{ report: { current_revision_id: string | null; publication_status: string; title: string }; revisions: ReportRevision[] } | null>(null);
   const [error, setError] = useState("");
   const [revisionId, setRevisionId] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -744,6 +744,9 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
             onChanged={load}
             onSelectRevision={setRevisionId}
             renderPreview={(snapshot) => <ReportView report={snapshot} />}
+            reportTitle={data.report.title}
+            autoExport={params.get("export") === "pdf"}
+            onDeleted={() => router.push(withOrg("/workspace/reports"))}
           />
         }
       />
