@@ -19,7 +19,7 @@ describe("buildAlternates", () => {
   it("lists every locale plus x-default", () => {
     expect(buildAlternates("/contact", "en", toAbsoluteUrl).languages).toEqual({
       en: "https://caudals.com/en/contact",
-      es: "https://caudals.com/es/contact",
+      es: "https://caudals.com/es/contacto",
       "x-default": "https://caudals.com/en/contact",
     });
   });

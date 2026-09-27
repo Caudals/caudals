@@ -76,7 +76,7 @@ describe("proxy locale routing", () => {
 
     expect(response.status).toBe(307);
     expect(new URL(response.headers.get("location") ?? "").pathname).toBe(
-      "/es/call",
+      "/es/llamada",
     );
   });
 
@@ -127,9 +127,17 @@ describe("proxy locale routing", () => {
   });
 
   it("serves a path that already carries a locale without redirecting", async () => {
-    const response = await proxy(marketingRequest("/es/call"));
+    const response = await proxy(marketingRequest("/es/llamada"));
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
+
+    // The English path under the Spanish prefix, e.g. from an older link,
+    // redirects permanently to the Spanish one.
+    const legacy = await proxy(marketingRequest("/es/call?utm_source=email"));
+    expect(legacy.status).toBe(308);
+    const location = new URL(legacy.headers.get("location") ?? "");
+    expect(location.pathname).toBe("/es/llamada");
+    expect(location.search).toBe("?utm_source=email");
   });
 
   it("answers an unsupported language prefix with a 404", async () => {

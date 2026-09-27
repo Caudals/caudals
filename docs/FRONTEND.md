@@ -45,7 +45,9 @@ translated; `/admin`, `/auth/*` and the evaluation surface are English-only.
   each language is indexed independently.
 - An unprefixed public path is redirected once (307) by `proxy.ts` to the
   negotiated locale. An unsupported language prefix (`/fr/blog`) is a 404.
-- Some pages translate their path: `/es/sectores/seguros` is `/en/sectors/insurance`.
+- Some pages translate their path: `/es/sectores/seguros` is `/en/sectors/insurance`,
+  and the Spanish funnel and legal pages are `/es/contacto`, `/es/llamada`,
+  `/es/legal/privacidad`, `/es/legal/terminos` and `/es/legal/aviso-legal`.
   Code always names a page by its internal path (the folder under `app/[locale]`,
   e.g. `/sectors/insurance`); `localizePathname` produces the public form,
   `TRANSLATED_PATHS` in `lib/i18n/routing.ts` defines the pairs, and the proxy

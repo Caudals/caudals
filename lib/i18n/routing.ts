@@ -111,7 +111,17 @@ export function splitLocale(pathname: string): {
  * translated form (`/es/sectores/seguros`); the proxy rewrites it back to the
  * internal path. Pages not listed here use the same path in every locale.
  */
+/** Funnel and legal pages whose Spanish path is its own word. */
+const PAGE_PATHS: readonly (readonly [string, Record<Locale, string>])[] = [
+  ["/contact", { en: "/contact", es: "/contacto" }],
+  ["/call", { en: "/call", es: "/llamada" }],
+  ["/legal/privacy", { en: "/legal/privacy", es: "/legal/privacidad" }],
+  ["/legal/terms", { en: "/legal/terms", es: "/legal/terminos" }],
+  ["/legal/notice", { en: "/legal/notice", es: "/legal/aviso-legal" }],
+];
+
 const TRANSLATED_PATHS: ReadonlyMap<string, Record<Locale, string>> = new Map([
+  ...PAGE_PATHS,
   [
     SECTORS_HUB_PATH,
     Object.fromEntries(

@@ -132,14 +132,14 @@ describe("translated paths", () => {
     expect(toInternalPathname("/sectores/seguros", "es")).toBe("/sectors/insurance");
     expect(toInternalPathname("/sectores", "es")).toBe("/sectors");
     // Untranslated and already-internal paths pass through.
-    expect(toInternalPathname("/contact", "es")).toBe("/contact");
+    expect(toInternalPathname("/blog", "es")).toBe("/blog");
     expect(toInternalPathname("/sectors/insurance", "es")).toBe("/sectors/insurance");
-    expect(toPublicPathname("/contact", "es")).toBe("/contact");
+    expect(toPublicPathname("/blog", "es")).toBe("/blog");
   });
 
   it("recognises a slug typed under the wrong language", () => {
     expect(findInternalPathnameInAnyLocale("/sectores/banca")).toBe("/sectors/banking");
-    expect(findInternalPathnameInAnyLocale("/contact")).toBeNull();
+    expect(findInternalPathnameInAnyLocale("/blog")).toBeNull();
   });
 
   it("keeps the reader on the same sector when switching language", () => {
@@ -147,5 +147,24 @@ describe("translated paths", () => {
     expect(switchLocalePathname("/en/sectors/insurance", "es")).toBe("/es/sectores/seguros");
     // The internal form (what a rewritten request may report) switches the same way.
     expect(switchLocalePathname("/es/sectors/insurance", "en")).toBe("/en/sectors/insurance");
+  });
+});
+
+describe("translated funnel and legal paths", () => {
+  it("uses Spanish words for the Spanish funnel and legal pages", () => {
+    expect(localizePathname("/contact", "es")).toBe("/es/contacto");
+    expect(localizePathname("/contact", "en")).toBe("/en/contact");
+    expect(localizePathname("/call", "es")).toBe("/es/llamada");
+    expect(localizePathname("/legal/privacy", "es")).toBe("/es/legal/privacidad");
+    expect(localizePathname("/legal/terms", "es")).toBe("/es/legal/terminos");
+    expect(localizePathname("/legal/notice", "es")).toBe("/es/legal/aviso-legal");
+    expect(localizePathname("/legal/cookies", "es")).toBe("/es/legal/cookies");
+  });
+
+  it("maps the Spanish paths back to their routes", () => {
+    expect(toInternalPathname("/contacto", "es")).toBe("/contact");
+    expect(toInternalPathname("/legal/aviso-legal", "es")).toBe("/legal/notice");
+    expect(switchLocalePathname("/es/llamada", "en")).toBe("/en/call");
+    expect(switchLocalePathname("/en/legal/privacy", "es")).toBe("/es/legal/privacidad");
   });
 });
