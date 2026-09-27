@@ -13,7 +13,7 @@ import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionAnchor, Badge, Check, DataTable, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
-import { t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/en";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 
 export type ReportRevision = { id: string; run_id: string; review_status: string; created_at: string; snapshot: ReportSnapshot };
@@ -97,7 +97,7 @@ export function ReportActions({
   const exportPdf = useCallback(async () => {
     setError("");
     try {
-      const job = await evalRequest<ExportJob>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind: "pdf" }, crypto.randomUUID());
+      const job = await evalRequest<ExportJob>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind: "pdf", locale: getLocale() }, crypto.randomUUID());
       if (job.status === "completed" && (job as ExportJob & { artifact_id?: string }).artifact_id) {
         window.location.assign(named(`/api/evals/v1/report-artifacts/${(job as ExportJob & { artifact_id?: string }).artifact_id}?orgId=${encodeURIComponent(orgId)}`));
         return;
@@ -111,7 +111,7 @@ export function ReportActions({
   async function exportFile(kind: "csv" | "cef" | "docx") {
     setError("");
     try {
-      const artifact = await evalRequest<{ artifactId: string }>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind }, crypto.randomUUID());
+      const artifact = await evalRequest<{ artifactId: string }>("/exports", "POST", { orgId, reportRevisionId: revision.id, kind, locale: getLocale() }, crypto.randomUUID());
       window.location.assign(named(`/api/evals/v1/report-artifacts/${artifact.artifactId}?orgId=${encodeURIComponent(orgId)}`));
     } catch (reason) {
       setError(message(reason));

@@ -69,3 +69,31 @@ describe("configuration errors reach the person", () => {
     await expect(evalRequest("/evaluations/x/generate", "POST", {})).rejects.toThrow("No model is set up for test generation.");
   });
 });
+
+describe("Spanish interface and exports", () => {
+  it("translates interface strings, keeps English as the fallback and localizes generated report text", async () => {
+    const { t, setLocale } = await import("../../lib/evals/messages/en");
+    const { localizeReportText } = await import("../../lib/evals/reports/i18n");
+    expect(t("generateTestSet", "es")).toBe("Generar conjunto de pruebas");
+    setLocale("es");
+    expect(t("settings")).toBe("Ajustes");
+    setLocale("en");
+    expect(t("settings")).toBe("Settings");
+    expect(localizeReportText("3 assessed results showed criterion failure.", "es")).toBe("3 resultados evaluados mostraron incumplimiento de criterios.");
+    expect(localizeReportText("Refunds failures: 2 of 5 relevant assessed results.", "es")).toBe("Fallos en Refunds: 2 de 5 resultados evaluados relevantes.");
+    expect(localizeReportText("A customer wrote this.", "es")).toBe("A customer wrote this.");
+  });
+
+  it("renders the PDF document and the Word report in Spanish", async () => {
+    const { renderReportDocument } = await import("../../lib/evals/reports/document");
+    const html = renderReportDocument(snapshot(), "es");
+    expect(html).toContain('lang="es"');
+    expect(html).toContain("Informe de evaluación");
+    expect(html).toContain("Tasa de acierto estricta");
+    expect(html).toContain("What is the fee?"); // recorded content keeps its words
+    expect(renderReportDocument(snapshot())).toContain("Evaluation report");
+    const xml = await (await JSZip.loadAsync(await renderReportDocx(snapshot(), "es"))).file("word/document.xml")!.async("string");
+    expect(xml).toContain("Resultados de un vistazo");
+    expect(xml).toContain("Evidencia de las interacciones");
+  });
+});

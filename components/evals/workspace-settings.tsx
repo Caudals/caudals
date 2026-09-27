@@ -10,6 +10,7 @@ import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { WorkspaceDeletion } from "./workspace-deletion";
 import { EngineSettings } from "./engine-settings";
+import { LocaleSwitch } from "./locale";
 import { RenameDialog } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
@@ -107,6 +108,9 @@ function General({ summary, orgId, workspaceName, role, canRename }: { summary: 
             }}
           />
         )}
+      </SettingsRow>
+      <SettingsRow title={t("language")} description={t("languageHelp")}>
+        <LocaleSwitch compact />
       </SettingsRow>
       <SettingsRow title={t("yourRole")} description={t("yourRoleHelp")}>
         <Badge>{t((role || "viewer") as "owner" | "editor" | "viewer" | "operator")}</Badge>

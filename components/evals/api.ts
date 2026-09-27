@@ -1,4 +1,5 @@
 import { t } from "@/lib/evals/messages/en";
+import { trServer } from "@/lib/evals/messages/phrases";
 export class EvalRequestError extends Error {
   constructor(
     public status: number,
@@ -22,7 +23,7 @@ function getSafeErrorMessage(status: number, code: string, serverMessage?: strin
   if (status === 401) return t("expired");
   if (status === 403) return t("forbidden");
   if (status === 404) return t("notFound");
-  if (status >= 400 && status < 500 && serverMessage && !/^Check the supplied fields\.?$/.test(serverMessage) && !code.startsWith("INVITATION_")) return serverMessage;
+  if (status >= 400 && status < 500 && serverMessage && !/^Check the supplied fields\.?$/.test(serverMessage) && !code.startsWith("INVITATION_")) return trServer(serverMessage);
   if (
     [
       "INVITATION_INVALID",
@@ -34,7 +35,7 @@ function getSafeErrorMessage(status: number, code: string, serverMessage?: strin
   if (status === 409) return t("reloadAndRetry");
   if (status === 429) return t("tryAgainShortly");
   // Configuration gaps (no model, no budget) carry a curated sentence that tells the person what to do.
-  if (status === 503 && serverMessage && ["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code)) return serverMessage;
+  if (status === 503 && serverMessage && ["PROVIDER_UNAVAILABLE", "BUDGET_UNAVAILABLE"].includes(code)) return trServer(serverMessage);
   if (status >= 500) return t("error");
   return t("checkDetails");
 }

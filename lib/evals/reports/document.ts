@@ -10,6 +10,7 @@
  */
 import type { ReportSnapshot } from "./contracts";
 import { GEIST_MONO_WOFF2, GEIST_WOFF2 } from "./fonts";
+import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
 
 type Result = ReportSnapshot["results"][number];
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
@@ -43,13 +44,15 @@ const TONE: Record<string, string> = { pass: "pass", partial: "warn", fail: "fai
 export function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 }
-const plain = (value: string) => LABEL[value] ?? value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
+// The language of the document being rendered. Rendering is synchronous, so
+// setting it at the start of renderReportDocument is safe.
+let locale: ReportLocale = "en";
+let S = reportStrings("en");
+const tx = (text: string) => localizeReportText(text, locale);
+const plain = (value: string) => reportLabel(LABEL[value] ?? value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase()), locale);
 const label = (value: string) => escapeHtml(plain(value));
 const pct = (value: number | null | undefined, digits = 0) => (value == null ? "—" : `${(value * 100).toFixed(digits)}%`);
-const day = (value: string) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? escapeHtml(value) : date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-};
+const day = (value: string) => escapeHtml(reportDate(value, locale));
 const chip = (value: string, tone = TONE[value] ?? "neutral") => `<span class="chip" data-tone="${tone}">${label(value)}</span>`;
 const LOGO = `<svg class="mark" viewBox="0 0 1080 1080" aria-hidden="true"><path d="M77 221.441C77 199.892 99.045 185.37 118.844 193.877L304.477 273.638C315.493 278.372 322.633 289.211 322.633 301.202V752.494C322.633 764.484 315.493 775.323 304.477 780.056L118.844 859.818C99.045 868.325 77 853.804 77 832.254V221.441Z"/><path d="M417.621 129.676C417.621 106.723 442.348 92.272 462.347 103.538L647.979 208.115C657.415 213.432 663.254 223.422 663.254 234.253V842.707C663.254 853.538 657.415 863.529 647.979 868.845L462.347 973.421C442.348 984.687 417.621 970.237 417.621 947.283V129.676Z"/><path d="M758.242 45.05C758.242 21.006 785.112 6.732 805.036 20.192L990.668 145.597C998.926 151.176 1003.87 160.49 1003.87 170.456V910.272C1003.87 920.238 998.926 929.553 990.668 935.131L805.036 1060.54C785.112 1074 758.242 1059.72 758.242 1035.68V45.05Z"/></svg>`;
 
@@ -59,8 +62,8 @@ function outcomeBar(counts: Record<"pass" | "partial" | "fail" | "unscorable", n
   const segments = total
     ? order.filter((key) => counts[key]).map((key) => `<span data-tone="${TONE[key]}" style="width:${((counts[key] / total) * 100).toFixed(3)}%"></span>`).join("")
     : `<span data-tone="empty" style="width:100%"></span>`;
-  const legend = order.map((key) => `<li><i data-tone="${TONE[key]}"></i>${LABEL[key]} <b>${counts[key]}</b></li>`).join("");
-  return `<div class="bar" role="img" aria-label="${order.map((key) => `${counts[key]} ${LABEL[key].toLowerCase()}`).join(", ")}">${segments}</div><ul class="legend">${legend}</ul>`;
+  const legend = order.map((key) => `<li><i data-tone="${TONE[key]}"></i>${plain(key)} <b>${counts[key]}</b></li>`).join("");
+  return `<div class="bar" role="img" aria-label="${order.map((key) => `${counts[key]} ${plain(key).toLowerCase()}`).join(", ")}">${segments}</div><ul class="legend">${legend}</ul>`;
 }
 
 function rateRows(rows: Array<{ label: string; pass: number; total: number }>) {
@@ -80,7 +83,9 @@ function pre(value: string) {
   return `<pre>${escapeHtml(value)}</pre>`;
 }
 
-export function renderReportDocument(report: ReportSnapshot): string {
+export function renderReportDocument(report: ReportSnapshot, language: ReportLocale = "en"): string {
+  locale = language;
+  S = reportStrings(language);
   const m = report.metrics;
   const results = report.results;
   const findings = bySeverity(report.findings);
@@ -96,7 +101,7 @@ export function renderReportDocument(report: ReportSnapshot): string {
   const topics = [...topicMap.entries()].map(([topic, value]) => ({ label: plain(topic), pass: value.pass, total: value.total })).sort((a, b) => a.pass / a.total - b.pass / b.total);
   const severities = SEVERITY.map((level) => {
     const scope = scored.filter((item) => item.severity === level);
-    return { label: LABEL[level], pass: scope.filter((item) => item.outcome === "pass").length, total: scope.length };
+    return { label: plain(level), pass: scope.filter((item) => item.outcome === "pass").length, total: scope.length };
   }).filter((row) => row.total);
   const matrix = SEVERITY.map((level) => ({ level, counts: OUTCOME_ORDER.map((outcome) => results.filter((item) => item.severity === level && item.outcome === outcome).length) })).filter((row) => row.counts.some(Boolean));
   const criticalFailed = results.filter((item) => item.severity === "critical" && (item.outcome === "fail" || item.outcome === "partial")).length;
@@ -113,33 +118,33 @@ export function renderReportDocument(report: ReportSnapshot): string {
   const dates = day(report.scope.started_at) === day(report.scope.finished_at) ? day(report.scope.started_at) : `${day(report.scope.started_at)} – ${day(report.scope.finished_at)}`;
 
   const takeaways = report.takeaways.length
-    ? `<section class="block keep"><h2>Key takeaways</h2><ol class="takeaways">${report.takeaways.map((item) => `<li><p>${escapeHtml(item.text)}</p>${item.assessment_ids.length ? `<span class="ref">Evidence: ${refs(item.assessment_ids)}</span>` : ""}</li>`).join("")}</ol></section>`
+    ? `<section class="block keep"><h2>${S.keyTakeaways}</h2><ol class="takeaways">${report.takeaways.map((item) => `<li><p>${escapeHtml(tx(item.text))}</p>${item.assessment_ids.length ? `<span class="ref">${S.evidence}: ${refs(item.assessment_ids)}</span>` : ""}</li>`).join("")}</ol></section>`
     : "";
 
   const findingBlocks = findings.length
     ? findings
         .map(
           (finding, index) => `<article class="finding">
-  <header><span class="index">F${index + 1}</span><h3>${escapeHtml(finding.title)}</h3>${chip(finding.severity)}</header>
-  <p class="facts">${finding.frequency_n} of ${finding.frequency_denominator} relevant results · Evidence: ${escapeHtml(finding.evidence_strength.replaceAll("_", " "))}${finding.assessment_ids.length ? ` · Tests ${refs(finding.assessment_ids)}` : ""}</p>
+  <header><span class="index">F${index + 1}</span><h3>${escapeHtml(tx(finding.title))}</h3>${chip(finding.severity)}</header>
+  <p class="facts">${finding.frequency_n} of ${finding.frequency_denominator} ${S.relevantResults} · ${S.evidence}: ${escapeHtml(finding.evidence_strength.replaceAll("_", " "))}${finding.assessment_ids.length ? ` · ${S.tests} ${refs(finding.assessment_ids)}` : ""}</p>
   <dl>
-    <div><dt>Observed</dt><dd>${escapeHtml(finding.observation)}</dd></div>
-    ${finding.cause_hypothesis ? `<div><dt>Hypothesis</dt><dd>${escapeHtml(finding.cause_hypothesis)} <span class="muted">(not a verified root cause)</span></dd></div>` : ""}
-    <div><dt>Recommended action</dt><dd>${escapeHtml(finding.recommendation)}</dd></div>
+    <div><dt>${S.observed}</dt><dd>${escapeHtml(tx(finding.observation))}</dd></div>
+    ${finding.cause_hypothesis ? `<div><dt>${S.hypothesis}</dt><dd>${escapeHtml(finding.cause_hypothesis)} <span class="muted">(${S.notVerifiedCause})</span></dd></div>` : ""}
+    <div><dt>${S.recommendedAction}</dt><dd>${escapeHtml(tx(finding.recommendation))}</dd></div>
   </dl>
 </article>`,
         )
         .join("")
-    : `<p class="muted">No supported failure pattern was found in the assessed results.</p>`;
+    : `<p class="muted">${S.noFindings}</p>`;
 
   const improvementRows = improvements.length
-    ? `<table class="grid"><thead><tr><th class="n">#</th><th>Improvement</th><th>Status</th><th>Validation plan</th></tr></thead><tbody>${improvements
+    ? `<table class="grid"><thead><tr><th class="n">#</th><th>${S.improvement}</th><th>${S.status}</th><th>${S.validationPlan}</th></tr></thead><tbody>${improvements
         .map(
           (item) =>
-            `<tr><td class="n">${item.priority}</td><td><b>${escapeHtml(item.title)}</b>${item.owner ? `<br><span class="muted">Owner: ${escapeHtml(item.owner)}</span>` : ""}${item.finding_ids.length ? `<br><span class="muted">Addresses ${item.finding_ids.map((id) => `F${findings.findIndex((f) => f.id === id) + 1}`).filter((v) => v !== "F0").join(", ")}</span>` : ""}</td><td>${label(item.status)}</td><td>${escapeHtml(item.validation_plan)}</td></tr>`,
+            `<tr><td class="n">${item.priority}</td><td><b>${escapeHtml(item.title)}</b>${item.owner ? `<br><span class="muted">${S.owner}: ${escapeHtml(item.owner)}</span>` : ""}${item.finding_ids.length ? `<br><span class="muted">${S.addresses} ${item.finding_ids.map((id) => `F${findings.findIndex((f) => f.id === id) + 1}`).filter((v) => v !== "F0").join(", ")}</span>` : ""}</td><td>${label(item.status)}</td><td>${escapeHtml(item.validation_plan)}</td></tr>`,
         )
         .join("")}</tbody></table>`
-    : `<p class="muted">No improvement tasks have been proposed for this revision.</p>`;
+    : `<p class="muted">${S.noImprovements}</p>`;
 
   const resultRows = ordered
     .map((item) => `<tr><td class="n">T${number.get(item.assessment_id)}</td><td>${escapeHtml(item.title)}<br><span class="muted">${escapeHtml(item.topic.replaceAll("_", " "))}</span></td><td>${chip(item.severity)}</td><td>${chip(item.outcome)}</td><td class="rationale">${escapeHtml(item.rationale)}</td></tr>`)
@@ -149,18 +154,18 @@ export function renderReportDocument(report: ReportSnapshot): string {
     .map(
       (item) => `<article class="evidence">
   <header><span class="index">T${number.get(item.assessment_id)}</span><h3>${escapeHtml(item.title)}</h3>${chip(item.outcome)}${chip(item.severity)}</header>
-  <p class="ids">Case ${escapeHtml(item.case_revision_id)} · Observation ${escapeHtml(item.observation_id)} · Assessment ${escapeHtml(item.assessment_id)}</p>
-  <div class="turn user"><span class="who">Question</span>${pre(item.input)}</div>
-  <div class="turn system"><span class="who">System response</span>${pre(item.output)}</div>
-  <p class="assessment"><b>Assessment.</b> ${escapeHtml(item.rationale)}</p>
-  ${item.source_refs.length ? `<p class="ids">Sources: ${item.source_refs.map((ref) => `${escapeHtml(ref.source_revision_id)}#${escapeHtml(ref.anchor)}`).join(" · ")}</p>` : ""}
+  <p class="ids">${S.caseId} ${escapeHtml(item.case_revision_id)} · ${S.observationId} ${escapeHtml(item.observation_id)} · ${S.assessmentId} ${escapeHtml(item.assessment_id)}</p>
+  <div class="turn user"><span class="who">${S.question}</span>${pre(item.input)}</div>
+  <div class="turn system"><span class="who">${S.systemResponse}</span>${pre(item.output)}</div>
+  <p class="assessment"><b>${S.assessment}.</b> ${escapeHtml(item.rationale)}</p>
+  ${item.source_refs.length ? `<p class="ids">${S.sources}: ${item.source_refs.map((ref) => `${escapeHtml(ref.source_revision_id)}#${escapeHtml(ref.anchor)}`).join(" · ")}</p>` : ""}
 </article>`,
     )
     .join("");
 
-  const limitations = [...report.methodology.limitations, ...report.methodology.exclusions];
+  const limitations = [...report.methodology.limitations, ...report.methodology.exclusions].map(tx);
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(report.system.name)} — Evaluation report</title><style>
+  return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${escapeHtml(report.system.name)} — ${S.evaluationReport}</title><style>
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @page{size:A4;margin:18mm 16mm 20mm}
@@ -263,87 +268,88 @@ ul.plain li{margin:3px 0}
 </style></head><body>
 
 <section class="cover">
-  <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>Evaluation report</span><span class="spacer"></span>${chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral")}<span>${day(report.created_at)}</span></div>
-  <p class="eyebrow">Evaluation of</p>
+  <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>${S.evaluationReport}</span><span class="spacer"></span>${chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral")}<span>${day(report.created_at)}</span></div>
+  <p class="eyebrow">${S.evaluationOf}</p>
   <h1>${escapeHtml(report.system.name)}</h1>
   <p class="lede">${escapeHtml(report.system.purpose)}</p>
   <dl class="meta">
-    <div><dt>Evaluated</dt><dd>${dates}</dd></div>
-    <div><dt>What was tested</dt><dd>${label(report.system.execution_mode)}</dd></div>
-    <div><dt>Evidence policy</dt><dd>${label(report.scope.evidence_policy)}</dd></div>
-    <div><dt>Tests assessed</dt><dd>${m.n_scorable} of ${m.n_eligible} eligible</dd></div>
-    <div><dt>Review status</dt><dd>${label(report.scope.review_status)}</dd></div>
-    <div><dt>Result status</dt><dd>${label(m.headline_status)}</dd></div>
+    <div><dt>${S.evaluated}</dt><dd>${dates}</dd></div>
+    <div><dt>${S.whatWasTested}</dt><dd>${label(report.system.execution_mode)}</dd></div>
+    <div><dt>${S.evidencePolicy}</dt><dd>${label(report.scope.evidence_policy)}</dd></div>
+    <div><dt>${S.testsAssessed}</dt><dd>${m.n_scorable} ${S.of} ${m.n_eligible} ${S.eligible}</dd></div>
+    <div><dt>${S.reviewStatus}</dt><dd>${label(report.scope.review_status)}</dd></div>
+    <div><dt>${S.resultStatus}</dt><dd>${label(m.headline_status)}</dd></div>
   </dl>
-  ${incomplete ? `<div class="alert"><b>Incomplete result.</b> Assessed coverage is below the reporting threshold or a critical test was not assessed. Read these limitations before using the score:${limitations.length ? `<ul>${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</div>` : ""}
+  ${incomplete ? `<div class="alert"><b>${S.incompleteResult}</b> ${S.incompleteHelp}${limitations.length ? `<ul>${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</div>` : ""}
   <div class="headline">
     <div class="score">
-      <span class="k">Strict pass rate</span>
+      <span class="k">${S.strictPassRate}</span>
       <span class="big">${pct(m.strict_pass_rate, 1)}</span>
-      <span class="cap">${m.n_pass} of ${m.n_scorable} assessed tests passed${m.wilson_interval ? ` · 95% interval ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}` : ""}</span>
+      <span class="cap">${m.n_pass} ${S.of} ${m.n_scorable} ${S.assessedTestsPassed}${m.wilson_interval ? ` · ${S.interval95} ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}` : ""}</span>
       <div class="outcomes">${outcomeBar({ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable })}</div>
     </div>
     <div class="kpis">
-      <div><span>Assessed coverage</span><b>${pct(m.assessed_coverage)}<small>${m.n_scorable} of ${m.n_eligible}</small></b></div>
-      <div><span>Critical failures</span><b>${criticalFailed}<small>${m.critical_unassessed ? `${m.critical_unassessed} critical not assessed` : "critical tests failed or partial"}</small></b></div>
-      <div><span>${m.rubric_score != null ? "Rubric score" : "Findings"}</span><b>${m.rubric_score != null ? `${Math.round(m.rubric_score)}/100` : findings.length}<small>${m.rubric_score != null ? "weighted criteria" : "evidence-backed patterns"}</small></b></div>
+      <div><span>${S.assessedCoverage}</span><b>${pct(m.assessed_coverage)}<small>${m.n_scorable} ${S.of} ${m.n_eligible}</small></b></div>
+      <div><span>${S.criticalFailures}</span><b>${criticalFailed}<small>${m.critical_unassessed ? `${m.critical_unassessed} ${S.criticalNotAssessed}` : S.criticalFailedOrPartial}</small></b></div>
+      <div><span>${m.rubric_score != null ? S.rubricScore : S.findings}</span><b>${m.rubric_score != null ? `${Math.round(m.rubric_score)}/100` : findings.length}<small>${m.rubric_score != null ? S.weightedCriteria : S.evidencePatterns}</small></b></div>
     </div>
   </div>
   ${takeaways}
 </section>
 
 <section class="section">
-  <h2><span class="num">1</span>Results at a glance</h2>
-  <p class="lead">Rates count strict passes over assessed tests in each group. Groups with few tests are indicative only.</p>
+  <h2><span class="num">1</span>${S.resultsAtAGlance}</h2>
+  <p class="lead">${S.ratesLead}</p>
   <div class="two">
-    <div><h3 style="font-size:10pt;margin-bottom:6px">By topic</h3>${topics.length ? rateRows(topics) : `<p class="muted">No assessed topics.</p>`}</div>
-    <div><h3 style="font-size:10pt;margin-bottom:6px">By severity</h3>${severities.length ? rateRows(severities) : `<p class="muted">No assessed tests.</p>`}</div>
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.byTopic}</h3>${topics.length ? rateRows(topics) : `<p class="muted">${S.noAssessedTopics}</p>`}</div>
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.bySeverity}</h3>${severities.length ? rateRows(severities) : `<p class="muted">${S.noAssessedTests}</p>`}</div>
   </div>
-  ${matrix.length ? `<div class="block keep"><h3 style="font-size:10pt;margin-bottom:6px">Outcomes by severity</h3><table class="grid"><thead><tr><th>Severity</th>${OUTCOME_ORDER.map((o) => `<th class="c">${LABEL[o]}</th>`).join("")}</tr></thead><tbody>${matrix.map((row) => `<tr><td>${chip(row.level)}</td>${row.counts.map((count) => `<td class="c">${count || '<span class="muted">·</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}
-  <div class="block"><h2><span class="num">2</span>Findings</h2><p class="lead">Patterns supported by the assessed results, most severe first. Hypotheses are labelled as such; they are not verified causes.</p>${findingBlocks}</div>
+  ${matrix.length ? `<div class="block keep"><h3 style="font-size:10pt;margin-bottom:6px">${S.outcomesBySeverity}</h3><table class="grid"><thead><tr><th>${S.severity}</th>${OUTCOME_ORDER.map((o) => `<th class="c">${label(o)}</th>`).join("")}</tr></thead><tbody>${matrix.map((row) => `<tr><td>${chip(row.level)}</td>${row.counts.map((count) => `<td class="c">${count || '<span class="muted">·</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}
+  <div class="block"><h2><span class="num">2</span>${S.findings}</h2><p class="lead">${S.findingsLead}</p>${findingBlocks}</div>
 </section>
 
 <section class="section">
-  <h2><span class="num">3</span>Improvements</h2>
-  <p class="lead">Prioritised changes and how each will be validated with a comparable re-run. Creating a task never changes your system.</p>
+  <h2><span class="num">3</span>${S.improvements}</h2>
+  <p class="lead">${S.improvementsLead}</p>
   ${improvementRows}
-  <div class="block"><h2><span class="num">4</span>Test results</h2><p class="lead">Every assessed test, failures first. The numbers (T1, T2…) match the evidence appendix.</p>
-  <table class="grid"><colgroup><col style="width:9mm"><col style="width:34%"><col style="width:15mm"><col style="width:17mm"><col></colgroup><thead><tr><th class="n">#</th><th>Test</th><th>Severity</th><th>Outcome</th><th>Assessment</th></tr></thead><tbody>${resultRows}</tbody></table></div>
+  <div class="block"><h2><span class="num">4</span>${S.testResults}</h2><p class="lead">${S.testResultsLead}</p>
+  <table class="grid"><colgroup><col style="width:9mm"><col style="width:34%"><col style="width:15mm"><col style="width:17mm"><col></colgroup><thead><tr><th class="n">#</th><th>${S.test}</th><th>${S.severity}</th><th>${S.outcome}</th><th>${S.assessment}</th></tr></thead><tbody>${resultRows}</tbody></table></div>
 </section>
 
 <section class="section">
-  <h2><span class="num">A</span>Interaction evidence</h2>
-  <p class="lead">The exact question sent, the response captured and the assessment, with the identifiers needed to trace each result.</p>
-  ${evidence || `<p class="muted">No results are included in this revision.</p>`}
+  <h2><span class="num">A</span>${S.interactionEvidence}</h2>
+  <p class="lead">${S.evidenceLead}</p>
+  ${evidence || `<p class="muted">${S.noResults}</p>`}
 </section>
 
 <section class="section">
-  <h2><span class="num">B</span>Methodology and limitations</h2>
-  <p class="lead">Every rate in this report states which of these counts it divides by.</p>
+  <h2><span class="num">B</span>${S.methodologyLimitations}</h2>
+  <p class="lead">${S.denominatorsLead}</p>
   <div class="denoms">
-    <div><span>Planned</span><b>${m.n_planned}</b></div><div><span>Eligible</span><b>${m.n_eligible}</b></div><div><span>Executed</span><b>${m.n_executed}</b></div>
-    <div><span>Assessed</span><b>${m.n_scorable}</b></div><div><span>Not scored</span><b>${m.n_unscorable}</b></div><div><span>Pending</span><b>${m.n_pending}</b></div>
+    <div><span>${S.planned}</span><b>${m.n_planned}</b></div><div><span>${S.eligibleCap}</span><b>${m.n_eligible}</b></div><div><span>${S.executed}</span><b>${m.n_executed}</b></div>
+    <div><span>${S.assessed}</span><b>${m.n_scorable}</b></div><div><span>${S.notScored}</span><b>${m.n_unscorable}</b></div><div><span>${S.pending}</span><b>${m.n_pending}</b></div>
   </div>
   <dl class="defs">
-    <dt>Scope</dt><dd>${label(report.system.execution_mode)} · ${label(report.scope.evidence_policy)} · languages ${escapeHtml(report.scope.languages.join(", ") || "—")}</dd>
-    <dt>Sampling</dt><dd>${escapeHtml(report.methodology.sampling || "—")}</dd>
-    <dt>Review coverage</dt><dd>${escapeHtml(report.methodology.review_coverage || "—")}</dd>
-    <dt>Scoring</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · graders ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
-    ${m.pass_bounds ? `<dt>Missing-result bounds</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} of eligible tests (not a confidence interval)</dd>` : ""}
-    ${m.wilson_interval ? `<dt>Uncertainty</dt><dd>95% Wilson interval on the strict pass rate: ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}</dd>` : ""}
-    <dt>Sources</dt><dd>${report.methodology.source_revisions.length} source revision${report.methodology.source_revisions.length === 1 ? "" : "s"}</dd>
-    <dt>Test set</dt><dd class="mono">${escapeHtml(report.scope.suite_version_id)}</dd>
-    <dt>Run</dt><dd class="mono">${escapeHtml(report.run_id)}</dd>
-    <dt>Report revision</dt><dd class="mono">${escapeHtml(report.report_revision_id)}</dd>
-    <dt>Content hash</dt><dd class="mono">${escapeHtml(report.content_hash)}</dd>
+    <dt>${S.scope}</dt><dd>${label(report.system.execution_mode)} · ${label(report.scope.evidence_policy)} · ${S.languages} ${escapeHtml(report.scope.languages.join(", ") || "—")}</dd>
+    <dt>${S.sampling}</dt><dd>${escapeHtml(tx(report.methodology.sampling || "—"))}</dd>
+    <dt>${S.reviewCoverage}</dt><dd>${escapeHtml(tx(report.methodology.review_coverage || "—"))}</dd>
+    <dt>${S.scoring}</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · ${S.graders} ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
+    ${m.pass_bounds ? `<dt>${S.missingBounds}</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} ${S.missingBoundsHelp}</dd>` : ""}
+    ${m.wilson_interval ? `<dt>${S.uncertainty}</dt><dd>${S.wilson}: ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}</dd>` : ""}
+    <dt>${S.sources}</dt><dd>${report.methodology.source_revisions.length} ${report.methodology.source_revisions.length === 1 ? S.sourceRevision : S.sourceRevisions}</dd>
+    <dt>${S.testSet}</dt><dd class="mono">${escapeHtml(report.scope.suite_version_id)}</dd>
+    <dt>${S.run}</dt><dd class="mono">${escapeHtml(report.run_id)}</dd>
+    <dt>${S.reportRevision}</dt><dd class="mono">${escapeHtml(report.report_revision_id)}</dd>
+    <dt>${S.contentHash}</dt><dd class="mono">${escapeHtml(report.content_hash)}</dd>
   </dl>
-  <div class="block"><h3 style="font-size:10pt;margin-bottom:6px">Limitations</h3>${limitations.length ? `<ul class="plain">${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p class="muted">No additional limitations were recorded.</p>`}</div>
-  <p class="disclaimer">This report presents evaluation evidence for the tested scope, sample and dates above. It is not a certification and does not establish regulatory compliance, general safety or business impact. Results for a deployed system describe that system as observed, not its underlying model.</p>
+  <div class="block"><h3 style="font-size:10pt;margin-bottom:6px">${S.limitations}</h3>${limitations.length ? `<ul class="plain">${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p class="muted">${S.noLimitations}</p>`}</div>
+  <p class="disclaimer">${S.disclaimer}</p>
 </section>
 </body></html>`;
 }
 
 /** Page footer for the PDF: identifies the document on every page. */
-export function reportFooterTemplate(report: ReportSnapshot): string {
-  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${escapeHtml(report.system.name)} · Revision ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(day(report.created_at))}</span><span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span></div>`;
+export function reportFooterTemplate(report: ReportSnapshot, language: ReportLocale = "en"): string {
+  const strings = reportStrings(language);
+  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${escapeHtml(report.system.name)} · ${strings.revision} ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(reportDate(report.created_at, language))}</span><span>${strings.page} <span class="pageNumber"></span> ${strings.pageOf} <span class="totalPages"></span></span></div>`;
 }

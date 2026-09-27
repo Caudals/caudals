@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { evaluationSignInPath, evaluationRecoveryPath } from "./auth-path";
 import { t } from "@/lib/evals/messages/en";
+import { tr } from "@/lib/evals/messages/phrases";
 
 /* ---------------------------------------------------------------- buttons -- */
 
@@ -368,9 +369,9 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
 
 export function humanize(value: string) {
   const known = STATUS[value];
-  if (known) return known.label;
+  if (known) return tr(known.label);
   const words = value.replaceAll("_", " ").trim();
-  return words ? words[0].toUpperCase() + words.slice(1) : value;
+  return words ? tr(words[0].toUpperCase() + words.slice(1)) : value;
 }
 
 export function toneFor(value: string): Tone {

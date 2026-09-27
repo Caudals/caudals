@@ -1,6 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Image from "next/image";
 import { t } from "@/lib/evals/messages/en";
+import { LocaleSwitch } from "./locale";
 
 /**
  * The frame every unauthenticated evaluation screen sits in: sign-in, TOTP,
@@ -21,7 +24,7 @@ export function AuthFrame({
   children: ReactNode;
 }) {
   return (
-    <div className="p-root" lang="en">
+    <div className="p-root">
       <main className="p-auth">
         <div className="p-auth-inner">
           <p className="p-brand">
@@ -40,6 +43,9 @@ export function AuthFrame({
           </div>
           <section className="p-auth-card">{children}</section>
           {footer && <div className="p-auth-note">{footer}</div>}
+          <div className="p-auth-note" style={{ display: "flex", justifyContent: "center" }}>
+            <LocaleSwitch />
+          </div>
         </div>
       </main>
     </div>

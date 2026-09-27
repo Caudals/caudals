@@ -1,3 +1,5 @@
+import { es } from "./es";
+
 export const messages = {
   recoveryInvitationHelp:
     "After resetting your password, reopen your original private invitation link.",
@@ -733,7 +735,7 @@ export const messages = {
   rightsOwned: "We own this content",
   rightsLicensed: "We have permission to use it",
   rightsPublic: "Public domain",
-  websiteCaptureHelp: "Caudals reads up to 50 public pages on this host. It does not sign in, submit forms or follow links to other hosts.",
+  websiteCaptureHelp: "Caudals reads up to 25 public pages on this host. It does not sign in, submit forms or follow links to other hosts.",
   capturingWebsite: "Capturing…",
   addWebsiteContext: "Add website",
   testSetHelp: "Caudals drafts up to ten questions from your material and checks each against its source.",
@@ -885,8 +887,8 @@ export const messages = {
   failedDeliveries: "failed deliveries",
   httpsUrl: "HTTPS URL",
   // Test sets
-  testSetsHelp: "Frozen test sets from your evaluations. Make an editable copy to adjust questions.",
-  noTestSetsCustomerHelp: "Approved test sets appear here once an evaluation is prepared.",
+  testSetsHelp: "Test sets from your evaluations. Open one to read and edit its questions.",
+  noTestSetsCustomerHelp: "Test sets appear here once an evaluation is prepared.",
   fork: "Make a copy",
   forkTestSet: "Copy test set",
   forkTestSetHelp: "Creates an editable copy in this workspace. The original version stays unchanged.",
@@ -1245,8 +1247,45 @@ export const messages = {
   noticeWebsiteStarted: "Reading website",
   noticeGenerationStarted: "Generating test set",
   noticeRunStarted: "Run started",
+  reasonWebsiteUnavailable: "The website could not be read. It may block automated visitors; try a specific page, or upload the content as a document.",
+  reasonWebsitePage: "The first page did not load.",
+  reasonWebsiteText: "No readable text was found on that page.",
+  reasonWebsiteRedirect: "The page redirects to another site. Use the final address.",
+  reasonDestinationDenied: "That address is not reachable from Caudals.",
+  reasonWebsiteUrl: "Use a public https:// address without query strings.",
+  reasonWebsiteInterrupted: "Reading was interrupted. Remove it and add it again.",
+  language: "Language",
+  languageHelp: "Language of the interface and of exported reports.",
+  languageEnglish: "English (US)",
+  languageSpanish: "Español (España)",
 } as const;
 export type MessageKey = keyof typeof messages;
-export function t(key: MessageKey): string {
-  return messages[key];
+
+/* ------------------------------------------------------------- locale --- */
+
+export type Locale = "en" | "es";
+export const LOCALES: readonly Locale[] = ["en", "es"];
+export const LOCALE_COOKIE = "caudals_locale";
+
+/**
+ * The interface language is chosen per person (cookie) and fixed for the page
+ * load: the evaluation layout puts it on window.__CAUDALS_LOCALE before any
+ * bundle runs, and switching language reloads the page. Server code renders
+ * English unless it passes a locale explicitly.
+ */
+function detectLocale(): Locale {
+  if (typeof window === "undefined") return "en";
+  const value = (window as unknown as { __CAUDALS_LOCALE?: string }).__CAUDALS_LOCALE;
+  return value === "es" ? "es" : "en";
+}
+let active: Locale = detectLocale();
+export function getLocale(): Locale {
+  return active;
+}
+/** For server-side rendering in a given language (exports) and for tests. */
+export function setLocale(locale: Locale) {
+  active = locale;
+}
+export function t(key: MessageKey, locale: Locale = active): string {
+  return (locale === "es" && es[key]) || messages[key];
 }

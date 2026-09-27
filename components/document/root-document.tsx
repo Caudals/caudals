@@ -94,13 +94,19 @@ export const rootMetadata: Metadata = {
  */
 export function RootDocument({
   lang,
+  head,
   children,
 }: {
   lang: string;
+  /** Extra head content for a surface (for example the app's locale boot script). */
+  head?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <html lang={lang} suppressHydrationWarning>
+      {/* App-router root layouts may render <head>; this is not the pages-router rule. */}
+      {/* eslint-disable-next-line @next/next/no-head-element */}
+      {head ? <head>{head}</head> : null}
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}

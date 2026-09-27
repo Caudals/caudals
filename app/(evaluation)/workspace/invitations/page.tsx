@@ -3,7 +3,6 @@ import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
 import { EvalShell } from "@/components/evals/shell";
 import { PublicFrame } from "@/components/evals/public-frame";
-import { t } from "@/lib/evals/messages/en";
 export default async function InvitationPage() {
   let identity;
   try {
@@ -16,6 +15,6 @@ export default async function InvitationPage() {
   return identity ? (
     <EvalShell identity={identity}>{content}</EvalShell>
   ) : (
-    <PublicFrame context={t("invitations")}>{content}</PublicFrame>
+    <PublicFrame contextKey="invitations">{content}</PublicFrame>
   );
 }

@@ -4,14 +4,15 @@
  * Every graphic carries its numbers as text as well — colour and length are
  * never the only encoding.
  */
+import { tr } from "@/lib/evals/messages/phrases";
 
 export type OutcomeCounts = { pass: number; partial: number; fail: number; unscorable: number };
 
 const OUTCOMES = [
-  { key: "pass", label: "Pass", tone: "pass" },
-  { key: "partial", label: "Partial", tone: "warn" },
-  { key: "fail", label: "Fail", tone: "fail" },
-  { key: "unscorable", label: "Not scored", tone: "neutral" },
+  { key: "pass", label: tr("Pass"), tone: "pass" },
+  { key: "partial", label: tr("Partial"), tone: "warn" },
+  { key: "fail", label: tr("Fail"), tone: "fail" },
+  { key: "unscorable", label: tr("Not scored"), tone: "neutral" },
 ] as const;
 
 /** One bar split by outcome, with a legend that carries the counts. */

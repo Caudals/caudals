@@ -9,6 +9,7 @@ import {
   Table, TableCell, TableRow, TextRun, WidthType,
 } from "docx";
 import { reportSnapshotSchema, type ReportSnapshot } from "./contracts";
+import { localizeReportText, reportDate, reportLabel, reportStrings, type ReportLocale } from "./i18n";
 
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
 const OUTCOME_ORDER = ["fail", "partial", "unscorable", "pass"] as const;
@@ -17,14 +18,14 @@ const LABEL: Record<string, string> = {
   critical: "Critical", high: "High", medium: "Medium", low: "Low",
   preliminary: "Preliminary", reviewed: "Reviewed", complete: "Complete", incomplete: "Incomplete",
   deployed_system: "Deployed system", controlled_model: "Controlled model", imported_responses: "Imported answers",
+  exploratory: "Exploratory", source_grounded: "Source-grounded",
   proposed: "Proposed", planned: "Planned", in_progress: "In progress", validated: "Validated", closed: "Closed",
 };
-const plain = (value: string) => LABEL[value] ?? value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
+let locale: ReportLocale = "en";
+const plain = (value: string) => reportLabel(LABEL[value] ?? value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase()), locale);
 const pct = (value: number | null | undefined) => (value == null ? "—" : `${Math.round(value * 100)}%`);
-const day = (value: string) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-};
+const day = (value: string) => reportDate(value, locale);
+const tx = (text: string) => localizeReportText(text, locale);
 /** Word rejects XML control characters; model output can contain them. */
 const clean = (value: unknown) => String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
 
@@ -59,7 +60,9 @@ function table(headers: string[], rows: string[][], widths?: number[]) {
   });
 }
 
-export async function renderReportDocx(raw: ReportSnapshot): Promise<Buffer> {
+export async function renderReportDocx(raw: ReportSnapshot, language: ReportLocale = "en"): Promise<Buffer> {
+  locale = language;
+  const S = reportStrings(language);
   const report = reportSnapshotSchema.parse(raw);
   const m = report.metrics;
   const results = [...report.results].sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
@@ -71,81 +74,81 @@ export async function renderReportDocx(raw: ReportSnapshot): Promise<Buffer> {
   const counts = { pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable };
 
   const children: Array<Paragraph | Table> = [
-    new Paragraph({ spacing: { after: 60 }, children: [text("CAUDALS · EVALUATION REPORT", { color: MUTED, size: 18, bold: true })] }),
+    new Paragraph({ spacing: { after: 60 }, children: [text(S.eyebrow, { color: MUTED, size: 18, bold: true })] }),
     new Paragraph({ heading: HeadingLevel.TITLE, spacing: { after: 120 }, children: [text(report.system.name, { bold: true, size: 44 })] }),
     ...(report.system.purpose ? [para(report.system.purpose, { color: MUTED })] : []),
-    para(`${plain(report.system.execution_mode)} · ${dates} · ${plain(report.scope.review_status)} results${m.headline_status === "incomplete" ? " · Incomplete" : ""}`, { color: MUTED, size: 20, after: 240 }),
+    para(`${plain(report.system.execution_mode)} · ${dates} · ${plain(report.scope.review_status)}${m.headline_status === "incomplete" ? ` · ${plain("incomplete")}` : ""}`, { color: MUTED, size: 20, after: 240 }),
 
-    heading("Results at a glance"),
-    table(["Measure", "Value"], [
-      ["Strict pass rate", `${pct(m.strict_pass_rate)} (${m.n_pass} of ${m.n_scorable} scored)`],
-      ...(m.wilson_interval ? [["95% interval", `${pct(m.wilson_interval.low)} – ${pct(m.wilson_interval.high)}`]] : []),
-      ["Outcomes", `${counts.pass} pass · ${counts.partial} partial · ${counts.fail} fail · ${counts.unscorable} not scored`],
-      ["Tests planned / executed", `${m.n_planned} / ${m.n_executed}`],
-      ...(m.critical_unassessed ? [["Critical tests not assessed", String(m.critical_unassessed)]] : []),
+    heading(S.resultsAtAGlance),
+    table([S.measure, S.value], [
+      [S.strictPassRate, `${pct(m.strict_pass_rate)} (${m.n_pass} ${S.of} ${m.n_scorable} ${S.scoredWord})`],
+      ...(m.wilson_interval ? [[S.interval95, `${pct(m.wilson_interval.low)} – ${pct(m.wilson_interval.high)}`]] : []),
+      [S.outcomes, `${counts.pass} ${S.pass} · ${counts.partial} ${S.partial} · ${counts.fail} ${S.fail} · ${counts.unscorable} ${S.notScoredLower}`],
+      [S.testsPlannedExecuted, `${m.n_planned} / ${m.n_executed}`],
+      ...(m.critical_unassessed ? [[S.criticalNotAssessedLong, String(m.critical_unassessed)]] : []),
     ], [40, 60]),
   ];
 
   if (report.takeaways.length) {
-    children.push(heading("Key takeaways"));
+    children.push(heading(S.keyTakeaways));
     report.takeaways.forEach((item, index) => {
-      children.push(new Paragraph({ spacing: { after: 80 }, children: [text(`${index + 1}. `, { bold: true }), text(item.text)] }));
-      if (item.assessment_ids.length) children.push(para(`Evidence: ${refs(item.assessment_ids)}`, { color: MUTED, size: 18 }));
+      children.push(new Paragraph({ spacing: { after: 80 }, children: [text(`${index + 1}. `, { bold: true }), text(tx(item.text))] }));
+      if (item.assessment_ids.length) children.push(para(`${S.evidence}: ${refs(item.assessment_ids)}`, { color: MUTED, size: 18 }));
     });
   }
 
-  children.push(heading("Findings"));
-  if (!findings.length) children.push(para("No failure patterns were found in the assessed results.", { color: MUTED }));
+  children.push(heading(S.findings));
+  if (!findings.length) children.push(para(S.noFindingsShort, { color: MUTED }));
   for (const finding of findings) {
-    children.push(heading(`${plain(finding.severity)} · ${finding.title}`, HeadingLevel.HEADING_2));
-    children.push(para(`Seen in ${finding.frequency_n} of ${finding.frequency_denominator} relevant results · Evidence: ${finding.evidence_strength}${finding.assessment_ids.length ? ` · ${refs(finding.assessment_ids)}` : ""}`, { color: MUTED, size: 18 }));
-    children.push(para(finding.observation));
-    if (finding.cause_hypothesis) children.push(new Paragraph({ spacing: { after: 100 }, children: [text("Likely cause: ", { bold: true }), text(finding.cause_hypothesis)] }));
-    children.push(new Paragraph({ spacing: { after: 160 }, children: [text("Recommendation: ", { bold: true }), text(finding.recommendation)] }));
+    children.push(heading(`${plain(finding.severity)} · ${tx(finding.title)}`, HeadingLevel.HEADING_2));
+    children.push(para(`${S.seenIn} ${finding.frequency_n} ${S.of} ${finding.frequency_denominator} ${S.relevantResults} · ${S.evidence}: ${plain(finding.evidence_strength)}${finding.assessment_ids.length ? ` · ${refs(finding.assessment_ids)}` : ""}`, { color: MUTED, size: 18 }));
+    children.push(para(tx(finding.observation)));
+    if (finding.cause_hypothesis) children.push(new Paragraph({ spacing: { after: 100 }, children: [text(`${S.likelyCause}: `, { bold: true }), text(finding.cause_hypothesis)] }));
+    children.push(new Paragraph({ spacing: { after: 160 }, children: [text(`${S.recommendation}: `, { bold: true }), text(tx(finding.recommendation))] }));
   }
 
   if (improvements.length) {
-    children.push(heading("Improvements"));
-    children.push(table(["#", "Improvement", "Status", "How it will be validated"], improvements.map((item) => [String(item.priority), item.title, plain(item.status), item.validation_plan]), [6, 38, 14, 42]));
+    children.push(heading(S.improvements));
+    children.push(table(["#", S.improvement, S.status, S.howValidated], improvements.map((item) => [String(item.priority), item.title, plain(item.status), item.validation_plan]), [6, 38, 14, 42]));
   }
 
-  children.push(heading("Test results"));
-  children.push(table(["Test", "Title", "Topic", "Severity", "Outcome"], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.outcome)]), [8, 44, 20, 14, 14]));
+  children.push(heading(S.testResults));
+  children.push(table([S.test, S.title, S.topic, S.severity, S.outcome], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.outcome)]), [8, 44, 20, 14, 14]));
 
-  children.push(heading("Interaction evidence"));
+  children.push(heading(S.interactionEvidence));
   for (const item of results) {
     children.push(heading(`T${number.get(item.assessment_id)} · ${item.title} — ${plain(item.outcome)}`, HeadingLevel.HEADING_3));
-    children.push(para("Question", { bold: true, size: 20, after: 40 }));
+    children.push(para(S.question, { bold: true, size: 20, after: 40 }));
     children.push(block(item.input));
-    children.push(para("Answer", { bold: true, size: 20, after: 40 }));
+    children.push(para(S.answer, { bold: true, size: 20, after: 40 }));
     children.push(block(item.output || "—"));
     if (item.rationale) {
-      children.push(para("Why", { bold: true, size: 20, after: 40 }));
+      children.push(para(S.why, { bold: true, size: 20, after: 40 }));
       children.push(block(item.rationale, MUTED));
     }
   }
 
   const method = report.methodology;
-  children.push(heading("Methodology and limitations"));
-  children.push(table(["Item", "Detail"], [
-    ["Evaluation format", `CEF ${method.cef_version} · scorer ${method.scorer_version}`],
-    ["Evidence policy", plain(report.scope.evidence_policy)],
-    ["Sampling", method.sampling],
-    ["Review coverage", method.review_coverage],
-    ...(method.exclusions.length ? [["Excluded from scoring", method.exclusions.map(plain).join(", ")]] : []),
-    ...(method.cost ? [["Model cost", `${method.cost.settled} ${method.cost.currency} settled`]] : []),
-    ["Report revision", report.report_revision_id],
-    ["Content hash", report.content_hash],
+  children.push(heading(S.methodologyLimitations));
+  children.push(table([S.item, S.detail], [
+    [S.evaluationFormat, `CEF ${method.cef_version} · ${S.scorerWord} ${method.scorer_version}`],
+    [S.evidencePolicy, plain(report.scope.evidence_policy)],
+    [S.sampling, tx(method.sampling)],
+    [S.reviewCoverage, tx(method.review_coverage)],
+    ...(method.exclusions.length ? [[S.excludedFromScoring, method.exclusions.map(tx).join(", ")]] : []),
+    ...(method.cost ? [[S.modelCost, `${method.cost.settled} ${method.cost.currency} ${S.settled}`]] : []),
+    [S.reportRevision, report.report_revision_id],
+    [S.contentHash, report.content_hash],
   ], [30, 70]));
   if (method.limitations.length) {
-    children.push(heading("Limitations", HeadingLevel.HEADING_2));
-    for (const limitation of method.limitations) children.push(new Paragraph({ bullet: { level: 0 }, children: [text(limitation)] }));
+    children.push(heading(S.limitations, HeadingLevel.HEADING_2));
+    for (const limitation of method.limitations) children.push(new Paragraph({ bullet: { level: 0 }, children: [text(tx(limitation))] }));
   }
-  children.push(para("Caudals reports evidence about observed behaviour on this test set. It is not a certification or a conformity assessment.", { color: MUTED, size: 18 }));
+  children.push(para(S.notCertification, { color: MUTED, size: 18 }));
 
   const document = new Document({
     creator: "Caudals",
-    title: `${clean(report.system.name)} — evaluation report`,
+    title: `${clean(report.system.name)} — ${S.evaluationReport}`,
     styles: { default: { document: { run: { font: FONT, size: 22 } } } },
     sections: [{
       properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
@@ -153,7 +156,7 @@ export async function renderReportDocx(raw: ReportSnapshot): Promise<Buffer> {
         default: new Footer({
           children: [new Paragraph({
             alignment: AlignmentType.RIGHT,
-            children: [text(`Caudals · ${clean(report.system.name)} · revision ${report.report_revision_id.slice(0, 8)} · page `, { color: MUTED, size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 })],
+            children: [text(`Caudals · ${clean(report.system.name)} · ${S.revision} ${report.report_revision_id.slice(0, 8)} · ${S.page} `, { color: MUTED, size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 })],
           })],
         }),
       },

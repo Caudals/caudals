@@ -52,8 +52,10 @@ import { ActionLink, Status, humanize } from "./primitives";
 import { Toaster } from "./overlays";
 import { CommandPalette, type PaletteLink } from "./command-palette";
 import { NotificationCenter } from "./notification-center";
+import { setInterfaceLocale } from "./locale";
+import { Check as CheckIcon, Languages } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
@@ -370,6 +372,14 @@ function AccountMenu({ identity, signingOut, onSignOut }: { identity: EvalIdenti
               {t("contactCaudals")}
             </a>
           </MenuPrimitive.Item>
+          <MenuPrimitive.Separator className="p-menu-sep" />
+          <MenuPrimitive.Label className="p-menu-label">{t("language")}</MenuPrimitive.Label>
+          {(["en", "es"] as const).map((locale) => (
+            <MenuPrimitive.Item key={locale} className="p-menu-item" onSelect={() => locale !== getLocale() && setInterfaceLocale(locale)}>
+              {locale === getLocale() ? <CheckIcon aria-hidden="true" /> : <Languages aria-hidden="true" />}
+              {t(locale === "en" ? "languageEnglish" : "languageSpanish")}
+            </MenuPrimitive.Item>
+          ))}
           <MenuPrimitive.Separator className="p-menu-sep" />
           <MenuPrimitive.Item className="p-menu-item" data-tone="danger" disabled={signingOut} onSelect={() => onSignOut()}>
             {signingOut ? <Loader2 aria-hidden="true" /> : <LogOut aria-hidden="true" />}

@@ -35,8 +35,19 @@ Implementation rules for the public funnel, the internal Operator Console, and t
 
 ## Localization Contract
 
-Supported locales are `en` and `es`. Only the public marketing surface is
-translated; `/admin`, `/auth/*` and the evaluation surface are English-only.
+Supported locales are `en` and `es`. The public marketing surface is
+translated by URL (below). The evaluation app (`app.caudals.com`) is available
+in American English and Castilian Spanish, chosen per person: the
+`caudals_locale` cookie is read by `app/(evaluation)/layout.tsx`, published as
+`window.__CAUDALS_LOCALE` before any bundle runs, and switching language
+reloads the page. Strings live in `lib/evals/messages/en.ts` and `es.ts`
+(missing Spanish keys fall back to English); fixed labels in data tables go
+through `tr()` in `lib/evals/messages/phrases.ts`, and curated server messages
+through `trServer()`. Spanish pages render on the client only, so the server
+never sends English text they would replace. PDF and Word exports are written
+in the requester's language (`lib/evals/reports/i18n.ts`); recorded questions,
+answers and model-written text keep their own words. `/admin` and `/auth/*`
+remain English-only.
 
 ### URL shape
 

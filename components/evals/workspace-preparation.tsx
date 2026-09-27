@@ -15,7 +15,7 @@ import { evalRequest } from "./api";
 import { Action, ActionLink, Badge, Field, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
 import { DeleteDialog, itemRequest } from "./item-actions";
-import { t } from "@/lib/evals/messages/en";
+import { t, type MessageKey } from "@/lib/evals/messages/en";
 
 type Evaluation = {
   id: string;
@@ -714,14 +714,14 @@ export function generationStopMessage(reason: string | null | undefined) {
 }
 
 function humanizeReason(reason: string) {
-  const known: Record<string, string> = {
-    website_capture_unavailable: "The website could not be read. It may block automated visitors; try a specific page, or upload the content as a document.",
-    website_page_unavailable: "The first page did not load.",
-    website_text_unavailable: "No readable text was found on that page.",
-    website_redirect_scope_denied: "The page redirects to another site. Use the final address.",
-    destination_denied: "That address is not reachable from Caudals.",
-    website_url_invalid: "Use a public https:// address without query strings.",
-    website_worker_interrupted: "Reading was interrupted. Remove it and add it again.",
+  const known: Record<string, MessageKey> = {
+    website_capture_unavailable: "reasonWebsiteUnavailable",
+    website_page_unavailable: "reasonWebsitePage",
+    website_text_unavailable: "reasonWebsiteText",
+    website_redirect_scope_denied: "reasonWebsiteRedirect",
+    destination_denied: "reasonDestinationDenied",
+    website_url_invalid: "reasonWebsiteUrl",
+    website_worker_interrupted: "reasonWebsiteInterrupted",
   };
-  return known[reason] ?? reason.replaceAll("_", " ");
+  return known[reason] ? t(known[reason]) : reason.replaceAll("_", " ");
 }

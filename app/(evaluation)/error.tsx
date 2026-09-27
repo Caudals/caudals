@@ -10,7 +10,7 @@ import { t } from "@/lib/evals/messages/en";
 
 export default function EvaluationError({ reset }: { reset: () => void }) {
   return (
-    <div className="p-root" lang="en">
+    <div className="p-root">
       <div className="p-page">
         <EmptyState title={t("unavailable")} icon={<TriangleAlert />}>
           <p>{t("unavailableHelp")}</p>

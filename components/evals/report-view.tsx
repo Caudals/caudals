@@ -36,15 +36,20 @@ import { SidePanel } from "./overlays";
 import { ReportActions, type ReportRevision } from "./report-actions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
+import { tr } from "@/lib/evals/messages/phrases";
+import { getLocale } from "@/lib/evals/messages/en";
+import { localizeReportText } from "@/lib/evals/reports/i18n";
+/** Sentences Caudals generated from templates, shown in the interface language. */
+const gen = (text: string) => localizeReportText(text, getLocale());
 
 type Tab = "overview" | "findings" | "results" | "improvements" | "methodology";
 type Result = ReportSnapshot["results"][number];
 type Finding = ReportSnapshot["findings"][number];
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
 const MODE: Record<string, string> = {
-  deployed_system: "Deployed system",
-  controlled_model: "Controlled model",
-  imported_responses: "Imported answers",
+  deployed_system: tr("Deployed system"),
+  controlled_model: tr("Controlled model"),
+  imported_responses: tr("Imported answers"),
 };
 
 function bySeverity<T extends { severity: string }>(items: T[]) {
@@ -170,7 +175,7 @@ function Overview({
           {report.methodology?.limitations.length ? (
             <ul className="p-inline-list">
               {report.methodology.limitations.map((item, index) => (
-                <li key={index}>{item}</li>
+                <li key={index}>{gen(item)}</li>
               ))}
             </ul>
           ) : null}
@@ -208,7 +213,7 @@ function Overview({
             {report.takeaways.map((item, index) => (
               <li key={index}>
                 <span className="p-takeaway-index">{index + 1}</span>
-                <p>{item.text}</p>
+                <p>{gen(item.text)}</p>
                 {item.assessment_ids.length > 0 && (
                   <button type="button" className="p-text-button" onClick={() => onResults(item.assessment_ids, item.text)}>
                     {t("evidence")} ({item.assessment_ids.length})
@@ -255,7 +260,7 @@ function Overview({
               <li key={finding.id}>
                 <StatusBadge value={finding.severity} />
                 <button type="button" className="p-findings-title p-text-button" onClick={onFinding}>
-                  {finding.title}
+                  {gen(finding.title)}
                 </button>
                 <span className="p-cell-meta">
                   {finding.frequency_n}/{finding.frequency_denominator}
@@ -286,7 +291,7 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
         <li key={finding.id} className="p-finding" id={`finding-${finding.id}`}>
           <div className="p-finding-head">
             <span className="p-finding-index">{index + 1}</span>
-            <h3>{finding.title}</h3>
+            <h3>{gen(finding.title)}</h3>
           </div>
           <div className="p-finding-meta">
             <StatusBadge value={finding.severity} />
@@ -300,7 +305,7 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
           <dl className="p-finding-body">
             <div>
               <dt>{t("observed")}</dt>
-              <dd>{finding.observation}</dd>
+              <dd>{gen(finding.observation)}</dd>
             </div>
             {finding.cause_hypothesis && (
               <div>
@@ -310,7 +315,7 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
             )}
             <div>
               <dt>{t("recommendedAction")}</dt>
-              <dd>{finding.recommendation}</dd>
+              <dd>{gen(finding.recommendation)}</dd>
             </div>
           </dl>
           {finding.assessment_ids.length > 0 && (
@@ -609,8 +614,8 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
                   { term: t("languages"), value: report.scope.languages.join(", ") || "—" },
                 ]
               : []),
-            { term: t("sampling"), value: m.sampling || "—" },
-            { term: t("reviewCoverage"), value: m.review_coverage || "—" },
+            { term: t("sampling"), value: gen(m.sampling || "—") },
+            { term: t("reviewCoverage"), value: gen(m.review_coverage || "—") },
             { term: t("scorer"), value: `${m.scorer_version} · CEF ${m.cef_version}` },
             { term: t("graders"), value: m.grader_revisions.length ? m.grader_revisions.join(", ") : "—" },
             { term: t("sourcesUsed"), value: m.source_revisions.length },
@@ -640,7 +645,7 @@ function Methodology({ report }: { report: Partial<ReportSnapshot> }) {
           {m.limitations.length || m.exclusions.length ? (
             <ul className="p-bullets">
               {[...m.limitations, ...m.exclusions].map((item, index) => (
-                <li key={index}>{item}</li>
+                <li key={index}>{gen(item)}</li>
               ))}
             </ul>
           ) : (
