@@ -4,18 +4,25 @@ export class EvalRequestError extends Error {
     public status: number,
     public code: string,
     public requestId?: string,
+    serverMessage?: string,
   ) {
-    const message = getSafeErrorMessage(status, code);
+    const message = getSafeErrorMessage(status, code, serverMessage);
     super(status >= 500 && requestId ? `${message} Reference: ${requestId}.` : message);
     this.name = "EvalRequestError";
   }
 }
 
-function getSafeErrorMessage(status: number, code: string): string {
+/**
+ * The API only ever returns curated messages (a known EvalError sentence or a
+ * generic fallback), so a 4xx message is safe to show and far more useful than
+ * a generic one. Sessions, permissions and server faults keep fixed wording.
+ */
+function getSafeErrorMessage(status: number, code: string, serverMessage?: string): string {
   if (code === "REAUTHENTICATION_REQUIRED") return t("reauthRequired");
   if (status === 401) return t("expired");
   if (status === 403) return t("forbidden");
   if (status === 404) return t("notFound");
+  if (status >= 400 && status < 500 && serverMessage && !/^Check the supplied fields\.?$/.test(serverMessage) && !code.startsWith("INVITATION_")) return serverMessage;
   if (
     [
       "INVITATION_INVALID",
@@ -29,6 +36,9 @@ function getSafeErrorMessage(status: number, code: string): string {
   if (status >= 500) return t("error");
   return t("checkDetails");
 }
+/** Fired when the API reports that the session is gone; the shell offers sign-in. */
+export const SESSION_EXPIRED_EVENT = "caudals:session-expired";
+
 export async function evalRequest<T>(
   path: string,
   method = "GET",
@@ -47,11 +57,13 @@ export async function evalRequest<T>(
   });
   if (response.status === 204) return undefined as T;
   const result = await response.json().catch(() => null);
+  if (response.status === 401 && typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
   if (!response.ok)
     throw new EvalRequestError(
       response.status,
       result?.error?.code ?? "UNKNOWN",
       result?.error?.request_id,
+      typeof result?.error?.message === "string" ? result.error.message : undefined,
     );
   if (!result || !("data" in result)) throw new Error(t("error"));
   return result.data as T;

@@ -333,7 +333,11 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
           (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
           (SELECT r.id FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_id,
           (SELECT r.status FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_status,
-          (SELECT r.phase FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_phase
+          (SELECT r.phase FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_phase,
+          (SELECT r.created_at FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_created_at,
+          (SELECT r.execution_mode FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_execution_mode,
+          (SELECT r.reason_code FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id ORDER BY r.created_at DESC,r.id DESC LIMIT 1) AS latest_run_reason_code,
+          (SELECT count(*)::int FROM evals.run r WHERE r.org_id=e.org_id AND r.evaluation_id=e.id) AS run_count
          FROM evals.evaluation e
          JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id)
          WHERE e.org_id=$1 ORDER BY e.updated_at DESC,e.id LIMIT 100`,
@@ -342,8 +346,8 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     ).rows;
     const systems = (
       await db.query(
-        `SELECT t.id,t.project_id,t.title,tr.id AS target_revision_id,tr.document,
-          cc.status AS connection_status,cc.error_code,cc.capability_report,ri.id AS runner_id,
+        `SELECT t.id,t.project_id,t.title,t.created_at,tr.id AS target_revision_id,tr.document,
+          cc.status AS connection_status,cc.error_code,cc.capability_report,cc.created_at AS connection_checked_at,ri.id AS runner_id,
           CASE WHEN tr.document->>'kind'='private_runner' THEN
             CASE WHEN ri.id IS NULL THEN 'pairing_required'
                  WHEN ri.revoked_at IS NOT NULL THEN 'revoked'
@@ -371,7 +375,14 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const reports = (
       await db.query(
         `SELECT rp.id,rp.title,rp.current_revision_id,rp.publication_status,rp.updated_at,
-                r.evaluation_id
+                r.evaluation_id,rr.created_at AS revision_created_at,
+                rr.snapshot->'system'->>'name' AS system_name,
+                rr.snapshot->'scope'->>'review_status' AS review_status,
+                rr.snapshot->'metrics'->>'headline_status' AS headline_status,
+                (rr.snapshot->'metrics'->>'strict_pass_rate')::float8 AS strict_pass_rate,
+                (rr.snapshot->'metrics'->>'n_pass')::int AS n_pass,
+                (rr.snapshot->'metrics'->>'n_scorable')::int AS n_scorable,
+                (rr.snapshot->'metrics'->>'n_eligible')::int AS n_eligible
          FROM evals.report rp
          JOIN evals.report_revision rr
            ON (rr.org_id,rr.id)=(rp.org_id,rp.current_revision_id)

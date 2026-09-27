@@ -1,312 +1,185 @@
 "use client";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { invitationPath } from "./auth-path";
+
+/**
+ * Clients (spec §5.5 step 1): create a client workspace without creating a
+ * login, then invite its people. Each client row opens its access panel; the
+ * workspace itself is one click away through the workspace switcher.
+ */
+import { useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Building2, Plus } from "lucide-react";
 import { t } from "@/lib/evals/messages/en";
-import {
-  PageHeading,
-  EmptyState,
-  Field,
-  DataTable,
-  Status,
-  SessionRecovery,
-} from "./primitives";
-import { evalRequest, EvalRequestError } from "./api";
+import { Action, ActionLink, DataTable, DefinitionList, EmptyState, Field, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
+import { Modal, SidePanel, notify } from "./overlays";
+import { InvitationManager } from "./invitation-manager";
+import { useClientSummaries } from "./operator-overview";
+import { evalRequest } from "./api";
 
 type Workspace = { id: string; name: string };
-type Invitation = {
-  id: string;
-  email?: string;
-  token?: string | null;
-  role?: string;
-  expires_at?: string;
-  revoked_at?: string | null;
-  accepted_at?: string | null;
-};
+
 export function ClientManagement() {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [selected, setSelected] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<Error | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [notice, setNotice] = useState("");
-  const [pending, setPending] = useState("");
+  const router = useRouter();
+  const { clients, reload } = useClientSummaries();
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("viewer");
-  const [invitations, setInvitations] = useState<
-    (Invitation & { workspaceId: string })[]
-  >([]);
-  const requestKeys = useRef(new Map<string, string>());
-  function keyFor(input: unknown) {
-    const fingerprint = JSON.stringify(input);
-    let key = requestKeys.current.get(fingerprint);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const keys = useRef(new Map<string, string>());
+  const keyFor = (value: string) => {
+    let key = keys.current.get(value);
     if (!key) {
       key = crypto.randomUUID();
-      requestKeys.current.set(fingerprint, key);
+      keys.current.set(value, key);
     }
     return key;
-  }
-  const client = workspaces.find((w) => w.id === selected);
-  async function load() {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const data = await evalRequest<Workspace[]>("/workspaces");
-      setWorkspaces(data);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e : new Error(t("error")));
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    void load();
-  }, []);
+  };
+  const open = clients?.find((client) => client.id === openId) ?? null;
+
   async function create(event: FormEvent) {
     event.preventDefault();
-    setPending("create");
-    setError(null);
-    setNotice("");
+    const value = name.trim();
+    setPending(true);
+    setError("");
     try {
-      const workspace = await evalRequest<Workspace>(
-        "/workspaces",
-        "POST",
-        { name: name.trim() },
-        keyFor(["workspace", name.trim()]),
-      );
-      requestKeys.current.delete(JSON.stringify(["workspace", name.trim()]));
-      setWorkspaces((current) => [
-        ...current.filter((w) => w.id !== workspace.id),
-        workspace,
-      ]);
-      setSelected(workspace.id);
+      const workspace = await evalRequest<Workspace>("/workspaces", "POST", { name: value }, keyFor(value));
+      keys.current.delete(value);
       setName("");
-      setNotice(t("created"));
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(t("error")));
+      setCreating(false);
+      notify(`${t("clientCreated")} ${workspace.name}`);
+      // Identity (and so the workspace switcher) is read on the server.
+      router.refresh();
+      await reload();
+      setOpenId(workspace.id);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("error"));
     } finally {
-      setPending("");
+      setPending(false);
     }
   }
-  async function invite(event: FormEvent) {
-    event.preventDefault();
-    if (!client) return;
-    setPending("invite");
-    setError(null);
-    setNotice("");
-    try {
-      const invitation = await evalRequest<Invitation>(
-        `/workspaces/${encodeURIComponent(client.id)}/invitations`,
-        "POST",
-        { email: email.trim(), role },
-        keyFor([client.id, email.trim(), role]),
-      );
-      setInvitations((current) => [
-        ...current.filter((i) => i.id !== invitation.id),
-        {
-          ...invitation,
-          email: invitation.email ?? email.trim(),
-          workspaceId: client.id,
-        },
-      ]);
-      requestKeys.current.delete(
-        JSON.stringify([client.id, email.trim(), role]),
-      );
-      setEmail("");
-      setNotice(t(invitation.token ? "invitationCreated" : "invitationSaved"));
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(t("error")));
-    } finally {
-      setPending("");
-    }
-  }
-  async function selectClient(id: string) {
-    setSelected(id);
-    setError(null);
-    setNotice("");
-    setPending("list");
-    try {
-      const list = await evalRequest<Invitation[]>(
-        `/workspaces/${encodeURIComponent(id)}/invitations`,
-      );
-      setInvitations((current) => [
-        ...current.filter((i) => i.workspaceId !== id),
-        ...list.map((i) => ({
-          ...i,
-          token: current.find((old) => old.id === i.id)?.token,
-          workspaceId: id,
-        })),
-      ]);
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(t("error")));
-    } finally {
-      setPending("");
-    }
-  }
-  async function revoke(id: string) {
-    setPending(id);
-    setError(null);
-    setNotice("");
-    try {
-      await evalRequest(
-        `/invitations/${encodeURIComponent(id)}?orgId=${encodeURIComponent(selected)}`,
-        "DELETE",
-      );
-      setInvitations((current) => current.filter((i) => i.id !== id));
-      setNotice(t("revoked"));
-    } catch (e) {
-      setError(e instanceof Error ? e : new Error(t("error")));
-    } finally {
-      setPending("");
-    }
-  }
+
+  const needle = query.trim().toLowerCase();
+  const visible = (clients ?? []).filter((client) => !needle || client.name.toLowerCase().includes(needle));
+  const lastActivity = (id: string) => {
+    const summary = clients?.find((client) => client.id === id)?.summary;
+    return summary?.evaluations.map((item) => item.updated_at ?? "").sort().at(-1) || null;
+  };
+
   return (
     <>
-      <PageHeading title={t("clients")}>{t("clientIntro")}</PageHeading>
-      <form
-        className="eval-panel eval-create"
-        onSubmit={create}
-        aria-busy={pending === "create"}
+      <PageHeading
+        title={t("clients")}
+        actions={
+          clients?.length ? (
+            <Action onClick={() => { setError(""); setCreating(true); }}>
+              <Plus aria-hidden="true" />
+              {t("newClient")}
+            </Action>
+          ) : undefined
+        }
       >
-        <Field
-          id="client-name"
-          label={t("clientName")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={160}
-          required
-          disabled={!!pending}
-        />
-        <Button type="submit" disabled={!!pending || !name.trim()}>
-          {pending === "create" ? t("creating") : t("create")}
-        </Button>
-      </form>
-      {notice && <Status>{notice}</Status>}
-      {error && <Status error>{error.message}</Status>}
-      {[error, loadError].some(
-        (e) => e instanceof EvalRequestError && e.status === 401,
-      ) && <SessionRecovery />}
-      {loading ? (
-        <Status>{t("loading")}</Status>
-      ) : loadError ? (
-        <>
-          <Status error>{loadError.message}</Status>
-          <Button variant="outline" onClick={load}>
-            {t("retry")}
-          </Button>
-        </>
-      ) : !workspaces.length ? (
-        <EmptyState title={t("noClients")}>
+        {t("clientIntro")}
+      </PageHeading>
+      {clients === null ? (
+        <TableSkeleton columns={4} />
+      ) : !clients.length ? (
+        <EmptyState
+          title={t("noClients")}
+          icon={<Building2 />}
+          action={
+            <Action onClick={() => setCreating(true)}>
+              <Plus aria-hidden="true" />
+              {t("newClient")}
+            </Action>
+          }
+        >
           <p>{t("noClientsBody")}</p>
         </EmptyState>
       ) : (
-        <DataTable caption={t("clients")} headers={[t("client"), t("access")]}>
-          {workspaces.map((w) => (
-            <tr key={w.id}>
-              <th scope="row">{w.name}</th>
-              <td>
-                <Button
-                  variant={selected === w.id ? "secondary" : "outline"}
-                  disabled={!!pending}
-                  aria-pressed={selected === w.id}
-                  aria-label={`${t("selectClient")}: ${w.name}`}
-                  onClick={() => selectClient(w.id)}
-                >
-                  {selected === w.id ? t("selectedClient") : t("selectClient")}
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
-      {pending === "list" && <Status>{t("loading")}</Status>}
-      {client && (
-        <section
-          className="eval-panel eval-invites"
-          aria-labelledby="invite-heading"
-        >
-          <div className="eval-section-heading">
-            <p className="eval-eyebrow">{t("selectedClient")}</p>
-            <h2 id="invite-heading">{client.name}</h2>
-            <p>{t("inviteHelp")}</p>
-          </div>
-          <form
-            className="eval-form"
-            onSubmit={invite}
-            aria-busy={pending === "invite"}
-          >
-            <Field
-              id="invite-email"
-              label={t("email")}
-              type="email"
-              maxLength={254}
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!!pending}
-            />
-            <div className="eval-field">
-              <label htmlFor="invite-role">{t("role")}</label>
-              <select
-                id="invite-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                disabled={!!pending}
-              >
-                <option value="viewer">{t("viewer")}</option>
-                <option value="editor">{t("editor")}</option>
-                <option value="owner">{t("owner")}</option>
-              </select>
-            </div>
-            <Button type="submit" disabled={!!pending}>
-              {pending === "invite" ? t("inviting") : t("invite")}
-            </Button>
-          </form>
-          {!!invitations.filter((i) => i.workspaceId === client.id).length && (
-            <div className="eval-invitation-list">
-              <h3>{t("currentInvites")}</h3>
-              <p>{t("inviteSessionHelp")}</p>
-              {invitations
-                .filter((i) => i.workspaceId === client.id)
-                .map((invitation) => (
-                  <div className="eval-invitation" key={invitation.id}>
-                    <strong>{invitation.email}</strong>
-                    <span>
-                      {invitation.role} ·{" "}
-                      {invitation.revoked_at
-                        ? t("revoked")
-                        : invitation.accepted_at
-                          ? t("accepted")
-                          : t("pendingInvitation")}
-                    </span>
-                    {invitation.token && (
-                      <Field
-                        id={`link-${invitation.id}`}
-                        label={t("invitationLink")}
-                        readOnly
-                        value={`${window.location.origin}${invitationPath(invitation.token)}`}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    )}
-                    <Button
-                      variant="outline"
-                      disabled={
-                        !!pending ||
-                        !!invitation.revoked_at ||
-                        !!invitation.accepted_at
-                      }
-                      onClick={() => revoke(invitation.id)}
-                    >
-                      {pending === invitation.id ? t("revoking") : t("revoke")}
-                    </Button>
-                  </div>
-                ))}
-            </div>
+        <>
+          {clients.length > 6 && (
+            <Toolbar>
+              <SearchInput value={query} onChange={setQuery} label={t("searchClients")} />
+            </Toolbar>
           )}
-        </section>
+          <DataTable caption={t("clients")} headers={[t("client"), { label: t("product"), align: "end" }, { label: t("reports"), align: "end" }, { label: t("lastActivity"), align: "end" }]}>
+            {visible.map((client) => (
+              <tr key={client.id}>
+                <th scope="row">
+                  <span className="p-table-primary">
+                    <button type="button" className="p-row-link p-row-button" onClick={() => setOpenId(client.id)}>
+                      {client.name}
+                    </button>
+                    {client.error && <span className="p-cell-meta">{t("summaryUnavailable")}</span>}
+                  </span>
+                </th>
+                <td className="p-num">{client.summary?.evaluations.length ?? "—"}</td>
+                <td className="p-num">{client.summary?.reports.length ?? "—"}</td>
+                <td className="p-table-action p-cell-meta">
+                  <Time value={lastActivity(client.id)} />
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </>
       )}
+
+      <Modal
+        open={creating}
+        onOpenChange={setCreating}
+        title={t("newClient")}
+        description={t("newClientHelp")}
+        size="sm"
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setCreating(false)}>
+              {t("cancel")}
+            </Action>
+            <Action type="submit" form="client-form" disabled={pending || !name.trim()}>
+              {pending ? t("creating") : t("createClient")}
+            </Action>
+          </>
+        }
+      >
+        <form id="client-form" onSubmit={create} className="p-stack">
+          {error && <Status error>{error}</Status>}
+          <Field id="client-name" label={t("clientName")} value={name} onChange={(event) => setName(event.target.value)} maxLength={160} required autoFocus />
+        </form>
+      </Modal>
+
+      <SidePanel
+        open={!!open}
+        onOpenChange={(value) => !value && setOpenId(null)}
+        title={open?.name ?? t("client")}
+        description={t("clientPanelHelp")}
+        wide
+        footer={
+          open && (
+            <ActionLink href={`/workspace/evaluations?orgId=${open.id}`}>
+              {t("openWorkspace")}
+              <ArrowRight aria-hidden="true" />
+            </ActionLink>
+          )
+        }
+      >
+        {open && (
+          <>
+            {open.summary && (
+              <DefinitionList
+                items={[
+                  { term: t("product"), value: open.summary.evaluations.length },
+                  { term: t("systems"), value: open.summary.systems.length },
+                  { term: t("reportsPublished"), value: open.summary.reports.length },
+                  { term: t("monthlyLimit"), value: formatMoney(open.summary.entitlement.monthly_spend_limit, open.summary.entitlement.currency) },
+                  { term: t("spendThisMonth"), value: formatMoney(Number(open.summary.usage.settled) + Number(open.summary.usage.outstanding), open.summary.entitlement.currency) },
+                ]}
+              />
+            )}
+            <InvitationManager orgId={open.id} workspaceName={open.name} />
+          </>
+        )}
+      </SidePanel>
     </>
   );
 }

@@ -54,6 +54,8 @@ paths = [
   '''(^|/)\.env\.example$''',
   '''(^|/)\.env\.sample$''',
   '''(^|/)package-lock\.json$''',
+  # Public OFL font bytes embedded for the report PDF (base64, high entropy).
+  '''(^|/)lib/evals/reports/fonts\.ts$''',
   '''(^|/)node_modules/''',
   '''(^|/)docs/.*\.md$''',
   # Build output. Never committed, but keeps a manual `gitleaks dir .` readable.

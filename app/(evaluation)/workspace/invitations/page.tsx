@@ -2,6 +2,8 @@ import { InvitationAcceptance } from "@/components/evals/invitation-acceptance";
 import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
 import { EvalShell } from "@/components/evals/shell";
+import { PublicFrame } from "@/components/evals/public-frame";
+import { t } from "@/lib/evals/messages/en";
 export default async function InvitationPage() {
   let identity;
   try {
@@ -14,10 +16,6 @@ export default async function InvitationPage() {
   return identity ? (
     <EvalShell identity={identity}>{content}</EvalShell>
   ) : (
-    <div className="p-root" lang="en">
-      <main id="p-main" className="p-page">
-        {content}
-      </main>
-    </div>
+    <PublicFrame context={t("invitations")}>{content}</PublicFrame>
   );
 }

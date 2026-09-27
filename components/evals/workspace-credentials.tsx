@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { KeyRound } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Badge, DataTable, Field, Loading, RowTitle, Status } from "./primitives";
+import { Action, Badge, Field, SectionHeading, Status, Time } from "./primitives";
+import { notify } from "./overlays";
 import { t } from "@/lib/evals/messages/en";
 
 type CredentialList = {
@@ -21,22 +22,14 @@ type CredentialList = {
   }>;
 };
 
-const formatDate = (value: string | null) => (value ? new Date(value).toLocaleString() : "—");
-
 /**
  * Write-only credential management for one API system (spec §5.5). Values are
  * never displayed or returned; rotation stores a new version and a new system
  * revision so earlier runs keep the exact configuration they used.
  */
-export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: {
-  orgId: string;
-  targetId: string;
-  canRevoke: boolean;
-  onChanged?: () => void;
-}) {
+export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: { orgId: string; targetId: string; canRevoke: boolean; onChanged?: () => void }) {
   const [list, setList] = useState<CredentialList | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
   const [label, setLabel] = useState("API key");
   const [headerName, setHeaderName] = useState("Authorization");
@@ -49,25 +42,26 @@ export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: {
       setError(reason instanceof Error ? reason.message : t("error"));
     }
   }, [orgId, targetId]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
   const active = list?.credentials.find((item) => !item.revoked_at);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!value || pending) return;
-    setPending(true); setError(""); setNotice("");
+    setPending(true);
+    setError("");
     try {
-      const stored = await evalRequest<{ targetRevisionId: string }>(`/targets/${targetId}/credentials`, "POST", {
-        orgId,
-        recordId: active?.id,
-        label: label.trim() || "API key",
-        kind: headerName.toLowerCase() === "authorization" ? "bearer" : "header_token",
-        headerName,
-        value,
-      }, crypto.randomUUID());
+      const stored = await evalRequest<{ targetRevisionId: string }>(
+        `/targets/${targetId}/credentials`,
+        "POST",
+        { orgId, recordId: active?.id, label: label.trim() || "API key", kind: headerName.toLowerCase() === "authorization" ? "bearer" : "header_token", headerName, value },
+        crypto.randomUUID(),
+      );
       setValue("");
       await evalRequest(`/targets/${stored.targetRevisionId}/checks`, "POST", { orgId }, crypto.randomUUID());
-      setNotice(active ? t("credentialRotated") : t("credentialSaved"));
+      notify(active ? t("credentialRotated") : t("credentialSaved"));
       await load();
       onChanged?.();
     } catch (reason) {
@@ -79,10 +73,11 @@ export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: {
   }
 
   async function revoke(recordId: string) {
-    setPending(true); setError(""); setNotice("");
+    setPending(true);
+    setError("");
     try {
       await evalRequest(`/targets/${targetId}/credentials/${recordId}?orgId=${encodeURIComponent(orgId)}`, "DELETE");
-      setNotice(t("credentialRevoked"));
+      notify(t("credentialRevoked"));
       await load();
       onChanged?.();
     } catch (reason) {
@@ -93,29 +88,46 @@ export function TargetCredentials({ orgId, targetId, canRevoke, onChanged }: {
   }
 
   return (
-    <section className="eval-panel" aria-label={t("credentials")}>
-      <h2>{t("credentials")}</h2>
-      <p>{t("credentialHelp")}</p>
+    <section aria-label={t("credentials")}>
+      <SectionHeading title={t("credentials")}>{t("credentialHelp")}</SectionHeading>
       {error && <Status error>{error}</Status>}
-      {notice && <Status>{notice}</Status>}
-      {!list ? <Loading /> : list.credentials.length ? (
-        <DataTable caption={t("credentials")} headers={[t("credentialLabel"), t("statusLabel"), t("credentialRotations"), t("lastValidation"), { label: t("access"), align: "end" }]}>
+      {!list ? (
+        <p className="p-cell-meta">{t("loading")}</p>
+      ) : list.credentials.length ? (
+        <ul className="p-keys">
           {list.credentials.map((item) => (
-            <tr key={item.id}>
-              <RowTitle meta={item.header_name ?? undefined}>{item.label ?? t("credentials")}</RowTitle>
-              <td>{item.revoked_at ? <Badge tone="fail">{t("credentialStateRevoked")}</Badge> : <Badge tone="pass" dot>{t("credentialStateActive")}</Badge>}</td>
-              <td>{item.versions.length} · {formatDate(item.versions[0]?.created_at ?? item.created_at)}</td>
-              <td>{list.lastCheck ? `${list.lastCheck.status} · ${formatDate(list.lastCheck.created_at)}` : "—"}</td>
-              <td className="p-table-action">{!item.revoked_at && canRevoke ? <Action variant="secondary" size="sm" onClick={() => void revoke(item.id)} disabled={pending}>{t("credentialRevoke")}</Action> : null}</td>
-            </tr>
+            <li key={item.id}>
+              <KeyRound aria-hidden="true" />
+              <span className="p-keys-main">
+                <span className="p-keys-name">{item.label ?? t("credentials")}</span>
+                <span className="p-cell-meta">
+                  {item.header_name ?? "Authorization"} · {item.versions.length} {item.versions.length === 1 ? t("version") : t("versions")} · {t("updated")} <Time value={item.versions[0]?.created_at ?? item.created_at} />
+                  {list.lastCheck && !item.revoked_at ? ` · ${t("lastValidation")}: ${list.lastCheck.status}` : ""}
+                </span>
+              </span>
+              {item.revoked_at ? <Badge>{t("credentialStateRevoked")}</Badge> : <Badge tone="pass" dot>{t("credentialStateActive")}</Badge>}
+              {!item.revoked_at && canRevoke && (
+                <Action variant="ghost" size="sm" onClick={() => void revoke(item.id)} disabled={pending}>
+                  {t("credentialRevoke")}
+                </Action>
+              )}
+            </li>
           ))}
-        </DataTable>
-      ) : <p className="p-cell-meta">{t("noCredentials")}</p>}
-      <form className="eval-flow-card" onSubmit={save} autoComplete="off">
-        <Field id={`credential-label-${targetId}`} label={t("credentialLabel")} value={label} onChange={(event) => setLabel(event.target.value)} required />
-        <Field id={`credential-header-${targetId}`} label={t("credentialHeader")} value={headerName} onChange={(event) => setHeaderName(event.target.value)} required />
-        <Field id={`credential-value-${targetId}`} type="password" label={active ? t("credentialNewValue") : t("credentialValue")} value={value} onChange={(event) => setValue(event.target.value)} autoComplete="new-password" required />
-        <Button disabled={!value || pending}>{active ? t("rotateCredential") : t("saveCredential")}</Button>
+        </ul>
+      ) : (
+        <p className="p-cell-meta">{t("noCredentials")}</p>
+      )}
+      <form className="p-inline-form" onSubmit={save} autoComplete="off">
+        <div className="p-grid-2 p-form-grid">
+          <Field id={`credential-label-${targetId}`} label={t("credentialLabel")} value={label} onChange={(event) => setLabel(event.target.value)} required />
+          <Field id={`credential-header-${targetId}`} label={t("credentialHeader")} value={headerName} onChange={(event) => setHeaderName(event.target.value)} required />
+        </div>
+        <Field id={`credential-value-${targetId}`} type="password" label={active ? t("credentialNewValue") : t("credentialValue")} value={value} onChange={(event) => setValue(event.target.value)} autoComplete="new-password" required hint={t("credentialWriteOnly")} />
+        <div className="p-row">
+          <Action type="submit" variant="secondary" disabled={!value || pending}>
+            {active ? t("rotateCredential") : t("saveCredential")}
+          </Action>
+        </div>
       </form>
     </section>
   );

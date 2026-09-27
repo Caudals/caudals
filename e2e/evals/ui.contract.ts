@@ -1,6 +1,23 @@
 import { test, expect } from "@playwright/test";
 const id = "00000000-0000-4000-8000-000000000001";
 const token = "a".repeat(43);
+/** A customer-safe workspace summary, with optional evaluations and reports. */
+function summaryFixture(extra: { evaluations?: unknown[]; reports?: unknown[]; systems?: unknown[] } = {}) {
+  return {
+    evaluations: [], systems: [], reports: [],
+    entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["openai_compatible", "website", "imported_responses"], can_export: true, can_schedule: true },
+    usage: { settled: "0", outstanding: "0" },
+    preferences: { completion: true, required_input: true, failure: true, email: false },
+    ...extra,
+  };
+}
+const evaluationFixture = {
+  id: "00000000-0000-4000-8000-000000000501", title: "Claims assistant review", project_id: "00000000-0000-4000-8000-000000000601",
+  project_title: "Claims", project_description: "", latest_source_id: null, latest_source_revision_id: null,
+  preparation_status: "ready", reason_code: null, selected_suite_version_id: "00000000-0000-4000-8000-000000000701",
+  commercial_cap: "500", currency: "EUR", latest_run_id: null, latest_run_status: null, latest_run_phase: null,
+  created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+};
 /** Sign-out lives in the sidebar account menu; open it before reaching for it. */
 async function openAccountMenu(page: import("@playwright/test").Page) {
   // Both shells render an account chip; only one is ever on screen. Target the
@@ -17,6 +34,7 @@ test("creates clients, scopes and revokes invitations with UUID idempotency keys
   page,
 }) => {
   const clients: { id: string; name: string }[] = [];
+  const invitations: Array<Record<string, unknown>> = [];
   const keys: string[] = [];
   await page.route("**/api/evals/v1/**", async (route) => {
     const r = route.request();
@@ -35,47 +53,58 @@ test("creates clients, scopes and revokes invitations with UUID idempotency keys
         clients.push(w);
         data = w;
       } else data = clients;
-    } else if (r.method() === "POST") {
-      expect(r.postDataJSON()).toEqual({
-        email: "viewer@example.test",
-        role: "viewer",
-      });
-      data = {
-        id: "invite-one",
-        email: "viewer@example.test",
-        role: "viewer",
-        token,
-      };
+    } else if (path.endsWith("/invitations")) {
+      if (r.method() === "POST") {
+        expect(path).toContain(id);
+        expect(r.postDataJSON()).toEqual({
+          email: "viewer@example.test",
+          role: "viewer",
+        });
+        const invitation = {
+          id: "invite-one",
+          email: "viewer@example.test",
+          role: "viewer",
+          expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+          accepted_at: null,
+          revoked_at: null,
+        };
+        invitations.push(invitation);
+        data = { ...invitation, token };
+      } else data = invitations;
     } else if (r.method() === "DELETE") {
       expect(new URL(r.url()).searchParams.get("orgId")).toBe(id);
+      invitations[0].revoked_at = new Date().toISOString();
       data = { revoked: true };
+    } else if (path.endsWith("/workspace/summary")) {
+      return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND", message: "Not found" } } });
     }
     await route.fulfill({ json: { data, meta: {} } });
   });
-  await page.goto("/ops");
+  await page.goto("/ops/clients");
   for (const name of ["Client one", "Client two"]) {
+    await page.getByRole("button", { name: "New client", exact: true }).first().click();
     await page.getByLabel("Client name", { exact: true }).fill(name);
-    await page
-      .getByRole("button", { name: "Create workspace", exact: true })
-      .click();
-    await expect(
-      page.getByRole("heading", { name, exact: true }),
-    ).toBeVisible();
+    await page.getByRole("button", { name: "Create client", exact: true }).click();
+    await expect(page.getByText(`Client created: ${name}`)).toBeVisible();
+    // The harness identity is static; in the app the refreshed identity opens the new client's panel.
+    await page.keyboard.press("Escape");
   }
-  await page
-    .getByRole("button", { name: "Select client: Client one", exact: true })
-    .click();
+  // Invitations are scoped to the selected client (the harness identity's workspace).
+  await page.getByRole("button", { name: "Example client", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "Example client" });
+  await panel.getByRole("button", { name: "Create invitation", exact: true }).click();
   await page.getByLabel("Email address").fill("viewer@example.test");
   await page
+    .getByRole("dialog", { name: /Invite/ })
     .getByRole("button", { name: "Create invitation", exact: true })
     .click();
   await expect(page.getByLabel("Private invitation link")).toHaveValue(
     `http://127.0.0.1:4187/workspace/invitations#token=${token}`,
   );
-  await page
-    .getByRole("button", { name: "Revoke invitation", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toHaveText("Invitation revoked.");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await panel.getByRole("button", { name: "Revoke invitation", exact: true }).click();
+  await expect(page.getByText("Invitation revoked.")).toBeVisible();
+  await expect(panel.getByRole("table").getByText("Revoked", { exact: true })).toBeVisible();
   expect(new Set(keys).size).toBe(3);
 });
 test("session expiry exposes recovery and no successful mutation", async ({
@@ -89,9 +118,10 @@ test("session expiry exposes recovery and no successful mutation", async ({
   );
   await page.goto("/ops");
   await expect(page.getByRole("alert")).toContainText("session has expired");
+  // Sign-in returns to the page the session expired on.
   await expect(
     page.getByRole("link", { name: "Sign in again" }),
-  ).toHaveAttribute("href", "/workspace/sign-in?next=%2Fevaluation-entry");
+  ).toHaveAttribute("href", "/workspace/sign-in?next=%2Fops");
   await expect(
     page.getByRole("link", { name: "Recover account" }),
   ).toBeVisible();
@@ -138,7 +168,7 @@ for (const width of [390, 768, 1440])
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/workspace/evaluations?viewer=1");
     await expect(
-      page.getByRole("heading", { name: "No evaluations yet" }),
+      page.getByRole("heading", { name: "Run your first evaluation" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Clients", exact: true }),
@@ -172,43 +202,39 @@ for (const width of [390, 768, 1440])
 test("operator desktop reference", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route("**/api/evals/v1/**", (r) =>
-    r.fulfill({ json: { data: [{ id, name: "Example client" }], meta: {} } }),
+    r.fulfill({ json: { data: new URL(r.request().url()).pathname.endsWith("/workspace/summary") ? summaryFixture({ evaluations: [evaluationFixture] }) : [{ id, name: "Example client" }], meta: {} } }),
   );
-  await page.goto("/ops");
-  await expect(
-    page.getByRole("rowheader", { name: "Example client" }),
-  ).toBeVisible();
+  await page.goto("/ops?filter=all");
+  await expect(page.getByRole("link", { name: /Claims assistant review/ })).toBeVisible();
+  await expect(page.getByText("Ready to run")).toBeVisible();
   await page.screenshot({
     path: "docs/evals/design/operator-1440.png",
     fullPage: true,
   });
 });
-test("operator report queue stops loading on an API failure and retries safely", async ({ page }) => {
-  let evaluationReads = 0;
+test("operator overview shows a support reference on an API failure and retries safely", async ({ page }) => {
+  let summaryReads = 0;
   await page.route("**/api/evals/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith("/workspaces"))
-      return route.fulfill({ json: { data: [{ id, name: "Example client" }], meta: {} } });
-    if (path.endsWith("/evaluations")) {
-      evaluationReads += 1;
-      if (evaluationReads === 1)
+    if (path.endsWith("/workspace/summary")) {
+      summaryReads += 1;
+      if (summaryReads === 1)
         return route.fulfill({ status: 503, json: { error: {
           code: "SERVICE_UNAVAILABLE",
           message: "database password=must-not-render",
           request_id: "safe-reference-123",
         } } });
-      return route.fulfill({ json: { data: { evaluations: [], runs: [], reports: [] }, meta: {} } });
+      return route.fulfill({ json: { data: summaryFixture(), meta: {} } });
     }
     return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
   });
 
-  await page.goto("/ops/reports");
+  await page.goto("/ops");
   await expect(page.getByText(/Reference: safe-reference-123/)).toBeVisible();
-  await expect(page.getByText("Loading workspaces…")).toHaveCount(0);
   await expect(page.getByText("database password=must-not-render")).toHaveCount(0);
   await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByRole("heading", { name: "No published reports yet" })).toBeVisible();
-  expect(evaluationReads).toBe(2);
+  await expect(page.getByRole("heading", { name: "No evaluations yet" })).toBeVisible();
+  await expect(page.getByText(/Reference: safe-reference-123/)).toHaveCount(0);
 });
 
 test("workspace reports distinguish an API failure from an empty report list", async ({ page }) => {
@@ -262,7 +288,7 @@ test("Stage C connection flow is keyboard usable at mobile width", async ({ page
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto(`/workspace/evaluations/new?orgId=${id}`);
   await expect(page.getByRole("heading", { name: "New evaluation" })).toBeVisible();
-  await page.getByLabel("Website chatbot").focus();
+  await page.getByLabel("Website chatbot", { exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByLabel("API", { exact: true })).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -283,14 +309,13 @@ test("Stage C website connection requires an authority attestation before probin
   });
   await page.route(`**/api/evals/v1/targets/${targetRevisionId}/checks`, (route) => { requests.push("check"); return route.fulfill({ json: { data: { status: "queued" }, meta: {} } }); });
   await page.goto(`/workspace/evaluations/new?orgId=${id}&editor`);
-  await page.getByLabel("Project name").fill("Support policies");
-  await page.getByLabel("System name").fill("Support bot");
+  await page.getByLabel("Name", { exact: true }).fill("Support bot");
   await page.getByLabel("What should this system help people do?").fill("Answer customer questions");
   await page.getByLabel("Website URL").fill("https://example.com/chat");
-  await expect(page.getByRole("button", { name: "Connect system" })).toBeDisabled();
-  await page.getByLabel(/authorized to test this system/i).check();
-  await expect(page.getByRole("button", { name: "Connect system" })).toBeEnabled();
-  await page.getByRole("button", { name: "Connect system" }).click();
+  await expect(page.getByRole("button", { name: "Create evaluation" })).toBeDisabled();
+  await page.getByLabel(/authorized to test it/i).check();
+  await expect(page.getByRole("button", { name: "Create evaluation" })).toBeEnabled();
+  await page.getByRole("button", { name: "Create evaluation" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/evaluations/${evaluationId}`));
   expect(requests).toEqual(["project", "evaluation", "target", "attestation", "check"]);
 });
@@ -305,13 +330,14 @@ test("Stage C manual connection waits for questions before requesting answers", 
     expect(route.request().postDataJSON().config).toMatchObject({ kind: "imported_responses", source_path: "imports/manual-answers" });
     return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000042" }, meta: {} } });
   });
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture(), meta: {} } }));
   await page.goto(`/workspace/evaluations/new?orgId=${id}&editor`);
-  await page.getByLabel("Upload answers").check();
-  await page.getByLabel("Project name").fill("Support policies");
-  await page.getByLabel("System name").fill("Support bot");
+  await page.locator("label.p-choice", { hasText: "Upload answers" }).click();
+  await expect(page.getByLabel("Upload answers", { exact: true })).toBeChecked();
+  await page.getByLabel("Name", { exact: true }).fill("Support bot");
   await page.getByLabel("What should this system help people do?").fill("Answer customer questions");
-  await expect(page.getByText(/Prepare and approve your questions first/)).toBeVisible();
-  await page.getByRole("button", { name: "Connect system" }).click();
+  await expect(page.getByText(/Nothing is sent to your system/)).toBeVisible();
+  await page.getByRole("button", { name: "Create evaluation" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/evaluations/${evaluationId}`));
   expect(requests).toEqual(["project", "evaluation", "target"]);
 });
@@ -339,11 +365,11 @@ test("Stage C manual answers reach a private preliminary report only after match
   await page.route("**/api/evals/v1/reports", (route) => { requests.push("report"); expect(route.request().postDataJSON()).toMatchObject({ reviewStatus: "preliminary", runId }); return route.fulfill({ json: { data: { reportId, revisionId }, meta: {} } }); });
   await page.route(`**/api/evals/v1/reports/${reportId}/publish`, (route) => { requests.push("publish"); published = true; return route.fulfill({ json: { data: { reportId }, meta: {} } }); });
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
-  await expect(page.getByRole("heading", { name: "Collect answers from your system" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Download question sheet (CSV)" })).toHaveAttribute("href", new RegExp(`/suites/${suiteVersionId}/candidate-template`));
-  await page.getByLabel("Completed answer sheet").setInputFiles({ name: "answers.csv", mimeType: "text/csv", buffer: Buffer.from("suite_version_id,case_id,case_revision_id,input,system_answer\nsuite,case,revision,Question,Answer\n") });
+  await expect(page.getByRole("heading", { name: "Waiting for your answers" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download question sheet" }).first()).toHaveAttribute("href", new RegExp(`/suites/${suiteVersionId}/candidate-template`));
+  await page.getByLabel("Choose answer sheet").setInputFiles({ name: "answers.csv", mimeType: "text/csv", buffer: Buffer.from("suite_version_id,case_id,case_revision_id,input,system_answer\nsuite,case,revision,Question,Answer\n") });
   await page.getByRole("button", { name: "Upload answers" }).click();
-  await expect(page.getByText("All answers matched. Your preliminary private report is ready.")).toBeVisible();
+  await expect(page.getByText("All answers matched. Your preliminary report is ready.")).toBeVisible();
   expect(requests).toEqual(["import", "apply", "score", "report", "publish"]);
 });
 test("Stage C manual report finalization can resume after reopening", async ({ page }) => {
@@ -363,7 +389,7 @@ test("Stage C manual report finalization can resume after reopening", async ({ p
   await page.route(`**/api/evals/v1/reports/${reportId}/publish`, (route) => { published = true; return route.fulfill({ json: { data: { reportId }, meta: {} } }); });
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
   await page.getByRole("button", { name: "Prepare preliminary report" }).click();
-  await expect(page.getByRole("link", { name: "Review findings" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open report" })).toBeVisible();
 });
 test("Stage C customer can see source-backed test-set preparation after connecting", async ({ page }) => {
   const evaluationId = "00000000-0000-4000-8000-000000000010";
@@ -405,20 +431,19 @@ test("Stage C customer can see source-backed test-set preparation after connecti
     reports: [], entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website"], can_export: true }, usage: { settled: "0", outstanding: "0" }, preferences: { completion: true, required_input: true, failure: true, email: false },
   }, meta: {} } }));
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
-  await expect(page.getByRole("heading", { name: "Prepare a test set" })).toBeVisible();
-  await expect(page.getByLabel("Example customer question")).toBeVisible();
-  await expect(page.getByLabel("Approved answer")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Reference material" })).toBeVisible();
+  await page.getByRole("button", { name: "Write a test yourself" }).click();
   await expect(page.getByLabel("Supporting excerpt")).toContainText("Refunds are accepted within 30 days.");
-  await page.getByLabel("Example customer question").fill("When can I request a refund?");
+  await page.getByLabel("Question", { exact: true }).fill("When can I request a refund?");
   await page.getByLabel("Approved answer").fill("Within 30 days.");
   await page.getByLabel("Supporting excerpt").selectOption("00000000-0000-4000-8000-000000000016");
-  await page.getByRole("button", { name: "Prepare test set" }).click();
-  await expect(page.getByRole("heading", { name: "Review your test set" })).toBeVisible();
-  await expect(page.getByText("Question: When can I request a refund?")).toBeVisible();
+  await page.getByRole("button", { name: "Prepare this test" }).click();
+  await expect(page.getByRole("heading", { name: "Review the test set" })).toBeVisible();
+  await expect(page.getByText("When can I request a refund?")).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Review your test set" })).toBeVisible();
-  await expect(page.getByText("Approved answer: Within 30 days.")).toBeVisible();
-  await page.getByRole("button", { name: "Approve test set" }).click();
+  await expect(page.getByRole("heading", { name: "Review the test set" })).toBeVisible();
+  await expect(page.locator(".p-case").getByText("Within 30 days.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /^Approve test set/ }).click();
   await expect(page.getByRole("button", { name: "Run evaluation" })).toBeVisible();
   expect(requests).toEqual(["context", "generate", "freeze", "approve"]);
 });
@@ -440,9 +465,9 @@ test("Stage C customer can upload and finalize a source document", async ({ page
   // Extraction runs in the document worker; the page polls ingestion until it completes.
   await page.route(`**/api/evals/v1/sources/${sourceId}?**`, (route) => route.fulfill({ json: { data: { id: sourceId, revisions: finalized ? [{ id: revisionId }] : [], ingestion: finalized ? { status: "completed", source_revision_id: revisionId } : null, chunks: finalized ? [{ id: "00000000-0000-4000-8000-000000000025", excerpt: "Refunds are available within 30 days." }] : [] }, meta: {} } }));
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
-  await page.getByLabel("Policy documents").setInputFiles({ name: "refunds.txt", mimeType: "text/plain", buffer: Buffer.from("Refunds are available within 30 days.") });
-  await page.getByRole("button", { name: "Add these sources" }).click();
-  await expect(page.getByLabel("Example customer question")).toBeVisible();
+  await page.getByLabel("Choose documents").setInputFiles({ name: "refunds.txt", mimeType: "text/plain", buffer: Buffer.from("Refunds are available within 30 days.") });
+  await page.getByRole("button", { name: "Add documents" }).click();
+  await expect(page.getByRole("button", { name: "Write a test yourself" })).toBeVisible();
   expect(uploaded && finalized).toBe(true);
 });
 
@@ -624,7 +649,7 @@ test("Stage C result inspector is nonmodal on desktop and modal with focus on mo
   await page.goto("/workspace/reports/fixture");
   await page.getByRole("tab", { name: "Test results" }).click();
   await page.getByRole("button", { name: /Refund eligibility/ }).click();
-  await expect(page.locator(".eval-result-desktop")).toContainText("30-day policy");
+  await expect(page.getByRole("complementary", { name: /Refund eligibility/ })).toContainText("30-day policy");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 900 });
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -644,18 +669,17 @@ test("retry after a lost response reuses the same creation key", async ({
     if (keys.length === 1) return r.abort("failed");
     await r.fulfill({ json: { data: { id, name: "Retry client" }, meta: {} } });
   });
-  await page.goto("/ops");
+  await page.goto("/ops/clients");
+  await page.getByRole("button", { name: "New client", exact: true }).first().click();
   await page.getByLabel("Client name", { exact: true }).fill("Retry client");
   await page
-    .getByRole("button", { name: "Create workspace", exact: true })
+    .getByRole("button", { name: "Create client", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
   await page
-    .getByRole("button", { name: "Create workspace", exact: true })
+    .getByRole("button", { name: "Create client", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Retry client", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Client created: Retry client")).toBeVisible();
   expect(keys).toHaveLength(2);
   expect(keys[0]).toBe(keys[1]);
 });
@@ -706,7 +730,10 @@ test("actual Better Auth SDK signs in and keeps the invitation return path", asy
   await expect(
     page.getByRole("button", { name: "Accept invitation", exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("Invitation token")).toHaveValue(token);
+  // The bearer is kept in memory only; it is never shown or left in the URL.
+  await expect(page.getByText(/Invitation link detected/)).toBeVisible();
+  await expect(page.getByLabel("Invitation token")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/token=/);
 });
 test("actual Better Auth TOTP challenge stays in evaluation UI, rejects bad code and verifies", async ({
   page,
@@ -957,7 +984,10 @@ test("invitation bearer stays in fragments through anonymous entry and sign-in",
     });
   });
   await page.goto(`/workspace/invitations?anonymous=1#token=${token}`);
-  await expect(page.getByLabel("Invitation token")).toHaveValue(token);
+  // The bearer is kept in memory only; it is never shown or left in the URL.
+  await expect(page.getByText(/Invitation link detected/)).toBeVisible();
+  await expect(page.getByLabel("Invitation token")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/token=/);
   await expect(page).toHaveURL(/\/workspace\/invitations$/);
   const signIn = page.getByRole("link", {
     name: "Already have an account? Sign in to accept",
@@ -977,7 +1007,10 @@ test("invitation bearer stays in fragments through anonymous entry and sign-in",
   await page.getByLabel("Email address").fill("member@example.test");
   await page.getByLabel("Password", { exact: true }).fill("existing-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByLabel("Invitation token")).toHaveValue(token);
+  // The bearer is kept in memory only; it is never shown or left in the URL.
+  await expect(page.getByText(/Invitation link detected/)).toBeVisible();
+  await expect(page.getByLabel("Invitation token")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/token=/);
   await expect(page).toHaveURL(/\/workspace\/invitations$/);
   expect(requests.length).toBeGreaterThan(0);
   for (const request of requests) {
@@ -1049,21 +1082,21 @@ test("workspace owner creates a pinned monitoring schedule", async ({ page }) =>
       return route.fulfill({ json: { data: [], meta: {} } });
     return route.fulfill({ status: 404, json: { error: { code: "NOT_FOUND" } } });
   });
-  await page.goto(`/workspace/settings?owner=1`);
-  await expect(page.getByRole("heading", { name: "Scheduled monitoring" })).toBeVisible();
-  await page.getByLabel("Cadence").selectOption("monthly");
-  await page.getByLabel("Day of month (1–31)").fill("31");
-  await page.getByLabel("IANA timezone").fill("Europe/Madrid");
-  await page.getByRole("button", { name: "Create schedule" }).click();
-  await expect(page.getByRole("status")).toHaveText("Schedule created.");
+  await page.goto(`/workspace/settings?owner=1&tab=monitoring`);
+  await expect(page.getByRole("heading", { name: "Scheduled runs" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "New schedule" }).click();
+  const dialog = page.getByRole("dialog", { name: "New schedule" });
+  await dialog.getByLabel("Cadence").selectOption("monthly");
+  await dialog.getByLabel("Day of month").fill("31");
+  await dialog.getByLabel("Time zone").fill("Europe/Madrid");
+  await dialog.getByRole("button", { name: "Create schedule" }).click();
+  await expect(page.getByText("Schedule created.")).toBeVisible();
   expect(created).toMatchObject({ orgId: id, evaluationId, targetRevisionId, suiteVersionId, cadence: "monthly", dayOfMonth: 31, timezone: "Europe/Madrid", maxRunSpend: "25", currency: "EUR" });
 
-  // Monitoring, token and webhook controls are named, keyboard reachable and fit a phone.
+  // The schedule form is named, keyboard reachable and fits a phone.
   await page.setViewportSize({ width: 390, height: 900 });
-  const controls = await page.evaluate(() => [...document.querySelectorAll("main input, main select, main textarea, main button")]
-    .filter((element) => (element as HTMLInputElement).type !== "hidden" && element.checkVisibility()).length);
-  expect(controls).toBeGreaterThan(8);
-  const unnamed = await page.evaluate(() => [...document.querySelectorAll("main input, main select, main textarea, main button")]
+  await page.getByRole("button", { name: "New schedule" }).click();
+  const unnamed = await page.evaluate(() => [...document.querySelectorAll("[role=dialog] input, [role=dialog] select, [role=dialog] textarea, [role=dialog] button")]
     .filter((element) => {
       const control = element as HTMLInputElement;
       if (control.type === "hidden" || !control.checkVisibility()) return false;
@@ -1072,13 +1105,15 @@ test("workspace owner creates a pinned monitoring schedule", async ({ page }) =>
     }).map((element) => element.outerHTML.slice(0, 80)));
   expect(unnamed).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByLabel("IANA timezone").focus();
+  await dialog.getByLabel("Time zone").focus();
   let reached = false;
   for (let step = 0; step < 12 && !reached; step++) {
     await page.keyboard.press("Tab");
     reached = await page.evaluate(() => document.activeElement?.textContent?.trim() === "Create schedule");
   }
   expect(reached).toBe(true);
+  await page.keyboard.press("Escape");
+  await page.goto(`/workspace/settings?owner=1&tab=developers`);
   for (const name of ["Add webhook", "Create token"]) await expect(page.getByRole("button", { name })).toBeVisible();
 });
 
@@ -1146,17 +1181,17 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   await page.goto(`/workspace/test-sets?orgId=${id}&editor`);
   await expect(page.getByRole("heading", { name: "Test sets" })).toBeVisible();
   await expect(page.getByText("Support source", { exact: true })).toBeVisible();
-  await page.getByText("Fork test set", { exact: true }).click();
-  await page.getByLabel("Name for your copy").fill("Support improvements");
-  await page.getByRole("button", { name: "Create editable fork" }).click();
+  await page.getByRole("button", { name: "Make a copy" }).click();
+  await page.getByRole("dialog").getByLabel("Name", { exact: true }).fill("Support improvements");
+  await page.getByRole("button", { name: "Create copy" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/test-sets/${forkSuiteId}`));
   await expect(page.getByRole("heading", { name: "Support improvements" })).toBeVisible();
-  await page.getByLabel("Case title").fill("Updated refund window");
-  await page.getByLabel("Scenario message 1 (user)").fill("When does the refund period end?");
-  await page.getByLabel("Reference answer (JSON for structured answers)").fill("Thirty calendar days");
-  await page.getByRole("button", { name: "Save case" }).click();
-  await expect(page.getByText("Case saved. Review it before freezing the test set.")).toBeVisible();
-  await page.getByRole("button", { name: "Freeze test set" }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Updated refund window");
+  await page.getByLabel("User message", { exact: true }).fill("When does the refund period end?");
+  await page.getByLabel("Reference answer").fill("Thirty calendar days");
+  await page.getByRole("button", { name: "Save test" }).click();
+  await expect(page.getByText("Test saved. Review it before freezing.")).toBeVisible();
+  await page.getByRole("button", { name: "Freeze new version" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/test-sets\\?orgId=${id}`));
   await expect(page.getByText("Support improvements", { exact: true })).toBeVisible();
   expect(saved && frozen).toBe(true);
@@ -1203,22 +1238,29 @@ test("report actions publish a revision, share a previewed projection once and r
 
   await page.goto(`/workspace/reports/actions?orgId=${actionOrg}&owner`);
   await expect(page.getByText("Refund answers omitted the 30-day window in 1 of 2 tests.")).toBeVisible();
-  await page.getByRole("row", { name: /00000000/ }).first().getByRole("button", { name: "Publish" }).click();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Revisions" }).click();
+  await page.getByRole("dialog", { name: "Revisions" }).getByRole("button", { name: "Publish" }).first().click();
   await expect(page.getByText(/Revision published/)).toBeVisible();
+  await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Prepare PDF" }).click();
-  await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Download" }).click();
   await expect(page.getByText(/cannot be recalled/).first()).toBeVisible();
+  await page.getByRole("menuitem", { name: "Prepare PDF" }).click();
+  await expect(page.getByRole("link", { name: "Download PDF" })).toBeVisible({ timeout: 10_000 });
 
-  await page.getByLabel("Individual test results with interaction excerpts").uncheck();
+  await page.getByRole("button", { name: "Share" }).click();
+  // Individual test results are opt-in: interaction excerpts are the most sensitive part.
+  await expect(page.getByLabel("Individual test results with interaction excerpts")).not.toBeChecked();
   await page.getByRole("button", { name: "Preview shared view" }).click();
-  await expect(page.getByText(/^Preview: this is exactly what recipients/)).toBeVisible();
-  await page.getByRole("tab", { name: "Test results" }).click();
-  await expect(page.getByRole("button", { name: /Refund window/ })).toHaveCount(0);
-  await page.getByRole("button", { name: "Close preview" }).click();
+  const preview = page.getByRole("dialog", { name: "Shared view preview" });
+  await expect(preview.getByText(/^Preview: this is exactly what recipients/)).toBeVisible();
+  await expect(preview.getByRole("tab", { name: /Takeaways|Overview/ }).first()).toBeVisible();
+  await expect(preview.getByRole("tab", { name: /Test results/ })).toHaveCount(0);
+  await preview.getByRole("button", { name: "Close" }).click();
 
   await page.getByRole("button", { name: "Create access" }).click();
-  await expect(page.getByText(/share#token=tok_fixture/)).toBeVisible();
+  await expect(page.getByLabel("Private link")).toHaveValue(/share#token=tok_fixture/);
   await page.getByRole("button", { name: "Revoke" }).click();
   await expect(page.getByText(/Access revoked/)).toBeVisible();
   expect(requests).toEqual(["publish", "pdf", "share:system,scope,metrics,takeaways,findings,improvements,methodology", "revoke"]);
@@ -1242,6 +1284,7 @@ test("result review queue records attributed decisions with a required reason", 
     return route.fulfill({ json: { data: {}, meta: {} } });
   });
   await page.goto("/ops/review");
+  await page.getByRole("button", { name: "Refund window" }).click();
   await expect(page.getByRole("heading", { name: "Refund window" })).toBeVisible();
   await expect(page.getByText(/experimental/)).toBeVisible();
   await page.getByLabel("Override with a new outcome").check();
@@ -1267,14 +1310,16 @@ test("platform console hides endpoints and keys and asks for a fresh sign-in on 
   await expect(page.getByRole("rowheader", { name: /llama3\.1:8b/ })).toBeVisible();
   await expect(page.getByText(/private DGX route/).first()).toBeVisible();
   await expect(page.getByText(/192\.168|11434/)).toHaveCount(0);
-  await page.getByLabel("Reason").first().fill("Pause for rotation");
-  await page.getByRole("button", { name: "Save" }).first().click();
+  await page.getByRole("button", { name: "Amend" }).first().click();
+  await page.getByRole("dialog").getByLabel("Reason").fill("Pause for rotation");
+  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Sign in again to confirm this platform change.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Sign in again" })).toHaveAttribute("href", /\/workspace\/sign-in\?next=/);
   expect(posted).toEqual([expect.objectContaining({ targetKind: "provider_account", reason: "Pause for rotation", enabled: true })]);
   await page.goto("/ops/platform?readonly");
   await expect(page.getByText(/Changes need a platform administrator/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Register a model revision" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Register/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Amend" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -1288,10 +1333,12 @@ test("usage amendments require a reason and send the entitlement change", async 
   }, meta: {} } }));
   await page.route("**/api/evals/v1/budgets/**", (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ json: { data: { amendmentId: "x" }, meta: {} } }); });
   await page.goto("/ops/platform/usage");
-  await page.getByLabel("Scheduled monitoring").check();
-  await page.getByLabel("Active run allowance").fill("3");
-  await page.locator("#ent-reason").fill("Monitoring subscription signed");
   await page.getByRole("button", { name: "Amend entitlements" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Scheduled monitoring").check();
+  await dialog.getByLabel("Active run allowance").fill("3");
+  await dialog.getByLabel("Reason").fill("Monitoring subscription signed");
+  await dialog.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(/Amendment recorded/)).toBeVisible();
   expect(posted[0]).toMatchObject({ targetKind: "entitlement", canSchedule: true, maxActiveRuns: 3, reason: "Monitoring subscription signed", allowedConnectionTypes: ["website", "imported_responses"] });
 });
@@ -1299,6 +1346,7 @@ test("usage amendments require a reason and send the entitlement change", async 
 test("domain packs list their rubric, evaluators and prohibited assumptions", async ({ page }) => {
   await page.route("**/api/evals/v1/domain-packs", (route) => route.fulfill({ json: { data: [{ id: "generic-grounded-qa", version: "1", title: "Generic grounded Q&A", status: "active", summary: "Grounded questions.", taskTypes: ["grounded_qa"], requiredContext: ["purpose"], sourceHierarchy: ["customer policy"], rubricCriteria: [{ id: "correctness", description: "Correct." }], deterministicEvaluators: ["claims"], prohibitedAssumptions: ["Remembered laws"], reviewGuidelines: "Review critical cases." }], meta: {} } }));
   await page.goto("/ops/library/domain-packs");
+  await page.getByRole("button", { name: /Generic grounded Q&A/ }).click();
   await expect(page.getByRole("heading", { name: "Generic grounded Q&A" })).toBeVisible();
   await expect(page.getByText("Remembered laws")).toBeVisible();
 });

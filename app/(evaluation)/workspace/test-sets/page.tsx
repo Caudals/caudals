@@ -4,5 +4,9 @@ import { WorkspaceTestSets } from "@/components/evals/workspace-test-sets";
 
 export default async function TestSetsPage() {
   const identity = await requirePageIdentity("/workspace/test-sets");
-  return <EvalShell identity={identity}><WorkspaceTestSets workspaces={identity.workspaces} /></EvalShell>;
+  return (
+    <EvalShell identity={identity}>
+      <WorkspaceTestSets />
+    </EvalShell>
+  );
 }

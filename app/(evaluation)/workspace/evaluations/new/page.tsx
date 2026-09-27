@@ -6,7 +6,7 @@ export default async function NewEvaluationPage() {
   const identity = await requirePageIdentity("/workspace/evaluations/new");
   return (
     <EvalShell identity={identity}>
-      <NewEvaluationFlow workspaces={identity.workspaces} />
+      <NewEvaluationFlow />
     </EvalShell>
   );
 }

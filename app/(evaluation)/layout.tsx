@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   ...rootMetadata,
-  title: "Evaluations | Caudals",
+  title: "Caudals",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

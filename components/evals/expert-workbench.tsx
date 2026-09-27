@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ClipboardCheck, FileText } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
 import {
-  Action, ActionLink, Card, DataTable, EmptyState, Loading, PageHeading,
+  Action, ActionLink, Card, Check, DataTable, EmptyState, Loading, PageHeading,
   RowTitle, SelectField, Status, StatusBadge, Tabs, TextArea, Toolbar,
 } from "./primitives";
 
@@ -145,7 +145,7 @@ export function ExpertWorkbench({ assignmentId }: { assignmentId: string }) {
       <div className="p-stack">
         <Card title="Assigned evidence">
           {work.evidence.excerpts.map((excerpt) => <article className="eval-evidence" key={excerpt.anchor}><p className="p-eyebrow">{excerpt.anchor}</p><p>{excerpt.text}</p></article>)}
-          {work.evidence.transcript.map((turn, index) => <article className="eval-transcript" key={`${turn.role}-${index}`}><p className="p-eyebrow">{turn.role}</p><p>{turn.content}</p></article>)}
+          {work.evidence.transcript.length > 0 && <div className="p-transcript">{work.evidence.transcript.map((turn, index) => <p className="p-bubble" data-role={turn.role} key={`${turn.role}-${index}`}><span className="p-bubble-role">{turn.role}</span>{turn.content}</p>)}</div>}
         </Card>
         <Card title="Guideline"><p>{work.guideline.instructions}</p></Card>
         {work.reviewTarget && <Card title="Submission under review"><p>{answerText(work.reviewTarget.answer)}</p><p>{work.reviewTarget.rationale}</p>{work.reviewTarget.sourceAnchors.length > 0 && <p>Source anchors: {work.reviewTarget.sourceAnchors.join(", ")}</p>}</Card>}
@@ -154,10 +154,12 @@ export function ExpertWorkbench({ assignmentId }: { assignmentId: string }) {
       <Card title={review ? "Your independent decision" : "Your contribution"}>
         <TextArea id="expert-answer" label="Answer" rows={8} value={answer} disabled={locked || review} onChange={(event) => { setAnswer(event.target.value); setDirty(true); }} />
         <TextArea id="expert-rationale" label="Rationale" rows={6} value={rationale} disabled={locked} onChange={(event) => { setRationale(event.target.value); setDirty(true); }} />
-        {!review && <fieldset className="eval-flag-list"><legend>Review flags</legend>
-          <label><input type="checkbox" checked={flags.includes("ambiguous")} onChange={(event) => changeFlag("ambiguous", event.target.checked)} /> Flag ambiguity</label>
-          <label><input type="checkbox" checked={flags.includes("missing_source")} onChange={(event) => changeFlag("missing_source", event.target.checked)} /> Flag missing source</label>
-          <label><input type="checkbox" checked={flags.includes("guideline_question")} onChange={(event) => changeFlag("guideline_question", event.target.checked)} /> Flag guideline question</label>
+        {!review && <fieldset className="p-fieldset"><legend>Review flags</legend>
+          <div className="p-checks">
+            <Check label="Flag ambiguity" checked={flags.includes("ambiguous")} disabled={locked} onChange={(event) => changeFlag("ambiguous", event.target.checked)} />
+            <Check label="Flag missing source" checked={flags.includes("missing_source")} disabled={locked} onChange={(event) => changeFlag("missing_source", event.target.checked)} />
+            <Check label="Flag guideline question" checked={flags.includes("guideline_question")} disabled={locked} onChange={(event) => changeFlag("guideline_question", event.target.checked)} />
+          </div>
         </fieldset>}
         {review ? <>
           <SelectField id="review-decision" label="Review decision" value={reviewDecision} onChange={(event) => setReviewDecision(event.target.value as typeof reviewDecision)} disabled={locked}>

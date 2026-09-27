@@ -140,9 +140,13 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` an
   `STATUS` table when you add a backend state.
 - Icons are lucide-react only, stroke `1.5` beside regular text and `2` beside
   medium.
-- `app/(evaluation)/evaluation.css` ends with a compatibility alias block for
-  legacy `.eval-*` class names. Do not add to it; when you touch one of those
-  components, migrate it to the `p-*` primitives and delete its alias.
+- Overlays come from `components/evals/overlays.tsx` (`Modal`, `SidePanel`,
+  `ActionMenu`, `CopyField`, `notify`). A dialog shows the outcome of its own
+  action inside itself (`Modal`'s `alert`), never behind the scrim.
+- Workspace context comes from `useWorkspace()` (`workspace-context.tsx`); pages
+  do not take a `workspaces` prop. Links into a workspace go through `withOrg`.
+- `app/(evaluation)/evaluation.css` holds only screen-specific rules (today the
+  expert workbench). There is no legacy alias layer; do not reintroduce one.
 - `/admin` is frozen scope: it adopts the platform tokens through a variable
   remap and is not to be rewritten wholesale.
 
@@ -157,7 +161,11 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` an
 7. Verify platform UI against the isolated harness: `node e2e/evals/harness-server.mjs`
    serves the real components with fixture data on `127.0.0.1:4187`. It bundles
    `platform.css` + `evaluation.css`, so it is the fastest way to see a design
-   change without a database or a session.
+   change without a database or a session. `npx playwright test
+   --config=e2e/evals/ui.config.ts` runs the UI contracts against it (48 tests:
+   flows, focus, 390/768/1440 layouts, secrets never rendered). The harness
+   mounts the client `ShellFrame` directly, because `EvalShell` reads server
+   environment flags.
 
 ## Runtime Review
 

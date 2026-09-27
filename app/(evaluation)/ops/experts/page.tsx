@@ -8,5 +8,9 @@ export default async function ExpertManagementPage() {
   requireStageEPage();
   const identity = await requirePageIdentity("/ops/experts");
   if (!identity.platformRole) redirect("/workspace/evaluations");
-  return <EvalShell identity={identity}><ExpertManagement workspaces={identity.workspaces} /></EvalShell>;
+  return (
+    <EvalShell identity={identity}>
+      <ExpertManagement />
+    </EvalShell>
+  );
 }

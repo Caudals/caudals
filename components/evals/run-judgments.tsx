@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
-import { Action, DataTable, DefinitionList, RowTitle, Status, StatusBadge } from "./primitives";
+import { Action, DataTable, DefinitionList, RowTitle, SectionHeading, Status, StatusBadge, humanize } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 
 type Judgments = {
@@ -29,24 +29,22 @@ export function RunJudgments({ orgId, runId }: { orgId: string; runId: string })
   if (!data || !data.jobs.length) return error ? <Status error>{error}</Status> : null;
   const counts = data.jobs.reduce<Record<string, number>>((all, job) => ({ ...all, [job.status]: (all[job.status] ?? 0) + 1 }), {});
   return (
-    <section className="eval-panel" aria-label={t("rubricJudge")}>
-      <h2>{t("rubricJudge")}</h2>
-      <p className="p-cell-meta">{t("rubricJudgeHelp")}</p>
+    <section className="p-section" aria-label={t("rubricJudge")}>
+      <SectionHeading title={t("rubricJudge")} actions={counts.queued ? <Action variant="secondary" size="sm" onClick={() => void collect()} disabled={pending}>{t("collectJudgeResults")}</Action> : undefined}>{t("rubricJudgeHelp")}</SectionHeading>
       {error && <Status error>{error}</Status>}
       <DefinitionList items={[
-        ...Object.entries(counts).map(([status, count]) => ({ term: status.replaceAll("_", " "), value: count })),
+        ...Object.entries(counts).map(([status, count]) => ({ term: humanize(status), value: count })),
         ...data.calibration.map((item) => ({
           term: `${t("judgeCalibration")} · ${item.promptRevision}`,
           value: `${item.examples} ${t("calibrationExamples")} · ${item.agreement === null ? "—" : `${Math.round(item.agreement * 100)}%`}${item.adequate ? "" : ` · ${t("calibrationExperimental")}`}`,
         })),
       ]} />
-      {counts.queued ? <Action variant="secondary" size="sm" onClick={() => void collect()} disabled={pending}>{t("collectJudgeResults")}</Action> : null}
       <DataTable caption={t("rubricJudge")} headers={[t("test"), t("statusLabel"), t("reason")]}>
         {data.jobs.map((job) => (
           <tr key={job.id}>
-            <RowTitle><code className="p-code">{job.case_revision_id}</code></RowTitle>
+            <RowTitle><code className="p-code">{job.case_revision_id.slice(0, 12)}</code></RowTitle>
             <td><StatusBadge value={job.status} /></td>
-            <td className="p-cell-meta">{job.reason_code?.replaceAll("_", " ") ?? "—"}</td>
+            <td className="p-cell-meta">{job.reason_code ? humanize(job.reason_code) : "—"}</td>
           </tr>
         ))}
       </DataTable>

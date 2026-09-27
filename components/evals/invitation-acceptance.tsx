@@ -2,23 +2,22 @@
 import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  evaluationSignInPath,
-  invitationPath,
-  invitationTokenFromFragment,
-} from "./auth-path";
+import { MailCheck } from "lucide-react";
+import { evaluationSignInPath, invitationPath, invitationTokenFromFragment } from "./auth-path";
 import { t } from "@/lib/evals/messages/en";
-import { PageHeading, Field, Status, SessionRecovery } from "./primitives";
+import { Action, ActionLink, Field, Status, SessionRecovery } from "./primitives";
 import { evalRequest, EvalRequestError } from "./api";
-export function InvitationAcceptance({
-  authenticated = true,
-}: {
-  authenticated?: boolean;
-}) {
+
+/**
+ * Accept a private workspace invitation. Signed-in people join directly; new
+ * people set their name and password here. The token arrives in the URL
+ * fragment, is read once and removed from the address bar.
+ */
+export function InvitationAcceptance({ authenticated = true }: { authenticated?: boolean }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
+  const [fromLink, setFromLink] = useState(false);
   const [pending, setPending] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -26,12 +25,10 @@ export function InvitationAcceptance({
   useEffect(() => {
     const consume = () => {
       if (!window.location.hash) return;
-      setToken(invitationTokenFromFragment(window.location.hash));
-      window.history.replaceState(
-        window.history.state,
-        "",
-        "/workspace/invitations",
-      );
+      const value = invitationTokenFromFragment(window.location.hash);
+      setToken(value);
+      setFromLink(!!value);
+      window.history.replaceState(window.history.state, "", "/workspace/invitations");
     };
     consume();
     window.addEventListener("hashchange", consume);
@@ -45,108 +42,81 @@ export function InvitationAcceptance({
       await evalRequest(
         authenticated ? "/invitations/accept" : "/invitations/enroll",
         "POST",
-        authenticated
-          ? { token: token.trim() }
-          : { token: token.trim(), name: name.trim(), password },
+        authenticated ? { token: token.trim() } : { token: token.trim(), name: name.trim(), password },
       );
       setPassword("");
       setAccepted(true);
       setToken("");
       if (authenticated) router.refresh();
     } catch (e) {
-      setError(
-        e instanceof EvalRequestError && e.status === 404
-          ? new Error(t("invalidInvite"))
-          : e instanceof Error
-            ? e
-            : new Error(t("invalidInvite")),
-      );
+      setError(e instanceof EvalRequestError && e.status === 404 ? new Error(t("invalidInvite")) : e instanceof Error ? e : new Error(t("invalidInvite")));
     } finally {
       setPending(false);
     }
   }
   return (
-    <div className="eval-narrow">
-      <PageHeading title={t("acceptTitle")}>{t("acceptHelp")}</PageHeading>
-      {accepted ? (
-        <section className="eval-panel">
-          <Status>{authenticated ? t("accepted") : t("enrolled")}</Status>
-          <Button asChild>
-            <Link
-              href={
-                authenticated
-                  ? "/workspace/evaluations"
-                  : evaluationSignInPath()
-              }
-            >
+    <div className="p-narrow">
+      <div className="p-auth-head">
+        <span className="p-empty-mark" aria-hidden="true">
+          <MailCheck />
+        </span>
+        <h1>{t("acceptTitle")}</h1>
+        <p>{authenticated ? t("acceptHelp") : t("enrollHelp")}</p>
+      </div>
+      <div className="p-auth-card">
+        {accepted ? (
+          <div className="p-stack">
+            <Status tone="success">{authenticated ? t("accepted") : t("enrolled")}</Status>
+            <ActionLink block href={authenticated ? "/workspace/evaluations" : evaluationSignInPath()}>
               {authenticated ? t("continue") : t("signInAccount")}
-            </Link>
-          </Button>
-        </section>
-      ) : (
-        <form
-          onSubmit={accept}
-          className="eval-panel eval-form"
-          aria-busy={pending}
-        >
-          {!token && <p>{t("missingToken")}</p>}
-          <Field
-            id="invitation-token"
-            label={t("token")}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            required
-            autoComplete="off"
-            type="password"
-            disabled={pending}
-          />
-          {!authenticated && (
-            <>
+            </ActionLink>
+          </div>
+        ) : (
+          <form onSubmit={accept} className="p-auth-form" aria-busy={pending}>
+            {!fromLink && (
               <Field
-                id="enroll-name"
-                label={t("fullName")}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id="invitation-token"
+                label={t("token")}
+                hint={t("missingToken")}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
                 required
-                autoComplete="name"
-                maxLength={120}
-                disabled={pending}
-              />
-              <Field
-                id="enroll-password"
-                label={t("password")}
+                autoComplete="off"
                 type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={12}
-                maxLength={128}
-                required
                 disabled={pending}
-                aria-describedby="password-help"
               />
-              <p id="password-help">{t("passwordHelp")}</p>
-            </>
-          )}
-          {error && <Status error>{error.message}</Status>}
-          {error instanceof EvalRequestError && error.status === 401 && (
-            <SessionRecovery next={invitationPath(token)} />
-          )}
-          <Button disabled={pending || !token.trim()} type="submit">
-            {pending
-              ? authenticated
-                ? t("accepting")
-                : t("enrolling")
-              : authenticated
-                ? t("accept")
-                : t("enroll")}
-          </Button>
-          {!authenticated && (
-            <Link href={evaluationSignInPath(invitationPath(token))}>
-              {t("existingAccount")}
-            </Link>
-          )}
-        </form>
+            )}
+            {fromLink && <Status tone="info">{t("invitationDetected")}</Status>}
+            {!authenticated && (
+              <>
+                <Field id="enroll-name" label={t("fullName")} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" maxLength={120} disabled={pending} />
+                <Field
+                  id="enroll-password"
+                  label={t("password")}
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={12}
+                  maxLength={128}
+                  required
+                  disabled={pending}
+                  hint={t("passwordHelp")}
+                />
+              </>
+            )}
+            {error && <Status error>{error.message}</Status>}
+            {error instanceof EvalRequestError && error.status === 401 && <SessionRecovery next={invitationPath(token)} />}
+            <Action block type="submit" disabled={pending || !token.trim()}>
+              {pending ? (authenticated ? t("accepting") : t("enrolling")) : authenticated ? t("accept") : t("enroll")}
+            </Action>
+          </form>
+        )}
+      </div>
+      {!authenticated && !accepted && (
+        <p className="p-auth-note">
+          <Link href={evaluationSignInPath(invitationPath(token))}>{t("existingAccount")}</Link>
+        </p>
       )}
     </div>
   );

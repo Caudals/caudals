@@ -1,94 +1,280 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { evalRequest } from "./api";
-import { Badge, EmptyState, Loading, SectionHeading, Status, StatusBadge } from "./primitives";
-import { ClipboardCheck } from "lucide-react";
-import { t } from "@/lib/evals/messages/en";
-
-type Workspace = { id: string; name: string };
-type Item = {
-  assessment_id: string; outcome: string; review_status: string; rationale: string; criteria: Array<{ criterion_id: string; score: number | null; rationale: string }>;
-  case_title: string; severity: string; question: string | null; answer: string | null; expected: unknown; source_refs: Array<{ source_revision_id: string; anchor: string }>;
-  evaluation_title: string; judge_reason: string | null; judge_calibration: { examples: number; agreement: number | null; adequate: boolean } | null;
-};
-const scoreFor = { pass: 1, partial: 0.5, fail: 0, unscorable: null } as const;
-
 /**
- * Exception-first result review (spec §5.5 step 5, §11.3-§11.4): critical and
- * disputed results first, each with the question, the captured answer, the
+ * Exception-first review across every client (spec §5.5 steps 5 and 8,
+ * §11.3–11.4). Test sets waiting for approval link to their evaluation;
+ * results needing a decision open with the question, captured answer,
  * expectation and source anchors. Decisions append attributed records; an
  * override creates a new assessment and never deletes the model judgment.
  */
-export function AssessmentReviewQueue() {
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [orgId, setOrgId] = useState("");
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [pending, setPending] = useState("");
-  useEffect(() => { void evalRequest<Workspace[]>("/workspaces").then((rows) => { setWorkspaces(rows); setOrgId((current) => current || rows[0]?.id || ""); }).catch(() => setError(t("error"))); }, []);
-  const load = useCallback(async () => {
-    if (!orgId) return;
-    setItems(null);
-    try { setItems(await evalRequest<Item[]>(`/reviews?orgId=${encodeURIComponent(orgId)}`)); setError(""); }
-    catch { setError(t("error")); setItems([]); }
-  }, [orgId]);
-  useEffect(() => { void load(); }, [load]);
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ClipboardCheck } from "lucide-react";
+import { evalRequest } from "./api";
+import { Action, DataTable, DefinitionList, EmptyState, PageHeading, RowTitle, SectionHeading, SelectField, Status, StatusBadge, TableSkeleton, TextArea, humanize } from "./primitives";
+import { SidePanel, notify } from "./overlays";
+import { useClientSummaries } from "./operator-overview";
+import { useWorkspace } from "./workspace-context";
+import { t } from "@/lib/evals/messages/en";
 
-  async function decide(item: Item, form: HTMLFormElement) {
-    const data = new FormData(form);
-    const decision = String(data.get("decision")) as "approve" | "dispute" | "override";
-    const reason = String(data.get("reason") ?? "").trim();
-    if (!reason) { setError(t("reviewReasonRequired")); return; }
-    const outcome = String(data.get("outcome") ?? item.outcome) as keyof typeof scoreFor;
-    setPending(item.assessment_id); setError(""); setNotice("");
+type Item = {
+  assessment_id: string;
+  outcome: string;
+  review_status: string;
+  rationale: string;
+  criteria: Array<{ criterion_id: string; score: number | null; rationale: string }>;
+  case_title: string;
+  severity: string;
+  question: string | null;
+  answer: string | null;
+  expected: unknown;
+  source_refs: Array<{ source_revision_id: string; anchor: string }>;
+  evaluation_title: string;
+  judge_reason: string | null;
+  judge_calibration: { examples: number; agreement: number | null; adequate: boolean } | null;
+};
+type Queued = Item & { orgId: string; client: string };
+const scoreFor = { pass: 1, partial: 0.5, fail: 0, unscorable: null } as const;
+const SEVERITY = ["critical", "high", "medium", "low"];
+
+export function ReviewQueue() {
+  const { workspaces } = useWorkspace();
+  const { clients } = useClientSummaries();
+  const [items, setItems] = useState<Queued[] | null>(null);
+  const [error, setError] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [decision, setDecision] = useState<"approve" | "dispute" | "override">("approve");
+  const [outcome, setOutcome] = useState<keyof typeof scoreFor>("pass");
+  const [reason, setReason] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const rows = await Promise.all(
+        workspaces.map(async (workspace) =>
+          (await evalRequest<Item[]>(`/reviews?orgId=${encodeURIComponent(workspace.id)}`).catch(() => [] as Item[])).map((item) => ({ ...item, orgId: workspace.id, client: workspace.name })),
+        ),
+      );
+      setItems(rows.flat().sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity)));
+      setError("");
+    } catch (value) {
+      setItems([]);
+      setError(value instanceof Error ? value.message : t("error"));
+    }
+  }, [workspaces]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const approvals = useMemo(
+    () =>
+      (clients ?? []).flatMap((client) =>
+        (client.summary?.evaluations ?? []).filter((item) => ["needs_review", "validating"].includes(item.preparation_status)).map((evaluation) => ({ client, evaluation })),
+      ),
+    [clients],
+  );
+  const current = items?.find((item) => item.assessment_id === openId) ?? null;
+
+  function open(item: Queued) {
+    setOpenId(item.assessment_id);
+    setDecision("approve");
+    setOutcome((item.outcome as keyof typeof scoreFor) ?? "pass");
+    setReason("");
+    setError("");
+  }
+
+  async function decide(event: React.FormEvent) {
+    event.preventDefault();
+    if (!current || !reason.trim()) return;
+    setPending(true);
+    setError("");
     try {
       await evalRequest("/reviews", "POST", {
-        orgId, assessmentId: item.assessment_id, decision, reason,
-        ...(decision === "override" ? { outcome, criteria: item.criteria.map((criterion) => ({ criterion_id: criterion.criterion_id, score: scoreFor[outcome], rationale: reason })) } : {}),
+        orgId: current.orgId,
+        assessmentId: current.assessment_id,
+        decision,
+        reason: reason.trim(),
+        ...(decision === "override" ? { outcome, criteria: current.criteria.map((criterion) => ({ criterion_id: criterion.criterion_id, score: scoreFor[outcome], rationale: reason.trim() })) } : {}),
       });
-      setNotice(t("reviewRecorded"));
+      notify(t("reviewRecorded"));
+      setOpenId(null);
       await load();
-    } catch (reasonError) {
-      setError(reasonError instanceof Error ? reasonError.message : t("error"));
-    } finally { setPending(""); }
+    } catch (value) {
+      setError(value instanceof Error ? value.message : t("error"));
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
-    <section aria-label={t("resultReview")}>
-      <SectionHeading title={t("resultReview")}>{t("resultReviewHelp")}</SectionHeading>
-      <div className="eval-toolbar"><label htmlFor="review-workspace">{t("workspace")}</label>
-        <select id="review-workspace" value={orgId} onChange={(event) => setOrgId(event.target.value)}>{workspaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-      </div>
-      {error && <Status error>{error}</Status>}
-      {notice && <Status>{notice}</Status>}
-      {!items ? <Loading /> : !items.length ? <EmptyState title={t("noResultsToReview")} icon={<ClipboardCheck />}><p>{t("noResultsToReviewHelp")}</p></EmptyState> : items.map((item) => (
-        <article className="eval-panel" key={item.assessment_id}>
-          <p className="p-row" style={{ gap: 6 }}><StatusBadge value={item.severity} /><StatusBadge value={item.outcome} /><Badge>{item.review_status.replaceAll("_", " ")}</Badge>{item.judge_reason && <Badge tone="warn">{item.judge_reason.replaceAll("_", " ")}</Badge>}</p>
-          <h3>{item.case_title}</h3>
-          <p className="p-cell-meta">{item.evaluation_title}</p>
-          <h4>{t("input")}</h4><pre>{item.question ?? "—"}</pre>
-          <h4>{t("output")}</h4><pre>{item.answer ?? "—"}</pre>
-          <h4>{t("expectedBehavior")}</h4><pre>{typeof item.expected === "string" ? item.expected : JSON.stringify(item.expected, null, 2)}</pre>
-          <p>{item.rationale}</p>
-          {item.judge_calibration && <p className="p-cell-meta">{t("judgeCalibration")}: {item.judge_calibration.examples} {t("calibrationExamples")}{item.judge_calibration.adequate ? "" : ` · ${t("calibrationExperimental")}`}</p>}
-          <div className="eval-source-refs">{item.source_refs?.map((ref) => <code key={`${ref.source_revision_id}-${ref.anchor}`}>{ref.source_revision_id}#{ref.anchor}</code>)}</div>
-          <form className="p-stack" onSubmit={(event) => { event.preventDefault(); void decide(item, event.currentTarget); }}>
-            <fieldset className="eval-check-list"><legend>{t("reviewDecision")}</legend>
-              <label><input type="radio" name="decision" value="approve" defaultChecked /> {t("reviewApprove")}</label>
-              <label><input type="radio" name="decision" value="dispute" /> {t("reviewDispute")}</label>
-              <label><input type="radio" name="decision" value="override" /> {t("reviewOverride")}</label>
-            </fieldset>
-            <label className="eval-field"><span>{t("reviewOverrideOutcome")}</span>
-              <select name="outcome" defaultValue={item.outcome}>{Object.keys(scoreFor).map((outcome) => <option key={outcome} value={outcome}>{outcome}</option>)}</select>
-            </label>
-            <label className="eval-field"><span>{t("reviewReason")}</span><textarea name="reason" required maxLength={4000} rows={2} /></label>
-            <Button className="justify-self-start" disabled={pending === item.assessment_id}>{t("recordDecision")}</Button>
-          </form>
-        </article>
-      ))}
-    </section>
+    <>
+      <PageHeading title={t("reviewQueue")}>{t("reviewQueueHelp")}</PageHeading>
+      {error && !current && <Status error>{error}</Status>}
+
+      <section>
+        <SectionHeading title={t("testSetsAwaitingApproval")}>{t("testSetsAwaitingApprovalHelp")}</SectionHeading>
+        {clients === null ? (
+          <TableSkeleton rows={2} columns={3} />
+        ) : approvals.length ? (
+          <DataTable caption={t("testSetsAwaitingApproval")} headers={[t("evaluation"), t("client"), { label: t("statusLabel"), align: "end" }]}>
+            {approvals.map(({ client, evaluation }) => (
+              <tr key={`${client.id}-${evaluation.id}`}>
+                <RowTitle href={`/workspace/evaluations/${evaluation.id}?orgId=${client.id}`} meta={evaluation.project_title}>
+                  {evaluation.title}
+                </RowTitle>
+                <td>{client.name}</td>
+                <td className="p-table-action">
+                  <StatusBadge value={evaluation.preparation_status} />
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        ) : (
+          <p className="p-cell-meta">{t("noTestSetsAwaiting")}</p>
+        )}
+      </section>
+
+      <section className="p-section">
+        <SectionHeading title={t("resultReview")}>{t("resultReviewHelp")}</SectionHeading>
+        {items === null ? (
+          <TableSkeleton columns={4} />
+        ) : items.length ? (
+          <DataTable caption={t("resultReview")} headers={[t("test"), t("severity"), t("outcome"), { label: t("reason"), align: "end" }]}>
+            {items.map((item) => (
+              <tr key={`${item.orgId}-${item.assessment_id}`}>
+                <th scope="row">
+                  <span className="p-table-primary">
+                    <button type="button" className="p-row-link p-row-button" onClick={() => open(item)}>
+                      {item.case_title}
+                    </button>
+                    <span className="p-cell-meta">
+                      {item.client} · {item.evaluation_title}
+                    </span>
+                  </span>
+                </th>
+                <td>
+                  <StatusBadge value={item.severity} />
+                </td>
+                <td>
+                  <StatusBadge value={item.outcome} />
+                </td>
+                <td className="p-table-action p-cell-meta">{item.judge_reason ? humanize(item.judge_reason) : humanize(item.review_status)}</td>
+              </tr>
+            ))}
+          </DataTable>
+        ) : (
+          <EmptyState title={t("noResultsToReview")} icon={<ClipboardCheck />}>
+            <p>{t("noResultsToReviewHelp")}</p>
+          </EmptyState>
+        )}
+      </section>
+
+      <SidePanel
+        open={!!current}
+        onOpenChange={(value) => !value && setOpenId(null)}
+        title={current?.case_title ?? t("result")}
+        description={
+          current && (
+            <>
+              <StatusBadge value={current.severity} />
+              <StatusBadge value={current.outcome} />
+              <span>
+                {current.client} · {current.evaluation_title}
+              </span>
+            </>
+          )
+        }
+        wide
+        footer={
+          current && (
+            <>
+              <Action variant="secondary" onClick={() => setOpenId(null)}>
+                {t("cancel")}
+              </Action>
+              <Action type="submit" form="review-form" disabled={pending || !reason.trim()}>
+                {pending ? t("working") : t("recordDecision")}
+              </Action>
+            </>
+          )
+        }
+      >
+        {current && (
+          <>
+            {error && <Status error>{error}</Status>}
+            <div className="p-transcript">
+              <div className="p-bubble" data-role="user">
+                <span className="p-bubble-role">{t("question")}</span>
+                <p>{current.question ?? "—"}</p>
+              </div>
+              <div className="p-bubble" data-role="assistant">
+                <span className="p-bubble-role">{t("systemAnswer")}</span>
+                <p>{current.answer ?? "—"}</p>
+              </div>
+            </div>
+            <section>
+              <SectionHeading title={t("expectedBehavior")} />
+              <pre className="p-pre">{typeof current.expected === "string" ? current.expected : JSON.stringify(current.expected, null, 2)}</pre>
+            </section>
+            <section>
+              <SectionHeading title={t("judgeRationale")} />
+              <p className="p-evidence-text">{current.rationale}</p>
+              {current.criteria.length > 0 && (
+                <DefinitionList
+                  items={current.criteria.map((criterion) => ({
+                    term: humanize(criterion.criterion_id),
+                    value: (
+                      <>
+                        <strong>{criterion.score == null ? t("notScored") : criterion.score}</strong>
+                        {criterion.rationale && <span className="p-cell-meta"> · {criterion.rationale}</span>}
+                      </>
+                    ),
+                  }))}
+                />
+              )}
+              {current.judge_calibration && (
+                <p className="p-cell-meta">
+                  {t("judgeCalibration")}: {current.judge_calibration.examples} {t("calibrationExamples")}
+                  {current.judge_calibration.agreement != null ? ` · ${Math.round(current.judge_calibration.agreement * 100)}% ${t("agreement")}` : ""}
+                  {current.judge_calibration.adequate ? "" : ` · ${t("calibrationExperimental")}`}
+                </p>
+              )}
+              {current.source_refs.length > 0 && (
+                <p className="p-row p-cell-meta">
+                  {t("sourceExcerpts")}
+                  {current.source_refs.map((ref) => (
+                    <code key={`${ref.source_revision_id}-${ref.anchor}`} className="p-code" title={ref.anchor}>
+                      {ref.anchor.length > 12 ? ref.anchor.slice(0, 8) : ref.anchor}
+                    </code>
+                  ))}
+                </p>
+              )}
+            </section>
+            <form id="review-form" className="p-stack p-decision" onSubmit={decide}>
+              <fieldset className="p-fieldset">
+                <legend>{t("reviewDecision")}</legend>
+                <div className="p-segmented" role="radiogroup" aria-label={t("reviewDecision")}>
+                  {(["approve", "dispute", "override"] as const).map((value) => (
+                    <label key={value} className="p-segment">
+                      <input type="radio" name="decision" value={value} checked={decision === value} onChange={() => setDecision(value)} />
+                      <span>{value === "approve" ? t("reviewApprove") : value === "dispute" ? t("reviewDispute") : t("reviewOverride")}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {decision === "override" && (
+                <SelectField id="review-outcome" label={t("reviewOverrideOutcome")} value={outcome} onChange={(event) => setOutcome(event.target.value as keyof typeof scoreFor)}>
+                  {Object.keys(scoreFor).map((value) => (
+                    <option key={value} value={value}>
+                      {humanize(value)}
+                    </option>
+                  ))}
+                </SelectField>
+              )}
+              <TextArea id="review-reason" label={t("reviewReason")} value={reason} onChange={(event) => setReason(event.target.value)} required maxLength={4000} rows={3} hint={t("reviewReasonHint")} />
+              <p className="p-field-hint">{t("decisionsAreAppended")}</p>
+            </form>
+          </>
+        )}
+      </SidePanel>
+    </>
   );
 }

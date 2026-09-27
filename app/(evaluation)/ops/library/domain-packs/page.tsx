@@ -6,5 +6,9 @@ import { OperatorLibrary } from "@/components/evals/operator-library";
 export default async function Page() {
   const identity = await requirePageIdentity("/ops/library/domain-packs");
   if (!identity.platformRole) redirect("/workspace/evaluations");
-  return <EvalShell identity={identity}><OperatorLibrary section="domain-packs" /></EvalShell>;
+  return (
+    <EvalShell identity={identity}>
+      <OperatorLibrary section="domain-packs" improvements={process.env.EVALS_EXPERT_WORK_ENABLED === "true"} />
+    </EvalShell>
+  );
 }

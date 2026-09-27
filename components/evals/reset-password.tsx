@@ -8,8 +8,7 @@ import {
   evaluationRecoveryPath,
 } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
-import { Field, Status } from "./primitives";
-import { Button } from "@/components/ui/button";
+import { Action, Field, Status } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 export function EvaluationResetPassword({
   next,
@@ -90,7 +89,7 @@ export function EvaluationResetPassword({
           </Link>
         </>
       ) : (
-        <form className="eval-form" onSubmit={submit} aria-busy={pending}>
+        <form className="p-auth-form" onSubmit={submit} aria-busy={pending}>
           {invalid && <Status error>{t("resetLinkError")}</Status>}
           {resetting ? (
             <>
@@ -107,7 +106,7 @@ export function EvaluationResetPassword({
                 disabled={pending}
                 aria-describedby="new-password-help"
               />
-              <p id="new-password-help">{t("passwordHelp")}</p>
+              <p id="new-password-help" className="p-field-hint">{t("passwordHelp")}</p>
               <Field
                 id="confirm-password"
                 label={t("confirmPassword")}
@@ -136,7 +135,7 @@ export function EvaluationResetPassword({
           )}
           {error && <Status error>{error}</Status>}
           {sent && <Status>{t("recoverySent")}</Status>}
-          <Button type="submit" disabled={pending}>
+          <Action type="submit" block disabled={pending}>
             {t(
               pending
                 ? "working"
@@ -146,11 +145,12 @@ export function EvaluationResetPassword({
                     ? "resendResetLink"
                     : "sendResetLink",
             )}
-          </Button>
+          </Action>
           {resetting && (
-            <Button
+            <Action
               type="button"
-              variant="outline"
+              variant="secondary"
+              block
               disabled={pending}
               onClick={() => {
                 setRequestingNew(true);
@@ -160,7 +160,7 @@ export function EvaluationResetPassword({
               }}
             >
               {t("requestNewLink")}
-            </Button>
+            </Action>
           )}
           <Link href={evaluationSignInPath(destination)}>
             {t("backToSignIn")}

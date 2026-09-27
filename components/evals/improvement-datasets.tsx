@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DatabaseZap } from "lucide-react";
 import { t } from "@/lib/evals/messages/en";
 import { evalRequest } from "./api";
+import { useWorkspace } from "./workspace-context";
 import {
   Action, ActionLink, Card, DataTable, EmptyState, Field, PageHeading, RowTitle,
-  Loading, SelectField, Stat, StatGrid, Status, StatusBadge, Tabs, TextArea, Toolbar,
+  Loading, SelectField, Stat, StatGrid, Status, StatusBadge, Tabs, TextArea,
 } from "./primitives";
 
-type Workspace = { id: string; name: string };
 type Batch = {
   id: string; project_id: string; title: string; objective: string; status: string;
   lock_version: number; task_count?: number; item_count?: number;
@@ -32,8 +32,8 @@ type Validation = {
 
 function pct(value: number | null) { return value === null ? "—" : `${Math.round(value * 100)}%`; }
 
-export function ImprovementDatasets({ workspaces }: { workspaces: Workspace[] }) {
-  const [orgId, setOrgId] = useState(workspaces[0]?.id ?? "");
+export function ImprovementDatasets() {
+  const { orgId, workspace } = useWorkspace();
   const [batches, setBatches] = useState<Batch[]>([]); const [detail, setDetail] = useState<Detail | null>(null);
   const [tab, setTab] = useState<"batches" | "build" | "validation">("batches");
   const [notice, setNotice] = useState(""); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
@@ -115,10 +115,7 @@ export function ImprovementDatasets({ workspaces }: { workspaces: Workspace[] })
   }
 
   return <div className="p-stack">
-    <PageHeading title="Improvement datasets">Turn reviewed findings into traceable, rights-checked data releases, then measure observed changes on separate training, validation and held-out cases.</PageHeading>
-    <Toolbar><SelectField id="improvement-workspace" label="Client workspace" value={orgId} onChange={(event) => setOrgId(event.target.value)}>
-      {workspaces.map((workspace) => <option value={workspace.id} key={workspace.id}>{workspace.name}</option>)}
-    </SelectField></Toolbar>
+    <p className="p-cell-meta">{t("clientContext")} <strong>{workspace?.name ?? "—"}</strong>. {t("improvementDatasetsHelp")}</p>
     {notice && <Status tone="success">{notice}</Status>}{error && <Status error>{error}</Status>}
     <Tabs value={tab} onChange={setTab} label="Improvement dataset workflow" options={[
       { value: "batches", label: "Batches" }, { value: "build", label: "Build and QA" }, { value: "validation", label: "Follow-up evidence" },

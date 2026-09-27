@@ -100,7 +100,7 @@ Rules:
 - **Headings are semibold (600), not regular.** This is the clearest break from the marketing language, where headings are 400. Do not carry the editorial weight across.
 - Tracking tightens as size grows and never goes negative below 14px.
 - Measure caps at `62ch` for descriptions, `42ch` for empty-state copy.
-- The one oversized number is the report pass rate, `.eval-score`: `clamp(42px, 8vw, 66px)` / 600 / `-0.045em`.
+- The one oversized number is the report pass rate, `.p-score`: `clamp(40px, 6vw, 56px)` / 600 / `-0.045em`. With no scorable results it reads "No score yet" at title size (`data-empty`), never a giant dash.
 - Never uppercase a label. The reference uses sentence case throughout, and uppercase costs legibility in dense tables.
 
 ## 5. Colour
@@ -218,9 +218,23 @@ In-flight states (`running`, `queued`, `validating`, `generating`, `checking_con
 
 **Standard page** — `PageHeading` (with `actions` for the primary CTA, top-right) → `Tabs` if the page has sections → `Toolbar` for filters → content → `EmptyState` when there is none. This is the shape of every reference screenshot and should be the shape of every list page here.
 
-**Guided flow** (`.eval-flow`) — a `660px` centred column. Numbered step heading, one decision per card. Used by the new-evaluation wizard and test-set preparation.
+**Guided flow** (`.p-flow`) — a `640px` centred column, one decision per card. The new-evaluation flow asks for a name, a purpose and how to reach the system (a 2×2 choice grid gated by entitlement); reference material and tests come next, on the evaluation page.
 
-**Inspector** (`.eval-results-layout`) — list left, sticky evidence pane right; collapses to a dialog under 1024px.
+**Evaluation page** — one header (stage badge, system, created date, one primary action, secondary actions in `ActionMenu`) over a four-step tracker (Connect · Prepare tests · Run · Results) and exactly one panel for the current stage. `evaluation-stage.ts` projects the separate backend state dimensions into that one stage; the database keeps them separate.
+
+**Inspector** (`.p-inspect` / `.p-inspector`) — from 1024px, the result list stays usable on the left and the evidence sits in a sticky, **nonmodal** `aside` on the right. Below 1024px the same evidence opens in a modal `SidePanel` (full screen under 640px) that returns focus to the row that opened it. Spec §1518.
+
+**Overlays** (`components/evals/overlays.tsx`) — one of each, never nested decisions:
+
+- `Modal` for a decision or a short form. An outcome of the dialog's own action (an error, a re-authentication prompt) renders inside it through `alert`; anything rendered on the page behind the scrim is invisible to everyone.
+- `SidePanel` for details of one row (a client, a system, a result, a review). Right-hand panel; full screen on phones.
+- `ActionMenu` for secondary actions. The primary action stays a visible button.
+- `notify()` for outcomes that need no decision. Toasts use the `platform` toaster id so the document's global toaster never duplicates them.
+- `CopyField` for a value shown once (invitation links, share links, pairing codes, tokens).
+
+**Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab), and `⌘K` for the command palette. There are no in-page back links: breadcrumbs carry the hierarchy.
+
+**Session expiry** — any API call answering 401 raises one shell-level alert with *Sign in again* (returning to the current page) and *Recover account*, and hides the page underneath without unmounting it. The invitation page keeps its own recovery because its bearer lives only in the fragment.
 
 **Auth** (`.p-auth`) — one centred `400px` column on the chrome plane. Wordmark, title, description, card, footnote. No split hero, no marketing copy: the person is here to get in.
 
@@ -277,7 +291,7 @@ Two selector techniques appear throughout and are deliberate:
 - **Doubled class** (`.p-menu.p-menu`) raises specificity to (0,2,0) so platform rules beat a Tailwind utility at (0,1,0) **on specificity rather than on stylesheet order**, which Next does not guarantee.
 - **Tokens on `:root`, rules under `.p-root`.** Dropdowns, sheets and dialogs render through a portal at the end of `<body>`, outside `.p-root`. Custom properties declared but never referenced elsewhere cost nothing and inherit everywhere, which is exactly what portalled surfaces need.
 
-**Compatibility layer.** `app/(evaluation)/evaluation.css` ends with an alias block mapping legacy `.eval-*` class names onto the platform language, so components not yet migrated stay consistent. **Do not add names to it.** When you touch one of those components, move it to the `p-*` primitives and delete its alias.
+**No compatibility layer.** Every evaluation screen composes the `p-*` primitives. `app/(evaluation)/evaluation.css` keeps only the expert workbench grid and its save-conflict alert; a rule belongs there only when it is about one evaluation screen.
 
 **`/admin` is frozen scope** (`AGENTS.md`). Its 1,191-line module tree is maintained, not rewritten. It adopts the platform tokens by remapping the shadcn variables it already consumes (`.p-root[data-surface="admin"]`), so it reads as the same product without touching its code. Migrate a module to the primitives when it is next opened for real work.
 

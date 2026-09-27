@@ -1,10 +1,13 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { EvalShell } from "../../components/evals/shell";
+import { ShellFrame } from "../../components/evals/shell-frame";
 import { ClientManagement } from "../../components/evals/client-management";
-import { EvaluationJourney, NewEvaluationFlow, WorkspaceEvaluations, WorkspaceReports, WorkspaceSettings } from "../../components/evals/workspace-evaluations";
+import { NewEvaluationFlow, WorkspaceEvaluations } from "../../components/evals/workspace-evaluations";
+import { EvaluationJourney } from "../../components/evals/evaluation-detail";
+import { WorkspaceReports } from "../../components/evals/workspace-reports";
+import { WorkspaceSettings } from "../../components/evals/workspace-settings";
 import { AuthenticatedReport, ReportView } from "../../components/evals/report-view";
-import { AssessmentReviewQueue } from "../../components/evals/assessment-review";
+import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
 import { OperatorLibrary } from "../../components/evals/operator-library";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
@@ -13,7 +16,7 @@ import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
-import { QueueView } from "../../components/evals/operator-overview";
+import { OperatorOverview } from "../../components/evals/operator-overview";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
 const params = new URLSearchParams(location.search);
 const authPage =
@@ -50,39 +53,39 @@ const content =
       invalid={params.has("error")}
     />
   ) : location.pathname === "/ops" ? (
+    <OperatorOverview />
+  ) : location.pathname === "/ops/clients" ? (
     <ClientManagement />
-  ) : location.pathname === "/ops/reports" ? (
-    <QueueView kind="reports" />
   ) : location.pathname === "/ops/experts" ? (
-    <ExpertManagement workspaces={identity.workspaces} />
+    <ExpertManagement />
   ) : location.pathname === "/ops/improvements" ? (
-    <ImprovementDatasets workspaces={identity.workspaces} />
+    <ImprovementDatasets />
   ) : location.pathname.startsWith("/review/assignments/") ? (
     <ExpertWorkbench assignmentId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/review" ? (
     <ExpertAssignmentQueue />
   ) : location.pathname === "/workspace/evaluations/new" ? (
-    <NewEvaluationFlow workspaces={identity.workspaces} />
+    <NewEvaluationFlow />
   ) : location.pathname === "/workspace/settings" ? (
-    <WorkspaceSettings workspaces={identity.workspaces} />
+    <WorkspaceSettings />
   ) : location.pathname === "/workspace/reports" ? (
-    <WorkspaceReports workspaces={identity.workspaces} />
+    <WorkspaceReports />
   ) : location.pathname === "/workspace/test-sets" ? (
-    <WorkspaceTestSets workspaces={identity.workspaces} />
+    <WorkspaceTestSets />
   ) : location.pathname.startsWith("/workspace/test-sets/") ? (
-    <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
+    <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
-    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} workspaces={identity.workspaces} />
+    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname === "/ops/platform" ? (
     <PlatformConsole section="providers" admin={!location.search.includes("readonly")} />
   ) : location.pathname === "/ops/platform/usage" ? (
     <PlatformConsole section="usage" admin />
   ) : location.pathname === "/ops/library/domain-packs" ? (
-    <OperatorLibrary section="domain-packs" />
+    <OperatorLibrary section="domain-packs" improvements={false} />
   ) : location.pathname === "/ops/review" ? (
-    <AssessmentReviewQueue />
+    <ReviewQueue />
   ) : location.pathname === "/workspace/reports/actions" ? (
-    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" workspaces={identity.workspaces} />
+    <AuthenticatedReport reportId="00000000-0000-4000-8000-000000000301" />
   ) : location.pathname === "/workspace/reports/fixture" ? (
     <ReportView report={{
       report_revision_id: "report-v1",
@@ -93,7 +96,7 @@ const content =
   ) : location.pathname.includes("invitations") ? (
     <InvitationAcceptance authenticated={!anonymous} />
   ) : (
-    <WorkspaceEvaluations workspaces={identity.workspaces} />
+    <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
   authPage ? (
@@ -103,6 +106,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <EvalShell identity={identity} expert={location.pathname.startsWith("/review")}>{content}</EvalShell>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true }}>{content}</ShellFrame>
   ),
 );

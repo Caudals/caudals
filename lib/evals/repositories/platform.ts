@@ -6,7 +6,7 @@ import { z } from "zod";
 import { EvalError } from "../domain/errors";
 import type { EvalIdentity } from "../domain/identity";
 import {
-  enqueueProbe, registerPrice, registerProvider, revokeSecret, setBudget, setGenerationProviderRoute, writeSecret,
+  enqueueProbe, registerAccount, registerPrice, registerProvider, revokeSecret, setBudget, setGenerationProviderRoute, writeSecret,
 } from "../providers/admin";
 import { loadKeyring } from "../security/envelope";
 import { withTenant } from "./db";
@@ -202,6 +202,18 @@ export async function registerModelRevision(identity: EvalIdentity, orgId: strin
   // The browser never sees or sends the private DGX address.
   const config = input.endpoint === "dgx" && approved ? { ...input, endpoint: approved } : input;
   try { return await asAdmin({ orgId, actorId: identity.user.id }, (c) => registerProvider(c, { orgId, actorId: identity.user.id }, config, approved)); }
+  catch (error) { adminError(error); }
+}
+
+/**
+ * A funded provider account (a commercial API or the DGX) with its own
+ * spend ceiling. Accounts start disabled unless enabled explicitly; model
+ * revisions, prices and write-only keys are added to them afterwards.
+ */
+export async function registerProviderAccount(identity: EvalIdentity, orgId: string, raw: unknown) {
+  requireRecentAuthentication(identity);
+  const input = z.strictObject({ name: z.string().trim().min(1).max(120), currency: z.string().regex(/^[A-Z]{3}$/), ceiling: MONEY, enabled: z.boolean().default(false) }).parse(raw);
+  try { return await asAdmin({ orgId, actorId: identity.user.id }, (c) => registerAccount(c, { orgId, actorId: identity.user.id }, input)); }
   catch (error) { adminError(error); }
 }
 

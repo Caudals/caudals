@@ -23,12 +23,17 @@ export function evaluationReturnPath(value: string | null | undefined) {
     const parsed = new URL(value ?? invitationRoute, "https://app.caudals.com");
     return invitationPath(invitationTokenFromFragment(parsed.hash));
   }
+  if (pathname === "/evaluation-entry") return pathname;
+  // Return to the page that asked for sign-in. Auth pages would loop, and a
+  // query token is never forwarded (bearers travel only in fragments).
   if (
-    pathname === "/ops" ||
-    pathname === "/workspace/evaluations" ||
-    pathname === "/evaluation-entry"
-  )
-    return pathname;
+    (pathname === "/ops" || pathname.startsWith("/ops/") || pathname.startsWith("/workspace/")) &&
+    !["/workspace/sign-in", "/workspace/reset-password"].includes(pathname)
+  ) {
+    const parsed = new URL(path, "https://app.caudals.com");
+    parsed.searchParams.delete("token");
+    return parsed.pathname + parsed.search;
+  }
   return "/evaluation-entry";
 }
 export function evaluationSignInPath(next?: string) {
