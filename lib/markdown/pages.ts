@@ -5,6 +5,7 @@ import type { MessageKey } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/config";
 import { localizePathname } from "@/lib/i18n/routing";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import { homeFaqItems } from "@/lib/public/home-faq";
 import {
   SECTOR_IDS,
   SECTORS_HUB_PATH,
@@ -158,9 +159,16 @@ export async function renderStaticPageMarkdown(
     if (!copy) return null;
     title = t(copy.title);
     description = t(copy.description);
-    // The home page carries the evaluation model and its prices, rendered from
+    // The home page carries the evaluation model, its prices and the FAQ, rendered from
     // the same source as the landing page so the two cannot disagree.
-    body = pathname === "/" ? renderEvaluationOverviewMarkdown(t) : undefined;
+    body =
+      pathname === "/"
+        ? [
+            renderEvaluationOverviewMarkdown(t),
+            `## ${t("faq.title")}`,
+            ...homeFaqItems(t).map(({ q, a }) => `### ${q}\n\n${a}`),
+          ].join("\n\n")
+        : undefined;
   }
 
   const canonical = buildMarketingUrl(localizePathname(pathname, locale));

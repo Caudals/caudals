@@ -434,6 +434,45 @@
       }
     }
   },
+  "faq": {
+    "title": "Frequently asked questions",
+    "what": {
+      "q": "What does Caudals do, in plain words?",
+      "a": "We check whether your company's AI assistant gives your customers the right answers. We write an exam from your own documents, ask your assistant the questions a real customer would ask, and grade every answer against the page it should come from. You get a report on what it gets wrong, why, and how to fix it. Then our sector experts build the data that closes those gaps."
+    },
+    "systems": {
+      "q": "Which AI systems can you evaluate?",
+      "a": "Any system that answers questions in text or by voice: chatbots on your website, app or WhatsApp, phone agents, and internal assistants your team uses for policies, procedures or technical manuals. We focus on questions where a wrong answer costs money: prices, fees, coverage, eligibility, deadlines and specifications."
+    },
+    "technical": {
+      "q": "Do we need a technical team to work with you?",
+      "a": "No. You don't install anything or change your system: we talk to your assistant exactly as a customer would. The report is written for whoever is responsible for the service, not for engineers. If a supplier built your assistant, the list of fixes is ready to hand to them."
+    },
+    "access": {
+      "q": "Do you need access to our systems or customer data?",
+      "a": "Not to start. The free diagnostic uses only your public assistant, your public documentation and made-up customer profiles. For internal systems we work under an NDA and a data processing agreement on EU infrastructure, and delete your material when the work ends. If you prefer, we hand you the questions and you run them yourselves."
+    },
+    "trust": {
+      "q": "How do we know your results are right?",
+      "a": "Every question comes with its correct answer and the exact page of your documentation it comes from, so you can check any result yourself. Experts from your sector review the answer key, and your own expert signs it off before we grade anything. We are independent: we don't build or sell AI systems, so we have no model to defend."
+    },
+    "receive": {
+      "q": "What do we receive at the end?",
+      "a": "A score, the failures grouped by cause, real examples of each one with its source, and a prioritised list of fixes. We walk you through it in a live meeting. You also keep the full exam with its correct answers, so you can re-run it whenever you change your assistant."
+    },
+    "after": {
+      "q": "What happens after the first evaluation?",
+      "a": "If you want to keep going, we re-run the exam every month with new questions, and warn you when an update breaks something that used to work. Where your assistant lacks information, our experts build it: missing documentation, question-and-answer sets and worked examples. The next run shows whether the score moved."
+    },
+    "cost": {
+      "q": "How much does it cost to start?",
+      "a": "Nothing. The diagnostic is free: we put 40 questions to your assistant and send you the results within 48 hours. A pilot evaluation, with 150 to 300 questions reviewed by experts, takes about two weeks and has a fixed price agreed before we start. We never bill by the hour."
+    },
+    "private": {
+      "q": "Will anyone else see our results?",
+      "a": "No. Your results belong to you. We never publish or share a company's results, or even say it is a customer, without its written consent. Our experts work under confidentiality agreements and only see the material their task needs, with personal data removed."
+    }
+  },
   "cta": {
     "title": "Turn every mistake your AI makes into an improvement",
     "subtitle": "Start with a free diagnostic: we put forty questions to your assistant and, within 48 hours, tell you what fails and what data it needs to improve.",

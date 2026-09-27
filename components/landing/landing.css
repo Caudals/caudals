@@ -269,6 +269,9 @@
 }
 .hc-row {
   position: relative;
+  z-index: 1;
+  /* drop back only once the note has faded out */
+  transition: z-index 0s linear 0.2s;
   justify-self: start;
   display: flex;
   align-items: center;
@@ -291,6 +294,14 @@
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
+}
+/* The entrance animations give every bubble its own stacking context, so a
+   row with its note showing must be lifted above the bubbles after it. */
+.hc-row:hover,
+.hc-row:focus-within,
+.hc-row[data-open="true"] {
+  z-index: 10;
+  transition-delay: 0s;
 }
 .hc-row:hover .hc-a,
 .hc-row[data-open="true"] .hc-a {
@@ -1168,13 +1179,46 @@
   gap: clamp(24px, 4vw, 64px);
   padding-block: clamp(44px, 5.5vw, 76px) clamp(56px, 7vw, 96px);
 }
-.sx-faq-list {
+.sx-faq-list,
+.lp-faq-list {
   border-top: 1px solid var(--ink);
 }
-.sx-faq details {
+/* the home page FAQ: one centred column under a centred title */
+.lp-faq {
+  display: grid;
+  justify-items: center;
+  gap: clamp(28px, 3.5vw, 44px);
+  padding-block: clamp(56px, 7vw, 104px) clamp(56px, 7vw, 96px);
+}
+.lp-faq .lp-h2 {
+  text-align: center;
+}
+.lp-faq-list {
+  width: min(100%, 760px);
+}
+.lp-faq details p {
+  padding-right: 38px;
+}
+/* answers open with a short slide where the browser can animate to auto */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.sx-faq, .lp-faq) {
+    interpolate-size: allow-keywords;
+  }
+  :is(.sx-faq, .lp-faq) details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size 0.35s var(--ease),
+      content-visibility 0.35s allow-discrete;
+  }
+  :is(.sx-faq, .lp-faq) details[open]::details-content {
+    block-size: auto;
+  }
+}
+:is(.sx-faq, .lp-faq) details {
   border-bottom: 1px solid var(--line);
 }
-.sx-faq summary {
+:is(.sx-faq, .lp-faq) summary {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1183,12 +1227,13 @@
   cursor: pointer;
   list-style: none;
 }
-.sx-faq summary::-webkit-details-marker {
+:is(.sx-faq, .lp-faq) summary::-webkit-details-marker {
   display: none;
 }
-.sx-faq summary h3 {
+:is(.sx-faq, .lp-faq) summary h3 {
   font: 500 clamp(16px, 1.35vw, 18px)/1.4 var(--sans);
   letter-spacing: -0.015em;
+  text-wrap: pretty;
 }
 .sx-faq-mark {
   position: relative;
@@ -1209,10 +1254,10 @@
 .sx-faq-mark::after {
   transform: rotate(90deg);
 }
-.sx-faq details[open] .sx-faq-mark::after {
+:is(.sx-faq, .lp-faq) details[open] .sx-faq-mark::after {
   transform: rotate(0deg);
 }
-.sx-faq details p {
+:is(.sx-faq, .lp-faq) details p {
   max-width: 64ch;
   padding-bottom: 22px;
   font-size: 15.5px;

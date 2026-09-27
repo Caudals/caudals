@@ -1,6 +1,7 @@
 "use client";
 
 import { CTASection } from "@/components/landing/cta";
+import { FAQSection } from "@/components/landing/faq";
 import { HeroSection } from "@/components/landing/hero";
 import { LandingShell } from "@/components/landing/landing-shell";
 import { PartnerLogos } from "@/components/landing/partner-logos";
@@ -14,6 +15,7 @@ export function HomePageClient() {
       <PartnerLogos />
       <ProblemSection />
       <StepsSection />
+      <FAQSection />
       <CTASection />
     </LandingShell>
   );

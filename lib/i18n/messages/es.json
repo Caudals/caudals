@@ -434,6 +434,45 @@
       }
     }
   },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "what": {
+      "q": "¿Qué hace Caudals, en pocas palabras?",
+      "a": "Comprobamos si el asistente de IA de tu empresa da a tus clientes las respuestas correctas. Preparamos un examen a partir de tus propios documentos, le hacemos a tu asistente las preguntas que haría un cliente real y corregimos cada respuesta con la página de la que debería salir. Recibes un informe con lo que falla, por qué y cómo arreglarlo. Después, nuestros expertos del sector construyen los datos que cierran esos huecos."
+    },
+    "systems": {
+      "q": "¿Qué sistemas de IA podéis evaluar?",
+      "a": "Cualquier sistema que responda preguntas por texto o por voz: chatbots en tu web, tu app o WhatsApp, agentes telefónicos y asistentes internos que tu equipo usa para consultar políticas, procedimientos o manuales técnicos. Nos centramos en las preguntas donde una respuesta equivocada cuesta dinero: precios, comisiones, coberturas, requisitos, plazos y especificaciones."
+    },
+    "technical": {
+      "q": "¿Necesitamos un equipo técnico para trabajar con vosotros?",
+      "a": "No. No instalas nada ni cambias tu sistema: hablamos con tu asistente exactamente como lo haría un cliente. El informe está escrito para quien es responsable del servicio, no para ingenieros. Si tu asistente lo ha desarrollado un proveedor, la lista de correcciones está lista para dársela."
+    },
+    "access": {
+      "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
+      "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público, tu documentación pública y perfiles de cliente inventados. Para sistemas internos trabajamos con un acuerdo de confidencialidad y un contrato de encargo de tratamiento, en infraestructura europea, y borramos tu material al terminar. Si lo prefieres, te damos las preguntas y las ejecutáis vosotros."
+    },
+    "trust": {
+      "q": "¿Cómo sabemos que vuestros resultados son correctos?",
+      "a": "Cada pregunta lleva su respuesta correcta y la página exacta de tu documentación de la que sale, así que puedes comprobar cualquier resultado. Expertos de tu sector revisan las respuestas y tu propio experto las valida antes de corregir nada. Somos independientes: no desarrollamos ni vendemos sistemas de IA, así que no tenemos ningún modelo que defender."
+    },
+    "receive": {
+      "q": "¿Qué recibimos al final?",
+      "a": "Una puntuación, los fallos agrupados por causa, ejemplos reales de cada uno con su fuente y una lista de correcciones por prioridad. Te lo explicamos en una reunión en directo. Además, te quedas con el examen completo y sus respuestas correctas, para repetirlo cada vez que cambies tu asistente."
+    },
+    "after": {
+      "q": "¿Qué pasa después de la primera evaluación?",
+      "a": "Si quieres continuar, repetimos el examen cada mes con preguntas nuevas y te avisamos cuando una actualización rompe algo que antes funcionaba. Donde a tu asistente le falta información, nuestros expertos la construyen: documentación que falta, conjuntos de preguntas y respuestas y ejemplos resueltos. La siguiente evaluación muestra si la puntuación ha mejorado."
+    },
+    "cost": {
+      "q": "¿Cuánto cuesta empezar?",
+      "a": "Nada. El diagnóstico es gratuito: le hacemos 40 preguntas a tu asistente y te enviamos los resultados en 48 horas. Una evaluación piloto, con entre 150 y 300 preguntas revisadas por expertos, dura unas dos semanas y tiene un precio cerrado que acordamos antes de empezar. Nunca facturamos por horas."
+    },
+    "private": {
+      "q": "¿Verá alguien más nuestros resultados?",
+      "a": "No. Tus resultados son tuyos. Nunca publicamos ni compartimos los resultados de una empresa, ni decimos siquiera que es cliente, sin su consentimiento por escrito. Nuestros expertos trabajan con acuerdos de confidencialidad y solo ven el material que su tarea necesita, sin datos personales."
+    }
+  },
   "cta": {
     "title": "Convierte cada error de tu IA en una mejora",
     "subtitle": "Empieza con un diagnóstico gratuito: le hacemos cuarenta preguntas a tu asistente y en 48 horas te decimos qué falla y qué datos necesita para mejorar.",

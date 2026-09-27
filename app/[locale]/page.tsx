@@ -14,7 +14,8 @@ import {
   getSiteDescription,
   SITE_NAME,
 } from "@/lib/seo";
-import { jsonLd } from "@/lib/structured-data";
+import { homeFaqItems } from "@/lib/public/home-faq";
+import { faqPage, jsonLd } from "@/lib/structured-data";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -131,6 +132,7 @@ function buildHomeStructuredData(locale: Locale) {
           })),
         },
       },
+      faqPage(homeUrl, homeFaqItems(t)),
     ],
   };
 }
