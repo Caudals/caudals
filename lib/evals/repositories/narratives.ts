@@ -7,6 +7,7 @@ import { digest, enqueueInvocation, type Tenant } from "../queue/store";
 import { buildReportSnapshot, reportSnapshotSchema } from "../reports/contracts";
 import { NARRATIVE_PROMPT_REVISION, evidencePacket, evidencePacketHash, narrativeSystemPrompt, validateNarrative } from "../reports/narrative";
 import { withTenant } from "./db";
+import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor } from "./model-routes";
 import type { EvidenceScope } from "./evidence";
 
 // Report narrative orchestration (spec §15.1). The deterministic report always
@@ -25,19 +26,16 @@ export function requestReportNarrative(scope: EvidenceScope, reportId: string, r
     const existing = (await db.query("SELECT id,status,reason_code FROM evals.report_narrative_job WHERE org_id=$1 AND report_revision_id=$2 AND evidence_packet_hash=$3",
       [scope.orgId, reportRevisionId, packetHash])).rows[0];
     if (existing) return existing;
-    const route = (await db.query(`SELECT r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second,p.adapter,p.output_limit,p.context_limit,pr.currency
-      FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
-      JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)
-      WHERE r.org_id=$1 AND r.role='report_writer'`, [scope.orgId])).rows[0];
-    const workspaceBudget = (await db.query("SELECT id,currency FROM evals.execution_budget WHERE org_id=$1 AND kind='workspace' AND scope_id=$1", [scope.orgId])).rows[0];
+    const route = await resolveModelRoute(db, scope.orgId, "report_writer");
+    const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, revision.currency);
     const jobId = randomUUID();
-    const skip = !route || route.adapter !== "dgx" ? "narrative_route_unavailable"
+    const skip = !route ? "narrative_route_unavailable"
       : !workspaceBudget || workspaceBudget.currency !== route.currency || revision.currency !== route.currency ? "narrative_budget_unavailable" : null;
-    if (skip) {
+    if (skip || !route || !workspaceBudget) {
       // The deterministic takeaways remain; the reason is visible to operators.
       return (await db.query(`INSERT INTO evals.report_narrative_job(id,org_id,report_revision_id,evidence_packet_hash,writer_model_revision_id,writer_prompt_revision,status,reason_code,created_by)
         VALUES($1,$2,$3,$4,$5,$6,'skipped',$7,$8) RETURNING id,status,reason_code`,
-      [jobId, scope.orgId, reportRevisionId, packetHash, route?.provider_revision_id ?? randomUUID(), NARRATIVE_PROMPT_REVISION, skip, scope.actorId])).rows[0];
+      [jobId, scope.orgId, reportRevisionId, packetHash, route?.provider_revision_id ?? randomUUID(), NARRATIVE_PROMPT_REVISION, skip ?? "narrative_route_unavailable", scope.actorId])).rows[0];
     }
     const passId = randomUUID(), workflowId = randomUUID();
     const runBudget = (await db.query("INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling) VALUES($1,'run',$2,$3,$4) RETURNING id",
@@ -50,9 +48,9 @@ export function requestReportNarrative(scope: EvidenceScope, reportId: string, r
       probe: false, probeKind: "text", outputFormat: "json_object", narrativeJobId: jobId,
       providerRevisionId: route.provider_revision_id, priceRevisionId: route.price_revision_id,
       workspaceBudgetId: workspaceBudget.id, runBudgetId: runBudget.id, role: "report_writer",
-      dataClass: route.data_class, region: route.region, routing: "local_only", approvedProviderIds: [],
+      dataClass: route.data_class, region: route.region, ...routingFor(route),
       messages, maxOutputTokens: boundedOutputTokens(messages, route.context_limit, route.output_limit, 1024),
-      timeoutMs: 600000, internalCostPerSecond: route.internal_cost_per_second,
+      timeoutMs: internalTimeoutMs(route, 600000), internalCostPerSecond: route.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.report_narrative_job(id,org_id,report_revision_id,evidence_packet_hash,writer_model_revision_id,writer_prompt_revision,workflow_id,created_by)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, [jobId, scope.orgId, reportRevisionId, packetHash, route.provider_revision_id, NARRATIVE_PROMPT_REVISION, workflowId, scope.actorId]);

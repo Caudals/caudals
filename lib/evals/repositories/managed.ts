@@ -7,6 +7,7 @@ import { observationSchema } from "../contracts/results";
 import { previewImport, type ColumnMapping, type ImportPreview, matchManualAnswers } from "../imports/structured";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
+import { resolveModelRoute } from "./model-routes";
 import { EvalError } from "../domain/errors";
 import { parseLanguageAnswer } from "../generation/auto-draft";
 import { enqueueInvocation,enqueueTargetExecution, digest } from "../queue/store";
@@ -103,7 +104,7 @@ export function prepareGroundedSuite(
       ON CONFLICT(org_id,evaluation_id,step_kind,input_hash,version) WHERE generation_job_id IS NULL
       DO UPDATE SET updated_at=now() RETURNING *`,batchValues)).rows[0];
   try{
-   const judgeRoute=(await db.query("SELECT provider_revision_id FROM evals.generation_provider_route WHERE org_id=$1 AND role='judge'",[scope.orgId])).rows[0];
+   const judgeRoute=await resolveModelRoute(db,scope.orgId,"judge");
    const pack=genericGroundedQaPack({judge:judgeRoute?{modelRevisionId:judgeRoute.provider_revision_id,promptRevisionId:JUDGE_PROMPT_REVISION_ID}:undefined,sources,questions,authorId:scope.actorId,generation:input.generation?{generatorRevisionId:input.generation.generatorRevisionId,promptRevisionId:input.generation.promptRevisionId}:undefined});
    const suiteId=randomUUID(),suiteVersionId=randomUUID();
    await db.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",[pack.rubric.revision_id,scope.orgId,evaluation.project_id,pack.rubric.content_hash,pack.rubric]);

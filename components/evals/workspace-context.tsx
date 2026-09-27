@@ -22,6 +22,8 @@ type WorkspaceState = {
   canWrite: boolean;
   canManage: boolean;
   operator: boolean;
+  /** Caudals platform administrator: may change platform-wide settings such as AI models. */
+  platformAdmin: boolean;
   setOrgId: (id: string) => void;
   /** Append the current workspace to an internal href. */
   withOrg: (href: string, id?: string) => string;
@@ -99,6 +101,7 @@ export function WorkspaceProvider({ identity, children }: { identity: EvalIdenti
       canWrite: ["owner", "editor", "operator"].includes(role),
       canManage: ["owner", "operator"].includes(role),
       operator: identity.platformRole === "operator" || identity.platformRole === "platform_admin",
+      platformAdmin: identity.platformRole === "platform_admin",
       setOrgId,
       withOrg,
     };

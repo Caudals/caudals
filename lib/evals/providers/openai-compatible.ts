@@ -24,7 +24,9 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  if(signal.aborted)throw new ProviderFailure('network_unavailable','unknown');
  const address=addresses[0];
  const url=new URL(`${base.pathname.replace(/\/$/,'')}/chat/completions`,base);
- const payload=JSON.stringify({model:provider.model_id,messages:input.messages,max_tokens:input.maxOutputTokens,stream:false,temperature:0,
+ // OpenAI's current models take max_completion_tokens and only the default temperature.
+ const openai=provider.adapter!=='dgx'&&hostname==='api.openai.com';
+ const payload=JSON.stringify({model:provider.model_id,messages:input.messages,stream:false,...(openai?{max_completion_tokens:input.maxOutputTokens}:{max_tokens:input.maxOutputTokens,temperature:0}),
   ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
   ...(input.probe&&input.probeKind==='tools'?{tools:[{type:'function',function:{name:'probe_echo',description:'Return the requested string; inspection only, never executed.',parameters:{type:'object',properties:{value:{type:'string'}},required:['value'],additionalProperties:false}}}],tool_choice:{type:'function',function:{name:'probe_echo'}}}:{}),
  });

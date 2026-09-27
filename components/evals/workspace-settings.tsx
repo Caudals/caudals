@@ -9,15 +9,17 @@ import { notify } from "./overlays";
 import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { WorkspaceDeletion } from "./workspace-deletion";
+import { EngineSettings } from "./engine-settings";
+import { RenameDialog } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceSummary } from "./workspace-data";
 import { t } from "@/lib/evals/messages/en";
 
-type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "danger";
+type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
 export function WorkspaceSettings() {
-  const { orgId, workspace, role, canManage } = useWorkspace();
+  const { orgId, workspace, role, canManage, platformAdmin } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const params = useSearchParams();
   const router = useRouter();
@@ -29,7 +31,8 @@ export function WorkspaceSettings() {
     { value: "notifications", label: t("notifications") },
     { value: "monitoring", label: t("monitoring") },
     { value: "developers", label: t("developers") },
-    ...(owner ? [{ value: "danger" as const, label: t("dangerZone") }] : []),
+    ...(platformAdmin ? [{ value: "models" as const, label: t("aiModels") }] : []),
+    ...(owner || platformAdmin ? [{ value: "danger" as const, label: t("dangerZone") }] : []),
   ];
   const requested = params.get("tab") as Tab | null;
   const tab: Tab = tabs.some((item) => item.value === requested) ? requested! : "general";
@@ -49,13 +52,15 @@ export function WorkspaceSettings() {
           {error}
         </Status>
       )}
-      {!summary ? (
+      {tab === "models" ? (
+        <EngineSettings key={orgId} orgId={orgId} workspaceName={workspace.name} />
+      ) : !summary ? (
         <p className="p-loading" role="status">
           <span className="p-spinner" aria-hidden="true" />
           {t("loading")}
         </p>
       ) : tab === "general" ? (
-        <General summary={summary} workspaceName={workspace.name} role={role} />
+        <General summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} />
       ) : tab === "members" ? (
         <InvitationManager orgId={orgId} workspaceName={workspace.name} />
       ) : tab === "notifications" ? (
@@ -73,14 +78,35 @@ export function WorkspaceSettings() {
   );
 }
 
-function General({ summary, workspaceName, role }: { summary: WorkspaceSummary; workspaceName: string; role: string }) {
+function General({ summary, orgId, workspaceName, role, canRename }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean }) {
+  const router = useRouter();
+  const [renaming, setRenaming] = useState(false);
   const { entitlement, usage } = summary;
   const limit = Number(entitlement.monthly_spend_limit);
   const used = Number(usage.settled) + Number(usage.outstanding);
   return (
     <div className="p-settings">
       <SettingsRow title={t("workspace")} description={t("workspaceNameHelp")}>
-        <strong>{workspaceName}</strong>
+        <span className="p-row p-nowrap">
+          <strong>{workspaceName}</strong>
+          {canRename && (
+            <Action variant="secondary" size="sm" onClick={() => setRenaming(true)}>
+              {t("rename")}
+            </Action>
+          )}
+        </span>
+        {renaming && (
+          <RenameDialog
+            title={t("renameWorkspace")}
+            label={t("workspaceName")}
+            initial={workspaceName}
+            onClose={() => setRenaming(false)}
+            onSave={async (name) => {
+              await evalRequest(`/workspaces/${orgId}`, "PATCH", { name });
+              router.refresh();
+            }}
+          />
+        )}
       </SettingsRow>
       <SettingsRow title={t("yourRole")} description={t("yourRoleHelp")}>
         <Badge>{t((role || "viewer") as "owner" | "editor" | "viewer" | "operator")}</Badge>

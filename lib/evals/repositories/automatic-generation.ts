@@ -12,6 +12,7 @@ import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { prepareGroundedSuiteOnce } from "./managed";
+import { ensureWorkspaceBudget, internalTimeoutMs, materialBudgetBytes, resolveModelRoutes, routingFor, type ModelRoute } from "./model-routes";
 
 const startSchema = z.strictObject({
   sourceRevisionIds: z.array(z.uuid()).min(1).max(21),
@@ -20,19 +21,7 @@ const startSchema = z.strictObject({
   promptRevision: z.string().min(1).max(100),
   maxCases: z.number().int().min(1).max(20).default(10),
 });
-type GenerationRoute = {
-  role: "context_analyzer" | "generator";
-  provider_revision_id: string;
-  price_revision_id: string;
-  data_class: string;
-  region: string;
-  internal_cost_per_second: string;
-  output_limit: number;
-  context_limit: number;
-  adapter: string;
-  model_id: string;
-  currency: string;
-};
+type GenerationRoute = ModelRoute;
 type SourceRecord = { id: string; content_hash: string; document: unknown; title: string; rights: string };
 type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null };
 
@@ -46,9 +35,9 @@ async function loadSources(client: PoolClient, orgId: string, evaluationId: stri
   return rows;
 }
 
-function routeFor(role: "context_analyzer" | "generator", routes: GenerationRoute[]) {
-  const route = routes.find((item) => item.role === role);
-  if (!route || route.adapter !== "dgx") throw new EvalError("PROVIDER_UNAVAILABLE", 503, "Local DGX generation is not configured for this workspace.");
+function routeFor(role: "context_analyzer" | "generator", routes: Map<string, GenerationRoute>) {
+  const route = routes.get(role);
+  if (!route) throw new EvalError("PROVIDER_UNAVAILABLE", 503, "No model is set up for test generation. A Caudals administrator can choose one in Settings → AI models.");
   return route;
 }
 
@@ -64,8 +53,31 @@ function anchorMaterial(sources: SourceRecord[]) {
       return { anchorId: anchor.id, excerpt: anchor.excerpt };
     }),
   }));
-  if (Buffer.byteLength(canonicalJson(material), "utf8") > 96_000) throw new EvalError("INPUT_INVALID", 422, "These sources exceed the safe context window. Select fewer or shorter source revisions.");
   return { docs, anchors, material };
+}
+
+/**
+ * Fit source excerpts into the model's prompt budget. Excerpts are taken
+ * round-robin across sources (first pages first), so a long website cannot
+ * crowd out an uploaded policy. Every quote the model returns is still
+ * validated against the complete anchor set.
+ */
+export function fitMaterial<T extends { anchors: Array<{ anchorId: string; excerpt: string }> }>(material: T[], budgetBytes: number): T[] {
+  const picked = material.map((source) => ({ ...source, anchors: [] as T["anchors"] }));
+  let used = Buffer.byteLength(canonicalJson(picked), "utf8");
+  const depth = Math.max(0, ...material.map((source) => source.anchors.length));
+  for (let position = 0; position < depth; position++) {
+    for (let index = 0; index < material.length; index++) {
+      const anchor = material[index].anchors[position];
+      if (!anchor) continue;
+      const cost = Buffer.byteLength(canonicalJson(anchor), "utf8") + 1;
+      if (used + cost > budgetBytes) continue;
+      picked[index].anchors.push(anchor);
+      used += cost;
+    }
+  }
+  if (!picked.some((source) => source.anchors.length)) throw new EvalError("INPUT_INVALID", 422, "The selected model's context window is too small for this material. Choose a model with a larger context in Settings → AI models.");
+  return picked.filter((source) => source.anchors.length);
 }
 
 function planHash(job: { id: string; source_revision_ids: string[]; title: string; prompt_revision: string; execution_mode: string; requested_case_count: number }) {
@@ -81,8 +93,8 @@ function makeInvocation(args: {
     probe: false, probeKind: "text", outputFormat: "json_object", generationJobId: args.jobId, generationStep: args.step,
     providerRevisionId: args.route.provider_revision_id, priceRevisionId: args.route.price_revision_id,
     workspaceBudgetId: args.workspaceBudgetId, runBudgetId: args.runBudgetId, role: args.route.role,
-    dataClass: args.route.data_class, region: args.route.region, routing: "local_only", approvedProviderIds: [],
-    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), timeoutMs: 900000,
+    dataClass: args.route.data_class, region: args.route.region, ...routingFor(args.route),
+    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), timeoutMs: internalTimeoutMs(args.route, 900000),
     internalCostPerSecond: args.route.internal_cost_per_second,
   });
 }
@@ -108,16 +120,14 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     const evaluation = (await db.query("SELECT e.id,e.project_id,p.description AS project_description,e.commercial_cap,e.currency FROM evals.evaluation e JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE e.org_id=$1 AND e.id=$2 FOR UPDATE OF e", [scope.orgId, evaluationId])).rows[0];
     if (!evaluation) throw new EvalError("SCOPE_DENIED", 404);
     const sourceRows = await loadSources(db, scope.orgId, evaluationId, evaluation.project_id, input.sourceRevisionIds);
-    const { material } = anchorMaterial(sourceRows);
-    const routes = (await db.query(`SELECT r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second,
-      p.adapter,p.model_id,p.output_limit,p.context_limit,pr.currency
-      FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
-      JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)
-      WHERE r.org_id=$1 AND r.role=ANY($2::text[])`, [scope.orgId, ["context_analyzer", "generator"]])).rows as GenerationRoute[];
+    const { material: fullMaterial } = anchorMaterial(sourceRows);
+    const routes = await resolveModelRoutes(db, scope.orgId, ["context_analyzer", "generator"]);
     const profileRoute = routeFor("context_analyzer", routes), draftRoute = routeFor("generator", routes);
-    if (profileRoute.currency !== evaluation.currency || draftRoute.currency !== evaluation.currency || profileRoute.currency !== draftRoute.currency) throw new EvalError("INPUT_INVALID", 422, "DGX generation and evaluation budgets must use the same currency.");
-    const workspaceBudget = (await db.query("SELECT id,currency FROM evals.execution_budget WHERE org_id=$1 AND kind='workspace' AND scope_id=$1", [scope.orgId])).rows[0];
+    if (profileRoute.currency !== evaluation.currency || draftRoute.currency !== evaluation.currency || profileRoute.currency !== draftRoute.currency) throw new EvalError("INPUT_INVALID", 422, "The generation models and this evaluation's budget must use the same currency.");
+    const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
     if (!workspaceBudget || workspaceBudget.currency !== evaluation.currency) throw new EvalError("BUDGET_UNAVAILABLE", 409, "A workspace generation budget must be configured before preparing this dataset.");
+    const profileFixed = Buffer.byteLength(profileSystemPrompt(), "utf8") + Buffer.byteLength(evaluation.project_description ?? "", "utf8") + 256;
+    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, 4096, profileFixed));
     if (Number(evaluation.commercial_cap) <= 0) throw new EvalError("BUDGET_UNAVAILABLE", 409, "Set a positive evaluation budget before generating a dataset.");
     const jobId = randomUUID(), workflowId = randomUUID(), promptRevisionId = randomUUID();
     const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling)
@@ -147,7 +157,7 @@ function parseModelJson(output: unknown) {
 async function modelResult(db: PoolClient,orgId:string,workflowId:string,step:"profile"|"draft",jobId:string) {
   const row=(await db.query(`SELECT r.output FROM evals.execution_result r JOIN evals.workflow_step s ON (s.org_id,s.id)=(r.org_id,r.step_id)
     WHERE r.org_id=$1 AND s.workflow_id=$2 AND s.step_kind=$3 AND s.input->>'generationJobId'=$4 ORDER BY r.created_at DESC LIMIT 1`,[orgId,workflowId,step==="profile"?"profile":"generate",jobId])).rows[0];
-  if(!row)throw new EvalError("GENERATION_NOT_READY",409,"The DGX generation step has not completed yet.");
+  if(!row)throw new EvalError("GENERATION_NOT_READY",409,"The generation step has not completed yet.");
   return parseModelJson(row.output);
 }
 
@@ -207,14 +217,16 @@ async function queueDraftGeneration(
   const draftVersion=Number((await db.query("SELECT COALESCE(MAX(version),0)::int AS version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft'",[scope.orgId,job.id])).rows[0].version)+1;
   await db.query("UPDATE evals.generation_job SET status='drafting',profile_revision_id=$3,coverage_plan=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,profileRevisionId,coverage]);
   await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'plan',$4,1,$5,$6,'completed',1,$7) ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,digest({profile:profile.content_hash,coverage}),job.prompt_revision,contextModelRevisionId,coverage]);
-  const draftRoute=(await db.query("SELECT r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second,p.output_limit,p.context_limit,p.adapter,p.model_id,pr.currency FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id) WHERE r.org_id=$1 AND r.role='generator'",[scope.orgId])).rows[0] as GenerationRoute|undefined;
-  if(!draftRoute)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The DGX generator route is not configured.");
-  if(draftRoute.adapter!=="dgx"||draftRoute.currency!==job.currency)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The configured generator route no longer matches this job's local model and currency policy.");
+  const draftRoute=(await resolveModelRoutes(db,scope.orgId,["generator"])).get("generator");
+  if(!draftRoute)throw new EvalError("PROVIDER_UNAVAILABLE",503,"No model is set up for test generation. A Caudals administrator can choose one in Settings → AI models.");
+  if(draftRoute.currency!==job.currency)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The generation model's price currency does not match this evaluation's budget.");
   const budgetIds=(await db.query("SELECT id,kind FROM evals.execution_budget WHERE org_id=$1 AND ((kind='workspace' AND scope_id=$1) OR (kind='run' AND scope_id=$2))",[scope.orgId,job.id])).rows;
   const workspaceBudget=budgetIds.find((item)=>item.kind==="workspace"),runBudget=budgetIds.find((item)=>item.kind==="run");
   if(!workspaceBudget||!runBudget)throw new EvalError("BUDGET_UNAVAILABLE",409);
-  const material=docs.map((source)=>({sourceRevisionId:source.revision_id,title:source.title,anchors:source.anchors.map((anchor)=>({anchorId:anchor.id,excerpt:anchor.excerpt}))}));
-  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:768,messages:[
+  const allMaterial=docs.map((source)=>({sourceRevisionId:source.revision_id,title:source.title,anchors:source.anchors.map((anchor)=>({anchorId:anchor.id,excerpt:anchor.excerpt}))}));
+  const draftFixed=Buffer.byteLength(draftSystemPrompt(),"utf8")+Buffer.byteLength(canonicalJson({profile,coverage,maxCases:job.requested_case_count}),"utf8")+256;
+  const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,2048,draftFixed));
+  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:2048,messages:[
     {role:"system",content:draftSystemPrompt()},
     {role:"user",content:canonicalJson({profile,coverage,maxCases:job.requested_case_count,sources:material})},
   ]});
@@ -275,7 +287,7 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       const {docs,anchors}=anchorMaterial(sourceRows);
       const profileBatch=(await db.query("SELECT model_revision_id FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='profile'",[scope.orgId,job.id])).rows[0];
       const contextModelRevisionId=profileBatch?.model_revision_id as string|undefined;
-      if(!contextModelRevisionId)throw new EvalError("GENERATION_INVALID",409,"The frozen DGX context model revision is unavailable.");
+      if(!contextModelRevisionId)throw new EvalError("GENERATION_INVALID",409,"The frozen context model revision is unavailable.");
       let profile: z.infer<typeof contextProfileSchema>;
       let profileRevisionId: string;
       if(job.profile_revision_id){
@@ -299,8 +311,6 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
           await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',reason_code='profile_validation_failed',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
           return {status:"quarantined",jobId:job.id,reasonCode:"profile_validation_failed",detail:error instanceof Error?error.message:"Profile validation failed."};
         }
-        const route=(await db.query("SELECT provider_revision_id FROM evals.generation_provider_route WHERE org_id=$1 AND role='context_analyzer'",[scope.orgId])).rows[0];
-        if(!route||route.provider_revision_id!==contextModelRevisionId)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The context analyzer route changed after profiling; review and restart this preparation.");
         profile=profileContext(inferred,docs,evaluationId,job.prompt_revision,contextModelRevisionId);
         profileRevisionId=randomUUID();
         await db.query("INSERT INTO evals.context_profile_revision(id,org_id,evaluation_id,content_hash,document,model_revision_id,prompt_revision) VALUES($1,$2,$3,$4,$5,$6,$7)",[profileRevisionId,scope.orgId,evaluationId,profile.content_hash,profile,contextModelRevisionId,job.prompt_revision]);
@@ -336,7 +346,8 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
         }
       }
       const profileRow=(await db.query("SELECT document,model_revision_id FROM evals.context_profile_revision WHERE org_id=$1 AND id=$2",[scope.orgId,job.profile_revision_id])).rows[0];
-      const generator=(await db.query("SELECT provider_revision_id FROM evals.generation_provider_route WHERE org_id=$1 AND role='generator'",[scope.orgId])).rows[0];
+      const draftBatch=(await db.query("SELECT model_revision_id FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];
+      const generator={provider_revision_id:draftBatch?.model_revision_id as string};
       const questions=parsed.cases.map((item)=>({question:item.question,expected:item.expected,anchor:item.anchorId,sourceRevisionId:item.sourceRevisionId,severity:item.severity,difficulty:item.difficulty}));
       return {status:"finalize",jobId:job.id,sourceRevisionIds:job.source_revision_ids,title:job.title,executionMode:job.execution_mode,promptRevision:job.prompt_revision,promptRevisionId:job.prompt_revision_id,generatorRevisionId:generator.provider_revision_id,modelRevisionId:profileRow.model_revision_id,questions};
     }

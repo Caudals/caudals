@@ -10,6 +10,7 @@ import {
   judgeCriterionIds, judgeSystemPrompt, judgeUserMessage, parseJudgeOutput, type CalibrationSummary, type SourceExcerpt,
 } from "../scoring/judge";
 import { withTenant } from "./db";
+import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor, type ModelRoute } from "./model-routes";
 import type { EvidenceScope } from "./evidence";
 
 // Rubric judge orchestration (spec §11.3, WP-06). A judge call is an ordinary
@@ -19,17 +20,10 @@ import type { EvidenceScope } from "./evidence";
 
 export type JudgeCandidate = { assessment: Assessment; observationId: string; observation: Observation; item: CefCase; rubric: Rubric };
 
-type JudgeRoute = {
-  provider_revision_id: string; price_revision_id: string; data_class: string; region: string;
-  internal_cost_per_second: string; output_limit: number; context_limit: number; adapter: string; currency: string;
-};
+type JudgeRoute = ModelRoute;
 
 async function judgeRoute(db: PoolClient, orgId: string): Promise<JudgeRoute | null> {
-  return (await db.query(`SELECT r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second,
-      p.adapter,p.output_limit,p.context_limit,pr.currency
-    FROM evals.generation_provider_route r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
-    JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)
-    WHERE r.org_id=$1 AND r.role='judge'`, [orgId])).rows[0] ?? null;
+  return resolveModelRoute(db, orgId, "judge");
 }
 
 /** Exact excerpts for the anchors a case cites, from its frozen source revisions. */
@@ -51,8 +45,8 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
   const route = await judgeRoute(db, scope.orgId);
   const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
     WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
-  const workspaceBudget = (await db.query("SELECT id,currency FROM evals.execution_budget WHERE org_id=$1 AND kind='workspace' AND scope_id=$1", [scope.orgId])).rows[0];
-  const unavailable = !route || route.adapter !== "dgx" ? "judge_route_unavailable"
+  const workspaceBudget = evaluation ? await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency) : null;
+  const unavailable = !route ? "judge_route_unavailable"
     : !workspaceBudget || !evaluation || workspaceBudget.currency !== route.currency || evaluation.currency !== route.currency ? "judge_budget_unavailable" : null;
   if (unavailable) {
     // Recorded so the review queue can say why a person must grade these.
@@ -81,10 +75,10 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
     const invocation = invocationSchema.parse({
       probe: false, probeKind: "text", outputFormat: "json_object", judgeJobId: jobId,
       providerRevisionId: route!.provider_revision_id, priceRevisionId: route!.price_revision_id,
-      workspaceBudgetId: workspaceBudget.id, runBudgetId: runBudget.id, role: "judge",
-      dataClass: route!.data_class, region: route!.region, routing: "local_only", approvedProviderIds: [],
+      workspaceBudgetId: workspaceBudget!.id, runBudgetId: runBudget.id, role: "judge",
+      dataClass: route!.data_class, region: route!.region, ...routingFor(route!),
       messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, 1024),
-      timeoutMs: 600000, internalCostPerSecond: route!.internal_cost_per_second,
+      timeoutMs: internalTimeoutMs(route!, 600000), internalCostPerSecond: route!.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.judge_job(id,org_id,run_id,observation_id,pending_assessment_id,case_revision_id,rubric_revision_id,criterion_ids,
         judge_model_revision_id,judge_prompt_revision,workflow_id,created_by)

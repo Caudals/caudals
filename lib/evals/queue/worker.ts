@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { reserve, settle, BudgetExceeded } from '../budget/ledger';
 import { decimal, priceUsage, units, worstCase } from '../budget/money';
-import { invocationSecret } from '../security/secrets';
+import { connectionInvocationSecret, invocationSecret } from '../security/secrets';
 import type { Keyring } from '../security/envelope';
 import { acquireCapacity, loadProvider } from '../providers/registry';
 import { invocationSchema, ProviderFailure, type ProviderOutput } from '../providers/contracts';
@@ -58,6 +58,7 @@ export class InvocationWorker {
   try {
    // Only decrypt after a reservation exists. Never hold this transaction over I/O.
    if(input.secretVersionId)secret=await this.options.tx(tenant,c=>invocationSecret(c,tenant.orgId,attemptId,input.secretVersionId!,step.fence,this.options.keys));
+   else if(provider.adapter!=='dgx')secret=await this.options.tx(tenant,c=>connectionInvocationSecret(c,tenant.orgId,attemptId,step.fence,this.options.keys));
    const dispatched=await this.options.tx(tenant,async c=>{
     const current=await lockStep(c,tenant.orgId,step.id);this.checkFence(current.step,step.fence);
     if(!['running','queued'].includes(current.workflow.status)) {

@@ -59,3 +59,25 @@ export async function browserInvocationSession(
     scopeId: row.scope_id,
   }, keys);
 }
+
+/** Nil tenant: provider connection keys belong to the platform, not a workspace. */
+export const PLATFORM_SECRET_ORG = '00000000-0000-0000-0000-000000000000';
+export function connectionSecretScope(accountId:string):SecretScope {
+  return {orgId:PLATFORM_SECRET_ORG,recordId:accountId,versionId:accountId,purpose:'provider',scopeId:accountId};
+}
+/**
+ * The key of a commercial provider connection, for one live reserved attempt
+ * on a revision of that account. Same rule as tenant secrets: decrypt only
+ * after a reservation exists, and only inside the inference worker.
+ */
+export async function connectionInvocationSecret(client:PoolClient,orgId:string,attemptId:string,fence:string,keys:Keyring):Promise<Buffer|undefined> {
+  const row=(await client.query(`SELECT c.account_id,c.envelope FROM evals.execution_attempt a
+    JOIN evals.workflow_step s ON (s.org_id,s.id)=(a.org_id,a.step_id)
+    JOIN evals.budget_reservation b ON (b.org_id,b.attempt_id)=(a.org_id,a.id)
+    JOIN evals.provider_revision p ON p.id=a.provider_revision_id
+    JOIN evals.provider_connection c ON c.account_id=p.account_id AND c.adapter=p.adapter
+    WHERE a.org_id=$1 AND a.id=$2 AND a.status='reserved' AND b.state='reserved' AND s.fence=$3 AND a.fence=s.fence AND s.lease_until>now()`,[orgId,attemptId,fence])).rows[0];
+  if(!row) throw new Error('secret_scope_denied');
+  if(!row.envelope) return undefined;
+  return decryptSecret(row.envelope,connectionSecretScope(row.account_id),keys);
+}

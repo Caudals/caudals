@@ -45,7 +45,7 @@ export function requireRecentAuthentication(identity: EvalIdentity, maxMinutes =
 }
 
 type AdminScope = { orgId: string; actorId: string };
-function asAdmin<T>(scope: AdminScope, fn: (c: PoolClient) => Promise<T>) {
+export function asAdmin<T>(scope: AdminScope, fn: (c: PoolClient) => Promise<T>) {
   return withTenant(scope, fn, getAdminPool());
 }
 function adminError(error: unknown): never {

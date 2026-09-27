@@ -43,6 +43,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4569", "--directory", "c-design/Docs EN/export/src"],
       "port": 4569
+    },
+    {
+      "name": "c-design",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4571", "--directory", "c-design"],
+      "port": 4571
     }
   ]
 }
