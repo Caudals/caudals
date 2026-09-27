@@ -1,55 +1,48 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { getEvalsPool } from "../../lib/evals/repositories/db";
-import { queueRequiredInputNotifications, tickEmailNotifications, type EmailMessage } from "../../lib/evals/operations/notifications";
+import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
+import { listActivity, listNotifications, markNotificationsRead } from "../../lib/evals/repositories/notifications";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
 
-(ownerUrl && runtimeUrl ? describe : describe.skip)("opt-in email notifications on PostgreSQL", () => {
+(ownerUrl && runtimeUrl ? describe : describe.skip)("notification engine on PostgreSQL", () => {
   const owner = new Pool({ connectionString: ownerUrl, max: 1 });
   afterAll(async () => { await owner.end(); await getEvalsPool().end(); });
 
-  it("mails each notice once to opted-in members only and retries failures boundedly", async () => {
+  it("turns job transitions into one notice each, keeps read state per person and lists activity", async () => {
     process.env.EVALS_DATABASE_URL = runtimeUrl!;
-    const optedIn = createPrefixedId("au"), silent = createPrefixedId("au"), completionOff = createPrefixedId("au");
-    const orgId = randomUUID(), projectId = randomUUID(), evaluationId = randomUUID(), reportId = randomUUID();
-    const emails = { [optedIn]: `in-${randomUUID()}@example.test`, [silent]: `quiet-${randomUUID()}@example.test`, [completionOff]: `off-${randomUUID()}@example.test` };
+    const actorId = createPrefixedId("au"), otherId = createPrefixedId("au");
+    const orgId = randomUUID(), projectId = randomUUID(), evaluationId = randomUUID(), jobId = randomUUID();
     const db = await owner.connect();
     try {
       await db.query("BEGIN");
-      await db.query("SELECT set_config('evals.actor_id',$1,true),set_config('evals.org_id',$2,true)", [optedIn, orgId]);
-      for (const [id, email] of Object.entries(emails)) await db.query('INSERT INTO public.auth_user(id,name,email,"emailVerified") VALUES($1,$2,$3,true)', [id, "Member", email]);
-      await db.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Notify fixture',$2)", [orgId, optedIn]);
-      for (const id of Object.keys(emails)) await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'viewer')", [orgId, id]);
-      await db.query("INSERT INTO evals.notification_preference(org_id,user_id,email) VALUES($1,$2,true),($1,$3,false)", [orgId, optedIn, silent]);
-      await db.query("INSERT INTO evals.notification_preference(org_id,user_id,email,completion) VALUES($1,$2,true,false)", [orgId, completionOff]);
-      await db.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Notify')", [projectId, orgId]);
-      await db.query("INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,commercial_cap,currency,preparation_status) VALUES($1,$2,$3,'Needs answer','source_grounded',1,'EUR','needs_input')", [evaluationId, orgId, projectId]);
-      await db.query("INSERT INTO evals.notification(org_id,event_id,kind,audience,payload,status,delivered_at) VALUES($1,$2,'report_published','workspace',$3,'delivered',now())", [orgId, `report:${reportId}:published`, { reportId }]);
+      await db.query("SELECT set_config('evals.actor_id',$1,true),set_config('evals.org_id',$2,true)", [actorId, orgId]);
+      for (const id of [actorId, otherId]) await db.query('INSERT INTO public.auth_user(id,name,email,"emailVerified") VALUES($1,$2,$3,true)', [id, "Notice fixture", randomUUID() + "@example.test"]);
+      await db.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Notice fixture',$2)", [orgId, actorId]);
+      await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'owner'),($1,$3,'editor')", [orgId, actorId, otherId]);
+      await db.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Notice fixture')", [projectId, orgId]);
+      await db.query("INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,commercial_cap,currency) VALUES($1,$2,$3,'Support bot','source_grounded',1,'EUR')", [evaluationId, orgId, projectId]);
+      await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,status,created_by)
+        VALUES($1,$2,$3,$4,'Support tests','deployed_system',$5,'p',$6,5,'profiling',$7)`, [orgId, jobId, evaluationId, randomUUID(), [randomUUID()], randomUUID(), actorId]);
+      await db.query("UPDATE evals.generation_job SET status='needs_review' WHERE id=$1", [jobId]);
+      await db.query("UPDATE evals.generation_job SET status='needs_review',updated_at=now() WHERE id=$1", [jobId]); // no transition, no notice
       await db.query("COMMIT");
     } catch (error) { await db.query("ROLLBACK"); throw error; } finally { db.release(); }
 
-    const scope = { orgId, actorId: "service:notify-test" };
-    expect(await queueRequiredInputNotifications(scope)).toBe(1);
-    expect(await queueRequiredInputNotifications(scope)).toBe(0);
-    const sent: EmailMessage[] = [];
-    let fail = true;
-    const send = async (message: EmailMessage) => { if (fail && message.subject.includes("needs one answer")) { fail = false; throw new Error("provider down"); } sent.push(message); return { id: randomUUID() }; };
-    await tickEmailNotifications("service:notify-test", send);
-    await tickEmailNotifications("service:notify-test", send);
-    await tickEmailNotifications("service:notify-test", send);
-    const mine = sent.filter((message) => Object.values(emails).includes(message.to));
-    expect(mine.map((message) => `${message.to.split("-")[0]}:${message.subject}`).sort()).toEqual([
-      "in:Caudals needs one answer to continue",
-      "in:Your Caudals evaluation results are ready",
-      "off:Caudals needs one answer to continue",
-    ]);
-    expect(mine.find((message) => message.subject.includes("results"))?.text).toContain(`/workspace/reports/${reportId}?orgId=${orgId}`);
-    const rows = (await owner.query("SELECT status,attempts FROM evals.notification_email WHERE org_id=$1 ORDER BY attempts", [orgId])).rows;
-    expect(rows.every((row) => row.status === "sent")).toBe(true);
-    expect(rows.map((row) => row.attempts)).toContain(2);
+    const scope = { orgId, actorId };
+    const first = await listNotifications(scope);
+    expect(first.notifications.map((item) => item.kind).sort()).toEqual(["generation_started", "test_set_ready"]);
+    expect(first.notifications.find((item) => item.kind === "test_set_ready")?.payload).toMatchObject({ evaluationId, evaluationTitle: "Support bot", status: "needs_review" });
+    expect(first.unread).toBe(1); // "started" is progress, shown in Activity only
+    await markNotificationsRead(scope, { all: true });
+    expect((await listNotifications(scope)).unread).toBe(0);
+    expect((await listNotifications({ orgId, actorId: otherId })).unread).toBe(1);
+    const activity = await listActivity(scope);
+    expect(activity).toEqual([expect.objectContaining({ type: "generation", status: "needs_review", evaluation_title: "Support bot" })]);
+    const reads = await withTenant({ orgId, actorId: otherId }, async (c) => (await c.query("SELECT count(*)::int AS n FROM evals.notification_read")).rows[0].n);
+    expect(reads).toBe(0); // one person's reads are invisible to another
   });
 });

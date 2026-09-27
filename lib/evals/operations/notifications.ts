@@ -37,18 +37,24 @@ function compose(kind: string, payload: Record<string, string>, orgId: string): 
   const link = kind === "report_published" && payload.reportId
     ? `${appUrl()}/workspace/reports/${payload.reportId}?orgId=${orgId}`
     : payload.evaluationId ? `${appUrl()}/workspace/evaluations/${payload.evaluationId}?orgId=${orgId}` : `${appUrl()}/workspace/evaluations`;
-  const body = kind === "report_published"
-    ? { subject: "Your Caudals evaluation results are ready", line: "An evaluation report is ready in your workspace. Its review status is shown with the results." }
-    : kind === "run_failed"
-      ? { subject: "A Caudals evaluation could not complete", line: "An evaluation stopped without a usable result. Completed work is preserved; open the workspace for next steps." }
-      : { subject: "Caudals needs one answer to continue", line: "An evaluation is waiting for a short answer about its scope before it can continue." };
+  const bodies: Record<string, { subject: string; line: string }> = {
+    report_published: { subject: "Your Caudals evaluation results are ready", line: "An evaluation report is ready in your workspace. Its review status is shown with the results." },
+    run_failed: { subject: "A Caudals evaluation could not complete", line: "An evaluation stopped without a usable result. Completed work is preserved; open the workspace for next steps." },
+    test_set_ready: { subject: "Your Caudals test set is ready to review", line: "Caudals drafted a test set from your material. Review the questions, then approve it to run the evaluation." },
+    generation_failed: { subject: "Caudals test generation needs another try", line: "A test set could not be generated from your material. Open the evaluation to see why and try again." },
+    website_failed: { subject: "Caudals could not read a website", line: "A public website added as reference material could not be read. Open the evaluation to see why." },
+    document_failed: { subject: "Caudals could not read a document", line: "A document added as reference material could not be read. Open the evaluation to see why." },
+    export_failed: { subject: "A Caudals export failed", line: "A report export could not be prepared. Open the report and try again." },
+    input_required: { subject: "Caudals needs one answer to continue", line: "An evaluation is waiting for a short answer about its scope before it can continue." },
+  };
+  const body = bodies[kind] ?? bodies.input_required;
   return { subject: body.subject, text: `${body.line}\n\nOpen it here: ${link}\n\nYou receive this because email notifications are on in your workspace settings.` };
 }
 
 export async function deliverEmailNotifications(scope: Scope, send: SendEmail) {
   const pending = await withTenant(scope, async (db) => {
     const notices = (await db.query(`SELECT id,kind,payload FROM evals.notification WHERE org_id=$1 AND created_at>now()-interval '3 days'
-      AND kind IN ('report_published','run_failed','input_required') ORDER BY created_at LIMIT 50`, [scope.orgId])).rows;
+      AND kind IN ('report_published','run_failed','input_required','test_set_ready','generation_failed','website_failed','document_failed','export_failed') ORDER BY created_at LIMIT 50`, [scope.orgId])).rows;
     const out: Array<{ id: string; notificationId: string; email: string; kind: string; payload: Record<string, string> }> = [];
     for (const notice of notices) {
       const recipients = (await db.query("SELECT * FROM evals.notification_email_recipients($1,$2)", [scope.orgId, notice.kind])).rows;

@@ -51,6 +51,7 @@ import { evaluationRecoveryPath, evaluationSignInPath } from "./auth-path";
 import { ActionLink, Status, humanize } from "./primitives";
 import { Toaster } from "./overlays";
 import { CommandPalette, type PaletteLink } from "./command-palette";
+import { NotificationCenter } from "./notification-center";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
@@ -571,6 +572,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
                 <span className="p-searchbar-text">{t("search")}…</span>
                 <kbd className="p-kbd">⌘K</kbd>
               </button>
+              <NotificationCenter />
               <a className="p-btn p-desktop-only" data-variant="secondary" data-size="sm" href="mailto:hello@caudals.com?subject=Caudals%20platform">
                 {t("help")}
               </a>
