@@ -17,7 +17,6 @@ export function FAQSection() {
           <details key={id}>
             <summary>
               <h3>{t(`${id}.q`)}</h3>
-              <span className="sx-faq-mark" aria-hidden="true" />
             </summary>
             <p>{t(`${id}.a`)}</p>
           </details>

@@ -1179,8 +1179,7 @@
   gap: clamp(24px, 4vw, 64px);
   padding-block: clamp(44px, 5.5vw, 76px) clamp(56px, 7vw, 96px);
 }
-.sx-faq-list,
-.lp-faq-list {
+.sx-faq-list {
   border-top: 1px solid var(--ink);
 }
 /* the home page FAQ: one centred column under a centred title */
@@ -1196,8 +1195,16 @@
 .lp-faq-list {
   width: min(100%, 760px);
 }
-.lp-faq details p {
-  padding-right: 38px;
+/* no +/- marks here: the question underlines on hover and opens on click */
+.lp-faq summary h3 {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 0.2s;
+}
+.lp-faq summary:hover h3 {
+  text-decoration-color: currentColor;
 }
 /* answers open with a short slide where the browser can animate to auto */
 @media (prefers-reduced-motion: no-preference) {

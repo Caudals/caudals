@@ -444,25 +444,9 @@
       "q": "¿Qué sistemas de IA podéis evaluar?",
       "a": "Cualquier sistema que responda preguntas por texto o por voz: chatbots en tu web, tu app o WhatsApp, agentes telefónicos y asistentes internos que tu equipo usa para consultar políticas, procedimientos o manuales técnicos. Nos centramos en las preguntas donde una respuesta equivocada cuesta dinero: precios, comisiones, coberturas, requisitos, plazos y especificaciones."
     },
-    "technical": {
-      "q": "¿Necesitamos un equipo técnico para trabajar con vosotros?",
-      "a": "No. No instalas nada ni cambias tu sistema: hablamos con tu asistente exactamente como lo haría un cliente. El informe está escrito para quien es responsable del servicio, no para ingenieros. Si tu asistente lo ha desarrollado un proveedor, la lista de correcciones está lista para dársela."
-    },
     "access": {
       "q": "¿Necesitáis acceso a nuestros sistemas o a datos de clientes?",
       "a": "Para empezar, no. El diagnóstico gratuito usa solo tu asistente público, tu documentación pública y perfiles de cliente inventados. Para sistemas internos trabajamos con un acuerdo de confidencialidad y un contrato de encargo de tratamiento, en infraestructura europea, y borramos tu material al terminar. Si lo prefieres, te damos las preguntas y las ejecutáis vosotros."
-    },
-    "trust": {
-      "q": "¿Cómo sabemos que vuestros resultados son correctos?",
-      "a": "Cada pregunta lleva su respuesta correcta y la página exacta de tu documentación de la que sale, así que puedes comprobar cualquier resultado. Expertos de tu sector revisan las respuestas y tu propio experto las valida antes de corregir nada. Somos independientes: no desarrollamos ni vendemos sistemas de IA, así que no tenemos ningún modelo que defender."
-    },
-    "receive": {
-      "q": "¿Qué recibimos al final?",
-      "a": "Una puntuación, los fallos agrupados por causa, ejemplos reales de cada uno con su fuente y una lista de correcciones por prioridad. Te lo explicamos en una reunión en directo. Además, te quedas con el examen completo y sus respuestas correctas, para repetirlo cada vez que cambies tu asistente."
-    },
-    "after": {
-      "q": "¿Qué pasa después de la primera evaluación?",
-      "a": "Si quieres continuar, repetimos el examen cada mes con preguntas nuevas y te avisamos cuando una actualización rompe algo que antes funcionaba. Donde a tu asistente le falta información, nuestros expertos la construyen: documentación que falta, conjuntos de preguntas y respuestas y ejemplos resueltos. La siguiente evaluación muestra si la puntuación ha mejorado."
     },
     "cost": {
       "q": "¿Cuánto cuesta empezar?",
@@ -470,7 +454,7 @@
     },
     "private": {
       "q": "¿Verá alguien más nuestros resultados?",
-      "a": "No. Tus resultados son tuyos. Nunca publicamos ni compartimos los resultados de una empresa, ni decimos siquiera que es cliente, sin su consentimiento por escrito. Nuestros expertos trabajan con acuerdos de confidencialidad y solo ven el material que su tarea necesita, sin datos personales."
+      "a": "Tus resultados se quedan contigo: nunca los publicamos ni compartimos, ni decimos siquiera que eres cliente, sin tu consentimiento por escrito. Lo que sí notarán quienes usan tu sistema de IA es la mejora: respuestas correctas más a menudo, menos preguntas repetidas y más confianza en tu servicio."
     }
   },
   "cta": {

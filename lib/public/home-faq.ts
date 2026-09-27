@@ -8,11 +8,7 @@ import type { Translator } from "@/lib/i18n/messages";
 export const HOME_FAQ_IDS = [
   "what",
   "systems",
-  "technical",
   "access",
-  "trust",
-  "receive",
-  "after",
   "cost",
   "private",
 ] as const;
