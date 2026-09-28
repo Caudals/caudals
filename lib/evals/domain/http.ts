@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
 import { parseJsonBytes } from "../contracts/bundle";
-import { EvalError } from "./errors";
+import { EvalError, inputError } from "./errors";
 import { requireIdentity, type EvalIdentity } from "./identity";
 export { requireWorkspace } from "./identity";
 export { EvalError } from "./errors";
@@ -20,7 +20,8 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
       const data=await handler(request,identity);
       if(data instanceof Response) { for(const [key,value] of Object.entries(privateHeaders)) data.headers.set(key,value); return data; }
       return Response.json({data,meta:{request_id:requestId}},{headers:privateHeaders});
-    } catch(error) {
+    } catch(caught) {
+      const error=inputError(caught)??caught;
       const known=error instanceof EvalError;
       const validation=error instanceof ZodError || error instanceof SyntaxError;
       const code=known?error.code:validation?'INPUT_INVALID':'SERVICE_UNAVAILABLE';

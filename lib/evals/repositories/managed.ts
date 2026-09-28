@@ -9,7 +9,7 @@ import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { resolveModelRoute } from "./model-routes";
 import { EvalError } from "../domain/errors";
-import { parseLanguageAnswer } from "../generation/auto-draft";
+import { normalizeContextAnswer } from "../generation/auto-draft";
 import { enqueueInvocation,enqueueTargetExecution, digest } from "../queue/store";
 import { invocationSchema } from "../providers/contracts";
 import { reportSnapshotSchema } from "../reports/contracts";
@@ -68,7 +68,7 @@ export function getPreparation(scope:EvidenceScope,evaluationId:string){return w
 
 export function answerContext(scope:EvidenceScope,evaluationId:string,questionId:string,answer:string){return withTenant(scope,async db=>{
  const question=required((await db.query("SELECT field FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 AND id=$3 AND status='open' FOR UPDATE",[scope.orgId,evaluationId,questionId])).rows[0]);
- if(question.field==="languages")answer=parseLanguageAnswer(answer).join(", ");
+ answer=normalizeContextAnswer(question.field,answer);
  const updated=(await db.query("UPDATE evals.context_question SET status='answered',answer=$4::jsonb,answered_by=$5,answered_at=now() WHERE org_id=$1 AND evaluation_id=$2 AND id=$3 AND status='open' RETURNING *",[scope.orgId,evaluationId,questionId,JSON.stringify(answer),scope.actorId])).rows[0];
  required(updated);
  const open=(await db.query("SELECT count(*)::int AS count FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 AND (($3::uuid IS NULL AND generation_job_id IS NULL) OR generation_job_id=$3) AND critical AND status='open'",[scope.orgId,evaluationId,updated.generation_job_id??null])).rows[0].count;
