@@ -124,7 +124,9 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
         "UPDATE evals.judge_job SET status=$3,reason_code=$4,result_assessment_id=$5,updated_at=now() WHERE org_id=$1 AND id=$2",
         [scope.orgId, job.id, status, reason, resultId]);
       if (!job.output) {
-        if (["failed", "paused", "canceled"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `judge_step_${job.step_status}`); outcome.failed++; }
+        // An unknown provider outcome is never replayed, so its grade cannot arrive:
+        // the result stays unscorable for review and its liability stays unresolved.
+        if (["failed", "paused", "canceled", "unknown"].includes(job.step_status)) { await finish("failed", job.step_reason ?? `judge_step_${job.step_status}`); outcome.failed++; }
         else outcome.pending++;
         continue;
       }
