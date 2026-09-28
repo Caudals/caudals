@@ -73,12 +73,14 @@ describe("configuration errors reach the person", () => {
 
 describe("Spanish interface and exports", () => {
   it("explains an unknown generation outcome without promising an automatic retry", async () => {
-    const { setLocale } = await import("../../lib/evals/messages/en");
+    const { setLocale, t } = await import("../../lib/evals/messages/en");
     const { generationStopMessage } = await import("../../components/evals/workspace-preparation");
     setLocale("en");
     expect(generationStopMessage("network_unavailable")).toMatch(/may have run/);
+    expect(t("generationUnknownRetryConfirm")).toMatch(/separate generation attempt/);
     setLocale("es");
     expect(generationStopMessage("network_unavailable")).toMatch(/Puede que el intento se haya ejecutado/);
+    expect(t("generationUnknownRetryConfirm")).toMatch(/otro intento de generación/);
     setLocale("en");
   });
 
