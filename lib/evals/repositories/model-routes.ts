@@ -19,6 +19,7 @@ export type ModelRoute = {
   internal_cost_per_second: string;
   output_limit: number;
   context_limit: number;
+  tpm: number;
   adapter: "dgx" | "openai_compatible";
   model_id: string;
   currency: string;
@@ -26,7 +27,7 @@ export type ModelRoute = {
 };
 
 const COLUMNS = `r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second::text AS internal_cost_per_second,
-  p.adapter,p.model_id,p.output_limit,p.context_limit,pr.currency`;
+  p.adapter,p.model_id,p.output_limit,p.context_limit,p.tpm,pr.currency`;
 const JOINS = `JOIN evals.provider_revision p ON p.id=r.provider_revision_id AND (p.retired_at IS NULL OR p.retired_at>now())
   JOIN evals.provider_account a ON a.id=p.account_id AND a.enabled
   JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)`;
@@ -81,7 +82,7 @@ export async function ensureWorkspaceBudget(db: PoolClient, orgId: string, curre
  * and the fixed prompt parts. Capped so a huge context does not mean a slow,
  * unfocused prompt.
  */
-export function materialBudgetBytes(route: Pick<ModelRoute, "context_limit" | "output_limit">, outputCap: number, fixedBytes: number, cap = 200_000) {
-  const output = Math.min(16384, outputCap, route.output_limit);
-  return Math.max(0, Math.min(cap, route.context_limit - output - 1024 - fixedBytes - 512));
+export function materialBudgetBytes(route: Pick<ModelRoute, "context_limit" | "output_limit" | "tpm">, outputCap: number, fixedBytes: number, cap = 200_000) {
+  const output = Math.min(32768, outputCap, route.output_limit);
+  return Math.max(0, Math.min(cap, route.context_limit - output - 1024 - fixedBytes - 512, route.tpm - output - 1024 - fixedBytes - 512));
 }

@@ -22,10 +22,7 @@ const startSchema = z.strictObject({
   maxCases: z.number().int().min(1).max(20).default(10),
 });
 type GenerationRoute = ModelRoute;
-// A full profile runs to ~4k tokens; drafts of ten cases to ~3k. Headroom keeps
-// a verbose model from being cut off mid-JSON.
-const PROFILE_OUTPUT_TOKENS = 8192;
-const DRAFT_OUTPUT_TOKENS = 6144;
+const generationOutputCap = (route: GenerationRoute) => Math.min(route.adapter === "dgx" ? 8192 : 24576, Math.floor(route.tpm / 2));
 type SourceRecord = { id: string; content_hash: string; document: unknown; title: string; rights: string };
 type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null };
 
@@ -131,7 +128,8 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
     if (!workspaceBudget || workspaceBudget.currency !== evaluation.currency) throw new EvalError("BUDGET_UNAVAILABLE", 409, "A workspace generation budget must be configured before preparing this dataset.");
     const profileFixed = Buffer.byteLength(profileSystemPrompt(), "utf8") + Buffer.byteLength(evaluation.project_description ?? "", "utf8") + 256;
-    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, PROFILE_OUTPUT_TOKENS, profileFixed));
+    const profileOutputCap = generationOutputCap(profileRoute);
+    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, profileOutputCap, profileFixed));
     if (Number(evaluation.commercial_cap) <= 0) throw new EvalError("BUDGET_UNAVAILABLE", 409, "Set a positive evaluation budget before generating a dataset.");
     const jobId = randomUUID(), workflowId = randomUUID(), promptRevisionId = randomUUID();
     const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling)
@@ -142,7 +140,7 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'extract',$4,1,$5,$6,'completed',1,$7)", [scope.orgId,evaluationId,jobId,digest({sourceRevisionIds:input.sourceRevisionIds}),input.promptRevision,profileRoute.provider_revision_id,{sourceRevisionIds:input.sourceRevisionIds,anchorCount:material.reduce((sum,source)=>sum+source.anchors.length,0)}]);
     const profileBatchHash = digest({step:"profile",sourceRevisionIds:input.sourceRevisionIds,promptRevision:input.promptRevision});
     await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count) VALUES($1,$2,$3,'profile',$4,1,$5,$6,'queued',0)", [scope.orgId,evaluationId,jobId,profileBatchHash,input.promptRevision,profileRoute.provider_revision_id]);
-    const invocation = makeInvocation({route:profileRoute,jobId,step:"profile",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:PROFILE_OUTPUT_TOKENS,messages:[
+    const invocation = makeInvocation({route:profileRoute,jobId,step:"profile",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:profileOutputCap,messages:[
       {role:"system",content:profileSystemPrompt()},
       {role:"user",content:canonicalJson({projectDescription:evaluation.project_description??null,sources:material})},
     ]});
@@ -237,8 +235,9 @@ async function queueDraftGeneration(
   if(!workspaceBudget||!runBudget)throw new EvalError("BUDGET_UNAVAILABLE",409);
   const allMaterial=docs.map((source)=>({sourceRevisionId:source.revision_id,title:source.title,anchors:source.anchors.map((anchor)=>({anchorId:anchor.id,excerpt:anchor.excerpt}))}));
   const draftFixed=Buffer.byteLength(draftSystemPrompt(),"utf8")+Buffer.byteLength(canonicalJson({profile,coverage,maxCases:job.requested_case_count}),"utf8")+256;
-  const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,DRAFT_OUTPUT_TOKENS,draftFixed));
-  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:DRAFT_OUTPUT_TOKENS,messages:[
+  const draftOutputCap = generationOutputCap(draftRoute);
+  const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,draftOutputCap,draftFixed));
+  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:draftOutputCap,messages:[
     {role:"system",content:draftSystemPrompt()},
     {role:"user",content:canonicalJson({profile,coverage,maxCases:job.requested_case_count,sources:material})},
   ]});

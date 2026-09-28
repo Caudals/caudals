@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import type { Invocation, ProviderRevision } from './contracts';
+import { boundedInputTokens, type Invocation, type ProviderRevision } from './contracts';
 import { units, type Price } from '../budget/money';
 export interface PriceRevision extends Price {id:string;currency:string;provider_revision_id:string}
 export async function loadProvider(client:PoolClient, input:Invocation):Promise<{provider:ProviderRevision;price:PriceRevision;inputBound:number}> {
@@ -15,11 +15,9 @@ export async function loadProvider(client:PoolClient, input:Invocation):Promise<
  } else if(input.probeKind!=='text')throw new Error('probe_mode_requires_admin_probe');
  else if(!provider.capabilities.text || !provider.capabilities.boundedTokens || input.outputFormat==='json_object'&&!provider.capabilities.jsonObject) throw new Error('provider_capability_unverified');
  if(input.maxOutputTokens>provider.output_limit) throw new Error('output_bound_exceeded');
- // UTF-8 bytes conservatively dominate byte-level tokenization; reserve full context
- // for input to cover provider chat-template overhead. Reject oversized payloads locally.
- const bytes=Buffer.byteLength(JSON.stringify(input.messages),'utf8');
- const inputBound=provider.context_limit-input.maxOutputTokens;
- if(inputBound<=0 || bytes+1024>inputBound) throw new Error('context_bound_exceeded');
+ // UTF-8 bytes conservatively dominate byte-level tokenization. Reserve the
+ // prompt plus chat-template headroom, then check it against the context limit.
+ const inputBound=boundedInputTokens(input.messages,provider.context_limit,input.maxOutputTokens);
  return {provider,price,inputBound};
 }
 export async function acquireCapacity(client:PoolClient, provider:ProviderRevision, attemptId:string, tokenBound:number):Promise<void> {

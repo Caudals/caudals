@@ -79,9 +79,10 @@ export class InvocationWorker {
     const current=await lockStep(c,tenant.orgId,step.id);this.checkFence(current.step,step.fence);
     await c.query('INSERT INTO evals.execution_result(org_id,step_id,attempt_id,output,output_hash) VALUES($1,$2,$3,$4,$5)',[tenant.orgId,step.id,attemptId,output,digest(output)]);
     if(input.generationJobId&&input.generationStep){
-     const next=input.generationStep==='profile'?'profile_ready':'draft_ready';
-     await c.query("UPDATE evals.generation_batch SET status='completed',output=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$4 AND version=$5",[tenant.orgId,input.generationJobId,output,input.generationStep,step.version]);
-     await c.query("UPDATE evals.generation_job SET status=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.generationJobId,next]);
+     const next=output.complete?(input.generationStep==='profile'?'profile_ready':'draft_ready'):'paused';
+     const reason=output.complete?null:output.finishReason==='length'?'generation_output_exhausted':'incomplete_response';
+     await c.query("UPDATE evals.generation_batch SET status=$3,output=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$6 AND version=$7",[tenant.orgId,input.generationJobId,output.complete?'completed':'paused',output,reason,input.generationStep,step.version]);
+     await c.query("UPDATE evals.generation_job SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.generationJobId,next,reason]);
     }
     if(input.caseUnitId&&input.caseRevisionId&&input.targetRevisionId) {
      const started=new Date(Date.now()-output.latencyMs).toISOString(),finished=new Date().toISOString(),observationId=randomUUID();
