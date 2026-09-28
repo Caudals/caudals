@@ -45,6 +45,7 @@ describe("model routing and context fitting", () => {
     expect(routingFor({ adapter: "openai_compatible", provider_revision_id: "p" })).toEqual({ routing: "approved_providers", approvedProviderIds: ["p"] });
     expect(internalTimeoutMs({ adapter: "dgx" }, 900_000)).toBe(900_000);
     expect(internalTimeoutMs({ adapter: "openai_compatible" }, 900_000)).toBe(300_000);
+    expect(internalTimeoutMs({ adapter: "openai_compatible" }, 900_000, 900_000)).toBe(900_000);
   });
 
   it("fits excerpts round-robin across sources within the model budget", () => {
@@ -58,8 +59,8 @@ describe("model routing and context fitting", () => {
     expect(ids).toEqual(expect.arrayContaining(["w0", "p0", "w1", "p1"]));
     expect(Buffer.byteLength(JSON.stringify(fitted))).toBeLessThanOrEqual(5_200);
     expect(() => fitMaterial(material, 50)).toThrow(/context window/);
-    expect(materialBudgetBytes({ context_limit: 8192, output_limit: 4096 }, 4096, 2000)).toBe(8192 - 4096 - 1024 - 2000 - 512);
-    expect(materialBudgetBytes({ context_limit: 1_000_000, output_limit: 8192 }, 4096, 0)).toBe(200_000);
+    expect(materialBudgetBytes({ context_limit: 8192, output_limit: 4096, tpm: 8192 }, 4096, 2000)).toBe(8192 - 4096 - 1024 - 2000 - 512);
+    expect(materialBudgetBytes({ context_limit: 1_000_000, output_limit: 8192, tpm: 1_000_000 }, 4096, 0)).toBe(200_000);
   });
 });
 
@@ -71,6 +72,16 @@ describe("configuration errors reach the person", () => {
 });
 
 describe("Spanish interface and exports", () => {
+  it("explains an unknown generation outcome without promising an automatic retry", async () => {
+    const { setLocale } = await import("../../lib/evals/messages/en");
+    const { generationStopMessage } = await import("../../components/evals/workspace-preparation");
+    setLocale("en");
+    expect(generationStopMessage("network_unavailable")).toMatch(/may have run/);
+    setLocale("es");
+    expect(generationStopMessage("network_unavailable")).toMatch(/Puede que el intento se haya ejecutado/);
+    setLocale("en");
+  });
+
   it("translates interface strings, keeps English as the fallback and localizes generated report text", async () => {
     const { t, setLocale } = await import("../../lib/evals/messages/en");
     const { localizeReportText } = await import("../../lib/evals/reports/i18n");

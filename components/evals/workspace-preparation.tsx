@@ -282,7 +282,7 @@ export function PrepareEvaluation({
       setPending("generate");
       setError("");
       try {
-        for (let attempt = 0; attempt < 180; attempt++) {
+        for (let attempt = 0; attempt < 600; attempt++) {
           const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null } | null }>(
             `/evaluations/${evaluation.id}/generate?orgId=${orgId}&jobId=${jobId}`,
           );
@@ -327,7 +327,9 @@ export function PrepareEvaluation({
             const resumed = await evalRequest<{ status: string }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-config-retry-${jobId}`);
             if (resumed.status !== "drafting") throw new Error(t("generationPausedForReview"));
           } else if (state.status === "paused") {
-            throw new Error(t("generationPaused"));
+            // A dispatched call may still have run. Show its saved reason; do
+            // not suggest that polling or a page reload will replay it.
+            return;
           } else if (["quarantined", "failed"].includes(state.status)) {
             // The stopped panel explains why, from the job's reason code.
             return;
@@ -470,7 +472,8 @@ export function PrepareEvaluation({
   /* ------------------------------------------------------------ view --- */
 
   const openQuestions = contextQuestions.filter((item) => item.critical && item.status === "open");
-  const stopped = generation === "quarantined" || generation === "failed";
+  const stopped = generation === "quarantined" || generation === "failed" || generation === "paused";
+  const unknownAttempt = generation === "paused" && ["network_unavailable", "worker_lease_expired"].includes(stopReason ?? "");
   const generating = pending === "generate" || (!!autoJobId && !draft && !openQuestions.length && ["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation ?? ""));
   const stage = generationStage(generation);
   const stages = [t("stageUnderstanding"), t("stagePreparingQuestions"), t("stageCheckingSet")];
@@ -639,7 +642,7 @@ export function PrepareEvaluation({
         ) : (
           <div className="p-generate">
             {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}
-            <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending}>
+            <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending || unknownAttempt}>
               <Sparkles aria-hidden="true" />
               {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
             </Action>
@@ -702,14 +705,21 @@ function RemoveSourceButton({ title, disabled, onClick }: { title: string; disab
 /** Why a generation stopped, in terms of what to do next. */
 export function generationStopMessage(reason: string | null | undefined) {
   switch (reason) {
+    case "network_unavailable":
+    case "worker_lease_expired":
+      return t("genStopUnknownAttempt");
     case "model_reasoning_exhausted":
       return t("genStopReasoning");
+    case "generation_output_exhausted":
+    case "incomplete_response":
     case "model_output_incomplete":
       return t("genStopIncomplete");
     case "model_output_not_json":
       return t("genStopNotJson");
+    case "budget_exceeded":
+      return t("genStopBudget");
     default:
-      return t("generationQuarantined");
+      return t("genStopOther");
   }
 }
 

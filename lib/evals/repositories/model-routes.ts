@@ -56,8 +56,8 @@ export function routingFor(route: Pick<ModelRoute, "adapter" | "provider_revisio
 }
 
 /** Internal jobs on a commercial API get a bounded deadline; DGX may queue behind other work. */
-export function internalTimeoutMs(route: Pick<ModelRoute, "adapter">, dgxMs: number) {
-  return route.adapter === "dgx" ? dgxMs : Math.min(dgxMs, 300_000);
+export function internalTimeoutMs(route: Pick<ModelRoute, "adapter">, dgxMs: number, commercialMs = 300_000) {
+  return route.adapter === "dgx" ? dgxMs : Math.min(dgxMs, commercialMs);
 }
 
 /**

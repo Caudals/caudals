@@ -119,6 +119,9 @@ export function prepareGroundedSuite(
    await db.query("UPDATE evals.evaluation SET preparation_status='needs_review',review_status='pending',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
    return {status:"needs_review",batchId:batch.id,...output,suiteDraftVersion:1,cases:pack.cases.length,manifest};
   }catch(error){
+   // A PostgreSQL failure aborts this transaction. Let the outer transaction
+   // roll back instead of masking an infrastructure fault as bad model output.
+   if(error && typeof error==="object" && "code" in error)throw error;
    const errors=[error instanceof Error?error.message:"invalid_generated_case"];
    await db.query("UPDATE evals.generation_batch SET status='failed',reason_code='generation_validation_failed',updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,batch.id]);
    await db.query("INSERT INTO evals.case_quarantine(org_id,evaluation_id,generation_batch_id,draft,reason_code,schema_errors) VALUES($1,$2,$3,$4,'generation_validation_failed',$5)",[scope.orgId,evaluationId,batch.id,{sourceRevisionIds:sourceIds,questions},JSON.stringify(errors)]);

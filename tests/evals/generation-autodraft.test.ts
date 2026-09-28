@@ -48,6 +48,7 @@ describe("DGX generation context bounds", () => {
       internalCostPerSecond: "0.000100000",
     };
     expect(invocationSchema.parse(generation).timeoutMs).toBe(900_000);
+    expect(invocationSchema.parse({ ...generation, routing: "approved_providers", approvedProviderIds: [sourceId] }).timeoutMs).toBe(900_000);
     expect(() => invocationSchema.parse({ ...generation, role: "target", generationJobId: undefined, generationStep: undefined }))
       .toThrow("extended_deadline_reserved_for_local_generation");
     expect(() => invocationSchema.parse({ ...generation, timeoutMs: 900_001 }))

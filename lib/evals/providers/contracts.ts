@@ -10,14 +10,14 @@ export const invocationSchema=z.object({
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
 }).strict().superRefine((input,ctx)=>{
-  // Extended deadlines exist only for bounded internal engine work: generation,
-  // rubric judging and report narrative (DGX up to 15 min, commercial APIs up
-  // to 5 min). Target and probe calls keep 120 s.
-  const localInternal=!input.probe&&(input.routing==="local_only"||input.timeoutMs<=300000)&&(
-    (!!input.generationJobId&&!!input.generationStep&&(["generator","context_analyzer"] as string[]).includes(input.role))||
-    (!!input.judgeJobId&&input.role==="judge")||
-    (!!input.narrativeJobId&&input.role==="report_writer"));
-  if(input.timeoutMs>120000&&!localInternal)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
+  // Generation can need 15 minutes on an approved provider. Judging and
+  // narrative calls retain the shorter commercial deadline; target and probe
+  // calls retain 120 seconds.
+  const generation=!!input.generationJobId&&!!input.generationStep&&(["generator","context_analyzer"] as string[]).includes(input.role);
+  const otherInternal=(!!input.judgeJobId&&input.role==="judge")||
+    (!!input.narrativeJobId&&input.role==="report_writer");
+  const extended=!input.probe&&(generation||(otherInternal&&(input.routing==="local_only"||input.timeoutMs<=300000)));
+  if(input.timeoutMs>120000&&!extended)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
 });
 /** Output bound for one call: the request's cap (default 4096, at most 32768), the model limit and the remaining context. */
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {

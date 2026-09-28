@@ -34,7 +34,7 @@ async function main(){
  if(Object.values(calls.rows[0]??{}).some(value=>value!==true))
   throw new Error("Per-turn target invocation accounting is not ready.");
  const generationCatalog=await pool.query(`SELECT
-   (SELECT bool_and(has_column_privilege('evals_runtime','evals.provider_revision',field,'SELECT')) FROM unnest(ARRAY['id','adapter','model_id','context_limit','output_limit']::text[]) AS provider_cols(field)) AS safe_provider_columns,
+   (SELECT bool_and(has_column_privilege('evals_runtime','evals.provider_revision',field,'SELECT')) FROM unnest(ARRAY['id','adapter','model_id','context_limit','output_limit','tpm']::text[]) AS provider_cols(field)) AS safe_provider_columns,
    NOT has_column_privilege('evals_runtime','evals.provider_revision','endpoint','SELECT') AS endpoint_hidden,
    NOT has_column_privilege('evals_runtime','evals.provider_revision','capabilities','SELECT') AS provider_capabilities_hidden,
    (SELECT bool_and(has_column_privilege('evals_runtime','evals.price_revision',field,'SELECT')) FROM unnest(ARRAY['id','provider_revision_id','currency']::text[]) AS price_cols(field)) AS safe_price_columns,
