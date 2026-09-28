@@ -64,6 +64,9 @@ const MEDIA: Record<string, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 
+/** Paused because the model ran out of output allowance; the server can retry once without reasoning. */
+const OUTPUT_RETRY_REASONS = new Set(["generation_output_exhausted", "incomplete_response"]);
+
 async function stableKey(action: string, payload: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -326,6 +329,10 @@ export function PrepareEvaluation({
           } else if (state.status === "paused" && state.job?.reasonCode === "invocation_configuration_invalid") {
             const resumed = await evalRequest<{ status: string }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-config-retry-${jobId}`);
             if (resumed.status !== "drafting") throw new Error(t("generationPausedForReview"));
+          } else if (state.status === "paused" && OUTPUT_RETRY_REASONS.has(state.job?.reasonCode ?? "")) {
+            // The server retries once with reasoning off; a second stop stays paused.
+            const resumed = await evalRequest<{ status: string }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-output-retry-${jobId}`);
+            if (!["profiling", "drafting"].includes(resumed.status)) return;
           } else if (state.status === "paused") {
             // A dispatched call may still have run. Show its saved reason; do
             // not suggest that polling or a page reload will replay it.
@@ -369,7 +376,7 @@ export function PrepareEvaluation({
         if (state.status === "needs_input") return;
         if (
           ["profiling", "profile_ready", "drafting", "draft_ready"].includes(state.status) ||
-          (state.status === "paused" && state.job.reasonCode === "invocation_configuration_invalid")
+          (state.status === "paused" && (state.job.reasonCode === "invocation_configuration_invalid" || OUTPUT_RETRY_REASONS.has(state.job.reasonCode ?? "")))
         ) {
           void continueAutomaticGeneration(state.job.id);
         }

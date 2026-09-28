@@ -307,6 +307,13 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       await event(db,scope.orgId,job.workflow_id,"generation_pre_dispatch_retry","invocation_configuration_invalid");
       job.status="profile_ready";job.reason_code=null;
     }
+    // The worker pauses a job whose model stopped before a complete answer
+    // (output allowance spent, often on reasoning that spilled into the text).
+    if(job.status==="paused"&&["generation_output_exhausted","incomplete_response"].includes(job.reason_code??"")){
+      const stopped=(await db.query("SELECT step_kind FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND input->>'generationJobId'=$3 AND step_kind IN ('profile','generate') ORDER BY version DESC,created_at DESC LIMIT 1",[scope.orgId,job.workflow_id,job.id])).rows[0];
+      const retried=stopped&&await retryWithoutReasoning(db,scope,evaluationId,job,stopped.step_kind==="profile"?"profile":"draft","model_output_incomplete");
+      return retried||{status:job.status,jobId:job.id,reasonCode:job.reason_code};
+    }
     if(job.status==="needs_input"){
       const rows=(await db.query("SELECT id,field,question,critical,status,answer FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 AND generation_job_id=$3 ORDER BY critical DESC,created_at,id",[scope.orgId,evaluationId,job.id])).rows;
       const open=rows.filter((row)=>row.critical&&row.status==="open");
