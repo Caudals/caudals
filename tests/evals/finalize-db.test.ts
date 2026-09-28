@@ -2,13 +2,13 @@ import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
-import { finalizeRuns } from "../../lib/evals/repositories/finalize";
+import { finalizeRuns, refreshJudgedReports } from "../../lib/evals/repositories/finalize";
 import { advanceJudgments } from "../../lib/evals/repositories/judging";
 import { InvocationWorker } from "../../lib/evals/queue/worker";
 import type { TenantTransaction } from "../../lib/evals/queue/store";
 import { importedJudgeRunFixture } from "./judge-run-fixture";
 import { listEvaluationRuns, listReportShares } from "../../lib/evals/repositories/operator-actions";
-import { createReportShare } from "../../lib/evals/repositories/managed";
+import { createReportForRun, createReportShare, publishReport, scoreRun } from "../../lib/evals/repositories/managed";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
@@ -59,5 +59,26 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(JSON.stringify(shares)).not.toContain(String(share.token));
     expect(await listEvaluationRuns(scope, { relatedRunId: run.id })).toEqual([expect.objectContaining({ id: run.id, report_id: reportRow.id })]);
     await expect(listReportShares({ orgId: randomUUID(), actorId: scope.actorId }, reportRow.id)).rejects.toMatchObject({ status: 404 });
+  });
+  it("republishes an early imported-answer report once its judge grades land", async () => {
+    const { scope, orgId, rubric, run } = await importedJudgeRunFixture(owner, runtimeUrl!);
+    // The upload flow scores and publishes straight away, while judges are queued.
+    await scoreRun(scope, run.id, "customer-manual-deterministic-v1");
+    const early = await createReportForRun(scope, { runId: run.id, title: "Early", reviewStatus: "preliminary", scorerVersion: "strict-v1" }, randomUUID());
+    await publishReport(scope, early.reportId, early.revisionId);
+    const current = async () => withTenant(scope, async (c) => (await c.query("SELECT r.id,count(*) OVER () AS reports,rr.snapshot->'metrics'->>'n_scorable' AS scorable,(SELECT count(*)::int FROM evals.report_revision x WHERE x.org_id=r.org_id AND x.report_id=r.id) AS revisions FROM evals.report r JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(r.org_id,r.current_revision_id) WHERE r.org_id=$1", [orgId])).rows);
+    expect(await current()).toEqual([expect.objectContaining({ id: early.reportId, scorable: "0", revisions: 1 })]);
+    expect(await refreshJudgedReports(scope)).toBe(0);
+
+    const steps = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1", [orgId])).rows);
+    const tx: TenantTransaction = (tenant, fn) => withTenant(tenant, fn, workerPool);
+    const worker = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
+      invoke: async () => ({ text: JSON.stringify({ criteria: [{ criterion_id: rubric.criteria[1].id, verdict: "partial", rationale: "Correct figure without the policy context.", evidence: "" }] }), complete: true, finishReason: "stop", latencyMs: 10 }) });
+    for (const step of steps) await worker.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
+    expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
+
+    expect(await refreshJudgedReports(scope)).toBe(1);
+    expect(await current()).toEqual([expect.objectContaining({ id: early.reportId, reports: "1", scorable: "2", revisions: 2 })]);
+    expect(await refreshJudgedReports(scope)).toBe(0);
   });
 });
