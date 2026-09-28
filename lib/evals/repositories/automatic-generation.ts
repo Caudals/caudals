@@ -22,6 +22,13 @@ const startSchema = z.strictObject({
   maxCases: z.number().int().min(1).max(20).default(10),
 });
 type GenerationRoute = ModelRoute;
+/**
+ * The DGX serves generation at roughly 15 tokens/s within an 8,192-token
+ * allowance: reasoning first would spend the whole allowance (about nine
+ * minutes) before the reasoning-off retry. Commercial APIs are fast enough to
+ * reason inside a bounded share first.
+ */
+const generationReasoning = (route: Pick<GenerationRoute, "adapter">) => (route.adapter === "dgx" ? "off" : "bounded");
 const generationOutputCap = (route: Pick<GenerationRoute, "adapter" | "tpm">) => Math.min(route.adapter === "dgx" ? 8192 : 24576, Math.floor(route.tpm / 2));
 type SourceRecord = { id: string; content_hash: string; document: unknown; title: string; rights: string };
 type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null };
@@ -95,7 +102,7 @@ function makeInvocation(args: {
     providerRevisionId: args.route.provider_revision_id, priceRevisionId: args.route.price_revision_id,
     workspaceBudgetId: args.workspaceBudgetId, runBudgetId: args.runBudgetId, role: args.route.role,
     dataClass: args.route.data_class, region: args.route.region, ...routingFor(args.route),
-    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), reasoning: "bounded", timeoutMs: internalTimeoutMs(args.route, 900000, 900000),
+    messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), reasoning: generationReasoning(args.route), timeoutMs: internalTimeoutMs(args.route, 900000, 900000),
     internalCostPerSecond: args.route.internal_cost_per_second,
   });
 }
