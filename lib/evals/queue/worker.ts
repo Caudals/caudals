@@ -162,6 +162,13 @@ export class InvocationWorker {
   });
  }
  async recover(tenant:Tenant):Promise<number> {
+  // An unknown call to a commercial API keeps its unresolved liability until
+  // reconciliation, but it cannot still occupy the provider 15 minutes after
+  // our connection ended. Holding its slot for ever deadlocks the route once
+  // concurrency_limit calls have timed out. DGX residency stays with the
+  // runbook reconciliation.
+  await this.options.tx(tenant,c=>c.query(`UPDATE evals.provider_slot slot SET released_at=now() FROM evals.execution_attempt a JOIN evals.provider_revision p ON p.id=a.provider_revision_id
+   WHERE slot.attempt_id=a.id AND slot.released_at IS NULL AND a.org_id=$1 AND a.status='unknown' AND a.finished_at<now()-interval '15 minutes' AND p.adapter<>'dgx'`,[tenant.orgId]));
   const stale=await this.options.tx(tenant,async c=>(await c.query("SELECT id FROM evals.workflow_step WHERE org_id=$1 AND status='running' AND lease_until<=now() ORDER BY lease_until LIMIT 100",[tenant.orgId])).rows);
   for(const row of stale)await this.options.tx(tenant,async c=>{
    const {workflow,step}=await lockStep(c,tenant.orgId,row.id);

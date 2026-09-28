@@ -43,7 +43,7 @@ Signals: browser runs end `capture_incomplete` or the connection enters `needs_o
 Signals: `lease_expired`, `unresolved_attempts`.
 
 1. A reserved-but-undispatched attempt releases its reservation automatically when the lease expires and may retry within three attempts.
-2. A dispatched attempt becomes `unknown`: its liability and DGX residency slot are kept and it is never replayed.
+2. A dispatched attempt becomes `unknown`: its liability is kept and it is never replayed. A DGX attempt also keeps the residency slot until reconciled; a commercial API attempt releases its concurrency slot 15 minutes after it ended, so timed-out calls cannot block the route.
 3. Reconcile each unknown attempt: find the provider's record (request ID in the attempt) or, for zero-price DGX calls, record `0`. Upload a short evidence note as a source artifact, then run
    `echo '{"attemptId":"…","actual":"0","evidenceId":"…"}' | sudo docker run --rm -i … services/evals-worker/admin.sh reconcile` with the admin credentials (see `docs/evals/work-packages/WP-03.md`).
 4. If the call must happen again, start a deliberate new run; reconciliation never requeues the old step.

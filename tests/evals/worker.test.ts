@@ -53,6 +53,14 @@ describe.skipIf(!stageAOwnerUrl)('durable worker',()=>{
   const result=(await f.rows('SELECT r.state,r.amount,r.actual FROM evals.budget_reservation r JOIN evals.execution_attempt a ON a.id=r.attempt_id WHERE a.step_id=$1',[task.job.stepId]))[0];
   expect(result.state).toBe('unresolved');expect(result.actual).toBeNull();expect(Number(result.amount)).toBeGreaterThan(0);
   await f.pool.query('UPDATE evals.provider_health SET circuit_until=NULL');
+  // The commercial slot is kept while the provider could still be working, then
+  // released so timed-out calls cannot fill concurrency_limit for ever.
+  const slot=async()=>(await f.rows('SELECT s.released_at FROM evals.provider_slot s JOIN evals.execution_attempt a ON a.id=s.attempt_id WHERE a.step_id=$1',[task.job.stepId]))[0].released_at;
+  await w.recover(f.tenant);expect(await slot()).toBeNull();
+  await f.pool.query("UPDATE evals.execution_attempt SET finished_at=now()-interval '16 minutes' WHERE step_id=$1",[task.job.stepId]);
+  await w.recover(f.tenant);expect(await slot()).not.toBeNull();
+  expect((await f.rows('SELECT r.state FROM evals.budget_reservation r JOIN evals.execution_attempt a ON a.id=r.attempt_id WHERE a.step_id=$1',[task.job.stepId]))[0].state).toBe('unresolved');
+  await w.handle(task.job);expect(invoke).toHaveBeenCalledTimes(1);
  });
  it('never invokes without budget and accounts for every throttled retry',async()=>{
   const blocked=await f.enqueue(),blockedInvoke=vi.fn(async()=>output);
