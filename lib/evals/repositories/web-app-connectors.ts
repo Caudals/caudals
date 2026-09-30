@@ -38,7 +38,16 @@ export function persistTaughtRecipe(scope: EvidenceScope, targetId: string, raw:
     if (config.kind !== "website" || new URL(config.endpoint).origin !== new URL(recipe.start_url).origin) throw new EvalError("INPUT_INVALID", 422);
     if (evidence && (!evidence.reset_verified || !evidence.distinct_responses || !evidence.streaming_complete || !evidence.duplicate_free)) throw new EvalError("CONNECTION_UNSUPPORTED", 409);
     const existing = (await db.query("SELECT id FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, recipe.recipe_revision_id, targetId])).rows[0];
-    if (existing) return { status: "ready", recipeRevisionId: existing.id };
+    if (existing && evidence) {
+      // A retried result can refresh the encrypted login and create a new
+      // target revision. Attach readiness to that revision as well.
+      if (config.recipe_revision_id !== existing.id) throw new EvalError("INPUT_INVALID", 409);
+      await db.query(`INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,completed_at)
+        SELECT $1,$2,'ready',$3,$4,now() WHERE NOT EXISTS
+        (SELECT 1 FROM evals.connection_check WHERE org_id=$1 AND target_revision_id=$2 AND status='ready')`,
+      [scope.orgId, config.target_revision_id, capabilityReportForWebsite(recipe, evidence), evidence]);
+      return { status: "ready", recipeRevisionId: existing.id };
+    }
     if (!evidence && (await db.query("SELECT id FROM evals.website_recipe_candidate WHERE org_id=$1 AND id=$2", [scope.orgId, recipe.recipe_revision_id])).rowCount) return { status: "needs_operator", recipeRevisionId: recipe.recipe_revision_id };
     const check = (await db.query(`INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,completed_at)
       VALUES($1,$2,$3,$4,$5,now()) RETURNING id`, [scope.orgId, config.target_revision_id, evidence ? "ready" : "needs_operator", evidence ? capabilityReportForWebsite(recipe, evidence) : null, evidence ?? { kind: "taught_draft" }])).rows[0];

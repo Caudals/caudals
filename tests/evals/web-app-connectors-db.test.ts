@@ -46,6 +46,8 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("taught connectors use the production 
       expect(JSON.stringify(draft)).not.toContain("fixture-private-cookie");
       const evidence = { checked_at: new Date().toISOString(), messages: [{ prompt_hash: "a".repeat(64), response_hash: "b".repeat(64) }, { prompt_hash: "c".repeat(64), response_hash: "d".repeat(64) }], distinct_responses: true, reset_verified: true, streaming_complete: true, duplicate_free: true, screenshot_artifact_id: null, trace_artifact_id: null };
       expect(await persistTaughtRecipe(scope, targetId, recipe, evidence)).toMatchObject({ status: "ready" });
+      // The API stores login state before persisting a retried result.
+      await storeLoginSession(scope, targetId, { storageState: state, expiresInHours: 24 });
       expect(await persistTaughtRecipe(scope, targetId, recipe, evidence)).toMatchObject({ status: "ready" });
       const ready = await websiteControlTarget(scope, targetId);
       expect(ready.config.recipe_revision_id).toBe(recipe.recipe_revision_id);
