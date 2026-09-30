@@ -69,7 +69,6 @@ Text and document AI systems:
 - **Size and buyer:** 50–500 employees. The buyer owns the AI system — Atención al Cliente, Transformación Digital, Canal Digital, Postventa/Servicio Técnico, Calidad or Operaciones — and can sign €2,400 without a committee.
 - **Trigger:** the company launched or announced an AI system in the last 18 months.
 - **Channel partners:** Spanish AI and data integrators and agencies that build these systems. We are their independent test layer, white-labelled or on referral.
-- **Not now:** AI startups as evaluation customers, IBEX-35 companies and large banks, public-administration tenders, and anyone with nothing deployed.
 - **Next segment:** Spanish AI product companies (vertical SaaS, legaltech, healthtech) that train their own models and buy expert-built training data directly.
 
 Target definition: *Spanish companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
