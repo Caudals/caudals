@@ -60,6 +60,19 @@ export async function browserInvocationSession(
   }, keys);
 }
 
+/** Only the browser executor calls this for an authorized connection probe. */
+export async function browserConnectionSession(client: PoolClient, orgId: string, revisionId: string, keys: Keyring): Promise<Buffer | undefined> {
+  const revision = (await client.query("SELECT document FROM evals.target_revision WHERE org_id=$1 AND id=$2", [orgId, revisionId])).rows[0];
+  if (!revision?.document?.login_session_id) return undefined;
+  const row = (await client.query(`SELECT v.envelope,v.id AS version_id,r.id AS record_id,r.scope_id FROM evals.target_revision t
+    JOIN evals.browser_login_session s ON s.org_id=t.org_id AND s.target_id=t.target_id AND s.id::text=t.document->>'login_session_id'
+    JOIN evals.secret_version v ON (v.org_id,v.id)=(s.org_id,s.secret_version_id)
+    JOIN evals.secret_record r ON (r.org_id,r.id)=(v.org_id,v.record_id)
+    WHERE t.org_id=$1 AND t.id=$2 AND s.expires_at>now() AND s.revoked_at IS NULL AND r.revoked_at IS NULL AND r.purpose='target' AND r.scope_id=t.target_id`, [orgId, revisionId])).rows[0];
+  if (!row) throw new Error("browser_session_unavailable");
+  return decryptSecret(row.envelope, { orgId, recordId: row.record_id, versionId: row.version_id, purpose: "target", scopeId: row.scope_id }, keys);
+}
+
 /** Nil tenant: provider connection keys belong to the platform, not a workspace. */
 export const PLATFORM_SECRET_ORG = '00000000-0000-0000-0000-000000000000';
 export function connectionSecretScope(accountId:string):SecretScope {

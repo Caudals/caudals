@@ -33,6 +33,7 @@ import { ManualAnswers, publishPreliminaryManualReport } from "./workspace-manua
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
+import { WebAppConnector } from "./web-app-connector";
 import { evaluationStage, stepStates } from "./evaluation-stage";
 import { t } from "@/lib/evals/messages/en";
 
@@ -59,7 +60,7 @@ function useElapsed(since: string | null | undefined, active: boolean) {
 }
 
 export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
-  const { orgId, workspace, canWrite, operator, withOrg } = useWorkspace();
+  const { orgId, workspace, canWrite, canManage, operator, withOrg } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const [run, setRun] = useState<RunView | null>(null);
   const [report, setReport] = useState<ReportSnapshot | null>(null);
@@ -280,6 +281,9 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
           <strong>{actionError.message}</strong> {actionError.help}
         </Status>
       )}
+
+      {system?.document.kind === "website" && run?.run.status === "paused" && <Status tone="warn">The web app needs attention. Repair its login or selected elements below, test the connection, then cancel this paused run and start a new evaluation run with the repaired connector.</Status>}
+      {system?.document.kind === "website" && canManage && <details open={system.connection_status !== "ready"}><summary>Connect or repair your web app</summary><WebAppConnector orgId={orgId} targetId={system.id} onChanged={reload} /></details>}
 
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (

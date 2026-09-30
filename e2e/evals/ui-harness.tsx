@@ -18,6 +18,7 @@ import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 import { OperatorOverview } from "../../components/evals/operator-overview";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
+import { WebAppConnector } from "../../components/evals/web-app-connector";
 const params = new URLSearchParams(location.search);
 const authPage =
   location.pathname === "/workspace/sign-in" ||
@@ -44,6 +45,9 @@ const identity = {
   ],
 };
 const content =
+  location.pathname === "/workspace/web-app-fixture" ? (
+    <WebAppConnector orgId="00000000-0000-4000-8000-000000000001" targetId="00000000-0000-4000-8000-000000000201" />
+  ) :
   location.pathname === "/workspace/sign-in" ? (
     <EvaluationSignIn next={params.get("next") ?? undefined} />
   ) : location.pathname === "/workspace/reset-password" ? (

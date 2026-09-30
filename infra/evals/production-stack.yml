@@ -152,7 +152,9 @@ services:
       - type: tmpfs
         target: /tmp
         tmpfs: {size: 134217728}
-    networks: [evals_browser_internal]
+    networks:
+      evals_browser_internal:
+        aliases: [evals-browser-control]
     environment:
       NODE_ENV: production
       HOME: /tmp

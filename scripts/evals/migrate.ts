@@ -42,6 +42,7 @@ const migrations=[
  '065_evals_notification_engine.sql',
  '066_evals_export_locale.sql',
  '067_evals_runtime_provider_tpm_grant.sql',
+ '068_evals_browser_connection_check_grant.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

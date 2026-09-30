@@ -26,27 +26,24 @@ import { validatePublicDestination, type Lookup } from "./egress";
 type FrameLike = Page | Frame | FrameLocator;
 type DestinationCheck = (url: string) => Promise<void>;
 
-function locator(root: FrameLike, value: BrowserLocator): Locator {
+export function browserLocator(root: FrameLike, value: BrowserLocator): Locator {
   if (value.kind === "role") {
-    return root.getByRole(value.role, value.name ? { name: value.name } : undefined);
+    return root.getByRole(value.role, value.name ? { name: value.name, exact: true } : undefined);
   }
-  if (value.kind === "label") return root.getByLabel(value.text);
+  if (value.kind === "label") return root.getByLabel(value.text, { exact: true });
   if (value.kind === "test_id") return root.getByTestId(value.value);
   return root.locator(value.value);
 }
 
-async function recipeRoot(page: Page, recipe: WebsiteRecipe): Promise<FrameLike> {
-  let root: FrameLike = page;
-  for (const step of recipe.frame_chain) {
-    const frame = await locator(root, step).first().contentFrame();
-    if (!frame) throw new Error("website_frame_unavailable");
-    root = frame;
-  }
-  return root;
+function locator(page: FrameLike, recipe: WebsiteRecipe, value: BrowserLocator): Locator {
+  let root = page;
+  for (const frame of value.frames ?? recipe.frame_chain ?? []) root = browserLocator(root, frame).contentFrame();
+  return browserLocator(root, value);
 }
+async function recipeRoot(page: Page, _recipe: WebsiteRecipe): Promise<FrameLike> { return page; }
 
 async function textSnapshot(root: FrameLike, recipe: WebsiteRecipe) {
-  return locator(root, recipe.assistant_message)
+  return locator(root, recipe, recipe.assistant_message)
     .allTextContents()
     .then((values) => values.map((value) => value.trim()).filter(Boolean));
 }
@@ -75,14 +72,14 @@ export async function waitForCompletion(
     // partial text captured just before the swap.
     let signalReady = true;
     if (recipe.completion.kind === "selector_hidden") {
-      const visible = await locator(root, recipe.completion.locator)
+      const visible = await locator(root, recipe, recipe.completion.locator)
         .first()
         .isVisible()
         .catch(() => false);
       if (visible) busySeen = true;
       signalReady = busySeen && !visible;
     } else if (recipe.completion.kind === "send_enabled") {
-      const enabled = await locator(root, recipe.completion.locator)
+      const enabled = await locator(root, recipe, recipe.completion.locator)
         .first()
         .isEnabled()
         .catch(() => false);
@@ -140,6 +137,11 @@ export async function guardBrowserContext(
   });
 }
 
+export async function restoreBrowserSessionStorage(context: BrowserContext, state?: BrowserStorageState) {
+  if (!state?.session_storage?.length) return;
+  await context.addInitScript({ content: `(() => { const states=${JSON.stringify(state.session_storage)};const state=states.find(item=>item.origin===location.origin);if(state)for(const item of state.entries)sessionStorage.setItem(item.name,item.value); })()` });
+}
+
 export async function discoverWebsite(args: {
   browser: Browser;
   url: string;
@@ -155,6 +157,7 @@ export async function discoverWebsite(args: {
   });
   try {
     await guardBrowserContext(context, args.destinationCheck);
+
     const page = await context.newPage();
     await page.goto(args.url, {
       waitUntil: "domcontentloaded",
@@ -270,6 +273,7 @@ async function openRecipe(args: {
   });
   try {
     await guardBrowserContext(context, args.destinationCheck);
+    await restoreBrowserSessionStorage(context, args.storageState);
     const page = await context.newPage();
     await page.goto(args.recipe.start_url, {
       waitUntil: "domcontentloaded",
@@ -277,7 +281,7 @@ async function openRecipe(args: {
     });
     const root = await recipeRoot(page, args.recipe);
     if (args.recipe.launcher) {
-      await locator(root, args.recipe.launcher).first().click({ timeout: 10_000 });
+      await locator(root, args.recipe, args.recipe.launcher).click({ timeout: 10_000 });
     }
     return { context, page, root };
   } catch (error) {
@@ -301,10 +305,10 @@ async function invokeOpenWebsite(args: {
     .reverse()
     .find((message) => message.role === "user")?.content;
   if (!prompt) throw new Error("website_prompt_missing");
-  const input = locator(session.root, args.recipe.input).first();
+  const input = locator(session.root, args.recipe, args.recipe.input);
   await input.fill(prompt);
   if (args.recipe.submit.kind === "press_enter") await input.press("Enter");
-  else await locator(session.root, args.recipe.submit.locator).first().click();
+  else await locator(session.root, args.recipe, args.recipe.submit.locator).click();
   const output = await waitForCompletion(
     session.root,
     args.recipe,
@@ -418,6 +422,9 @@ export async function validateWebsiteRecipe(args: {
   recipe: WebsiteRecipe;
   destinationCheck: DestinationCheck;
   timeoutMs?: number;
+  storageState?: BrowserStorageState;
+  onResponse?: (response: string) => void;
+  signal?: AbortSignal;
 }): Promise<BrowserProbeEvidence> {
   const prompts = [
     `Connection check ${randomUUID()}`,
@@ -426,6 +433,7 @@ export async function validateWebsiteRecipe(args: {
   const responses: string[] = [];
   const duplicateFlags: boolean[] = [];
   for (const [index, prompt] of prompts.entries()) {
+    if (args.signal?.aborted) throw new Error("target_execution_aborted");
     const controller = new AbortController();
     const observation = await invokeWebsite({
       ...args,
@@ -447,7 +455,7 @@ export async function validateWebsiteRecipe(args: {
         scoped_credential_handle: null,
         destination_policy_id: "public-https-v1",
         reserved_cost: { amount: "0", currency: "EUR" },
-        signal: controller.signal,
+        signal: args.signal ?? controller.signal,
       },
     });
     responses.push(
@@ -455,6 +463,7 @@ export async function validateWebsiteRecipe(args: {
         .reverse()
         .find((message) => message.role === "assistant")?.content ?? "",
     );
+    args.onResponse?.(responses.at(-1)!);
     duplicateFlags.push((observation.extensions["caudals.evals/browser"] as { duplicate_free?: boolean } | undefined)?.duplicate_free === true);
   }
   const multiTurn = await probeWebsiteFollowUp(args);
@@ -485,6 +494,8 @@ async function probeWebsiteFollowUp(args: {
   recipe: WebsiteRecipe;
   destinationCheck: DestinationCheck;
   timeoutMs?: number;
+  storageState?: BrowserStorageState;
+  signal?: AbortSignal;
 }) {
   const prompts = [`Conversation check ${randomUUID()}`, `Follow-up check ${randomUUID()}`];
   const controller = new AbortController();
@@ -498,7 +509,7 @@ async function probeWebsiteFollowUp(args: {
     scoped_credential_handle: null,
     destination_policy_id: "public-https-v1",
     reserved_cost: { amount: "0", currency: "EUR" },
-    signal: controller.signal,
+    signal: args.signal ?? controller.signal,
   };
   const input = (messages: CandidateInput["messages"]): CandidateInput => ({
     schema_version: "1.0", case_id: "probe-conversation", case_revision_id: "probe-conversation", messages, attachments: [], tools: [],

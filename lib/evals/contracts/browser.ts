@@ -7,7 +7,7 @@ import {
   timestampSchema,
 } from "./primitives";
 
-export const browserLocatorSchema = z.discriminatedUnion("kind", [
+const unscopedLocatorSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("role"),
     role: z.enum(["button", "textbox", "dialog", "status", "log"]),
@@ -36,6 +36,13 @@ export const browserLocatorSchema = z.discriminatedUnion("kind", [
         "Bounded element selector required",
       ),
   }),
+]);
+
+export const browserLocatorSchema = z.discriminatedUnion("kind", [
+  unscopedLocatorSchema.options[0].extend({ frames: z.array(unscopedLocatorSchema).max(8).optional() }),
+  unscopedLocatorSchema.options[1].extend({ frames: z.array(unscopedLocatorSchema).max(8).optional() }),
+  unscopedLocatorSchema.options[2].extend({ frames: z.array(unscopedLocatorSchema).max(8).optional() }),
+  unscopedLocatorSchema.options[3].extend({ frames: z.array(unscopedLocatorSchema).max(8).optional() }),
 ]);
 
 export const websiteRecipeSchema = z
@@ -81,10 +88,10 @@ export const websiteRecipeSchema = z
   })
   .superRefine((recipe, context) => {
     const start = new URL(recipe.start_url);
-    if (start.username || start.password || start.hash) {
+    if (start.username || start.password || (start.hash && !/^#!?\/[A-Za-z0-9/_~.-]{0,200}$/.test(start.hash))) {
       context.addIssue({
         code: "custom",
-        message: "Recipe URL cannot contain credentials or a fragment",
+        message: "Recipe URL cannot contain credentials or an unsafe fragment",
       });
     }
   });
@@ -133,9 +140,13 @@ export const browserStorageStateSchema = z.strictObject({
     httpOnly: z.boolean(),
     secure: z.boolean(),
     sameSite: z.enum(["Strict", "Lax", "None"]),
+    partitionKey: z.string().max(2000).optional(),
   })).max(200),
+  scope_origins: z.array(z.url()).max(20).optional(),
+  session_storage: z.array(z.strictObject({ origin: z.url(), entries: z.array(z.strictObject({ name: z.string().max(500), value: z.string().max(50_000) })).max(200) })).max(20).optional(),
   origins: z.array(z.strictObject({
     origin: z.string().url().refine((value) => new URL(value).protocol === "https:"),
+    indexedDB: z.array(z.unknown()).max(20).optional(),
     localStorage: z.array(z.strictObject({ name: z.string().max(500), value: z.string().max(50_000) })).max(200),
   })).max(20),
 });
@@ -143,13 +154,16 @@ export const browserStorageStateSchema = z.strictObject({
 /** A captured login may only preload state for the attested website. */
 export function scopedBrowserStorageState(raw: unknown, authorizedUrl: string): BrowserStorageState {
   const state = browserStorageStateSchema.parse(raw);
-  const host = new URL(authorizedUrl).hostname.toLowerCase();
-  if (state.cookies.some((cookie) => cookie.domain.replace(/^\./, "").toLowerCase() !== host)) {
-    throw new Error("browser_session_scope_mismatch");
-  }
-  if (state.origins.some((origin) => new URL(origin.origin).origin !== new URL(authorizedUrl).origin)) {
-    throw new Error("browser_session_scope_mismatch");
-  }
+  const primary = new URL(authorizedUrl).origin;
+  const allowed = state.scope_origins ?? [primary];
+  if (!allowed.includes(primary) || allowed.some((url) => new URL(url).protocol !== "https:" || new URL(url).origin !== url)) throw new Error("browser_session_scope_mismatch");
+  const hosts = allowed.map((url) => new URL(url).hostname.toLowerCase());
+  if (state.cookies.some((cookie) => {
+    const domain = cookie.domain.replace(/^\./, "").toLowerCase();
+    return !hosts.some((host) => host === domain || (!!state.scope_origins && cookie.domain.startsWith(".") && host.endsWith(`.${domain}`)));
+  })) throw new Error("browser_session_scope_mismatch");
+  if (state.origins.some((origin) => !allowed.includes(new URL(origin.origin).origin))) throw new Error("browser_session_scope_mismatch");
+  if (state.session_storage?.some(origin => !allowed.includes(origin.origin))) throw new Error("browser_session_scope_mismatch");
   return state;
 }
 

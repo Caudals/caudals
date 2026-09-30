@@ -1,6 +1,47 @@
 import { test, expect } from "@playwright/test";
 const id = "00000000-0000-4000-8000-000000000001";
 const token = "a".repeat(43);
+test("web app setup shows live pixels, teaches elements and repairs failed connections", async ({ page }) => {
+  let mode = "view", testStatus = "idle";
+  const commands: string[] = [];
+  const selections: Record<string, unknown> = {};
+  const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=";
+  await page.route("**/api/evals/v1/**", async route => {
+    let data: unknown = [];
+    if (route.request().url().includes("/web-app")) {
+      const command = route.request().postDataJSON().command; commands.push(command.action);
+      if (command.action === "open") data = { sessionId: "00000000-0000-4000-8000-000000000801", sessionExpired: true };
+      else if (command.action === "snapshot") data = { image, width: 1280, height: 800, mode, url: "https://app.example.test/chat", tabs: [], selections, test: { status: testStatus, error: testStatus === "failed" ? "capture_incomplete" : null, response: "" } };
+      else if (command.action === "mode") { mode = command.mode; data = { mode }; }
+      else if (command.action === "click") { selections[command.part] = { kind: "test_id", value: command.part, frames: [] }; data = { selections }; }
+      else if (command.action === "save") data = { saved: true, status: "needs_operator" };
+      else if (command.action === "test") { testStatus = "failed"; data = { status: "running" }; }
+    }
+    await route.fulfill({ json: { data, meta: {} } });
+  });
+  await page.setViewportSize({ width: 1440, height: 1300 });
+  await page.goto("/workspace/web-app-fixture?owner");
+  await page.getByRole("button", { name: "Open Teach Mode / repair connector" }).click();
+  await expect(page.getByText("The saved login has expired.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
+  await expect(page.getByLabel("Remote browser address")).toBeEnabled();
+  await page.getByRole("button", { name: "Teach Caudals", exact: true }).click();
+  const browser = page.getByRole("application", { name: /^Live remote browser/ });
+  await expect(page.locator(".p-web-browser-teach")).toBeVisible();
+  for (const name of ["Prompt input", "Send button", "Assistant response"]) {
+    await page.getByRole("button", { name, exact: true }).click(); await browser.click({ position: { x: 30, y: 30 } });
+    await expect(page.getByRole("button", { name: `${name} ✓`, exact: true })).toBeVisible();
+  }
+  await page.getByRole("button", { name: "Save connector", exact: true }).click();
+  await expect(page.getByText("Connector saved.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Test Connection", exact: true }).click();
+  await expect(page.getByText("The assistant response did not finish.", { exact: false })).toBeVisible();
+  await page.locator("#p-main").evaluate(element => { element.scrollTop = 0; });
+  await page.screenshot({ path: "/tmp/caudals-webapp-connector-ui.png", fullPage: true });
+  await page.getByRole("button", { name: "Close browser", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Open Teach Mode / repair connector" })).toBeVisible();
+  expect(commands).toContain("close");
+});
 /** A customer-safe workspace summary, with optional evaluations and reports. */
 function summaryFixture(extra: { evaluations?: unknown[]; reports?: unknown[]; systems?: unknown[] } = {}) {
   return {

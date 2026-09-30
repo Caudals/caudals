@@ -9,7 +9,7 @@ GRANT SELECT ON evals.target,evals.target_revision,evals.website_recipe_candidat
  evals.target_attempt,evals.secret_record,evals.secret_version,evals.run,
  evals.execution_result,evals.browser_login_session TO evals_browser;
 GRANT INSERT ON evals.website_recipe_revision,evals.target_revision,
- evals.target_attempt,evals.observation,evals.execution_event,evals.outbox_event TO evals_browser;
+ evals.target_attempt,evals.observation,evals.execution_event,evals.outbox_event,evals.connection_check TO evals_browser;
 GRANT UPDATE(status,reason_code,document,discovery_snapshot,updated_at)
  ON evals.website_recipe_candidate TO evals_browser;
 GRANT UPDATE(status,capability_report,error_code,probe_evidence,completed_at)

@@ -9,6 +9,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 - `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
 - `DESIGN.md`: design system and UI governance. Two languages: the platform system for authenticated surfaces (`packages/brand/platform.css`) and the editorial system for the public site.
 - `FRONTEND.md`: frontend implementation contract.
+- `evals/web-app-connector.md`: remote browser setup, teaching, authenticated state, validation and repair.
 - `TOOLS.md`: operational tooling, setup commands and troubleshooting.
 - [Caudals Leads](https://github.com/Caudals/leads) (`../leads`): satellite repository for the
   internal B2B Leads CRM, outreach, prospecting, social and newsletter operations.

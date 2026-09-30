@@ -13,6 +13,8 @@ import { BrowserJobWorker } from "../../lib/evals/queue/browser-worker";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { checkBrowserDestination } from "./egress-client";
 import { processWebsiteSourceOne } from "./website-source-worker";
+import { BrowserControl } from "./control";
+import { startBrowserControl } from "./control-server";
 import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
 
 let startupPhase = "configuration";
@@ -43,6 +45,8 @@ async function main() {
     headless: true,
     proxy: { server: `http://${egressHost}:${egressPort}` },
   });
+  const control = new BrowserControl({ browser, destinationCheck: url => checkBrowserDestination(url, egressHost, egressPort) });
+  const stopControl = startBrowserControl({ control, keys, allowed: orgId => orgs.has(orgId) });
   const boss = createBoss();
   boss.on("error", () => console.error(JSON.stringify({ event: "browser_queue_error" })));
   const worker = new BrowserJobWorker({
@@ -83,7 +87,7 @@ async function main() {
         await worker.recover(tenant);
         startupPhase = "outbox_dispatch";
         await dispatchOutbox(boss, withTenant, tenant, 10);
-        if (!browserBusy) {
+        if (!browserBusy && !control.active) {
           startupPhase = "website_source_capture";
           await withBrowserSlot(() => processWebsiteSourceOne({
             orgId, actorId, browser,
@@ -97,6 +101,7 @@ async function main() {
     }
   } finally {
     await boss.stop({ graceful: true, timeout: 150_000 });
+    await stopControl();
     await browser.close();
     await getEvalsPool().end();
   }

@@ -3904,3 +3904,17 @@
 .p-head-actions > .p-row {
   flex-wrap: wrap;
 }
+
+/* Customer-controlled browser connector: private live pixels, existing platform tokens. */
+.p-web-connector { display: grid; gap: 16px; min-width: 0; padding-block: 20px; }
+.p-web-address { display: flex; gap: 8px; align-items: end; }
+.p-web-address .p-field { flex: 1; min-width: 0; }
+.p-web-browser { aspect-ratio: 8 / 5; width: 100%; overflow: hidden; background: var(--p-bg-subtle, #f4f5f6); border: 1px solid var(--p-border, #dfe3e6); border-radius: var(--p-radius-md, 8px); position: relative; touch-action: none; overscroll-behavior: contain; }
+.p-web-browser img { display: block; width: 100%; height: 100%; pointer-events: none; user-select: none; }
+.p-web-browser:focus-visible { outline: 3px solid var(--p-action); outline-offset: 3px; }
+.p-web-browser-teach { cursor: crosshair; }
+.p-web-browser-control { cursor: pointer; }
+.p-web-teach { display: grid; gap: 8px; }
+.p-web-teach > div { display: flex; align-items: center; gap: 8px; }
+.p-web-response p { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; }
+@media (max-width: 640px) { .p-web-address { flex-wrap: wrap; } .p-web-address .p-field { flex-basis: 100%; } }

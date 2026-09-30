@@ -118,6 +118,8 @@ export async function queueWebsiteConnectionCheck(
           [scope.orgId, row.project_id, row.target_id],
         )).rows[0] ?? null;
         assertWebsiteAuthorization(authorization, config.endpoint);
+        const saved = config.recipe_revision_id ? (await db.query("SELECT document FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, config.recipe_revision_id, row.target_id])).rows[0] : null;
+        const savedRecipe = saved ? websiteRecipeSchema.parse(withContentHash({ ...saved.document, recipe_revision_id: randomUUID(), created_at: new Date().toISOString() })) : null;
         const check = (
           await db.query(
             `INSERT INTO evals.connection_check(org_id,target_revision_id,status,probe_evidence)
@@ -128,14 +130,15 @@ export async function queueWebsiteConnectionCheck(
         const candidate = (
           await db.query(
             `INSERT INTO evals.website_recipe_candidate(
-               org_id,project_id,target_id,target_revision_id,connection_check_id,source,status
-             ) VALUES($1,$2,$3,$4,$5,'known_recipe','queued') RETURNING id,status`,
+               org_id,project_id,target_id,target_revision_id,connection_check_id,source,status,document
+             ) VALUES($1,$2,$3,$4,$5,'known_recipe','queued',$6) RETURNING id,status`,
             [
               scope.orgId,
               row.project_id,
               row.target_id,
               targetRevisionId,
               check.id,
+              savedRecipe,
             ],
           )
         ).rows[0];
@@ -256,7 +259,7 @@ export function assertReadyConnection(
   check: { status: string } | null,
   recipe: { id: string } | null,
 ) {
-  if (kind === "website" ? !recipe : check?.status !== "ready") {
+  if (kind === "website" ? !recipe || (check !== null && check.status !== "ready") : check?.status !== "ready") {
     throw new EvalError("CONNECTION_UNSUPPORTED", 409, "The connection is not ready. Request setup assistance or retry its check.");
   }
 }

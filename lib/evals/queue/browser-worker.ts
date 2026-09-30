@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Browser } from "playwright";
 import type { PoolClient } from "pg";
 import { targetConfigSchema, type InvocationContext, type TargetConfig } from "../contracts/connectors";
-import { assertWebsiteRecipeOrigin, capabilityReportForWebsite, websiteRecipeSchema, type WebsiteRecipe } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, capabilityReportForWebsite, websiteRecipeSchema, type WebsiteRecipe, type BrowserProbeEvidence } from "../contracts/browser";
 import { browserStorageStateSchema } from "../contracts/browser";
 import type { CandidateInput } from "../contracts/projections";
 import type { Observation } from "../contracts/results";
@@ -26,7 +26,7 @@ import {
 } from "./store";
 import { TargetExecutionWorker } from "./target-worker";
 import type { Keyring } from "../security/envelope";
-import { browserInvocationSession } from "../security/secrets";
+import { browserInvocationSession, browserConnectionSession } from "../security/secrets";
 
 type Step = {
   id: string;
@@ -88,7 +88,15 @@ export class BrowserJobWorker {
     });
   }
 
-  private async executeWebsite(
+  private async executeWebsite(config: TargetConfig, input: CandidateInput, context: InvocationContext): Promise<Observation> {
+    try { return await this.performWebsite(config, input, context); }
+    catch (error) {
+      if (error instanceof Error && (error.name === "TimeoutError" || error.message.includes("strict mode violation"))) throw new Error("website_selector_failed");
+      throw error;
+    }
+  }
+
+  private async performWebsite(
     config: TargetConfig,
     input: CandidateInput,
     context: InvocationContext,
@@ -336,12 +344,18 @@ export class BrowserJobWorker {
         return;
       }
 
-      const evidence = await validateWebsiteRecipe({
+      let stateBytes: Buffer | undefined;
+      let evidence: BrowserProbeEvidence;
+      try {
+      stateBytes = await this.options.tx(tenant, client => browserConnectionSession(client, tenant.orgId, claimed.input.targetRevisionId, this.options.keys));
+      evidence = await validateWebsiteRecipe({
         browser: this.options.browser,
         recipe,
         destinationCheck: this.destinationCheck,
         timeoutMs: claimed.input.timeoutMs,
+        storageState: stateBytes ? browserStorageStateSchema.parse(JSON.parse(stateBytes.toString("utf8"))) : undefined,
       });
+      } finally { stateBytes?.fill(0); }
       if (
         !evidence.distinct_responses ||
         !evidence.reset_verified ||
@@ -431,6 +445,7 @@ export class BrowserJobWorker {
           "destination_invalid",
           "website_recipe_origin_mismatch",
           "website_completion_unverified",
+          "browser_session_unavailable",
         ].includes(error.message)
           ? error.message
           : "website_discovery_failed";
