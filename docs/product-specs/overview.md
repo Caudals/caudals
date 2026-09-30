@@ -60,22 +60,19 @@ Text and document AI systems:
 - document triage, classification and extraction pipelines,
 - AI features inside products (quote assistants, clause analysers, valuation explanations).
 
-**Qualify on consequence, not existence.** Evaluate systems where a wrong answer costs money: insurance coverage and waiting periods, banking fees and eligibility, energy and telco tariffs, airline refund rights, dosage and interactions, technical specifications. Skip low-stakes widgets: order tracking, store hours, bookings, generic lead capture.
+**Qualify on consequence, not existence.** Evaluate systems where a wrong answer costs money: contract terms and conditions, billing and fee eligibility, service tariffs, refund rights, regulatory compliance, dosage and safety limits, technical specifications. Skip low-stakes widgets: order tracking, store hours, bookings, generic lead capture.
 
 **Public systems open the door; internal systems carry the budget.** A public assistant is often a small share of a company's AI spend. Its evaluation earns the meeting where we find the internal systems.
 
 ## Who We Sell To
 
-- **Sector one — insurance:** insurers, health insurers, mutuals and brokers. High-volume questions with objectively correct answers, dense documentation, compliance-literate buyers.
-- **Sector two — industrial after-sales and technical support:** automotive suppliers, machinery, components and agrifood equipment around Valladolid and Castilla y León. Unambiguous answers (part numbers, torque specs, intervals); physical proximity is an advantage.
-- **Reserve sectors:** legal and asesorías; utilities and energy retail; private healthcare groups (warm introductions only).
 - **Size and buyer:** 50–500 employees. The buyer owns the AI system — Atención al Cliente, Transformación Digital, Canal Digital, Postventa/Servicio Técnico, Calidad or Operaciones — and can sign €2,400 without a committee.
 - **Trigger:** the company launched or announced an AI system in the last 18 months.
 - **Channel partners:** Spanish AI and data integrators and agencies that build these systems. We are their independent test layer, white-labelled or on referral.
 - **Not now:** AI startups as evaluation customers, IBEX-35 companies and large banks, public-administration tenders, and anyone with nothing deployed.
-- **Next segment:** Spanish AI product companies (vertical SaaS, insurtech, legaltech, healthtech) that train their own models and buy expert-built training data directly.
+- **Next segment:** Spanish AI product companies (vertical SaaS, legaltech, healthtech) that train their own models and buy expert-built training data directly.
 
-Target definition: *Spanish insurance and industrial companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
+Target definition: *Spanish companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
 
 ## Where Ground Truth Comes From
 
@@ -114,7 +111,7 @@ How the data grows:
 
 We hire freelance domain experts to build custom datasets — the model AfterQuery and Mercor run for frontier labs, sized for the Spanish mid-market. Caudals owns the specification, tooling, review and quality; the experts bring the domain knowledge.
 
-- **Profiles:** practising or recently retired professionals — peritos de seguros, claims handlers and underwriters; técnicos de mantenimiento and after-sales engineers; abogados and asesores fiscales; nurses and doctors.
+- **Profiles:** practising or recently retired domain professionals — specialized engineers, technicians, legal and tax advisors, healthcare practitioners, and subject-matter experts.
 - **Roster:** 5–15 vetted experts per active sector, recruited once and reused across every customer in that sector. A managed roster, not an open marketplace.
 - **Recruiting:** colegios profesionales and sector associations, LinkedIn, Universidad de Valladolid and other alumni networks, freelance platforms, and referrals from customers' own experts.
 - **Vetting:** credentials check plus a paid trial task graded against gold items; only experts above the agreement threshold join.
@@ -128,7 +125,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 - Sourcing or reselling third-party data.
 - Image, video, audio, geospatial and sensor data; deals needing more than a few gigabytes of processing.
 - Commodity labelling at volume, generic AI consulting or integration, and a self-serve evaluation SaaS for developers. We build expert-authored, domain-specific data, not generic annotation.
-- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, claims handling, industrial troubleshooting) as a public portfolio piece.
+- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, technical operations, industrial troubleshooting) as a public portfolio piece.
 
 ## Market Context (2026)
 
@@ -141,7 +138,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 
 ## Product Surfaces
 
-- **Live public:** `/`, `/sectors` and one page per sector (insurance, industrial after-sales, healthcare, banking, energy, telecoms, legal and advisory, travel), `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
+- **Live public:** `/`, `/sectors` and sector pages, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
 - **Private:** `/admin` Operator Console.
 - **Planned evaluation surfaces:** operator case authoring and grading queue, restricted expert workspace, customer evaluation dashboard, printable report view, and the public `/proof` demo. See `docs/ARCHITECTURE.md`.
 - **Legacy direct routes (frozen):** `/buyer`, `/supplier`, `/v1/*`, `/security` — deployed and protected, maintained but not extended or marketed.
