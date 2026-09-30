@@ -125,7 +125,8 @@ services:
     networks:
       evals_browser_internal:
         aliases: [evals-browser-db]
-      dokploy-network: {}
+      dokploy-network:
+        aliases: [caudals-evals-browser-db-relay]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const s=require('net').connect(5432,'127.0.0.1');s.on('connect',()=>{s.destroy();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)\""]
       interval: 30s

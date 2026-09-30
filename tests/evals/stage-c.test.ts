@@ -97,6 +97,7 @@ describe("WP-11 approved test-set gate", () => {
     expect(() => assertReadyConnection("openai_compatible", { status: "ready" }, null)).not.toThrow();
     expect(() => assertReadyConnection("website", null, null)).toThrow();
     expect(() => assertReadyConnection("website", null, { id: "recipe-v1" })).not.toThrow();
+    expect(() => assertReadyConnection("website", { status: "needs_operator" }, { id: "recipe-v1" })).toThrow();
   });
   it("keeps assisted browser recipe submission with operators", () => {
     expect(() => assertOperatorRecipeAuthority(null)).toThrow();
