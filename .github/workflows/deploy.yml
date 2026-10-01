@@ -132,7 +132,7 @@ jobs:
             image_sha="$REQUESTED_IMAGE_COMMIT"
           fi
 
-          ssh -o StrictHostKeyChecking=no caudals@caudals-1 "DEPLOY_SHA='$GITHUB_SHA' IMAGE_SHA='$image_sha' DEPLOY_RUN_ID='$GITHUB_RUN_ID' DEPLOY_RUN_ATTEMPT='$GITHUB_RUN_ATTEMPT' bash -se" << 'INNEREOF'
+          ssh -o StrictHostKeyChecking=no caudals@atlantic "DEPLOY_SHA='$GITHUB_SHA' IMAGE_SHA='$image_sha' DEPLOY_RUN_ID='$GITHUB_RUN_ID' DEPLOY_RUN_ATTEMPT='$GITHUB_RUN_ATTEMPT' bash -se" << 'INNEREOF'
             set -euo pipefail
             repo_dir=/home/caudals/caudals
             cd "$repo_dir"
