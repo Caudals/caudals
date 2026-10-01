@@ -137,7 +137,7 @@ services:
       restart_policy: {condition: on-failure, delay: 10s}
       update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
       resources:
-        limits: {cpus: "0.15", memory: 128M}
+        limits: {cpus: "0.3", memory: 128M}
         reservations: {memory: 32M}
     logging:
       driver: json-file
@@ -169,6 +169,7 @@ services:
       EVALS_BROWSER_ACTOR_ID: service:evals-browser
       EVALS_BROWSER_EGRESS_HOST: evals-browser-egress
       EVALS_BROWSER_EGRESS_PORT: "3128"
+      EVALS_BROWSER_INTERACTIVE_SESSIONS: "2"
     secrets: [evals_browser_database_url,evals_browser_queue_database_url,evals_browser_session_keyring]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-browser-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
@@ -181,7 +182,9 @@ services:
       restart_policy: {condition: on-failure, delay: 10s}
       update_config: {parallelism: 1, order: stop-first, failure_action: rollback}
       resources:
-        limits: {cpus: "0.75", memory: 1536M}
+        # Live screencast encoding for interactive sessions needs headroom
+        # beyond the bounded eval jobs.
+        limits: {cpus: "1.5", memory: 1536M}
         reservations: {memory: 512M}
     logging:
       driver: json-file

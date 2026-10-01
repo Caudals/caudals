@@ -18,7 +18,7 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
         if(!origin || new URL(origin).host!==host || (process.env.NODE_ENV==='production' && new URL(origin).protocol!=='https:')) throw new EvalError('SCOPE_DENIED',403);
       }
       const data=await handler(request,identity);
-      if(data instanceof Response) { for(const [key,value] of Object.entries(privateHeaders)) data.headers.set(key,value); return data; }
+      if(data instanceof Response) { for(const [key,value] of Object.entries(privateHeaders)) if(!(key==='Cache-Control' && /\bno-store\b/.test(data.headers.get(key)??''))) data.headers.set(key,value); return data; }
       return Response.json({data,meta:{request_id:requestId}},{headers:privateHeaders});
     } catch(caught) {
       const error=inputError(caught)??caught;

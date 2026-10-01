@@ -125,6 +125,56 @@ export function SidePanel({
   );
 }
 
+/* ------------------------------------------------------------ workspace -- */
+
+/**
+ * Full-viewport working surface for a live tool (the remote browser). Modal,
+ * so focus is trapped and restored; Escape is offered to the caller first so
+ * an embedded surface that needs the key can keep it.
+ */
+export function Workspace({
+  open,
+  onOpenChange,
+  title,
+  description,
+  actions,
+  children,
+  onEscapeKeyDown,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
+}) {
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="p-scrim" />
+        <DialogPrimitive.Content className="p-root p-workspace" onEscapeKeyDown={onEscapeKeyDown} onInteractOutside={(event) => event.preventDefault()}>
+          <div className="p-workspace-head">
+            <div className="p-panel-titles">
+              <DialogPrimitive.Title className="p-panel-title">{title}</DialogPrimitive.Title>
+              {description ? (
+                <DialogPrimitive.Description className="p-panel-desc">{description}</DialogPrimitive.Description>
+              ) : (
+                <DialogPrimitive.Description className="sr-only">{typeof title === "string" ? title : t("details")}</DialogPrimitive.Description>
+              )}
+            </div>
+            {actions}
+            <DialogPrimitive.Close className="p-btn" data-variant="ghost" data-shape="icon" aria-label={t("close")}>
+              <X aria-hidden="true" />
+            </DialogPrimitive.Close>
+          </div>
+          <div className="p-workspace-body">{children}</div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
 /* ------------------------------------------------------------------ menu -- */
 
 export type MenuEntry =

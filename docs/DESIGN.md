@@ -228,6 +228,7 @@ In-flight states (`running`, `queued`, `validating`, `generating`, `checking_con
 
 - `Modal` for a decision or a short form. An outcome of the dialog's own action (an error, a re-authentication prompt) renders inside it through `alert`; anything rendered on the page behind the scrim is invisible to everyone.
 - `SidePanel` for details of one row (a client, a system, a result, a review). Right-hand panel; full screen on phones.
+- `Workspace` for a live tool that needs the whole viewport (the remote browser of the Web App Connector). Modal, inset by the frame gap, full screen on phones; `onEscapeKeyDown` lets an embedded surface keep Escape. Element marks on the live view use `--p-chart-*` series colours and always carry a text label.
 - `ActionMenu` for secondary actions. The primary action stays a visible button.
 - `notify()` for outcomes that need no decision. Toasts use the `platform` toaster id so the document's global toaster never duplicates them.
 - `CopyField` for a value shown once (invitation links, share links, pairing codes, tokens).

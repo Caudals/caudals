@@ -2,7 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Browser } from "playwright";
 import type { PoolClient } from "pg";
 import { targetConfigSchema, type InvocationContext, type TargetConfig } from "../contracts/connectors";
-import { assertWebsiteRecipeOrigin, capabilityReportForWebsite, websiteRecipeSchema, type WebsiteRecipe, type BrowserProbeEvidence } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, capabilityReportForWebsite, websiteRecipeSchema, type WebsiteRecipe, type BrowserProbeEvidence, type BrowserStorageState, probeEvidenceReady } from "../contracts/browser";
+import { autoDetectWebsiteRecipe } from "../connectors/browser-autodetect";
 import { browserStorageStateSchema } from "../contracts/browser";
 import type { CandidateInput } from "../contracts/projections";
 import type { Observation } from "../contracts/results";
@@ -91,7 +92,11 @@ export class BrowserJobWorker {
   private async executeWebsite(config: TargetConfig, input: CandidateInput, context: InvocationContext): Promise<Observation> {
     try { return await this.performWebsite(config, input, context); }
     catch (error) {
-      if (error instanceof Error && (error.name === "TimeoutError" || error.message.includes("strict mode violation"))) throw new Error("website_selector_failed");
+      // Expired logins and changed UIs pause the run for repair instead of
+      // grading partial answers.
+      if (error instanceof Error && error.message === "login_required") throw new Error("browser_session_unavailable");
+      if (error instanceof Error && (error.name === "TimeoutError" || error.message.includes("strict mode violation") ||
+        ["selector_unavailable", "launcher_unavailable", "selector_ambiguous", "website_frame_unavailable"].includes(error.message))) throw new Error("website_selector_failed");
       throw error;
     }
   }
@@ -245,6 +250,15 @@ export class BrowserJobWorker {
     });
     if (!claimed) return;
 
+    // Detection plus three probe sessions can outlast one lease; renew it
+    // while this fenced claim is still the running one.
+    const renew = setInterval(() => {
+      void this.options.tx(tenant, client => client.query(
+        `UPDATE evals.workflow_step SET lease_until=now()+$4::int*interval '1 second',updated_at=now()
+         WHERE org_id=$1 AND id=$2 AND fence=$3 AND status='running'`,
+        [tenant.orgId, claimed.step.id, claimed.step.fence, lease],
+      )).catch(() => {});
+    }, Math.max(5_000, (lease * 1000) / 3));
     try {
       if (claimed.config.kind !== "website") throw new Error("connection_unsupported");
       let snapshot = claimed.candidate.discovery_snapshot;
@@ -252,6 +266,26 @@ export class BrowserJobWorker {
         ? websiteRecipeSchema.parse(claimed.candidate.document)
         : null;
       let screenshot: Buffer | null = null;
+      let storageState: BrowserStorageState | undefined;
+      {
+        let stateBytes: Buffer | undefined;
+        try {
+          stateBytes = await this.options.tx(tenant, client => browserConnectionSession(client, tenant.orgId, claimed.input.targetRevisionId, this.options.keys));
+          storageState = stateBytes ? browserStorageStateSchema.parse(JSON.parse(stateBytes.toString("utf8"))) : undefined;
+        } finally { stateBytes?.fill(0); }
+      }
+      if (!recipe) {
+        // Most chatbots are found without a person: detect the controls,
+        // send one probe and learn the reply. Otherwise ask for Teach Mode.
+        try {
+          recipe = websiteRecipeSchema.parse(withContentHash(await autoDetectWebsiteRecipe({
+            browser: this.options.browser, url: claimed.config.endpoint, destinationCheck: this.destinationCheck,
+            storageState, recipeRevisionId: randomUUID(), signal: AbortSignal.timeout(150_000),
+          })));
+        } catch {
+          recipe = null;
+        }
+      }
       if (!recipe) {
         snapshot = await discoverWebsite({
           browser: this.options.browser,
@@ -344,24 +378,14 @@ export class BrowserJobWorker {
         return;
       }
 
-      let stateBytes: Buffer | undefined;
-      let evidence: BrowserProbeEvidence;
-      try {
-      stateBytes = await this.options.tx(tenant, client => browserConnectionSession(client, tenant.orgId, claimed.input.targetRevisionId, this.options.keys));
-      evidence = await validateWebsiteRecipe({
+      const evidence: BrowserProbeEvidence = await validateWebsiteRecipe({
         browser: this.options.browser,
         recipe,
         destinationCheck: this.destinationCheck,
         timeoutMs: claimed.input.timeoutMs,
-        storageState: stateBytes ? browserStorageStateSchema.parse(JSON.parse(stateBytes.toString("utf8"))) : undefined,
+        storageState,
       });
-      } finally { stateBytes?.fill(0); }
-      if (
-        !evidence.distinct_responses ||
-        !evidence.reset_verified ||
-        !evidence.streaming_complete ||
-        !evidence.duplicate_free
-      ) {
+      if (!probeEvidenceReady(evidence)) {
         throw new Error("recipe_probe_failed");
       }
       const nextTargetRevisionId = randomUUID();
@@ -484,6 +508,8 @@ export class BrowserJobWorker {
         );
         await projectWorkflow(client, tenant.orgId, claimed.step.workflow_id);
       });
+    } finally {
+      clearInterval(renew);
     }
   }
 

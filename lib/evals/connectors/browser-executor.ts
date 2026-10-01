@@ -13,6 +13,7 @@ import {
   browserDiscoverySnapshotSchema,
   browserProbeEvidenceSchema,
   scopedBrowserStorageState,
+  websiteTeachExtension,
   type BrowserDiscoverySnapshot,
   type BrowserLocator,
   type BrowserProbeEvidence,
@@ -35,17 +36,51 @@ export function browserLocator(root: FrameLike, value: BrowserLocator): Locator 
   return root.locator(value.value);
 }
 
-function locator(page: FrameLike, recipe: WebsiteRecipe, value: BrowserLocator): Locator {
+function scopedRoot(page: FrameLike, frames: BrowserLocator[]): FrameLike {
   let root = page;
-  for (const frame of value.frames ?? recipe.frame_chain ?? []) root = browserLocator(root, frame).contentFrame();
-  return browserLocator(root, value);
+  for (const frame of frames) root = browserLocator(root, frame).contentFrame();
+  return root;
+}
+function locator(page: FrameLike, recipe: Pick<WebsiteRecipe, "frame_chain">, value: BrowserLocator): Locator {
+  return browserLocator(scopedRoot(page, value.frames ?? recipe.frame_chain ?? []), value);
 }
 async function recipeRoot(page: Page, _recipe: WebsiteRecipe): Promise<FrameLike> { return page; }
 
+// Repository-owned page scripts; see browser-locators.ts for why these are
+// built from strings rather than serialized TypeScript callbacks.
+const innerTexts = new Function("els", "return els.map(el => (el.innerText || el.textContent || ''))") as (elements: Element[]) => string[];
+
+type Part = "launcher" | "input" | "submit" | "assistant_message";
+function partOptions(recipe: WebsiteRecipe, part: Part, primary: BrowserLocator) {
+  return [primary, ...(websiteTeachExtension(recipe)?.alternates?.[part] ?? [])];
+}
+
+/** The first locator (primary, then recorded fallbacks) that resolves to one visible element. */
+async function resolvePart(root: FrameLike, recipe: WebsiteRecipe, part: Part, primary: BrowserLocator, timeoutMs: number) {
+  const options = partOptions(recipe, part, primary);
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    for (const value of options) {
+      const match = locator(root, recipe, value);
+      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) return match;
+    }
+    if (Date.now() >= deadline) throw new Error("selector_unavailable");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+}
+
 async function textSnapshot(root: FrameLike, recipe: WebsiteRecipe) {
-  return locator(root, recipe, recipe.assistant_message)
-    .allTextContents()
+  const read = (value: BrowserLocator) => locator(root, recipe, value).evaluateAll(innerTexts)
     .then((values) => values.map((value) => value.trim()).filter(Boolean));
+  const primary = await read(recipe.assistant_message);
+  if (primary.length) return primary;
+  // A reply locator that matches nothing may have drifted; recorded
+  // fallbacks keep the run going when they still find the messages.
+  for (const value of websiteTeachExtension(recipe)?.alternates?.assistant_message ?? []) {
+    const values = await read(value).catch(() => [] as string[]);
+    if (values.length) return values;
+  }
+  return primary;
 }
 
 export function newAssistantMessages(previous: string[], current: string[]) {
@@ -54,23 +89,51 @@ export function newAssistantMessages(previous: string[], current: string[]) {
   return { messages, duplicateFree: new Set(messages).size === messages.length };
 }
 
+/** Network and WebSocket activity, so completion never relies on text stability alone. */
+export type PageActivity = { inflight(): number; lastActivity(): number; mark(): void; dispose(): void };
+export function trackPageActivity(page: Page): PageActivity {
+  const streaming = new Set(["fetch", "xhr", "eventsource", "other"]);
+  const pending = new Map<object, number>();
+  let since = 0, last = Date.now();
+  const touch = () => { last = Date.now(); };
+  const onRequest = (request: import("playwright").Request) => {
+    if (!streaming.has(request.resourceType())) return;
+    pending.set(request, Date.now()); touch();
+  };
+  const onDone = (request: import("playwright").Request) => { if (pending.delete(request)) touch(); };
+  const onSocket = (socket: import("playwright").WebSocket) => { socket.on("framereceived", touch); socket.on("framesent", touch); };
+  page.on("request", onRequest); page.on("requestfinished", onDone); page.on("requestfailed", onDone); page.on("websocket", onSocket);
+  return {
+    // Only requests started after the prompt count, and a request open for
+    // more than a minute is a long poll or a notification channel.
+    inflight: () => [...pending.values()].filter((started) => started >= since && Date.now() - started < 60_000).length,
+    lastActivity: () => last,
+    mark: () => { since = Date.now(); touch(); },
+    dispose: () => { page.off("request", onRequest); page.off("requestfinished", onDone); page.off("requestfailed", onDone); page.off("websocket", onSocket); },
+  };
+}
+
 export async function waitForCompletion(
   root: FrameLike,
   recipe: WebsiteRecipe,
   previous: string[],
   deadline: number,
+  activity?: PageActivity,
 ) {
   let candidate = "";
   let changedAt = 0;
   let prior = "";
   let busySeen = false;
   const stableFor =
-    recipe.completion.kind === "text_stable" ? recipe.completion.stable_ms : 500;
+    recipe.completion.kind === "text_stable" ? recipe.completion.stable_ms
+      : recipe.completion.kind === "quiescent" ? recipe.completion.quiet_ms : 500;
+  const networkQuiet = (ms: number) => !activity || (activity.inflight() === 0 && Date.now() - activity.lastActivity() >= ms);
   while (Date.now() < deadline) {
     // Read the completion signal before the text: a widget that swaps in the
     // final answer and clears its busy state together must not yield the
     // partial text captured just before the swap.
     let signalReady = true;
+    let signalMissed = false;
     if (recipe.completion.kind === "selector_hidden") {
       const visible = await locator(root, recipe, recipe.completion.locator)
         .first()
@@ -78,6 +141,7 @@ export async function waitForCompletion(
         .catch(() => false);
       if (visible) busySeen = true;
       signalReady = busySeen && !visible;
+      signalMissed = !busySeen && !visible;
     } else if (recipe.completion.kind === "send_enabled") {
       const enabled = await locator(root, recipe, recipe.completion.locator)
         .first()
@@ -85,6 +149,8 @@ export async function waitForCompletion(
         .catch(() => false);
       if (!enabled) busySeen = true;
       signalReady = busySeen && enabled;
+      // Some apps keep Send disabled while the input is empty.
+      signalMissed = busySeen && !enabled;
     }
     const messages = await textSnapshot(root, recipe);
     const fresh = newAssistantMessages(previous, messages);
@@ -96,12 +162,69 @@ export async function waitForCompletion(
       prior = candidate;
       changedAt = Date.now();
     }
-    if (candidate && signalReady && changedAt && Date.now() - changedAt >= stableFor) {
-      return candidate;
+    const quietFor = changedAt ? Date.now() - changedAt : 0;
+    if (candidate && changedAt) {
+      if (recipe.completion.kind === "quiescent") {
+        if (quietFor >= stableFor && networkQuiet(Math.min(stableFor, 1_000))) return candidate;
+        // A connection held open by the page never blocks a long-settled reply.
+        if (quietFor >= Math.max(stableFor * 4, 8_000)) return candidate;
+      } else if (signalReady && quietFor >= stableFor) {
+        return candidate;
+      } else if (signalMissed && activity && quietFor >= 5_000 && networkQuiet(2_000)) {
+        // A signal too brief to observe (or Send left disabled by an empty
+        // input) falls back to a long, network-confirmed quiet period.
+        return candidate;
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error("capture_incomplete");
+}
+
+/** Types a prompt the way a person would and submits it. */
+export async function sendWebsitePrompt(
+  root: FrameLike,
+  parts: { input: BrowserLocator; submit: BrowserLocator | null; frame_chain?: BrowserLocator[] },
+  prompt: string,
+  resolved?: { input?: Locator; submit?: Locator | null },
+) {
+  const recipe = { frame_chain: parts.frame_chain ?? [] };
+  const input = resolved?.input ?? locator(root, recipe, parts.input).first();
+  const page = input.page();
+  await input.click({ timeout: 10_000 }).catch(() => input.focus({ timeout: 5_000 }));
+  const editable = await input.evaluate(new Function("el", "return el.isContentEditable && !('value' in el)") as (element: Element) => boolean);
+  const read = new Function("el", "return ('value' in el ? el.value : el.innerText) || ''") as (element: Element) => string;
+  if (editable) {
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.insertText(prompt);
+  } else {
+    await input.fill(prompt);
+  }
+  const head = prompt.trim().slice(0, 24);
+  if (!(await input.evaluate(read)).includes(head)) {
+    // Editors that ignore programmatic input still accept real keystrokes.
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await input.pressSequentially(prompt, { delay: 2 });
+  }
+  if (!parts.submit) { await input.press("Enter"); return; }
+  const submit = resolved?.submit ?? locator(root, recipe, parts.submit).first();
+  // Send buttons usually enable a moment after the input event.
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline && !(await submit.isEnabled().catch(() => true))) await new Promise((resolve) => setTimeout(resolve, 100));
+  await submit.click({ timeout: 10_000 });
+}
+
+/** Distinguishes an expired login from a changed chat UI after a page load. */
+export async function loginRequired(page: Page, startUrl: string) {
+  const current = new URL(page.url());
+  if (current.origin !== new URL(startUrl).origin) return true;
+  if (/(^|\/)(log-?in|sign-?in|signin|auth|sso|oauth|session|account\/login|accounts)(\/|$|\?)/i.test(current.pathname)) return true;
+  for (const frame of page.frames()) {
+    if (await frame.locator('input[type="password"]').first().isVisible().catch(() => false)) return true;
+  }
+  return false;
 }
 
 export function assertScorableWebsiteRecipe(recipe: WebsiteRecipe) {
@@ -269,25 +392,55 @@ async function openRecipe(args: {
   const context = await args.browser.newContext({
     acceptDownloads: false,
     serviceWorkers: "block",
+    viewport: { width: 1280, height: 800 },
     ...(args.storageState ? { storageState: scopedBrowserStorageState(args.storageState, args.recipe.start_url) } : {}),
   });
   try {
     await guardBrowserContext(context, args.destinationCheck);
     await restoreBrowserSessionStorage(context, args.storageState);
     const page = await context.newPage();
+    page.setDefaultTimeout(15_000);
+    const activity = trackPageActivity(page);
     await page.goto(args.recipe.start_url, {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
     const root = await recipeRoot(page, args.recipe);
-    if (args.recipe.launcher) {
-      await locator(root, args.recipe, args.recipe.launcher).click({ timeout: 10_000 });
-    }
-    return { context, page, root };
+    await openChat(page, root, args.recipe);
+    return { context, page, root, activity };
   } catch (error) {
     await context.close();
     throw error;
   }
+}
+
+/**
+ * Waits for the chat input, clicking the launcher only while the chat is
+ * closed: a widget that restores itself open must not be toggled shut.
+ */
+async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
+  const deadline = Date.now() + 25_000;
+  const loadedAt = Date.now();
+  let clicks = 0, lastClick = 0;
+  const inputs = partOptions(recipe, "input", recipe.input);
+  const launchers = recipe.launcher ? partOptions(recipe, "launcher", recipe.launcher) : [];
+  while (Date.now() < deadline) {
+    for (const value of inputs) {
+      const match = locator(root, recipe, value);
+      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) return;
+    }
+    if (launchers.length && clicks < 2 && Date.now() - loadedAt > 1_200 && Date.now() - lastClick > 5_000) {
+      for (const value of launchers) {
+        const match = locator(root, recipe, value).first();
+        if (await match.isVisible().catch(() => false)) {
+          if (await match.click({ timeout: 5_000 }).then(() => true, () => false)) { clicks++; lastClick = Date.now(); break; }
+        }
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (await loginRequired(page, recipe.start_url)) throw new Error("login_required");
+  throw new Error(recipe.launcher && !clicks ? "launcher_unavailable" : "selector_unavailable");
 }
 
 async function invokeOpenWebsite(args: {
@@ -305,15 +458,23 @@ async function invokeOpenWebsite(args: {
     .reverse()
     .find((message) => message.role === "user")?.content;
   if (!prompt) throw new Error("website_prompt_missing");
-  const input = locator(session.root, args.recipe, args.recipe.input);
-  await input.fill(prompt);
-  if (args.recipe.submit.kind === "press_enter") await input.press("Enter");
-  else await locator(session.root, args.recipe, args.recipe.submit.locator).click();
+  const input = await resolvePart(session.root, args.recipe, "input", args.recipe.input, 15_000);
+  const submit = args.recipe.submit.kind === "click"
+    ? await resolvePart(session.root, args.recipe, "submit", args.recipe.submit.locator, 5_000)
+    : null;
+  // Requests the submit itself starts are the reply's own streams.
+  session.activity.mark();
+  await sendWebsitePrompt(session.root, {
+    input: args.recipe.input,
+    submit: args.recipe.submit.kind === "click" ? args.recipe.submit.locator : null,
+    frame_chain: args.recipe.frame_chain,
+  }, prompt, { input, submit });
   const output = await waitForCompletion(
     session.root,
     args.recipe,
     previous,
     new Date(args.context.deadline).getTime(),
+    session.activity,
   );
   const captured = newAssistantMessages(previous, await textSnapshot(session.root, args.recipe));
   if (!captured.messages.length || !captured.duplicateFree) throw new Error("capture_incomplete");

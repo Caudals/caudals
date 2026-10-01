@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { targetConfigSchema } from "../contracts/connectors";
-import { browserProbeEvidenceSchema, capabilityReportForWebsite, websiteRecipeSchema } from "../contracts/browser";
+import { browserProbeEvidenceSchema, capabilityReportForWebsite, probeEvidenceReady, websiteRecipeSchema } from "../contracts/browser";
 import { canonicalJson, sha256 } from "../contracts/hashing";
 import { EvalError } from "../domain/errors";
 import { withTenant } from "./db";
@@ -25,6 +25,20 @@ export function websiteControlTarget(scope: EvidenceScope, targetId: string) {
   });
 }
 
+// Live input arrives many times a second. The attested endpoint changes only
+// when the system is edited, so it is reused briefly per workspace target;
+// workspace permission is still checked on every request by the route.
+const endpoints = new Map<string, { endpoint: string; at: number }>();
+export async function websiteControlEndpoint(scope: EvidenceScope, targetId: string) {
+  const key = `${scope.orgId}:${targetId}`;
+  const cached = endpoints.get(key);
+  if (cached && Date.now() - cached.at < 30_000) return cached.endpoint;
+  const { config } = await websiteControlTarget(scope, targetId);
+  if (endpoints.size > 500) endpoints.clear();
+  endpoints.set(key, { endpoint: config.endpoint, at: Date.now() });
+  return config.endpoint;
+}
+
 // Drafts and validated recipes use the existing tenant/RLS tables and immutable
 // target revisions. No second connector abstraction or customer code execution.
 export function persistTaughtRecipe(scope: EvidenceScope, targetId: string, raw: unknown, probe?: unknown) {
@@ -36,7 +50,7 @@ export function persistTaughtRecipe(scope: EvidenceScope, targetId: string, raw:
     if (!row) throw new EvalError("SCOPE_DENIED", 404);
     const config = targetConfigSchema.parse(row.document);
     if (config.kind !== "website" || new URL(config.endpoint).origin !== new URL(recipe.start_url).origin) throw new EvalError("INPUT_INVALID", 422);
-    if (evidence && (!evidence.reset_verified || !evidence.distinct_responses || !evidence.streaming_complete || !evidence.duplicate_free)) throw new EvalError("CONNECTION_UNSUPPORTED", 409);
+    if (evidence && !probeEvidenceReady(evidence)) throw new EvalError("CONNECTION_UNSUPPORTED", 409);
     const existing = (await db.query("SELECT id FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, recipe.recipe_revision_id, targetId])).rows[0];
     if (existing && evidence) {
       // A retried result can refresh the encrypted login and create a new

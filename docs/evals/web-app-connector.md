@@ -1,93 +1,144 @@
 # Web App Connector
 
-Available from an evaluation's **Connect or repair your web app** section and
-the website system panel. Workspace managers and assigned operators can open
-it; viewers cannot access browser pixels or send input. The target must carry
-a current website-testing attestation and be permitted by the browser worker's
-workspace allowlist.
+Connects an AI system that is only reachable through a browser UI: public or
+authenticated apps, embedded widgets, iframes, SSO and 2FA. Available from an
+evaluation's web app section and the website system panel. Workspace managers
+and assigned operators can open it; viewers cannot see browser pixels or send
+input. The target must carry a current website-testing attestation and be
+permitted by the browser worker's workspace allowlist.
+
+## Customer flow
 
 1. Enter the website URL when creating an evaluation.
-2. Open Teach Mode. Choose **Take control** to sign in, complete SSO/2FA or
-   CAPTCHA manually, navigate, paste text, scroll or drag. Popup tabs belong to
-   the same isolated context and can be selected in the toolbar.
-3. Choose **Teach Caudals**, choose an element and click it in the live browser.
-   Teach the optional launcher, prompt input, Send and assistant response. If
-   Send does not disable during generation, teach a loading indicator while it
-   is visible. Every element has its own frame path, including nested frames
-   and open shadow roots. The current selection gets a green outline.
-4. **Save connector** saves an encrypted login and a reusable draft. It does
-   not make an untested recipe eligible for an eval.
-5. **Test Connection** loads fresh authenticated contexts, sends two distinct
-   harmless prompts, checks reset and complete new replies, and probes a
-   follow-up. Successful evidence freezes an immutable website recipe and
-   target revision. Eval runs use the existing website adapter, observations,
-   scoped attempt credentials and usage ledger.
+2. **Open live browser** starts an isolated Chromium context and shows it in a
+   full-screen studio. The person is in control at once: click, type, paste,
+   scroll, use back/forward/reload, the address bar and popup tabs to sign in
+   and complete SSO, 2FA or CAPTCHA themselves.
+3. **Teach Caudals** is one click. Caudals:
+   - finds the message box in every frame (iframes, open shadow roots), scoring
+     chat-like inputs and rejecting search, login and newsletter fields;
+   - opens the chat when it is closed, trying likely launchers;
+   - finds the Send button next to the input, or falls back to Enter;
+   - sends one short hello, observes what the page adds, and identifies the
+     reply as the largest new region that is not the user's own message (the
+     element whose text is exactly the prompt, so echoing assistants work);
+   - learns the completion signal: a Stop button or loading indicator that
+     disappears, Send becoming available again, or network-confirmed quiet;
+   - reloads the start page in a fresh context and learns the launcher if the
+     chat is closed there;
+   - runs Test Connection: two fresh sessions and a follow-up probe.
+   Detected elements are outlined on the live view with labels.
+4. A passing test saves the encrypted login and freezes an immutable recipe
+   and target revision. A failed test still saves the draft and login so the
+   person never has to sign in twice.
+5. Anything Caudals cannot detect has a **Fix** button: click it, click the
+   element in the live view, test again.
 
-Selection prefers unique test IDs, exact roles/accessibility names, labels and
-stable attributes. Ambiguous or unstable elements require another selection;
-no XPath, positional CSS or customer JavaScript is generated. Response
-selection must identify assistant output, not a mixed user/assistant region.
-Text stability alone never qualifies streaming as complete.
+Locators prefer test IDs, exact roles/accessible names, labels and stable
+attributes or class names (build-hashed classes are ignored). Up to three
+fallback locators per part are frozen in the recipe
+(`extensions["caudals.evals/teach"].alternates`), so a fallback used during a
+run is reproducible. No XPath, positional CSS or customer JavaScript is
+generated. Reply locators must match only assistant messages, never the
+user's.
 
-## Session and network lifecycle
+## Completion and acceptance
 
-The browser executor exposes an internal control listener on 8089. The
-existing relay forwards only that fixed destination and PostgreSQL; there is
-no published browser/debugger port and Chromium retains its restricted egress
-network. The app uses `EVALS_BROWSER_CONTROL_URL` if set, otherwise
+Recipes complete on `selector_hidden` (Stop/loading indicator),
+`send_enabled`, or `quiescent`: the reply text, the page's streaming requests
+started by the prompt and WebSocket frames have all been quiet together for
+1.5 s. Text stability alone never completes a reply; a request open for more
+than a minute is treated as a notification channel. If an explicit signal is
+too brief to observe, a 5 s network-confirmed quiet period is the fallback.
+
+A probe qualifies when both fresh sessions captured a complete, new,
+duplicate-free reply and the reset held (`probeEvidenceReady`). Identical
+replies to different prompts are recorded (`distinct_responses`) but allowed:
+rule-based assistants answer many questions with one sentence.
+
+Unattended connection checks run the same detection headlessly with the saved
+login, so many public chatbots connect without Teach Mode at all.
+
+## Live view and session lifecycle
+
+The browser executor exposes an internal control listener on 8089 with
+`/control` (commands) and `/stream` (live view). The existing relay forwards
+only that fixed destination and PostgreSQL; there is no published
+browser/debugger port and Chromium keeps its restricted egress network. The
+app uses `EVALS_BROWSER_CONTROL_URL` if set, otherwise
 `http://caudals-evals-browser-db-relay:8089/control`.
 
-Every request/response uses authenticated encryption with a purpose-derived
-key from the browser-only mounted keyring. Request IDs, timestamps, direction,
-workspace allowlist and actor/target binding are verified; replayed requests
-are rejected. Input, pixels and raw session state never enter a database
-command queue or logs. Customer API responses do not contain storage state.
-Private snapshots are noncached and password inputs are masked.
+Pixels come from a CDP screencast (JPEG, only on repaint, at most ~14 fps per
+viewer, frames dropped under backpressure rather than queued). The app relays
+them to the signed-in manager as Server-Sent Events
+(`GET /api/evals/v1/targets/{id}/web-app/stream`); the client decodes them off
+the main thread into a canvas. Input is batched: one request in flight, mouse
+moves and typed characters coalesce meanwhile, events replay in order.
+Typed characters produce real key events (2FA boxes listen for them); paste
+inserts text in one step.
 
-Initially one interactive session is available per browser service. Idle
-contexts expire after ten minutes; absolute lifetime is thirty minutes. Close,
-navigation away, expiry and shutdown dispose of the context. Browser worker
-restarts require reopening the interactive browser; saved configuration and
-encrypted login survive. Source captures defer while an interactive session
-is active. Existing bounded eval jobs retain their own isolated contexts.
+Every request is sealed with a purpose-derived key from the browser-only
+keyring; request IDs, timestamps, direction, workspace allowlist and
+actor/target binding are verified and replays rejected. Each stream line is
+sealed to its request ID and sequence number, so lines cannot be reordered or
+replayed. Pixels, input and storage state never enter a database, a command
+queue or logs; customer API responses never contain storage state.
+
+Up to `EVALS_BROWSER_INTERACTIVE_SESSIONS` (default 2) interactive sessions run
+per browser service. Reopening the same connector resumes its session. A
+session closes after ten idle minutes, thirty minutes in total, or ninety
+seconds after its last viewer disconnects (unless Caudals is still working).
+Source captures defer while an interactive session is active.
 
 Saved cookies, local storage, IndexedDB and session storage belong only to the
-target and explicitly selected iframe origins. Identity-provider state is
-discarded after sign-in. Encryption uses the existing target-scoped envelope
-registry; only the browser executor decrypts saved state. Saved sessions expire
-within seven days and can be revoked through the existing session UI. The
-remote browser always uses fresh contexts for eval scenarios, preserving
-conversation state only across turns of the same scenario.
+target and the taught frame origins; identity-provider state is discarded
+after sign-in. Encryption uses the target-scoped envelope registry; only the
+browser executor decrypts saved state. Saved sessions expire within seven days
+and can be revoked through the session UI. Eval scenarios always use fresh
+contexts, preserving conversation state only across turns of one scenario.
 
-## Repair and limitations
+## Runs, failures and repair
 
-Expired login, selector ambiguity/drift, navigation failure and incomplete
-streaming are operational failures. A browser eval with expired login,
-selector failure or incomplete capture pauses its remaining work and marks
-the connection as requiring assistance; partial answers are not graded.
-Reopen the connector, sign in or reteach, test, cancel the paused run, and start
-a new run with the new revision. Existing run plans are never rewritten.
+Eval runs use the normalized target interface (`TargetExecutionWorker`), the
+same observations, scoped attempt credentials and usage ledger as API targets.
+On load the executor waits for the input and clicks the launcher only while
+the chat is closed (a widget that restores itself open is not toggled shut).
 
-This supports public HTTPS apps reachable through the existing egress policy.
+- Expired login (redirect off the target origin, a login path, or a visible
+  password field) → `browser_session_unavailable`.
+- Selector failure, ambiguity, missing launcher or frame → `website_selector_failed`.
+- Incomplete streaming → `capture_incomplete`.
+
+Each pauses the remaining work, marks the connection as needing assistance and
+never grades partial answers. The evaluation page then shows **Repair
+connection**, which reopens the studio with the saved recipe and login; teach
+or fix, test, cancel the paused run and start a new one. Existing run plans
+are never rewritten.
+
+Supports public HTTPS apps reachable through the existing egress policy.
 Private network apps still use the private runner. Closed shadow roots,
-hardware-bound authentication, sites blocking remote/headless Chromium, and
-apps without a verifiable completion/reset signal require assistance rather
-than an unreliable automated result. CAPTCHA and authentication are completed
-by the customer, never bypassed. Clean hash routes are retained; auth query
-parameters and unsafe fragments are discarded from saved navigation URLs.
+hardware-bound authentication and sites blocking remote/headless Chromium
+require assistance. CAPTCHA and authentication are completed by the customer,
+never bypassed. Clean hash routes are retained; auth query parameters and
+unsafe fragments are discarded from saved navigation URLs.
 
-Rollback: redeploy the previous compatible app/browser images. Configuration
-and encrypted state remain in existing additive tables; do not delete recipes,
-credentials or frozen run history. Revoke affected sessions if needed.
+Rollback: redeploy the previous compatible app/browser images. Recipes with
+`quiescent` completion need the new executor; older recipes keep working on
+both. Configuration and encrypted state remain in existing additive tables.
 
 ## Verification
 
-`e2e/evals/web-app-fixture.contract.ts` exercises human control, popup login,
-iframe teaching/highlighting, authenticated reset probes, state reuse and
-normalized eval execution against a synthetic HTTPS app. Browser fixture tests
-cover streaming pauses, selector drift and blocked HTTP/private WebSocket
-egress. `tests/evals/browser-control-security.test.ts` covers encryption,
-scope and bounded commands; `web-app-connectors-db.test.ts` verifies drafts,
-immutable validated revisions, expiry and tenant isolation using a disposable
-PostgreSQL database and the non-owner runtime role. The existing UI harness
-exercises setup, save/test failure and repair controls.
+- `e2e/evals/web-app-autoteach.contract.ts`: one-click teaching of a closed
+  iframe widget with a Stop button (live frames, launcher learned, test,
+  replay), unattended detection of an SSE-streamed reply with no visible
+  signal and hashed classes, and a rich-text composer sending on Enter with
+  typing dots. All three assistants echo the question.
+- `e2e/evals/web-app-fixture.contract.ts`: batched human input, popup SSO,
+  manual Fix of each part in nested frames, encrypted-state reuse and
+  normalized eval execution.
+- `e2e/evals/browser-fixture.contract.ts`: streaming pauses, selector drift,
+  blocked HTTP/private WebSocket egress.
+- `tests/evals/browser-control-security.test.ts`: encryption, stream line
+  sealing, bounded commands and input batches.
+- `e2e/evals/ui.contract.ts`: the studio with a mocked stream: live canvas,
+  input, one-click teach, failure copy, success commit, marks and Fix.

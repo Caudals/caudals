@@ -33,7 +33,7 @@ async function projectRun(c:PoolClient,orgId:string,runId:string){
 }
 function failureReason(error:unknown){
  const value=error instanceof Error?error.message:"target_execution_failed";
- if(value==="browser_session_unavailable")return {unit:"unsupported",code:value};
+ if(value==="browser_session_unavailable"||value==="login_required")return {unit:"unsupported",code:"browser_session_unavailable"};
  if(value==="website_selector_failed")return {unit:"capture_incomplete",code:value};
  if(value==="invalid_credentials")return {unit:"target_error",code:value};
  if(value==="response_shape_invalid"||value.startsWith("target_http_"))return {unit:"target_error",code:value};

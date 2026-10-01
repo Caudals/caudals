@@ -282,8 +282,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         </Status>
       )}
 
-      {system?.document.kind === "website" && run?.run.status === "paused" && <Status tone="warn">The web app needs attention. Repair its login or selected elements below, test the connection, then cancel this paused run and start a new evaluation run with the repaired connector.</Status>}
-      {system?.document.kind === "website" && canManage && <details open={system.connection_status !== "ready"}><summary>Connect or repair your web app</summary><WebAppConnector orgId={orgId} targetId={system.id} onChanged={reload} /></details>}
+      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused"} onChanged={reload} />}
 
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (

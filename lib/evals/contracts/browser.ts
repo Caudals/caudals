@@ -76,6 +76,12 @@ export const websiteRecipeSchema = z
         kind: z.literal("send_enabled"),
         locator: browserLocatorSchema,
       }),
+      // No visible signal: the reply is complete when its text, the page's
+      // streaming requests and WebSocket frames have all been quiet together.
+      z.strictObject({
+        kind: z.literal("quiescent"),
+        quiet_ms: z.number().int().min(800).max(10_000),
+      }),
     ]),
     reset: z.discriminatedUnion("kind", [
       z.strictObject({ kind: z.literal("new_context") }),
@@ -95,6 +101,26 @@ export const websiteRecipeSchema = z
       });
     }
   });
+
+/**
+ * Optional fallbacks recorded when Caudals detected the connector. They are
+ * part of the frozen recipe, so a fallback used during a run is reproducible.
+ */
+export const websiteTeachExtensionSchema = z.object({
+  version: z.number().int(),
+  detected: z.boolean().optional(),
+  alternates: z.object({
+    launcher: z.array(browserLocatorSchema).max(3).optional(),
+    input: z.array(browserLocatorSchema).max(3).optional(),
+    submit: z.array(browserLocatorSchema).max(3).optional(),
+    assistant_message: z.array(browserLocatorSchema).max(3).optional(),
+  }).optional(),
+});
+export type WebsiteTeachExtension = z.infer<typeof websiteTeachExtensionSchema>;
+export function websiteTeachExtension(recipe: Pick<WebsiteRecipe, "extensions">): WebsiteTeachExtension | null {
+  const parsed = websiteTeachExtensionSchema.safeParse(recipe.extensions?.["caudals.evals/teach"]);
+  return parsed.success ? parsed.data : null;
+}
 
 export function assertWebsiteRecipeOrigin(startUrl: string, authorizedEndpoint: string) {
   if (new URL(startUrl).origin !== new URL(authorizedEndpoint).origin) {
@@ -129,6 +155,17 @@ export const browserProbeEvidenceSchema = z.strictObject({
   screenshot_artifact_id: idSchema.nullable(),
   trace_artifact_id: idSchema.nullable(),
 });
+
+/**
+ * A probe qualifies a recipe when both fresh sessions captured a complete,
+ * new, non-duplicated reply and the reset held. Identical replies to
+ * different prompts are recorded but allowed: rule-based assistants answer
+ * many questions with one sentence, and extraction already only accepts
+ * messages that appeared after the prompt.
+ */
+export function probeEvidenceReady(evidence: Pick<BrowserProbeEvidence, "reset_verified" | "streaming_complete" | "duplicate_free">) {
+  return evidence.reset_verified && evidence.streaming_complete && evidence.duplicate_free;
+}
 
 export const browserStorageStateSchema = z.strictObject({
   cookies: z.array(z.strictObject({

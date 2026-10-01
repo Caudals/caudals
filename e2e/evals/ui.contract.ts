@@ -1,45 +1,58 @@
 import { test, expect } from "@playwright/test";
 const id = "00000000-0000-4000-8000-000000000001";
 const token = "a".repeat(43);
-test("web app setup shows live pixels, teaches elements and repairs failed connections", async ({ page }) => {
-  let mode = "view", testStatus = "idle";
+test("web app studio streams live pixels, teaches in one click and offers repair", async ({ page }) => {
+  let teach = "idle", test = "idle", teachError: string | null = null, mode = "control", pickPart: string | null = null;
   const commands: string[] = [];
-  const selections: Record<string, unknown> = {};
-  const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=";
+  const parts: Record<string, unknown> = {};
+  // A real JPEG so the canvas decode path runs.
+  const frame = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+  const state = () => ({ sessionId: "00000000-0000-4000-8000-000000000801", mode, pickPart, url: "https://app.example.test/chat", title: "Chat", loading: false, tabs: [{ index: 0, url: "https://app.example.test/chat", active: true }],
+    parts, completion: teach === "idle" ? null : "selector_hidden", teach: { status: teach, error: teachError, step: teach === "running" ? "read_reply" : null, reply: "" },
+    test: { status: test, error: null, step: null, response: test === "ready" ? "Our refund window is 30 days." : "" }, expiresAt: new Date(Date.now() + 1_800_000).toISOString() });
   await page.route("**/api/evals/v1/**", async route => {
+    const url = route.request().url();
+    if (url.includes("/web-app/stream")) {
+      await route.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: `retry: 200\n\ndata: ${JSON.stringify({ type: "frame", seq: 1, image: frame, width: 1280, height: 800 })}\n\ndata: ${JSON.stringify({ type: "state", state: state() })}\n\n` });
+      return;
+    }
     let data: unknown = [];
-    if (route.request().url().includes("/web-app")) {
+    if (url.includes("/web-app")) {
       const command = route.request().postDataJSON().command; commands.push(command.action);
       if (command.action === "open") data = { sessionId: "00000000-0000-4000-8000-000000000801", sessionExpired: true };
-      else if (command.action === "snapshot") data = { image, width: 1280, height: 800, mode, url: "https://app.example.test/chat", tabs: [], selections, test: { status: testStatus, error: testStatus === "failed" ? "capture_incomplete" : null, response: "" } };
-      else if (command.action === "mode") { mode = command.mode; data = { mode }; }
-      else if (command.action === "click") { selections[command.part] = { kind: "test_id", value: command.part, frames: [] }; data = { selections }; }
-      else if (command.action === "save") data = { saved: true, status: "needs_operator" };
-      else if (command.action === "test") { testStatus = "failed"; data = { status: "running" }; }
+      else if (command.action === "autoteach") {
+        if (commands.filter(value => value === "autoteach").length === 1) { teach = "failed"; teachError = "chat_input_not_found"; }
+        else { teach = "ready"; test = "ready"; teachError = null; Object.assign(parts, { input: { kind: "role", frames: 1, rect: { x: 900, y: 700, width: 300, height: 40 } }, submit: { kind: "role", frames: 1, rect: { x: 1210, y: 700, width: 40, height: 40 } }, response: { kind: "css", frames: 1, rect: { x: 900, y: 500, width: 340, height: 80 } } }); }
+        data = { status: "running" };
+      }
+      else if (command.action === "mode") { mode = command.mode; pickPart = command.part ?? null; data = { mode }; }
+      else if (command.action === "result") data = { saved: true, status: "ready" };
+      else if (command.action === "input") data = { ok: true };
     }
     await route.fulfill({ json: { data, meta: {} } });
   });
-  await page.setViewportSize({ width: 1440, height: 1300 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/workspace/web-app-fixture?owner");
-  await page.getByRole("button", { name: "Open Teach Mode / repair connector" }).click();
-  await expect(page.getByText("The saved login has expired.", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Take control", exact: true }).click();
-  await expect(page.getByLabel("Remote browser address")).toBeEnabled();
-  await page.getByRole("button", { name: "Teach Caudals", exact: true }).click();
-  const browser = page.getByRole("application", { name: /^Live remote browser/ });
-  await expect(page.locator(".p-web-browser-teach")).toBeVisible();
-  for (const name of ["Prompt input", "Send button", "Assistant response"]) {
-    await page.getByRole("button", { name, exact: true }).click(); await browser.click({ position: { x: 30, y: 30 } });
-    await expect(page.getByRole("button", { name: `${name} ✓`, exact: true })).toBeVisible();
-  }
-  await page.getByRole("button", { name: "Save connector", exact: true }).click();
-  await expect(page.getByText("Connector saved.", { exact: false })).toBeVisible();
-  await page.getByRole("button", { name: "Test Connection", exact: true }).click();
-  await expect(page.getByText("The assistant response did not finish.", { exact: false })).toBeVisible();
-  await page.locator("#p-main").evaluate(element => { element.scrollTop = 0; });
-  await page.screenshot({ path: "/tmp/caudals-webapp-connector-ui.png", fullPage: true });
-  await page.getByRole("button", { name: "Close browser", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Open Teach Mode / repair connector" })).toBeVisible();
+  await page.getByRole("button", { name: "Open live browser" }).click();
+  await expect(page.getByText("Your saved login has expired.", { exact: false })).toBeVisible();
+  const studio = page.getByRole("dialog", { name: "Web app connection" });
+  await expect(studio).toBeVisible();
+  const viewport = studio.getByRole("application");
+  await expect(viewport.locator("canvas")).toBeVisible();
+  await viewport.click({ position: { x: 200, y: 120 } });
+  await page.keyboard.type("hello");
+  await expect.poll(() => commands.filter(value => value === "input").length).toBeGreaterThan(0);
+  await studio.getByRole("button", { name: "Teach Caudals", exact: true }).click();
+  await expect(studio.getByText("No chat box was found.", { exact: false })).toBeVisible();
+  await studio.getByRole("button", { name: "Teach again", exact: true }).click();
+  await expect(studio.getByText("Connected. Complete replies", { exact: false })).toBeVisible();
+  await expect.poll(() => commands.includes("result")).toBe(true);
+  await expect(studio.locator('.p-web-mark[data-part="response"]')).toBeVisible();
+  await studio.getByRole("listitem").filter({ hasText: "Reply" }).getByRole("button", { name: "Fix" }).click();
+  await expect(studio.getByText("Click the Reply in the browser.", { exact: false })).toBeVisible();
+  await page.screenshot({ path: "/tmp/caudals-webapp-connector-ui.png" });
+  await studio.getByRole("button", { name: "Close browser", exact: true }).click();
+  await expect(studio).toBeHidden();
   expect(commands).toContain("close");
 });
 /** A customer-safe workspace summary, with optional evaluations and reports. */

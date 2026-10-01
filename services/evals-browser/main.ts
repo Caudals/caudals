@@ -45,7 +45,8 @@ async function main() {
     headless: true,
     proxy: { server: `http://${egressHost}:${egressPort}` },
   });
-  const control = new BrowserControl({ browser, destinationCheck: url => checkBrowserDestination(url, egressHost, egressPort) });
+  const interactiveSessions = z.coerce.number().int().min(1).max(4).catch(2).parse(process.env.EVALS_BROWSER_INTERACTIVE_SESSIONS ?? 2);
+  const control = new BrowserControl({ browser, destinationCheck: url => checkBrowserDestination(url, egressHost, egressPort), maxSessions: interactiveSessions });
   const stopControl = startBrowserControl({ control, keys, allowed: orgId => orgs.has(orgId) });
   const boss = createBoss();
   boss.on("error", () => console.error(JSON.stringify({ event: "browser_queue_error" })));
