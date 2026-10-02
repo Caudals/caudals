@@ -111,6 +111,8 @@ function makeInvocation(args: {
   route: GenerationRoute; jobId: string; step: "profile" | "draft"; workspaceBudgetId: string; runBudgetId: string;
   messages: Array<{ role: "system" | "user"; content: string }>;
   outputTokenCap?: number;
+  /** Public web search for this call (only where the route opted in and the provider supports it). */
+  webSearch?: boolean;
 }) {
   return invocationSchema.parse({
     probe: false, probeKind: "text", outputFormat: "json_object", generationJobId: args.jobId, generationStep: args.step,
@@ -119,6 +121,7 @@ function makeInvocation(args: {
     dataClass: args.route.data_class, region: args.route.region, ...routingFor(args.route),
     messages: args.messages, maxOutputTokens: boundedOutputTokens(args.messages, args.route.context_limit, args.route.output_limit, args.outputTokenCap), reasoning: generationReasoning(args.route), timeoutMs: internalTimeoutMs(args.route, 900000, 900000),
     internalCostPerSecond: args.route.internal_cost_per_second,
+    ...(args.webSearch ? { webSearch: { maxResults: 5 } } : {}),
   });
 }
 
@@ -334,11 +337,12 @@ async function queueDraftGeneration(
   const roundCases=Math.max(1,Math.min(roundSize(draftRoute),job.requested_case_count-accepted.length));
   const avoidQuestions=accepted.map((item)=>item.question.slice(0,240));
   const request={profile,coverage,complexity:job.complexity,...(round>1?{round,avoidQuestions}:{}),maxCases:roundCases};
-  const systemPrompt=`${draftSystemPrompt()} ${COMPLEXITY_GUIDANCE[job.complexity]}`;
+  const webDraft=!!draftRoute.web_research;
+  const systemPrompt=`${draftSystemPrompt()} ${COMPLEXITY_GUIDANCE[job.complexity]}${webDraft?" Public web search results may be attached: use them only to phrase questions the way real customers ask them. Every expected answer, key fact and quote must still come from the supplied sources.":""}`;
   const draftFixed=Buffer.byteLength(systemPrompt,"utf8")+Buffer.byteLength(canonicalJson(request),"utf8")+256;
   const draftOutputCap = generationOutputCap(draftRoute);
   const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,draftOutputCap,draftFixed));
-  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:draftOutputCap,messages:[
+  const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:draftOutputCap,webSearch:webDraft,messages:[
     {role:"system",content:systemPrompt},
     {role:"user",content:canonicalJson({...request,sources:material})},
   ]});

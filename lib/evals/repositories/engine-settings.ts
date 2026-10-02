@@ -54,6 +54,9 @@ type RouteRow = {
   currency: string;
   updated_at: string;
   usable: boolean;
+  /** Public web search for this role; only OpenRouter routes support it. */
+  web_research: boolean;
+  web_capable: boolean;
 };
 
 function dgxEndpoint(): string | null {
@@ -80,7 +83,8 @@ async function audit(c: PoolClient, orgId: string, actorId: string, action: stri
 
 const ROUTE_SELECT = (table: string, where: string) => `SELECT r.role,r.provider_revision_id,p.model_id,p.adapter,p.account_id,a.name AS account_name,p.context_limit,
     pr.input_price::text AS input_price,pr.output_price::text AS output_price,pr.currency,r.updated_at,
-    (a.enabled AND (p.retired_at IS NULL OR p.retired_at>now())) AS usable
+    (a.enabled AND (p.retired_at IS NULL OR p.retired_at>now())) AS usable,
+    r.web_research,(p.adapter='openai_compatible' AND split_part(split_part(p.endpoint,'://',2),'/',1)='openrouter.ai') AS web_capable
   FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
   JOIN evals.provider_account a ON a.id=p.account_id
   JOIN evals.price_revision pr ON pr.id=r.price_revision_id ${where} ORDER BY r.role`;
@@ -226,7 +230,8 @@ const routeSchema = z.strictObject({
 
 /** Point one role (or all roles) at a model, registering its revision on first use. */
 export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw: unknown) {
-  requireRecentAuthentication(identity, 60);
+  // Choosing among approved models is not credential-sensitive: admin role and audit suffice.
+  requirePlatformAdmin(identity);
   const input = routeSchema.parse(raw);
   const target = await connectionTarget(identity, orgId, input.connectionId, false);
   const contextLimit = input.contextLimit ?? (target.adapter === "dgx" ? await dgxContextLimit(target.endpoint, input.modelId) : 128_000);
@@ -255,9 +260,31 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
   });
 }
 
+/**
+ * Turn public web search on or off for one role's route. Only routes whose
+ * provider supports it (OpenRouter's web plugin) can enable it; the search
+ * cost is billed by the provider per result.
+ */
+export async function setRouteWebResearch(identity: EvalIdentity, orgId: string, raw: unknown) {
+  requirePlatformAdmin(identity);
+  const input = z.strictObject({ scope: z.enum(["platform", "workspace"]), role: z.enum(ENGINE_ROLES), enabled: z.boolean() }).parse(raw);
+  return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
+    const table = input.scope === "platform" ? "evals.platform_model_route" : "evals.generation_provider_route";
+    const where = input.scope === "platform" ? "r.role=$1" : "r.role=$1 AND r.org_id=$2";
+    const route = (await c.query(`SELECT (p.adapter='openai_compatible' AND split_part(split_part(p.endpoint,'://',2),'/',1)='openrouter.ai') AS capable
+      FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id WHERE ${where}`, input.scope === "platform" ? [input.role] : [input.role, orgId])).rows[0];
+    if (!route) throw new EvalError("INPUT_INVALID", 422, "Choose a model for this task first.");
+    if (input.enabled && !route.capable) throw new EvalError("INPUT_INVALID", 422, "Web research needs a model connected through OpenRouter.");
+    await c.query(`UPDATE ${table} r SET web_research=$${input.scope === "platform" ? 2 : 3},updated_by=$${input.scope === "platform" ? 3 : 4},updated_at=now() WHERE ${where}`,
+      input.scope === "platform" ? [input.role, input.enabled, identity.user.id] : [input.role, orgId, input.enabled, identity.user.id]);
+    await audit(c, orgId, identity.user.id, `engine.web_research.${input.enabled ? "on" : "off"}`, input.role);
+    return { role: input.role, scope: input.scope, enabled: input.enabled };
+  });
+}
+
 /** A workspace goes back to the platform default for one role (or all). */
 export async function clearWorkspaceRoute(identity: EvalIdentity, orgId: string, role: EngineRoleName | "all") {
-  requireRecentAuthentication(identity, 60);
+  requirePlatformAdmin(identity);
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
     await c.query("DELETE FROM evals.generation_provider_route WHERE org_id=$1 AND ($2='all' OR role=$2)", [orgId, role]);
     await audit(c, orgId, identity.user.id, "engine.route.workspace_cleared", orgId);

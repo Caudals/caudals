@@ -206,7 +206,6 @@ export function NewEvaluationFlow() {
   const [endpoint, setEndpoint] = useState("https://");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [authorized, setAuthorized] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [pairing, setPairing] = useState<{ code: string; evaluationId: string; expiresAt: string } | null>(null);
@@ -229,8 +228,7 @@ export function NewEvaluationFlow() {
     !!name.trim() &&
     !!purpose.trim() &&
     (!needsUrl || validUrl) &&
-    (kind !== "api" || !!model.trim()) &&
-    (kind !== "website" || authorized);
+    (kind !== "api" || !!model.trim());
 
   const choices: Array<{ value: ConnectionKind; label: string; description: string; icon: React.ReactNode }> = [
     { value: "website", label: t("websiteChatbot"), description: t("websiteChatbotDesc"), icon: <Globe /> },
@@ -423,14 +421,7 @@ export function NewEvaluationFlow() {
           </div>
           {kind === "website" && (
             <>
-              <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("websiteUrl")} placeholder="https://example.com/help" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required />
-              <label className="p-check">
-                <input type="checkbox" checked={authorized} onChange={(event) => setAuthorized(event.target.checked)} required />
-                <span>
-                  <span className="p-check-label">{t("websiteAuthorization")}</span>
-                  <span className="p-check-desc">{t("websiteAuthorizationHelp")}</span>
-                </span>
-              </label>
+              <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("websiteUrl")} placeholder="https://example.com/help" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required hint={t("websiteAuthorizationHelp")} />
             </>
           )}
           {kind === "api" && (

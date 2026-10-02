@@ -10,7 +10,8 @@ for(const [ip,bits] of [['0.0.0.0',8],['10.0.0.0',8],['100.64.0.0',10],['127.0.0
 const global6=new BlockList();global6.addSubnet('2000::',3,'ipv6');
 for(const [ip,bits] of [['2001::',23],['2001:db8::',32],['2002::',16],['3fff::',20]] as const) forbidden.addSubnet(ip,bits,'ipv6');
 export function publicAddress(ip:string):boolean {return isIP(ip)===4?!forbidden.check(ip,'ipv4'):isIP(ip)===6&&global6.check(ip,'ipv6')&&!forbidden.check(ip,'ipv6');}
-const responseSchema=z.object({id:z.string().max(200).optional(),choices:z.array(z.object({finish_reason:z.string().nullable(),message:z.object({content:z.string().max(1000000).nullable().optional(),reasoning:z.string().max(2000000).nullable().optional(),reasoning_content:z.string().max(2000000).nullable().optional(),tool_calls:z.array(z.object({type:z.literal('function'),function:z.object({name:z.string().max(128),arguments:z.string().max(10000)})})).max(4).optional()})})).min(1),usage:z.object({prompt_tokens:z.number().int().nonnegative(),completion_tokens:z.number().int().nonnegative(),prompt_tokens_details:z.object({cached_tokens:z.number().int().nonnegative()}).optional(),completion_tokens_details:z.object({reasoning_tokens:z.number().int().nonnegative().nullable().optional()}).nullable().optional()}).optional()});
+const annotationSchema=z.object({type:z.string().max(40),url_citation:z.object({url:z.string().max(2000),title:z.string().max(500).optional()}).passthrough().optional()}).passthrough();
+const responseSchema=z.object({id:z.string().max(200).optional(),choices:z.array(z.object({finish_reason:z.string().nullable(),message:z.object({content:z.string().max(1000000).nullable().optional(),annotations:z.array(annotationSchema).max(100).nullable().optional(),reasoning:z.string().max(2000000).nullable().optional(),reasoning_content:z.string().max(2000000).nullable().optional(),tool_calls:z.array(z.object({type:z.literal('function'),function:z.object({name:z.string().max(128),arguments:z.string().max(10000)})})).max(4).optional()})})).min(1),usage:z.object({prompt_tokens:z.number().int().nonnegative(),completion_tokens:z.number().int().nonnegative(),prompt_tokens_details:z.object({cached_tokens:z.number().int().nonnegative()}).optional(),completion_tokens_details:z.object({reasoning_tokens:z.number().int().nonnegative().nullable().optional()}).nullable().optional()}).optional()});
 const INTERNAL_ROLES=new Set(['generator','context_analyzer','judge','report_writer']);
 /** Share of an output allowance a reasoning model may spend thinking; the rest stays for the answer. */
 export function reasoningBudget(maxOutputTokens:number):number {
@@ -63,6 +64,8 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  const openai=provider.adapter!=='dgx'&&hostname==='api.openai.com';
  const payload=JSON.stringify({model:provider.model_id,messages:input.messages,stream:false,...(openai?{max_completion_tokens:input.maxOutputTokens}:{max_tokens:input.maxOutputTokens,temperature:0}),
   ...reasoningHint(provider,hostname,input),
+  // Web research: OpenRouter's web plugin searches the public web for any model and returns url_citation annotations.
+  ...(input.webSearch&&!input.probe&&INTERNAL_ROLES.has(input.role)&&hostname==='openrouter.ai'?{plugins:[{id:'web',max_results:input.webSearch.maxResults}]}:{}),
   ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
   ...(input.probe&&input.probeKind==='tools'?{tools:[{type:'function',function:{name:'probe_echo',description:'Return the requested string; inspection only, never executed.',parameters:{type:'object',properties:{value:{type:'string'}},required:['value'],additionalProperties:false}}}],tool_choice:{type:'function',function:{name:'probe_echo'}}}:{}),
  });
@@ -103,7 +106,9 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
         }
         // Some servers return the thinking only as a token count, not as text.
         const reasoned=!!(choice.message.reasoning||choice.message.reasoning_content)||(parsed.usage?.completion_tokens_details?.reasoning_tokens??0)>0;
-        finished=true;resolve({text,complete,finishReason:reasoned&&!text.trim()&&choice.finish_reason==='length'?'reasoning_exhausted':choice.finish_reason??'unknown',...(toolCalls?{toolCalls}:{}),...(capabilityEvidence?{capabilityEvidence}:{}),...(parsed.id?{requestId:parsed.id}:{}),...(usage?{usage}:{}),latencyMs:Date.now()-started});
+        const seen=new Set<string>();
+        const citations=(choice.message.annotations??[]).flatMap(item=>{const url=item.url_citation?.url;if(item.type!=='url_citation'||!url||!/^https?:\/\//i.test(url)||seen.has(url))return [];seen.add(url);return [{url,...(item.url_citation?.title?{title:item.url_citation.title}:{})}];}).slice(0,20);
+        finished=true;resolve({text,complete,finishReason:reasoned&&!text.trim()&&choice.finish_reason==='length'?'reasoning_exhausted':choice.finish_reason??'unknown',...(toolCalls?{toolCalls}:{}),...(capabilityEvidence?{capabilityEvidence}:{}),...(parsed.id?{requestId:parsed.id}:{}),...(usage?{usage}:{}),...(citations.length?{citations}:{}),latencyMs:Date.now()-started});
       }catch{fail(new ProviderFailure('malformed_output','unknown'));}
     });
   });

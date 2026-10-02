@@ -7,6 +7,9 @@ export const invocationSchema=z.object({
   approvedProviderIds:z.array(z.string().uuid()),
   messages:z.array(z.object({role:z.enum(['system','user','assistant']),content:z.string().max(300000)}).strict()).min(1).max(100),
   maxOutputTokens:z.number().int().min(1).max(32768), reasoning:z.enum(['bounded','off']).optional(), timeoutMs:z.number().int().min(100).max(900000).default(60000),
+  /** Internal roles only: let the provider search the public web (OpenRouter web plugin); ignored where unsupported. */
+  webSearch:z.object({maxResults:z.number().int().min(1).max(10)}).strict().optional(),
+  discoveryJobId:z.string().uuid().optional(),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
 }).strict().superRefine((input,ctx)=>{
@@ -18,6 +21,7 @@ export const invocationSchema=z.object({
     (!!input.narrativeJobId&&input.role==="report_writer");
   const extended=!input.probe&&(generation||(otherInternal&&(input.routing==="local_only"||input.timeoutMs<=300000)));
   if(input.timeoutMs>120000&&!extended)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
+  if(input.webSearch&&(input.probe||input.role==="target"))ctx.addIssue({code:"custom",path:["webSearch"],message:"web_search_reserved_for_internal_roles"});
 });
 /** Output bound for one call: the request's cap (default 4096, at most 32768), the model limit and the remaining context. */
 export function boundedOutputTokens(messages: Array<{role:"system"|"user"|"assistant";content:string}>, contextLimit:number, outputLimit:number, requestCap=4096):number {
@@ -40,4 +44,6 @@ export interface ProviderRevision {
 export class ProviderFailure extends Error {
  constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0) {super(code);}
 }
-export interface ProviderOutput {text:string; complete:boolean; finishReason:string; requestId?:string; usage?:{input:number;output:number;cached:number}; latencyMs:number; toolCalls?:Array<{name:string;arguments:string}>; capabilityEvidence?:{kind:'text'|'json_object'|'tools';status:'supported'|'unsupported'|'unknown';scope:'single_bounded_probe'}}
+export interface ProviderOutput {text:string; complete:boolean; finishReason:string; requestId?:string; usage?:{input:number;output:number;cached:number}; latencyMs:number; toolCalls?:Array<{name:string;arguments:string}>; capabilityEvidence?:{kind:'text'|'json_object'|'tools';status:'supported'|'unsupported'|'unknown';scope:'single_bounded_probe'};
+ /** Public pages a web-searching provider consulted (OpenRouter url_citation annotations). */
+ citations?:Array<{url:string;title?:string}>}

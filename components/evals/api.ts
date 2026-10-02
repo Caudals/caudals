@@ -60,7 +60,8 @@ export async function evalRequest<T>(
   });
   if (response.status === 204) return undefined as T;
   const result = await response.json().catch(() => null);
-  if (response.status === 401 && typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  // A request for a fresh confirmation is not an expired session.
+  if (response.status === 401 && result?.error?.code !== "REAUTHENTICATION_REQUIRED" && typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
   if (!response.ok)
     throw new EvalRequestError(
       response.status,

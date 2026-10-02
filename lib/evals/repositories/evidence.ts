@@ -93,12 +93,12 @@ export async function finalizeSource(scope: EvidenceScope, sourceId: string, key
     return {status:"extracting",sourceId,artifactId:artifact.id,ingestionJobId:job.id};
   }));
 }
-export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:string;projectId:string;url:string;title:string;rights:"customer_owned"|"licensed"|"public_domain"},key:string){
+export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:string;projectId:string;url:string;title:string;rights:"customer_owned"|"licensed"|"public_domain";pageLimit?:number},key:string){
  return withTenant(scope,db=>idempotent(db,scope,"website-source/"+input.evaluationId,key,input,async()=>{
   const evaluation=required((await db.query("SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,input.evaluationId])).rows[0]);
   if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,"Website source project does not match evaluation");
   const source=required((await db.query("INSERT INTO evals.source(org_id,project_id,evaluation_id,title,rights) VALUES($1,$2,$3,$4,$5) RETURNING id",[scope.orgId,input.projectId,input.evaluationId,input.title,input.rights])).rows[0]);
-  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,created_by) VALUES($1,$2,$3,$4,25,$5) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,scope.actorId])).rows[0]);
+  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,Math.min(25,Math.max(1,input.pageLimit??25)),scope.actorId])).rows[0]);
   return {sourceId:source.id,jobId:job.id,status:job.status};
  }));
 }

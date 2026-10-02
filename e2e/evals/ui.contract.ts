@@ -347,7 +347,7 @@ test("Stage C connection flow is keyboard usable at mobile width", async ({ page
   await expect(page.getByLabel("API", { exact: true })).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("Stage C website connection requires an authority attestation before probing", async ({ page }) => {
+test("Stage C website connection records the testing attestation without asking for a checkbox", async ({ page }) => {
   const projectId = "00000000-0000-4000-8000-000000000030";
   const evaluationId = "00000000-0000-4000-8000-000000000031";
   const targetId = "00000000-0000-4000-8000-000000000032";
@@ -365,9 +365,9 @@ test("Stage C website connection requires an authority attestation before probin
   await page.goto(`/workspace/evaluations/new?orgId=${id}&editor`);
   await page.getByLabel("Name", { exact: true }).fill("Support bot");
   await page.getByLabel("What should this system help people do?").fill("Answer customer questions");
-  await page.getByLabel("Website URL").fill("https://example.com/chat");
   await expect(page.getByRole("button", { name: "Create evaluation" })).toBeDisabled();
-  await page.getByLabel(/authorized to test it/i).check();
+  await page.getByLabel("Website URL").fill("https://example.com/chat");
+  await expect(page.getByLabel(/authorized to test it/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Create evaluation" })).toBeEnabled();
   await page.getByRole("button", { name: "Create evaluation" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/evaluations/${evaluationId}`));
@@ -698,19 +698,25 @@ test("operator completes the improvement dataset release and held-out validation
   await expect(page.getByText(/does not prove causality/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("Stage C result inspector is nonmodal on desktop and modal with focus on mobile", async ({ page }) => {
+test("results open full width with the answer beside the ground truth and return focus to the list", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/reports/fixture");
   await page.getByRole("tab", { name: "Test results" }).click();
   // Rows lead with the question itself, so the customer reads what was asked.
   await page.getByRole("button", { name: /Can I get a refund\?/ }).click();
-  await expect(page.getByRole("complementary", { name: /Can I get a refund\?/ })).toContainText("30-day policy");
+  await expect(page.getByRole("heading", { level: 2, name: "Can I get a refund?" })).toBeFocused();
+  await expect(page.getByRole("region", { name: "What the assistant said" })).toContainText("No.");
+  await expect(page.getByRole("region", { name: /What it should say/ })).toBeVisible();
+  await expect(page.getByText("30-day policy")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Next result" })).toBeDisabled();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.setViewportSize({ width: 390, height: 900 });
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).toContainText("30-day policy");
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Can I get a refund\?/ })).toBeFocused();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.getByRole("button", { name: /Can I get a refund\?/ }).click();
+  await expect(page.getByRole("region", { name: "What the assistant said" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "All results" }).click();
   await expect(page.getByRole("button", { name: /Can I get a refund\?/ })).toBeFocused();
 });
 test("retry after a lost response reuses the same creation key", async ({
@@ -1367,7 +1373,7 @@ test("result review queue records attributed decisions with a required reason", 
   expect(decisions).toEqual([{ orgId: actionOrg, assessmentId: "00000000-0000-4000-8000-000000000401", decision: "override", reason: "The answer states the documented window.", outcome: "pass", criteria: [{ criterion_id: "grounding", score: 1, rationale: "The answer states the documented window." }] }]);
 });
 
-test("platform console hides endpoints and keys and asks for a fresh sign-in on sensitive changes", async ({ page }) => {
+test("platform console hides endpoints and keys and confirms identity in place on sensitive changes", async ({ page }) => {
   const posted: unknown[] = [];
   await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
   await page.route("**/api/evals/v1/providers?**", (route) => route.fulfill({ json: { data: {
@@ -1376,7 +1382,7 @@ test("platform console hides endpoints and keys and asks for a fresh sign-in on 
     secrets: [],
   }, meta: {} } }));
   await page.route("**/api/evals/v1/models/routes", (route) => route.fulfill({ json: { data: [{ org_id: actionOrg, workspace: "Example client", role: "judge", provider_revision_id: "00000000-0000-4000-8000-000000000502", price_revision_id: "p", data_class: "synthetic", region: "private_wireguard", internal_cost_per_second: "0.0001", updated_at: new Date().toISOString() }], meta: {} } }));
-  await page.route("**/api/evals/v1/budgets/**", (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ status: 401, json: { error: { code: "REAUTHENTICATION_REQUIRED", message: "Sign in again to confirm this platform change.", field_errors: [], request_id: "r", retryable: false } } }); });
+  await page.route("**/api/evals/v1/budgets/**", (route) => { posted.push(route.request().postDataJSON()); return route.fulfill({ status: 403, json: { error: { code: "REAUTHENTICATION_REQUIRED", message: "Confirm it is you to make this platform change.", field_errors: [], request_id: "r", retryable: false } } }); });
   await page.goto("/ops/platform");
   await expect(page.getByRole("rowheader", { name: /llama3\.1:8b/ })).toBeVisible();
   await expect(page.getByText(/private DGX route/).first()).toBeVisible();
@@ -1384,8 +1390,12 @@ test("platform console hides endpoints and keys and asks for a fresh sign-in on 
   await page.getByRole("button", { name: "Amend" }).first().click();
   await page.getByRole("dialog").getByLabel("Reason").fill("Pause for rotation");
   await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Sign in again to confirm this platform change.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Sign in again" })).toHaveAttribute("href", /\/workspace\/sign-in\?next=/);
+  // The session is fine: the person confirms with their password instead of being signed out.
+  const confirm = page.getByRole("dialog", { name: "Confirm it’s you" });
+  await expect(confirm.getByLabel("Password")).toBeVisible();
+  await expect(page.getByText(/session has expired/i)).toHaveCount(0);
+  await confirm.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Confirm it’s you to make this platform change.")).toBeVisible();
   expect(posted).toEqual([expect.objectContaining({ targetKind: "provider_account", reason: "Pause for rotation", enabled: true })]);
   await page.goto("/ops/platform?readonly");
   await expect(page.getByText(/Changes need a platform administrator/)).toBeVisible();

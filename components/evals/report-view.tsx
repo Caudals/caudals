@@ -6,9 +6,9 @@
  * incomplete run shows its limitations before any score; every finding links
  * to the results that support it. The same snapshot renders the PDF.
  */
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MinusCircle, X, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MessageSquare, MinusCircle, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest } from "./api";
 import {
@@ -115,7 +115,7 @@ export function ReportView({
           }
           actions={actions}
         >
-          {report.system?.purpose}
+          {report.system?.purpose ? gen(report.system.purpose) : null}
         </PageHeading>
       )}
       <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs} />
@@ -368,6 +368,11 @@ const matchesFilter = (result: Result, filter: LabelFilter) => {
   return filter === "all" || (filter === "not_scored" ? NOT_SCORED.has(label) : label === filter);
 };
 
+/**
+ * Results as a review: a compact list (one badge per row) that opens each
+ * result full width, with previous/next. The selected result is in the URL,
+ * so a link opens the same result.
+ */
 function Results({
   results,
   filter,
@@ -386,6 +391,7 @@ function Results({
   const [severity, setSeverity] = useState("all");
   const [topic, setTopic] = useState("all");
   const [selected, setSelected] = useState<string | null>(initialResult);
+  const [lastOpened, setLastOpened] = useState<string | null>(null);
   const topics = useMemo(() => [...new Set(results.map((item) => item.topic))].sort(), [results]);
   const count = (value: LabelFilter) => results.filter((item) => matchesFilter(item, value)).length;
   const needle = query.trim().toLowerCase();
@@ -399,16 +405,20 @@ function Results({
         (!needle || `${item.title} ${item.input} ${item.output} ${item.expected ?? ""} ${item.rationale} ${item.topic}`.toLowerCase().includes(needle)),
     )
     .sort((a, b) => LABEL_META[labelOf(a)].rank - LABEL_META[labelOf(b)].rank || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
-  const current = results.find((item) => item.assessment_id === selected) ?? null;
-  // Spec §1518: the desktop inspector is nonmodal; below it, details are a modal dialog.
-  const desktop = useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP).matches, () => false);
+  // Browse within what the list shows; a deep link to a filtered-out result still opens it alone.
+  const sequence = visible.some((item) => item.assessment_id === selected) ? visible : results.filter((item) => item.assessment_id === selected);
+  const index = sequence.findIndex((item) => item.assessment_id === selected);
 
-  const [lastOpened, setLastOpened] = useState<string | null>(initialResult);
   function open(id: string | null) {
     if (id) setLastOpened(id);
     setSelected(id);
     onResultChange?.(id);
   }
+  // Back on the list, focus returns to the row that was open.
+  useEffect(() => {
+    if (selected || !lastOpened) return;
+    document.querySelector<HTMLElement>(`[data-result="${CSS.escape(lastOpened)}"]`)?.focus();
+  }, [selected, lastOpened]);
 
   if (!results.length)
     return (
@@ -416,6 +426,9 @@ function Results({
         <p>{t("noResultsSharedHelp")}</p>
       </EmptyState>
     );
+
+  if (selected && index >= 0)
+    return <ResultReview result={sequence[index]} position={index + 1} total={sequence.length} onPrevious={index > 0 ? () => open(sequence[index - 1].assessment_id) : null} onNext={index < sequence.length - 1 ? () => open(sequence[index + 1].assessment_id) : null} onClose={() => open(null)} />;
 
   const chips: Array<{ value: LabelFilter; label: string; count: number }> = [
     { value: "all" as const, label: t("filterAllResults"), count: count("all") },
@@ -460,180 +473,219 @@ function Results({
       <div className="p-toolbar">
         <FilterChips value={outcome} onChange={setOutcome} label={t("filterOutcome")} options={chips} />
       </div>
-      <div className={desktop && current ? "p-inspect" : undefined}>
       {visible.length ? (
-        <DataTable caption={t("testResults")} headers={[t("question"), t("answerColumn"), t("reasonColumn"), { label: t("severity"), align: "end" }]}>
-          {visible.map((item) => (
-            <tr key={item.assessment_id} data-selected={item.assessment_id === selected ? "true" : undefined}>
-              <th scope="row">
-                <span className="p-table-primary">
-                  <button type="button" className="p-row-link p-row-button p-clamp-2" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
-                    {item.input || item.title}
-                  </button>
-                  {item.topic !== "grounded" && <span className="p-cell-meta">{humanize(item.topic)}</span>}
-                </span>
-              </th>
-              <td>
-                <ResultBadge result={item} />
-              </td>
-              <td>
-                <span className="p-cell-meta p-clamp-2">{item.rationale}</span>
-              </td>
-              <td className="p-table-action">
-                <StatusBadge value={item.severity} />
-              </td>
-            </tr>
-          ))}
-        </DataTable>
+        <ol className="p-result-list" aria-label={t("testResults")}>
+          {visible.map((item, position) => {
+            const meta = LABEL_META[labelOf(item)];
+            return (
+              <li key={item.assessment_id} data-tone={meta.tone}>
+                <button type="button" className="p-result-row" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
+                  <span className="p-result-index" aria-hidden="true">{position + 1}</span>
+                  <span className="p-result-main">
+                    <span className="p-result-question">{item.input || item.title}</span>
+                    <span className="p-result-reason">{item.rationale}</span>
+                  </span>
+                  <span className="p-result-end">
+                    <ResultBadge result={item} />
+                    {item.severity === "critical" && <span className="p-result-critical">{humanize("critical")}</span>}
+                  </span>
+                  <ChevronRight aria-hidden="true" className="p-result-chevron" />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       ) : (
         <EmptyState title={t("noMatchingResults")} icon={<Inbox />}>
           <p>{t("noMatchingEvaluationsHelp")}</p>
         </EmptyState>
       )}
-      {desktop && current && (
-        <aside className="p-inspector" aria-label={`${t("result")}: ${current.input || current.title}`}>
-          <div className="p-inspector-head">
-            <div>
-              <h2 className="p-panel-title p-clamp-2">{current.input || current.title}</h2>
-              <p className="p-row p-cell-meta">
-                <ResultBadge result={current} />
-                <StatusBadge value={current.severity} />
-              </p>
-            </div>
-            <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" aria-label={t("close")} onClick={() => open(null)}>
-              <X aria-hidden="true" />
-            </button>
-          </div>
-          <ResultEvidence result={current} />
-        </aside>
-      )}
-      </div>
-      <SidePanel
-        open={!desktop && !!current}
-        onOpenChange={(value) => !value && open(null)}
-        returnFocus={() => (lastOpened ? document.querySelector<HTMLElement>(`[data-result="${CSS.escape(lastOpened)}"]`) : null)}
-        title={current ? (current.input || current.title).slice(0, 120) : t("result")}
-        description={
-          current ? (
-            <>
-              <ResultBadge result={current} />
-              <StatusBadge value={current.severity} />
-            </>
-          ) : undefined
-        }
-        wide
-      >
-        {current && <ResultEvidence result={current} />}
-      </SidePanel>
     </>
   );
-}
-
-const DESKTOP = "(min-width: 1024px)";
-function subscribeDesktop(onChange: () => void) {
-  const query = window.matchMedia(DESKTOP);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
 }
 
 const FACT_ICON = { present: CheckCircle2, missing: MinusCircle, contradicted: XCircle } as const;
 const FACT_LABEL = { present: "factPresent", missing: "factMissing", contradicted: "factContradicted" } as const;
 
-/** One result as a customer reads it: verdict, conversation, ground truth, evidence. */
-function ResultEvidence({ result }: { result: Result }) {
+/**
+ * One result, full width: the verdict, then what the assistant said beside
+ * what it should have said (the ground truth), then the supporting evidence.
+ */
+function ResultReview({
+  result,
+  position,
+  total,
+  onPrevious,
+  onNext,
+  onClose,
+}: {
+  result: Result;
+  position: number;
+  total: number;
+  onPrevious: (() => void) | null;
+  onNext: (() => void) | null;
+  onClose: () => void;
+}) {
   const label = labelOf(result);
   const meta = LABEL_META[label];
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus();
+    window.scrollTo({ top: 0 });
+  }, [result.assessment_id]);
+  // Arrow keys browse, Escape returns to the list (not while typing).
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || target?.closest("input,textarea,select,[contenteditable='true']")) return;
+      if (event.key === "ArrowLeft" && onPrevious) { event.preventDefault(); onPrevious(); }
+      else if (event.key === "ArrowRight" && onNext) { event.preventDefault(); onNext(); }
+      else if (event.key === "Escape") { event.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onPrevious, onNext, onClose]);
+
   const graded = result.graded_by === "human" ? t("gradedByPerson") : result.graded_by === "lexical" ? t("gradedLexically") : t("gradedAutomatically");
+  const category = result.failure_category && (label === "incorrect" || label === "partially_correct") ? categoryLabelText(result.failure_category) : null;
   const facts = result.key_facts ?? [];
+  const extras = [
+    ...(result.confirmed_claims ?? []).map((text) => ({ text, confirmed: true })),
+    ...(result.unsupported_claims ?? []).map((text) => ({ text, confirmed: false })),
+  ];
+  const hasSupport = !!(result.contradictions?.length || extras.length || result.source_excerpts?.length || result.web_sources?.length);
+
   return (
-    <div className="p-evidence">
-      <section className="p-verdict" data-tone={meta.tone} aria-label={t("whyThisResult")}>
-        <div className="p-verdict-head">
+    <article className="p-review" aria-labelledby="result-question">
+      <nav className="p-review-nav" aria-label={t("resultNavigation")}>
+        <Action variant="ghost" size="sm" onClick={onClose}>
+          <ArrowLeft aria-hidden="true" />
+          {t("allResults")}
+        </Action>
+        <span className="p-review-position">{tv("resultPosition", { position, total })}</span>
+        <span className="p-row p-nowrap">
+          <button type="button" className="p-btn" data-variant="secondary" data-shape="icon" aria-label={t("previousResult")} disabled={!onPrevious} onClick={() => onPrevious?.()}>
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <button type="button" className="p-btn" data-variant="secondary" data-shape="icon" aria-label={t("nextResult")} disabled={!onNext} onClick={() => onNext?.()}>
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </span>
+      </nav>
+
+      <header className="p-review-head" data-tone={meta.tone}>
+        <span className="p-review-kicker">{t("question")}</span>
+        <h2 id="result-question" ref={heading} tabIndex={-1} className="p-review-question">{result.input || result.title}</h2>
+        <div className="p-review-verdict">
           <ResultBadge result={result} />
-          {result.failure_category && (label === "incorrect" || label === "partially_correct") && <span>{categoryLabelText(result.failure_category)}</span>}
-          <span>{graded}</span>
+          {category && <span className="p-review-category">{category}</span>}
+          <p>{result.rationale || t("noExplanation")}</p>
         </div>
-        <p>{result.rationale || t("noExplanation")}</p>
-      </section>
-      <div className="p-transcript">
-        <div className="p-bubble" data-role="user">
-          <span className="p-bubble-role">{t("question")}</span>
-          <p>{result.input}</p>
-        </div>
-        <div className="p-bubble" data-role="assistant">
-          <span className="p-bubble-role">{t("systemAnswer")}</span>
-          <p>{result.output || <span className="p-cell-meta">{t("emptyAnswer")}</span>}</p>
-          {result.offered_actions?.length ? (
-            <>
-              <span className="p-kicker">{t("offeredOptions")}</span>
-              <span className="p-chips">
-                {result.offered_actions.map((action) => (
-                  <span key={action} className="p-chip-static">{action}</span>
+      </header>
+
+      <div className="p-compare">
+        <section className="p-compare-side" aria-labelledby="result-answer">
+          <h3 id="result-answer" className="p-compare-title">
+            <MessageSquare aria-hidden="true" />
+            {t("whatAssistantSaid")}
+          </h3>
+          <div className="p-compare-body">
+            {result.output ? <p className="p-compare-text">{result.output}</p> : <p className="p-cell-meta">{t("emptyAnswer")}</p>}
+            {result.offered_actions?.length ? (
+              <div>
+                <span className="p-kicker">{t("offeredOptions")}</span>
+                <span className="p-chips">
+                  {result.offered_actions.map((action) => (
+                    <span key={action} className="p-chip-static">{action}</span>
+                  ))}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </section>
+        <section className="p-compare-side" data-kind="truth" aria-labelledby="result-truth">
+          <h3 id="result-truth" className="p-compare-title">
+            <BadgeCheck aria-hidden="true" />
+            {t("whatItShouldSay")}
+          </h3>
+          <div className="p-compare-body">
+            {result.expected ? <p className="p-compare-text">{result.expected}</p> : <p className="p-cell-meta">{t("noExpectedAnswer")}</p>}
+            {facts.length > 0 && (
+              <div>
+                <span className="p-kicker">{t("keyFacts")}</span>
+                <ul className="p-facts">
+                  {facts.map((fact, index) => {
+                    const Icon = fact.status ? FACT_ICON[fact.status] : CircleDashed;
+                    return (
+                      <li key={index} data-status={fact.status ?? "unknown"}>
+                        <Icon aria-hidden="true" />
+                        <span>{fact.fact}</span>
+                        {fact.status && <span className="p-facts-status">{t(FACT_LABEL[fact.status])}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {hasSupport && (
+        <div className="p-support">
+          {result.contradictions?.length ? (
+            <section className="p-support-block" data-tone="fail">
+              <h4>{t("contradictionsLabel")}</h4>
+              <ul>{result.contradictions.map((item, index) => <li key={index}>{item}</li>)}</ul>
+            </section>
+          ) : null}
+          {extras.length ? (
+            <section className="p-support-block">
+              <h4>{t("extraDetails")}</h4>
+              <p className="p-support-note">{t("extraDetailsHelp")}</p>
+              <ul>
+                {extras.map((item, index) => (
+                  <li key={index}>
+                    {item.text}
+                    {item.confirmed && <span className="p-support-tag">{t("confirmedOnline")}</span>}
+                  </li>
                 ))}
-              </span>
-            </>
+              </ul>
+            </section>
+          ) : null}
+          {result.source_excerpts?.length ? (
+            <section className="p-support-block" data-kind="source">
+              <h4>{t("fromYourDocumentation")}</h4>
+              {result.source_excerpts.map((excerpt) => (
+                <blockquote key={`${excerpt.source_revision_id}-${excerpt.anchor}`} className="p-quote">
+                  {excerpt.excerpt}
+                  {excerpt.title && <cite>{excerpt.title}</cite>}
+                </blockquote>
+              ))}
+            </section>
+          ) : null}
+          {result.web_sources?.length ? (
+            <section className="p-support-block">
+              <h4>{t("checkedOnline")}</h4>
+              <ul className="p-support-links">
+                {result.web_sources.map((source) => (
+                  <li key={source.url}>
+                    <a className="p-link" href={source.url} target="_blank" rel="noreferrer noopener">{source.title || new URL(source.url).hostname}</a>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
         </div>
-      </div>
-      {result.expected ? (
-        <section className="p-ground-truth" aria-label={t("expectedAnswer")}>
-          <span className="p-kicker">{t("expectedAnswer")}</span>
-          <p>{result.expected}</p>
-          {facts.length > 0 && (
-            <>
-              <span className="p-kicker">{t("keyFacts")}</span>
-              <ul className="p-facts">
-                {facts.map((fact, index) => {
-                  const Icon = fact.status ? FACT_ICON[fact.status] : CircleDashed;
-                  return (
-                    <li key={index} data-status={fact.status ?? "unknown"}>
-                      <Icon aria-hidden="true" />
-                      <span>{fact.fact}</span>
-                      {fact.status && <span className="p-facts-status">{t(FACT_LABEL[fact.status])}</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-        </section>
-      ) : null}
-      {result.contradictions?.length ? (
-        <section>
-          <SectionHeading title={t("contradictionsLabel")} />
-          <ul className="p-bullets">
-            {result.contradictions.map((item, index) => <li key={index}>{item}</li>)}
-          </ul>
-        </section>
-      ) : null}
-      {result.unsupported_claims?.length ? (
-        <section>
-          <SectionHeading title={t("unverifiedClaims")} />
-          <ul className="p-bullets">
-            {result.unsupported_claims.map((item, index) => <li key={index}>{item}</li>)}
-          </ul>
-        </section>
-      ) : null}
-      {result.source_excerpts?.length ? (
-        <section>
-          <SectionHeading title={t("fromYourDocumentation")} />
-          {result.source_excerpts.map((excerpt) => (
-            <blockquote key={`${excerpt.source_revision_id}-${excerpt.anchor}`} className="p-quote">
-              {excerpt.excerpt}
-              {excerpt.title && <cite>{excerpt.title}</cite>}
-            </blockquote>
-          ))}
-        </section>
-      ) : !result.expected ? (
-        <section>
-          <SectionHeading title={t("sourceEvidence")} />
-          <p className="p-cell-meta">{t("sourceExcerptNotShared")}</p>
-        </section>
-      ) : null}
-      <details className="p-details">
+      )}
+
+      <details className="p-details p-review-tech">
         <summary>{t("technicalDetails")}</summary>
         <DefinitionList
           items={[
+            { term: t("grading"), value: graded },
+            { term: t("severity"), value: humanize(result.severity) },
+            ...(result.topic !== "grounded" ? [{ term: t("topic"), value: humanize(result.topic) }] : []),
             { term: t("review"), value: humanize(result.review_status) },
             { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
             { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
@@ -641,7 +693,7 @@ function ResultEvidence({ result }: { result: Result }) {
           ]}
         />
       </details>
-    </div>
+    </article>
   );
 }
 

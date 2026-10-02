@@ -24,6 +24,8 @@ type WorkspaceState = {
   operator: boolean;
   /** Caudals platform administrator: may change platform-wide settings such as AI models. */
   platformAdmin: boolean;
+  /** The signed-in person's email, for confirming identity before sensitive changes. */
+  userEmail: string;
   setOrgId: (id: string) => void;
   /** Append the current workspace to an internal href. */
   withOrg: (href: string, id?: string) => string;
@@ -102,10 +104,11 @@ export function WorkspaceProvider({ identity, children }: { identity: EvalIdenti
       canManage: ["owner", "operator"].includes(role),
       operator: identity.platformRole === "operator" || identity.platformRole === "platform_admin",
       platformAdmin: identity.platformRole === "platform_admin",
+      userEmail: identity.user.email,
       setOrgId,
       withOrg,
     };
-  }, [identity.platformRole, orgId, setOrgId, withOrg, workspaces]);
+  }, [identity.platformRole, identity.user.email, orgId, setOrgId, withOrg, workspaces]);
 
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

@@ -72,6 +72,8 @@ export function buildResultDetail(row: ResultRow, excerpt: ExcerptLookup) {
     failure_category: verdict?.failure_category ?? null,
     contradictions: (verdict?.contradictions ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
     unsupported_claims: (verdict?.unsupported_claims ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
+    confirmed_claims: (verdict?.confirmed_claims ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
+    web_sources: (verdict?.web_sources ?? []).slice(0, 8).map(({ url, title }) => ({ url: url.slice(0, 2000), ...(title ? { title: title.slice(0, 300) } : {}) })),
     offered_actions: offeredActions(row.observation).map((value) => value.slice(0, 200)),
     graded_by: gradedBy,
     confidence: verdict?.confidence ?? null,

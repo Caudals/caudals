@@ -9,11 +9,12 @@
  * or retrying a step never duplicates work.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Globe, Plus, Sparkles, Upload, X } from "lucide-react";
+import { FileText, Globe, Plus, Search, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { evalRequest } from "./api";
 import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
+import { WebDiscovery } from "./web-discovery";
 import { DeleteDialog, itemRequest } from "./item-actions";
 import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion } from "./preparation-parts";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
@@ -104,8 +105,8 @@ export function PrepareEvaluation({
   const [casePreviews, setCasePreviews] = useState<CasePreview[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [showWebsite, setShowWebsite] = useState(false);
+  const [showDiscovery, setShowDiscovery] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState("");
-  const [websiteRights, setWebsiteRights] = useState<"customer_owned" | "licensed" | "public_domain" | "">("");
   const [pending, setPending] = useState<"" | "upload" | "website" | "generate" | "manual" | "context" | "approve">("");
   const [error, setError] = useState("");
   const [autoJobId, setAutoJobId] = useState<string | null>(null);
@@ -262,11 +263,11 @@ export function PrepareEvaluation({
 
   async function addWebsite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!websiteUrl.trim() || !websiteRights || pending) return;
+    if (!websiteUrl.trim() || pending) return;
     setPending("website");
     setError("");
     try {
-      const input = { orgId, evaluationId: evaluation.id, projectId: evaluation.project_id, url: websiteUrl.trim(), rights: websiteRights };
+      const input = { orgId, evaluationId: evaluation.id, projectId: evaluation.project_id, url: websiteUrl.trim(), rights: "customer_owned" };
       const started = await evalRequest<{ sourceId: string; jobId: string }>("/sources/websites", "POST", input, await stableKey("website-source", input));
       // Reading continues in the background; the list shows its progress.
       setPendingSources((current) => [...current.filter((item) => item.id !== started.sourceId), { id: started.sourceId, title: websiteUrl.trim(), kind: "website", state: "reading", reason: null }]);
@@ -601,24 +602,33 @@ export function PrepareEvaluation({
               <Globe aria-hidden="true" />
               {t("addWebsite")}
             </Action>
+            <Action variant="ghost" size="sm" onClick={() => setShowDiscovery((value) => !value)} aria-expanded={showDiscovery}>
+              <Search aria-hidden="true" />
+              {t("findWebSources")}
+            </Action>
             <span className="p-toolbar-spacer" />
             <Action type="submit" variant="secondary" disabled={!files.length || !!pending}>
               {pending === "upload" ? t("uploadingExtracting") : t("addDocuments")}
             </Action>
           </div>
         </form>
+        <WebDiscovery
+          orgId={orgId}
+          evaluationId={evaluation.id}
+          projectId={evaluation.project_id}
+          open={showDiscovery}
+          onOpenChange={setShowDiscovery}
+          onStarted={(started) => {
+            setPendingSources((current) => [...current.filter((item) => !started.some((source) => source.id === item.id)), ...started.map((source) => ({ id: source.id, title: source.title, kind: "website" as const, state: "reading" as const, reason: null }))]);
+            void onReady();
+          }}
+        />
         {showWebsite && (
           <form className="p-inline-form" onSubmit={addWebsite}>
             <Field id="website-url" type="url" inputMode="url" label={t("publicWebsite")} placeholder="https://example.com/help" value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} required />
-            <SelectField id="website-rights" label={t("contentRights")} required value={websiteRights} onChange={(event) => setWebsiteRights(event.target.value as typeof websiteRights)}>
-              <option value="">{t("chooseRights")}</option>
-              <option value="customer_owned">{t("rightsOwned")}</option>
-              <option value="licensed">{t("rightsLicensed")}</option>
-              <option value="public_domain">{t("rightsPublic")}</option>
-            </SelectField>
             <p className="p-field-hint">{t("websiteCaptureHelp")}</p>
             <div className="p-row">
-              <Action type="submit" variant="secondary" disabled={!websiteUrl.trim() || !websiteRights || !!pending}>
+              <Action type="submit" variant="secondary" disabled={!websiteUrl.trim() || !!pending}>
                 {pending === "website" ? t("capturingWebsite") : t("addWebsiteContext")}
               </Action>
             </div>

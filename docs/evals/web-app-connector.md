@@ -4,8 +4,10 @@ Connects an AI system that is only reachable through a browser UI: public or
 authenticated apps, embedded widgets, iframes, SSO and 2FA. Available from an
 evaluation's web app section and the website system panel. Workspace managers
 and assigned operators can open it; viewers cannot see browser pixels or send
-input. The target must carry a current website-testing attestation and be
-permitted by the browser worker's workspace allowlist.
+input. Connecting a website records the workspace member's testing
+attestation automatically (bounded, non-adversarial questions only; there is
+no separate checkbox), and the target must be permitted by the browser
+worker's workspace allowlist.
 
 ## Customer flow
 

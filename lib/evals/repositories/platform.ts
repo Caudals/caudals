@@ -40,7 +40,8 @@ export function requireRecentAuthentication(identity: EvalIdentity, maxMinutes =
   requirePlatformAdmin(identity);
   const at = identity.sessionCreatedAt ? Date.parse(identity.sessionCreatedAt) : NaN;
   if (!Number.isFinite(at) || Date.now() - at > maxMinutes * 60_000) {
-    throw new EvalError("REAUTHENTICATION_REQUIRED", 401, "Sign in again to confirm this platform change.");
+    // 403, not 401: the session is valid; the person only needs to confirm it is them.
+    throw new EvalError("REAUTHENTICATION_REQUIRED", 403, "Confirm it is you to make this platform change.");
   }
 }
 

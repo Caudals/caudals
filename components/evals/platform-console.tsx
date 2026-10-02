@@ -33,6 +33,7 @@ import {
 } from "./primitives";
 import { ActionMenu, Modal, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
+import { useReauth } from "./reauth";
 import { t } from "@/lib/evals/messages/en";
 
 export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit";
@@ -47,36 +48,36 @@ const list = (value: FormDataEntryValue | null) =>
     .filter(Boolean);
 
 function usePlatformAction() {
-  const [error, setError] = useState<{ message: string; reauth: boolean } | null>(null);
+  const [error, setError] = useState<{ message: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const reauth = useReauth();
+  const { confirm } = reauth;
   const run = useCallback(async (work: () => Promise<unknown>, done: string) => {
     setPending(true);
     setError(null);
     try {
-      await work();
+      try {
+        await work();
+      } catch (reason) {
+        // A sensitive change asks for a fresh confirmation: confirm in place, then retry once.
+        if (!(reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED") || !(await confirm())) throw reason;
+        await work();
+      }
       notify(done);
       return true;
     } catch (reason) {
-      setError({ message: reason instanceof Error ? reason.message : t("error"), reauth: reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED" });
+      setError({ message: reason instanceof Error ? reason.message : t("error") });
       return false;
     } finally {
       setPending(false);
     }
-  }, []);
-  const messages = error ? (
-    <Status
-      error
-      action={
-        error.reauth ? (
-          <Link className="p-link" href={`/workspace/sign-in?next=${encodeURIComponent(typeof location === "undefined" ? "/ops/platform" : location.pathname + location.search)}`}>
-            {t("signInAgain")}
-          </Link>
-        ) : undefined
-      }
-    >
-      {error.message}
-    </Status>
-  ) : null;
+  }, [confirm]);
+  const messages = (
+    <>
+      {reauth.dialog}
+      {error ? <Status error>{error.message}</Status> : null}
+    </>
+  );
   return { run, pending, messages };
 }
 

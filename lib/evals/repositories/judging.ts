@@ -76,8 +76,9 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
     const criterionIds = criterionIdsFor(candidate);
     const excerpts = await sourceExcerpts(db, scope.orgId, candidate.item);
     const promptRevision = v2(candidate) ? ANSWER_JUDGE_REVISION : JUDGE_PROMPT_REVISION;
+    const web = v2(candidate) && route!.web_research;
     const messages = v2(candidate) ? [
-      { role: "system" as const, content: answerJudgeSystemPrompt() },
+      { role: "system" as const, content: answerJudgeSystemPrompt({ web }) },
       { role: "user" as const, content: answerJudgeUserMessage(candidate.item, candidate.observation, candidate.rubric, criterionIds, excerpts) },
     ] : [
       { role: "system" as const, content: judgeSystemPrompt() },
@@ -89,6 +90,7 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
       workspaceBudgetId: workspaceBudget!.id, runBudgetId: runBudget.id, role: "judge",
       dataClass: route!.data_class, region: route!.region, ...routingFor(route!),
       messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, v2(candidate) ? 1536 : 1024),
+      ...(web ? { webSearch: { maxResults: 5 } } : {}),
       timeoutMs: internalTimeoutMs(route!, 600000), internalCostPerSecond: route!.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.judge_job(id,org_id,run_id,observation_id,pending_assessment_id,case_revision_id,rubric_revision_id,criterion_ids,
@@ -174,10 +176,12 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
           continue;
         }
         if (!calibrations.has(key)) calibrations.set(key, await judgeCalibration(db, scope.orgId, job.judge_model_revision_id, job.judge_prompt_revision));
+        const citations = (job.output as { citations?: Array<{ url: string; title?: string }> }).citations;
         assessment = combineAnswerJudgeAssessment({
           pending: assessmentSchema.parse(row.pending),
           item: caseSchema.parse(row.case_document),
           output: parsed.output,
+          webSources: Array.isArray(citations) ? citations.filter((item) => typeof item?.url === "string") : undefined,
           judge: { modelRevisionId: job.judge_model_revision_id, promptRevision: job.judge_prompt_revision, jobId: job.id },
           calibration: calibrations.get(key)!,
         });

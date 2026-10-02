@@ -18,6 +18,8 @@ const resultDetailShape={
   failure_category:z.string().max(60).nullable().optional(),
   contradictions:z.array(z.string().max(400)).max(10).optional(),
   unsupported_claims:z.array(z.string().max(400)).max(10).optional(),
+  confirmed_claims:z.array(z.string().max(400)).max(10).optional(),
+  web_sources:z.array(z.strictObject({url:z.string().max(2000),title:z.string().max(300).optional()})).max(8).optional(),
   offered_actions:z.array(z.string().max(200)).max(20).optional(),
   graded_by:z.enum(["judge","lexical","precheck","deterministic","human"]).optional(),
   confidence:z.enum(["high","medium","low"]).nullable().optional(),

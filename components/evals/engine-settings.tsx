@@ -12,11 +12,12 @@ import { Cpu, Globe, KeyRound, Plus, RotateCcw, Trash2, Zap } from "lucide-react
 import { evalRequest, EvalRequestError } from "./api";
 import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, SelectField, Status, Tabs } from "./primitives";
 import { ActionMenu, Modal, notify } from "./overlays";
+import { useReauth } from "./reauth";
 import { t } from "@/lib/evals/messages/en";
 
 type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
 type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
-type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean };
+type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean };
 type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[]; platform: Route[]; workspace: Route[] };
 type Model = { id: string; label: string; detail: string | null };
 type Scope = "platform" | "workspace";
@@ -27,6 +28,9 @@ const ROLE_COPY: Record<Role, { title: string; help: string }> = {
   judge: { title: t("roleJudge"), help: t("roleJudgeHelp") },
   report_writer: { title: t("roleReportWriter"), help: t("roleReportWriterHelp") },
 };
+
+/** Roles that can use public web search: reading sources (web discovery), drafting tests and grading. */
+const WEB_ROLES = new Set<Role>(["context_analyzer", "generator", "judge"]);
 
 /** Common OpenAI-compatible base addresses, so nobody has to look them up. */
 const PRESETS = [
@@ -47,36 +51,36 @@ const perMillion = (value: string) => {
 };
 
 function useAction() {
-  const [error, setError] = useState<{ message: string; reauth: boolean } | null>(null);
+  const [error, setError] = useState<{ message: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const reauth = useReauth();
+  const { confirm } = reauth;
   const run = useCallback(async (work: () => Promise<unknown>, done?: string) => {
     setPending(true);
     setError(null);
     try {
-      await work();
+      try {
+        await work();
+      } catch (reason) {
+        // A sensitive change asks for a fresh confirmation: confirm in place, then retry once.
+        if (!(reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED") || !(await confirm())) throw reason;
+        await work();
+      }
       if (done) notify(done);
       return true;
     } catch (reason) {
-      setError({ message: reason instanceof Error ? reason.message : t("error"), reauth: reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED" });
+      setError({ message: reason instanceof Error ? reason.message : t("error") });
       return false;
     } finally {
       setPending(false);
     }
-  }, []);
-  const message = error ? (
-    <Status
-      error
-      action={
-        error.reauth ? (
-          <Link className="p-link" href={`/workspace/sign-in?next=${encodeURIComponent(typeof location === "undefined" ? "/workspace/settings?tab=models" : location.pathname + location.search)}`}>
-            {t("signInAgain")}
-          </Link>
-        ) : undefined
-      }
-    >
-      {error.message}
-    </Status>
-  ) : null;
+  }, [confirm]);
+  const message = (
+    <>
+      {reauth.dialog}
+      {error ? <Status error>{error.message}</Status> : null}
+    </>
+  );
   return { run, pending, message, clear: () => setError(null) };
 }
 
@@ -124,7 +128,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
           />
         }
       >
-        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), t("engineWebResearch"), { label: t("actions"), align: "end", hidden: true }]}>
           {settings.roles.map((role) => {
             const { route, inherited } = effective(role);
             return (
@@ -146,6 +150,29 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                     </span>
                   ) : (
                     <Badge tone="warn" dot>{t("engineNotSet")}</Badge>
+                  )}
+                </td>
+                <td>
+                  {route && WEB_ROLES.has(role) ? (
+                    route.web_capable ? (
+                      <Check
+                        label={route.web_research ? t("engineWebOn") : t("engineWebOff")}
+                        description={inherited ? t("engineWebInherited") : undefined}
+                        checked={route.web_research}
+                        disabled={action.pending || inherited}
+                        onChange={(event) => {
+                          const enabled = event.target.checked;
+                          void action.run(async () => {
+                            await evalRequest("/engine/routes/web", "PUT", { orgId, scope, role, enabled });
+                            await reload();
+                          }, enabled ? t("engineWebEnabled") : t("engineWebDisabled"));
+                        }}
+                      />
+                    ) : (
+                      <span className="p-cell-meta" title={t("engineWebNeedsOpenRouter")}>{t("engineWebUnavailable")}</span>
+                    )
+                  ) : (
+                    <span className="p-cell-meta">—</span>
                   )}
                 </td>
                 <td className="p-table-action">

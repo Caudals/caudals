@@ -135,11 +135,41 @@ review and capture problems become limitations, not findings.
 
 ## Results presentation
 
-Each result shows: question, the system's answer (plus any buttons it
-offered), the **expected answer (ground truth)**, the key-fact checklist, the
-cited source excerpt, the verdict explanation, contradictions and unverified
-extras, and the review status. Results download as CSV with the expected
-answer and verdict.
+The results list shows one row per test: the question, the one-line reason
+and a single label (a coloured rule marks the verdict; only critical tests get
+an extra mark). Opening a row switches to a full-width review with
+previous/next (← → keys, Esc returns to the list):
+
+1. the question and the verdict with its explanation;
+2. **What the assistant said** (answer and any buttons it offered) beside
+   **What it should say** — the ground truth, with the key-fact checklist,
+   marked by an ink rule as the reference;
+3. supporting evidence: contradictions, extra details (unverified or
+   confirmed online), the cited source excerpt and any pages checked on the
+   web; technical identifiers stay collapsed.
+
+Results download as CSV, PDF and Word with the expected answer and verdict.
+
+## Web research
+
+Settings → AI models has a **Web research** switch per role (reading
+sources, drafting tests, grading). It is available for models connected
+through OpenRouter, whose web plugin searches the public web for any model
+(billed by OpenRouter per result, outside the token estimate).
+
+- **Grading:** the judge may check details the cited excerpts do not cover.
+  Details the web confirms are listed as "confirmed online"; details it
+  contradicts become contradictions. The expected answer stays the ground
+  truth; a web page never overrides it. Consulted pages are recorded with the
+  verdict (`web_sources`).
+- **Drafting tests:** web results only help phrase questions the way real
+  customers ask; answers, key facts and quotes still come from the sources.
+- **Find sources on the web** (preparation): the reading-sources model
+  proposes public pages about the product (help centre, FAQs, terms, pricing;
+  the company's own site first). The person picks which to add and each is
+  captured as an ordinary website source (up to 3 pages from that address),
+  so tests keep citing frozen excerpts (`evals.web_discovery_job`,
+  migration 070).
 
 ## Re-grading
 

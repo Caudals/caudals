@@ -24,9 +24,11 @@ export type ModelRoute = {
   model_id: string;
   currency: string;
   source: "workspace" | "platform";
+  /** Opt-in public web search for this role (applied where the provider supports it). */
+  web_research: boolean;
 };
 
-const COLUMNS = `r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second::text AS internal_cost_per_second,
+const COLUMNS = `r.role,r.provider_revision_id,r.price_revision_id,r.data_class,r.region,r.internal_cost_per_second::text AS internal_cost_per_second,r.web_research,
   p.adapter,p.model_id,p.output_limit,p.context_limit,p.tpm,pr.currency`;
 const JOINS = `JOIN evals.provider_revision p ON p.id=r.provider_revision_id AND (p.retired_at IS NULL OR p.retired_at>now())
   JOIN evals.provider_account a ON a.id=p.account_id AND a.enabled
