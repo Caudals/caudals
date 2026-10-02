@@ -104,6 +104,8 @@ describe("answer judge v2", () => {
     expect(parsed.output.verdict).toBe("correct");
     expect(parsed.output.criteria.map((item) => item.verdict)).toEqual(["pass", "pass"]);
     expect(parsed.output.reference_issue).toBeNull();
+    // A raw tab inside a string (seen in production) is tolerated.
+    expect(parseAnswerJudgeOutput(judgeText('{"verdict":"partially_correct","explanation":"Omite la\tkey fact."}'), ["correctness"]).ok).toBe(true);
     expect(parseAnswerJudgeOutput(judgeText("It looks fine to me."), ["correctness"])).toEqual({ ok: false, reason: "judge_output_not_json" });
     expect(parseAnswerJudgeOutput(judgeText({ verdict: "great", explanation: "x" }), ["correctness"])).toEqual({ ok: false, reason: "judge_output_schema_invalid" });
   });

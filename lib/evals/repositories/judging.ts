@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import { caseSchema, rubricSchema, type CefCase, type Rubric } from "../contracts/cases";
 import { assessmentSchema, observationSchema, type Assessment, type Observation } from "../contracts/results";
 import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
+import { withContentHash } from "../contracts/hashing";
 import { digest, enqueueInvocation, type Tenant } from "../queue/store";
 import {
   JUDGE_EXTENSION, JUDGE_PROMPT_REVISION, calibrationSummary, candidateAnswer, combineJudgeAssessment,
@@ -154,7 +155,24 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
       let assessment: Assessment;
       if (job.judge_prompt_revision === ANSWER_JUDGE_REVISION) {
         const parsed = parseAnswerJudgeOutput(job.output, job.criterion_ids);
-        if (!parsed.ok) { await finish("invalid", parsed.reason); outcome.invalid++; continue; }
+        if (!parsed.ok) {
+          await finish("invalid", parsed.reason);
+          outcome.invalid++;
+          // Models occasionally degenerate or break JSON: ask once more before leaving the result ungraded.
+          const attempts = Number((await db.query("SELECT count(*)::int AS n FROM evals.judge_job WHERE org_id=$1 AND observation_id=$2 AND judge_prompt_revision=$3",
+            [scope.orgId, job.observation_id, ANSWER_JUDGE_REVISION])).rows[0].n);
+          if (attempts < 2) {
+            const pending = assessmentSchema.parse(row.pending);
+            const retry = assessmentSchema.parse(withContentHash({ ...pending, assessment_id: randomUUID(), supersedes_assessment_id: pending.assessment_id, created_at: new Date().toISOString() }));
+            await db.query("INSERT INTO evals.assessment(id,org_id,observation_id,content_hash,document,outcome,review_status,supersedes_assessment_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+              [retry.assessment_id, scope.orgId, job.observation_id, retry.content_hash, retry, retry.outcome, retry.review_status, retry.supersedes_assessment_id]);
+            for (const criterion of retry.criteria) {
+              await db.query("INSERT INTO evals.criterion_score(org_id,assessment_id,criterion_id,score,rationale) VALUES($1,$2,$3,$4,$5)", [scope.orgId, retry.assessment_id, criterion.criterion_id, criterion.score, criterion.rationale]);
+            }
+            await queueRunJudgments(db, scope, job.run_id, [{ assessment: retry, observationId: job.observation_id, observation, item: caseSchema.parse(row.case_document), rubric: rubricSchema.parse(row.rubric_document) }]);
+          }
+          continue;
+        }
         if (!calibrations.has(key)) calibrations.set(key, await judgeCalibration(db, scope.orgId, job.judge_model_revision_id, job.judge_prompt_revision));
         assessment = combineAnswerJudgeAssessment({
           pending: assessmentSchema.parse(row.pending),

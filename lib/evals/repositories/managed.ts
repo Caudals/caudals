@@ -251,7 +251,9 @@ export function scoreRun(scope:EvidenceScope,runId:string,graderRevisionId:strin
   const old=(await db.query(`SELECT a.id,a.document,EXISTS (SELECT 1 FROM evals.review_decision d WHERE d.org_id=a.org_id AND d.assessment_id=a.id) AS decided,
     EXISTS (SELECT 1 FROM evals.judge_job j WHERE j.org_id=a.org_id AND j.pending_assessment_id=a.id AND j.status='queued') AS judging
    FROM evals.assessment a WHERE a.org_id=$1 AND a.observation_id=$2 ORDER BY a.created_at DESC,a.id DESC LIMIT 1`,[scope.orgId,row.observation_id])).rows[0];
-  if(old?.document?.grader_revision_id===graderRevisionId&&old.document.observation_hash===row.observation.content_hash&&(old.document.outcome!=="unscorable"||old.judging||!v2)){skipped++;continue;}
+  // A v2 result is final unless its judge call failed (still pending, nothing queued): those are retried.
+  const pendingJudge=old?.document?.outcome==="unscorable"&&!!old.document.extensions?.[PENDING_CRITERIA_EXTENSION]&&!old.judging;
+  if(old?.document?.grader_revision_id===graderRevisionId&&old.document.observation_hash===row.observation.content_hash&&!(v2&&pendingJudge)){skipped++;continue;}
   if(old&&(old.decided||old.document?.author?.kind==="human")){skipped++;continue;}
   let assessment=v2?gradeV2({caseRevision:row.case_document,observation:row.observation,rubric:row.rubric_document,mode}):gradeDeterministically({caseRevision:row.case_document,observation:row.observation,rubric:row.rubric_document,graderRevisionId});
   if(old){assessment={...assessment,supersedes_assessment_id:old.id};assessment=withContentHash(assessment) as typeof assessment;}

@@ -269,7 +269,9 @@ export type AnswerJudgeOutput = z.infer<typeof answerJudgeOutputSchema>;
 /** The first balanced JSON object in a model reply (models add prose or fences despite instructions). */
 function extractJson(text: string): unknown {
   const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  try { return JSON.parse(trimmed); } catch { /* look for an embedded object */ }
+  try { return JSON.parse(trimmed); } catch { /* raw control characters or an embedded object */ }
+  // Models sometimes put a raw tab or newline inside a string; as whitespace it is harmless.
+  try { return JSON.parse(trimmed.replace(/[\u0000-\u001f]+/g, " ")); } catch { /* look for an embedded object */ }
   const start = trimmed.indexOf("{");
   if (start < 0) throw new Error("no_json");
   let depth = 0, inString = false, escaped = false;
@@ -278,7 +280,7 @@ function extractJson(text: string): unknown {
     if (inString) { if (escaped) escaped = false; else if (char === "\\") escaped = true; else if (char === '"') inString = false; continue; }
     if (char === '"') inString = true;
     else if (char === "{") depth++;
-    else if (char === "}" && --depth === 0) return JSON.parse(trimmed.slice(start, index + 1));
+    else if (char === "}" && --depth === 0) return JSON.parse(trimmed.slice(start, index + 1).replace(/[\u0000-\u001f]+/g, " "));
   }
   throw new Error("no_json");
 }

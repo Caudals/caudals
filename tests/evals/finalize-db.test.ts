@@ -89,9 +89,16 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(await regradeRun(scope, run.id)).toMatchObject({ regraded: 2, judgeCalls: 2 });
     expect(await regradeRun(scope, run.id)).toMatchObject({ regraded: 0 });
     const next = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1 AND j.status='queued'", [orgId])).rows);
+    // The first answer is unusable (a degenerate, truncated reply): the judge is asked once more.
+    const broken = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
+      invoke: async () => ({ text: '{"verdict":"correct","unsupported_claims":["具体具体具体', complete: false, finishReason: "length", latencyMs: 10 }) });
+    for (const step of next) await broken.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
+    expect(await advanceJudgments(scope, run.id)).toMatchObject({ invalid: 2, completed: 0 });
+    const retried = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1 AND j.status='queued'", [orgId])).rows);
+    expect(retried).toHaveLength(2);
     const answerJudge = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
       invoke: async () => ({ text: "```json\n" + JSON.stringify({ verdict: "correct", explanation: "States the documented figure.", key_facts: [] }) + "\n```", complete: true, finishReason: "stop", latencyMs: 10 }) });
-    for (const step of next) await answerJudge.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
+    for (const step of retried) await answerJudge.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
     expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
     expect(await refreshJudgedReports(scope)).toBe(1);
     const regraded = await withTenant(scope, async (c) => (await c.query("SELECT rr.snapshot->'metrics'->>'n_pass' AS pass,rr.snapshot->'results'->0->>'label' AS label FROM evals.report r JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(r.org_id,r.current_revision_id) WHERE r.org_id=$1", [orgId])).rows[0]);
