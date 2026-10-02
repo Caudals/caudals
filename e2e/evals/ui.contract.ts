@@ -698,23 +698,23 @@ test("operator completes the improvement dataset release and held-out validation
   await expect(page.getByText(/does not prove causality/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
-test("results open full width with the answer beside the ground truth and return focus to the list", async ({ page }) => {
+test("each result opens as its own full-width page and returns focus to the list", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/reports/fixture");
   await page.getByRole("tab", { name: "Test results" }).click();
   // Rows lead with the question itself, so the customer reads what was asked.
   await page.getByRole("button", { name: /Can I get a refund\?/ }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Can I get a refund?" })).toBeFocused();
-  await expect(page.getByRole("region", { name: "What the assistant said" })).toContainText("No.");
-  await expect(page.getByRole("region", { name: /What it should say/ })).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
   await expect(page.getByText("30-day policy")).toBeVisible();
+  await expect(page.getByText("No.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Next result" })).toBeDisabled();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: /Can I get a refund\?/ })).toBeFocused();
   await page.setViewportSize({ width: 390, height: 900 });
   await page.getByRole("button", { name: /Can I get a refund\?/ }).click();
-  await expect(page.getByRole("region", { name: "What the assistant said" })).toBeVisible();
+  await expect(page.getByText("30-day policy")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "All results" }).click();
   await expect(page.getByRole("button", { name: /Can I get a refund\?/ })).toBeFocused();

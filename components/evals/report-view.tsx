@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MessageSquare, MinusCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MinusCircle, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest } from "./api";
 import {
@@ -474,27 +474,27 @@ function Results({
         <FilterChips value={outcome} onChange={setOutcome} label={t("filterOutcome")} options={chips} />
       </div>
       {visible.length ? (
-        <ol className="p-result-list" aria-label={t("testResults")}>
-          {visible.map((item, position) => {
-            const meta = LABEL_META[labelOf(item)];
-            return (
-              <li key={item.assessment_id} data-tone={meta.tone}>
-                <button type="button" className="p-result-row" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
-                  <span className="p-result-index" aria-hidden="true">{position + 1}</span>
-                  <span className="p-result-main">
-                    <span className="p-result-question">{item.input || item.title}</span>
-                    <span className="p-result-reason">{item.rationale}</span>
-                  </span>
-                  <span className="p-result-end">
-                    <ResultBadge result={item} />
-                    {item.severity === "critical" && <span className="p-result-critical">{humanize("critical")}</span>}
-                  </span>
-                  <ChevronRight aria-hidden="true" className="p-result-chevron" />
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+        <DataTable caption={t("testResults")} headers={[t("question"), t("answerColumn"), t("reasonColumn"), { label: t("severity"), align: "end" }]}>
+          {visible.map((item) => (
+            <tr key={item.assessment_id}>
+              <th scope="row">
+                <span className="p-table-primary">
+                  <button type="button" className="p-row-link p-row-button p-clamp-2" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
+                    {item.input || item.title}
+                  </button>
+                  {item.topic !== "grounded" && <span className="p-cell-meta">{humanize(item.topic)}</span>}
+                </span>
+              </th>
+              <td>
+                <ResultBadge result={item} />
+              </td>
+              <td>
+                <span className="p-cell-meta p-clamp-2">{item.rationale}</span>
+              </td>
+              <td className="p-table-action p-cell-meta">{humanize(item.severity)}</td>
+            </tr>
+          ))}
+        </DataTable>
       ) : (
         <EmptyState title={t("noMatchingResults")} icon={<Inbox />}>
           <p>{t("noMatchingEvaluationsHelp")}</p>
@@ -508,8 +508,9 @@ const FACT_ICON = { present: CheckCircle2, missing: MinusCircle, contradicted: X
 const FACT_LABEL = { present: "factPresent", missing: "factMissing", contradicted: "factContradicted" } as const;
 
 /**
- * One result, full width: the verdict, then what the assistant said beside
- * what it should have said (the ground truth), then the supporting evidence.
+ * One result as its own full-width page: back to the list, previous/next
+ * (arrow keys too), then the verdict, the conversation, the ground truth and
+ * the evidence. The result label appears once, in the verdict.
  */
 function ResultReview({
   result,
@@ -553,10 +554,9 @@ function ResultReview({
     ...(result.confirmed_claims ?? []).map((text) => ({ text, confirmed: true })),
     ...(result.unsupported_claims ?? []).map((text) => ({ text, confirmed: false })),
   ];
-  const hasSupport = !!(result.contradictions?.length || extras.length || result.source_excerpts?.length || result.web_sources?.length);
 
   return (
-    <article className="p-review" aria-labelledby="result-question">
+    <article className="p-result-page" aria-labelledby="result-question">
       <nav className="p-review-nav" aria-label={t("resultNavigation")}>
         <Action variant="ghost" size="sm" onClick={onClose}>
           <ArrowLeft aria-hidden="true" />
@@ -572,46 +572,43 @@ function ResultReview({
           </button>
         </span>
       </nav>
+      <h2 id="result-question" ref={heading} tabIndex={-1} className="p-panel-title p-result-page-title">{result.input || result.title}</h2>
 
-      <header className="p-review-head" data-tone={meta.tone}>
-        <span className="p-review-kicker">{t("question")}</span>
-        <h2 id="result-question" ref={heading} tabIndex={-1} className="p-review-question">{result.input || result.title}</h2>
-        <div className="p-review-verdict">
-          <ResultBadge result={result} />
-          {category && <span className="p-review-category">{category}</span>}
+      <div className="p-evidence">
+        <section className="p-verdict" data-tone={meta.tone} aria-label={t("whyThisResult")}>
+          <div className="p-verdict-head">
+            <ResultBadge result={result} />
+            {category && <span>{category}</span>}
+            <span>{graded}</span>
+          </div>
           <p>{result.rationale || t("noExplanation")}</p>
-        </div>
-      </header>
-
-      <div className="p-compare">
-        <section className="p-compare-side" aria-labelledby="result-answer">
-          <h3 id="result-answer" className="p-compare-title">
-            <MessageSquare aria-hidden="true" />
-            {t("whatAssistantSaid")}
-          </h3>
-          <div className="p-compare-body">
-            {result.output ? <p className="p-compare-text">{result.output}</p> : <p className="p-cell-meta">{t("emptyAnswer")}</p>}
+        </section>
+        <div className="p-transcript">
+          <div className="p-bubble" data-role="user">
+            <span className="p-bubble-role">{t("question")}</span>
+            <p>{result.input}</p>
+          </div>
+          <div className="p-bubble" data-role="assistant">
+            <span className="p-bubble-role">{t("systemAnswer")}</span>
+            <p>{result.output || <span className="p-cell-meta">{t("emptyAnswer")}</span>}</p>
             {result.offered_actions?.length ? (
-              <div>
+              <>
                 <span className="p-kicker">{t("offeredOptions")}</span>
                 <span className="p-chips">
                   {result.offered_actions.map((action) => (
                     <span key={action} className="p-chip-static">{action}</span>
                   ))}
                 </span>
-              </div>
+              </>
             ) : null}
           </div>
-        </section>
-        <section className="p-compare-side" data-kind="truth" aria-labelledby="result-truth">
-          <h3 id="result-truth" className="p-compare-title">
-            <BadgeCheck aria-hidden="true" />
-            {t("whatItShouldSay")}
-          </h3>
-          <div className="p-compare-body">
-            {result.expected ? <p className="p-compare-text">{result.expected}</p> : <p className="p-cell-meta">{t("noExpectedAnswer")}</p>}
+        </div>
+        {result.expected ? (
+          <section className="p-ground-truth" aria-label={t("expectedAnswer")}>
+            <span className="p-kicker">{t("expectedAnswer")}</span>
+            <p>{result.expected}</p>
             {facts.length > 0 && (
-              <div>
+              <>
                 <span className="p-kicker">{t("keyFacts")}</span>
                 <ul className="p-facts">
                   {facts.map((fact, index) => {
@@ -625,74 +622,73 @@ function ResultReview({
                     );
                   })}
                 </ul>
-              </div>
+              </>
             )}
-          </div>
-        </section>
-      </div>
-
-      {hasSupport && (
-        <div className="p-support">
-          {result.contradictions?.length ? (
-            <section className="p-support-block" data-tone="fail">
-              <h4>{t("contradictionsLabel")}</h4>
-              <ul>{result.contradictions.map((item, index) => <li key={index}>{item}</li>)}</ul>
-            </section>
-          ) : null}
-          {extras.length ? (
-            <section className="p-support-block">
-              <h4>{t("extraDetails")}</h4>
-              <p className="p-support-note">{t("extraDetailsHelp")}</p>
-              <ul>
-                {extras.map((item, index) => (
-                  <li key={index}>
-                    {item.text}
-                    {item.confirmed && <span className="p-support-tag">{t("confirmedOnline")}</span>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-          {result.source_excerpts?.length ? (
-            <section className="p-support-block" data-kind="source">
-              <h4>{t("fromYourDocumentation")}</h4>
-              {result.source_excerpts.map((excerpt) => (
-                <blockquote key={`${excerpt.source_revision_id}-${excerpt.anchor}`} className="p-quote">
-                  {excerpt.excerpt}
-                  {excerpt.title && <cite>{excerpt.title}</cite>}
-                </blockquote>
+          </section>
+        ) : null}
+        {result.contradictions?.length ? (
+          <section>
+            <SectionHeading title={t("contradictionsLabel")} />
+            <ul className="p-bullets">
+              {result.contradictions.map((item, index) => <li key={index}>{item}</li>)}
+            </ul>
+          </section>
+        ) : null}
+        {extras.length ? (
+          <section>
+            <SectionHeading title={t("unverifiedClaims")} />
+            <ul className="p-bullets">
+              {extras.map((item, index) => (
+                <li key={index}>
+                  {item.text}
+                  {item.confirmed && <span className="p-support-tag">{t("confirmedOnline")}</span>}
+                </li>
               ))}
-            </section>
-          ) : null}
-          {result.web_sources?.length ? (
-            <section className="p-support-block">
-              <h4>{t("checkedOnline")}</h4>
-              <ul className="p-support-links">
-                {result.web_sources.map((source) => (
-                  <li key={source.url}>
-                    <a className="p-link" href={source.url} target="_blank" rel="noreferrer noopener">{source.title || new URL(source.url).hostname}</a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </div>
-      )}
-
-      <details className="p-details p-review-tech">
-        <summary>{t("technicalDetails")}</summary>
-        <DefinitionList
-          items={[
-            { term: t("grading"), value: graded },
-            { term: t("severity"), value: humanize(result.severity) },
-            ...(result.topic !== "grounded" ? [{ term: t("topic"), value: humanize(result.topic) }] : []),
-            { term: t("review"), value: humanize(result.review_status) },
-            { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
-            { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
-            ...result.source_refs.map((ref) => ({ term: t("excerptLabel"), value: <code className="p-code" title={`${ref.source_revision_id} · ${ref.anchor}`}>{ref.anchor.slice(0, 8)}</code> })),
-          ]}
-        />
-      </details>
+            </ul>
+          </section>
+        ) : null}
+        {result.source_excerpts?.length ? (
+          <section>
+            <SectionHeading title={t("fromYourDocumentation")} />
+            {result.source_excerpts.map((excerpt) => (
+              <blockquote key={`${excerpt.source_revision_id}-${excerpt.anchor}`} className="p-quote">
+                {excerpt.excerpt}
+                {excerpt.title && <cite>{excerpt.title}</cite>}
+              </blockquote>
+            ))}
+          </section>
+        ) : !result.expected ? (
+          <section>
+            <SectionHeading title={t("sourceEvidence")} />
+            <p className="p-cell-meta">{t("sourceExcerptNotShared")}</p>
+          </section>
+        ) : null}
+        {result.web_sources?.length ? (
+          <section>
+            <SectionHeading title={t("checkedOnline")} />
+            <ul className="p-bullets">
+              {result.web_sources.map((source) => (
+                <li key={source.url}>
+                  <a className="p-link" href={source.url} target="_blank" rel="noreferrer noopener">{source.title || new URL(source.url).hostname}</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        <details className="p-details">
+          <summary>{t("technicalDetails")}</summary>
+          <DefinitionList
+            items={[
+              { term: t("severity"), value: humanize(result.severity) },
+              ...(result.topic !== "grounded" ? [{ term: t("topic"), value: humanize(result.topic) }] : []),
+              { term: t("review"), value: humanize(result.review_status) },
+              { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
+              { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
+              ...result.source_refs.map((ref) => ({ term: t("excerptLabel"), value: <code className="p-code" title={`${ref.source_revision_id} · ${ref.anchor}`}>{ref.anchor.slice(0, 8)}</code> })),
+            ]}
+          />
+        </details>
+      </div>
     </article>
   );
 }

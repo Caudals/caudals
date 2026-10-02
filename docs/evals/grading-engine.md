@@ -135,18 +135,15 @@ review and capture problems become limitations, not findings.
 
 ## Results presentation
 
-The results list shows one row per test: the question, the one-line reason
-and a single label (a coloured rule marks the verdict; only critical tests get
-an extra mark). Opening a row switches to a full-width review with
-previous/next (← → keys, Esc returns to the list):
-
-1. the question and the verdict with its explanation;
-2. **What the assistant said** (answer and any buttons it offered) beside
-   **What it should say** — the ground truth, with the key-fact checklist,
-   marked by an ink rule as the reference;
-3. supporting evidence: contradictions, extra details (unverified or
-   confirmed online), the cited source excerpt and any pages checked on the
-   web; technical identifiers stay collapsed.
+The results table shows one row per test: the question, its result label,
+the one-line reason and the severity. Clicking a row opens that result as its
+own full-width page inside the report (back to all results, previous/next,
+← → keys, Esc returns to the list): the verdict with its explanation (the
+label appears once), the question and the system's answer (with any buttons
+it offered), the **expected answer (ground truth)** with its key-fact
+checklist, contradictions, extra details (unverified or confirmed online),
+the cited source excerpt, pages checked on the web and collapsed technical
+identifiers.
 
 Results download as CSV, PDF and Word with the expected answer and verdict.
 
