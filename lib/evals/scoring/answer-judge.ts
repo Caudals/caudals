@@ -13,7 +13,9 @@ import { LEXICAL_FACT_THRESHOLD, factCoverage, foldText, guessLanguage, isEchoOf
 // capture is not scored instead of being counted against the system.
 
 export const GRADER_V2 = "caudals-grader-v2";
-export const ANSWER_JUDGE_REVISION = "caudals-answer-judge-v2";
+/** Bumped whenever the prompt text changes; every v2.x revision shares the output contract. */
+export const ANSWER_JUDGE_REVISION = "caudals-answer-judge-v2.1";
+export const isAnswerJudgeRevision = (revision: string) => revision.startsWith("caudals-answer-judge-v2");
 /** Stable ID naming ANSWER_JUDGE_REVISION inside CEF grader records. */
 export const ANSWER_JUDGE_REVISION_ID = "8c1f4a52-3b7d-4e90-a6c2-5d9e1f0b7a64";
 export const VERDICT_EXTENSION = "caudals.evals/verdict";

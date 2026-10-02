@@ -11,7 +11,7 @@ import {
   judgeCriterionIds, judgeSystemPrompt, judgeUserMessage, parseJudgeOutput, type CalibrationSummary, type SourceExcerpt,
 } from "../scoring/judge";
 import {
-  ANSWER_JUDGE_REVISION, GRADER_V2, answerJudgeSystemPrompt, answerJudgeUserMessage, combineAnswerJudgeAssessment, parseAnswerJudgeOutput, semanticCriterionIds,
+  ANSWER_JUDGE_REVISION, GRADER_V2, isAnswerJudgeRevision, answerJudgeSystemPrompt, answerJudgeUserMessage, combineAnswerJudgeAssessment, parseAnswerJudgeOutput, semanticCriterionIds,
 } from "../scoring/answer-judge";
 import { withTenant } from "./db";
 import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor, type ModelRoute } from "./model-routes";
@@ -153,14 +153,14 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
       const observation = observationSchema.parse(row.observation);
       const key = `${job.judge_model_revision_id}:${job.judge_prompt_revision}`;
       let assessment: Assessment;
-      if (job.judge_prompt_revision === ANSWER_JUDGE_REVISION) {
+      if (isAnswerJudgeRevision(job.judge_prompt_revision)) {
         const parsed = parseAnswerJudgeOutput(job.output, job.criterion_ids);
         if (!parsed.ok) {
           await finish("invalid", parsed.reason);
           outcome.invalid++;
           // Models occasionally degenerate or break JSON: ask once more before leaving the result ungraded.
-          const attempts = Number((await db.query("SELECT count(*)::int AS n FROM evals.judge_job WHERE org_id=$1 AND observation_id=$2 AND judge_prompt_revision=$3",
-            [scope.orgId, job.observation_id, ANSWER_JUDGE_REVISION])).rows[0].n);
+          const attempts = Number((await db.query("SELECT count(*)::int AS n FROM evals.judge_job WHERE org_id=$1 AND observation_id=$2 AND judge_prompt_revision LIKE 'caudals-answer-judge-v2%' AND created_at>now()-interval '1 day'",
+            [scope.orgId, job.observation_id])).rows[0].n);
           if (attempts < 2) {
             const pending = assessmentSchema.parse(row.pending);
             const retry = assessmentSchema.parse(withContentHash({ ...pending, assessment_id: randomUUID(), supersedes_assessment_id: pending.assessment_id, created_at: new Date().toISOString() }));

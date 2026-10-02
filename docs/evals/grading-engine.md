@@ -3,7 +3,8 @@
 How Caudals decides whether an answer is correct, why, and what a customer
 sees. Applies to every automatically finalized run (deployed systems, web
 apps) and to re-grades. Grader revision `caudals-grader-v2`, judge prompt
-revision `caudals-answer-judge-v2`.
+revision `caudals-answer-judge-v2.x` (bumped on every prompt change; all v2.x
+revisions share the output contract below).
 
 ## Why v2
 
