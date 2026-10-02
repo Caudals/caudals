@@ -209,7 +209,7 @@ export function WorkspaceSystems() {
             {API_KINDS.has(system.document.kind) && canWrite && (
               <TargetCredentials key={system.id} orgId={orgId} targetId={system.id} canRevoke={canManage} onChanged={() => void reload()} />
             )}
-            {system.document.kind === "website" && canManage && <><WebAppConnector key={system.id} orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} /><details><summary>Saved login sessions and advanced upload</summary><WebsiteLoginSessions orgId={orgId} targetId={system.id} /></details></>}
+            {system.document.kind === "website" && canManage && <><WebAppConnector key={system.id} orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} /><WebsiteLoginSessions orgId={orgId} targetId={system.id} /></>}
             {system.document.kind === "private_runner" && canWrite && (
               <section>
                 <SectionHeading title={t("privateRunner")}>{t("privateRunnerHelp")}</SectionHeading>

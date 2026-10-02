@@ -4,51 +4,98 @@
     {
       "name": "Next.js dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "Next.js prod",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start", "--", "--port", "4180"],
+      "runtimeArgs": [
+        "run",
+        "start",
+        "--",
+        "--port",
+        "4180"
+      ],
       "port": 4180
     },
     {
       "name": "Leads CRM dev",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd /Users/mario/Documents/leads && exec npx tsx watch server/index.ts"],
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/mario/Documents/leads && exec npx tsx watch server/index.ts"
+      ],
       "port": 8080
     },
     {
       "name": "Growth Social dev",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd /Users/mario/Documents/leads/services/growth-social && exec npx tsx watch --env-file=.env.local.dev src/index.ts"],
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/mario/Documents/leads/services/growth-social && exec npx tsx watch --env-file=.env.local.dev src/index.ts"
+      ],
       "port": 8082
     },
     {
       "name": "Remotion Studio",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "remotion:studio"],
+      "runtimeArgs": [
+        "run",
+        "remotion:studio"
+      ],
       "port": 3001
     },
     {
       "name": "Pitch Deck",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4567", "--directory", "c-design/Caudals Pitch Deck/export/src"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4567",
+        "--directory",
+        "c-design/Caudals Pitch Deck/export/src"
+      ],
       "port": 4567
     },
     {
       "name": "Pitch Deck EN",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4569", "--directory", "c-design/Docs EN/export/src"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4569",
+        "--directory",
+        "c-design/Docs EN/export/src"
+      ],
       "port": 4569
     },
     {
       "name": "c-design",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4571", "--directory", "c-design"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4571",
+        "--directory",
+        "c-design"
+      ],
       "port": 4571
+    },
+    {
+      "name": "Evals UI harness",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "e2e/evals/harness-server.mjs"
+      ],
+      "env": {
+        "HARNESS_FIXTURE": "demo"
+      },
+      "port": 4187
     }
   ]
 }

@@ -2,6 +2,7 @@ type RunRead = {
   run: Record<string, unknown>;
   units: Array<Record<string, unknown>>;
   targetUsage?: { calls: number; unknown: number };
+  grading?: { queued: number; done: number; total: number };
   [key: string]: unknown;
 };
 
@@ -22,5 +23,6 @@ export function customerRunView(value: RunRead) {
       calls: value.targetUsage?.calls ?? 0,
       unknown: value.targetUsage?.unknown ?? 0,
     },
+    grading: value.grading ?? { queued: 0, done: 0, total: 0 },
   };
 }

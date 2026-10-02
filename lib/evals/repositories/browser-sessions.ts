@@ -8,14 +8,16 @@ import { encryptSecret, loadKeyring, type Keyring } from "../security/envelope";
 import { withTenant } from "./db";
 import type { EvidenceScope } from "./evidence";
 
-// Operator-assisted website login (spec §8.3): an owner or operator signs in
-// to the site in their own isolated browser, exports its storage state, and
-// uploads it here. The state is validated to the attested site, encrypted with
-// the browser-session keyring (the only keys the browser executor holds),
-// limited to seven days, and bound to a new system revision. Passwords never
-// enter Caudals and CAPTCHAs are never bypassed.
+// Website login saved from the live remote browser (spec §8.3): the person
+// signs in to the site in Caudals' isolated browser and the resulting state is
+// validated to the attested site, encrypted with the browser-session keyring
+// (the only keys the browser executor holds) and bound to a new system
+// revision. Saved logins do not expire on our side; they last until revoked
+// or replaced (the site may still end its own session). Passwords never enter
+// Caudals and CAPTCHAs are never bypassed.
 
-const MAX_HOURS = 168;
+/** "No expiry" is stored as a far-future timestamp so existing checks keep working. */
+const NEVER_HOURS = 24 * 365 * 100;
 let cachedKeys: Keyring | null = null;
 function browserKeys(): Keyring {
   if (cachedKeys) return cachedKeys;
@@ -25,10 +27,9 @@ function browserKeys(): Keyring {
   return cachedKeys;
 }
 
-export async function storeLoginSession(scope: EvidenceScope, targetId: string, input: { storageState: unknown; expiresInHours: number }) {
-  if (!Number.isInteger(input.expiresInHours) || input.expiresInHours < 1 || input.expiresInHours > MAX_HOURS) {
-    throw new EvalError("INPUT_INVALID", 422, "Login sessions expire within seven days.");
-  }
+export async function storeLoginSession(scope: EvidenceScope, targetId: string, input: { storageState: unknown; expiresInHours?: number | null }) {
+  const hours = input.expiresInHours ?? NEVER_HOURS;
+  if (!Number.isInteger(hours) || hours < 1 || hours > NEVER_HOURS) throw new EvalError("INPUT_INVALID", 422, "Choose a valid login retention.");
   const keys = browserKeys();
   const keyVersion = [...keys.keys()].sort().at(-1)!;
   return withTenant(scope, async (db) => {
@@ -46,13 +47,13 @@ export async function storeLoginSession(scope: EvidenceScope, targetId: string, 
     finally { value.fill(0); }
     try {
       await db.query("SELECT evals.write_target_credential($1,$2,$3,$4,$5,$6,NULL,NULL,now()+make_interval(hours=>$7))",
-        [scope.orgId, targetId, recordId, versionId, envelope, "Website login session", input.expiresInHours]);
+        [scope.orgId, targetId, recordId, versionId, envelope, "Website login session", hours]);
     } catch (error) {
       if ((error as { code?: string }).code === "42501") throw new EvalError("SCOPE_DENIED", 404);
       throw error;
     }
     const session = (await db.query(`INSERT INTO evals.browser_login_session(id,org_id,target_id,secret_version_id,expires_at)
-      VALUES($1,$2,$3,$4,now()+make_interval(hours=>$5)) RETURNING id,expires_at`, [sessionId, scope.orgId, targetId, versionId, input.expiresInHours])).rows[0];
+      VALUES($1,$2,$3,$4,now()+make_interval(hours=>$5)) RETURNING id,expires_at`, [sessionId, scope.orgId, targetId, versionId, hours])).rows[0];
     const next = targetConfigSchema.parse({ ...config, target_revision_id: randomUUID(), login_session_id: sessionId });
     await db.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",
       [next.target_revision_id, scope.orgId, targetId, sha256(canonicalJson(next)), next]);

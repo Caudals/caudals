@@ -1,4 +1,5 @@
 import "server-only";
+import { GRADER_V2 } from "../scoring/answer-judge";
 import type { PoolClient } from "pg";
 import { EvalError } from "../domain/errors";
 import { compareRuns, scoreRun } from "../repositories/managed";
@@ -54,9 +55,12 @@ export async function settleScheduledRun(tenant:EvidenceScope,dispatchId:string)
     return {candidateId:d.run_id as string,baselineId:baseline?.run_id as string|undefined,runStatus:run.status as string};
   });
   if(!state)return null;
-  // Deterministic grading is idempotent for the same observations and grader revision.
-  if(state.runStatus==="completed"||state.runStatus==="partial")await scoreRun(tenant,state.candidateId,"deterministic-v1");
-  if(state.baselineId)await scoreRun(tenant,state.baselineId,"deterministic-v1");
+  // Grading is idempotent for the same observations and grader revision. The
+  // alert waits (next tick) until every answer-judge call for both runs is done.
+  if(state.runStatus==="completed"||state.runStatus==="partial")await scoreRun(tenant,state.candidateId,GRADER_V2);
+  if(state.baselineId)await scoreRun(tenant,state.baselineId,GRADER_V2);
+  const judging=await withTenant(tenant,async db=>(await db.query("SELECT 1 FROM evals.judge_job WHERE org_id=$1 AND run_id=ANY($2::uuid[]) AND status='queued' LIMIT 1",[tenant.orgId,[state.candidateId,...(state.baselineId?[state.baselineId]:[])]])).rowCount);
+  if(judging)return null;
   const comparison=state.baselineId&&state.runStatus==="completed"?
     await compareRuns(tenant,state.baselineId,state.candidateId):null;
   return withTenant(tenant,async db=>{

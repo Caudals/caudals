@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, Share2, Sparkles, Trash2 } from "lucide-react";
+import { BadgeCheck, ChevronDown, Download, Eye, FileText, GitCompare, History, Pencil, RefreshCcw, Share2, Sparkles, Trash2 } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
 import { Action, ActionAnchor, Badge, Check, DataTable, Field, RowTitle, SectionHeading, SelectField, Status, StatusBadge, Time } from "./primitives";
 import { ActionMenu, CopyField, Modal, SidePanel, notify } from "./overlays";
@@ -117,6 +117,15 @@ export function ReportActions({
       setError(message(reason));
     }
   }
+  async function regrade() {
+    setError("");
+    try {
+      const result = await evalRequest<{ regraded: number }>(`/runs/${revision.run_id}/regrade`, "POST", { orgId });
+      notify(result.regraded ? t("regradeStarted") : t("regradeNothing"));
+    } catch (reason) {
+      setError(message(reason));
+    }
+  }
   const autoStarted = useRef(false);
   useEffect(() => {
     if (!autoExport || autoStarted.current) return;
@@ -172,6 +181,7 @@ export function ReportActions({
       <ActionMenu
         label={t("moreActions")}
         items={[
+          { label: t("regradeAnswers"), icon: <RefreshCcw />, onSelect: () => void regrade() },
           { label: t("compareRuns"), icon: <GitCompare />, onSelect: () => setDialog("compare") },
           { label: t("revisionsLabel"), icon: <History />, onSelect: () => setDialog("revisions") },
           { label: t("executiveTakeaways"), icon: <Sparkles />, onSelect: () => setDialog("takeaways") },

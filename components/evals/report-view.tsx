@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, FileSearch, Inbox, Lightbulb, ListChecks, X } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MinusCircle, X, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest } from "./api";
 import {
@@ -35,8 +35,9 @@ import { BarList, OutcomeBar, percent } from "./charts";
 import { SidePanel } from "./overlays";
 import { ReportActions, type ReportRevision } from "./report-actions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 import { tr } from "@/lib/evals/messages/phrases";
+import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, failureBreakdown, labelOf } from "./result-labels";
 import { getLocale } from "@/lib/evals/messages/en";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
 /** Sentences Caudals generated from templates, shown in the interface language. */
@@ -52,6 +53,9 @@ const MODE: Record<string, string> = {
   imported_responses: tr("Imported answers"),
 };
 
+/** Outcome bar segments in customer words. A function so the labels follow the page language. */
+const OUTCOME_LABELS = () => ({ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") });
+
 function bySeverity<T extends { severity: string }>(items: T[]) {
   return [...items].sort((a, b) => SEVERITY.indexOf(a.severity as never) - SEVERITY.indexOf(b.severity as never));
 }
@@ -63,15 +67,17 @@ export function ReportView({
   actions,
   heading = true,
   initialResult,
+  initialTab,
   onResultChange,
 }: {
   report: Partial<ReportSnapshot>;
   actions?: ReactNode;
   heading?: boolean;
   initialResult?: string | null;
+  initialTab?: string | null;
   onResultChange?: (assessmentId: string | null) => void;
 }) {
-  const [tab, setTab] = useState<Tab>(initialResult ? "results" : "overview");
+  const [tab, setTab] = useState<Tab>(initialResult ? "results" : (["overview", "findings", "results", "improvements", "methodology"] as const).find((value) => value === initialTab) ?? "overview");
   const [resultFilter, setResultFilter] = useState<{ ids: string[]; label: string } | null>(null);
   const results = report.results ?? [];
   const findings = bySeverity(report.findings ?? []);
@@ -113,7 +119,7 @@ export function ReportView({
         </PageHeading>
       )}
       <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs} />
-      {tab === "overview" && <Overview report={report} findings={findings} onFinding={() => setTab("findings")} onResults={showResults} />}
+      {tab === "overview" && <Overview report={report} findings={findings} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
       {tab === "findings" && <Findings findings={findings} onResults={showResults} />}
       {tab === "results" && (
         <Results
@@ -137,11 +143,13 @@ function Overview({
   findings,
   onFinding,
   onResults,
+  onAllResults,
 }: {
   report: Partial<ReportSnapshot>;
   findings: Finding[];
   onFinding: () => void;
   onResults: (ids: string[], label: string) => void;
+  onAllResults: () => void;
 }) {
   const m = report.metrics;
   const results = useMemo(() => report.results ?? [], [report.results]);
@@ -165,6 +173,8 @@ function Overview({
     [results],
   );
   const criticalFailed = results.filter((item) => item.severity === "critical" && (item.outcome === "fail" || item.outcome === "partial"));
+  const reasons = useMemo(() => failureBreakdown(results), [results]);
+  const setAside = results.some((item) => ["test_issue", "capture_issue", "not_run"].includes(labelOf(item)));
 
   if (!m) return <Status>{t("reportMetricsHidden")}</Status>;
   return (
@@ -185,21 +195,23 @@ function Overview({
         <div className="p-scoreboard-main">
           <p className="p-eyebrow">{t("strictPassRate")}</p>
           <p className="p-score" data-empty={m.strict_pass_rate == null ? "true" : undefined}>{m.strict_pass_rate == null ? t("noScoreYet") : percent(m.strict_pass_rate, 1)}</p>
-          <p className="p-scoreboard-caption">
-            {m.n_pass} {t("of")} {m.n_scorable} {t("assessedTestsPassed")}
-            {m.wilson_interval ? (
-              <>
-                {" · "}
-                <span title={t("wilsonHelp")}>
-                  95% {t("interval")} {percent(m.wilson_interval.low)}–{percent(m.wilson_interval.high)}
-                </span>
-              </>
-            ) : null}
-          </p>
-          <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} />
-      {m.n_unscorable > 0 && <p className="p-field-hint">{t("awaitingReviewNote")}</p>}
+          <p className="p-headline">{tv("answersCorrectOf", { pass: m.n_pass, scored: m.n_scorable })}</p>
+          {m.wilson_interval ? (
+            <p className="p-scoreboard-caption">
+              <span title={t("wilsonHelp")}>
+                95% {t("interval")} {percent(m.wilson_interval.low)}–{percent(m.wilson_interval.high)}
+              </span>
+            </p>
+          ) : null}
+          <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} labels={OUTCOME_LABELS()} />
+          {m.n_unscorable > 0 && <p className="p-field-hint">{setAside ? t("notScoredHelp") : t("awaitingReviewNote")}</p>}
+          <details className="p-details">
+            <summary>{t("howGradingWorks")}</summary>
+            <p className="p-explainer">{t("howGradingWorksText")}</p>
+          </details>
         </div>
         <StatGrid>
+          {m.n_scorable > 0 && <Stat label={t("qualityScore")} value={percent((m.n_pass + m.n_partial / 2) / m.n_scorable)} meta={t("qualityScoreHelp")} />}
           <Stat label={t("assessedCoverage")} value={percent(m.assessed_coverage)} meta={`${m.n_scorable} ${t("of")} ${m.n_eligible} ${t("eligibleTestsLower")}`} />
           <Stat label={t("criticalFailures")} value={criticalFailed.length} meta={m.critical_unassessed ? `${m.critical_unassessed} ${t("criticalUnassessed")}` : t("criticalFailuresHelp")} />
           {m.rubric_score != null ? <Stat label={t("rubricScore")} value={`${Math.round(m.rubric_score)}/100`} meta={t("rubricScoreHelp")} /> : <Stat label={t("findings")} value={findings.length} meta={t("findingsHelp")} />}
@@ -222,6 +234,23 @@ function Overview({
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {reasons.length > 0 && (
+        <section>
+          <SectionHeading
+            title={t("whyAnswersFailed")}
+            actions={
+              <Action variant="ghost" size="sm" onClick={onAllResults}>
+                {t("seeAllAnswers")}
+                <ArrowRight aria-hidden="true" />
+              </Action>
+            }
+          >
+            {t("whyAnswersFailedHelp")}
+          </SectionHeading>
+          <BarList items={reasons.map((item) => ({ label: item.label, value: item.count, total: m.n_scorable, tone: item.category === "missing_information" ? "warn" as const : "fail" as const }))} label={t("whyAnswersFailed")} format="count" />
         </section>
       )}
 
@@ -332,7 +361,12 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
 
 /* -------------------------------------------------------------- results --- */
 
-type OutcomeFilter = "all" | "fail" | "partial" | "pass" | "unscorable";
+type LabelFilter = "all" | "incorrect" | "not_answered" | "partially_correct" | "correct" | "not_scored";
+const NOT_SCORED = new Set(["test_issue", "capture_issue", "not_run", "pending"]);
+const matchesFilter = (result: Result, filter: LabelFilter) => {
+  const label = labelOf(result);
+  return filter === "all" || (filter === "not_scored" ? NOT_SCORED.has(label) : label === filter);
+};
 
 function Results({
   results,
@@ -348,23 +382,23 @@ function Results({
   onResultChange?: (assessmentId: string | null) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [outcome, setOutcome] = useState<OutcomeFilter>("all");
+  const [outcome, setOutcome] = useState<LabelFilter>("all");
   const [severity, setSeverity] = useState("all");
   const [topic, setTopic] = useState("all");
   const [selected, setSelected] = useState<string | null>(initialResult);
   const topics = useMemo(() => [...new Set(results.map((item) => item.topic))].sort(), [results]);
-  const count = (value: OutcomeFilter) => results.filter((item) => value === "all" || item.outcome === value).length;
+  const count = (value: LabelFilter) => results.filter((item) => matchesFilter(item, value)).length;
   const needle = query.trim().toLowerCase();
   const visible = results
     .filter(
       (item) =>
         (!filter || filter.ids.includes(item.assessment_id)) &&
-        (outcome === "all" || item.outcome === outcome) &&
+        matchesFilter(item, outcome) &&
         (severity === "all" || item.severity === severity) &&
         (topic === "all" || item.topic === topic) &&
-        (!needle || `${item.title} ${item.input} ${item.output} ${item.topic}`.toLowerCase().includes(needle)),
+        (!needle || `${item.title} ${item.input} ${item.output} ${item.expected ?? ""} ${item.rationale} ${item.topic}`.toLowerCase().includes(needle)),
     )
-    .sort((a, b) => ["fail", "partial", "unscorable", "pass"].indexOf(a.outcome) - ["fail", "partial", "unscorable", "pass"].indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
+    .sort((a, b) => LABEL_META[labelOf(a)].rank - LABEL_META[labelOf(b)].rank || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
   const current = results.find((item) => item.assessment_id === selected) ?? null;
   // Spec §1518: the desktop inspector is nonmodal; below it, details are a modal dialog.
   const desktop = useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP).matches, () => false);
@@ -383,6 +417,15 @@ function Results({
       </EmptyState>
     );
 
+  const chips: Array<{ value: LabelFilter; label: string; count: number }> = [
+    { value: "all" as const, label: t("filterAllResults"), count: count("all") },
+    { value: "incorrect" as const, label: t("filterIncorrect"), count: count("incorrect") },
+    { value: "not_answered" as const, label: t("filterNoAnswer"), count: count("not_answered") },
+    { value: "partially_correct" as const, label: t("filterPartly"), count: count("partially_correct") },
+    { value: "correct" as const, label: t("filterCorrect"), count: count("correct") },
+    { value: "not_scored" as const, label: t("filterNotScored"), count: count("not_scored") },
+  ].filter((item) => item.value === "all" || item.count > 0);
+
   return (
     <>
       {filter && (
@@ -394,7 +437,7 @@ function Results({
             </Action>
           }
         >
-          {t("showingEvidenceFor")} “{filter.label}”
+          {t("showingEvidenceFor")} “{gen(filter.label)}”
         </Status>
       )}
       <Toolbar>
@@ -415,39 +458,30 @@ function Results({
         </InlineSelect>
       </Toolbar>
       <div className="p-toolbar">
-        <FilterChips
-          value={outcome}
-          onChange={setOutcome}
-          label={t("filterOutcome")}
-          options={[
-            { value: "all", label: t("all"), count: count("all") },
-            { value: "fail", label: humanize("fail"), count: count("fail") },
-            { value: "partial", label: t("partialLabel"), count: count("partial") },
-            { value: "pass", label: humanize("pass"), count: count("pass") },
-            { value: "unscorable", label: humanize("unscorable"), count: count("unscorable") },
-          ]}
-        />
+        <FilterChips value={outcome} onChange={setOutcome} label={t("filterOutcome")} options={chips} />
       </div>
       <div className={desktop && current ? "p-inspect" : undefined}>
       {visible.length ? (
-        <DataTable caption={t("testResults")} headers={[t("test"), t("severity"), t("outcome"), { label: t("review"), align: "end" }]}>
+        <DataTable caption={t("testResults")} headers={[t("question"), t("answerColumn"), t("reasonColumn"), { label: t("severity"), align: "end" }]}>
           {visible.map((item) => (
             <tr key={item.assessment_id} data-selected={item.assessment_id === selected ? "true" : undefined}>
               <th scope="row">
                 <span className="p-table-primary">
-                  <button type="button" className="p-row-link p-row-button" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
-                    {item.title}
+                  <button type="button" className="p-row-link p-row-button p-clamp-2" data-result={item.assessment_id} onClick={() => open(item.assessment_id)}>
+                    {item.input || item.title}
                   </button>
-                  <span className="p-cell-meta">{humanize(item.topic)}</span>
+                  {item.topic !== "grounded" && <span className="p-cell-meta">{humanize(item.topic)}</span>}
                 </span>
               </th>
               <td>
-                <StatusBadge value={item.severity} />
+                <ResultBadge result={item} />
               </td>
               <td>
-                <StatusBadge value={item.outcome} />
+                <span className="p-cell-meta p-clamp-2">{item.rationale}</span>
               </td>
-              <td className="p-table-action p-cell-meta">{humanize(item.review_status)}</td>
+              <td className="p-table-action">
+                <StatusBadge value={item.severity} />
+              </td>
             </tr>
           ))}
         </DataTable>
@@ -457,14 +491,13 @@ function Results({
         </EmptyState>
       )}
       {desktop && current && (
-        <aside className="p-inspector" aria-label={`${t("result")}: ${current.title}`}>
+        <aside className="p-inspector" aria-label={`${t("result")}: ${current.input || current.title}`}>
           <div className="p-inspector-head">
             <div>
-              <h2 className="p-panel-title">{current.title}</h2>
+              <h2 className="p-panel-title p-clamp-2">{current.input || current.title}</h2>
               <p className="p-row p-cell-meta">
-                <StatusBadge value={current.outcome} />
+                <ResultBadge result={current} />
                 <StatusBadge value={current.severity} />
-                <span>{humanize(current.topic)}</span>
               </p>
             </div>
             <button type="button" className="p-btn" data-variant="ghost" data-shape="icon" aria-label={t("close")} onClick={() => open(null)}>
@@ -479,13 +512,12 @@ function Results({
         open={!desktop && !!current}
         onOpenChange={(value) => !value && open(null)}
         returnFocus={() => (lastOpened ? document.querySelector<HTMLElement>(`[data-result="${CSS.escape(lastOpened)}"]`) : null)}
-        title={current?.title ?? t("result")}
+        title={current ? (current.input || current.title).slice(0, 120) : t("result")}
         description={
           current ? (
             <>
-              <StatusBadge value={current.outcome} />
+              <ResultBadge result={current} />
               <StatusBadge value={current.severity} />
-              <span>{humanize(current.topic)}</span>
             </>
           ) : undefined
         }
@@ -504,9 +536,25 @@ function subscribeDesktop(onChange: () => void) {
   return () => query.removeEventListener("change", onChange);
 }
 
+const FACT_ICON = { present: CheckCircle2, missing: MinusCircle, contradicted: XCircle } as const;
+const FACT_LABEL = { present: "factPresent", missing: "factMissing", contradicted: "factContradicted" } as const;
+
+/** One result as a customer reads it: verdict, conversation, ground truth, evidence. */
 function ResultEvidence({ result }: { result: Result }) {
+  const label = labelOf(result);
+  const meta = LABEL_META[label];
+  const graded = result.graded_by === "human" ? t("gradedByPerson") : result.graded_by === "lexical" ? t("gradedLexically") : t("gradedAutomatically");
+  const facts = result.key_facts ?? [];
   return (
     <div className="p-evidence">
+      <section className="p-verdict" data-tone={meta.tone} aria-label={t("whyThisResult")}>
+        <div className="p-verdict-head">
+          <ResultBadge result={result} />
+          {result.failure_category && (label === "incorrect" || label === "partially_correct") && <span>{categoryLabelText(result.failure_category)}</span>}
+          <span>{graded}</span>
+        </div>
+        <p>{result.rationale || t("noExplanation")}</p>
+      </section>
       <div className="p-transcript">
         <div className="p-bubble" data-role="user">
           <span className="p-bubble-role">{t("question")}</span>
@@ -515,36 +563,84 @@ function ResultEvidence({ result }: { result: Result }) {
         <div className="p-bubble" data-role="assistant">
           <span className="p-bubble-role">{t("systemAnswer")}</span>
           <p>{result.output || <span className="p-cell-meta">{t("emptyAnswer")}</span>}</p>
+          {result.offered_actions?.length ? (
+            <>
+              <span className="p-kicker">{t("offeredOptions")}</span>
+              <span className="p-chips">
+                {result.offered_actions.map((action) => (
+                  <span key={action} className="p-chip-static">{action}</span>
+                ))}
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
-      <section>
-        <SectionHeading title={t("assessment")} />
-        <p className="p-evidence-text">{result.rationale}</p>
-      </section>
-      <section>
-        <SectionHeading title={t("sourceEvidence")} />
-        {result.source_refs.length ? (
-          <ul className="p-refs">
-            {result.source_refs.map((ref) => (
-              <li key={`${ref.source_revision_id}-${ref.anchor}`}>
-                <span>
-                  {t("excerptLabel")} <code className="p-code" title={ref.anchor}>{/^[0-9a-f-]{36}$/i.test(ref.anchor) ? ref.anchor.slice(0, 8) : ref.anchor}</code>
-                </span>
-                <span className="p-cell-meta">{t("sourceRevision")} {ref.source_revision_id.slice(0, 8)}</span>
-              </li>
-            ))}
+      {result.expected ? (
+        <section className="p-ground-truth" aria-label={t("expectedAnswer")}>
+          <span className="p-kicker">{t("expectedAnswer")}</span>
+          <p>{result.expected}</p>
+          {facts.length > 0 && (
+            <>
+              <span className="p-kicker">{t("keyFacts")}</span>
+              <ul className="p-facts">
+                {facts.map((fact, index) => {
+                  const Icon = fact.status ? FACT_ICON[fact.status] : CircleDashed;
+                  return (
+                    <li key={index} data-status={fact.status ?? "unknown"}>
+                      <Icon aria-hidden="true" />
+                      <span>{fact.fact}</span>
+                      {fact.status && <span className="p-facts-status">{t(FACT_LABEL[fact.status])}</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </section>
+      ) : null}
+      {result.contradictions?.length ? (
+        <section>
+          <SectionHeading title={t("contradictionsLabel")} />
+          <ul className="p-bullets">
+            {result.contradictions.map((item, index) => <li key={index}>{item}</li>)}
           </ul>
-        ) : (
+        </section>
+      ) : null}
+      {result.unsupported_claims?.length ? (
+        <section>
+          <SectionHeading title={t("unverifiedClaims")} />
+          <ul className="p-bullets">
+            {result.unsupported_claims.map((item, index) => <li key={index}>{item}</li>)}
+          </ul>
+        </section>
+      ) : null}
+      {result.source_excerpts?.length ? (
+        <section>
+          <SectionHeading title={t("fromYourDocumentation")} />
+          {result.source_excerpts.map((excerpt) => (
+            <blockquote key={`${excerpt.source_revision_id}-${excerpt.anchor}`} className="p-quote">
+              {excerpt.excerpt}
+              {excerpt.title && <cite>{excerpt.title}</cite>}
+            </blockquote>
+          ))}
+        </section>
+      ) : !result.expected ? (
+        <section>
+          <SectionHeading title={t("sourceEvidence")} />
           <p className="p-cell-meta">{t("sourceExcerptNotShared")}</p>
-        )}
-      </section>
-      <DefinitionList
-        items={[
-          { term: t("review"), value: humanize(result.review_status) },
-          { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
-          { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
-        ]}
-      />
+        </section>
+      ) : null}
+      <details className="p-details">
+        <summary>{t("technicalDetails")}</summary>
+        <DefinitionList
+          items={[
+            { term: t("review"), value: humanize(result.review_status) },
+            { term: t("caseRevision"), value: <code className="p-code">{result.case_revision_id.slice(0, 12)}</code> },
+            { term: t("assessmentId"), value: <code className="p-code">{result.assessment_id.slice(0, 12)}</code> },
+            ...result.source_refs.map((ref) => ({ term: t("excerptLabel"), value: <code className="p-code" title={`${ref.source_revision_id} · ${ref.anchor}`}>{ref.anchor.slice(0, 8)}</code> })),
+          ]}
+        />
+      </details>
     </div>
   );
 }
@@ -735,6 +831,7 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
         key={revision.id}
         report={revision.snapshot}
         initialResult={params.get("result")}
+        initialTab={params.get("tab")}
         onResultChange={setResult}
         actions={
           <ReportActions

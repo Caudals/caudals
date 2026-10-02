@@ -46,7 +46,11 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     const state = { cookies: [{ name: "sid", value: "session-cookie-value", domain: "chat.example.test", path: "/", expires: -1, httpOnly: true, secure: true, sameSite: "Lax" }], origins: [] };
 
     await expect(storeLoginSession(scope, targetId, { storageState: { ...state, cookies: [{ ...state.cookies[0], domain: "evil.example.test" }] }, expiresInHours: 24 })).rejects.toMatchObject({ status: 422 });
-    await expect(storeLoginSession(scope, targetId, { storageState: state, expiresInHours: 500 })).rejects.toMatchObject({ status: 422 });
+    await expect(storeLoginSession(scope, targetId, { storageState: state, expiresInHours: 0 })).rejects.toMatchObject({ status: 422 });
+    // Logins saved from the live browser do not expire on our side.
+    const lasting = await storeLoginSession(scope, targetId, { storageState: state });
+    expect(new Date(lasting.expiresAt).getTime() - Date.now()).toBeGreaterThan(50 * 365 * 24 * 3600_000);
+    await revokeLoginSession(scope, targetId, lasting.sessionId);
     const stored = await storeLoginSession(scope, targetId, { storageState: state, expiresInHours: 24 });
     const bound = (await owner.query("SELECT document FROM evals.target_revision WHERE id=$1", [stored.targetRevisionId])).rows[0].document;
     expect(bound.login_session_id).toBe(stored.sessionId);
@@ -56,7 +60,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     await expect(withTenant(scope, (c) => c.query("SELECT envelope FROM evals.secret_version WHERE org_id=$1", [orgId]))).rejects.toThrow(/permission denied/);
 
     const listed = await listLoginSessions(scope, targetId);
-    expect(listed.sessions).toEqual([expect.objectContaining({ id: stored.sessionId, state: "active" })]);
+    expect(listed.sessions).toEqual([expect.objectContaining({ id: stored.sessionId, state: "active" }), expect.objectContaining({ id: lasting.sessionId, state: "revoked" })]);
     expect(JSON.stringify(listed)).not.toContain("session-cookie-value");
     expect(listed.captures.map((capture) => capture.reason_code)).toEqual(["captcha_present"]);
     expect((await getBrowserCapture(scope, listed.captures[0].id)).media_type).toBe("image/jpeg");

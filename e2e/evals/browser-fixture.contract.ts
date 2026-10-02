@@ -200,3 +200,65 @@ test("browser request guard refuses plain-HTTP subresources even with a permissi
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
+test("a basic chatbot that echoes the question, splits its reply and offers buttons is captured and followed", async () => {
+  test.setTimeout(60_000);
+  const directory = mkdtempSync(join(tmpdir(), "evals-basic-chatbot-"));
+  const key = join(directory, "key.pem"), cert = join(directory, "cert.pem");
+  execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+    "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
+  // Every bubble (user and bot) shares one class, the typing indicator shows
+  // only after a pause, and the reply arrives in two bubbles plus buttons.
+  const server = createHttpsServer({ key: readFileSync(key), cert: readFileSync(cert) }, (_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    response.end(`<!doctype html><html><head><title>Basic bot</title></head><body>
+      <div class="chat"><div class="log"><div class="bubble">Hola, soy el asistente.</div></div>
+      <div class="writing" hidden>escribiendo…</div><div class="chips"></div>
+      <input placeholder="Escribe aquí" aria-label="Escribe aquí"><button id="send" aria-label="Enviar">➤</button></div><script>
+      const log=document.querySelector('.log'),chips=document.querySelector('.chips'),writing=document.querySelector('.writing');
+      const say=(text)=>{const b=document.createElement('div');b.className='bubble';b.textContent=text;log.append(b);};
+      const chip=(label,answer)=>{const c=document.createElement('button');c.textContent=label;c.onclick=()=>{say(label);chips.innerHTML='';setTimeout(()=>say(answer),700);};chips.append(c);};
+      document.querySelector('#send').onclick=()=>{const input=document.querySelector('input');const q=input.value;input.value='';say(q);chips.innerHTML='';
+        setTimeout(()=>{writing.hidden=false;},1200);
+        setTimeout(()=>{writing.hidden=true;say('Perdona, aún estoy aprendiendo.');},2400);
+        setTimeout(()=>{say('¿Sobre qué seguro quieres información?');chip('Seguro de coche','El seguro de coche se puede pagar en 12 cuotas.');chip('Seguro de hogar','El seguro de hogar cubre inundaciones.');},3000);
+      };
+      </script></body></html>`);
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("fixture_port_missing");
+  const url = `https://127.0.0.1:${address.port}/`;
+  const browser = await chromium.launch({ args: ["--ignore-certificate-errors"] });
+  const destinationCheck = async (candidate: string) => {
+    if (new URL(candidate).origin !== new URL(url).origin) throw new Error("fixture_destination_denied");
+  };
+  const recipe = withContentHash({ schema_version: "1.0", recipe_revision_id: randomUUID(),
+    source: "operator_authored", start_url: url, launcher: null, frame_chain: [],
+    input: { kind: "role", role: "textbox", name: "Escribe aquí" },
+    submit: { kind: "click", locator: { kind: "css", value: '[id="send"]' } },
+    message_container: { kind: "css", value: "div.bubble" }, assistant_message: { kind: "css", value: "div.bubble" },
+    completion: { kind: "selector_hidden", locator: { kind: "css", value: "div.writing" } },
+    reset: { kind: "new_context" }, assistant_extraction: "last_new_message",
+    created_at: new Date().toISOString(), extensions: {},
+  }) as WebsiteRecipe;
+  const ask = (question: string) => invokeWebsite({ browser, recipe, destinationCheck,
+    input: { schema_version: "1.0", case_id: "basic", case_revision_id: "basic-v1", messages: [{ role: "user", content: question }], attachments: [], tools: [] },
+    context: { run_id: "basic-run", target_revision_id: "basic-target", execution_plan_id: "basic-plan", tenant_scope_handle: "basic",
+      deadline: new Date(Date.now() + 25_000).toISOString(), attempt_id: "basic-attempt", scoped_credential_handle: null,
+      destination_policy_id: "basic-local-only", reserved_cost: { amount: "0", currency: "EUR" }, signal: new AbortController().signal } });
+  try {
+    // No button matches: the echo is ignored, both bubbles are kept and the buttons recorded.
+    const plain = await ask("¿Cuánto cuesta un seguro?");
+    expect(plain.messages.at(-1)?.content).toBe("Perdona, aún estoy aprendiendo.\n\n¿Sobre qué seguro quieres información?");
+    expect(plain.extensions["caudals.evals/browser"]).toMatchObject({ actions: ["Seguro de coche", "Seguro de hogar"] });
+    // One button clearly matches the question: Caudals follows it like a person would.
+    const guided = await ask("¿En cuántas cuotas puedo pagar el seguro de coche?");
+    expect(guided.messages.at(-1)?.content).toBe("Perdona, aún estoy aprendiendo.\n\n¿Sobre qué seguro quieres información?\n\n→ Seguro de coche\n\nEl seguro de coche se puede pagar en 12 cuotas.");
+    expect(guided.extensions["caudals.evals/browser"]).toMatchObject({ guided: [{ action: "Seguro de coche" }] });
+  } finally {
+    await browser.close();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

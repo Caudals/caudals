@@ -8,7 +8,7 @@ import { InvocationWorker } from "../../lib/evals/queue/worker";
 import type { TenantTransaction } from "../../lib/evals/queue/store";
 import { importedJudgeRunFixture } from "./judge-run-fixture";
 import { listEvaluationRuns, listReportShares } from "../../lib/evals/repositories/operator-actions";
-import { createReportForRun, createReportShare, publishReport, scoreRun } from "../../lib/evals/repositories/managed";
+import { createReportForRun, createReportShare, publishReport, regradeRun, scoreRun } from "../../lib/evals/repositories/managed";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
@@ -32,10 +32,13 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
 
     const steps = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1", [orgId])).rows);
     const tx: TenantTransaction = (tenant, fn) => withTenant(tenant, fn, workerPool);
+    // Automatic finalization grades with engine v2: one answer-judge verdict per result.
     const worker = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
-      invoke: async () => ({ text: JSON.stringify({ criteria: [{ criterion_id: rubric.criteria[1].id, verdict: "partial", rationale: "Correct figure without the policy context.", evidence: "" }] }), complete: true, finishReason: "stop", latencyMs: 10 }) });
+      invoke: async () => ({ text: JSON.stringify({ verdict: "partially_correct", explanation: "Correct figure without the policy context.", failure_category: "missing_information", criteria: [{ criterion_id: rubric.criteria[1].id, verdict: "partial", rationale: "Correct figure without the policy context." }] }), complete: true, finishReason: "stop", latencyMs: 10 }) });
     for (const step of steps) await worker.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
     expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
+    const graded = await withTenant(scope, async (c) => (await c.query("SELECT DISTINCT ON (observation_id) outcome,document->>'grader_revision_id' AS grader FROM evals.assessment WHERE org_id=$1 ORDER BY observation_id,created_at DESC,id DESC", [orgId])).rows);
+    expect(graded).toEqual([{ outcome: "partial", grader: "caudals-grader-v2" }, { outcome: "partial", grader: "caudals-grader-v2" }]);
 
     expect(await finalizeRuns(scope, 5, modes)).toMatchObject({ reported: 1 });
     expect(await phase()).toMatchObject({ status: "completed", phase: "done" });
@@ -80,5 +83,18 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(await refreshJudgedReports(scope)).toBe(1);
     expect(await current()).toEqual([expect.objectContaining({ id: early.reportId, reports: "1", scorable: "2", revisions: 2 })]);
     expect(await refreshJudgedReports(scope)).toBe(0);
+
+    // Re-grading with engine v2 supersedes the v1 grades without contacting the system,
+    // then republishes once the answer judge has graded every result.
+    expect(await regradeRun(scope, run.id)).toMatchObject({ regraded: 2, judgeCalls: 2 });
+    expect(await regradeRun(scope, run.id)).toMatchObject({ regraded: 0 });
+    const next = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash FROM evals.judge_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1 AND j.status='queued'", [orgId])).rows);
+    const answerJudge = new InvocationWorker({ tx, keys: new Map(), actorId: "judge-worker", workerId: randomUUID(), leaseSeconds: 30,
+      invoke: async () => ({ text: "```json\n" + JSON.stringify({ verdict: "correct", explanation: "States the documented figure.", key_facts: [] }) + "\n```", complete: true, finishReason: "stop", latencyMs: 10 }) });
+    for (const step of next) await answerJudge.handle({ orgId, stepId: step.id, inputHash: step.input_hash });
+    expect(await advanceJudgments(scope, run.id)).toMatchObject({ completed: 2 });
+    expect(await refreshJudgedReports(scope)).toBe(1);
+    const regraded = await withTenant(scope, async (c) => (await c.query("SELECT rr.snapshot->'metrics'->>'n_pass' AS pass,rr.snapshot->'results'->0->>'label' AS label FROM evals.report r JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(r.org_id,r.current_revision_id) WHERE r.org_id=$1", [orgId])).rows[0]);
+    expect(regraded).toEqual({ pass: "2", label: "correct" });
   });
 });

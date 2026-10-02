@@ -2,16 +2,17 @@ import "server-only";
 import { withTenant } from "./db";
 import type { EvidenceScope } from "./evidence";
 import { createReportForRun, publishReport, scoreRun, settleRunStatus } from "./managed";
+import { GRADER_V2 } from "../scoring/answer-judge";
 
 // Automatic finalization of live evaluations (spec §4, §5.2 Screen D, §15.1).
 // A deployed-system run that reaches a terminal state is graded with the
-// deterministic scorer, waits for any rubric-judge jobs, and then gets a
+// v2 grading engine (docs/evals/grading-engine.md), waits for any judge jobs, and then gets a
 // preliminary report that is published with its review status visible.
 // Imported answers and private runners keep their explicit customer action.
 // Reviewed reports still require an operator; nothing here claims review.
 
-export const AUTO_GRADER_REVISION = "deterministic-v1";
-export const AUTO_REPORT_SCORER = "auto-preliminary-v1";
+export const AUTO_GRADER_REVISION = GRADER_V2;
+export const AUTO_REPORT_SCORER = "auto-preliminary-v2";
 
 export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = ["deployed_system"]) {
   return withTenant(scope, async (db) => (await db.query(

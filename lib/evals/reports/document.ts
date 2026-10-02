@@ -156,7 +156,8 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   <header><span class="index">T${number.get(item.assessment_id)}</span><h3>${escapeHtml(item.title)}</h3>${chip(item.outcome)}${chip(item.severity)}</header>
   <p class="ids">${S.caseId} ${escapeHtml(item.case_revision_id)} · ${S.observationId} ${escapeHtml(item.observation_id)} · ${S.assessmentId} ${escapeHtml(item.assessment_id)}</p>
   <div class="turn user"><span class="who">${S.question}</span>${pre(item.input)}</div>
-  <div class="turn system"><span class="who">${S.systemResponse}</span>${pre(item.output)}</div>
+  <div class="turn system"><span class="who">${S.systemResponse}</span>${pre(item.output)}${item.offered_actions?.length ? `<p class="ids">${S.offeredOptions}: ${item.offered_actions.map(escapeHtml).join(" · ")}</p>` : ""}</div>
+  ${item.expected ? `<div class="turn user"><span class="who">${S.expectedAnswer}</span>${pre(item.expected)}</div>` : ""}
   <p class="assessment"><b>${S.assessment}.</b> ${escapeHtml(item.rationale)}</p>
   ${item.source_refs.length ? `<p class="ids">${S.sources}: ${item.source_refs.map((ref) => `${escapeHtml(ref.source_revision_id)}#${escapeHtml(ref.anchor)}`).join(" · ")}</p>` : ""}
 </article>`,

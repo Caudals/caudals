@@ -7,11 +7,11 @@ import { Action, ActionAnchor, Progress, Status } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
 
 export async function publishPreliminaryManualReport(orgId: string, runId: string, evaluationTitle?: string) {
-  await evalRequest(`/runs/${runId}/score`, "POST", { orgId, graderRevisionId: "customer-manual-deterministic-v1" });
+  await evalRequest(`/runs/${runId}/score`, "POST", { orgId, graderRevisionId: "caudals-grader-v2" });
   const report = await evalRequest<{ reportId: string; revisionId: string }>(
     "/reports",
     "POST",
-    { orgId, runId, title: evaluationTitle ? `${evaluationTitle} — preliminary results` : "Preliminary evaluation results", reviewStatus: "preliminary", scorerVersion: "strict-v1" },
+    { orgId, runId, title: evaluationTitle ? `${evaluationTitle} — preliminary results` : "Preliminary evaluation results", reviewStatus: "preliminary", scorerVersion: "auto-preliminary-v2" },
     `customer-manual-report-${runId}`,
   );
   await evalRequest(`/reports/${report.reportId}/publish`, "POST", { orgId, revisionId: report.revisionId });

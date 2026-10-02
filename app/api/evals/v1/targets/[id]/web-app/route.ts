@@ -24,8 +24,8 @@ export const POST = api(async (request, identity) => {
   if (input.command.action === "save" || input.command.action === "result") {
     const result = z.object({ recipe: websiteRecipeSchema, storageState: browserStorageStateSchema, evidence: browserProbeEvidenceSchema.optional(), response: z.string().max(50_000).optional() }).parse(data);
     // Plaintext state never crosses the customer API. Saving reuses the
-    // target-scoped envelope registry and the seven-day maximum retention.
-    await storeLoginSession(scope, targetId, { storageState: result.storageState, expiresInHours: 168 });
+    // target-scoped envelope registry; the login lasts until revoked or replaced.
+    await storeLoginSession(scope, targetId, { storageState: result.storageState });
     const saved = await persistTaughtRecipe(scope, targetId, result.recipe, result.evidence);
     return { ...saved, response: result.response, saved: true };
   }

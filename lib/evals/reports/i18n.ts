@@ -45,6 +45,7 @@ const EN = {
   modelCost: "Model cost", settled: "settled", noFindingsShort: "No failure patterns were found in the assessed results.",
   scoredWord: "scored", preliminaryResults: "results", notCertification: "Caudals reports evidence about observed behaviour on this test set. It is not a certification or a conformity assessment.",
   eyebrow: "CAUDALS · EVALUATION REPORT",
+  expectedAnswer: "Expected answer", offeredOptions: "Buttons offered",
 };
 type Strings = typeof EN;
 
@@ -86,6 +87,7 @@ const ES: Strings = {
   modelCost: "Coste de modelos", settled: "liquidado", noFindingsShort: "No se han encontrado patrones de fallo en los resultados evaluados.",
   scoredWord: "puntuadas", preliminaryResults: "resultados", notCertification: "Caudals aporta evidencias sobre el comportamiento observado en este conjunto de pruebas. No es una certificación ni una evaluación de conformidad.",
   eyebrow: "CAUDALS · INFORME DE EVALUACIÓN",
+  expectedAnswer: "Respuesta esperada", offeredOptions: "Botones ofrecidos",
 };
 
 const LABEL_ES: Record<string, string> = {
@@ -117,6 +119,22 @@ const FIXED_ES: Record<string, string> = {
     "La ejecución y las mediciones las informó un ejecutor privado controlado por el cliente. Su firma vincula los datos enviados a la clave del ejecutor emparejado, no demuestra que el sistema los produjera.",
   "Follow-up user turns and tool results were scripted from the frozen tests, not written by a person or taken from live systems. Per-turn usage is estimated where the system did not report it.":
     "Los turnos de seguimiento y los resultados de herramientas se generaron a partir de las pruebas congeladas, no los escribió una persona ni proceden de sistemas reales. El uso por turno se estima cuando el sistema no lo informó.",
+  "The assistant did not answer": "El asistente no respondió",
+  "Answers with wrong information": "Respuestas con información incorrecta",
+  "Answers that contradict your documentation": "Respuestas que contradicen tu documentación",
+  "Incomplete answers": "Respuestas incompletas",
+  "Answers to a different question": "Respuestas a otra pregunta",
+  "Other failed answers": "Otras respuestas fallidas",
+  "Check that these topics are covered by the assistant's knowledge and that its fallback does not trigger on clear, in-scope questions.":
+    "Comprueba que estos temas están cubiertos por el conocimiento del asistente y que su respuesta por defecto no salta ante preguntas claras y dentro de su ámbito.",
+  "Correct or update the content the assistant relies on for these topics, then re-run the same tests to confirm the fix.":
+    "Corrige o actualiza el contenido en el que se apoya el asistente para estos temas y vuelve a ejecutar las mismas pruebas para confirmar la corrección.",
+  "Find the outdated or conflicting source the assistant used, remove or correct it, and re-run the same tests.":
+    "Localiza la fuente desactualizada o contradictoria que usó el asistente, elimínala o corrígela y vuelve a ejecutar las mismas pruebas.",
+  "Make sure the complete information (conditions, limits, alternatives) is available to the assistant and that answers are not cut short.":
+    "Asegúrate de que el asistente dispone de la información completa (condiciones, límites, alternativas) y de que las respuestas no se cortan.",
+  "Review how the assistant routes and retrieves content for these questions.": "Revisa cómo el asistente enruta y recupera el contenido para estas preguntas.",
+  "Inspect the linked answers, correct the system behaviour and re-run the same tests.": "Revisa las respuestas vinculadas, corrige el comportamiento del sistema y vuelve a ejecutar las mismas pruebas.",
   unsupported: "no admitidas", transport_error: "error de red", timeout: "tiempo agotado", capture_incomplete: "captura incompleta",
   canceled: "canceladas", unknown_external_outcome: "resultado externo desconocido", disputed: "disputadas", invalid_case: "caso no válido",
 };
@@ -132,6 +150,27 @@ export function localizeReportText(text: string, locale: ReportLocale): string {
   if (match) return `${match[1]} ${match[1] === "1" ? "resultado evaluado mostró" : "resultados evaluados mostraron"} ${match[2].replace(/criterion failure/, "incumplimiento de criterios")}.`;
   match = text.match(/^(.+): (\d+) of (\d+) relevant assessed results\.$/);
   if (match) return `${localizeReportText(match[1], locale)}: ${match[2]} de ${match[3]} resultados evaluados relevantes.`;
+  match = text.match(/^(\d+) of (\d+) questions got no usable answer: the assistant deflected, asked to rephrase or offered options without answering\.$/);
+  if (match) return `${match[1]} de ${match[2]} preguntas no recibieron una respuesta útil: el asistente se desvió, pidió reformular u ofreció opciones sin responder.`;
+  match = text.match(/^(\d+) of (\d+) answers stated information that does not match your documentation\.$/);
+  if (match) return `${match[1]} de ${match[2]} respuestas dieron información que no coincide con tu documentación.`;
+  match = text.match(/^(\d+) of (\d+) answers contradicted what your documentation says\.$/);
+  if (match) return `${match[1]} de ${match[2]} respuestas contradijeron lo que dice tu documentación.`;
+  match = text.match(/^(\d+) of (\d+) answers were right as far as they went but left out key facts\.$/);
+  if (match) return `${match[1]} de ${match[2]} respuestas eran correctas en lo que decían, pero omitieron datos clave.`;
+  match = text.match(/^(\d+) of (\d+) answers addressed a different question than the one asked\.$/);
+  if (match) return `${match[1]} de ${match[2]} respuestas trataron una pregunta distinta de la planteada.`;
+  match = text.match(/^(\d+) of (\d+) answers did not meet the expected answer\.$/);
+  if (match) return `${match[1]} de ${match[2]} respuestas no cumplieron la respuesta esperada.`;
+  match = text.match(/^(\d+) (?:test was|tests were) flagged as unclear or with a questionable expected answer and excluded from the score until reviewed\.$/);
+  if (match) return `${match[1]} ${match[1] === "1" ? "prueba se marcó como poco clara o con una respuesta esperada dudosa y se excluyó" : "pruebas se marcaron como poco claras o con una respuesta esperada dudosa y se excluyeron"} de la puntuación hasta su revisión.`;
+  match = text.match(/^(\d+) (?:answer was|answers were) not captured reliably from the web app and excluded from the score\.$/);
+  if (match) return `${match[1]} ${match[1] === "1" ? "respuesta no se capturó" : "respuestas no se capturaron"} de forma fiable desde la aplicación web y ${match[1] === "1" ? "se excluyó" : "se excluyeron"} de la puntuación.`;
+  match = text.match(/^(\d+) (?:answer was|answers were) graded automatically by an AI answer judge that compares meaning, not wording, against the expected answer and your documentation\. Agreement with human review: (.+)\.$/);
+  if (match) {
+    const agreement = match[2] === "not yet measured" ? "aún sin medir" : match[2].replace(/ over (\d+) reviewed results?/, (_m, n: string) => ` en ${n} ${n === "1" ? "resultado revisado" : "resultados revisados"}`);
+    return `${match[1]} ${match[1] === "1" ? "respuesta se calificó" : "respuestas se calificaron"} automáticamente con un juez de respuestas de IA que compara el significado, no la redacción, con la respuesta esperada y tu documentación. Concordancia con la revisión humana: ${agreement}.`;
+  }
   match = text.match(/^(.+) failures$/);
   if (match) return `Fallos en ${match[1].replaceAll("_", " ")}`;
   return text;

@@ -9,6 +9,9 @@ import {
   JUDGE_EXTENSION, JUDGE_PROMPT_REVISION, calibrationSummary, candidateAnswer, combineJudgeAssessment,
   judgeCriterionIds, judgeSystemPrompt, judgeUserMessage, parseJudgeOutput, type CalibrationSummary, type SourceExcerpt,
 } from "../scoring/judge";
+import {
+  ANSWER_JUDGE_REVISION, GRADER_V2, answerJudgeSystemPrompt, answerJudgeUserMessage, combineAnswerJudgeAssessment, parseAnswerJudgeOutput, semanticCriterionIds,
+} from "../scoring/answer-judge";
 import { withTenant } from "./db";
 import { ensureWorkspaceBudget, internalTimeoutMs, resolveModelRoute, routingFor, type ModelRoute } from "./model-routes";
 import type { EvidenceScope } from "./evidence";
@@ -40,7 +43,10 @@ async function sourceExcerpts(db: PoolClient, orgId: string, item: CefCase): Pro
 
 /** Called inside the scoring transaction for each new assessment waiting on a judge. */
 export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, runId: string, candidates: JudgeCandidate[]) {
-  const pending = candidates.filter((candidate) => candidate.observation.status === "succeeded" && judgeCriterionIds(candidate.item, candidate.rubric).length > 0);
+  // v2 results grade every semantic criterion with the answer judge; v1 keeps its rubric judge.
+  const v2 = (candidate: JudgeCandidate) => candidate.assessment.grader_revision_id === GRADER_V2;
+  const criterionIdsFor = (candidate: JudgeCandidate) => (v2(candidate) ? semanticCriterionIds(candidate.item, candidate.rubric) : judgeCriterionIds(candidate.item, candidate.rubric));
+  const pending = candidates.filter((candidate) => candidate.observation.status === "succeeded" && criterionIdsFor(candidate).length > 0);
   if (!pending.length) return { queued: 0, skipped: 0 };
   const route = await judgeRoute(db, scope.orgId);
   const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
@@ -55,20 +61,24 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
           judge_model_revision_id,judge_prompt_revision,status,reason_code,created_by)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'skipped',$10,$11) ON CONFLICT (org_id,pending_assessment_id) DO NOTHING`,
       [scope.orgId, runId, candidate.observationId, candidate.assessment.assessment_id, candidate.item.revision_id, candidate.rubric.revision_id,
-        judgeCriterionIds(candidate.item, candidate.rubric), route?.provider_revision_id ?? randomUUID(), JUDGE_PROMPT_REVISION, unavailable, scope.actorId]);
+        criterionIdsFor(candidate), route?.provider_revision_id ?? randomUUID(), v2(candidate) ? ANSWER_JUDGE_REVISION : JUDGE_PROMPT_REVISION, unavailable, scope.actorId]);
     }
     return { queued: 0, skipped: pending.length };
   }
   const passId = randomUUID(), workflowId = randomUUID();
   const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling) VALUES($1,'run',$2,$3,$4) RETURNING id`,
     [scope.orgId, passId, evaluation.currency, evaluation.commercial_cap])).rows[0];
-  const plan = digest({ runId, passId, judge: route!.provider_revision_id, prompt: JUDGE_PROMPT_REVISION });
+  const plan = digest({ runId, passId, judge: route!.provider_revision_id, prompt: pending.some(v2) ? ANSWER_JUDGE_REVISION : JUDGE_PROMPT_REVISION });
   let queued = 0;
   for (const candidate of pending) {
     const jobId = randomUUID();
-    const criterionIds = judgeCriterionIds(candidate.item, candidate.rubric);
+    const criterionIds = criterionIdsFor(candidate);
     const excerpts = await sourceExcerpts(db, scope.orgId, candidate.item);
-    const messages = [
+    const promptRevision = v2(candidate) ? ANSWER_JUDGE_REVISION : JUDGE_PROMPT_REVISION;
+    const messages = v2(candidate) ? [
+      { role: "system" as const, content: answerJudgeSystemPrompt() },
+      { role: "user" as const, content: answerJudgeUserMessage(candidate.item, candidate.observation, candidate.rubric, criterionIds, excerpts) },
+    ] : [
       { role: "system" as const, content: judgeSystemPrompt() },
       { role: "user" as const, content: judgeUserMessage(candidate.item, candidate.observation, candidate.rubric, criterionIds, excerpts) },
     ];
@@ -77,14 +87,14 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
       providerRevisionId: route!.provider_revision_id, priceRevisionId: route!.price_revision_id,
       workspaceBudgetId: workspaceBudget!.id, runBudgetId: runBudget.id, role: "judge",
       dataClass: route!.data_class, region: route!.region, ...routingFor(route!),
-      messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, 1024),
+      messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, v2(candidate) ? 1536 : 1024),
       timeoutMs: internalTimeoutMs(route!, 600000), internalCostPerSecond: route!.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.judge_job(id,org_id,run_id,observation_id,pending_assessment_id,case_revision_id,rubric_revision_id,criterion_ids,
         judge_model_revision_id,judge_prompt_revision,workflow_id,created_by)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
     [jobId, scope.orgId, runId, candidate.observationId, candidate.assessment.assessment_id, candidate.item.revision_id, candidate.rubric.revision_id,
-      criterionIds, route!.provider_revision_id, JUDGE_PROMPT_REVISION, workflowId, scope.actorId]);
+      criterionIds, route!.provider_revision_id, promptRevision, workflowId, scope.actorId]);
     const stepId = await enqueueInvocation(db, scope as Tenant, { workflowId, runId: passId, planHash: plan, kind: "grade", version: 1, input: invocation });
     await db.query("UPDATE evals.judge_job SET step_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, jobId, stepId]);
     queued++;
@@ -140,17 +150,31 @@ export function advanceJudgments(scope: EvidenceScope, runId?: string, limit = 2
       // A reviewer already decided this result; the judge must not overwrite it.
       if (row.latest_id !== job.pending_assessment_id) { await finish("skipped", "superseded_before_judgment"); outcome.superseded++; continue; }
       const observation = observationSchema.parse(row.observation);
-      const parsed = parseJudgeOutput(job.output, job.criterion_ids, candidateAnswer(observation));
-      if (!parsed.ok) { await finish("invalid", parsed.reason); outcome.invalid++; continue; }
       const key = `${job.judge_model_revision_id}:${job.judge_prompt_revision}`;
-      if (!calibrations.has(key)) calibrations.set(key, await judgeCalibration(db, scope.orgId, job.judge_model_revision_id, job.judge_prompt_revision));
-      const assessment = combineJudgeAssessment({
-        pending: assessmentSchema.parse(row.pending),
-        item: caseSchema.parse(row.case_document),
-        verdicts: parsed.verdicts,
-        judge: { modelRevisionId: job.judge_model_revision_id, promptRevision: job.judge_prompt_revision, jobId: job.id },
-        calibration: calibrations.get(key)!,
-      });
+      let assessment: Assessment;
+      if (job.judge_prompt_revision === ANSWER_JUDGE_REVISION) {
+        const parsed = parseAnswerJudgeOutput(job.output, job.criterion_ids);
+        if (!parsed.ok) { await finish("invalid", parsed.reason); outcome.invalid++; continue; }
+        if (!calibrations.has(key)) calibrations.set(key, await judgeCalibration(db, scope.orgId, job.judge_model_revision_id, job.judge_prompt_revision));
+        assessment = combineAnswerJudgeAssessment({
+          pending: assessmentSchema.parse(row.pending),
+          item: caseSchema.parse(row.case_document),
+          output: parsed.output,
+          judge: { modelRevisionId: job.judge_model_revision_id, promptRevision: job.judge_prompt_revision, jobId: job.id },
+          calibration: calibrations.get(key)!,
+        });
+      } else {
+        const parsed = parseJudgeOutput(job.output, job.criterion_ids, candidateAnswer(observation));
+        if (!parsed.ok) { await finish("invalid", parsed.reason); outcome.invalid++; continue; }
+        if (!calibrations.has(key)) calibrations.set(key, await judgeCalibration(db, scope.orgId, job.judge_model_revision_id, job.judge_prompt_revision));
+        assessment = combineJudgeAssessment({
+          pending: assessmentSchema.parse(row.pending),
+          item: caseSchema.parse(row.case_document),
+          verdicts: parsed.verdicts,
+          judge: { modelRevisionId: job.judge_model_revision_id, promptRevision: job.judge_prompt_revision, jobId: job.id },
+          calibration: calibrations.get(key)!,
+        });
+      }
       rubricSchema.parse(row.rubric_document);
       await db.query("INSERT INTO evals.assessment(id,org_id,observation_id,content_hash,document,outcome,review_status,supersedes_assessment_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
         [assessment.assessment_id, scope.orgId, job.observation_id, assessment.content_hash, assessment, assessment.outcome, assessment.review_status, assessment.supersedes_assessment_id]);

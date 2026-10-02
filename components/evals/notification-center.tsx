@@ -1,19 +1,22 @@
 "use client";
 
 /**
- * Notification centre: a bell with the unread count, a panel with
- * notifications (what finished, failed or needs you) and activity (what is
- * queued or running now), a toast when something new arrives, and optional
- * desktop alerts while the tab is in the background.
+ * Notification centre: a bell with the unread count, a live pill showing
+ * work in progress with its percentage, a panel with notifications (what
+ * finished, failed or needs you) and activity (every job with a progress
+ * bar), a toast when something new arrives, and optional desktop alerts
+ * while the tab is in the background. Opening an evaluation or report marks
+ * its notices read.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AlertTriangle, Bell, BellRing, CheckCircle2, CircleDot, Loader2, MessageCircleQuestion } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, Badge, EmptyState, StatusBadge, Tabs, relativeTime } from "./primitives";
+import { Action, EmptyState, Progress, Tabs, relativeTime } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Notice = {
   id: string;
@@ -21,9 +24,25 @@ type Notice = {
   category: "completion" | "required_input" | "failure" | "progress";
   created_at: string;
   read: boolean;
-  payload: { evaluationId?: string; evaluationTitle?: string; subjectTitle?: string; reportId?: string; reasonCode?: string; exportKind?: string; runId?: string };
+  payload: { evaluationId?: string; evaluationTitle?: string; subjectTitle?: string; reportId?: string; reasonCode?: string; exportKind?: string; runId?: string; supersedes?: string | null; pass?: number | null; scored?: number | null };
 };
-type Job = { type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null; created_at: string; updated_at: string; evaluation_id: string | null; evaluation_title: string | null; subject: string | null; done: number | null; total: number | null };
+type Stage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "done" | "failed";
+type Job = {
+  type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null; created_at: string; updated_at: string;
+  evaluation_id: string | null; evaluation_title: string | null; subject: string | null; done: number | null; total: number | null;
+  grading_done: number | null; grading_total: number | null; percent: number | null; stage: Stage; active: boolean;
+};
+const STAGE_LABEL: Record<Stage, MessageKey> = {
+  queued: "stageQueued", reading: "stageReading", analysing: "stageAnalysing", drafting: "stageDrafting", needs_input: "stageNeedsInput",
+  asking: "stageAsking", grading: "stageGrading", reporting: "stageReporting", exporting: "stageExporting", paused: "stagePaused", done: "stageDone", failed: "stageFailed",
+};
+/** "7/10 tests" style counter for the stage a job is in, when it has one. */
+function stageCount(job: Job) {
+  if (job.stage === "asking" || (job.type === "run" && job.stage === "paused")) return job.total ? `${job.done ?? 0}/${job.total}` : null;
+  if (job.stage === "grading") return job.grading_total ? `${job.grading_done ?? 0}/${job.grading_total}` : null;
+  if (job.stage === "drafting" && job.total) return `${Math.min(job.done ?? 0, job.total)}/${job.total}`;
+  return null;
+}
 
 const KIND_LABEL: Record<string, MessageKey> = {
   report_published: "noticeReportPublished",
@@ -54,14 +73,18 @@ const JOB_LABEL: Record<Job["type"], MessageKey> = {
   run: "jobRun",
   export: "jobExport",
 };
-const ACTIVE = new Set(["queued", "running", "profiling", "profile_ready", "drafting", "draft_ready", "captured", "persisting", "extracting", "pause_requested", "cancel_requested"]);
 
-export function noticeTitle(notice: Pick<Notice, "kind">) {
+const NOTICE_COUNTED = (notices: Notice[], id: string) => notices.some((item) => item.id === id && item.category !== "progress");
+
+export function noticeTitle(notice: Pick<Notice, "kind"> & { payload?: Notice["payload"] }) {
+  if (notice.kind === "report_published" && notice.payload?.supersedes) return t("noticeResultsUpdated");
   const key = KIND_LABEL[notice.kind];
   return key ? t(key) : notice.kind.replaceAll("_", " ");
 }
 function noticeDetail(notice: Notice) {
-  return [notice.payload.subjectTitle, notice.payload.evaluationTitle].filter(Boolean).join(" · ");
+  const score = notice.kind === "report_published" && typeof notice.payload.scored === "number" && notice.payload.scored > 0
+    ? tv("answersCorrectOf", { pass: notice.payload.pass ?? 0, scored: notice.payload.scored }) : null;
+  return [notice.payload.subjectTitle, notice.payload.evaluationTitle, score].filter(Boolean).join(" · ");
 }
 function noticeHref(notice: Notice, withOrg: (href: string) => string) {
   if (notice.payload.reportId) return withOrg(`/workspace/reports/${notice.payload.reportId}`);
@@ -84,6 +107,7 @@ export function NotificationCenter() {
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const [desktop, setDesktop] = useState<NotificationPermission | "unsupported">("default");
+  const pathname = usePathname();
 
   useEffect(() => {
     setDesktop(typeof window === "undefined" || !("Notification" in window) ? "unsupported" : Notification.permission);
@@ -123,7 +147,8 @@ export function NotificationCenter() {
     }
   }, [orgId]);
 
-  // Notices every 15 s; activity every 5 s while the panel shows it.
+  // Notices every 15 s. Activity drives the live pill: every 5 s while
+  // something runs (or the panel shows it), every 30 s otherwise.
   useEffect(() => {
     seen.current = null;
     setNotices(null);
@@ -134,15 +159,28 @@ export function NotificationCenter() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadNotices]);
+  const busy = jobs?.some((job) => job.active) ?? false;
+  const watching = open && tab === "activity";
   useEffect(() => {
-    if (!open || tab !== "activity") return;
     let timer = window.setTimeout(function tick() {
       void loadJobs().finally(() => {
-        timer = window.setTimeout(tick, 5_000);
+        timer = window.setTimeout(tick, document.hidden ? 60_000 : busy || watching ? 5_000 : 30_000);
       });
-    }, 0);
+    }, busy || watching ? 0 : 1_000);
     return () => window.clearTimeout(timer);
-  }, [open, tab, loadJobs]);
+  }, [loadJobs, busy, watching]);
+
+  // Looking at an evaluation or its report reads its notices.
+  useEffect(() => {
+    if (!notices?.length || !pathname) return;
+    const match = /\/workspace\/(evaluations|reports)\/([0-9a-f-]{36})/.exec(pathname);
+    if (!match) return;
+    const ids = notices.filter((item) => !item.read && (match[1] === "evaluations" ? item.payload.evaluationId === match[2] : item.payload.reportId === match[2])).map((item) => item.id);
+    if (!ids.length) return;
+    setNotices((current) => current?.map((item) => (ids.includes(item.id) ? { ...item, read: true } : item)) ?? current);
+    setUnread((value) => Math.max(0, value - ids.filter((id) => NOTICE_COUNTED(notices, id)).length));
+    void evalRequest("/notifications/read", "POST", { orgId, ids }).catch(() => undefined);
+  }, [pathname, notices, orgId]);
 
   async function markAll() {
     await evalRequest("/notifications/read", "POST", { orgId, all: true }).catch(() => undefined);
@@ -159,11 +197,32 @@ export function NotificationCenter() {
     setDesktop(await Notification.requestPermission());
   }
 
-  const running = jobs?.filter((job) => ACTIVE.has(job.status)).length ?? 0;
+  const activeJobs = jobs?.filter((job) => job.active) ?? [];
+  const running = activeJobs.length;
   const listed = (notices ?? []).filter((item) => item.category !== "progress");
+  const known = activeJobs.filter((job) => job.percent !== null);
+  const overall = known.length ? Math.round(known.reduce((sum, job) => sum + (job.percent ?? 0), 0) / known.length) : null;
+  const lead = activeJobs[0];
 
   return (
     <>
+      {running > 0 && (
+        <button
+          type="button"
+          className="p-jobs-pill"
+          onClick={() => { setTab("activity"); setOpen(true); }}
+          aria-label={`${t("backgroundWork")}: ${tv("jobsInProgress", { count: running })}${overall !== null ? `, ${overall}%` : ""}`}
+          title={t("backgroundWork")}
+        >
+          <Loader2 aria-hidden="true" />
+          <span>
+            {running === 1 && lead
+              ? tv("jobInProgress", { label: t(STAGE_LABEL[lead.stage]), percent: lead.percent ?? 0 })
+              : `${tv("jobsInProgress", { count: running })}${overall !== null ? ` · ${overall}%` : ""}`}
+          </span>
+          {overall !== null && <Progress value={overall} max={100} label={t("backgroundWork")} />}
+        </button>
+      )}
       <button
         type="button"
         className="p-btn"
@@ -257,32 +316,35 @@ export function NotificationCenter() {
         ) : jobs === null ? (
           <p className="p-loading" role="status"><span className="p-spinner" aria-hidden="true" />{t("loading")}</p>
         ) : jobs.length ? (
-          <ul className="p-stack" style={{ listStyle: "none", margin: "12px 0 0", padding: 0, gap: 4 }}>
+          <ul className="p-job-list">
             {jobs.map((job) => {
-              const active = ACTIVE.has(job.status);
+              const counter = stageCount(job);
               const content = (
-                <span className="p-row" style={{ alignItems: "flex-start", flexWrap: "nowrap", gap: 10 }}>
-                  {active ? <Loader2 aria-hidden="true" width={16} style={{ animation: "p-spin 900ms linear infinite" }} /> : <CircleDot aria-hidden="true" width={16} />}
-                  <span style={{ display: "grid", gap: 2, minWidth: 0 }}>
-                    <span>
-                      <strong>{t(JOB_LABEL[job.type])}</strong>
-                      {job.subject && job.type !== "export" ? ` · ${job.subject}` : job.type === "export" && job.subject ? ` · ${job.subject.toUpperCase()}` : ""}
+                <>
+                  <span className="p-job-head">
+                    {job.active ? <Loader2 aria-hidden="true" data-spin="true" /> : job.stage === "failed" ? <AlertTriangle aria-hidden="true" /> : job.stage === "done" ? <CheckCircle2 aria-hidden="true" /> : <CircleDot aria-hidden="true" />}
+                    <span className="p-job-body">
+                      <span>
+                        <strong>{t(JOB_LABEL[job.type])}</strong>
+                        {job.subject && job.type !== "export" ? ` · ${job.subject}` : job.type === "export" && job.subject ? ` · ${job.subject.toUpperCase()}` : ""}
+                      </span>
+                      {job.evaluation_title && <span className="p-cell-meta">{job.evaluation_title}</span>}
+                      <span className="p-cell-meta">
+                        {t(STAGE_LABEL[job.stage])}
+                        {counter ? ` · ${counter}` : ""}
+                        {" · "}
+                        {job.active ? `${t("startedAgo")} ${relativeTime(job.created_at)}` : relativeTime(job.updated_at)}
+                      </span>
                     </span>
-                    {job.evaluation_title && <span className="p-cell-meta">{job.evaluation_title}</span>}
-                    <span className="p-cell-meta">
-                      {job.total ? `${job.done ?? 0}/${job.total} ${t("tests").toLowerCase()} · ` : ""}
-                      {active ? `${t("startedAgo")} ${relativeTime(job.created_at)}` : relativeTime(job.updated_at)}
-                    </span>
+                    {job.percent !== null && (job.active || job.stage === "paused") && <span className="p-job-end"><span className="p-job-percent">{job.percent}%</span></span>}
                   </span>
-                  <span style={{ marginLeft: "auto", flex: "none" }}>
-                    <StatusBadge value={job.status} />
-                  </span>
-                </span>
+                  {job.percent !== null && (job.active || job.stage === "paused") && <Progress value={job.percent} max={100} label={t(JOB_LABEL[job.type])} />}
+                </>
               );
               return (
-                <li key={`${job.type}-${job.id}`} style={{ padding: "10px 8px", borderRadius: 8 }}>
+                <li key={`${job.type}-${job.id}`} className="p-job" data-active={job.active ? "true" : undefined}>
                   {job.evaluation_id ? (
-                    <Link href={withOrg(`/workspace/evaluations/${job.evaluation_id}`)} onClick={() => setOpen(false)} style={{ color: "inherit", textDecoration: "none", display: "block" }}>
+                    <Link className="p-job-link" href={withOrg(`/workspace/evaluations/${job.evaluation_id}`)} onClick={() => setOpen(false)}>
                       {content}
                     </Link>
                   ) : (
@@ -297,7 +359,6 @@ export function NotificationCenter() {
             <p>{t("noActivityHelp")}</p>
           </EmptyState>
         )}
-        {tab === "activity" && running > 0 && <Badge tone="info" dot live>{running} {t("jobsRunning")}</Badge>}
       </SidePanel>
     </>
   );

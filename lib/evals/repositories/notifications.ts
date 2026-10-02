@@ -45,33 +45,82 @@ export function markNotificationsRead(scope: EvidenceScope, raw: unknown) {
   });
 }
 
+export type ActivityStage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "done" | "failed";
+type ActivityRow = {
+  type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null;
+  created_at: string; updated_at: string; evaluation_id: string | null; evaluation_title: string | null; subject: string | null;
+  done: number | null; total: number | null; phase: string | null; grading_done: number | null; grading_total: number | null;
+};
+
+const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+/**
+ * One progress figure per job, 0–100, from durable state only (no timers):
+ * runs weight asking the system 80%, grading 18% and the report 2%;
+ * generation weights drafted tests over the requested count.
+ */
+export function jobProgress(row: Pick<ActivityRow, "type" | "status" | "done" | "total" | "phase" | "grading_done" | "grading_total">): { percent: number | null; stage: ActivityStage; active: boolean } {
+  const share = (done: number | null, total: number | null) => (total ? Math.min(1, (done ?? 0) / total) : 0);
+  if (row.status === "failed" || row.status === "quarantined") return { percent: null, stage: "failed", active: false };
+  if (row.type === "website") {
+    const steps: Record<string, number> = { queued: 5, running: 30, captured: 55, persisting: 70, extracting: 85, completed: 100 };
+    return { percent: steps[row.status] ?? null, stage: row.status === "completed" ? "done" : row.status === "queued" ? "queued" : "reading", active: row.status !== "completed" };
+  }
+  if (row.type === "document" || row.type === "export") {
+    const steps: Record<string, number> = { queued: 10, running: 50, completed: 100 };
+    return { percent: steps[row.status] ?? null, stage: row.status === "completed" ? "done" : row.status === "queued" ? "queued" : row.type === "export" ? "exporting" : "reading", active: row.status !== "completed" };
+  }
+  if (row.type === "generation") {
+    if (row.status === "needs_review") return { percent: 100, stage: "done", active: false };
+    if (row.status === "needs_input") return { percent: 15, stage: "needs_input", active: false };
+    if (row.status === "paused") return { percent: clamp(15 + 75 * share(row.done, row.total)), stage: "paused", active: false };
+    if (row.status === "profiling" || row.status === "profile_ready") return { percent: row.status === "profiling" ? 8 : 15, stage: "analysing", active: true };
+    if (row.status === "draft_ready") return { percent: 92, stage: "drafting", active: true };
+    return { percent: clamp(15 + 75 * share(row.done, row.total)), stage: "drafting", active: true };
+  }
+  // run
+  if (row.status === "canceled") return { percent: null, stage: "failed", active: false };
+  if (row.status === "paused" || row.status === "pause_requested") return { percent: clamp(5 + 75 * share(row.done, row.total)), stage: "paused", active: false };
+  if (row.status === "queued" || row.phase === "preflight") return { percent: 2, stage: "queued", active: true };
+  if (row.phase === "target_execution") return { percent: clamp(5 + 75 * share(row.done, row.total)), stage: "asking", active: true };
+  if (row.phase === "grading" || (row.phase === "reporting" && (row.grading_total ?? 0) > (row.grading_done ?? 0))) {
+    return { percent: clamp(80 + 18 * (row.grading_total ? share(row.grading_done, row.grading_total) : 0)), stage: "grading", active: true };
+  }
+  if (row.phase === "reporting" || row.phase === "aggregation") return { percent: 98, stage: "reporting", active: true };
+  return { percent: 100, stage: "done", active: false };
+}
+
 /** Queued, running and recently finished work, newest first, with progress where it is known. */
 export function listActivity(scope: EvidenceScope) {
   return withTenant(scope, async (db) => (await db.query(`SELECT * FROM (
-      SELECT 'website' AS type,w.id,w.status,w.reason_code,w.created_at,w.updated_at,w.evaluation_id,e.title AS evaluation_title,s.title AS subject,NULL::int AS done,NULL::int AS total
+      SELECT 'website' AS type,w.id,w.status,w.reason_code,w.created_at,w.updated_at,w.evaluation_id,e.title AS evaluation_title,s.title AS subject,NULL::int AS done,NULL::int AS total,NULL::text AS phase,NULL::int AS grading_done,NULL::int AS grading_total
         FROM evals.website_source_job w JOIN evals.source s ON (s.org_id,s.id)=(w.org_id,w.source_id) LEFT JOIN evals.evaluation e ON (e.org_id,e.id)=(w.org_id,w.evaluation_id)
         WHERE w.org_id=$1 AND (w.status NOT IN ('completed','failed') OR w.updated_at>now()-interval '3 days')
       UNION ALL
-      SELECT 'document',j.id,j.status,j.reason_code,j.created_at,j.updated_at,s.evaluation_id,e.title,s.title,NULL,NULL
+      SELECT 'document',j.id,j.status,j.reason_code,j.created_at,j.updated_at,s.evaluation_id,e.title,s.title,NULL,NULL,NULL,NULL,NULL
         FROM evals.source_ingestion_job j JOIN evals.source s ON (s.org_id,s.id)=(j.org_id,j.source_id) LEFT JOIN evals.evaluation e ON (e.org_id,e.id)=(s.org_id,s.evaluation_id)
         WHERE j.org_id=$1 AND NOT EXISTS (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=j.org_id AND w.source_id=j.source_id)
           AND (j.status NOT IN ('completed','failed') OR j.updated_at>now()-interval '3 days')
       UNION ALL
-      SELECT 'generation',g.id,g.status,g.reason_code,g.created_at,g.updated_at,g.evaluation_id,e.title,g.title,NULL,NULL
+      SELECT 'generation',g.id,g.status,g.reason_code,g.created_at,g.updated_at,g.evaluation_id,e.title,g.title,jsonb_array_length(g.draft_cases),g.requested_case_count,NULL,NULL,NULL
         FROM evals.generation_job g JOIN evals.evaluation e ON (e.org_id,e.id)=(g.org_id,g.evaluation_id)
         WHERE g.org_id=$1 AND (g.status IN ('profiling','profile_ready','drafting','draft_ready') OR g.updated_at>now()-interval '3 days')
       UNION ALL
       SELECT 'run',r.id,r.status,r.reason_code,r.created_at,r.updated_at,r.evaluation_id,e.title,NULL,
           (SELECT count(*)::int FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id AND u.status NOT IN ('pending','queued','running')),
-          (SELECT count(*)::int FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id)
+          (SELECT count(*)::int FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id),
+          -- A finished run left in grading/reporting with nothing queued is done for the reader.
+          CASE WHEN r.status IN ('completed','partial') AND r.phase IN ('grading','reporting') AND r.updated_at<now()-interval '30 minutes'
+            AND NOT EXISTS (SELECT 1 FROM evals.judge_job q WHERE q.org_id=r.org_id AND q.run_id=r.id AND q.status='queued') THEN 'done' ELSE r.phase END,
+          (SELECT count(*) FILTER (WHERE j.status<>'queued')::int FROM evals.judge_job j WHERE j.org_id=r.org_id AND j.run_id=r.id),
+          (SELECT count(*)::int FROM evals.judge_job j WHERE j.org_id=r.org_id AND j.run_id=r.id)
         FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
         WHERE r.org_id=$1 AND (r.status IN ('queued','running','pause_requested','paused','cancel_requested') OR r.updated_at>now()-interval '3 days')
       UNION ALL
-      SELECT 'export',x.id,x.status,x.reason_code,x.created_at,x.updated_at,r.evaluation_id,e.title,x.kind,NULL,NULL
+      SELECT 'export',x.id,x.status,x.reason_code,x.created_at,x.updated_at,r.evaluation_id,e.title,x.kind,NULL,NULL,NULL,NULL,NULL
         FROM evals.export_job x JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(x.org_id,x.report_revision_id)
         JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id) LEFT JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
         WHERE x.org_id=$1 AND (x.status IN ('queued','running') OR x.updated_at>now()-interval '3 days')
     ) jobs
-    ORDER BY (status IN ('queued','running','profiling','profile_ready','drafting','draft_ready','captured','persisting','extracting','pause_requested','cancel_requested')) DESC, updated_at DESC
-    LIMIT 60`, [scope.orgId])).rows);
+    ORDER BY (status IN ('queued','running','profiling','profile_ready','drafting','draft_ready','captured','persisting','extracting','pause_requested','cancel_requested') OR phase IN ('grading','reporting')) DESC, updated_at DESC
+    LIMIT 60`, [scope.orgId])).rows.map((row: ActivityRow) => ({ ...row, ...jobProgress(row) })));
 }

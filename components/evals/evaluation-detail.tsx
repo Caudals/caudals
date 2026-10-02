@@ -6,7 +6,7 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowRight, Download, LifeBuoy, Pencil, Play, RotateCcw, Square, Trash2 } from "lucide-react";
+import { Activity, ArrowRight, Download, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError } from "./api";
@@ -26,7 +26,7 @@ import {
   humanize,
 } from "./primitives";
 import { OutcomeBar, percent } from "./charts";
-import { ActionMenu } from "./overlays";
+import { ActionMenu, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
 import { PrepareEvaluation } from "./workspace-preparation";
 import { ManualAnswers, publishPreliminaryManualReport } from "./workspace-manual-answers";
@@ -35,12 +35,14 @@ import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { WebAppConnector } from "./web-app-connector";
 import { evaluationStage, stepStates } from "./evaluation-stage";
-import { t } from "@/lib/evals/messages/en";
+import { getLocale, t, tv } from "@/lib/evals/messages/en";
+import { localizeReportText } from "@/lib/evals/reports/i18n";
 
 type RunView = {
   run: { id: string; status: string; phase: string; execution_mode: string; suite_version_id: string; created_at: string; reason_code: string | null };
   units: Array<{ id: string; status: string }>;
   targetUsage: { calls: number; unknown: number };
+  grading?: { queued: number; done: number; total: number };
 };
 type ReportData = { report: { current_revision_id: string | null }; revisions: Array<{ id: string; snapshot: ReportSnapshot }> };
 
@@ -90,8 +92,12 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       try {
         const value = await evalRequest<RunView>(`/runs/${latestRunId}?orgId=${encodeURIComponent(orgId)}`);
         if (stopped) return;
-        setRun(value);
-        const active = ["queued", "running", "pause_requested", "cancel_requested", "paused"].includes(value.run.status);
+        setRun((previous) => {
+          // Results just landed: refresh the summary so the report link appears.
+          if (previous && previous.run.phase !== "done" && value.run.phase === "done") void reload();
+          return value;
+        });
+        const active = ["queued", "running", "pause_requested", "cancel_requested", "paused"].includes(value.run.status) || value.run.phase !== "done";
         timer = window.setTimeout(() => void poll(), active ? 4_000 : 30_000);
       } catch {
         if (!stopped) timer = window.setTimeout(() => void poll(), 10_000);
@@ -102,7 +108,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [latestRunId, orgId]);
+  }, [latestRunId, orgId, reload]);
 
   useEffect(() => {
     if (!reportRow || !orgId) return;
@@ -173,6 +179,17 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       setPending(false);
     }
   }
+  async function regrade() {
+    if (!latestRunId) return;
+    setActionError(null);
+    try {
+      const result = await evalRequest<{ regraded: number }>(`/runs/${latestRunId}/regrade`, "POST", { orgId });
+      notify(result.regraded ? t("regradeStarted") : t("regradeNothing"));
+      await reload();
+    } catch (value) {
+      fail(value);
+    }
+  }
   async function finishManualReport() {
     if (!latestRunId) return;
     setPending(true);
@@ -231,6 +248,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
   const menu = [
     ...(running && canWrite ? [{ label: t("cancelRun"), icon: <Square />, onSelect: () => void cancel(), tone: "danger" as const }] : []),
     ...(terminal && canWrite && evaluation.selected_suite_version_id ? [{ label: t("runAgain"), icon: <RotateCcw />, onSelect: () => void start() }] : []),
+    ...(terminal && canWrite && reportRow && ["completed", "partial"].includes(runStatus ?? "") ? [{ label: t("regradeAnswers"), icon: <RefreshCcw />, onSelect: () => void regrade() }] : []),
     ...(evaluation.selected_suite_version_id && canWrite
       ? [{ label: t("downloadQuestionSheet"), icon: <Download />, href: `/api/evals/v1/suites/${evaluation.selected_suite_version_id}/candidate-template?orgId=${encodeURIComponent(orgId)}&format=csv`, external: true }]
       : []),
@@ -337,10 +355,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       ) : running ? (
         <Panel title={humanize(run.run.phase)} live>
           <div className="p-run-progress">
-            <p className="p-run-count">
-              <strong>{counts.done}</strong> {t("of")} {counts.total} {t("testsAnswered")}
-            </p>
-            <Progress value={counts.done} max={Math.max(counts.total, 1)} label={t("testsAnswered")} />
+            <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running />
             <p className="p-cell-meta">
               {elapsed ? `${t("elapsed")} ${elapsed} · ` : ""}
               {t("closePageHelp")}
@@ -350,7 +365,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         </Panel>
       ) : terminal ? (
         report ? (
-          <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} />
+          <ResultsSummary report={report} runStatus={runStatus!} targetCalls={run.run.execution_mode === "deployed_system" ? run.targetUsage : null} answersHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null} grading={run.run.phase !== "done" ? run.grading : undefined} />
         ) : runStatus === "failed" ? (
           <Panel title={t("runFailedTitle")}>
             <p>{run.run.reason_code ? `${humanize(run.run.reason_code)}. ` : ""}{t("runFailedHelp")}</p>
@@ -379,6 +394,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         ) : (
           <Panel title={t("reviewingResults")} live>
             <p>{t("reviewingResultsHelp")}</p>
+            <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running={false} />
           </Panel>
         )
       ) : null}
@@ -398,14 +414,58 @@ function Panel({ title, live = false, children }: { title: string; live?: boolea
   );
 }
 
+/** The run as three stages a non-expert can follow: ask, grade, report. */
+function RunPipeline({
+  counts,
+  grading,
+  phase,
+  running,
+}: {
+  counts: { total: number; done: number };
+  grading?: { queued: number; done: number; total: number };
+  phase: string;
+  running: boolean;
+}) {
+  const asked = counts.total > 0 && counts.done >= counts.total;
+  const gradingTotal = grading?.total ?? 0;
+  const graded = !running && (phase === "reporting" || phase === "done") && (grading?.queued ?? 0) === 0;
+  const stages = [
+    { key: "ask", label: t("stageAsking"), done: counts.done, total: counts.total, state: asked ? "done" : "current" },
+    { key: "grade", label: t("stageGrading"), done: grading?.done ?? 0, total: gradingTotal, state: !asked ? "upcoming" : graded ? "done" : "current" },
+    { key: "report", label: t("stageReporting"), done: 0, total: 0, state: graded ? (phase === "done" ? "done" : "current") : "upcoming" },
+  ] as const;
+  return (
+    <ol className="p-pipeline" aria-label={t("evaluationProgress")}>
+      {stages.map((stage) => (
+        <li key={stage.key} data-state={stage.state}>
+          <span className="p-pipeline-head">
+            {stage.state === "current" && <span className="p-spinner" aria-hidden="true" />}
+            <span>{stage.label}</span>
+            {stage.total > 0 && (
+              <span className="p-pipeline-count">
+                {stage.done}/{stage.total} · {Math.round((stage.done / stage.total) * 100)}%
+              </span>
+            )}
+          </span>
+          {stage.total > 0 && stage.state !== "upcoming" && <Progress value={stage.done} max={stage.total} label={stage.label} />}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function ResultsSummary({
   report,
   runStatus,
   targetCalls,
+  answersHref,
+  grading,
 }: {
   report: ReportSnapshot;
   runStatus: string;
   targetCalls: { calls: number; unknown: number } | null;
+  answersHref: string | null;
+  grading?: { queued: number; done: number; total: number };
 }) {
   const m = report.metrics;
   const findings = [...report.findings].sort((a, b) => ["critical", "high", "medium", "low"].indexOf(a.severity) - ["critical", "high", "medium", "low"].indexOf(b.severity)).slice(0, 3);
@@ -417,19 +477,33 @@ function ResultsSummary({
             {t("strictPassRate")}
           </p>
           <p className="p-score" data-empty={m.strict_pass_rate == null ? "true" : undefined}>{m.strict_pass_rate == null ? t("noScoreYet") : percent(m.strict_pass_rate, 1)}</p>
-          <p className="p-cell-meta">
-            {m.n_pass} {t("passedOf")} {m.n_scorable} {t("assessedTests")}
-            {m.wilson_interval ? ` · 95% ${t("interval")} ${percent(m.wilson_interval.low)}–${percent(m.wilson_interval.high)}` : ""}
-          </p>
+          <p className="p-headline">{tv("answersCorrectOf", { pass: m.n_pass, scored: m.n_scorable })}</p>
+          {m.n_scorable > 0 && (
+            <p className="p-cell-meta">
+              {t("qualityScore")} {percent((m.n_pass + m.n_partial / 2) / m.n_scorable)}
+              {m.wilson_interval ? ` · 95% ${t("interval")} ${percent(m.wilson_interval.low)}–${percent(m.wilson_interval.high)}` : ""}
+            </p>
+          )}
         </div>
         <div className="p-row">
           <StatusBadge value={report.scope.review_status} />
           {m.headline_status === "incomplete" && <StatusBadge value="incomplete" />}
           {runStatus === "partial" && <StatusBadge value="partial" />}
+          {answersHref && (
+            <ActionLink variant="secondary" href={`${answersHref}${answersHref.includes("?") ? "&" : "?"}tab=results`}>
+              {t("seeAllAnswers")}
+              <ArrowRight aria-hidden="true" />
+            </ActionLink>
+          )}
         </div>
       </div>
-      <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} />
-      {m.n_unscorable > 0 && <p className="p-field-hint">{t("awaitingReviewNote")}</p>}
+      <OutcomeBar counts={{ pass: m.n_pass, partial: m.n_partial, fail: m.n_fail, unscorable: m.n_unscorable }} label={t("outcomes")} labels={{ pass: t("labelCorrect"), partial: t("labelPartiallyCorrect"), fail: t("labelIncorrect"), unscorable: t("filterNotScored") }} />
+      {grading && grading.queued > 0 && (
+        <Status tone="info">
+          {t("stageGrading")} · {grading.done}/{grading.total}
+        </Status>
+      )}
+      {m.n_unscorable > 0 && <p className="p-field-hint">{t("notScoredHelp")}</p>}
       {m.headline_status === "incomplete" && <Status tone="warn">{t("incompleteReport")}</Status>}
       {findings.length > 0 && (
         <div>
@@ -438,7 +512,7 @@ function ResultsSummary({
             {findings.map((finding) => (
               <li key={finding.id}>
                 <StatusBadge value={finding.severity} />
-                <span className="p-findings-title">{finding.title}</span>
+                <span className="p-findings-title">{localizeReportText(finding.title, getLocale())}</span>
                 <span className="p-cell-meta">
                   {finding.frequency_n}/{finding.frequency_denominator}
                 </span>

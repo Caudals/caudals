@@ -23,6 +23,7 @@ import {
 import { observationSchema } from "../contracts/results";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { validatePublicDestination, type Lookup } from "./egress";
+import { contentWords, isEchoOfPrompt } from "../scoring/text";
 
 type FrameLike = Page | Frame | FrameLocator;
 type DestinationCheck = (url: string) => Promise<void>;
@@ -83,11 +84,31 @@ async function textSnapshot(root: FrameLike, recipe: WebsiteRecipe) {
   return primary;
 }
 
-export function newAssistantMessages(previous: string[], current: string[]) {
-  const samePrefix = previous.every((value, index) => current[index] === value);
-  const messages = samePrefix ? current.slice(previous.length) : current;
+/**
+ * The assistant messages a turn added. Handles widgets that re-render or trim
+ * their history, a message that grows in place, and the user's own message
+ * echoed into a bubble the reply locator also matches (dropped when `prompt`
+ * is given, so the executor keeps waiting for the real reply).
+ */
+export function newAssistantMessages(previous: string[], current: string[], prompt?: string) {
+  let messages: string[];
+  // Longest suffix of the previous list that the current list starts with.
+  let overlap = 0;
+  for (let size = Math.min(previous.length, current.length); size > 0; size--) {
+    if (previous.slice(previous.length - size).every((value, index) => current[index] === value)) { overlap = size; break; }
+  }
+  if (overlap > 0 || !previous.length) messages = current.slice(overlap);
+  else if (current.length === previous.length && current.slice(0, -1).every((value, index) => value === previous[index]) && current.at(-1)!.startsWith(previous.at(-1)!)) {
+    // One container whose text grows with each message.
+    messages = [current.at(-1)!.slice(previous.at(-1)!.length).trim()].filter(Boolean);
+  } else {
+    const pool = [...previous];
+    messages = current.filter((value) => { const at = pool.indexOf(value); if (at >= 0) { pool.splice(at, 1); return false; } return true; });
+  }
+  if (prompt) messages = messages.filter((value) => !isEchoOfPrompt(value, prompt));
   return { messages, duplicateFree: new Set(messages).size === messages.length };
 }
+const joinTurn = (messages: string[]) => messages.map((value) => value.trim()).filter(Boolean).join("\n\n");
 
 /** Network and WebSocket activity, so completion never relies on text stability alone. */
 export type PageActivity = { inflight(): number; lastActivity(): number; mark(): void; dispose(): void };
@@ -119,8 +140,13 @@ export async function waitForCompletion(
   previous: string[],
   deadline: number,
   activity?: PageActivity,
+  prompt?: string,
+  /** True when the reply added quick-reply buttons; a buttons-only reply then completes on network quiet. */
+  repliedWithActions?: () => Promise<boolean>,
 ) {
   let candidate = "";
+  const waitStarted = Date.now();
+  let lastActionCheck = 0;
   let changedAt = 0;
   let prior = "";
   let busySeen = false;
@@ -153,11 +179,12 @@ export async function waitForCompletion(
       signalMissed = busySeen && !enabled;
     }
     const messages = await textSnapshot(root, recipe);
-    const fresh = newAssistantMessages(previous, messages);
+    const fresh = newAssistantMessages(previous, messages, prompt);
+    // Every bubble the turn added counts: basic bots split one reply into several.
     candidate =
       recipe.assistant_extraction === "last_new_message"
-        ? fresh.messages.at(-1) ?? ""
-        : messages.at(-1) ?? "";
+        ? joinTurn(fresh.messages)
+        : prompt && isEchoOfPrompt(messages.at(-1) ?? "", prompt) ? "" : messages.at(-1) ?? "";
     if (candidate && candidate !== prior) {
       prior = candidate;
       changedAt = Date.now();
@@ -175,6 +202,10 @@ export async function waitForCompletion(
         // input) falls back to a long, network-confirmed quiet period.
         return candidate;
       }
+    }
+    if (!candidate && repliedWithActions && Date.now() - waitStarted >= 3_000 && Date.now() - lastActionCheck >= 1_000 && networkQuiet(2_000)) {
+      lastActionCheck = Date.now();
+      if (await repliedWithActions()) return "";
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -443,6 +474,96 @@ async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
   throw new Error(recipe.launcher && !clicks ? "launcher_unavailable" : "selector_unavailable");
 }
 
+/* ------------------------------------------------- quick-reply actions --- */
+
+const ACTION_SELECTOR = 'button,[role="button"],a[href],[role="option"],[role="menuitem"],input[type="button"]';
+// Remember every clickable element present before the prompt, so the
+// buttons a reply adds can be told apart from the page's own chrome.
+const MARK_ACTIONS = new Function("el", `
+  const all = [];
+  const visit = root => { for (const node of root.querySelectorAll(${JSON.stringify(ACTION_SELECTOR)})) all.push(node); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) visit(node.shadowRoot); };
+  visit(el.getRootNode && el.getRootNode().querySelectorAll ? el.getRootNode() : el.ownerDocument);
+  window.__caudalsSeenActions = new WeakSet(all);
+`) as (element: Element) => void;
+// Buttons added since MARK_ACTIONS, in the chat panel (from a message: the
+// nearest ancestor holding a text box; from the input: its whole document).
+const COLLECT_ACTIONS = new Function("el", "fromMessage", `
+  const seen = window.__caudalsSeenActions;
+  const clear = root => { for (const node of root.querySelectorAll('[data-caudals-action]')) node.removeAttribute('data-caudals-action'); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) clear(node.shadowRoot); };
+  clear(el.ownerDocument || document);
+  const box = 'textarea,input[type="text"],input:not([type]),[contenteditable="true"],[role="textbox"]';
+  const visible = node => { const r = node.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return false; const s = getComputedStyle(node); return s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.05; };
+  let panel = el.getRootNode && el.getRootNode().querySelectorAll ? el.getRootNode() : el.ownerDocument;
+  if (fromMessage) { panel = el; for (let i = 0; i < 14 && panel.parentElement; i++) { panel = panel.parentElement; if (panel.querySelector(box)) break; } }
+  const composer = panel.querySelector ? panel.querySelector(box) : null;
+  const nodes = []; const visit = root => { for (const node of root.querySelectorAll(${JSON.stringify(ACTION_SELECTOR)})) nodes.push(node); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) visit(node.shadowRoot); };
+  visit(panel);
+  const chrome = /^(send|send message|enviar|enviar mensaje|submit|close|cerrar|minimi[sz]e|minimizar|menu|menú|attach|adjuntar|emoji|copy|copiar|like|dislike|me gusta|no me gusta|feedback|reset|reiniciar|restart|new chat|nuevo chat|nueva conversaci[oó]n|expand|ampliar|more|más|options|opciones|share|compartir|x|×|✕|👍|👎|ver más|see more|leer más|read more)$/i;
+  const out = [];
+  for (const node of nodes) {
+    if (seen ? seen.has(node) : !(el.contains(node) || (el.compareDocumentPosition(node) & 4))) continue;
+    if (!visible(node) || node.disabled || node.getAttribute('aria-disabled') === 'true') continue;
+    if (composer && node.parentElement && (node.parentElement.contains(composer) || (node.parentElement.parentElement && node.parentElement.parentElement.contains(composer) && !node.parentElement.parentElement.contains(el)))) continue;
+    const label = (node.innerText || node.value || node.getAttribute('aria-label') || node.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!label || label.length > 80 || chrome.test(label) || out.some(item => item.label === label)) continue;
+    let external = false;
+    if (node.tagName === 'A') { try { const url = new URL(node.getAttribute('href'), location.href); external = url.origin !== location.origin || (url.pathname !== location.pathname && !url.hash); } catch { external = true; } }
+    node.setAttribute('data-caudals-action', String(out.length));
+    out.push({ label, external });
+    if (out.length >= 12) break;
+  }
+  return out;
+`) as (element: Element, fromMessage: boolean) => Array<{ label: string; external: boolean }>;
+
+const RISKY_ACTION = /compra|comprar|contrat|pagar|pago|presupuesto|buy|purchase|pay\b|checkout|quote|llam|call|tel[eé]fono|phone|whatsapp|e-?mail|correo|baja|cancel|elimin|borrar|delete|unsubscribe|log ?in|iniciar sesi|acceder|registr|sign ?(in|up)|descarg|download|agente|agent|humano|human|persona|operador|operator|valora|rate|encuesta|survey/i;
+
+/**
+ * The quick reply a person would pick for this question: the one whose label
+ * shares the most meaningful words with it, when that choice is clear. Never
+ * links that leave the page, purchases, contact, sign-in or deletion.
+ */
+export function pickGuidedAction(question: string, actions: Array<{ label: string; external: boolean }>): number | null {
+  const asked = contentWords(question);
+  const stems = (words: string[]) => words.map((word) => word.slice(0, 5));
+  const askedStems = new Set(stems(asked));
+  const scores = actions.map((action) => {
+    if (action.external || RISKY_ACTION.test(action.label)) return 0;
+    const words = contentWords(action.label);
+    if (!words.length) return 0;
+    const hits = stems(words).filter((stem) => askedStems.has(stem)).length;
+    return hits / words.length;
+  });
+  const best = Math.max(0, ...scores);
+  if (best < 0.5) return null;
+  const winners = scores.filter((score) => score === best).length;
+  return winners === 1 ? scores.indexOf(best) : null;
+}
+
+async function markActions(input: Locator) {
+  await input.evaluate(MARK_ACTIONS).catch(() => {});
+}
+async function collectActions(root: FrameLike, recipe: WebsiteRecipe, input: Locator) {
+  const messages = locator(root, recipe, recipe.assistant_message);
+  const count = await messages.count().catch(() => 0);
+  const fromMessage = count > 0;
+  const element = fromMessage ? messages.nth(count - 1) : input;
+  return element.evaluate(COLLECT_ACTIONS, fromMessage).catch(() => [] as Array<{ label: string; external: boolean }>);
+}
+
+/** After the completion signal, waits out a short quiet window so late bubbles join the reply. */
+async function settleTurn(root: FrameLike, recipe: WebsiteRecipe, previous: string[], prompt: string, deadline: number, quietMs = 1_500) {
+  let text = joinTurn(newAssistantMessages(previous, await textSnapshot(root, recipe), prompt).messages);
+  let stableSince = Date.now();
+  while (Date.now() - stableSince < quietMs && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const next = joinTurn(newAssistantMessages(previous, await textSnapshot(root, recipe), prompt).messages);
+    if (next !== text) { text = next; stableSince = Date.now(); }
+  }
+  return newAssistantMessages(previous, await textSnapshot(root, recipe), prompt);
+}
+
+const GUIDED_STEPS = 2;
+
 async function invokeOpenWebsite(args: {
   session: Awaited<ReturnType<typeof openRecipe>>;
   recipe: WebsiteRecipe;
@@ -453,7 +574,8 @@ async function invokeOpenWebsite(args: {
   if (args.context.signal.aborted) throw new Error("target_execution_aborted");
   const started = new Date().toISOString();
   const session = args.session;
-  const previous = await textSnapshot(session.root, args.recipe);
+  const deadline = new Date(args.context.deadline).getTime();
+  let previous = await textSnapshot(session.root, args.recipe);
   const prompt = [...args.input.messages]
     .reverse()
     .find((message) => message.role === "user")?.content;
@@ -462,6 +584,7 @@ async function invokeOpenWebsite(args: {
   const submit = args.recipe.submit.kind === "click"
     ? await resolvePart(session.root, args.recipe, "submit", args.recipe.submit.locator, 5_000)
     : null;
+  await markActions(input);
   // Requests the submit itself starts are the reply's own streams.
   session.activity.mark();
   await sendWebsitePrompt(session.root, {
@@ -469,15 +592,53 @@ async function invokeOpenWebsite(args: {
     submit: args.recipe.submit.kind === "click" ? args.recipe.submit.locator : null,
     frame_chain: args.recipe.frame_chain,
   }, prompt, { input, submit });
-  const output = await waitForCompletion(
-    session.root,
-    args.recipe,
-    previous,
-    new Date(args.context.deadline).getTime(),
-    session.activity,
-  );
-  const captured = newAssistantMessages(previous, await textSnapshot(session.root, args.recipe));
-  if (!captured.messages.length || !captured.duplicateFree) throw new Error("capture_incomplete");
+
+  const parts: string[] = [];
+  const guided: Array<{ action: string; reply_chars: number }> = [];
+  let actions: Array<{ label: string; external: boolean }> = [];
+  let turnPrompt = prompt;
+  let messageCount = 0;
+  let duplicateFree = true;
+  for (let step = 0; ; step++) {
+    let completed = true;
+    try {
+      await waitForCompletion(session.root, args.recipe, previous, deadline, session.activity, turnPrompt,
+        async () => (await collectActions(session.root, args.recipe, input)).length > 0);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "capture_incomplete") throw error;
+      completed = false;
+    }
+    const captured = completed ? await settleTurn(session.root, args.recipe, previous, turnPrompt, deadline) : { messages: [] as string[], duplicateFree: true };
+    const found = await collectActions(session.root, args.recipe, input);
+    if (found.length) actions = found;
+    // A reply made only of buttons is still a reply; nothing at all is not.
+    if (!captured.messages.length && !found.length) {
+      if (step === 0) throw new Error("capture_incomplete");
+      break;
+    }
+    if (!captured.duplicateFree) duplicateFree = false;
+    messageCount += captured.messages.length;
+    const text = joinTurn(captured.messages);
+    if (step > 0) guided.push({ action: turnPrompt, reply_chars: text.length });
+    if (text) parts.push(text);
+    if (step >= GUIDED_STEPS || !found.length || Date.now() > deadline - 10_000) break;
+    const choice = pickGuidedAction(prompt, found);
+    if (choice === null) break;
+    // Follow the matching quick reply, as a person would.
+    const label = found[choice].label;
+    previous = await textSnapshot(session.root, args.recipe);
+    const button = locator(session.root, args.recipe, { kind: "css", value: `[data-caudals-action="${choice}"]`, frames: args.recipe.assistant_message.frames }).first();
+    await markActions(input);
+    session.activity.mark();
+    const clicked = await button.click({ timeout: 5_000 }).then(() => true, () => false);
+    if (!clicked) break;
+    parts.push(`→ ${label}`);
+    turnPrompt = label;
+  }
+  if (!duplicateFree) throw new Error("capture_incomplete");
+  // Trailing "→ choice" with no reply after it is dropped.
+  while (parts.length && parts.at(-1)!.startsWith("→ ")) parts.pop();
+  const output = parts.join("\n\n");
   const finished = new Date().toISOString();
   if (args.context.signal.aborted) throw new Error("target_execution_aborted");
   return observationSchema.parse(
@@ -514,8 +675,10 @@ async function invokeOpenWebsite(args: {
         "caudals.evals/browser": {
           recipe_revision_id: args.recipe.recipe_revision_id,
           extraction: args.recipe.assistant_extraction,
-          new_message_count: captured.messages.length,
-          duplicate_free: captured.duplicateFree,
+          new_message_count: messageCount,
+          duplicate_free: duplicateFree,
+          ...(actions.length ? { actions: actions.map((action) => action.label) } : {}),
+          ...(guided.length ? { guided } : {}),
         },
       },
     }),

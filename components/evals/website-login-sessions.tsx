@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { evalRequest } from "./api";
-import { Action, SectionHeading, SelectField, Status, StatusBadge, TextArea, Time } from "./primitives";
+import { Action, SectionHeading, Status, StatusBadge, Time } from "./primitives";
 import { notify } from "./overlays";
 import { t } from "@/lib/evals/messages/en";
 
@@ -11,11 +11,9 @@ type Data = {
   captures: Array<{ id: string; reason_code: string; created_at: string; expires_at: string }>;
 };
 
-/** Operator-assisted login state and discovery evidence for one website system (spec §8.3). */
+/** Saved sign-ins from the live browser (no expiry on our side) and discovery evidence for one website system. */
 export function WebsiteLoginSessions({ orgId, targetId }: { orgId: string; targetId: string }) {
   const [data, setData] = useState<Data | null>(null);
-  const [state, setState] = useState("");
-  const [hours, setHours] = useState(24);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const load = useCallback(async () => {
@@ -29,27 +27,6 @@ export function WebsiteLoginSessions({ orgId, targetId }: { orgId: string; targe
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
-  async function upload(event: React.FormEvent) {
-    event.preventDefault();
-    setPending(true);
-    setError("");
-    try {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(state);
-      } catch {
-        throw new Error(t("loginSessionInvalidJson"));
-      }
-      await evalRequest(`/targets/${targetId}/login-sessions`, "POST", { orgId, storageState: parsed, expiresInHours: hours }, crypto.randomUUID());
-      notify(t("loginSessionSaved"));
-      await load();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t("error"));
-    } finally {
-      setState("");
-      setPending(false);
-    }
-  }
   async function revoke(id: string) {
     setPending(true);
     try {
@@ -62,20 +39,24 @@ export function WebsiteLoginSessions({ orgId, targetId }: { orgId: string; targe
       setPending(false);
     }
   }
+  // Far-future expiry means "until revoked".
+  const lasting = (value: string) => new Date(value).getTime() - Date.now() > 5 * 365 * 24 * 3600_000;
+  const sessions = data?.sessions ?? [];
+  if (!sessions.length && !data?.captures.length && !error) return null;
   return (
     <section aria-label={t("websiteLoginSession")}>
       <SectionHeading title={t("websiteLoginSession")}>{t("websiteLoginSessionHelp")}</SectionHeading>
       {error && <Status error>{error}</Status>}
-      {data?.sessions.length ? (
+      {sessions.length ? (
         <ul className="p-keys">
-          {data.sessions.map((session) => (
+          {sessions.map((session) => (
             <li key={session.id}>
               <span className="p-keys-main">
                 <span className="p-keys-name">
                   {t("savedSession")} <Time value={session.created_at} />
                 </span>
                 <span className="p-cell-meta">
-                  {t("expires")} <Time value={session.expires_at} />
+                  {lasting(session.expires_at) ? t("untilRevoked") : <>{t("expires")} <Time value={session.expires_at} /></>}
                 </span>
               </span>
               <StatusBadge value={session.state} />
@@ -88,21 +69,6 @@ export function WebsiteLoginSessions({ orgId, targetId }: { orgId: string; targe
           ))}
         </ul>
       ) : null}
-      <form className="p-inline-form" onSubmit={upload} autoComplete="off">
-        <TextArea id={`login-state-${targetId}`} label={t("loginSessionState")} rows={4} value={state} onChange={(event) => setState(event.target.value)} spellCheck={false} placeholder='{"cookies":[…],"origins":[…]}' required />
-        <SelectField id={`login-expiry-${targetId}`} label={t("loginSessionExpiry")} value={hours} onChange={(event) => setHours(Number(event.target.value))}>
-          {[1, 24, 72, 168].map((value) => (
-            <option key={value} value={value}>
-              {value === 1 ? "1 hour" : value === 168 ? "7 days" : `${value} hours`}
-            </option>
-          ))}
-        </SelectField>
-        <div className="p-row">
-          <Action type="submit" variant="secondary" disabled={!state || pending}>
-            {t("saveLoginSession")}
-          </Action>
-        </div>
-      </form>
       {data?.captures.length ? (
         <>
           <SectionHeading title={t("discoveryEvidence")}>{t("discoveryEvidenceHelp")}</SectionHeading>

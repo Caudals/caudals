@@ -412,7 +412,7 @@ export function PrepareEvaluation({
     setError("");
     try {
       const sourceRevisionIds = sources.map((item) => item.revisionId);
-      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: "dgx-context-cases-v4", maxCases: scopeSize, complexity, locale: getLocale() };
+      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: "dgx-context-cases-v5", maxCases: scopeSize, complexity, locale: getLocale() };
       const previous = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`);
       if (previous.job && ["profiling", "profile_ready", "drafting", "draft_ready", "needs_input"].includes(previous.status)) {
         setPending("");

@@ -10,7 +10,24 @@ import type { ReportLocale } from "./i18n";
 export function renderReportHtml(raw:ReportSnapshot,locale:ReportLocale="en"):string{return renderReportDocument(reportSnapshotSchema.parse(raw),locale);}
 
 function csvCell(value:string):string {const safe=spreadsheetSafe(value);return /[",\r\n]/.test(safe)?`"${safe.replaceAll('"','""')}"`:safe;}
-export function renderResultsCsv(raw:ReportSnapshot):string {const report=reportSnapshotSchema.parse(raw);const header=["case_revision_id","title","topic","severity","outcome","assessment_id","observation_id","input","output","rationale","review_status","source_refs"];const lines=[header.join(",")];for(const item of report.results)lines.push(header.map(key=>csvCell(key==="source_refs"?item.source_refs.map(ref=>`${ref.source_revision_id}#${ref.anchor}`).join(";"):String(item[key as keyof typeof item]??""))).join(","));return lines.join("\r\n")+"\r\n";}
+export function renderResultsCsv(raw:ReportSnapshot):string {
+ const report=reportSnapshotSchema.parse(raw);
+ // Original columns first (stable for existing spreadsheets), then the v2 grading detail.
+ const header=["case_revision_id","title","topic","severity","outcome","assessment_id","observation_id","input","output","rationale","review_status","source_refs","result","expected_answer","key_facts","failure_category","offered_buttons","contradictions","unverified_details"];
+ const value=(item:ReportSnapshot["results"][number],key:string):string=>{
+  if(key==="source_refs")return item.source_refs.map(ref=>`${ref.source_revision_id}#${ref.anchor}`).join(";");
+  if(key==="result")return item.label??"";
+  if(key==="expected_answer")return item.expected??"";
+  if(key==="key_facts")return (item.key_facts??[]).map(fact=>fact.status?`${fact.fact} [${fact.status}]`:fact.fact).join("; ");
+  if(key==="offered_buttons")return (item.offered_actions??[]).join("; ");
+  if(key==="contradictions")return (item.contradictions??[]).join("; ");
+  if(key==="unverified_details")return (item.unsupported_claims??[]).join("; ");
+  return String(item[key as keyof typeof item]??"");
+ };
+ const lines=[header.join(",")];
+ for(const item of report.results)lines.push(header.map(key=>csvCell(value(item,key))).join(","));
+ return lines.join("\r\n")+"\r\n";
+}
 export function renderReportJson(raw:ReportSnapshot):string{return JSON.stringify(reportSnapshotSchema.parse(raw))+"\n";}
 
 export function renderCefJsonl(raw:{report:ReportSnapshot;cases:unknown[];observations:unknown[];assessments:unknown[]}):string {

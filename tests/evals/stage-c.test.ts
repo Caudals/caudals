@@ -104,12 +104,13 @@ describe("WP-11 approved test-set gate", () => {
     expect(() => assertOperatorRecipeAuthority("operator")).not.toThrow();
     expect(() => assertOperatorRecipeAuthority("platform_admin")).not.toThrow();
   });
-  it("rejects website checks without an active endpoint-matched attestation", () => {
+  it("rejects website checks without an endpoint-matched attestation, which never lapses", () => {
     const endpoint = "https://example.com/chat";
     const active = { scope: { endpoint }, expires_at: new Date(Date.now() + 60_000) };
     expect(() => assertWebsiteAuthorization(null, endpoint)).toThrow();
     expect(() => assertWebsiteAuthorization({ ...active, scope: { endpoint: "https://other.example/chat" } }, endpoint)).toThrow();
-    expect(() => assertWebsiteAuthorization({ ...active, expires_at: new Date(Date.now() - 1_000) }, endpoint)).toThrow();
+    // Connections do not expire: an old attestation for the same endpoint still holds.
+    expect(() => assertWebsiteAuthorization({ ...active, expires_at: new Date(Date.now() - 1_000) }, endpoint)).not.toThrow();
     expect(() => assertWebsiteAuthorization(active, endpoint)).not.toThrow();
   });
   it("bounds nested draft preparation to available database connections", async () => {

@@ -496,7 +496,7 @@ test("Stage C customer can see source-backed test-set preparation after connecti
   await expect(page.getByText("When can I request a refund?")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Review the test set" })).toBeVisible();
-  await expect(page.locator(".p-case").getByText("Within 30 days.", { exact: true })).toBeVisible();
+  await expect(page.locator(".p-review-case").getByText("Within 30 days.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /^Approve test set/ }).click();
   await expect(page.getByRole("button", { name: "Run evaluation" })).toBeVisible();
   expect(requests).toEqual(["context", "generate", "freeze", "approve"]);
@@ -702,15 +702,16 @@ test("Stage C result inspector is nonmodal on desktop and modal with focus on mo
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/reports/fixture");
   await page.getByRole("tab", { name: "Test results" }).click();
-  await page.getByRole("button", { name: /Refund eligibility/ }).click();
-  await expect(page.getByRole("complementary", { name: /Refund eligibility/ })).toContainText("30-day policy");
+  // Rows lead with the question itself, so the customer reads what was asked.
+  await page.getByRole("button", { name: /Can I get a refund\?/ }).click();
+  await expect(page.getByRole("complementary", { name: /Can I get a refund\?/ })).toContainText("30-day policy");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 900 });
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("30-day policy");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Refund eligibility/ })).toBeFocused();
+  await expect(page.getByRole("button", { name: /Can I get a refund\?/ })).toBeFocused();
 });
 test("retry after a lost response reuses the same creation key", async ({
   page,
@@ -1250,7 +1251,7 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Support improvements" })).toBeVisible();
   // Every question is readable with its expected answer and cited source.
   await expect(page.getByText("How long do I have to request a refund?")).toBeVisible();
-  await expect(page.getByText("30 days", { exact: true })).toBeVisible();
+  await expect(page.getByText("30 days", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Refund policy")).toBeVisible();
   await page.getByRole("button", { name: "Edit" }).click();
   await page.getByLabel("Title", { exact: true }).fill("Updated refund window");

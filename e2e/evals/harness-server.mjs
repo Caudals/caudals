@@ -72,6 +72,15 @@ createServer(async (req, res) => {
       usage: { settled: "128.40", outstanding: "12.00" },
       preferences: { completion: true, required_input: true, failure: true, email: false }
     }, meta: {} }));
+  } else if (req.url?.startsWith("/api/evals/v1/activity") && process.env.HARNESS_FIXTURE === "demo") {
+    // Demo activity: one run being graded, one test set being drafted.
+    const now = new Date().toISOString();
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ data: [
+      { type: "run", id: "run-1", status: "completed", reason_code: null, created_at: now, updated_at: now, evaluation_id: "eval-1", evaluation_title: "Support assistant — refunds", subject: null, done: 10, total: 10, phase: "reporting", grading_done: 4, grading_total: 10, percent: 87, stage: "grading", active: true },
+      { type: "generation", id: "gen-1", status: "drafting", reason_code: null, created_at: now, updated_at: now, evaluation_id: "eval-2", evaluation_title: "Onboarding bot — eligibility", subject: "Onboarding test set", done: 24, total: 40, phase: null, grading_done: null, grading_total: null, percent: 60, stage: "drafting", active: true },
+      { type: "website", id: "web-1", status: "completed", reason_code: null, created_at: now, updated_at: now, evaluation_id: "eval-3", evaluation_title: "Claims triage — policy limits", subject: "claims.example.com", done: null, total: null, phase: null, grading_done: null, grading_total: null, percent: 100, stage: "done", active: false },
+    ], meta: {} }));
   } else if (req.url?.startsWith("/caudals-logo") || req.url?.startsWith("/caudals_logo")) {
     try {
       const filePath = root + "public" + req.url.split("?")[0];

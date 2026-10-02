@@ -8,7 +8,6 @@ import { PENDING_CRITERIA_EXTENSION } from "./judge";
 
 export type CriterionResult={criterionId:string;passed:boolean|null;score:number|null;rationale:string;source?:"deterministic"|"llm_judge"|"human"};
 function candidateText(observation:Observation):string{return [...observation.messages].reverse().find(message=>message.role==="assistant")?.content??"";}
-function candidateValue(text:string):unknown {try{return JSON.parse(text);}catch{return text;}}
 function decimalParts(value:string){const match=/^(-?)(\d+)(?:\.(\d+))?$/.exec(value);if(!match)throw new Error("decimal_invalid");return {negative:match[1]==="-",whole:match[2],fraction:match[3]??""};}
 function scaled(value:string,scale:number):bigint {const p=decimalParts(value);const fraction=(p.fraction+"0".repeat(scale)).slice(0,scale);const amount=BigInt(p.whole)*BigInt(10)**BigInt(scale)+BigInt(fraction||"0");return p.negative?-amount:amount;}
 function decimalWithin(actual:string,expected:string,tolerance:string):boolean {const scale=Math.max(decimalParts(actual).fraction.length,decimalParts(expected).fraction.length,decimalParts(tolerance).fraction.length),difference=scaled(actual,scale)-scaled(expected,scale),allowed=scaled(tolerance,scale);return difference*difference<=allowed*allowed;}
@@ -18,17 +17,26 @@ function validateJsonSchema(value:unknown,schema:unknown):boolean {
   if(s.type==="string")return typeof value==="string";if(s.type==="number")return typeof value==="number"&&Number.isFinite(value);if(s.type==="integer")return Number.isInteger(value);if(s.type==="boolean")return typeof value==="boolean";if(s.type==="array")return Array.isArray(value)&&(!s.items||value.every(item=>validateJsonSchema(item,s.items)));if(s.type==="null")return value===null;if(Array.isArray(s.enum))return s.enum.some(item=>JSON.stringify(item)===JSON.stringify(value));return true;
 }
 
+type DeterministicGrader=Exclude<CefCase["reference"]["graders"][number],{kind:"llm_judge"}|{kind:"human"}>;
+/** One deterministic grader against the candidate's final answer. */
+export function deterministicCheck(grader:DeterministicGrader,observation:Observation,text:string,value:unknown,outputSchemas?:Map<string,unknown>):{passed:boolean;rationale:string}{
+  let passed=false,rationale="";
+  if(grader.kind==="exact_match"){const actual=selectJson(value,grader.path);passed=typeof actual==="string"&&typeof grader.expected==="string"&&!grader.case_sensitive?actual.toLocaleLowerCase()===grader.expected.toLocaleLowerCase():JSON.stringify(actual)===JSON.stringify(grader.expected);rationale=passed?"Exact expected value matched.":"Exact expected value did not match.";}
+  else if(grader.kind==="decimal_equal"){const actual=selectJson(value,grader.path);try{passed=(typeof actual==="string"||typeof actual==="number")&&decimalWithin(String(actual),grader.expected,grader.tolerance);}catch{passed=false;}rationale=passed?`Decimal value matched within ${grader.tolerance} ${grader.unit}.`:`Decimal value did not match ${grader.expected} within ${grader.tolerance} ${grader.unit}.`;}
+  else if(grader.kind==="claims"){const lower=text.toLocaleLowerCase();const missing=grader.required.filter(claim=>!lower.includes(claim.toLocaleLowerCase())),prohibited=grader.prohibited.filter(claim=>lower.includes(claim.toLocaleLowerCase()));passed=!missing.length&&!prohibited.length;rationale=passed?"Required claims were present and prohibited claims absent.":`Missing ${missing.length} required and included ${prohibited.length} prohibited claims.`;}
+  else if(grader.kind==="json_schema"){passed=validateJsonSchema(value,outputSchemas?.get(grader.schema_ref));rationale=passed?"Output matched the declared schema.":"Output did not match the declared schema.";}
+  else {const scenario=observation.extensions["caudals.evals/scenario"] as {final_state?:unknown}|undefined;passed=!!scenario&&conditionsPass(grader.predicates,scenario.final_state,observation.tool_events);rationale=passed?"The deterministic fixture reached the required final state.":"The deterministic fixture did not reach the required final state.";}
+  return {passed,rationale};
+}
+export function candidateValue(text:string):unknown {try{return JSON.parse(text);}catch{return text;}}
+
 export function gradeDeterministically(args:{caseRevision:CefCase;observation:Observation;rubric:Rubric;outputSchemas?:Map<string,unknown>;graderRevisionId:string;createdAt?:string}):Assessment {
   const {caseRevision:item,observation,rubric}=args;let outcome:"pass"|"partial"|"fail"|"unscorable"="pass";const criteria:CriterionResult[]=[];
   if(observation.status!=="succeeded") {outcome="unscorable";for(const criterion of rubric.criteria)criteria.push({criterionId:criterion.id,passed:null,score:null,rationale:`Execution ended as ${observation.status}; this is not a model failure.`});}
   else {const text=candidateText(observation),value=candidateValue(text);
     for(const [index,grader] of item.reference.graders.entries()){
-      if(grader.kind==="llm_judge"||grader.kind==="human"){criteria.push({criterionId:rubric.criteria[index]?.id??`grader-${index+1}`,passed:null,score:null,rationale:grader.kind==="llm_judge"?"A versioned rubric judge result is required.":"Human review is required.",source:grader.kind});continue;}let passed=false,rationale="";
-      if(grader.kind==="exact_match"){const actual=selectJson(value,grader.path);passed=typeof actual==="string"&&typeof grader.expected==="string"&&!grader.case_sensitive?actual.toLocaleLowerCase()===grader.expected.toLocaleLowerCase():JSON.stringify(actual)===JSON.stringify(grader.expected);rationale=passed?"Exact expected value matched.":"Exact expected value did not match.";}
-      else if(grader.kind==="decimal_equal"){const actual=selectJson(value,grader.path);try{passed=(typeof actual==="string"||typeof actual==="number")&&decimalWithin(String(actual),grader.expected,grader.tolerance);}catch{passed=false;}rationale=passed?`Decimal value matched within ${grader.tolerance} ${grader.unit}.`:`Decimal value did not match ${grader.expected} within ${grader.tolerance} ${grader.unit}.`;}
-      else if(grader.kind==="claims"){const lower=text.toLocaleLowerCase();const missing=grader.required.filter(claim=>!lower.includes(claim.toLocaleLowerCase())),prohibited=grader.prohibited.filter(claim=>lower.includes(claim.toLocaleLowerCase()));passed=!missing.length&&!prohibited.length;rationale=passed?"Required claims were present and prohibited claims absent.":`Missing ${missing.length} required and included ${prohibited.length} prohibited claims.`;}
-      else if(grader.kind==="json_schema"){passed=validateJsonSchema(value,args.outputSchemas?.get(grader.schema_ref));rationale=passed?"Output matched the declared schema.":"Output did not match the declared schema.";}
-      else {const scenario=observation.extensions["caudals.evals/scenario"] as {final_state?:unknown}|undefined;passed=!!scenario&&conditionsPass(grader.predicates,scenario.final_state,observation.tool_events);rationale=passed?"The deterministic fixture reached the required final state.":"The deterministic fixture did not reach the required final state.";}
+      if(grader.kind==="llm_judge"||grader.kind==="human"){criteria.push({criterionId:rubric.criteria[index]?.id??`grader-${index+1}`,passed:null,score:null,rationale:grader.kind==="llm_judge"?"A versioned rubric judge result is required.":"Human review is required.",source:grader.kind});continue;}
+      const {passed,rationale}=deterministicCheck(grader,observation,text,value,args.outputSchemas);
       criteria.push({criterionId:rubric.criteria[index]?.id??`grader-${index+1}`,passed,score:passed?1:0,rationale});
     }
     const passCount=criteria.filter(c=>c.passed).length;if(!criteria.length||criteria.some(c=>c.passed===null))outcome="unscorable";else if(passCount===criteria.length)outcome="pass";else if(passCount===0)outcome="fail";else outcome="partial";

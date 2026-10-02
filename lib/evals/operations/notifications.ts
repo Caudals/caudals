@@ -47,7 +47,9 @@ function compose(kind: string, payload: Record<string, string>, orgId: string): 
     export_failed: { subject: "A Caudals export failed", line: "A report export could not be prepared. Open the report and try again." },
     input_required: { subject: "Caudals needs one answer to continue", line: "An evaluation is waiting for a short answer about its scope before it can continue." },
   };
-  const body = bodies[kind] ?? bodies.input_required;
+  const body = kind === "report_published" && payload.supersedes
+    ? { subject: "Your Caudals evaluation results were updated", line: "An evaluation report in your workspace has a new revision with updated grades. Its review status is shown with the results." }
+    : bodies[kind] ?? bodies.input_required;
   return { subject: body.subject, text: `${body.line}\n\nOpen it here: ${link}\n\nYou receive this because email notifications are on in your workspace settings.` };
 }
 

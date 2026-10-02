@@ -30,7 +30,11 @@ permitted by the browser worker's workspace allowlist.
    Detected elements are outlined on the live view with labels.
 4. A passing test saves the encrypted login and freezes an immutable recipe
    and target revision. A failed test still saves the draft and login so the
-   person never has to sign in twice.
+   person never has to sign in twice. Saved logins and website attestations
+   do not expire on Caudals' side; they last until revoked (Systems → Saved
+   sign-in) or until the site itself ends the session. There is no
+   storage-state (cookie JSON) upload: the live browser is the only way to
+   save a login.
 5. Anything Caudals cannot detect has a **Fix** button: click it, click the
    element in the live view, test again.
 
@@ -50,6 +54,23 @@ started by the prompt and WebSocket frames have all been quiet together for
 1.5 s. Text stability alone never completes a reply; a request open for more
 than a minute is treated as a notification channel. If an explicit signal is
 too brief to observe, a 5 s network-confirmed quiet period is the fallback.
+
+Capture rules for real, imperfect chatbots (`docs/evals/grading-engine.md`):
+
+- the user's own message echoed into a bubble the reply locator also matches
+  is ignored (equal to the prompt, allowing sender labels and timestamps), so
+  the executor keeps waiting for the bot's reply;
+- every new assistant bubble of the turn is joined in order (bots that split
+  one reply), with history re-renders, trimming and in-place growth handled;
+- after the completion signal a 1.5 s settle window catches late bubbles;
+- quick-reply buttons added with the reply are recorded in
+  `caudals.evals/browser.actions` and shown to the judge and the customer; a
+  reply made only of buttons completes on network quiet;
+- guided follow-up: when exactly one button's label clearly matches the
+  question (shared word stems ≥ 50 %, unique best), the executor clicks it, at
+  most twice, never for links leaving the page or purchase, contact, sign-in,
+  deletion or survey labels. The step appears in the transcript as
+  `→ label` and in `caudals.evals/browser.guided`.
 
 A probe qualifies when both fresh sessions captured a complete, new,
 duplicate-free reply and the reset held (`probeEvidenceReady`). Identical
@@ -86,15 +107,16 @@ queue or logs; customer API responses never contain storage state.
 
 Up to `EVALS_BROWSER_INTERACTIVE_SESSIONS` (default 2) interactive sessions run
 per browser service. Reopening the same connector resumes its session. A
-session closes after ten idle minutes, thirty minutes in total, or ninety
-seconds after its last viewer disconnects (unless Caudals is still working).
+session closes after twenty idle minutes, two hours in total, or three
+minutes after its last viewer disconnects (unless Caudals is still working).
 Source captures defer while an interactive session is active.
 
 Saved cookies, local storage, IndexedDB and session storage belong only to the
 target and the taught frame origins; identity-provider state is discarded
 after sign-in. Encryption uses the target-scoped envelope registry; only the
-browser executor decrypts saved state. Saved sessions expire within seven days
-and can be revoked through the session UI. Eval scenarios always use fresh
+browser executor decrypts saved state. Saved sessions have no Caudals-side
+expiry (stored as a far-future `expires_at`) and can be revoked through the
+session UI. Eval scenarios always use fresh
 contexts, preserving conversation state only across turns of one scenario.
 
 ## Runs, failures and repair
@@ -137,7 +159,11 @@ both. Configuration and encrypted state remain in existing additive tables.
   manual Fix of each part in nested frames, encrypted-state reuse and
   normalized eval execution.
 - `e2e/evals/browser-fixture.contract.ts`: streaming pauses, selector drift,
-  blocked HTTP/private WebSocket egress.
+  blocked HTTP/private WebSocket egress, and a basic chatbot that echoes the
+  question into a shared bubble class, splits its reply, offers buttons and is
+  followed through the matching one.
+- `tests/evals/web-capture-v2.test.ts`: turn diffing, echo filtering and the
+  guided-action choice.
 - `tests/evals/browser-control-security.test.ts`: encryption, stream line
   sealing, bounded commands and input batches.
 - `e2e/evals/ui.contract.ts`: the studio with a mocked stream: live canvas,

@@ -35,7 +35,9 @@ export function assertWebsiteAuthorization(
   record: { scope: { endpoint?: string }; expires_at: Date | string } | null,
   endpoint: string,
 ) {
-  if (!record || record.scope.endpoint !== endpoint || new Date(record.expires_at).getTime() <= Date.now()) {
+  // Attestations do not lapse: a connected website stays connected until the
+  // system is edited (new endpoint) or archived. expires_at is kept for audit.
+  if (!record || record.scope.endpoint !== endpoint) {
     throw new EvalError("SCOPE_DENIED", 403, "Confirm your authority to test this website before connecting it.");
   }
 }
@@ -54,7 +56,7 @@ export function recordWebsiteAuthorization(scope: EvidenceScope, projectId: stri
     const result = (await db.query(
       `INSERT INTO evals.authorization_record(
         org_id,project_id,target_id,basis,scope,traffic_limit,expires_at
-       ) VALUES($1,$2,$3,'workspace_member_attestation',$4,$5,now()+interval '90 days')
+       ) VALUES($1,$2,$3,'workspace_member_attestation',$4,$5,now()+interval '100 years')
        RETURNING id,expires_at`,
       [scope.orgId, projectId, targetId,
         { endpoint: config.endpoint, activity: "connection_check_and_bounded_evaluation", adversarial: false },

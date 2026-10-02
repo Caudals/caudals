@@ -122,6 +122,11 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     children.push(block(item.input));
     children.push(para(S.answer, { bold: true, size: 20, after: 40 }));
     children.push(block(item.output || "—"));
+    if (item.offered_actions?.length) children.push(block(`${S.offeredOptions}: ${item.offered_actions.join(" · ")}`, MUTED));
+    if (item.expected) {
+      children.push(para(S.expectedAnswer, { bold: true, size: 20, after: 40 }));
+      children.push(block(item.expected));
+    }
     if (item.rationale) {
       children.push(para(S.why, { bold: true, size: 20, after: 40 }));
       children.push(block(item.rationale, MUTED));

@@ -9,7 +9,8 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 - `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
 - `DESIGN.md`: design system and UI governance. Two languages: the platform system for authenticated surfaces (`packages/brand/platform.css`) and the editorial system for the public site.
 - `FRONTEND.md`: frontend implementation contract.
-- `evals/web-app-connector.md`: remote browser setup, teaching, authenticated state, validation and repair.
+- `evals/web-app-connector.md`: remote browser setup, teaching, authenticated state, capture rules, validation and repair.
+- `evals/grading-engine.md`: grading engine v2 — how answers are judged (meaning, open world), outcome labels, review policy, re-grading and generation v2.
 - `TOOLS.md`: operational tooling, setup commands and troubleshooting.
 - [Caudals Leads](https://github.com/Caudals/leads) (`../leads`): satellite repository for the
   internal B2B Leads CRM, outreach, prospecting, social and newsletter operations.
@@ -31,6 +32,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 | `docs/evals/work-packages/WP-09.md`–`WP-11.md` | Stage C implementation and evidence still required | website, scenario/tool, or customer self-service contract changes |
 | `docs/evals/work-packages/WP-12.md`–`WP-13.md` | Stage D private runner and monitoring status | runner, schedule, webhook, token, alert or CRM draft changes |
 | `docs/evals/work-packages/WP-14.md`–`WP-15.md` | Stage E expert work and improvement dataset release status | expert assignment, QA, dataset release, signing or follow-up validation changes |
+| `docs/evals/grading-engine.md` | grading engine v2 contract: judge, outcome mapping, labels, re-grade | grading, judge prompt, result labels or generation reference changes |
 | `docs/evals/runbooks.md` | the ten operational runbooks required by spec §17.6 | alerting, backup, recovery or incident procedure changes |
 
 ## Governance Canon
