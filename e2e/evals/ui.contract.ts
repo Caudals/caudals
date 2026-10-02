@@ -1354,7 +1354,8 @@ test("result review queue records attributed decisions with a required reason", 
     return route.fulfill({ json: { data: {}, meta: {} } });
   });
   await page.goto("/ops/review");
-  await page.getByRole("button", { name: "Refund window" }).click();
+  // Queue rows lead with the question that was asked.
+  await page.getByRole("button", { name: "Can I get a refund?" }).click();
   await expect(page.getByRole("heading", { name: "Refund window" })).toBeVisible();
   await expect(page.getByText(/experimental/)).toBeVisible();
   await page.getByLabel("Override with a new outcome").check();

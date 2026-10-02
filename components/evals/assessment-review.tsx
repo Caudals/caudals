@@ -15,6 +15,8 @@ import { SidePanel, notify } from "./overlays";
 import { useClientSummaries } from "./operator-overview";
 import { useWorkspace } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
+import type { ResultLabel } from "@/lib/evals/reports/contracts";
+import { ResultBadge, labelOf } from "./result-labels";
 
 type Item = {
   assessment_id: string;
@@ -31,7 +33,23 @@ type Item = {
   evaluation_title: string;
   judge_reason: string | null;
   judge_calibration: { examples: number; agreement: number | null; adequate: boolean } | null;
+  verdict?: { verdict: string | null; failure_category: string | null; reference_issue: string | null; capture_issue: string | null; key_facts?: Array<{ fact: string; status: string }>; confidence?: string } | null;
+  offered_actions?: string[] | null;
+  execution_status?: string;
 };
+/** The customer label for a queued result, from its stored v2 verdict. */
+function queuedLabel(item: Item): ResultLabel {
+  const verdict = item.verdict;
+  if (item.outcome === "unscorable") return verdict?.reference_issue ? "test_issue" : verdict?.capture_issue ? "capture_issue" : item.execution_status && item.execution_status !== "succeeded" ? "not_run" : "pending";
+  return labelOf({ outcome: item.outcome as "pass" | "partial" | "fail", label: item.outcome === "fail" && (verdict?.verdict === "not_answered" || verdict?.failure_category === "no_answer") ? "not_answered" : undefined });
+}
+/** Why a person must look: the test defect, capture problem, low confidence or judge failure. */
+function reviewReason(item: Item) {
+  if (item.verdict?.reference_issue) return humanize(item.verdict.reference_issue);
+  if (item.verdict?.capture_issue) return t("labelCaptureIssue");
+  if (item.verdict?.confidence === "low") return t("lowConfidence");
+  return item.judge_reason ? humanize(item.judge_reason) : humanize(item.review_status);
+}
 type Queued = Item & { orgId: string; client: string };
 const scoreFor = { pass: 1, partial: 0.5, fail: 0, unscorable: null } as const;
 const SEVERITY = ["critical", "high", "medium", "low"];
@@ -143,8 +161,8 @@ export function ReviewQueue() {
               <tr key={`${item.orgId}-${item.assessment_id}`}>
                 <th scope="row">
                   <span className="p-table-primary">
-                    <button type="button" className="p-row-link p-row-button" onClick={() => open(item)}>
-                      {item.case_title}
+                    <button type="button" className="p-row-link p-row-button p-clamp-2" onClick={() => open(item)}>
+                      {item.question ?? item.case_title}
                     </button>
                     <span className="p-cell-meta">
                       {item.client} · {item.evaluation_title}
@@ -155,9 +173,9 @@ export function ReviewQueue() {
                   <StatusBadge value={item.severity} />
                 </td>
                 <td>
-                  <StatusBadge value={item.outcome} />
+                  <ResultBadge result={{ outcome: item.outcome as "pass", label: queuedLabel(item) }} />
                 </td>
-                <td className="p-table-action p-cell-meta">{item.judge_reason ? humanize(item.judge_reason) : humanize(item.review_status)}</td>
+                <td className="p-table-action p-cell-meta">{reviewReason(item)}</td>
               </tr>
             ))}
           </DataTable>
@@ -176,7 +194,7 @@ export function ReviewQueue() {
           current && (
             <>
               <StatusBadge value={current.severity} />
-              <StatusBadge value={current.outcome} />
+              <ResultBadge result={{ outcome: current.outcome as "pass", label: queuedLabel(current) }} />
               <span>
                 {current.client} · {current.evaluation_title}
               </span>
@@ -208,12 +226,28 @@ export function ReviewQueue() {
               <div className="p-bubble" data-role="assistant">
                 <span className="p-bubble-role">{t("systemAnswer")}</span>
                 <p>{current.answer ?? "—"}</p>
+                {current.offered_actions?.length ? (
+                  <>
+                    <span className="p-kicker">{t("offeredOptions")}</span>
+                    <span className="p-chips">{current.offered_actions.map((action) => <span key={action} className="p-chip-static">{action}</span>)}</span>
+                  </>
+                ) : null}
               </div>
             </div>
-            <section>
-              <SectionHeading title={t("expectedBehavior")} />
-              <pre className="p-pre">{typeof current.expected === "string" ? current.expected : JSON.stringify(current.expected, null, 2)}</pre>
+            <section className="p-ground-truth" aria-label={t("expectedAnswer")}>
+              <span className="p-kicker">{t("expectedAnswer")}</span>
+              <p>{typeof current.expected === "string" ? current.expected : JSON.stringify(current.expected, null, 2)}</p>
+              {current.verdict?.key_facts?.length ? (
+                <ul className="p-facts">
+                  {current.verdict.key_facts.map((fact, index) => (
+                    <li key={index} data-status={fact.status}><span>{fact.fact}</span><span className="p-facts-status">{humanize(fact.status)}</span></li>
+                  ))}
+                </ul>
+              ) : null}
             </section>
+            {(current.verdict?.reference_issue || current.verdict?.capture_issue) && (
+              <Status tone="warn">{t("reviewWhy")}: {reviewReason(current)}</Status>
+            )}
             <section>
               <SectionHeading title={t("judgeRationale")} />
               <p className="p-evidence-text">{current.rationale}</p>

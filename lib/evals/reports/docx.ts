@@ -14,6 +14,8 @@ import { localizeReportText, reportDate, reportLabel, reportStrings, type Report
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
 const OUTCOME_ORDER = ["fail", "partial", "unscorable", "pass"] as const;
 const LABEL: Record<string, string> = {
+  correct: "Correct", partially_correct: "Partly correct", incorrect: "Incorrect", not_answered: "No answer",
+  test_issue: "Test needs review", capture_issue: "Not captured", not_run: "Not run", pending: "Not scored",
   pass: "Pass", partial: "Partial", fail: "Fail", unscorable: "Not scored",
   critical: "Critical", high: "High", medium: "Medium", low: "Low",
   preliminary: "Preliminary", reviewed: "Reviewed", complete: "Complete", incomplete: "Incomplete",
@@ -113,11 +115,11 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
   }
 
   children.push(heading(S.testResults));
-  children.push(table([S.test, S.title, S.topic, S.severity, S.outcome], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.outcome)]), [8, 44, 20, 14, 14]));
+  children.push(table([S.test, S.title, S.topic, S.severity, S.outcome], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.label ?? item.outcome)]), [8, 44, 20, 14, 14]));
 
   children.push(heading(S.interactionEvidence));
   for (const item of results) {
-    children.push(heading(`T${number.get(item.assessment_id)} · ${item.title} — ${plain(item.outcome)}`, HeadingLevel.HEADING_3));
+    children.push(heading(`T${number.get(item.assessment_id)} · ${item.title} — ${plain(item.label ?? item.outcome)}`, HeadingLevel.HEADING_3));
     children.push(para(S.question, { bold: true, size: 20, after: 40 }));
     children.push(block(item.input));
     children.push(para(S.answer, { bold: true, size: 20, after: 40 }));

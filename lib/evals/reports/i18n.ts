@@ -91,7 +91,9 @@ const ES: Strings = {
 };
 
 const LABEL_ES: Record<string, string> = {
-  Pass: "Superada", Partial: "Parcial", Fail: "Fallida", "Not scored": "Sin puntuar", Critical: "Crítica", High: "Alta", Medium: "Media", Low: "Baja",
+  Pass: "Superada", Partial: "Parcial", Fail: "Fallida", "Not scored": "Sin puntuar",
+  Correct: "Correcta", "Partly correct": "Parcialmente correcta", Incorrect: "Incorrecta", "No answer": "Sin respuesta",
+  "Test needs review": "Prueba en revisión", "Not captured": "No capturada", "Not run": "No ejecutada", Critical: "Crítica", High: "Alta", Medium: "Media", Low: "Baja",
   Preliminary: "Preliminar", Reviewed: "Revisado", Complete: "Completo", Incomplete: "Incompleto", "Deployed system": "Sistema desplegado",
   "Controlled model": "Modelo controlado", "Imported answers": "Respuestas importadas", Exploratory: "Exploratoria", "Source-grounded": "Basada en fuentes",
   Proposed: "Propuesta", Planned: "Planificada", "In progress": "En curso", Validated: "Validada", Closed: "Cerrada",

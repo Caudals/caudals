@@ -34,6 +34,7 @@ export function listEvaluationRuns(scope: EvidenceScope, filter: { evaluationId?
 export function listReviewQueue(scope: EvidenceScope, limit = 100) {
   return withTenant(scope, async (db) => (await db.query(`SELECT a.id AS assessment_id,a.outcome,a.review_status,a.created_at,a.document->>'rationale' AS rationale,
       a.document->'criteria' AS criteria,a.document->'extensions'->'caudals.evals/judge'->'calibration' AS judge_calibration,
+      a.document->'extensions'->'caudals.evals/verdict' AS verdict,o.document->'extensions'->'caudals.evals/browser'->'actions' AS offered_actions,o.execution_status,
       cr.document->>'title' AS case_title,cr.document->>'severity' AS severity,cr.id AS case_revision_id,
       cr.document->'reference'->'expected' AS expected,cr.document->'reference'->'source_refs' AS source_refs,
       (SELECT m.value->>'content' FROM jsonb_array_elements(o.document->'messages') WITH ORDINALITY m(value,n) WHERE m.value->>'role'='user' ORDER BY m.n LIMIT 1) AS question,

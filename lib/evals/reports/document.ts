@@ -16,6 +16,8 @@ type Result = ReportSnapshot["results"][number];
 const SEVERITY = ["critical", "high", "medium", "low"] as const;
 const OUTCOME_ORDER = ["fail", "partial", "unscorable", "pass"] as const;
 const LABEL: Record<string, string> = {
+  correct: "Correct", partially_correct: "Partly correct", incorrect: "Incorrect", not_answered: "No answer",
+  test_issue: "Test needs review", capture_issue: "Not captured", not_run: "Not run", pending: "Not scored",
   pass: "Pass",
   partial: "Partial",
   fail: "Fail",
@@ -39,7 +41,7 @@ const LABEL: Record<string, string> = {
   validated: "Validated",
   closed: "Closed",
 };
-const TONE: Record<string, string> = { pass: "pass", partial: "warn", fail: "fail", unscorable: "neutral", critical: "fail", high: "fail", medium: "warn", low: "neutral" };
+const TONE: Record<string, string> = { pass: "pass", partial: "warn", fail: "fail", unscorable: "neutral", correct: "pass", partially_correct: "warn", incorrect: "fail", not_answered: "fail", test_issue: "neutral", capture_issue: "neutral", not_run: "neutral", pending: "neutral", critical: "fail", high: "fail", medium: "warn", low: "neutral" };
 
 export function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -147,13 +149,13 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
     : `<p class="muted">${S.noImprovements}</p>`;
 
   const resultRows = ordered
-    .map((item) => `<tr><td class="n">T${number.get(item.assessment_id)}</td><td>${escapeHtml(item.title)}<br><span class="muted">${escapeHtml(item.topic.replaceAll("_", " "))}</span></td><td>${chip(item.severity)}</td><td>${chip(item.outcome)}</td><td class="rationale">${escapeHtml(item.rationale)}</td></tr>`)
+    .map((item) => `<tr><td class="n">T${number.get(item.assessment_id)}</td><td>${escapeHtml(item.title)}<br><span class="muted">${escapeHtml(item.topic.replaceAll("_", " "))}</span></td><td>${chip(item.severity)}</td><td>${chip(item.label ?? item.outcome)}</td><td class="rationale">${escapeHtml(item.rationale)}</td></tr>`)
     .join("");
 
   const evidence = ordered
     .map(
       (item) => `<article class="evidence">
-  <header><span class="index">T${number.get(item.assessment_id)}</span><h3>${escapeHtml(item.title)}</h3>${chip(item.outcome)}${chip(item.severity)}</header>
+  <header><span class="index">T${number.get(item.assessment_id)}</span><h3>${escapeHtml(item.title)}</h3>${chip(item.label ?? item.outcome)}${chip(item.severity)}</header>
   <p class="ids">${S.caseId} ${escapeHtml(item.case_revision_id)} · ${S.observationId} ${escapeHtml(item.observation_id)} · ${S.assessmentId} ${escapeHtml(item.assessment_id)}</p>
   <div class="turn user"><span class="who">${S.question}</span>${pre(item.input)}</div>
   <div class="turn system"><span class="who">${S.systemResponse}</span>${pre(item.output)}${item.offered_actions?.length ? `<p class="ids">${S.offeredOptions}: ${item.offered_actions.map(escapeHtml).join(" · ")}</p>` : ""}</div>

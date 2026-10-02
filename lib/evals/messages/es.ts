@@ -1437,4 +1437,6 @@ export const es: Partial<Record<MessageKey, string>> = {
   jobInProgress: "{label} · {percent} %",
   backgroundWork: "Trabajos en curso",
   noticeResultsUpdated: "Resultados actualizados",
+  lowConfidence: "Confianza baja del juez",
+  reviewWhy: "Por qué necesita revisión",
 };

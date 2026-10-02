@@ -1472,6 +1472,8 @@ export const messages = {
   jobInProgress: "{label} · {percent}%",
   backgroundWork: "Work in progress",
   noticeResultsUpdated: "Results updated",
+  lowConfidence: "Low judge confidence",
+  reviewWhy: "Why this needs review",
 } as const;
 export type MessageKey = keyof typeof messages;
 

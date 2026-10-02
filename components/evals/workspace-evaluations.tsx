@@ -27,7 +27,7 @@ import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { evaluationStage } from "./evaluation-stage";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 
 /* ------------------------------------------------------------- listing --- */
 
@@ -127,7 +127,10 @@ export function WorkspaceEvaluations() {
                   </td>
                   <td>
                     {report?.strict_pass_rate != null ? (
-                      <Meter value={report.strict_pass_rate} label={`${t("strictPassRate")} ${percent(report.strict_pass_rate)}`} />
+                      <span className="p-table-primary">
+                        <Meter value={report.strict_pass_rate} label={`${t("strictPassRate")} ${percent(report.strict_pass_rate)}`} />
+                        {report.n_scorable != null && <span className="p-cell-meta">{tv("answersCorrectOf", { pass: report.n_pass ?? 0, scored: report.n_scorable })}</span>}
+                      </span>
                     ) : (
                       <span className="p-cell-meta">—</span>
                     )}
