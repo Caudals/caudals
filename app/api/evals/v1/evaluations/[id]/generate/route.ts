@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { api, jsonBody, requireWorkspace } from "@/lib/evals/domain/http";
 import { prepareGroundedSuiteOnce } from "@/lib/evals/repositories/managed";
-import { getAutomaticGeneration, startAutomaticGeneration } from "@/lib/evals/repositories/automatic-generation";
+import { getAutomaticGeneration, MAX_GENERATED_CASES, startAutomaticGeneration } from "@/lib/evals/repositories/automatic-generation";
 
 export const runtime = "nodejs";
 function evaluationId(request: Request) { return z.uuid().parse(new URL(request.url).pathname.split("/").at(-2)); }
@@ -14,7 +14,8 @@ const manual = z.strictObject({
 const automatic = z.strictObject({
   mode:z.literal("automatic"), orgId:z.uuid(), sourceRevisionIds:z.array(z.uuid()).min(1).max(21),
   title:z.string().min(1).max(200), executionMode:z.enum(["deployed_system","controlled_model","imported_responses"]),
-  promptRevision:z.string().min(1).max(100), maxCases:z.number().int().min(1).max(20).optional(),
+  promptRevision:z.string().min(1).max(100), maxCases:z.number().int().min(1).max(MAX_GENERATED_CASES).optional(),
+  complexity:z.enum(["foundational","balanced","expert"]).optional(), locale:z.enum(["en","es"]).optional(),
 });
 export const GET=api(async(request,identity)=>{
  const url=new URL(request.url),orgId=z.uuid().parse(url.searchParams.get("orgId")),jobId=url.searchParams.get("jobId")??undefined;

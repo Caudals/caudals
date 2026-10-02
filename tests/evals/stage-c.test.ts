@@ -133,7 +133,7 @@ describe("WP-11 approved test-set gate", () => {
       casePreviews: [{ caseRevisionId: "case-1", question: "Q?", approvedAnswer: "A.", sourceExcerpt: "Source." }],
     });
     expect(view.draft).toMatchObject({ suiteId: "suite-1", suiteVersionId: "version-1" });
-    expect(view.questions).toEqual([{ id: "question-1", field: "purpose", question: "What is the purpose?", critical: true, status: "open" }]);
+    expect(view.questions).toEqual([{ id: "question-1", field: "purpose", question: "What is the purpose?", critical: true, status: "open", jobId: null, why: null, suggestions: [] }]);
     expect(JSON.stringify(view)).not.toMatch(/private-prompt|private-hash|private-diagnostic|private-model|private/);
   });
   it("projects customer run progress without internal plans, costs or observations", () => {

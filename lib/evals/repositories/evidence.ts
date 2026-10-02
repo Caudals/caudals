@@ -146,10 +146,11 @@ export function getSource(scope: EvidenceScope, id: string) {
   return withTenant(scope,async db => {
     const source = required((await db.query('SELECT id,title,project_id FROM evals.source WHERE org_id=$1 AND id=$2',[scope.orgId,id])).rows[0]);
     const revisions = (await db.query('SELECT id,artifact_id,content_hash,extraction_version FROM evals.source_revision WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20',[scope.orgId,id])).rows;
-    const chunks = revisions.length ? (await db.query('SELECT id,source_revision_id,ordinal,excerpt,anchor FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2 ORDER BY ordinal LIMIT 256',[scope.orgId,revisions[0].id])).rows : [];
+    const chunks = revisions.length ? (await db.query('SELECT id,source_revision_id,ordinal,excerpt,anchor FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2 ORDER BY ordinal LIMIT 500',[scope.orgId,revisions[0].id])).rows : [];
+    const chunkCount = revisions.length ? Number((await db.query('SELECT count(*)::int AS count FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2',[scope.orgId,revisions[0].id])).rows[0].count) : 0;
     const ingestion=(await db.query('SELECT id,status,attempt_count,reason_code,source_revision_id,updated_at FROM evals.source_ingestion_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
     const websiteCapture=(await db.query('SELECT id,start_url,status,reason_code,source_revision_id,updated_at FROM evals.website_source_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
-    return { ...source, revisions, chunks, ingestion, websiteCapture };
+    return { ...source, revisions, chunks, chunkCount, ingestion, websiteCapture };
   });
 }
 export function getDraft(scope: EvidenceScope, id: string) {
@@ -349,6 +350,48 @@ export async function persistSourceRevision(db: PoolClient, scope: EvidenceScope
     await db.query('INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,extraction_version,document) VALUES($1,$2,$3,$4,$5,$6,$7)',[revisionId,scope.orgId,sourceId,artifact.id,document.content_hash,extraction.extractionVersion,document]);
     for (const chunk of chunks) await db.query('INSERT INTO evals.source_chunk(id,org_id,source_revision_id,ordinal,excerpt,anchor) VALUES($1,$2,$3,$4,$5,$6)',[chunk.id,scope.orgId,revisionId,chunk.ordinal,chunk.excerpt,chunk.anchor]);
     return { sourceId, revisionId, artifactId: artifact.id, contentHash:document.content_hash,sha256: artifact.sha256, chunks: chunks.length };
+}
+
+/**
+ * Edit or remove extracted excerpts. Revisions are immutable evidence, so the
+ * edit is a new revision of the same artifact: untouched excerpts are carried
+ * over, each excerpt keeps its locator in the original text, and the
+ * revision records which excerpts were changed, by whom and from which base.
+ */
+export function editSourceExcerpts(scope: EvidenceScope, sourceId: string, input: { baseRevisionId: string; edits: Array<{ anchorId: string; excerpt: string }>; removals: string[] }, key: string) {
+  return withTenant(scope, db => idempotent(db, scope, `source-excerpts/${sourceId}`, key, input, async () => {
+    await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [JSON.stringify(['source-excerpts', scope.orgId, sourceId])]);
+    required((await db.query('SELECT id FROM evals.source WHERE org_id=$1 AND id=$2 AND archived_at IS NULL', [scope.orgId, sourceId])).rows[0]);
+    const latest = required((await db.query('SELECT id,artifact_id,extraction_version,document FROM evals.source_revision WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1', [scope.orgId, sourceId])).rows[0]);
+    if (latest.id !== input.baseRevisionId) throw new EvalError('VERSION_CONFLICT', 409, 'These excerpts changed since you opened them. Reopen the material and edit again.');
+    const base = sourceSchema.parse(latest.document);
+    const removals = new Set(input.removals);
+    const edits = new Map(input.edits.map(item => [item.anchorId, item.excerpt.trim()]));
+    for (const id of [...removals, ...edits.keys()]) if (!base.anchors.some(anchor => anchor.id === id)) throw new EvalError('INPUT_INVALID', 422, 'An edited excerpt is not part of this material.');
+    for (const text of edits.values()) if (!text || text.length > 4096) throw new EvalError('INPUT_INVALID', 422, 'Each excerpt needs 1 to 4,096 characters.');
+    const kept = base.anchors.filter(anchor => !removals.has(anchor.id));
+    if (!kept.length) throw new EvalError('INPUT_INVALID', 422, 'Keep at least one excerpt, or remove the material instead.');
+    const changed = kept.filter(anchor => edits.has(anchor.id) && edits.get(anchor.id) !== anchor.excerpt).map(anchor => anchor.id);
+    if (!changed.length && !removals.size) return { sourceId, revisionId: latest.id, changed: 0, removed: 0 };
+    const chunkRows = (await db.query('SELECT id,anchor FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2', [scope.orgId, latest.id])).rows as Array<{ id: string; anchor: { start: number; end: number } }>;
+    const chunkAnchor = new Map(chunkRows.map(row => [row.id, row.anchor]));
+    const revisionId = randomUUID();
+    const anchors = kept.map(anchor => ({ previous: anchor.id, id: randomUUID(), excerpt: edits.get(anchor.id) ?? anchor.excerpt, locator: anchor.locator }));
+    const document = sourceSchema.parse(withContentHash({
+      ...Object.fromEntries(Object.entries(base).filter(([name]) => name !== 'content_hash')),
+      revision_id: revisionId,
+      anchors: anchors.map(({ id, excerpt, locator }) => ({ id, excerpt, locator })),
+      created_at: new Date().toISOString(),
+      extensions: { ...base.extensions, 'caudals.evals/excerpt-edits': { base_revision_id: latest.id, edited_by: scope.actorId, edited: changed, removed: [...removals], anchor_map: Object.fromEntries(anchors.map(item => [item.previous, item.id])) } },
+    }));
+    await db.query('INSERT INTO evals.source_revision(id,org_id,source_id,artifact_id,content_hash,extraction_version,document) VALUES($1,$2,$3,$4,$5,$6,$7)', [revisionId, scope.orgId, sourceId, latest.artifact_id, document.content_hash, latest.extraction_version, document]);
+    for (const [ordinal, item] of anchors.entries()) {
+      const [, start, end] = item.locator.split(':');
+      const anchor = chunkAnchor.get(item.previous) ?? { start: Number(start), end: Number(end) };
+      await db.query('INSERT INTO evals.source_chunk(id,org_id,source_revision_id,ordinal,excerpt,anchor) VALUES($1,$2,$3,$4,$5,$6)', [item.id, scope.orgId, revisionId, ordinal, item.excerpt, anchor]);
+    }
+    return { sourceId, revisionId, changed: changed.length, removed: removals.size };
+  }));
 }
 
 export async function completeSourceIngestion(scope:EvidenceScope,jobId:string,sealedObjectKey:string,extraction:Awaited<ReturnType<typeof extractText>>){

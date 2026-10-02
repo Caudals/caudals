@@ -10,8 +10,8 @@ export class EvalError extends Error {
 const INPUT_ERRORS: Record<string, string> = {
   context_answer_invalid: "Answer each question in 1 to 2,000 characters.",
   context_answer_invalid_date: "Enter the effective date as YYYY-MM-DD. A year such as 2027 or a month such as 2027-03 also works.",
-  context_answer_invalid_language: "Enter language tags such as en or es-ES, separated by commas.",
-  context_language_invalid_bcp47: "Enter language tags such as en or es-ES, separated by commas.",
+  context_answer_invalid_language: "Enter languages such as English, Spanish or es-ES, separated by commas.",
+  context_language_invalid_bcp47: "Enter languages such as English, Spanish or es-ES, separated by commas.",
   context_answer_not_applicable: "That answer no longer matches an open question. Reload the page and answer again.",
   context_bound_exceeded: "The selected material does not fit the model's context window. Choose fewer sources or a model with a larger context in Settings → AI models.",
 };

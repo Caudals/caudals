@@ -12,10 +12,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Globe, Plus, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { evalRequest } from "./api";
-import { Action, ActionLink, Badge, Field, SectionHeading, SelectField, Status, TextArea } from "./primitives";
+import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
 import { DeleteDialog, itemRequest } from "./item-actions";
-import { t, type MessageKey } from "@/lib/evals/messages/en";
+import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion } from "./preparation-parts";
+import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Evaluation = {
   id: string;
@@ -30,11 +31,12 @@ type Evaluation = {
 type SourceDetail = {
   title?: string;
   chunks: Array<{ id: string; excerpt: string }>;
+  chunkCount?: number;
   revisions?: Array<{ id: string }>;
   ingestion?: { status: string; source_revision_id: string | null; reason_code: string | null } | null;
   websiteCapture?: { id: string; start_url: string; status: string; reason_code: string | null; source_revision_id: string | null } | null;
 };
-type PreparedSource = { id: string; title: string; revisionId: string; chunks: SourceDetail["chunks"]; kind: "document" | "website" };
+type PreparedSource = { id: string; title: string; revisionId: string; chunks: SourceDetail["chunks"]; chunkCount: number; kind: "document" | "website" };
 /** Material that is still being read (a website capture or document extraction), or that failed. */
 type PendingSource = { id: string; title: string; kind: "document" | "website"; state: "reading" | "failed"; reason: string | null };
 
@@ -42,16 +44,16 @@ type PendingSource = { id: string; title: string; kind: "document" | "website"; 
 function sourceState(id: string, detail: SourceDetail, fallbackRevision: string | null): { ready: PreparedSource } | { pending: PendingSource } {
   const kind = detail.websiteCapture ? "website" : "document";
   const title = detail.title ?? (detail.websiteCapture?.start_url || t("document"));
+  // The newest revision wins, so edited excerpts are what the next test set uses.
   const revisionId = detail.websiteCapture
-    ? (detail.websiteCapture.status === "completed" && detail.ingestion?.status === "completed" ? detail.websiteCapture.source_revision_id ?? detail.ingestion.source_revision_id : null)
+    ? (detail.websiteCapture.status === "completed" && detail.ingestion?.status === "completed" ? detail.revisions?.[0]?.id ?? detail.websiteCapture.source_revision_id ?? detail.ingestion.source_revision_id : null)
     : detail.revisions?.[0]?.id ?? detail.ingestion?.source_revision_id ?? fallbackRevision;
-  if (revisionId) return { ready: { id, title, revisionId, chunks: detail.chunks, kind } };
+  if (revisionId) return { ready: { id, title, revisionId, chunks: detail.chunks, chunkCount: detail.chunkCount ?? detail.chunks.length, kind } };
   const failed = detail.websiteCapture?.status === "failed" || detail.ingestion?.status === "failed";
   return { pending: { id, title, kind, state: failed ? "failed" : "reading", reason: detail.websiteCapture?.reason_code ?? detail.ingestion?.reason_code ?? null } };
 }
 type Draft = { suiteId: string; suiteVersionId: string; suiteDraftVersion: number };
-type ContextQuestion = { id: string; field: string; question: string; critical: boolean; status: string };
-type CasePreview = { caseRevisionId: string; question: string; approvedAnswer: string; sourceExcerpt: string | null };
+type GenerationProgress = { written: number; target: number };
 type GenerationStatus = "profiling" | "profile_ready" | "drafting" | "draft_ready" | "needs_input" | "needs_review" | "paused" | "quarantined" | "failed" | string;
 
 const ACCEPT = ".txt,.md,.docx,.pdf,.csv,.xlsx";
@@ -110,7 +112,11 @@ export function PrepareEvaluation({
   const [generation, setGeneration] = useState<GenerationStatus | null>(null);
   const [stopReason, setStopReason] = useState<string | null>(null);
   const [contextQuestions, setContextQuestions] = useState<ContextQuestion[]>([]);
-  const [contextAnswers, setContextAnswers] = useState<Record<string, string>>({});
+  const [contextError, setContextError] = useState("");
+  const [scopeSize, setScopeSize] = useState(25);
+  const [complexity, setComplexity] = useState<Complexity>("balanced");
+  const [progress, setProgress] = useState<GenerationProgress | null>(null);
+  const [excerptSource, setExcerptSource] = useState<PreparedSource | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [purpose, setPurpose] = useState(evaluation.project_description);
   const [question, setQuestion] = useState("");
@@ -242,7 +248,7 @@ export function PrepareEvaluation({
           }
           if (!revisionId) throw new Error(t("extractionStillRunning"));
         }
-        remember({ id: created.sourceId, title: file.name, revisionId, chunks: detail.chunks, kind: "document" });
+        remember({ id: created.sourceId, title: file.name, revisionId, chunks: detail.chunks, chunkCount: detail.chunkCount ?? detail.chunks.length, kind: "document" });
       }
       setFiles([]);
       if (fileInput.current) fileInput.current.value = "";
@@ -285,12 +291,14 @@ export function PrepareEvaluation({
       setPending("generate");
       setError("");
       try {
-        for (let attempt = 0; attempt < 600; attempt++) {
-          const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null } | null }>(
+        // Large sets are drafted in rounds; allow about an hour before handing back.
+        for (let attempt = 0; attempt < 1800; attempt++) {
+          const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null; progress?: GenerationProgress } | null }>(
             `/evaluations/${evaluation.id}/generate?orgId=${orgId}&jobId=${jobId}`,
           );
           setGeneration(state.status);
           setStopReason(state.job?.reasonCode ?? null);
+          if (state.job?.progress) setProgress(state.job.progress);
           if (state.status === "needs_review") {
             const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
             if (review.draft) {
@@ -322,7 +330,7 @@ export function PrepareEvaluation({
             }
           } else if (state.status === "needs_input") {
             const context = await evalRequest<{ questions: ContextQuestion[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
-            const questions = context.questions ?? [];
+            const questions = (context.questions ?? []).filter((item) => !item.jobId || item.jobId === jobId);
             setContextQuestions(questions);
             if (questions.some((item) => item.critical && item.status === "open")) return;
             await evalRequest(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-context-${jobId}`);
@@ -331,7 +339,15 @@ export function PrepareEvaluation({
             if (resumed.status !== "drafting") throw new Error(t("generationPausedForReview"));
           } else if (state.status === "paused" && OUTPUT_RETRY_REASONS.has(state.job?.reasonCode ?? "")) {
             // The server retries once with reasoning off; a second stop stays paused.
-            const resumed = await evalRequest<{ status: string }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-output-retry-${jobId}`);
+            const resumed = await evalRequest<{ status: string; suiteId?: string; suiteVersionId?: string; suiteDraftVersion?: number }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-output-retry-${jobId}`);
+            // A later round that ran out of room finishes with the tests already written.
+            if (resumed.status === "needs_review" && resumed.suiteId && resumed.suiteVersionId) {
+              const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
+              setDraft(review.draft ?? { suiteId: resumed.suiteId, suiteVersionId: resumed.suiteVersionId, suiteDraftVersion: resumed.suiteDraftVersion ?? 1 });
+              setCasePreviews(review.casePreviews ?? []);
+              await onReady();
+              return;
+            }
             if (!["profiling", "drafting"].includes(resumed.status)) return;
           } else if (state.status === "paused") {
             // A dispatched call may still have run. Show its saved reason; do
@@ -360,11 +376,12 @@ export function PrepareEvaluation({
     let live = true;
     void Promise.all([
       evalRequest<{ draft: Draft | null; casePreviews: CasePreview[]; questions: ContextQuestion[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`),
-      evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`),
+      evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; progress?: GenerationProgress } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`),
     ])
       .then(([context, state]) => {
         if (!live) return;
-        setContextQuestions(context.questions ?? []);
+        setContextQuestions((context.questions ?? []).filter((item) => !state.job || !item.jobId || item.jobId === state.job.id));
+        if (state.job?.progress) setProgress(state.job.progress);
         if (context.draft) {
           setDraft(context.draft);
           setCasePreviews(context.casePreviews ?? []);
@@ -395,7 +412,7 @@ export function PrepareEvaluation({
     setError("");
     try {
       const sourceRevisionIds = sources.map((item) => item.revisionId);
-      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: "dgx-context-cases-v3", maxCases: 10 };
+      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: "dgx-context-cases-v4", maxCases: scopeSize, complexity, locale: getLocale() };
       const previous = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`);
       if (previous.job && ["profiling", "profile_ready", "drafting", "draft_ready", "needs_input"].includes(previous.status)) {
         setPending("");
@@ -410,6 +427,8 @@ export function PrepareEvaluation({
       const idempotencyKey = generationStartIdempotencyKey(stableRequestKey, { status: previous.status, jobId: previous.job?.id ?? null });
       const started = await evalRequest<{ jobId: string }>(`/evaluations/${evaluation.id}/generate`, "POST", input, idempotencyKey);
       setGeneration("profiling");
+      setProgress({ written: 0, target: scopeSize });
+      setContextQuestions([]);
       setPending("");
       void onReady();
       await continueAutomaticGeneration(started.jobId);
@@ -419,23 +438,37 @@ export function PrepareEvaluation({
     }
   }
 
-  async function answerContextQuestions(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitContext(answers: Array<{ questionId: string; answer: string | null }>) {
     if (!autoJobId || pending) return;
-    const open = contextQuestions.filter((item) => item.critical && item.status === "open");
-    if (!open.length || open.some((item) => !contextAnswers[item.id]?.trim())) return;
     setPending("context");
-    setError("");
+    setContextError("");
     try {
-      for (const item of open) {
-        const answer = contextAnswers[item.id].trim();
-        await evalRequest(`/evaluations/${evaluation.id}/context/questions/${item.id}`, "POST", { orgId, answer }, await stableKey(`context-answer-${item.id}`, answer));
-      }
-      setContextQuestions((current) => current.map((item) => (open.some((answered) => answered.id === item.id) ? { ...item, status: "answered" } : item)));
+      await evalRequest(`/evaluations/${evaluation.id}/context/answers`, "POST", { orgId, jobId: autoJobId, answers }, await stableKey(`context-answers-${autoJobId}`, answers));
+      setContextQuestions((current) => current.map((item) => (answers.some((answered) => answered.questionId === item.id) ? { ...item, status: "answered" } : item)));
       setPending("");
       await continueAutomaticGeneration(autoJobId);
     } catch (value) {
-      setError(value instanceof Error ? value.message : t("contextSaveFailed"));
+      setContextError(value instanceof Error ? value.message : t("contextSaveFailed"));
+      setPending("");
+    }
+  }
+
+  /** Stop a large set that halted part-way and keep the tests already written and checked. */
+  async function keepPartial() {
+    if (!autoJobId || pending) return;
+    setPending("generate");
+    setError("");
+    try {
+      const prepared = await evalRequest<{ status: string; suiteId?: string; suiteVersionId?: string; suiteDraftVersion?: number }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId: autoJobId, finishPartial: true }, `auto-partial-${autoJobId}`);
+      if (prepared.status === "needs_review" && prepared.suiteId && prepared.suiteVersionId) {
+        const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
+        setDraft(review.draft ?? { suiteId: prepared.suiteId, suiteVersionId: prepared.suiteVersionId, suiteDraftVersion: prepared.suiteDraftVersion ?? 1 });
+        setCasePreviews(review.casePreviews ?? []);
+        await onReady();
+      }
+    } catch (value) {
+      setError(value instanceof Error ? value.message : t("generationFailed"));
+    } finally {
       setPending("");
     }
   }
@@ -462,14 +495,15 @@ export function PrepareEvaluation({
     }
   }
 
-  async function approve() {
-    if (!draft || pending || !casePreviews.length) return;
+  async function approve(draftVersion: number | null, count: number) {
+    if (!draft || pending || !count) return;
     setPending("approve");
     setError("");
     try {
       // The test set may have been edited since this page loaded: freeze its current draft and approve that version.
       const current = await evalRequest<{ draft: Draft | null }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`).then((value) => value.draft ?? draft).catch(() => draft);
-      const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version: current.suiteDraftVersion }, `suite-freeze-${current.suiteId}-${current.suiteDraftVersion}`);
+      const version = draftVersion ?? current.suiteDraftVersion;
+      const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version }, `suite-freeze-${current.suiteId}-${version}`);
       const suiteVersionId = frozen?.id ?? current.suiteVersionId;
       await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId }, `suite-approve-${evaluation.id}-${suiteVersionId}`);
       await onReady();
@@ -482,7 +516,7 @@ export function PrepareEvaluation({
 
   /* ------------------------------------------------------------ view --- */
 
-  const openQuestions = contextQuestions.filter((item) => item.critical && item.status === "open");
+  const openQuestions = contextQuestions.filter((item) => item.critical && item.status === "open" && (!autoJobId || !item.jobId || item.jobId === autoJobId));
   const stopped = generation === "quarantined" || generation === "failed" || generation === "paused";
   const generating = pending === "generate" || (!!autoJobId && !draft && !openQuestions.length && ["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation ?? ""));
   const stage = generationStage(generation);
@@ -490,45 +524,15 @@ export function PrepareEvaluation({
 
   if (draft)
     return (
-      <section className="p-prep" aria-live="polite">
-        <SectionHeading title={t("reviewTestSet")}>{t("reviewTestSetHelp")}</SectionHeading>
-        {error && <Status error>{error}</Status>}
-        {casePreviews.length ? (
-          <ol className="p-cases">
-            {casePreviews.map((item, index) => (
-              <li key={item.caseRevisionId} className="p-case">
-                <span className="p-case-index">{index + 1}</span>
-                <div className="p-case-body">
-                  <p className="p-case-question">{item.question}</p>
-                  <dl className="p-case-facts">
-                    <div>
-                      <dt>{t("expectedAnswer")}</dt>
-                      <dd>{item.approvedAnswer}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("sourceExcerpt")}</dt>
-                      <dd>{item.sourceExcerpt ? <blockquote className="p-quote">{item.sourceExcerpt}</blockquote> : <span className="p-cell-meta">{t("sourceExcerptMissing")}</span>}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <Status>{t("draftLoading")}</Status>
-        )}
-        <div className="p-prep-actions">
-          <span className="p-cell-meta">{t("approveHelp")}</span>
-          {draft && (
-            <ActionLink variant="secondary" href={`/workspace/test-sets/${draft.suiteId}?orgId=${encodeURIComponent(orgId)}&from=${encodeURIComponent(evaluation.id)}`}>
-              {t("reviewEditTestSet")}
-            </ActionLink>
-          )}
-          <Action onClick={() => void approve()} disabled={!!pending || !casePreviews.length}>
-            {pending === "approve" ? t("saving") : `${t("approveTestSet")} (${casePreviews.length})`}
-          </Action>
-        </div>
-      </section>
+      <TestSetReview
+        orgId={orgId}
+        suiteId={draft.suiteId}
+        previews={casePreviews}
+        editorHref={`/workspace/test-sets/${draft.suiteId}?orgId=${encodeURIComponent(orgId)}&from=${encodeURIComponent(evaluation.id)}`}
+        pending={pending === "approve"}
+        error={error}
+        onApprove={(version, count) => void approve(version, count)}
+      />
     );
 
   return (
@@ -543,9 +547,10 @@ export function PrepareEvaluation({
               <li key={item.id}>
                 {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
                 <span className="p-files-name">{item.title}</span>
-                <span className="p-cell-meta">
-                  {item.chunks.length} {item.chunks.length === 1 ? t("excerpt") : t("excerpts")}
-                </span>
+                <button type="button" className="p-files-excerpts" onClick={() => setExcerptSource(item)} disabled={!!pending}>
+                  {item.chunkCount} {item.chunkCount === 1 ? t("excerpt") : t("excerpts")}
+                  <span className="sr-only">: {t("viewExcerpts")}</span>
+                </button>
                 <Badge tone="pass" dot>
                   {t("ready")}
                 </Badge>
@@ -569,6 +574,17 @@ export function PrepareEvaluation({
             ))}
           </ul>
         )}
+        <ExcerptBrowser
+          orgId={orgId}
+          source={excerptSource}
+          open={!!excerptSource}
+          onOpenChange={(open) => !open && setExcerptSource(null)}
+          onSaved={(update) => {
+            if (!excerptSource) return;
+            remember({ ...excerptSource, revisionId: update.revisionId, chunks: update.chunks, chunkCount: update.chunks.length });
+            void onReady();
+          }}
+        />
         {removing && (
           <DeleteDialog kind="sources" name={removing.title} onClose={() => setRemoving(null)} onConfirm={() => removeSource(removing.id)} />
         )}
@@ -613,32 +629,18 @@ export function PrepareEvaluation({
       <section className="p-section">
         <SectionHeading title={t("testSet")}>{t("testSetHelp")}</SectionHeading>
         {openQuestions.length > 0 ? (
-          <form className="p-question-card" onSubmit={answerContextQuestions}>
-            <h3>{t("contextNeeded")}</h3>
-            <p className="p-cell-meta">{t("contextNeededHelp")}</p>
-            {openQuestions.map((item) => (
-              <TextArea
-                key={item.id}
-                id={`context-${item.id}`}
-                label={item.question}
-                rows={2}
-                maxLength={2000}
-                required
-                value={contextAnswers[item.id] ?? ""}
-                onChange={(event) => setContextAnswers((current) => ({ ...current, [item.id]: event.target.value }))}
-              />
-            ))}
-            <div className="p-row">
-              <Action type="submit" disabled={!!pending || openQuestions.some((item) => !contextAnswers[item.id]?.trim())}>
-                {pending === "context" ? t("savingResuming") : t("saveAndContinue")}
-              </Action>
-            </div>
-          </form>
+          <ContextQuestionsForm key={openQuestions.map((item) => item.id).join()} questions={openQuestions} pending={pending === "context"} error={contextError} onSubmit={(answers) => void submitContext(answers)} />
         ) : generating ? (
           <div className="p-working" role="status">
             <span className="p-spinner" aria-hidden="true" />
             <div>
               <p className="p-working-title">{stages[stage]}</p>
+              {stage === 1 && progress && progress.target > 12 && (
+                <div className="p-working-progress">
+                  <Progress value={progress.written} max={Math.max(progress.target, 1)} label={t("stagePreparingQuestions")} />
+                  <span className="p-cell-meta">{tv("writingProgress", { done: progress.written, total: progress.target })}</span>
+                </div>
+              )}
               <ol className="p-working-steps">
                 {stages.map((label, index) => (
                   <li key={label} data-state={index < stage ? "done" : index === stage ? "current" : "upcoming"}>
@@ -650,13 +652,25 @@ export function PrepareEvaluation({
             </div>
           </div>
         ) : (
-          <div className="p-generate">
+          <div className="p-generate-block">
             {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}
-            <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending}>
-              <Sparkles aria-hidden="true" />
-              {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
-            </Action>
-            <span className="p-cell-meta">{pendingSources.some((item) => item.state === "reading") ? t("generateWaitForReading") : sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>
+            {stopped && !!progress?.written && (
+              <div className="p-row">
+                <Action variant="secondary" onClick={() => void keepPartial()} disabled={!!pending}>
+                  {tv("keepPartial", { n: progress.written })}
+                </Action>
+              </div>
+            )}
+            {!(autoJobId && !stopped && generation !== "paused") && (
+              <ScopePicker size={scopeSize} complexity={complexity} disabled={!!pending} onSize={setScopeSize} onComplexity={setComplexity} />
+            )}
+            <div className="p-generate">
+              <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending}>
+                <Sparkles aria-hidden="true" />
+                {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
+              </Action>
+              <span className="p-cell-meta">{pendingSources.some((item) => item.state === "reading") ? t("generateWaitForReading") : sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>
+            </div>
           </div>
         )}
 

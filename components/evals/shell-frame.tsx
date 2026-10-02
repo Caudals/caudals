@@ -583,9 +583,6 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
                 <kbd className="p-kbd">⌘K</kbd>
               </button>
               <NotificationCenter />
-              <a className="p-btn p-desktop-only" data-variant="secondary" data-size="sm" href="mailto:hello@caudals.com?subject=Caudals%20platform">
-                {t("help")}
-              </a>
             </div>
           </header>
 

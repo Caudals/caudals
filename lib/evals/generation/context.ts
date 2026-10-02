@@ -18,7 +18,8 @@ export function buildContextProfile(input:{evaluationId:string;purpose?:string;i
   if(!input.purpose)unanswered.push({field:"purpose",question:"What should this system help its users accomplish?",critical:true});
   if(!input.languages?.length)unanswered.push({field:"languages",question:"Which languages must the system support? Use BCP 47 tags such as en or es-ES.",critical:true});
   const dateSensitive=input.tasks?.some(task=>/tax|legal|policy|rate|eligib|coverage/i.test(task));
-  if(dateSensitive&&!input.asOf)unanswered.push({field:"as_of",question:"Which date should date-sensitive answers use?",critical:true});
+  // Tests are grounded in dated source text, so a missing as-of date is noted but never blocks preparation.
+  if(dateSensitive&&!input.asOf)unanswered.push({field:"as_of",question:"Which date should date-sensitive answers use?",critical:false});
   const claimGroups=new Map<string,Map<string,string[]>>();
   for(const source of input.sources)for(const [field,value] of Object.entries(source.claims??{})){const values=claimGroups.get(field)??new Map<string,string[]>();values.set(value,[...(values.get(value)??[]),source.revisionId]);claimGroups.set(field,values);}
   const conflicts=[...claimGroups].filter(([,values])=>values.size>1).map(([field,values])=>({field,values:[...values.keys()],source_revision_ids:[...values.values()].flat()}));
@@ -28,9 +29,19 @@ export function buildContextProfile(input:{evaluationId:string;purpose?:string;i
 }
 
 export const coverageCellSchema=z.strictObject({topic:z.string().min(1),task:z.string().min(1),difficulty:z.enum(["routine","advanced","challenge"]),consequence:z.enum(["low","medium","high","critical"]),interaction:z.enum(["single_turn","conversation","tool_workflow"]),count:z.number().int().positive()});
-export function planCoverage(profile:ContextProfile,maxCases:number) {
+export const complexitySchema=z.enum(["foundational","balanced","expert"]);
+export type Complexity=z.infer<typeof complexitySchema>;
+/** Difficulty rotation per complexity: foundational stays mostly routine, expert leans on edge cases. */
+const DIFFICULTY_MIX:Record<Complexity,ReadonlyArray<"routine"|"advanced"|"challenge">>={
+  foundational:["routine","routine","advanced"],
+  balanced:["routine","advanced","challenge"],
+  expert:["advanced","challenge","challenge"],
+};
+export function planCoverage(profile:ContextProfile,maxCases:number,complexity:Complexity="balanced") {
   if(!Number.isInteger(maxCases)||maxCases<1||maxCases>500)throw new Error("case_limit_invalid");
-  const topics=profile.tasks.length?profile.tasks:["core behavior"];const cells=[];let remaining=maxCases;
-  for(let index=0;index<topics.length&&remaining>0;index++){const count=Math.max(1,Math.floor(remaining/(topics.length-index)));cells.push({topic:topics[index],task:"grounded_qa",difficulty:index%3===2?"challenge" as const:index%3===1?"advanced" as const:"routine" as const,consequence:profile.material_risks.length?"high" as const:"medium" as const,interaction:"single_turn" as const,count});remaining-=count;}
-  return {seed:sha256(canonicalJson({evaluation:profile.evaluation_id,maxCases,profile:profile.content_hash})),planned:maxCases,cells:cells.map(cell=>coverageCellSchema.parse(cell))};
+  const topics=profile.tasks.length?profile.tasks:["core behavior"];const cells=[];let remaining=maxCases;const mix=DIFFICULTY_MIX[complexity];
+  for(let index=0;index<topics.length&&remaining>0;index++){const count=Math.max(1,Math.floor(remaining/(topics.length-index)));cells.push({topic:topics[index],task:"grounded_qa",difficulty:mix[index%mix.length],consequence:profile.material_risks.length?"high" as const:"medium" as const,interaction:"single_turn" as const,count});remaining-=count;}
+  // The seed keeps the historical shape for balanced plans so earlier plans hash the same.
+  const seed=sha256(canonicalJson(complexity==="balanced"?{evaluation:profile.evaluation_id,maxCases,profile:profile.content_hash}:{evaluation:profile.evaluation_id,maxCases,profile:profile.content_hash,complexity}));
+  return {seed,planned:maxCases,cells:cells.map(cell=>coverageCellSchema.parse(cell))};
 }

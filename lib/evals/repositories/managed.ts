@@ -53,10 +53,10 @@ export function getPreparation(scope:EvidenceScope,evaluationId:string){return w
  const batches=(await db.query("SELECT * FROM evals.generation_batch WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20",[scope.orgId,evaluationId])).rows;
  const quarantine=(await db.query("SELECT id,generation_batch_id,reason_code,schema_errors,created_at FROM evals.case_quarantine WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at,id",[scope.orgId,evaluationId])).rows;
  const completed=batches.find(batch=>batch.status==="completed"&&Array.isArray(batch.output?.caseRevisionIds));
- const caseIds=(completed?.output.caseRevisionIds??[]).slice(0,100) as string[];
+ const caseIds=(completed?.output.caseRevisionIds??[]).slice(0,200) as string[];
  const previewRows=caseIds.length?(await db.query(`SELECT cr.document,sc.excerpt FROM evals.case_revision cr
   LEFT JOIN evals.source_chunk sc ON sc.org_id=cr.org_id AND sc.id::text=(cr.document #>> '{reference,source_refs,0,anchor}')
-  WHERE cr.org_id=$1 AND cr.id=ANY($2::uuid[])`,[scope.orgId,caseIds])).rows:[];
+  WHERE cr.org_id=$1 AND cr.id=ANY($2::uuid[]) ORDER BY array_position($2::uuid[],cr.id)`,[scope.orgId,caseIds])).rows:[];
  const casePreviews=previewRows.map(row=>({
   caseRevisionId:row.document.revision_id as string,
   question:(row.document.scenario.messages as Array<{role:string;content:string}>).find(message=>message.role==="user")?.content??"",

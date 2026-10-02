@@ -28,6 +28,7 @@ import {
 } from "./primitives";
 import { ActionMenu, Modal, notify } from "./overlays";
 import { DeleteDialog, useItemActions } from "./item-actions";
+import { ExcerptSnippet } from "./preparation-parts";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
@@ -455,10 +456,7 @@ function CaseCard({ index, item, actions }: { index: number; item: CaseView; act
             <dd>
               {item.excerpts.length ? (
                 item.excerpts.map((excerpt) => (
-                  <details key={`${excerpt.sourceRevisionId}-${excerpt.anchor}`}>
-                    <summary className="p-cell-meta">{excerpt.sourceTitle}</summary>
-                    <blockquote className="p-quote" style={{ whiteSpace: "pre-wrap" }}>{excerpt.excerpt}</blockquote>
-                  </details>
+                  <ExcerptSnippet key={`${excerpt.sourceRevisionId}-${excerpt.anchor}`} excerpt={excerpt.excerpt} answer={expectedText(document.reference.expected)} source={excerpt.sourceTitle} />
                 ))
               ) : (
                 <span className="p-cell-meta">{t("sourceExcerptMissing")}</span>
