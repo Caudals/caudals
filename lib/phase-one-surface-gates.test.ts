@@ -60,5 +60,7 @@ describe("Phase 1 surface gates", () => {
     expect(shouldBlockPhaseOneHiddenSurface("/dashboard")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/pwa")).toBe(true);
     expect(shouldBlockPhaseOneHiddenSurface("/admin/requests")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/admin?module=datasets")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/admin/#settings")).toBe(true);
   });
 });

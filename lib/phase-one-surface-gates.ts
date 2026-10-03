@@ -11,6 +11,8 @@ const PHASE_ONE_REMOVED_SURFACE_PREFIXES = [
 const PHASE_ONE_HIDDEN_ADMIN_PREFIXES = ["/admin/"];
 
 function normalizePathname(pathname: string) {
+  // Auth callbacks also pass return URLs containing queries or fragments.
+  pathname = pathname.split(/[?#]/, 1)[0];
   if (!pathname) {
     return "/";
   }
