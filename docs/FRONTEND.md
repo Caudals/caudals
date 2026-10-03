@@ -16,13 +16,13 @@ Implementation rules for the public funnel, the internal Operator Console, and t
   keeps the editorial system (`packages/brand/tokens.css`, `app/globals.css`).
   `docs/DESIGN.md` is the authority for both and states which applies where.
 - The public site is the landing page and its funnel: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces Sectors and Contact, plus the rounded "Get started" / "Comenzar" CTA; the footer adds "How it works" (the landing's `#how-it-works` anchor) and one link per sector. Blog and Newsletter are temporarily hidden. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
-- The deployed private surface is the legacy Operator Console (`/admin`) with its sign-in (`/auth/*`). The separate evaluation product routes (`/ops`, `/workspace`, `/evaluation-entry`, `/share`) exist in code but are not production-released.
+- Deployed private surfaces include the legacy Operator Console (`/admin`, `/auth/*`) and the invite-only evaluation product (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`). Features remain governed by workspace permissions, entitlements and readiness gates; see the latest evals work-package records.
 - The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 
 ## Routing and IA Contract
 
 - There is no landing-mode flag; the public route set above is what the app builds.
-- Public primary navigation is defined in `lib/navigation/public-links.ts` (currently How it works and Contact; Blog and Newsletter are commented out). The footer may additionally expose meeting booking and legal pages.
+- Public primary navigation is defined in `lib/navigation/public-links.ts` (currently Sectors and Contact; Blog and Newsletter are commented out). The footer may additionally expose meeting booking and legal pages.
 - Public discovery files use `/sitemap.xml` as an index for `/post-sitemap.xml` and `/page-sitemap.xml`; `/llms.txt` provides a curated AI-readable overview. These files list public content only.
 - `/contact` is the general contact and intake path. It records evaluation requests (`lib/validators/evaluation-request.ts`, `lib/public/evaluation-request-intake.ts`): system type, stage, sector, owner role, what the system answers, an optional URL and the offer to start from. Landing links pass `?offer=reality-check` to preselect the free diagnostic. Keep the quiet form treatment.
 - Sector pages: `lib/public/sectors.ts` holds the sector ids (the same ids as the `/contact` `sector` options) and each locale's slug; page copy lives in `content/sectors/{locale}.json` (`es.json` is type-checked against `en.json`, and `lib/sectors/content.test.ts` guards icons, completeness and claims); short names are in the `sectors.names` messages. Each page reuses the landing's Paper components (hero chat fixed to its sector, failure modes with sector examples, expert network with sector roles), adds a FAQ with `FAQPage` data and links to the form as `/contact?offer=reality-check&sector={id}`, which preselects the sector.
@@ -31,7 +31,7 @@ Implementation rules for the public funnel, the internal Operator Console, and t
 - Planned `/proof`: public, no signup; it becomes the landing page's primary evidence CTA when it ships. It must enforce IP rate limits, 24-hour upload retention and a daily model-spend cap, and state plainly what is processed and where.
 - Evaluation customer workspace (`/workspace`): invitation-only account access, workspace-scoped owner/editor/viewer permissions, connection → source-backed test-set preparation → approved run → report. The old planned `/e/[projectId]` magic-link sketch does not govern this implementation.
 - Do not add landing-page entry points to direct-route or authenticated surfaces unless explicitly requested.
-- Direct-route surfaces verify their own access controls rather than relying on the landing-mode route gate.
+- Direct-route surfaces verify their own access controls rather than relying on marketing navigation or hostname obscurity.
 
 ## Localization Contract
 
@@ -127,8 +127,8 @@ remain English-only.
   opts *every* route out of static rendering, including the marketing pages.
 - There is no `app/layout.tsx`. `app/[locale]/layout.tsx` is a root layout that
   renders `<html lang={locale}>`, so the served HTML declares its language; the
-  internal groups `(app)`, `(auth)` and `(evaluation)` each have an English root
-  layout. All of them render `components/document/root-document.tsx`. A URL
+  internal groups `(app)`, `(auth)` and `(evaluation)` have separate root
+  layouts; the evaluation surface applies its own per-person locale contract. All of them render `components/document/root-document.tsx`. A URL
   under a locale that matches no page renders the localized
   `app/[locale]/not-found.tsx` (via `app/[locale]/[...missing]`); anything
   outside every root layout gets `app/global-not-found.tsx`.
@@ -164,7 +164,7 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` an
 ## Implementation Rules
 
 1. Start from existing design tokens and shared primitives.
-2. Keep landing-page navigation aligned with landing-mode restrictions while preserving direct-route access for published surfaces.
+2. Keep marketing navigation aligned with the public route contract while enforcing each private surface’s server-side access controls.
 3. Prefer incremental, verifiable UI changes.
 4. Avoid parallel component systems.
 5. Preserve keyboard/focus behavior while restyling.

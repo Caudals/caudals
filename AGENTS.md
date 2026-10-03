@@ -15,10 +15,13 @@ Caudals is an AI data company that starts with evaluation. We begin with pilot p
 
 - `docs/product-specs/overview.md`: product brief, offers, pricing, customers, custom datasets and the expert network.
 
-Current deployment scope is intentionally narrow:
+Current deployment includes the public funnel and the invite-only evaluation product:
 
 - public landing page, sector pages, contact form, meeting booking, blog, newsletter, and legal pages,
-- private Operator Console (`/admin`) and its sign-in (`/auth/*`).
+- private Operator Console (`/admin`) and its sign-in (`/auth/*`),
+- evaluation operations (`/ops`), customer workspaces (`/workspace`), expert assignments (`/review`), private report sharing and scoped `/api/evals/v1` APIs on `app.caudals.com`.
+
+Evaluation stages A–E are implemented and deployed with feature, entitlement and per-target readiness controls. Read `docs/evals/AGENTS.md` and the latest work-package records for remaining customer release gates; deployment does not imply unrestricted signup or universal connector support.
 
 There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; do not reintroduce them.
 
@@ -28,14 +31,18 @@ Maintain these so they keep working; do not extend or market them:
 
 - non-text modalities (image, video, audio, geospatial, sensor),
 - the legacy dataset-build Operator Console modules and CLI,
-- legacy private stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis, Marquez). New evaluation code must not depend on them.
+- legacy dataset-build stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, the legacy cache and Marquez). New evaluation code must not depend on them. Frozen scope is not runtime status: Temporal and the separate social Redis are running as of 2026-09-28; see `docs/VPS_RUNTIME.md`.
 
 ## Sibling Repository — Caudals Leads
 
+Since 2026-10-03 the CRM of record is self-hosted **Warmbly** at
+`out.caudals.com`, on the same host (see `docs/VPS_RUNTIME.md`). It has no
+repository here.
+
 `../leads` (github.com/Caudals/leads) is the satellite repo for the internal B2B
-Leads CRM: companies/contacts, cold-outreach sequences, AI prospecting intake,
+Leads app (the CRM until 2026-10-03; its remaining scope is pending): companies/contacts, cold-outreach sequences, AI prospecting intake,
 social publishing, the *The Data Gap* newsletter, and the blog pipeline that
-publishes to this site. It runs on the same Hetzner host (`caudals-1`) and the
+publishes to this site. It runs on the same Hetzner host (`atlantic`, formerly `caudals-1`) and the
 same `dokploy-network`, with its own `caudals_leads` database inside the shared
 `caudals-postgres` service, plus the private `growth-social` execution service.
 
@@ -59,7 +66,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 
 - `docs/product-specs/overview.md`: canonical product brief. Read it first to understand what Caudals sells, to whom, and what is in scope.
 - `docs/index.md`: documentation map and update ownership.
-- `docs/ARCHITECTURE.md`: technical system contract, runtime model and planned evaluation architecture.
+- `docs/ARCHITECTURE.md`: technical system contract, runtime model and deployed evaluation architecture.
 - `docs/DESIGN.md`: design system and UI governance.
 - `docs/FRONTEND.md`: frontend implementation contract.
 - `docs/TOOLS.md`: operational tooling, setup commands and troubleshooting.
@@ -74,7 +81,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 
 ## Product Prioritization Heuristics
 
-1. Sell before building: the first three pilots are delivered manually; do not build evaluation platform code ahead of that unless asked.
+1. Prioritize paid pilot learning and delivery over speculative scope. The founder authorized evaluation stages A–E and they are deployed; the earlier three-manual-pilot prerequisite no longer blocks their maintenance or completion. Neither current prospecting experiment is a definitive ICP; the founder reports better results with España · Producto de IA than Caudals CyL v1.
 2. Keep the public funnel fast, credible and easy to contact. Lead with evidence, never hype.
 3. Build operator workflows (case authoring, grading, expert review, reporting) before customer self-service.
 4. Keep every result and dataset item reproducible and traceable: item → source → author → reviewer → run → score.
@@ -85,7 +92,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 ## Tooling and Skills
 
 - PostgreSQL (`psql`, disposable containers): schema checks, migrations and runtime inspection — see `docs/TOOLS.md`.
-- Stripe MCP/CLI: payment and webhook diagnostics when payment code is touched.
+- Stripe MCP/CLI: only for explicitly scoped historical billing work; Stripe checkout and marketplace billing are not current product surfaces.
 - GitHub MCP and `gh`: issue/PR workflows and CI triage.
 - Browser/devtools tooling: UI inspection and interaction checks.
 - Terminal tooling: build, lint, static analysis and repository diagnostics.
@@ -94,7 +101,7 @@ same `dokploy-network`, with its own `caudals_leads` database inside the shared
 ## Non-Negotiables
 
 - Preserve strict separation between public pages, internal admin operations and authenticated direct-route surfaces.
-- Preserve payment/webhook consistency and idempotency when payment code is touched.
+- Preserve webhook consistency and idempotency; do not reintroduce removed payment flows as part of evaluation work.
 - Preserve provenance, consent, PII redaction and auditability for every case, run, report and dataset item.
 - Freelance experts see only the redacted material their task needs and work under confidentiality, data-processing and IP-assignment terms.
 - Never publish or expose a named company's evaluation results without its written consent.

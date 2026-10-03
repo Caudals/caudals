@@ -6,7 +6,8 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 - `product-specs/overview.md`: canonical product brief for humans, AI assistants, coding agents and collaborators.
 - `product-specs/evals-platform-implementation-spec.md`: staged evaluation-product implementation contract; `evals/work-packages/` records work-package status and release gates.
 - `product-specs/content-publishing-contract.md`: interface between the Leads Content Suite and the public MDX blog.
-- `ARCHITECTURE.md`: technical system contract, deployment/runtime model and planned evaluation architecture.
+- `ARCHITECTURE.md`: technical system contract, deployment/runtime model and deployed evaluation architecture; its earlier sketch is explicitly historical.
+- `VPS_RUNTIME.md`: dated cross-repository service inventory, deployment boundaries and recovery limits.
 - `DESIGN.md`: design system and UI governance. Two languages: the platform system for authenticated surfaces (`packages/brand/platform.css`) and the editorial system for the public site.
 - `FRONTEND.md`: frontend implementation contract.
 - `evals/web-app-connector.md`: remote browser setup, teaching, authenticated state, capture rules, validation and repair.
@@ -16,7 +17,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
   internal B2B Leads CRM, outreach, prospecting, social and newsletter operations.
   Start at `../leads/AGENTS.md`; it indexes `docs/ARCHITECTURE.md`,
   `docs/OPERATIONS.md`, `docs/OUTREACH.md`, `docs/CONTENT.md`,
-  `docs/PROSPECTING.md` and `docs/GROWTH.md`. It shares this host, network and
+  `docs/STRATEGIC_PROSPECTING.md` and `docs/GROWTH.md`. It shares this host, network and
   PostgreSQL service but owns its own schema.
 
 ## Read/Write Matrix
@@ -26,6 +27,7 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 | `docs/product-specs/overview.md` | product brief: offers, customers, custom datasets, expert network | direction, offers, pricing, sectors, expert network or scope change |
 | `docs/product-specs/content-publishing-contract.md` | Leads-to-site blog path, frontmatter, MDX and release contract | blog loader, route, components, or publisher changes |
 | `docs/ARCHITECTURE.md` | technical system contract and deployment/runtime model | architecture/runtime changes |
+| `docs/VPS_RUNTIME.md` | dated shared-host service inventory | deployment, service lifecycle or recovery change |
 | `docs/DESIGN.md` | design system and UI governance | design contract changes |
 | `docs/FRONTEND.md` | frontend implementation contract | frontend routing, UI, or i18n contract changes |
 | `docs/TOOLS.md` | operational tooling and setup runbook | tooling workflows, setup, or troubleshooting changes |
@@ -36,4 +38,4 @@ Persistent reference set for Caudals' product direction, architecture, design, f
 | `docs/evals/runbooks.md` | the ten operational runbooks required by spec §17.6 | alerting, backup, recovery or incident procedure changes |
 
 ## Governance Canon
-`docs/product-specs/overview.md` is the canonical product direction; supporting docs align to it. Marketplace, supplier-portal, catalogue and non-text modality work is out of scope and must not be reintroduced as current direction.
+`docs/product-specs/overview.md` is the canonical product direction; supporting docs align to it. The founder’s latest explicit decisions and campaign rules take precedence over older hypotheses; current acquisition campaigns remain experiments. Marketplace, supplier-portal, catalogue and non-text modality work is out of scope and must not be reintroduced as current direction.

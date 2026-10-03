@@ -1,5 +1,7 @@
 # Evals Dashboard Design Proposal
 
+> Context review / revisión de contexto: 2026-09-28. Historical proposal, superseded by the implemented platform design in ../../DESIGN.md and current evaluation components. Do not use its original scope exclusions as current product limits.
+
 ## Overview
 We're designing a focused workspace/operations dashboard for evaluation management, mirroring ElevenLabs' approach: compact sidebar navigation, contextual inspector pattern, and honest empty states. Scope is strictly routes for client setup, invitation lifecycle, and evaluation landing—no evaluation creation UI, no backend simulation.
 

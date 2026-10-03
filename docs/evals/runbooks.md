@@ -1,6 +1,6 @@
 # Evaluation platform runbooks
 
-Operational procedures required by spec §17.6. Every procedure runs on `caudals-1` as a founder with approved Tailscale access. Never paste secrets, customer content or private endpoints into tickets, chat or commits. Alerts arrive from `caudals-evals-health.timer` (every ten minutes) at the collaboration notification inbox; each names the condition, not the data.
+Operational procedures required by spec §17.6. Every procedure runs on `atlantic` as a founder with approved Tailscale access. Never paste secrets, customer content or private endpoints into tickets, chat or commits. Alerts arrive from `caudals-evals-health.timer` (every ten minutes) at the collaboration notification inbox; each names the condition, not the data.
 
 Common commands:
 

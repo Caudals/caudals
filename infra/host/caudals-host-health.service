@@ -1,0 +1,10 @@
+[Unit]
+Description=Caudals host alerts (disk, memory, Swarm services, Traefik)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/caudals-host-health
+ExecStart=/usr/local/sbin/caudals-host-health
+TimeoutStartSec=5min

@@ -1,7 +1,7 @@
 # Caudals Evaluations — Product and Technical Implementation Specification
 
 > Status: **Specification v0.1. Stages A–E are implemented and deployed on `app.caudals.com`; per-package evidence, accepted gates and the remaining externally blocked checks are recorded in `docs/evals/work-packages/`** (status lives there, per §21.3).
-> Date: 2026-09-17 · Product language: English · Deployment: `app.caudals.com`
+> Date: 2026-09-17 · Context reviewed: 2026-09-28 · Product languages: English and Spanish · Deployment: `app.caudals.com`
 > Repository: `Caudals/caudals` · Audience: founders, implementation agents, reviewers.
 > This document specifies the new evaluations product from first principles. Earlier offers, sector priorities, manual-pilot prerequisites, route restrictions and proposed evaluation architectures are not requirements for this product. Existing production services must continue working.
 
@@ -36,7 +36,7 @@ Founder-confirmed:
 - Support company APIs, website chatbots, CLI/private systems, CSV/spreadsheet data, documents, multi-turn conversations and tool-using systems progressively.
 - Provide interactive reports, PDF, sharing, comparisons, dataset export and repeat evaluations.
 - Keep the customer workflow minimal: connect, wait for preparation, wait for evaluation, inspect results.
-- Use an English application interface. Evaluation content can be in other languages.
+- The initially English application now supports English and Spanish through its own per-person locale and catalogs. Evaluation content keeps its own language; see `docs/FRONTEND.md`.
 - Design for eventual freelance expert curation and training-dataset production.
 - Treat 500–1,000 per evaluation as a maximum spending envelope, increasing later.
 
@@ -248,7 +248,7 @@ Proposed app design contract (scoped to the evaluation shell so marketing remain
 - Shared Radix/shadcn primitives and semantic tokens; avoid parallel component libraries. Tokens may be refined during delegated design review.
 - Motion: short 150–250 ms transitions; a subtle indeterminate loader for unknown-length stages, determinate progress only for known work. Respect reduced motion.
 - Keep action groups small, table filters in one row, details in drawers. No card mosaics, terminal logs or model configuration panels on the customer landing screen.
-- English UI strings live in an app English message catalog. Preserve existing marketing localization; app-host locale is independent of browser-country detection. Dataset locale and UI language are separate fields.
+- UI strings live in the app English/Spanish catalogs; `caudals_locale` selects the per-person language, independently of marketing URL negotiation and browser-country detection. Dataset locale and UI language are separate fields.
 - Keyboard-complete navigation, visible focus, text/icon status labels, accessible chart tables, screen-reader announcements only for meaningful progress changes, and verified contrast. Target WCAG 2.2 AA behavior; acceptance requires checking actual components.
 - Verify at 390, 768 and 1440 px widths. On mobile use a navigation drawer and full-screen result details. Horizontal scroll is acceptable for dense comparison tables with labeled columns.
 
@@ -386,7 +386,7 @@ Current inspection found hostname logic in `proxy.ts`, a restrictive gate in `li
 - Existing `/admin` behavior is preserved until an explicit operator migration is delivered. Link the new evaluations console rather than replacing unrelated modules.
 - Route groups do not create URL prefixes or enforce authorization. Every handler and server action checks identity and scope.
 - App cookies are secure, HTTP-only and host-only where possible; explicitly test trusted origins, CSRF, callbacks and redirect allowlists. Do not broaden cookie scope to every subdomain to make login convenient.
-- Preserve marketing translations. New app-host English routing must bypass geolocation-based language switches.
+- Preserve marketing translations. App-host routing uses its own per-person locale and bypasses marketing geolocation-based language switches.
 - Private routes, shares and data endpoints are excluded from sitemap/indexing and use private/no-store cache behavior. No shared CDN caching of authenticated HTML or APIs.
 
 
@@ -1272,7 +1272,7 @@ Deliverables:
 - Record existing routing, auth/organization semantics, migration order, secret handling and deployment workflow from current code.
 - Inventory VPS capacity, private DB/storage, backups and DGX reachability using approved private access. List missing prerequisites without guessing.
 - Create a proposed service/network/resource map and development environment plan on the VPS.
-- Add a product-specific instruction file/decision record and update affected repository guidance so new app routes, English UI and staged self-service are explicitly permitted. Preserve marketing and CRM contracts.
+- Add a product-specific instruction file/decision record and update affected repository guidance so new app routes, English/Spanish UI and staged invite-only self-service are explicitly permitted. Preserve marketing and CRM contracts.
 - Pin adopted dependencies only after compatibility/license checks; create a source/reference register.
 
 Acceptance:
@@ -1290,7 +1290,7 @@ Acceptance:
 
 Deliverables:
 
-- App-host routing for customer/operator shells and English message catalog; preserve marketing and `/admin` behavior.
+- App-host routing for customer/operator shells and separate English/Spanish catalogs; preserve marketing and English-only `/admin` behavior.
 - Workspace/membership/invite foundation; founder operator roles; create a client without creating an account.
 - Role-aware navigation, table/form/status primitives and responsive empty states.
 - Authentication recovery, invitation acceptance/revocation and session expiry behavior.
@@ -1745,7 +1745,7 @@ Use deterministic fake providers with known failure modes to verify the engine, 
 | ID   | Proposed decision                                                          | Revisit trigger                                                           |
 | ---- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | D-01 | Managed invite-only launch, customer self-service after operator release   | Demand and reliable Stage B delivery                                      |
-| D-02 | English app, independently multilingual evaluation content                 | Customer localization demand                                              |
+| D-02 | Initially English app; English/Spanish per-person UI now implemented, with independently multilingual evaluation content | Further localization demand |
 | D-03 | €500 default machine-spend cap; operator ceiling €1,000                    | Confirm currency/all-in versus compute budget and observed unit economics |
 | D-04 | Preliminary automated reports; reviewed tier with explicit review coverage | Customer trust needs and expert availability                              |
 | D-05 | API/import first, assisted website second, private runner later            | First concrete customer connection requirements                           |

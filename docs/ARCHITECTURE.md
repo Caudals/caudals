@@ -2,15 +2,16 @@
 
 ## System Overview
 
-Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production remains a public marketing and demand-capture site plus the private Operator Console. An invite-only evaluation product is implemented in this repository but has not passed all production release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-15.md`.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production includes the public marketing funnel, private Operator Console and deployed invite-only evaluation product. Customer rollout remains subject to workspace entitlements, target readiness and the remaining release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-15.md`.
 
 Current production scope:
 
 - Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
 - Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
+- Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 
-The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; they return `404`. There is no landing-mode flag: the routes above are the whole app.
+The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; they return `404`. There is no landing-mode flag: the routes above define the public and private product boundaries.
 
 ## Application Stack
 
@@ -19,14 +20,14 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - Data/Auth: self-hosted PostgreSQL + Better Auth + Postgres RLS
 - Storage: S3-compatible object storage — private MinIO on the VPS, with DigitalOcean Spaces as the external managed target (`DO_SPACES_*` variable names serve both)
 - Email: Resend
-- Payments: Stripe is present in the codebase but not part of the current public deployment
-- Observability: Sentry for Next.js error capture, OpenTelemetry OTLP traces to private Tempo, Docker logs to Loki through Promtail, Prometheus metrics with Alertmanager rules, internal Grafana
-- CI/CD: GitHub Actions → Docker Hub → Dokploy on the Hetzner VPS
-- Legacy private stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, Redis, Marquez) are frozen and shut down; see "Legacy Private Stacks".
+- Payments: marketplace Stripe checkout/billing was removed; historical tooling references do not expose a current payment product
+- Observability: Sentry/OTLP instrumentation is configurable; the retained Tempo/Loki/Prometheus/Grafana stack is not observed running on 2026-09-28. Evals host health/backup timers and DGX telemetry are installed; see `VPS_RUNTIME.md`
+- CI/CD: GitHub Actions → Docker Hub → repository Swarm deploy scripts over Tailscale/SSH; retained Dokploy Traefik handles ingress
+- Legacy dataset-build scope is frozen; runtime differs by stack. Temporal and social Redis are running; see "Legacy Private Stacks" and `VPS_RUNTIME.md`.
 
 ## Code Topology
 
-- `app/(home)/*`: marketing/public routes
+- `app/[locale]/*`: localized marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
 - `app/(app)/*`: hidden authenticated app, Operator Console (`/admin`) and APIs
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password, reset-password, organization/team, and optional TOTP/passkey hardening
@@ -35,16 +36,16 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - `lib/public/*`: public funnel logic: the `/contact` evaluation-request intake (`evaluation-request-intake.ts`) and the published offers (`evaluation-offers.ts`)
 - `lib/security/*`: public API abuse controls (rate limiting)
 - `lib/operator/*`: Operator Console domain modules. Record CRUD and the console repository are shared infrastructure; the dataset-build modules (dataset operations, active learning, cleanlab, license composition, modality contracts, release documentation, sample-preview gating, subscription delivery, compliance controls) are frozen.
-- `app/(buyer)/*`, `app/(supplier)/*`, `lib/buyer/*`, `lib/supplier/*`, `lib/api/v1.ts`: legacy direct-route surfaces (frozen)
+- Pre-pivot buyer/supplier/v1 route groups were removed; retained legacy domain code is not a live self-service surface
 - `lib/cli/*`, `scripts/caudals.ts`, `bin/caudals.mjs`: legacy operations CLI (frozen)
 - `db/migrations/*` and `db/rollbacks/*`: PostgreSQL schema history; every migration ships a rollback
 - `app/(evaluation)/*`, `app/api/evals/v1/*`, `lib/evals/*`: invite-only evaluation, expert-review and improvement-dataset product
 
-Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`, which only the frozen `/v1` brief intake still creates. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
+Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`; the former `/v1` brief intake is not a live route. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
 
 ## Evaluation Product Implementation (feature-gated)
 
-The current evaluation implementation uses `app/(evaluation)` for separate `/ops`, `/workspace` and assignment-scoped `/review` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, `evals` PostgreSQL tables from migrations 031–044, and separate general, document, and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the browser worker is disabled by default and still needs a policy-enforced deployment egress boundary and authorized real-widget evidence. Stage D adds a customer-side outbound private runner and a gated schedule loop in the general worker. Stage E adds redacted expert assignments, immutable submissions/reviews and privately delivered signed improvement datasets with family-aware splits and observational follow-up evidence. Stage E is disabled unless `EVALS_EXPERT_WORK_ENABLED=true` and the migration, role, trigger and Ed25519 release checks pass. See `evals/work-packages/WP-09.md`–`WP-15.md` for precise status and remaining release checks.
+The current evaluation implementation uses `app/(evaluation)` for separate `/ops`, `/workspace` and assignment-scoped `/review` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, the `evals` PostgreSQL schema with additive migrations, and separate general, document, scheduler and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the deployed browser worker has a private egress gateway and DB relay, with synthetic acceptance recorded and customer recipes/authorizations checked per target. Stage D adds a customer-side outbound private runner and a separate gated scheduler service. Stage E adds redacted expert assignments, immutable submissions/reviews and privately delivered signed improvement datasets with family-aware splits and observational follow-up evidence. Stage E is disabled unless `EVALS_EXPERT_WORK_ENABLED=true` and the migration, role, trigger and Ed25519 release checks pass. See `evals/work-packages/WP-09.md`–`WP-15.md` for precise status and remaining release checks.
 
 Engine models and lifecycle (migrations 063–064):
 
@@ -119,9 +120,9 @@ Expert work: freelance domain experts get restricted accounts to author and revi
   `/es/sectores/*`), `/contact`, `/call`, `/blog`, `/blog/*`,
   `/newsletter`, `/newsletter/*` and `/legal/*`;
   `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`, the funnel APIs and
-  required metadata/assets are the only other routes.
+  evaluation routes (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`), their APIs and required metadata/assets are separate private surfaces.
 - Removed legacy self-serve route groups return `404`: `/browse`,
-  `/contributor`, `/dashboard` (app-host root requests go to `/admin`), `/pwa`
+  `/contributor`, `/dashboard` (app-host root requests are rewritten to `/evaluation-entry`), `/pwa`
   (the manifest links public surfaces only) and `/requester`. Legacy `/admin/*`
   subroutes are removed; `/admin` is the Operator Console.
 - `/contact` is the general contact and intake path for evaluation requests.
@@ -138,15 +139,12 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 ## Infrastructure and Deployment
 
 - Production runtime is self-hosted on the Hetzner cost-optimized VPS at
-  `168.119.49.95` (`caudals-1`). Cutover from DigitalOcean completed on
+  `168.119.49.95` (`atlantic`). Cutover from DigitalOcean completed on
   2026-06-30: Cloudflare proxies the production hostnames to Hetzner, where the
   Dokploy Traefik terminates TLS (Let's Encrypt) and routes to the local app,
   Umami, and private stacks on `dokploy-network`.
-- The DigitalOcean VPS remains online and untouched as the rollback origin (app
-  service `1/1`, verified backups retained under `/root/.caudals/backups`).
-  Rollback is a Hetzner-local revert (remove Dokploy Traefik, start HAProxy) and
-  needs no Cloudflare/DNS change.
-- Dokploy manages runtime/deployment.
+- DigitalOcean and HAProxy references describe the June migration rollback, not a verified current recovery target. Current rollback uses compatible retained immutable Swarm images and database forward repair; check `VPS_RUNTIME.md` and evals runbooks before recovery.
+- Repository deploy scripts manage Swarm services; the retained Dokploy Traefik handles ingress.
 - App Docker images are built in GitHub Actions
   (`.github/workflows/deploy.yml`), published to Docker Hub with immutable
   tags and rolled out to the `caudals-app` Swarm stack over Tailscale SSH. The
@@ -156,7 +154,7 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 
 ## PostgreSQL Runtime
 
-- VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+- VPS SSH endpoint: `caudals@atlantic` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
 - App runtime: Swarm service `caudals-app_app` (stack `caudals-app`,
@@ -179,7 +177,7 @@ Expert work: freelance domain experts get restricted accounts to author and revi
   - Application access goes through server-side typed DB clients and operator-scoped RLS settings.
   - Public `22/tcp` is closed in the completed production posture; during the
     Hetzner bootstrap window, temporary key-only public SSH must be removed as
-    soon as Tailscale `caudals@caudals-1` access is verified.
+    soon as Tailscale `caudals@atlantic` access is verified.
   - Raw database ports are not intended to be reachable from the public internet.
 
 Legacy Supabase containers, images, volumes, and host filesystem tree were removed after verified encrypted backups were written under `/root/.caudals/backups`.
@@ -194,15 +192,15 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
   `SENTRY_DSN_FILE` Docker secret fallback is configured. Default sampling is
   `0` for traces/profiles unless environment variables raise it.
 - The private Docker Swarm observability stack is defined in
-  `infra/observability/docker-stack.yml` and runs on `dokploy-network` without
-  public ingress.
+  `infra/observability/docker-stack.yml`; if reactivated, it runs on `dokploy-network` without
+  public ingress. It was not present in the 2026-09-28 live service inventory.
 - OpenTelemetry spans emitted by the app export over OTLP HTTP when
-  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. The production target is
+  `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` is set. The retained stack target is
   `http://caudals-observability-tempo:4318/v1/traces`.
-- Docker runtime logs are scraped through Promtail and written to Loki with
+- When the observability stack is enabled, Docker runtime logs are scraped through Promtail and written to Loki with
   `service_name`, `container_name`, `container_id`, `stack`, and `stream`
   labels.
-- Prometheus scrapes Alertmanager, Tempo, Loki, Promtail, cAdvisor, and itself
+- When enabled, Prometheus scrapes Alertmanager, Tempo, Loki, Promtail, cAdvisor, and itself
   for platform metrics and evaluates private Alertmanager-routed rules for
   scrape failures, host disk pressure, and rule/config health. Grafana is
   provisioned internally with Prometheus, Loki, and Tempo datasources.
@@ -239,11 +237,9 @@ Eight legacy dataset-build stacks were deployed as private Swarm stacks on
 `dokploy-network`: Dagster (`infra/orchestration/`), Temporal
 (`infra/workflow/`), Label Studio and CVAT (`infra/labeling/`), lakeFS
 (`infra/lakehouse/`), Qdrant (`infra/vector/`), Redis (`infra/cache/`) and
-Marquez (`infra/operations/`). They are frozen and shut down:
+Marquez (`infra/operations/`). Their dataset-build scope remains frozen:
 
-- None is deployed on `caudals-1` (the Dagster services were removed on
-  2026-09-10) and their images were pruned on 2026-09-11. If one is restored,
-  it must not publish ports.
+- On 2026-09-28, Temporal and its UI are running. Dagster, Label Studio, CVAT, lakeFS, Qdrant, the legacy cache and Marquez were not observed as services. Social Redis belongs to the active Postiz stack, not the frozen cache. Do not infer current image/volume deletion from an older shutdown record. Restored stacks must remain private.
 - The live public funnel does not call them, and new evaluation code must not
   depend on them. App-code references are limited to Operator Console snapshot
   data, the legacy CLI and frozen operator/supplier modules.
@@ -306,20 +302,17 @@ Evaluation and dataset domains:
 Mature current areas:
 
 - landing/contact/blog public surface
-- landing-mode landing-page/navigation restriction
+- public/private hostname and route separation
 - public intake APIs
-- private infrastructure access hardening and observability
+- private infrastructure access controls, operational health timers and DGX telemetry
 
 Active drift risks:
 
 - public copy, `/contact` intake fields, `/llms.txt`, agent markdown and SEO
   metadata must stay aligned with the evaluation positioning and read prices
   from `lib/public/evaluation-offers.ts`
-- the observability and object-storage stacks are not deployed on `caudals-1`
-  (as of 2026-09-11); the completion gate reports them until they are
-  redeployed or explicitly waived
-- legacy direct-route surfaces must stay protected by auth, authorization, RLS,
-  rate limits and audit rather than landing-page obscurity
+- MinIO is running; the retained dedicated observability stack was not observed on 2026-09-28. Keep actual runtime, gate configuration and documented guarantees aligned; off-host backup remains deferred by founder decision
+- existing private evaluation and operator surfaces must enforce auth, authorization, RLS, rate limits and audit; removed marketplace routes must not be restored inadvertently
 - evaluation code must not grow on frozen marketplace modules or legacy stacks
 
 ## Linked References
