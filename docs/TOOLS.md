@@ -66,7 +66,9 @@ Apply migrations with `tsx scripts/evals/migrate.ts`; the migrator holds the `ca
 
 Runtime:
 
-- Target VPS SSH endpoint: `caudals@atlantic` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+- Target VPS SSH endpoints:
+  - `atlantic` (primary app/platform): `caudals@atlantic` (or `caudals@caudals-1`, Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+  - `arctic` (Warmbly outreach): `caudals@arctic` (AWS Tailscale host `100.93.226.39`). Public SSH on `51.102.90.206` is not an operations path.
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
 - App service: `caudals-app_app` (Swarm stack `caudals-app`,
@@ -89,8 +91,9 @@ Runtime:
 
 Direct SSH runtime inspection is allowed when local context is stale:
 
-- `ssh caudals@atlantic`
-- `ssh root@168.119.49.95` is disabled on the Hetzner target; avoid routine root probes because denied root attempts can trigger fail2ban during the migration window
+- `ssh caudals@atlantic` (or `ssh caudals@caudals-1`)
+- `ssh caudals@arctic` (or `ssh caudals@artic`)
+- Public root SSH is disabled on both targets; all operational access is via Tailscale.
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 

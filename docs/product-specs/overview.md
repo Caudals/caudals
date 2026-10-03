@@ -68,18 +68,11 @@ Text and document AI systems:
 
 ## Who We Sell To
 
-- **Sector one — insurance:** insurers, health insurers, mutuals and brokers. High-volume questions with objectively correct answers, dense documentation, compliance-literate buyers.
-- **Sector two — industrial after-sales and technical support:** automotive suppliers, machinery, components and agrifood equipment around Valladolid and Castilla y León. Unambiguous answers (part numbers, torque specs, intervals); physical proximity is an advantage.
-- **Reserve sectors:** legal and asesorías; utilities and energy retail; private healthcare groups (warm introductions only).
 - **Size and buyer:** 50–500 employees. The buyer owns the AI system — Atención al Cliente, Transformación Digital, Canal Digital, Postventa/Servicio Técnico, Calidad or Operaciones — and can sign €2,400 without a committee.
 - **Trigger:** the company launched or announced an AI system in the last 18 months.
 - **Channel partners:** Spanish AI and data integrators and agencies that build these systems. We are their independent test layer, white-labelled or on referral.
-- **Not now:** AI startups as evaluation customers, IBEX-35 companies and large banks, public-administration tenders, and anyone with nothing deployed.
-- **Next segment:** Spanish AI product companies (vertical SaaS, insurtech, legaltech, healthtech) that train their own models and buy expert-built training data directly.
 
-Target hypothesis in the original evaluation brief: *Spanish insurance and industrial companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
-
-Current experiments (founder clarification, 2026-09-28): **España · Producto de IA**, focused on fiscal/accounting/payroll AI products, and **Caudals CyL v1**, a multisector regional pilot-entry campaign. Neither is definitive. The founder reports better qualitative results with Producto de IA, but overall acquisition results are still mixed and a better campaign is needed. CyL being active and Producto de IA paused in the observed CRM does not establish a strategic winner. Campaign rules govern research; the earlier “not now” segments above are hypotheses, not permission to override a campaign. CyL includes smaller 30–100-case pilots and digital/AI signals wider than current text delivery scope; assess feasibility before promising non-text work. See `../../../leads/docs/GROWTH.md` and `../../../leads/docs/STRATEGIC_PROSPECTING.md`.
+Target definition: *Spanish companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
 
 ## Where Ground Truth Comes From
 
@@ -132,7 +125,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 - Sourcing or reselling third-party data.
 - Image, video, audio, geospatial and sensor data; deals needing more than a few gigabytes of processing.
 - Commodity labelling at volume, generic AI consulting or integration, and a self-serve evaluation SaaS for developers. We build expert-authored, domain-specific data, not generic annotation.
-- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, claims handling, industrial troubleshooting) as a public portfolio piece.
+- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, technical operations) as a public portfolio piece.
 
 ## Market Context (2026)
 

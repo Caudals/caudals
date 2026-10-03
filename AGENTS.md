@@ -33,22 +33,29 @@ Maintain these so they keep working; do not extend or market them:
 - the legacy dataset-build Operator Console modules and CLI,
 - legacy dataset-build stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, the legacy cache and Marquez). New evaluation code must not depend on them. Frozen scope is not runtime status: Temporal and the separate social Redis are running as of 2026-09-28; see `docs/VPS_RUNTIME.md`.
 
-## Sibling Repository — Caudals Leads
+## VPS Infrastructure Fleet
 
-Since 2026-10-03 the CRM of record is self-hosted **Warmbly** at
-`out.caudals.com`, on the same host (see `docs/VPS_RUNTIME.md`). It has no
-repository here.
+Caudals operates across two production VPS nodes connected via Tailscale:
 
-`../leads` (github.com/Caudals/leads) is the satellite repo for the internal B2B
-Leads app (the CRM until 2026-10-03; its remaining scope is pending): companies/contacts, cold-outreach sequences, AI prospecting intake,
-social publishing, the *The Data Gap* newsletter, and the blog pipeline that
-publishes to this site. It runs on the same Hetzner host (`atlantic`, formerly `caudals-1`) and the
-same `dokploy-network`, with its own `caudals_leads` database inside the shared
-`caudals-postgres` service, plus the private `growth-social` execution service.
+1. **`atlantic`** (formerly referred to as `caudals-1`):
+   - **Provider / IP**: Hetzner, `168.119.49.95` (Tailscale `100.118.70.90`, user `caudals`).
+   - **Role**: Primary application and platform host. Runs the public site (`caudals.com`), internal Ops app (`ops.caudals.com` / `leads.caudals.com`), shared `caudals-postgres`, evaluation platform, `caudals-growth_social`, MinIO, and internal Tailscale dashboards.
+2. **`arctic`** (or `artic`):
+   - **Provider / IP**: AWS, `51.102.90.206` (Tailscale `100.93.226.39`, user `caudals`).
+   - **Role**: Dedicated cold-outreach & campaign infrastructure host. Runs the Warmbly suite (`caudals-warmbly`), serving `out.caudals.com`, `out-admin.caudals.com`, `out-track.caudals.com`, and `out-forms.caudals.com` with isolated databases and enrichment workers.
 
-- This repo owns the platform: VPS, `caudals-postgres`, Docker secrets, Swarm
+## Sibling Repository — Caudals Leads / Ops
+
+`../leads` (github.com/Caudals/leads) is the satellite repo for the internal operations
+engine: Caudals Ops (`ops.caudals.com` / `leads.caudals.com`), Content Suite, social
+publishing, the *The Data Gap* newsletter, Hermes strategic prospecting, and the blog
+pipeline that publishes to this site. It runs on `atlantic` on the same `dokploy-network`,
+with its own `caudals_leads` database inside the shared `caudals-postgres` service, plus
+the private `growth-social` execution service.
+
+- This repo owns the platform: VPS nodes (`atlantic` and `arctic`), `caudals-postgres`, Docker secrets, Swarm
   stack conventions, Postiz, and the frozen legacy stacks.
-- `../leads` owns the CRM schema and behaviour, and holds no platform contract.
+- `../leads` owns the Ops schema and behaviour, and holds no platform contract.
 - Start there at `../leads/AGENTS.md`; it indexes its own docs.
 - Read it before changing shared infrastructure, the newsletter public archive,
   the blog content path, or anything that consumes `leads.caudals.com`.

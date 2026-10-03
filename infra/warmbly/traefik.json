@@ -1,0 +1,174 @@
+{
+  "http": {
+    "routers": {
+      "warmbly-http": {
+        "rule": "Host(`out.caudals.com`) || Host(`out-admin.caudals.com`) || Host(`out-track.caudals.com`) || Host(`out-forms.caudals.com`)",
+        "entryPoints": [
+          "web"
+        ],
+        "middlewares": [
+          "redirect-to-https"
+        ],
+        "service": "warmbly-web"
+      },
+      "warmbly-web": {
+        "rule": "Host(`out.caudals.com`)",
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-web",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-api": {
+        "rule": "Host(`out.caudals.com`) && (PathPrefix(`/v1/`) || PathPrefix(`/admin/`) || PathPrefix(`/.well-known/`) || PathPrefix(`/public/`) || PathPrefix(`/unsubscribe/`) || PathPrefix(`/invitations/`) || PathPrefix(`/addresses/`) || PathPrefix(`/integrations/oauth/`) || PathPrefix(`/ingest/`) || PathPrefix(`/api/v1/integrations/inbound/`) || Path(`/api/v1/fleet/join`) || Path(`/join.sh`) || Path(`/health`))",
+        "priority": 100,
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-backend",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-realtime": {
+        "rule": "Host(`out.caudals.com`) && PathPrefix(`/socket/`)",
+        "priority": 110,
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-realtime",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-admin": {
+        "rule": "Host(`out-admin.caudals.com`)",
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-admin",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-tracking": {
+        "rule": "Host(`out-track.caudals.com`)",
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-tracking",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-forms": {
+        "rule": "Host(`out-forms.caudals.com`)",
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-forms",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-apollo": {
+        "rule": "Host(`out.caudals.com`) && PathPrefix(`/v1/apollo/`)",
+        "priority": 120,
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-apollo",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      },
+      "warmbly-rocketreach": {
+        "rule": "Host(`out.caudals.com`) && PathPrefix(`/v1/rocketreach/`)",
+        "priority": 120,
+        "entryPoints": [
+          "websecure"
+        ],
+        "service": "warmbly-rocketreach",
+        "tls": {
+          "certResolver": "letsencrypt"
+        }
+      }
+    },
+    "services": {
+      "warmbly-web": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-web:80"
+            }
+          ]
+        }
+      },
+      "warmbly-backend": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-backend:8080"
+            }
+          ]
+        }
+      },
+      "warmbly-realtime": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-realtime:4000"
+            }
+          ]
+        }
+      },
+      "warmbly-admin": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-admin:80"
+            }
+          ]
+        }
+      },
+      "warmbly-tracking": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-tracking:3000"
+            }
+          ]
+        }
+      },
+      "warmbly-forms": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-forms:8090"
+            }
+          ]
+        }
+      },
+      "warmbly-apollo": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-apollo:8091"
+            }
+          ]
+        }
+      },
+      "warmbly-rocketreach": {
+        "loadBalancer": {
+          "servers": [
+            {
+              "url": "http://caudals-warmbly-rocketreach:8092"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

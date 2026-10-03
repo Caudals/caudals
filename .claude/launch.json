@@ -33,6 +33,18 @@
       "port": 8080
     },
     {
+      "name": "Leads Ops dev (GPU)",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/mario/Documents/leads && exec npx tsx server/index.ts"
+      ],
+      "env": {
+        "LAMBDA_API_KEY_FILE": "/private/tmp/claude-501/-Users-mario-Documents-caudals/bef110a2-22c4-4887-a90b-b0fc7b7e85d9/scratchpad/lambda.key"
+      },
+      "port": 8080
+    },
+    {
       "name": "Growth Social dev",
       "runtimeExecutable": "sh",
       "runtimeArgs": [

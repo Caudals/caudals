@@ -1,0 +1,267 @@
+[
+  {
+    "name": "apollo_people_search",
+    "description": "Apollo people.search. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_companies_search",
+    "description": "Apollo companies.search. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_people_enrich",
+    "description": "Apollo people.enrich. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_people_bulk_enrich",
+    "description": "Apollo people.bulk-enrich. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_companies_enrich",
+    "description": "Apollo companies.enrich. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_companies_bulk_enrich",
+    "description": "Apollo companies.bulk-enrich. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_companies_jobs",
+    "description": "Apollo companies.jobs. Paid operations require spend=true and a stable idempotency_key. Search returns previews; enrich to obtain emails. Import never activates a campaign.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object"
+        },
+        "options": {
+          "type": "object"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "spend": {
+          "type": "boolean"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "max_credits": {
+          "type": "integer"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_accounts",
+    "description": "List connected Apollo accounts and their credit snapshots. Never returns API keys.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "apollo_results",
+    "description": "List locally stored Apollo people or companies.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "people",
+            "companies"
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "apollo_import",
+    "description": "Import selected stored Apollo people into Warmbly. Preserves existing opt-outs. Does not send emails.",
+    "inputSchema": {
+      "type": "object",
+      "required": [
+        "ids",
+        "idempotency_key"
+      ],
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "subscribe_new": {
+          "type": "boolean"
+        },
+        "verified_only": {
+          "type": "boolean"
+        },
+        "update_existing": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+]

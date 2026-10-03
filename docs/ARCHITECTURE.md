@@ -138,11 +138,9 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 
 ## Infrastructure and Deployment
 
-- Production runtime is self-hosted on the Hetzner cost-optimized VPS at
-  `168.119.49.95` (`atlantic`). Cutover from DigitalOcean completed on
-  2026-06-30: Cloudflare proxies the production hostnames to Hetzner, where the
-  Dokploy Traefik terminates TLS (Let's Encrypt) and routes to the local app,
-  Umami, and private stacks on `dokploy-network`.
+- Production runtime is self-hosted across two VPS nodes connected over Tailscale:
+  - **`atlantic`** (formerly `caudals-1`, Hetzner `168.119.49.95`, Tailscale `100.118.70.90`): Primary application and data platform host. Runs `caudals.com`, `ops.caudals.com` / `leads.caudals.com`, `caudals-postgres`, evaluation platform, `caudals-growth_social`, MinIO, and internal Tailscale dashboards. Dokploy Traefik terminates TLS (Let's Encrypt) and routes to local apps and private stacks on `dokploy-network`. Cutover from DigitalOcean completed on 2026-06-30.
+  - **`arctic`** (or `artic`, AWS `51.102.90.206`, Tailscale `100.93.226.39`): Dedicated cold-outreach host running the Warmbly Swarm stack (`out.caudals.com`, `out-admin.caudals.com`, `out-track.caudals.com`, `out-forms.caudals.com`) with isolated storage and enrichment services.
 - DigitalOcean and HAProxy references describe the June migration rollback, not a verified current recovery target. Current rollback uses compatible retained immutable Swarm images and database forward repair; check `VPS_RUNTIME.md` and evals runbooks before recovery.
 - Repository deploy scripts manage Swarm services; the retained Dokploy Traefik handles ingress.
 - App Docker images are built in GitHub Actions
@@ -154,7 +152,10 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 
 ## PostgreSQL Runtime
 
-- VPS SSH endpoint: `caudals@atlantic` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+- VPS SSH endpoints:
+  - `atlantic`: `caudals@atlantic` (or `caudals@caudals-1`, Hetzner Tailscale host `100.118.70.90`).
+  - `arctic`: `caudals@arctic` (AWS Tailscale host `100.93.226.39`).
+  - Public SSH on external IPs is disabled/not an operations path.
 - PostgreSQL runtime: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron`, built from `infra/postgres/Dockerfile`
 - App runtime: Swarm service `caudals-app_app` (stack `caudals-app`,
