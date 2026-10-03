@@ -16,6 +16,7 @@ export type WorkspaceEvaluation = {
   preparation_status: string;
   reason_code: string | null;
   selected_suite_version_id: string | null;
+  selected_target_id?: string | null;
   commercial_cap: string;
   currency: string;
   latest_run_id: string | null;

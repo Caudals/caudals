@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { canonicalJson, sha256 } from "../contracts/hashing";
 import { scopedBrowserStorageState } from "../contracts/browser";
+import { websiteAppNavigation } from "../contracts/website-navigation";
 import { targetConfigSchema } from "../contracts/connectors";
 import { EvalError } from "../domain/errors";
 import { encryptSecret, loadKeyring, type Keyring } from "../security/envelope";
@@ -27,16 +28,18 @@ function browserKeys(): Keyring {
   return cachedKeys;
 }
 
-export async function storeLoginSession(scope: EvidenceScope, targetId: string, input: { storageState: unknown; expiresInHours?: number | null }) {
+export async function storeLoginSession(scope: EvidenceScope, targetId: string, input: { storageState: unknown; expiresInHours?: number | null; startUrl?: string }) {
   const hours = input.expiresInHours ?? NEVER_HOURS;
   if (!Number.isInteger(hours) || hours < 1 || hours > NEVER_HOURS) throw new EvalError("INPUT_INVALID", 422, "Choose a valid login retention.");
   const keys = browserKeys();
   const keyVersion = [...keys.keys()].sort().at(-1)!;
   return withTenant(scope, async (db) => {
+    await db.query("SELECT id FROM evals.target WHERE org_id=$1 AND id=$2 FOR UPDATE", [scope.orgId, targetId]);
     const latest = (await db.query(`SELECT document FROM evals.target_revision WHERE org_id=$1 AND target_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1`, [scope.orgId, targetId])).rows[0];
     if (!latest) throw new EvalError("SCOPE_DENIED", 404);
     const config = targetConfigSchema.parse(latest.document);
     if (config.kind !== "website") throw new EvalError("CONNECTION_UNSUPPORTED", 422, "Login sessions apply only to website systems.");
+    if (input.startUrl && !websiteAppNavigation(config.endpoint, input.startUrl)) throw new EvalError("INPUT_INVALID", 422, "The login must belong to the configured website.");
     let state;
     try { state = scopedBrowserStorageState(input.storageState, config.endpoint); }
     catch { throw new EvalError("INPUT_INVALID", 422, "The session must be a Playwright storage state whose cookies and storage belong only to the attested website."); }
@@ -54,9 +57,17 @@ export async function storeLoginSession(scope: EvidenceScope, targetId: string, 
     }
     const session = (await db.query(`INSERT INTO evals.browser_login_session(id,org_id,target_id,secret_version_id,expires_at)
       VALUES($1,$2,$3,$4,now()+make_interval(hours=>$5)) RETURNING id,expires_at`, [sessionId, scope.orgId, targetId, versionId, hours])).rows[0];
-    const next = targetConfigSchema.parse({ ...config, target_revision_id: randomUUID(), login_session_id: sessionId });
+    const start = input.startUrl ? new URL(input.startUrl) : null;
+    if (start) { start.search = ""; start.hash = ""; }
+    const next = targetConfigSchema.parse({ ...config, target_revision_id: randomUUID(), login_session_id: sessionId,
+      ...(start ? { login_start_url: start.toString() } : {}) });
     await db.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",
       [next.target_revision_id, scope.orgId, targetId, sha256(canonicalJson(next)), next]);
+    // A login refresh alone does not discard the last verified recipe/check.
+    await db.query(`INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,error_code,completed_at)
+      SELECT org_id,$3,status,capability_report,probe_evidence,error_code,completed_at FROM evals.connection_check
+      WHERE org_id=$1 AND target_revision_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1`,
+      [scope.orgId, config.target_revision_id, next.target_revision_id]);
     await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'website.login_session.stored',$3)", [scope.orgId, scope.actorId, sessionId]);
     return { sessionId, expiresAt: session.expires_at, targetRevisionId: next.target_revision_id };
   });

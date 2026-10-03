@@ -41,6 +41,8 @@ export const remoteActionSchema = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("autoteach"), sessionId: z.uuid() }),
   z.strictObject({ action: z.literal("cancel"), sessionId: z.uuid() }),
   z.strictObject({ action: z.literal("save"), sessionId: z.uuid() }),
+  // Login retention does not depend on a complete or passing recipe.
+  z.strictObject({ action: z.literal("checkpoint"), sessionId: z.uuid() }),
   z.strictObject({ action: z.literal("test"), sessionId: z.uuid() }),
   z.strictObject({ action: z.literal("result"), sessionId: z.uuid() }),
 ]);

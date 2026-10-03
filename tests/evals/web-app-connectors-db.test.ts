@@ -9,6 +9,10 @@ import { storeLoginSession } from "../../lib/evals/repositories/browser-sessions
 import { persistTaughtRecipe, websiteControlTarget } from "../../lib/evals/repositories/web-app-connectors";
 import { createPrefixedId } from "../../lib/operator/ids";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
+import { createEvaluation } from "../../lib/evals/repositories/managed";
+import { controlRun, createSelfServiceRun, getWorkspaceSummary } from "../../lib/evals/repositories/stage-c";
+import { assertRunCapacity } from "../../lib/evals/repositories/run-capacity";
+import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
@@ -63,6 +67,48 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("taught connectors use the production 
       expect(kept.recipe.recipe_revision_id).toBe(draftRecipe.recipe_revision_id);
       const latest = await withTenant(scope, client => client.query("SELECT status FROM evals.connection_check WHERE org_id=$1 AND target_revision_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1", [orgId, kept.config.target_revision_id]));
       expect(latest.rows[0].status).toBe("ready");
+
+      // Another evaluation reuses the same system, with its own project and
+      // sources. A subsequent login refresh must be selected for the new run.
+      const secondProject = randomUUID(), suiteId = randomUUID(), suiteVersionId = randomUUID();
+      await owner.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Separate evaluation sources')", [secondProject, orgId]);
+      const second = await createEvaluation(scope, { projectId: secondProject, targetId, title: "Reuses the web app", evidencePolicy: "source_grounded", commercialCap: "10", currency: "EUR" }, randomUUID());
+      expect(second.selected_target_revision_id).toBe(kept.config.target_revision_id);
+      await expect(createEvaluation({ ...scope, orgId: randomUUID() }, { projectId: secondProject, targetId, title: "Denied", evidencePolicy: "source_grounded", commercialCap: "10", currency: "EUR" }, randomUUID())).rejects.toMatchObject({ status: 404 });
+      const refreshed = await storeLoginSession(scope, targetId, { storageState: state, startUrl: "https://app.example.test/help" });
+      expect((await websiteControlTarget(scope, targetId)).config.login_start_url).toBe("https://app.example.test/help");
+      const fixture = syntheticAccountingFixture(actorId), item = fixture.cases[0];
+      await owner.query("INSERT INTO evals.workspace_entitlement(org_id,max_active_runs,monthly_spend_limit,currency,allowed_connection_types) VALUES($1,1,500,'EUR',ARRAY['website']) ON CONFLICT(org_id) DO UPDATE SET max_active_runs=1,monthly_spend_limit=500,allowed_connection_types=ARRAY['website']", [orgId]);
+      await owner.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document) VALUES($1,$2,$3,$4,$5)", [fixture.rubric.revision_id, orgId, secondProject, fixture.rubric.content_hash, fixture.rubric]);
+      await owner.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [item.case_id, orgId, secondProject]);
+      await owner.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)", [item.revision_id, orgId, item.case_id, item.family_id, item.split, item.content_hash, item, fixture.rubric.revision_id]);
+      await owner.query("INSERT INTO evals.suite(id,org_id,project_id,title) VALUES($1,$2,$3,'Own tests')", [suiteId, orgId, secondProject]);
+      const manifest = withContentHash({ schema_version: "1.0", suite_id: suiteId, suite_version_id: suiteVersionId, execution_mode: "deployed_system", fixture_revisions: [],
+        case_revisions: [{ case_id: item.case_id, revision_id: item.revision_id, content_hash: item.content_hash, family_id: item.family_id, split: item.split }], source_revisions: [], rubric_revisions: [], output_schema_revisions: [], files: [] });
+      await owner.query("INSERT INTO evals.suite_version(id,org_id,suite_id,content_hash,manifest) VALUES($1,$2,$3,$4,$5)", [suiteVersionId, orgId, suiteId, manifest.content_hash, manifest]);
+      await owner.query("INSERT INTO evals.suite_case(org_id,suite_version_id,case_revision_id,ordinal) VALUES($1,$2,$3,0)", [orgId, suiteVersionId, item.revision_id]);
+      await owner.query("UPDATE evals.evaluation SET preparation_status='ready',selected_suite_version_id=$2 WHERE id=$1", [second.id, suiteVersionId]);
+      const summary = await getWorkspaceSummary(scope);
+      expect(summary.evaluations.find(evaluation => evaluation.id === second.id)?.selected_target_id).toBe(targetId);
+      const firstRun = await createSelfServiceRun(scope, { evaluationId: second.id }, randomUUID());
+      const frozen = (await owner.query("SELECT target_revision_id FROM evals.run WHERE id=$1", [firstRun.id])).rows[0];
+      expect(frozen.target_revision_id).toBe(refreshed.targetRevisionId);
+      expect(firstRun.queued).toBe(1);
+      await controlRun(scope, firstRun.id, "pause");
+      await owner.query("UPDATE evals.run SET status='paused' WHERE id=$1", [firstRun.id]);
+      await withTenant(scope, db => assertRunCapacity(db, orgId));
+      // A draining invocation keeps its slot even while the run says paused.
+      await owner.query("UPDATE evals.case_unit SET status='running' WHERE run_id=$1", [firstRun.id]);
+      await expect(withTenant(scope, db => assertRunCapacity(db, orgId))).rejects.toMatchObject({ status: 409 });
+      await owner.query("UPDATE evals.case_unit SET status='queued' WHERE run_id=$1", [firstRun.id]);
+      const anotherRun = await createSelfServiceRun(scope, { evaluationId: second.id }, randomUUID());
+      await expect(controlRun(scope, firstRun.id, "resume")).rejects.toMatchObject({ status: 409 });
+      await controlRun(scope, anotherRun.id, "cancel");
+      await controlRun(scope, firstRun.id, "resume");
+      expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [firstRun.id])).rows[0].status).toBe("queued");
+      // The original plan's login binding is immutable after another save.
+      await storeLoginSession(scope, targetId, { storageState: state });
+      expect((await owner.query("SELECT target_revision_id FROM evals.run WHERE id=$1", [firstRun.id])).rows[0].target_revision_id).toBe(refreshed.targetRevisionId);
       await expect(websiteControlTarget({ ...scope, orgId: randomUUID() }, targetId)).rejects.toMatchObject({ status: 404 });
       await expect(withTenant(scope, client => client.query("SELECT envelope FROM evals.secret_version WHERE org_id=$1", [orgId]))).rejects.toThrow(/permission denied/);
       await owner.query("UPDATE evals.browser_login_session SET expires_at=now()-interval '1 minute' WHERE org_id=$1", [orgId]);

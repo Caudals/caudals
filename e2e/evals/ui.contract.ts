@@ -42,14 +42,18 @@ test("web app studio streams live pixels, teaches in one click and offers repair
   await viewport.click({ position: { x: 200, y: 120 } });
   await page.keyboard.type("hello");
   await expect.poll(() => commands.filter(value => value === "input").length).toBeGreaterThan(0);
-  await studio.getByRole("button", { name: "Teach Caudals", exact: true }).click();
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toHaveCount(0);
+  await studio.getByRole("button", { name: "Connect system", exact: true }).click();
   await expect(studio.getByText("No chat box was found.", { exact: false })).toBeVisible();
-  await studio.getByRole("button", { name: "Teach again", exact: true }).click();
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toBeVisible();
+  await studio.getByRole("listitem").filter({ hasText: "Reply" }).getByRole("button", { name: "Fix" }).click();
+  await expect(studio.getByText("Click the Reply in the browser.", { exact: false })).toBeVisible();
+  await studio.getByRole("button", { name: "Cancel", exact: true }).click();
+  await studio.getByRole("button", { name: "Connect again", exact: true }).click();
   await expect(studio.getByText("Connected. Complete replies", { exact: false })).toBeVisible();
   await expect.poll(() => commands.includes("result")).toBe(true);
   await expect(studio.locator('.p-web-mark[data-part="response"]')).toBeVisible();
-  await studio.getByRole("listitem").filter({ hasText: "Reply" }).getByRole("button", { name: "Fix" }).click();
-  await expect(studio.getByText("Click the Reply in the browser.", { exact: false })).toBeVisible();
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toHaveCount(0);
   await page.screenshot({ path: "/tmp/caudals-webapp-connector-ui.png" });
   await studio.getByRole("button", { name: "Close browser", exact: true }).click();
   await expect(studio).toBeHidden();
@@ -394,6 +398,32 @@ test("Stage C manual connection waits for questions before requesting answers", 
   await page.getByRole("button", { name: "Create evaluation" }).click();
   await expect(page).toHaveURL(new RegExp(`/workspace/evaluations/${evaluationId}`));
   expect(requests).toEqual(["project", "evaluation", "target"]);
+});
+test("a new evaluation reuses a connected website without creating or checking another system", async ({ page }) => {
+  const projectId = "00000000-0000-4000-8000-000000000040", evaluationId = "00000000-0000-4000-8000-000000000041", targetId = "00000000-0000-4000-8000-000000000042";
+  const requests: string[] = [];
+  await page.route("**/api/evals/v1/**", async route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    let data: unknown = [];
+    if (path.endsWith("/workspace/summary")) data = summaryFixture({ systems: [{ id: targetId, project_id: id, title: "Connected Maite", document: { kind: "website" }, connection_status: "ready", target_revision_id: id }] });
+    if (request.method() === "POST") {
+      requests.push(path);
+      if (path.endsWith("/projects")) data = { id: projectId };
+      else if (path.endsWith("/evaluations")) {
+        expect(request.postDataJSON()).toMatchObject({ projectId, targetId });
+        data = { id: evaluationId };
+      } else throw new Error(`Unexpected new system request: ${path}`);
+    }
+    await route.fulfill({ json: { data, meta: {} } });
+  });
+  await page.goto(`/workspace/evaluations/new?orgId=${id}&editor`);
+  await page.getByLabel("Name", { exact: true }).fill("Another Maite evaluation");
+  await page.getByLabel("What should this system help people do?").fill("Answer our new questions");
+  await page.getByLabel("Use a connected system").selectOption(targetId);
+  await expect(page.getByLabel("Website URL")).toHaveCount(0);
+  await page.getByRole("button", { name: "Create evaluation" }).click();
+  await expect(page).toHaveURL(new RegExp(`/workspace/evaluations/${evaluationId}`));
+  expect(requests).toEqual(["/api/evals/v1/projects", "/api/evals/v1/evaluations"]);
 });
 test("Stage C manual answers reach a private preliminary report only after matching", async ({ page }) => {
   const evaluationId = "00000000-0000-4000-8000-000000000050";

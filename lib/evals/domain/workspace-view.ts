@@ -22,6 +22,7 @@ export function customerWorkspaceView(value: Summary) {
       preparation_status: item.preparation_status,
       reason_code: item.reason_code,
       selected_suite_version_id: item.selected_suite_version_id,
+      selected_target_id: item.selected_target_id,
       commercial_cap: item.commercial_cap,
       currency: item.currency,
       latest_run_id: item.latest_run_id,

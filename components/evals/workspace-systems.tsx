@@ -44,7 +44,7 @@ export function WorkspaceSystems() {
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
   const system = summary?.systems.find((item) => item.id === openId) ?? null;
   const items = useItemActions(orgId, reload);
-  const usedBy = (item: WorkspaceSystem) => summary?.evaluations.filter((evaluation) => evaluation.project_id === item.project_id) ?? [];
+  const usedBy = (item: WorkspaceSystem) => summary?.evaluations.filter((evaluation) => (evaluation.selected_target_id ? evaluation.selected_target_id === item.id : evaluation.project_id === item.project_id)) ?? [];
 
   if (!workspace) return <NoWorkspace />;
 

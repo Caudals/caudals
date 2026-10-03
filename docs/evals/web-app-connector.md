@@ -16,7 +16,7 @@ worker's workspace allowlist.
    full-screen studio. The person is in control at once: click, type, paste,
    scroll, use back/forward/reload, the address bar and popup tabs to sign in
    and complete SSO, 2FA or CAPTCHA themselves.
-3. **Teach Caudals** is one click. Caudals:
+3. **Connect system** is one click. Caudals:
    - finds the message box in every frame (iframes, open shadow roots), scoring
      chat-like inputs and rejecting search, login and newsletter fields;
    - opens the chat when it is closed, trying likely launchers;
@@ -37,8 +37,26 @@ worker's workspace allowlist.
    sign-in) or until the site itself ends the session. There is no
    storage-state (cookie JSON) upload: the live browser is the only way to
    save a login.
-5. Anything Caudals cannot detect has a **Fix** button: click it, click the
-   element in the live view, test again.
+5. The element list (**What Caudals uses**) and manual **Fix** controls appear
+   only after a failed connection attempt. Click Fix, select the element in
+   the live view, and test again; the controls disappear after a saved success.
+
+Login state is checkpointed before connecting, after failed detection (even
+when no reply locator was found), and when closing the live browser. Saving a
+login keeps the latest connection check on its new immutable target revision.
+The studio shows Connected only after persistence succeeds and offers a save
+retry if the server fails. A site can hand off between its apex, `www` and
+`app` HTTPS origins (for example `www.maite.ai` → `app.maite.ai`); other
+origins remain outside this navigation allowance. Only the target, its app,
+and taught frames enter the saved state, never an unrelated SSO provider.
+The clean authenticated page is saved for reopening even before a recipe
+passes. Recipes use the composer URL from before the first probe, so a
+conversation URL created by sending a message is not mistaken for a fresh chat.
+
+New evaluations can select **Use a connected system**. They share the same
+workspace system, encrypted login and connection recipe while keeping their
+own projects, sources and test sets. New runs follow the system's latest
+website connection revision; existing run plans remain immutable.
 
 Locators prefer test IDs, exact roles/accessible names, labels and stable
 attributes or class names (build-hashed classes are ignored). Up to three
@@ -80,7 +98,7 @@ replies to different prompts are recorded (`distinct_responses`) but allowed:
 rule-based assistants answer many questions with one sentence.
 
 Unattended connection checks run the same detection headlessly with the saved
-login, so many public chatbots connect without Teach Mode at all.
+login, so many public chatbots connect without opening the live browser at all.
 
 ## Live view and session lifecycle
 
@@ -133,7 +151,11 @@ the chat is closed (a widget that restores itself open is not toggled shut).
 - Selector failure, ambiguity, missing launcher or frame → `website_selector_failed`.
 - Incomplete streaming → `capture_incomplete`.
 
-Each pauses the remaining work, marks the connection as needing assistance and
+A fully paused run releases its workspace execution slot. Running steps or
+case units still draining hold the slot, and resuming reacquires it under the
+same workspace lock as starting a run.
+
+Each connector failure pauses the remaining work, marks the connection as needing assistance and
 never grades partial answers. The evaluation page then shows **Repair
 connection**, which reopens the studio with the saved recipe and login; teach
 or fix, test, cancel the paused run and start a new one. Existing run plans

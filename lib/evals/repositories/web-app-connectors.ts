@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { targetConfigSchema } from "../contracts/connectors";
-import { browserProbeEvidenceSchema, capabilityReportForWebsite, probeEvidenceReady, websiteRecipeSchema } from "../contracts/browser";
+import { assertWebsiteRecipeOrigin, browserProbeEvidenceSchema, capabilityReportForWebsite, probeEvidenceReady, websiteRecipeSchema } from "../contracts/browser";
 import { canonicalJson, sha256 } from "../contracts/hashing";
 import { EvalError } from "../domain/errors";
 import { withTenant } from "./db";
@@ -49,7 +49,9 @@ export function persistTaughtRecipe(scope: EvidenceScope, targetId: string, raw:
     const row = (await db.query(`SELECT t.project_id,tr.document FROM evals.target t JOIN LATERAL (SELECT document FROM evals.target_revision WHERE org_id=t.org_id AND target_id=t.id ORDER BY created_at DESC,id DESC LIMIT 1) tr ON true WHERE t.org_id=$1 AND t.id=$2`, [scope.orgId, targetId])).rows[0];
     if (!row) throw new EvalError("SCOPE_DENIED", 404);
     const config = targetConfigSchema.parse(row.document);
-    if (config.kind !== "website" || new URL(config.endpoint).origin !== new URL(recipe.start_url).origin) throw new EvalError("INPUT_INVALID", 422);
+    if (config.kind !== "website") throw new EvalError("INPUT_INVALID", 422);
+    try { assertWebsiteRecipeOrigin(recipe.start_url, config.endpoint); }
+    catch { throw new EvalError("INPUT_INVALID", 422); }
     if (evidence && !probeEvidenceReady(evidence)) throw new EvalError("CONNECTION_UNSUPPORTED", 409);
     const existing = (await db.query("SELECT id FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, recipe.recipe_revision_id, targetId])).rows[0];
     if (existing && evidence) {

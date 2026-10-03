@@ -2,6 +2,7 @@ import { z } from "zod";
 import { capabilitySchema, idSchema, limitsSchema, moneySchema, safePathSchema, schemaVersionSchema, selectorSchema, timestampSchema } from "./primitives";
 import type { CandidateInput } from "./projections";
 import type { Observation } from "./results";
+import { websiteAppNavigation } from "./website-navigation";
 
 const endpoint = z.url().refine((url) => { const u = new URL(url); return u.protocol === "https:" && !u.username && !u.password && !u.hash && !u.search; }, "HTTPS endpoint without credentials, query or fragment required");
 const credential = z.discriminatedUnion("kind", [z.strictObject({ kind: z.literal("none") }), z.strictObject({ kind: z.enum(["bearer", "header_token"]), secret_version_id: idSchema, header_name: z.string().regex(/^[A-Za-z][A-Za-z0-9-]*$/) })]);
@@ -10,7 +11,7 @@ export const targetConfigSchema = z.discriminatedUnion("kind", [
   z.strictObject({ ...base, kind: z.literal("openai_compatible"), endpoint, model: z.string().min(1), credential }),
   z.strictObject({ ...base, kind: z.literal("provider_native"), provider: idSchema, model: z.string().min(1), credential }),
   z.strictObject({ ...base, kind: z.literal("https_json"), endpoint, credential, mapping: z.strictObject({ messages_path: selectorSchema, conversation_id_path: selectorSchema.nullable(), documents_path: selectorSchema.nullable(), tools_path: selectorSchema.nullable(), response_text_path: selectorSchema }) }),
-  z.strictObject({ ...base, kind: z.literal("website"), endpoint, recipe_revision_id: idSchema.nullable(), login_session_id: idSchema.nullable() }),
+  z.strictObject({ ...base, kind: z.literal("website"), endpoint, recipe_revision_id: idSchema.nullable(), login_session_id: idSchema.nullable(), login_start_url: endpoint.optional() }).refine(value => !value.login_start_url || websiteAppNavigation(value.endpoint, value.login_start_url), "Saved login navigation must belong to the website"),
   z.strictObject({ ...base, kind: z.literal("imported_responses"), source_path: safePathSchema, mapping_revision_id: idSchema }),
   z.strictObject({ ...base, kind: z.literal("private_runner"), runner_id: idSchema, connector_version: idSchema }),
 ]);
