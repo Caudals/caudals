@@ -78,7 +78,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
   });
 
   const evaluation = summary?.evaluations.find((item) => item.id === evaluationId);
-  const system = summary?.systems.find((item) => item.project_id === evaluation?.project_id);
+  const system = summary?.systems.find((item) => (evaluation?.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation?.project_id));
   const reportRow = summary?.reports.find((item) => item.evaluation_id === evaluationId);
   const latestRunId = evaluation?.latest_run_id;
   usePageCrumb(evaluation?.title);

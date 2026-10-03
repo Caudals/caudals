@@ -6,6 +6,7 @@ import { withContentHash } from "../../lib/evals/contracts/hashing";
 import { browserLocator, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, validateWebsiteRecipe } from "../../lib/evals/connectors/browser-executor";
 import { detectChatControls, detectLauncherFor, probeChatReply, type DetectStep } from "../../lib/evals/connectors/browser-autodetect";
 import { selectAt } from "./teach";
+import { cleanWebsiteNavigation, websiteAppNavigation } from "../../lib/evals/contracts/website-navigation";
 
 export type ControlScope = { orgId: string; actorId: string; targetId: string; endpoint: string };
 type Work = { status: "idle" | "running" | "ready" | "failed"; error: string | null; step: string | null };
@@ -14,6 +15,7 @@ type Session = ControlScope & {
   id: string; context: BrowserContext; page: Page; mode: "view" | "control" | "teach"; pickPart: TeachPart | null;
   selections: Partial<Record<TeachPart, BrowserLocator>>; alternates: Partial<Record<TeachPart, BrowserLocator[]>>;
   completion: WebsiteRecipe["completion"] | null;
+  startUrl?: string;
   created: number; touched: number; chain: Promise<unknown>;
   teach: Work & { reply: string }; test: Work & { response: string };
   work?: AbortController; evidence?: BrowserProbeEvidence; recipe?: WebsiteRecipe; state?: BrowserStorageState;
@@ -165,10 +167,10 @@ export class BrowserControl {
 
   // ----------------------------------------------------------- persistence --
   private async captureState(session: Session) {
-    if (new URL(session.page.url()).origin !== new URL(session.endpoint).origin) throw new Error("login_required");
+    if (!websiteAppNavigation(session.endpoint, session.page.url()) || await loginRequired(session.page, session.page.url())) throw new Error("login_required");
     // Only the target and explicitly taught frame origins are persisted. SSO
     // provider cookies are intentionally discarded after they grant app access.
-    const allowed = new Set([new URL(session.endpoint).origin]);
+    const allowed = new Set([new URL(session.endpoint).origin, new URL(session.page.url()).origin]);
     for (const selection of Object.values(session.selections)) {
       let frame = session.page.mainFrame();
       for (const step of selection?.frames ?? []) {
@@ -204,8 +206,8 @@ export class BrowserControl {
   private recipe(session: Session) {
     const { input, submit, response, launcher, busy } = session.selections;
     if (!input || !response) throw new Error("teach_incomplete");
-    const url = new URL(session.page.url());
-    if (url.origin !== new URL(session.endpoint).origin || url.username || url.password) throw new Error("website_recipe_origin_mismatch");
+    const url = new URL(session.startUrl ?? session.page.url());
+    if (!websiteAppNavigation(session.endpoint, url.toString())) throw new Error("website_recipe_origin_mismatch");
     // A clean page path is required; query values from an auth redirect never
     // enter a recipe. SPAs can retain a non-sensitive navigation fragment.
     url.search = ""; if (!/^#!?\/[A-Za-z0-9/_~.-]{0,200}$/.test(url.hash)) url.hash = "";
@@ -257,6 +259,9 @@ export class BrowserControl {
     const run = async () => {
       const page = session.page;
       const controls = await detectChatControls(page, { onStep: step, signal: controller.signal });
+      // Sending the first message can navigate to a conversation-specific URL.
+      // A fresh evaluation must start at the composer we found before sending.
+      session.startUrl = cleanWebsiteNavigation(page.url());
       session.selections = { input: controls.input.locator, ...(controls.submit ? { submit: controls.submit.locator } : {}), ...(controls.launcher ? { launcher: controls.launcher.locator } : {}) };
       session.alternates = { input: controls.input.alternates, submit: controls.submit?.alternates ?? [], launcher: controls.launcher?.alternates ?? [] };
       session.completion = null;
@@ -329,7 +334,7 @@ export class BrowserControl {
   }
 
   // -------------------------------------------------------------- dispatch --
-  async dispatch(scope: ControlScope, action: RemoteAction, initial?: { state?: BrowserStorageState; recipe?: WebsiteRecipe }) {
+  async dispatch(scope: ControlScope, action: RemoteAction, initial?: { state?: BrowserStorageState; recipe?: WebsiteRecipe; startUrl?: string }) {
     await this.expire();
     if (action.action === "open") return this.open(scope, initial);
     const session = this.owned(scope, action.sessionId);
@@ -352,6 +357,9 @@ export class BrowserControl {
         if (working) throw new Error("browser_busy");
         session.recipe ??= this.recipe(session); session.state = await this.captureState(session);
         return { recipe: session.recipe, storageState: session.state };
+      case "checkpoint":
+        if (working) throw new Error("browser_busy");
+        return { storageState: await this.captureState(session), endpoint: cleanWebsiteNavigation(session.startUrl ?? session.page.url()) };
     }
     if (working) throw new Error("browser_busy");
     switch (action.action) {
@@ -401,7 +409,7 @@ export class BrowserControl {
     return { ok: true };
   }
 
-  private async open(scope: ControlScope, initial?: { state?: BrowserStorageState; recipe?: WebsiteRecipe }) {
+  private async open(scope: ControlScope, initial?: { state?: BrowserStorageState; recipe?: WebsiteRecipe; startUrl?: string }) {
     // Reopening the same connector (a reload, a second tab) resumes the session.
     for (const session of this.sessions.values()) {
       if (session.orgId === scope.orgId && session.actorId === scope.actorId && session.targetId === scope.targetId && session.endpoint === scope.endpoint) {
@@ -413,6 +421,8 @@ export class BrowserControl {
     this.opening = true;
     let context: BrowserContext | undefined;
     try {
+      const startUrl = initial?.recipe?.start_url ?? initial?.startUrl ?? scope.endpoint;
+      if (!websiteAppNavigation(scope.endpoint, startUrl)) throw new Error("website_recipe_origin_mismatch");
       await this.options.destinationCheck(scope.endpoint);
       const state = initial?.state;
       context = await this.options.browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: false, serviceWorkers: "block", ...(state ? { storageState: scopedBrowserStorageState(state, scope.endpoint) } : {}) });
@@ -426,6 +436,7 @@ export class BrowserControl {
       context.on("dialog", dialog => { void dialog.dismiss().catch(() => {}); });
       if (initial?.recipe) {
         const recipe = initial.recipe;
+        session.startUrl = recipe.start_url;
         const scoped = (value: BrowserLocator) => ({ ...value, frames: value.frames ?? recipe.frame_chain });
         session.selections = { input: scoped(recipe.input), response: scoped(recipe.assistant_message), ...(recipe.launcher ? { launcher: scoped(recipe.launcher) } : {}), ...(recipe.submit.kind === "click" ? { submit: scoped(recipe.submit.locator) } : {}) };
         if (recipe.completion.kind === "selector_hidden") session.completion = recipe.completion;
@@ -436,7 +447,7 @@ export class BrowserControl {
       this.sessions.set(session.id, session);
       await this.cast(session).catch(() => {});
       // Navigation finishes in the background: the viewer sees the page load.
-      void page.goto(initial?.recipe?.start_url ?? scope.endpoint, { waitUntil: "domcontentloaded", timeout: 30_000 }).catch(() => {}).finally(() => { session.loading = false; this.changed(session); });
+      void page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: 30_000 }).catch(() => {}).finally(() => { session.loading = false; this.changed(session); });
       return { sessionId: session.id, expiresAt: new Date(session.created + LIFETIME_MS).toISOString(), resumed: false };
     } catch (error) { await context?.close().catch(() => {}); throw error; }
     finally { this.opening = false; }

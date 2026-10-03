@@ -15,6 +15,7 @@ import {
   PageHeading,
   RowTitle,
   SearchInput,
+  SelectField,
   Status,
   TableSkeleton,
   TextArea,
@@ -44,7 +45,7 @@ export function WorkspaceEvaluations() {
     if (!summary) return [];
     return summary.evaluations.map((evaluation) => {
       const report = summary.reports.find((item) => item.evaluation_id === evaluation.id);
-      const system = summary.systems.find((item) => item.project_id === evaluation.project_id);
+      const system = summary.systems.find((item) => (evaluation.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation.project_id));
       return { evaluation, report, system, stage: evaluationStage(evaluation, !!report) };
     });
   }, [summary]);
@@ -204,6 +205,8 @@ export function NewEvaluationFlow() {
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState("");
   const [endpoint, setEndpoint] = useState("https://");
+  const [reuseTargetId, setReuseTargetId] = useState("");
+  const reusableSystems = summary?.systems.filter(system => system.document.kind === "website" && system.connection_status === "ready") ?? [];
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [pending, setPending] = useState(false);
@@ -227,7 +230,7 @@ export function NewEvaluationFlow() {
     isAllowed(kind) &&
     !!name.trim() &&
     !!purpose.trim() &&
-    (!needsUrl || validUrl) &&
+    (!needsUrl || validUrl || (kind === "website" && !!reuseTargetId)) &&
     (kind !== "api" || !!model.trim());
 
   const choices: Array<{ value: ConnectionKind; label: string; description: string; icon: React.ReactNode }> = [
@@ -253,9 +256,13 @@ export function NewEvaluationFlow() {
       const evaluation = await evalRequest<{ id: string }>(
         "/evaluations",
         "POST",
-        { orgId, projectId: project.id, title, evidencePolicy: "source_grounded", commercialCap: "500", currency: "EUR" },
+        { orgId, projectId: project.id, title, evidencePolicy: "source_grounded", commercialCap: "500", currency: "EUR", ...(kind === "website" && reuseTargetId ? { targetId: reuseTargetId } : {}) },
         `${submitKey.current}-evaluation`,
       );
+      if (kind === "website" && reuseTargetId) {
+        router.push(withOrg(`/workspace/evaluations/${evaluation.id}`));
+        return;
+      }
       let targetRevisionId = targetRevisionKey.current;
       const limits = { max_turns: 10, max_output_tokens: 4_000, max_tool_calls: 10, timeout_ms: 120_000, repetitions: 1 };
       if (kind === "upload") {
@@ -421,7 +428,11 @@ export function NewEvaluationFlow() {
           </div>
           {kind === "website" && (
             <>
-              <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("websiteUrl")} placeholder="https://example.com/help" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required hint={t("websiteAuthorizationHelp")} />
+              {reusableSystems.length > 0 && <SelectField id="evaluation-system" label={t("reuseWebsiteSystem")} value={reuseTargetId} onChange={event => setReuseTargetId(event.target.value)} hint={reuseTargetId ? t("reuseWebsiteHelp") : undefined}>
+                <option value="">{t("newWebsiteSystem")}</option>
+                {reusableSystems.map(system => <option key={system.id} value={system.id}>{system.title}</option>)}
+              </SelectField>}
+              {!reuseTargetId && <Field id="evaluation-endpoint" type="url" inputMode="url" label={t("websiteUrl")} placeholder="https://example.com/help" value={endpoint} onChange={(event) => setEndpoint(event.target.value)} required hint={t("websiteAuthorizationHelp")} />}
             </>
           )}
           {kind === "api" && (

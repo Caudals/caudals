@@ -21,6 +21,7 @@ import {
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
+import { assertRunCapacity } from "./run-capacity";
 
 function required<T>(value: T | undefined): T {
   if (!value) throw new EvalError("SCOPE_DENIED", 404);
@@ -333,6 +334,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const evaluations = (
       await db.query(
         `SELECT e.*,p.title AS project_title,p.description AS project_description,
+          (SELECT target_id FROM evals.target_revision selected WHERE selected.org_id=e.org_id AND selected.id=e.selected_target_revision_id) AS selected_target_id,
           COALESCE((SELECT array_agg(s.id ORDER BY s.created_at,s.id) FROM evals.source s WHERE s.org_id=e.org_id AND s.evaluation_id=e.id AND s.archived_at IS NULL),ARRAY[]::uuid[]) AS source_ids,
           (SELECT sr.source_id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id AND s.archived_at IS NULL ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_id,
           (SELECT sr.id FROM evals.source_revision sr JOIN evals.source s ON (s.org_id,s.id)=(sr.org_id,sr.source_id) WHERE sr.org_id=e.org_id AND s.project_id=e.project_id AND s.archived_at IS NULL ORDER BY sr.created_at DESC,sr.id DESC LIMIT 1) AS latest_source_revision_id,
@@ -480,23 +482,11 @@ export function createSelfServiceRun(
   const input = selfServiceRunInputSchema.parse(raw);
   return withTenant(scope, (db) =>
     idempotent(db, scope, "self-service-runs", key, input, async () => {
-      await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`self-service-runs:${scope.orgId}`]);
+      await assertRunCapacity(db, scope.orgId);
       const limits = required((await db.query(
         "SELECT * FROM evals.workspace_entitlement WHERE org_id=$1",
         [scope.orgId],
       )).rows[0]);
-      const active = Number(
-        (
-          await db.query(
-            `SELECT count(*)::int AS count FROM evals.run
-             WHERE org_id=$1 AND status IN ('queued','running','pause_requested','paused','cancel_requested')`,
-            [scope.orgId],
-          )
-        ).rows[0].count,
-      );
-      if (active >= limits.max_active_runs) {
-        throw new EvalError("SCOPE_DENIED", 409, "The workspace active-run allowance is in use.");
-      }
       const usage = await monthlySpend(db, scope.orgId);
       if (Number(usage.settled) + Number(usage.outstanding) >= Number(limits.monthly_spend_limit)) {
         throw new EvalError("BUDGET_PAUSED", 409, "The agreed monthly limit has been reached.");
@@ -516,22 +506,27 @@ export function createSelfServiceRun(
             `SELECT tr.*,t.project_id,t.id AS target_id
              FROM evals.target_revision tr
              JOIN evals.target t ON (t.org_id,t.id)=(tr.org_id,tr.target_id)
-             WHERE tr.org_id=$1 AND t.project_id=$2
+             WHERE tr.org_id=$1 AND t.archived_at IS NULL
+               AND (t.project_id=$2 OR EXISTS (
+                 SELECT 1 FROM evals.target_revision selected WHERE selected.org_id=$1
+                   AND selected.id=$5 AND selected.target_id=t.id
+               ))
                AND ($3::uuid IS NULL OR tr.id=$3)
-               -- A rerun follows a newer revision of the previously selected
-               -- system only when nothing but its credential binding changed,
-               -- so a rotated key takes effect without altering the frozen
-               -- configuration that comparisons rely on.
+               -- New runs follow repaired website connections. Existing run
+               -- plans retain their frozen revision. API reruns still follow
+               -- credential-only changes unless explicitly selected.
                AND ($4::uuid IS NULL OR tr.id=$4 OR EXISTS (
                  SELECT 1 FROM evals.target_revision s
                  WHERE s.org_id=$1 AND s.id=$4 AND s.target_id=tr.target_id
-                   AND (s.document - 'credential' - 'target_revision_id')=(tr.document - 'credential' - 'target_revision_id')))
-             ORDER BY (tr.document->>'recipe_revision_id' IS NOT NULL) DESC,tr.created_at DESC,tr.id DESC LIMIT 1`,
+                   AND (s.document->>'kind'='website' AND tr.document->>'kind'='website'
+                     OR (s.document - 'credential' - 'target_revision_id')=(tr.document - 'credential' - 'target_revision_id'))))
+             ORDER BY tr.created_at DESC,tr.id DESC LIMIT 1`,
             [
               scope.orgId,
               evaluation.project_id,
               input.targetRevisionId ?? null,
               input.targetRevisionId ? null : evaluation.selected_target_revision_id ?? null,
+              evaluation.selected_target_revision_id ?? null,
             ],
           )
         ).rows[0],
@@ -549,7 +544,7 @@ export function createSelfServiceRun(
            WHERE org_id=$1 AND project_id=$2 AND target_id=$3
              AND basis='workspace_member_attestation'
            ORDER BY created_at DESC,id DESC LIMIT 1`,
-          [scope.orgId, evaluation.project_id, target.target_id],
+          [scope.orgId, target.project_id, target.target_id],
         )).rows[0] ?? null;
         assertWebsiteAuthorization(authorization, config.endpoint);
       }
@@ -799,6 +794,7 @@ export function controlRun(
   action: "pause" | "resume" | "cancel",
 ) {
   return withTenant(scope, async (db) => {
+    if (action === "resume") await assertRunCapacity(db, scope.orgId, runId);
     const workflow = (
       await db.query(
         "SELECT id,status FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
@@ -874,6 +870,7 @@ export function controlRun(
       return { runId, action, status };
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
+    if (action === "resume") await db.query("UPDATE evals.run SET status='queued',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2 AND status IN ('paused','pause_requested')", [scope.orgId, runId]);
     if (action === "cancel" && !["completed", "partial", "failed"].includes(workflow.status)) {
       await db.query(
         "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",

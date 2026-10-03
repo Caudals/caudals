@@ -107,6 +107,7 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
   const [address, setAddress] = useState("");
   const [connected, setConnected] = useState(false);
   const [hasFrame, setHasFrame] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [box, setBox] = useState({ width: 0, height: 0 });
   const canvas = useRef<HTMLCanvasElement>(null);
   const surface = useRef<HTMLDivElement>(null);
@@ -187,12 +188,12 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
     previous.current = { teach: state.teach.status, test: state.test.status };
     if (state.test.status === "ready" && !committed.current) {
       committed.current = true;
-      void command({ action: "result", sessionId }).then(onReady, reason => { committed.current = false; fail(reason); });
+      void command({ action: "result", sessionId }).then(() => { setSaved(true); onReady(); }, fail);
     }
-    if (state.test.status === "running") committed.current = false;
-    const failedNow = (before.test === "running" && state.test.status === "failed") || (before.teach === "running" && state.teach.status === "failed");
-    if (failedNow && state.parts.input && state.parts.response) void command({ action: "save", sessionId }).then(onSaved, () => {});
-  }, [command, fail, onReady, onSaved, sessionId, state]);
+    if (state.test.status === "running") { committed.current = false; if (saved) setSaved(false); }
+    const failedNow = (before.test !== "failed" && state.test.status === "failed") || (before.teach !== "failed" && state.teach.status === "failed");
+    if (failedNow) void command({ action: state.parts.input && state.parts.response ? "save" : "checkpoint", sessionId }).then(onSaved, fail);
+  }, [command, fail, onReady, onSaved, saved, sessionId, state]);
 
   // The dialog portal mounts after the first commit, so observe through a callback ref.
   const [surfaceElement, setSurfaceElement] = useState<HTMLDivElement | null>(null);
@@ -288,7 +289,9 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
   const steps = [teachStep === "open_chat" ? t("webAppStepOpen") : t("webAppStepFind"), t("webAppStepSend"), t("webAppStepRead"), t("webAppStepFresh"), t("webAppStepTest")]
     .map((label, index) => ({ label, state: index < stepIndex ? "done" as const : index === stepIndex ? "current" as const : "upcoming" as const }));
   const failure = state?.test.status === "failed" ? state.test.error : state?.teach.status === "failed" ? state.teach.error : null;
-  const ready = state?.test.status === "ready";
+  const ready = state?.test.status === "ready" && saved;
+  const verified = state?.test.status === "ready";
+  const needsRepair = !!failure && !working && !ready;
   const completion = state?.completion === "selector_hidden" ? t("webAppCompletionHidden") : state?.completion === "send_enabled" ? t("webAppCompletionSend") : state?.completion === "quiescent" ? t("webAppCompletionQuiet") : null;
   const reply = state?.test.response || state?.teach.reply;
   const taught = !!(parts.input && parts.response);
@@ -339,7 +342,7 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
 
       <aside className="p-web-side" aria-label={t("webAppTeach")}>
         {error && <Status error>{error}</Status>}
-        {!working && !ready && <>
+        {!working && !verified && <>
           <p className="p-web-side-help">{t("webAppTeachHelp")}</p>
           <Action block onClick={() => void run({ action: "autoteach", sessionId })} disabled={!state}><Sparkles aria-hidden="true" />{taught || failure ? t("webAppTeachAgain") : t("webAppTeach")}</Action>
         </>}
@@ -355,8 +358,13 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
             <Action variant="secondary" onClick={() => void run({ action: "test", sessionId })}>{t("webAppTestAgain")}</Action>
           </div>
         </>}
+        {verified && !saved && <Status>{error ? t("webAppSaveFailed") : t("webAppSaving")}</Status>}
+        {verified && !saved && error && <Action onClick={() => {
+          setError("");
+          void command({ action: "result", sessionId }).then(() => { setSaved(true); onReady(); }, fail);
+        }}>{t("webAppSaveConnection")}</Action>}
 
-        <div className="p-web-parts">
+        {needsRepair && <div className="p-web-parts">
           <h3>{t("webAppParts")}</h3>
           <ul>
             {PARTS.filter(part => part.id !== "busy" || parts.busy || failure === "capture_incomplete").map(part => {
@@ -373,7 +381,7 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
           </ul>
           {completion && <p className="p-cell-meta">{t("webAppFinishedWhen")} {completion}.</p>}
           {taught && !working && !ready && <Action variant="secondary" size="sm" onClick={() => void run({ action: "test", sessionId })}>{t("webAppTestAgain")}</Action>}
-        </div>
+        </div>}
 
         {reply && <details className="p-web-response" open={ready}>
           <summary>{t("webAppCaptured")}</summary>

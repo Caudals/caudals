@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { websiteAppNavigation } from "./website-navigation";
 import {
   capabilitySchema,
   hashSchema,
@@ -123,7 +124,7 @@ export function websiteTeachExtension(recipe: Pick<WebsiteRecipe, "extensions">)
 }
 
 export function assertWebsiteRecipeOrigin(startUrl: string, authorizedEndpoint: string) {
-  if (new URL(startUrl).origin !== new URL(authorizedEndpoint).origin) {
+  if (!websiteAppNavigation(authorizedEndpoint, startUrl)) {
     throw new Error("website_recipe_origin_mismatch");
   }
 }

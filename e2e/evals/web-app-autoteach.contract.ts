@@ -47,6 +47,24 @@ const pages: Record<string, string> = {
       const u=document.createElement('div');u.dataset.author='user';u.textContent=q;t.append(u);const dots=document.querySelector('.dots');dots.hidden=false;
       setTimeout(()=>{dots.hidden=true;const a=document.createElement('div');a.dataset.author='assistant';a.textContent='Gamma '+(++turn)+': '+q;t.append(a);},700);});
     </script>`,
+  "/d": `<!doctype html><title>Authenticated app</title><main></main><script>
+    (async()=>{
+      const db=await new Promise((resolve,reject)=>{const req=indexedDB.open('auth',1);req.onupgradeneeded=()=>req.result.createObjectStore('tokens');req.onsuccess=()=>resolve(req.result);req.onerror=reject;});
+      if(location.search.includes('fixture-login')) {
+        localStorage.setItem('auth','fixture');sessionStorage.setItem('auth','fixture');
+        await new Promise(resolve=>{const tx=db.transaction('tokens','readwrite');tx.objectStore('tokens').put('fixture','auth');tx.oncomplete=resolve;});
+        history.replaceState({},'', '/d');
+      }
+      const token=await new Promise(resolve=>{const req=db.transaction('tokens').objectStore('tokens').get('auth');req.onsuccess=()=>resolve(req.result);});db.close();
+      if(token!=='fixture'||localStorage.getItem('auth')!=='fixture'||sessionStorage.getItem('auth')!=='fixture'){document.querySelector('main').textContent='Sign in';return;}
+      document.querySelector('main').innerHTML='<div class="chat-thread"></div><form><textarea placeholder="Ask the assistant"></textarea><button type="submit">Send</button></form>';
+      let turn=0;document.querySelector('form').onsubmit=e=>{e.preventDefault();const input=document.querySelector('textarea'),q=input.value;input.value='';
+        const user=document.createElement('p');user.className='user-message';user.textContent=q;document.querySelector('.chat-thread').append(user);
+        const answer=document.createElement('p');answer.className='assistant-message';document.querySelector('.chat-thread').append(answer);
+        history.pushState({},'', '/d/conversation/one');setTimeout(()=>answer.textContent='App reply '+(++turn)+': '+q,200);
+      };
+    })();</script>`,
+  "/no-chat": "<!doctype html><h1>Signed in, no chatbot here</h1>",
 };
 
 async function fixture() {
@@ -55,6 +73,9 @@ async function fixture() {
   execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
   const server: Server = createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (request, response) => {
     const url = new URL(request.url ?? "/", "https://fixture");
+    if (request.headers.host?.startsWith("www.localhost") && url.pathname === "/d") {
+      response.writeHead(302, { location: `https://app.localhost:${request.headers.host.split(":").at(-1)}/d` }); response.end(); return;
+    }
     if (url.pathname === "/b/stream") {
       response.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
       const words = `Beta answer about ${url.searchParams.get("q")}, with care.`.split(" ");
@@ -78,7 +99,7 @@ const question = (content: string) => ({ schema_version: "1.0" as const, case_id
 
 let browser: Browser;
 let site: Awaited<ReturnType<typeof fixture>>;
-test.beforeAll(async () => { site = await fixture(); browser = await chromium.launch({ args: ["--ignore-certificate-errors"] }); });
+test.beforeAll(async () => { site = await fixture(); browser = await chromium.launch({ args: ["--ignore-certificate-errors", "--host-resolver-rules=MAP www.localhost 127.0.0.1, MAP app.localhost 127.0.0.1"] }); });
 test.afterAll(async () => { await browser.close(); await site.close(); });
 
 test("one click teaches a closed iframe widget, streams live frames and validates a reusable connector", async () => {
@@ -145,4 +166,40 @@ test("a rich-text composer that sends on Enter and shows typing dots is detected
   const ctx = context(randomUUID());
   const observation = await invokeWebsite({ browser, destinationCheck, recipe, input: question("Do you ship to Spain?"), context: ctx });
   expect(observation.messages.at(-1)?.content).toBe("Gamma 1: Do you ship to Spain?");
+});
+
+test("retains all login stores across a website-to-app handoff and replays the fresh composer instead of its conversation URL", async () => {
+  test.setTimeout(120_000);
+  const port = new URL(site.origin).port;
+  const endpoint = `https://www.localhost:${port}/d`, app = `https://app.localhost:${port}`;
+  const destinationCheck = async (url: string) => {
+    if (![new URL(endpoint).origin, app].includes(new URL(url).origin)) throw new Error("destination_denied");
+  };
+  const control = new BrowserControl({ browser, destinationCheck });
+  const scope = { orgId: randomUUID(), actorId: "owner", targetId: randomUUID(), endpoint };
+  try {
+    const { sessionId } = await control.dispatch(scope, { action: "open" }) as { sessionId: string };
+    await expect.poll(() => browser.contexts().at(-1)?.pages()[0]?.url(), { timeout: 10000 }).toBe(`${app}/d`);
+    await control.dispatch(scope, { action: "navigate", sessionId, url: `${app}/d?fixture-login` });
+    await browser.contexts().at(-1)!.pages()[0].getByRole("textbox").waitFor();
+    const before = await control.dispatch(scope, { action: "checkpoint", sessionId }) as { storageState: BrowserStorageState; endpoint: string };
+    expect(before.endpoint).toBe(`${app}/d`);
+    expect(before.storageState.origins.find(origin => origin.origin === app)?.indexedDB?.length).toBe(1);
+    expect(before.storageState.session_storage?.find(origin => origin.origin === app)?.entries).toContainEqual({ name: "auth", value: "fixture" });
+    await control.dispatch(scope, { action: "autoteach", sessionId });
+    await expect.poll(async () => (await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState).test.status,
+      { timeout: 90000, intervals: [500] }).toMatch(/ready|failed/);
+    const state = await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState;
+    expect(state.teach.error).toBeNull(); expect(state.test.error).toBeNull();
+    const result = await control.dispatch(scope, { action: "result", sessionId }) as { recipe: WebsiteRecipe; storageState: BrowserStorageState };
+    expect(result.recipe.start_url).toBe(`${app}/d`);
+    expect((await invokeWebsite({ browser, recipe: result.recipe, storageState: result.storageState, destinationCheck,
+      input: question("Does the login persist?"), context: context(scope.orgId) })).messages.at(-1)?.content).toBe("App reply 1: Does the login persist?");
+    await control.dispatch(scope, { action: "navigate", sessionId, url: `${app}/no-chat` });
+    await control.dispatch(scope, { action: "autoteach", sessionId });
+    await expect.poll(async () => (await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState).teach.status,
+      { timeout: 40000, intervals: [500] }).toBe("failed");
+    // No input or reply was found, but retaining the login still works.
+    expect((await control.dispatch(scope, { action: "checkpoint", sessionId }) as { storageState: BrowserStorageState }).storageState.origins.length).toBeGreaterThan(0);
+  } finally { await control.close(); }
 });

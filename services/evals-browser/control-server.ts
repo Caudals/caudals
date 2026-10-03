@@ -59,7 +59,7 @@ export function startBrowserControl(options: { control: BrowserControl; keys: Ke
       return;
     }
     try {
-      const input = await open(request, requestId, z.strictObject({ at: z.number(), scope: scopeSchema, action: remoteActionSchema, initial: z.object({ state: z.unknown().optional(), recipe: websiteRecipeSchema.optional(), loginSessionId: z.uuid().optional() }).optional() }));
+      const input = await open(request, requestId, z.strictObject({ at: z.number(), scope: scopeSchema, action: remoteActionSchema, initial: z.object({ state: z.unknown().optional(), recipe: websiteRecipeSchema.optional(), loginSessionId: z.uuid().optional(), startUrl: z.url().optional() }).optional() }));
       let stateBytes: Buffer | undefined;
       let data: unknown;
       try {
@@ -77,7 +77,7 @@ export function startBrowserControl(options: { control: BrowserControl; keys: Ke
           stateBytes = decryptSecret(sealed.envelope, { orgId: input.scope.orgId, recordId: sealed.record_id, versionId: sealed.version_id, purpose: "target", scopeId: input.scope.targetId }, options.keys);
           state = JSON.parse(stateBytes.toString("utf8"));
         }
-        data = await options.control.dispatch(input.scope, input.action, { recipe: input.initial?.recipe, state: state ? scopedBrowserStorageState(state, input.scope.endpoint) : undefined });
+        data = await options.control.dispatch(input.scope, input.action, { recipe: input.initial?.recipe, startUrl: input.initial?.startUrl, state: state ? scopedBrowserStorageState(state, input.scope.endpoint) : undefined });
       } finally { stateBytes?.fill(0); }
       response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }).end(JSON.stringify(sealBrowserMessage({ data }, options.keys, "response", requestId)));
     } catch (error) {

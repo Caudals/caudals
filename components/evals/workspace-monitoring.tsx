@@ -55,7 +55,7 @@ export function MonitoringSchedules({ orgId, canManage, summary }: { orgId: stri
 
   const eligible = summary.evaluations.filter((item) => item.preparation_status === "ready" && item.selected_suite_version_id);
   const evaluation = eligible.find((item) => item.id === evaluationId) ?? eligible[0];
-  const systems = summary.systems.filter((item) => item.project_id === evaluation?.project_id && item.document.kind !== "imported_responses");
+  const systems = summary.systems.filter((item) => (evaluation?.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation?.project_id) && item.document.kind !== "imported_responses");
   const selectedTarget = systems.find((item) => item.target_revision_id === targetRevisionId) ?? systems[0];
   const current = useMemo(() => new Map(summary.evaluations.map((item) => [item.id, item])), [summary.evaluations]);
 
