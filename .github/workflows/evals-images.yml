@@ -3,9 +3,16 @@ name: Build evaluation workers
 on:
   push:
     branches: [main]
+    # Only what the workers import (lib/evals and its few shared helpers), not
+    # every lib/ change: the four images used to rebuild on almost any app push.
+    # Dispatch the workflow by hand if a worker needs a rebuild for another reason.
     paths:
       - "infra/evals/Dockerfile*"
-      - "lib/**"
+      - "lib/evals/**"
+      - "lib/env/**"
+      - "lib/storage/**"
+      - "lib/resend/**"
+      - "lib/auth/**"
       - "services/evals-*/**"
       - "package.json"
       - "package-lock.json"
@@ -34,6 +41,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'build-and-deploy' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    concurrency:
+      group: evals-image-build-${{ matrix.name }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
