@@ -700,6 +700,7 @@ export const messages = {
   genStopCredentials: "The AI provider rejected the key. Update it in Settings → AI models, then generate again.",
   genStopModelMissing: "The AI provider no longer offers this model. Choose another one in Settings → AI models, then generate again.",
   genStopBusy: "The AI model was busy or unavailable three times in a row. Generate again in a few minutes, or choose another model in Settings → AI models.",
+  genStopQuota: "The AI provider account or key has reached its spending limit. Raise the limit or add credit with the provider, or choose another model (the DGX Spark is free) in Settings → AI models, then generate again.",
   genStopOther: "Preparation stopped. Check the model in Settings → AI models or ask Caudals for help before trying again.",
   generationPausedForReview: "Preparation is paused for review. Ask Caudals for help before retrying.",
   generationPaused: "Preparation is paused. Check the saved reason before trying again.",

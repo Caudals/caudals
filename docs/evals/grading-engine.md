@@ -164,9 +164,10 @@ make it work with every model, the private DGX Spark included.
   that answers, before the model is called. The results go to the model as
   one extra message framed as untrusted data, trimmed to the room left in
   its context (48 KB at most), and are kept with the result
-  (`output.webSearch`: engine, queries, pages) and as `citations`. With no
-  engine connected (or no results), an OpenRouter model can still use
-  OpenRouter's own web plugin; other models answer without the web.
+  (`output.webSearch`: engine, queries, pages) and as `citations`. Only
+  when no engine is connected can an OpenRouter model use OpenRouter's own
+  web plugin (paid per result); with an engine connected the plugin is never
+  used, even when a search finds nothing.
 - **Where it searches:** the company's own site first. When the project has
   a website connection, judge and draft queries are restricted to its
   registrable domain (subdomains such as a help centre included); otherwise
@@ -218,6 +219,10 @@ Provider failures on engine calls (`generator`, `context_analyzer`, `judge`,
   `draft_ready`) or that stopped for a reason the engine retries itself, with
   the same code the page calls (`advancePendingGenerations`). Finalizing is
   idempotent per input, so page and scheduler can both advance a job.
+- A key or account out of credit (HTTP 402, or "Key limit exceeded" /
+  "insufficient credits") is reported as `quota_exceeded` with its own
+  message, not as a wrong key, and does not block the provider once the
+  limit is raised.
 - Every failure logs the provider's own explanation, shortened and with
   key-like strings masked (`provider_call_failed`), and preparation shows
   what to do next (another model, a new key, or try again later).

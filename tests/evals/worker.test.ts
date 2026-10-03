@@ -127,6 +127,11 @@ describe.skipIf(!stageAOwnerUrl)('durable worker',()=>{
   const result=(await f.rows('SELECT output FROM evals.execution_result WHERE step_id=$1',[task.job.stepId]))[0].output;
   expect(result.webSearch).toEqual({engine:'tavily',queries:['Indexa: comisiones'],results:[{url:'https://indexacapital.com/fees',title:'Comisiones'}]});
   expect(result.citations).toEqual([{url:'https://indexacapital.com/fees',title:'Comisiones'}]);
+  // Nothing found: the call goes out as written, never through a provider's paid web search.
+  const empty=await f.enqueue({...await judgeProvider(),webSearch:{maxResults:3,queries:[{query:'nothing'}]}});
+  const plain=vi.fn(async(_provider:unknown,input:{messages:Array<{content:string}>;webSearch?:unknown})=>{expect(input.webSearch).toBeUndefined();expect(input.messages).toHaveLength(1);return output;});
+  await new InvocationWorker({tx:f.tx,keys,actorId:f.tenant.actorId,workerId:randomUUID(),invoke:plain as never,search:async()=>({engine:'tavily' as const,results:[],failed:undefined}),leaseSeconds:5}).handle(empty.job);
+  expect(plain).toHaveBeenCalledTimes(1);
   await f.pool.query('DELETE FROM evals.web_search_connection');
  });
  it('serializes DGX residency across distinct models AND provider accounts',async()=>{

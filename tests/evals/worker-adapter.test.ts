@@ -55,6 +55,13 @@ describe('OpenAI-compatible adapter wire contract',()=>{
    expect((error as ProviderFailure).detail).toContain('maximum context length');expect(calls).toBe(1);
   }finally{await s.close();}
  });
+ it('reports a key out of credit as a spending limit, not a wrong key',async()=>{
+  const s=await server((_req,res)=>{res.writeHead(403,{'content-type':'application/json'});res.end(JSON.stringify({error:{message:'Key limit exceeded (total limit). Manage it using https://openrouter.ai/settings/keys',code:403}}));});
+  try{
+   const error=await invokeOpenAI({...s.provider,roles:['judge']},{...s.input,role:'judge',timeoutMs:2000},undefined,new AbortController().signal,s.endpoint).catch((value:unknown)=>value);
+   expect((error as ProviderFailure).code).toBe('quota_exceeded');expect((error as ProviderFailure).outcome).toBe('rejected');
+  }finally{await s.close();}
+ });
  it('masks anything key-like in a provider error',()=>{
   expect(providerErrorDetail(JSON.stringify({error:{message:'Incorrect API key provided: sk-proj-abcdefghijklmnop'}}))).toBe('Incorrect API key provided: [key]');
   expect(providerErrorDetail('upstream said no')).toBe('upstream said no');

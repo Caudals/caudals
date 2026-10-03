@@ -756,6 +756,8 @@ export function generationStopMessage(reason: string | null | undefined) {
       return t("genStopRejected");
     case "invalid_credentials":
       return t("genStopCredentials");
+    case "quota_exceeded":
+      return t("genStopQuota");
     case "model_missing":
       return t("genStopModelMissing");
     case "service_unavailable":

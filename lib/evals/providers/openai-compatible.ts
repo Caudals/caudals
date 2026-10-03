@@ -90,10 +90,15 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
     const status=response.statusCode??0;
     if(status!==200) {
       const retryHeader=response.headers['retry-after'];const retry=typeof retryHeader==='string'?Number(retryHeader):0;
-      const code=status===401||status===403?'invalid_credentials':status===404?'model_missing':status===429?'overloaded':status>=500?'service_unavailable':'unsupported_feature';
+      const code=status===402?'quota_exceeded':status===401||status===403?'invalid_credentials':status===404?'model_missing':status===429?'overloaded':status>=500?'service_unavailable':'unsupported_feature';
       // Keep the provider's own explanation (bounded) so a rejection can be diagnosed and, for reasoning flags, retried.
       const body:Buffer[]=[];let read=0;
-      const reject=()=>fail(new ProviderFailure(code,status>=500?'unknown':'rejected',Number.isFinite(retry)?Math.min(300000,Math.max(0,retry*1000)):0,providerErrorDetail(Buffer.concat(body).toString('utf8'))));
+      const reject=()=>{
+       const detail=providerErrorDetail(Buffer.concat(body).toString('utf8'));
+       // A key or account out of credit is not a wrong key ("Key limit exceeded", "insufficient credits").
+       const spent=code==='invalid_credentials'&&!!detail&&/limit|credit|quota|insufficient|balance|billing/i.test(detail);
+       fail(new ProviderFailure(spent?'quota_exceeded':code,status>=500?'unknown':'rejected',Number.isFinite(retry)?Math.min(300000,Math.max(0,retry*1000)):0,detail));
+      };
       response.on('data',(chunk:Buffer)=>{if(read<8192){body.push(chunk.subarray(0,8192-read));read+=chunk.length;}});
       response.on('end',reject);response.on('error',reject);
       // Even explicit rejection can be billed; caller retains an estimated charge.

@@ -49,7 +49,7 @@ export interface ProviderRevision {
 }
 export class ProviderFailure extends Error {
  /** `detail`: the provider's own error message, shortened, for logs and diagnosis (never shown raw to customers). */
- constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0,public readonly detail?:string) {super(code);}
+ constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials'|'quota_exceeded',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0,public readonly detail?:string) {super(code);}
 }
 export type WebResult={url:string;title:string;content:string;published?:string};
 export interface ProviderOutput {text:string; complete:boolean; finishReason:string; requestId?:string; usage?:{input:number;output:number;cached:number}; latencyMs:number; toolCalls?:Array<{name:string;arguments:string}>; capabilityEvidence?:{kind:'text'|'json_object'|'tools';status:'supported'|'unsupported'|'unknown';scope:'single_bounded_probe'};

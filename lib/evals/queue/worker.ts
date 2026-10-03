@@ -86,8 +86,8 @@ export class InvocationWorker {
    });
    if(!dispatched)return;
    // Web research: run the call's queries on the connected search engine and
-   // hand the results to the model, whatever the provider. Without an engine
-   // (or results) an OpenRouter call can still use its own web plugin.
+   // hand the results to the model, whatever the provider. Only without any
+   // engine can an OpenRouter call use its own (paid) web plugin.
    let call=input,webSearch:ProviderOutput['webSearch'];
    if(input.webSearch?.queries?.length&&INTERNAL_ROLES.has(input.role)&&!input.probe) {
     const engines=await this.options.tx(tenant,c=>webSearchSecrets(c,this.options.keys));
@@ -95,7 +95,8 @@ export class InvocationWorker {
      const found=await (this.options.search??runWebSearch)(engines.map(item=>({engine:item.engine,key:item.key.toString('utf8')})),input.webSearch.queries,input.webSearch.maxResults,controller.signal);
      const results=fitWebResults(provider,input,found.results);
      webSearch={engine:found.engine,queries:input.webSearch.queries.map(item=>item.site?`${item.query} (site:${item.site})`:item.query),results:results.map(({url,title,published})=>({url,title,...(published?{published}:{})})),...(found.failed?{failed:found.failed}:{})};
-     if(results.length)call={...input,webSearch:undefined,messages:[...input.messages,{role:'user',content:webResultsMessage(input.webSearch.queries,results)}]};
+     // With an engine connected, the provider's own (paid) web search is never used, even when nothing was found.
+     if(engines.length)call={...input,webSearch:undefined,messages:results.length?[...input.messages,{role:'user',content:webResultsMessage(input.webSearch.queries,results)}]:input.messages};
     } finally {engines.forEach(item=>item.key.fill(0));}
    }
    const answered=await (this.options.invoke??invokeOpenAI)(provider,call,secret,controller.signal,this.options.dgxEndpoint);
@@ -190,7 +191,8 @@ export class InvocationWorker {
    }
    if(parsedInput.caseUnitId&&!retry){await c.query('UPDATE evals.case_unit SET status=$3,attempt_id=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,parsedInput.caseUnitId,unknown?'unknown_external_outcome':failure?.code==='network_unavailable'?'transport_error':failure?.code==='service_unavailable'?'target_error':current.workflow.status==='cancel_requested'?'canceled':'target_error',attemptId,reason]);await projectRun(c,tenant.orgId,current.workflow.run_id);}
    if(retry)await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+$4::int*interval '1 millisecond')",[tenant.orgId,step.id,step.step_kind,delay]);
-   if(failure)await this.health(c,providerId,failure.code);
+   // Out of credit is not a bad key: open the short circuit instead of blocking the provider until its key is replaced.
+   if(failure)await this.health(c,providerId,failure.code==='quota_exceeded'?'overloaded':failure.code);
    await event(c,tenant.orgId,step.workflow_id,unknown?'attempt_unknown':'attempt_failed',reason);await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
  }

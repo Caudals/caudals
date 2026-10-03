@@ -678,6 +678,7 @@ export const es: Partial<Record<MessageKey, string>> = {
   genStopCredentials: "El proveedor de IA ha rechazado la clave. Actualízala en Ajustes → Modelos de IA y vuelve a generar.",
   genStopModelMissing: "El proveedor de IA ya no ofrece este modelo. Elige otro en Ajustes → Modelos de IA y vuelve a generar.",
   genStopBusy: "El modelo de IA ha estado ocupado o no disponible tres veces seguidas. Vuelve a generar en unos minutos o elige otro modelo en Ajustes → Modelos de IA.",
+  genStopQuota: "La cuenta o clave del proveedor de IA ha alcanzado su límite de gasto. Amplía el límite o añade saldo en el proveedor, o elige otro modelo (el DGX Spark es gratuito) en Ajustes → Modelos de IA, y vuelve a generar.",
   genStopOther: "La preparación se ha detenido. Revisa el modelo en Ajustes → Modelos de IA o pide ayuda a Caudals antes de reintentar.",
   generationPausedForReview: "La preparación está en pausa para revisión. Pide ayuda a Caudals antes de reintentar.",
   generationPaused: "La preparación está en pausa. Revisa el motivo guardado antes de volver a intentarlo.",
