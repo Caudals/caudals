@@ -131,10 +131,10 @@ check_routes() {
   done
 
   status="$(curl -k -s -o /dev/null -w "%{http_code}" "$BASE_URL/admin" || true)"
-  if [[ "$status" =~ ^30[12378]$ ]]; then
+  if [[ "$status" == "404" ]]; then
     mark_ok "routing/admin" "returned $status"
   else
-    mark_fail "routing/admin" "expected auth redirect, got ${status:-none}"
+    mark_fail "routing/admin" "expected retired dashboard 404, got ${status:-none}"
   fi
 
   for path in "${blocked[@]}"; do

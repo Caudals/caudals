@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isBetterAuthSessionCookieName } from "@/lib/auth/session-cookie";
 import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
 import {
   MARKDOWN_ROUTE_PREFIX,
@@ -31,7 +30,6 @@ const APP_ONLY_PATH_PREFIXES = [
 ];
 const DEFAULT_APP_HOSTNAMES = ["app.caudals.com", "app.localhost:3000", "www.app.caudals.com"];
 const DEFAULT_MARKETING_HOSTNAMES = ["caudals.com", "www.caudals.com"];
-const ADMIN_ROOT_PATHS = new Set(["/admin", "/admin/"]);
 
 type HostConfig = {
   hostname: string;
@@ -97,22 +95,6 @@ function isRedirectResponse(response: NextResponse) {
   return response.status >= 300 && response.status < 400;
 }
 
-function hasBetterAuthSessionCookie(request: NextRequest) {
-  return request.cookies
-    .getAll()
-    .some((cookie) => isBetterAuthSessionCookieName(cookie.name));
-}
-
-function redirectAnonymousAdminRequest(request: NextRequest) {
-  const redirectUrl = request.nextUrl.clone();
-  redirectUrl.pathname = "/auth/sign-in";
-  redirectUrl.searchParams.set(
-    "next",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`
-  );
-  return NextResponse.redirect(redirectUrl);
-}
-
 function rewriteWithState(
   request: NextRequest,
   sourceResponse: NextResponse,
@@ -176,10 +158,6 @@ export async function proxy(request: NextRequest) {
     });
   }
 
-  if (ADMIN_ROOT_PATHS.has(pathname) && !hasBetterAuthSessionCookie(request)) {
-    return redirectAnonymousAdminRequest(request);
-  }
-
   // Blog and Newsletter are temporarily hidden: redirect requests to home (307 Temporary Redirect).
   if (!isAppHost) {
     const { locale: hiddenPathLocale, pathname: hiddenBarePathname } = splitLocale(pathname);
@@ -218,7 +196,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const treatAppRootAsAdmin = isAppHost && pathname === "/";
+  const isAppRoot = isAppHost && pathname === "/";
 
   // ---- Locale routing (public marketing host only) -----------------------
   //
@@ -227,10 +205,10 @@ export async function proxy(request: NextRequest) {
   // carries the language, so nothing downstream has to guess and every page
   // has a single canonical address.
   //
-  // Internal surfaces (`/admin`, `/auth`, the Operator Console, APIs and
+  // Internal surfaces (`/auth`, evaluation routes, APIs and
   // machine-readable files) are never prefixed and never redirected here —
   // that separation is required by AGENTS.md.
-  if (!isAppHost && !treatAppRootAsAdmin && !isNonLocalizedPath(pathname)) {
+  if (!isAppHost && !isAppRoot && !isNonLocalizedPath(pathname)) {
     // `/fr/blog` names a language we do not publish. Prefixing it would
     // produce `/en/fr/blog`, so it is answered as a miss instead.
     if (hasUnsupportedLocalePrefix(pathname)) {
@@ -304,7 +282,7 @@ export async function proxy(request: NextRequest) {
     response.headers.set("x-middleware-request-x-evals-surface", "1");
   }
 
-  if (treatAppRootAsAdmin && !isRedirectResponse(response)) {
+  if (isAppRoot && !isRedirectResponse(response)) {
     return rewriteWithState(request, response, "/evaluation-entry");
   }
 

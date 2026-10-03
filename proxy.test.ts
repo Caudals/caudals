@@ -29,35 +29,21 @@ describe("proxy", () => {
     vi.restoreAllMocks();
   });
 
-  it("redirects anonymous admin root requests before DB-backed auth", async () => {
-    const response = await proxy(request("/admin?module=settings"));
-    const location = response.headers.get("location");
-
-    expect(response.status).toBe(307);
-    expect(location).not.toBeNull();
-
-    const redirectUrl = new URL(location ?? "");
-    expect(redirectUrl.pathname).toBe("/auth/sign-in");
-    expect(redirectUrl.searchParams.get("next")).toBe(
-      "/admin?module=settings"
-    );
+  it("returns 404 for every legacy dashboard entry with or without a session", async () => {
+    for (const cookie of [undefined, "caudals.session_token=session_123"]) {
+      for (const path of ["/admin", "/admin/", "/admin?module=datasets", "/admin/requests"]) {
+        const response = await proxy(request(path, cookie));
+        expect(response.status, path).toBe(404);
+        expect(response.headers.get("location")).toBeNull();
+        expect(await response.text()).toBe("Not Found");
+      }
+    }
   });
 
-  it("does not redirect authenticated admin root requests", async () => {
-    const response = await proxy(
-      request("/admin", "caudals.session_token=session_123")
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("location")).toBeNull();
+  it("also retires the dashboard on the marketing host", async () => {
+    expect((await proxy(marketingRequest("/admin?module=settings"))).status).toBe(404);
   });
 
-  it("keeps legacy admin subroutes hidden", async () => {
-    const response = await proxy(request("/admin/requests"));
-
-    expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Not Found");
-  });
 });
 
 describe("proxy locale routing", () => {

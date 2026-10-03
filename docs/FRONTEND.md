@@ -16,7 +16,7 @@ Implementation rules for the public funnel, the internal Operator Console, and t
   keeps the editorial system (`packages/brand/tokens.css`, `app/globals.css`).
   `docs/DESIGN.md` is the authority for both and states which applies where.
 - The public site is the landing page and its funnel: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces Sectors and Contact, plus the rounded "Get started" / "Comenzar" CTA; the footer adds "How it works" (the landing's `#how-it-works` anchor) and one link per sector. Blog and Newsletter are temporarily hidden. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
-- Deployed private surfaces include the legacy Operator Console (`/admin`, `/auth/*`) and the invite-only evaluation product (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`). Features remain governed by workspace permissions, entitlements and readiness gates; see the latest evals work-package records.
+- Deployed private surfaces include retained internal-account auth (`/auth/*`) and the invite-only evaluation product (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`). Features remain governed by workspace permissions, entitlements and readiness gates; see the latest evals work-package records.
 - The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
 
 ## Routing and IA Contract
@@ -46,8 +46,8 @@ through `tr()` in `lib/evals/messages/phrases.ts`, and curated server messages
 through `trServer()`. Spanish pages render on the client only, so the server
 never sends English text they would replace. PDF and Word exports are written
 in the requester's language (`lib/evals/reports/i18n.ts`); recorded questions,
-answers and model-written text keep their own words. `/admin` and `/auth/*`
-remain English-only.
+answers and model-written text keep their own words. Retained `/auth/*`
+routes remain English-only; `/admin` is removed and returns 404.
 
 ### URL shape
 
@@ -66,7 +66,7 @@ remain English-only.
   another language's slug to the canonical URL.
 - `lib/i18n/routing.ts` is the single definition of that shape.
   `isNonLocalizedPath` lists every prefix that stays outside the locale tree —
-  the Operator Console, auth, APIs, sitemaps, `robots.txt` and `llms.txt`. Add
+  retired `/admin` paths, auth, APIs, sitemaps, `robots.txt` and `llms.txt`. Add
   new internal surfaces there, never to the locale tree.
 
 ### Detection and choice
@@ -137,7 +137,7 @@ remain English-only.
 
 ## Platform UI Contract
 
-Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` and `/admin`.
+Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry` and `/auth/*`.
 
 - Compose from `components/evals/primitives.tsx`. Do not reach into
   `components/ui/*` directly in a new platform screen, and do not style inline.
@@ -162,8 +162,9 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` an
   Sign-in, recovery and public invitation handling stay outside this layout.
 - `app/(evaluation)/evaluation.css` holds only screen-specific rules (today the
   expert workbench). There is no legacy alias layer; do not reintroduce one.
-- `/admin` is frozen scope: it adopts the platform tokens through a variable
-  remap and is not to be rewritten wholesale.
+- `/admin` and all its subroutes return 404 for authenticated and anonymous
+  users. Its dashboard, sidebar and command palette are removed; no active
+  navigation or auth return path may point to it.
 
 ## Implementation Rules
 

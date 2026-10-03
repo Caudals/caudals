@@ -139,7 +139,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 ## Product Surfaces
 
 - **Live public:** `/`, `/sectors` and one page per sector (insurance, industrial after-sales, healthcare, banking, energy, telecoms, legal and advisory, travel), `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
-- **Private:** `/admin` Operator Console.
+- **Retired:** the legacy `/admin` Operator Console returns 404; historical dataset-build data and internal tooling remain retained.
 - **Deployed evaluation surfaces:** `/ops`, `/workspace`, assignment-scoped `/review`, private report sharing and exports, with invite-only access, entitlements and target-specific readiness. `/proof` remains a future demo, not a deployed funnel step. See `docs/ARCHITECTURE.md` and the evals work-package records.
 - **Removed marketplace routes:** `/buyer`, `/supplier`, `/v1/*`, `/security` and former pricing/catalogue surfaces return 404. Retained internal dataset-build modules do not make those routes a current product.
 

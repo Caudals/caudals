@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { betterAuthClient } from "@/lib/auth/better-auth-client";
-import { shouldBlockPhaseOneHiddenSurface } from "@/lib/phase-one-surface-gates";
+import { safeRedirectPath } from "@/lib/evals/domain/routing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,13 +31,7 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
   const t = useInternalTranslations();
   const requestedNext = searchParams.get("next");
-  const nextPath =
-    requestedNext &&
-    requestedNext.startsWith("/") &&
-    !requestedNext.startsWith("//") &&
-    !shouldBlockPhaseOneHiddenSurface(requestedNext)
-      ? requestedNext
-      : "/evaluation-entry";
+  const nextPath = safeRedirectPath(requestedNext);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

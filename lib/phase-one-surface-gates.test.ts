@@ -30,6 +30,10 @@ describe("Phase 1 surface gates", () => {
   });
 
   it("keeps removed route groups blocked", () => {
+    expect(isPhaseOneRemovedSurfacePath("/admin")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/admin/")).toBe(true);
+    expect(isPhaseOneRemovedSurfacePath("/admin/requests")).toBe(true);
+    expect(shouldBlockPhaseOneHiddenSurface("/admin")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/dashboard")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/dashboard/requests/123")).toBe(true);
     expect(isPhaseOneRemovedSurfacePath("/browse")).toBe(true);

@@ -201,7 +201,7 @@ Hard rules:
 5. Force password reset on first login after migration.
 6. Record JIT-elevation events into `audit_event`.
 
-Current scaffold:
+Retained authentication and domain tooling (the legacy `/admin` UI is removed):
 
 - Server config: `lib/auth/better-auth.ts`
 - Shared auth options/table mapping: `lib/auth/better-auth-options.ts`
@@ -210,18 +210,14 @@ Current scaffold:
 - Identity schema migration: `db/migrations/003_better_auth_identity.sql`
 - JIT production-DB elevation: `db/migrations/008_operator_elevation.sql`,
   `lib/auth/operator-elevation.ts`, `lib/actions/operator-elevation-actions.ts`,
-  `components/admin/operator-elevation-card.tsx`, and
   `OPERATOR_CONSOLE_REQUIRE_JIT_ELEVATION=true`
-- Delivery signing keys: `lib/actions/signing-key-actions.ts` and
-  `components/admin/operator-signing-key-card.tsx`; private keys are encrypted
+- Delivery signing keys: `lib/actions/signing-key-actions.ts`; private keys are encrypted
   before insertion into `signing_key.encrypted_private_key`.
 - Cross-module record notes: `db/migrations/010_operator_record_note.sql`,
-  `lib/actions/operator-record-note-actions.ts`, and
-  `components/admin/operator-record-notes.tsx`; create/update/delete operations
+  `lib/actions/operator-record-note-actions.ts`; create/update/delete operations
   write `audit_event` rows.
 - Generic operator record CRUD: `lib/operator/record-crud.ts`,
-  `lib/actions/operator-record-actions.ts`, and
-  `components/admin/operator-work-queue.tsx`; descriptor-gated create/update/delete
+  `lib/actions/operator-record-actions.ts`; descriptor-gated create/update/delete
   operations write `audit_event` rows, with append-only exceptions for immutable
   records.
 - Operator security enrollment: `npm run operator:security-status` reports
@@ -717,8 +713,8 @@ Operational env controls:
 
 - Removed legacy routes stay blocked: `/browse`, `/contributor`, `/dashboard`,
   `/pwa` (the web app manifest points to public landing surfaces only),
-  `/requester`, and legacy `/admin/*` subroutes. `/admin` remains the Operator
-  Console.
+  `/requester`, `/admin` and all `/admin/*` subroutes. The retired dashboard
+  returns 404 regardless of session cookies or module query parameters.
 - The pre-pivot marketplace surfaces were deleted and return `404`: `/buyer`,
   `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`,
   `/careers`, `/catalogue`, plus the Stripe webhook, uploads and tRPC API

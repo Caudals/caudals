@@ -2,13 +2,13 @@
 
 ## System Overview
 
-Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production includes the public marketing funnel, private Operator Console and deployed invite-only evaluation product. Customer rollout remains subject to workspace entitlements, target readiness and the remaining release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-15.md`.
+Caudals evaluates companies' AI systems and builds custom datasets with freelance domain experts (`product-specs/overview.md`). Production includes the public marketing funnel and deployed invite-only evaluation product. Customer rollout remains subject to workspace entitlements, target readiness and the remaining release gates; see `product-specs/evals-platform-implementation-spec.md` and `evals/work-packages/WP-08.md`–`WP-15.md`.
 
 Current production scope:
 
 - Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
-- Private operator access: `/auth/*`, `/api/auth/*`, `/admin` (Operator Console)
+- Private operator access: `/auth/*`, `/api/auth/*` (retained internal-account auth)
 - Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 
 The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; they return `404`. There is no landing-mode flag: the routes above define the public and private product boundaries.
@@ -29,7 +29,7 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 
 - `app/[locale]/*`: localized marketing/public routes
 - `app/(auth)/*`: sign-in/callback/reset flows for existing internal accounts
-- `app/(app)/*`: hidden authenticated app, Operator Console (`/admin`) and APIs
+- `app/(app)/*`: internal APIs and short-link handlers; no legacy dashboard UI
 - `app/(app)/api/auth/[...all]`: Better Auth endpoint for operator email/password, reset-password, organization/team, and optional TOTP/passkey hardening
 - `components/*`: shared and domain UI modules
 - `lib/actions/*`: server action business logic
@@ -41,7 +41,7 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - `db/migrations/*` and `db/rollbacks/*`: PostgreSQL schema history; every migration ships a rollback
 - `app/(evaluation)/*`, `app/api/evals/v1/*`, `lib/evals/*`: invite-only evaluation, expert-review and improvement-dataset product
 
-Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`; the former `/v1` brief intake is not a live route. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the Operator Console lists requests read-only under Leads. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
+Schema notes: `audit_event`, `signing_key`, operator record notes, escalation runbooks (`runbook`, `escalation_case`) and `security_review_artifact` are platform infrastructure. `/contact` writes `contact`, `buyer_opportunity` and `evaluation_request` rows (migration 030) with `audit_event` transitions for the opportunity and the request; it no longer writes `dataset_brief`; the former `/v1` brief intake is not a live route. `evaluation_request` holds the structured intake while the sales pipeline stays on `buyer_opportunity`; the intake records remain retained after removal of the legacy dashboard. Legacy build tables (`label_batch`, `modality_contract`, `release_documentation_bundle`, `compliance_control_scope`, `cost_entry` and related) are frozen: keep them migrating cleanly, do not build on them.
 
 ## Evaluation Product Implementation (feature-gated)
 
@@ -71,7 +71,7 @@ This sketch predates the staged implementation above. Its `/proof`, `/e/[project
 ```
 app/(eval)/proof/              public self-serve demo, no signup
 app/(eval)/e/[projectId]/      customer dashboard (magic link): runs, cases, report
-app/(app)/admin/eval/          operator console: authoring, grading queue, expert review, run control
+app/(evaluation)/(authenticated)/  workspace, operations and expert pages in a persistent shell
 lib/eval/targets/              adapters: http, openai-compatible, widget, manual, self-run import
 lib/eval/graders/              deterministic checks, LLM judge, human queue
 lib/eval/runner.ts             queue consumer
@@ -119,12 +119,13 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 - The public page surface is `/`, `/sectors`, `/sectors/*` (Spanish slugs under
   `/es/sectores/*`), `/contact`, `/call`, `/blog`, `/blog/*`,
   `/newsletter`, `/newsletter/*` and `/legal/*`;
-  `/auth/*`, `/api/auth/*`, `/api/user/role`, `/admin`, the funnel APIs and
+  `/auth/*`, `/api/auth/*`, `/api/user/role`, the funnel APIs and
   evaluation routes (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`), their APIs and required metadata/assets are separate private surfaces.
 - Removed legacy self-serve route groups return `404`: `/browse`,
   `/contributor`, `/dashboard` (app-host root requests are rewritten to `/evaluation-entry`), `/pwa`
-  (the manifest links public surfaces only) and `/requester`. Legacy `/admin/*`
-  subroutes are removed; `/admin` is the Operator Console.
+  (the manifest links public surfaces only), `/requester`, `/admin` and all
+  `/admin/*` subroutes. The legacy dashboard UI and its navigation are deleted;
+  historical data and frozen CLI/domain tooling remain retained.
 - `/contact` is the general contact and intake path for evaluation requests.
   Submissions create `contact`, `buyer_opportunity` and `evaluation_request`
   rows under the Caudals tenant (system type, stage, sector, owner role, what

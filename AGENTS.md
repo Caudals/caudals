@@ -18,7 +18,7 @@ Caudals is an AI data company that starts with evaluation. We begin with pilot p
 Current deployment includes the public funnel and the invite-only evaluation product:
 
 - public landing page, sector pages, contact form, meeting booking, blog, newsletter, and legal pages,
-- private Operator Console (`/admin`) and its sign-in (`/auth/*`),
+- legacy internal-account auth (`/auth/*`); the `/admin` dashboard is removed and returns `404`,
 - evaluation operations (`/ops`), customer workspaces (`/workspace`), expert assignments (`/review`), private report sharing and scoped `/api/evals/v1` APIs on `app.caudals.com`.
 
 Evaluation stages A–E are implemented and deployed with feature, entitlement and per-target readiness controls. Read `docs/evals/AGENTS.md` and the latest work-package records for remaining customer release gates; deployment does not imply unrestricted signup or universal connector support.
@@ -30,7 +30,7 @@ There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/s
 Maintain these so they keep working; do not extend or market them:
 
 - non-text modalities (image, video, audio, geospatial, sensor),
-- the legacy dataset-build Operator Console modules and CLI,
+- the retained legacy dataset-build domain modules and CLI (the `/admin` UI is removed),
 - legacy dataset-build stacks (Dagster, Temporal, Label Studio, CVAT, lakeFS, Qdrant, the legacy cache and Marquez). New evaluation code must not depend on them. Frozen scope is not runtime status: Temporal and the separate social Redis are running as of 2026-09-28; see `docs/VPS_RUNTIME.md`.
 
 ## VPS Infrastructure Fleet

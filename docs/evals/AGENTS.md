@@ -2,7 +2,7 @@
 
 The user authorized Stages A–E (WP-00–15) of `../product-specs/evals-platform-implementation-spec.md`. That specification controls the new evaluation product; the old three-paid-pilot prerequisite and old `/e`/`proof` architecture do not block this work. Stage E is feature-gated and does not authorize an open expert marketplace, automated payouts or fine-tuning execution.
 
-Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and separate workers. Evaluation UI supports English and Spanish through its own catalogs and per-person `caudals_locale`; public marketing localization and English-only `/admin` remain separate. No legacy marketplace or frozen infrastructure dependency. Stage C remains invite-only: do not enable broad registration.
+Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and separate workers. Evaluation UI supports English and Spanish through its own catalogs and per-person `caudals_locale`; public marketing localization remains separate. The legacy `/admin` dashboard is removed and returns 404. No legacy marketplace or frozen infrastructure dependency. Stage C remains invite-only: do not enable broad registration.
 
 Persist tenant identity server-side. `withTenant` checks a non-owner NOBYPASSRLS runtime role and uses transaction-local context. Identity grants are explicit, not inherited from legacy operators. Admin support reads are audited; workers use persisted job scope. Never make provider calls outside the reservation/attempt path.
 

@@ -12,16 +12,13 @@ test.describe("authenticated role journeys", () => {
     "Set PLAYWRIGHT_AUTH_E2E=true to run authenticated fixture-user smoke checks.",
   );
 
-  test("admin can access the operator console", async ({ page }) => {
+  test("legacy operator cannot access the retired dashboard", async ({ page }) => {
     await signInAsFixtureOperator(page, FIXTURE_OPERATOR_EMAIL);
-    await page.goto("/admin", {
+    const response = await page.goto("/admin", {
       timeout: 180_000,
       waitUntil: "domcontentloaded",
     });
-    await expect(
-      page.getByRole("heading", {
-        name: /operator console/i,
-      }),
-    ).toBeVisible();
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: /operator console/i })).toHaveCount(0);
   });
 });

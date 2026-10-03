@@ -1,6 +1,7 @@
 const PHASE_ONE_HIDDEN_SURFACE_PREFIXES: string[] = [];
 
 const PHASE_ONE_REMOVED_SURFACE_PREFIXES = [
+  "/admin",
   "/browse",
   "/contributor",
   "/dashboard",

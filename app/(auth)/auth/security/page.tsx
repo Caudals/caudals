@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { safeRedirectPath } from "@/lib/evals/domain/routing";
 
 import { OperatorSecuritySetup } from "@/app/(auth)/auth/security/security-setup";
 import { requireCurrentOperator } from "@/lib/auth/operator-session";
@@ -12,7 +13,7 @@ export default async function SecurityPage({
   const session = await requireCurrentOperator();
   const status = getOperatorSecurityStatus(session);
   const { next } = await searchParams;
-  const nextPath = next?.startsWith("/") ? next : "/admin";
+  const nextPath = safeRedirectPath(next ?? null);
 
   if (status.complete && next) {
     redirect(nextPath);

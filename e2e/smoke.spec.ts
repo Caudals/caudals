@@ -19,7 +19,7 @@ test.describe("core role smoke", () => {
   });
 
   test("pre-pivot self-serve routes are removed", async ({ page }) => {
-    const routes = ["/requester", "/browse", "/contributor", "/dashboard", "/pwa"];
+    const routes = ["/requester", "/browse", "/contributor", "/dashboard", "/pwa", "/admin"];
 
     for (const route of routes) {
       const response = await page.goto(route);
@@ -30,9 +30,12 @@ test.describe("core role smoke", () => {
     expect(response?.status()).toBe(404);
   });
 
-  test("admin route redirects anonymous users to sign-in", async ({ page }) => {
-    await page.goto("/admin");
-
-    await expect(page).toHaveURL(/\/auth\/sign-in/);
+  test("legacy dashboard is removed even with a session cookie", async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: "caudals.session_token", value: "retired-dashboard-test", url: baseURL! }]);
+    for (const path of ["/admin", "/admin?module=datasets", "/admin/requests"]) {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+      await expect(page.locator("[data-module-directory]")).toHaveCount(0);
+    }
   });
 });

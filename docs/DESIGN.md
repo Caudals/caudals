@@ -4,7 +4,7 @@ Two design languages live in this repository. They are deliberately different an
 
 | | **Platform** | **Marketing** |
 | --- | --- | --- |
-| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*`, `/admin` | `caudals.com` — `/`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal/*` |
+| Surfaces | `app.caudals.com` — `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` | `caudals.com` — `/`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal/*` |
 | Character | Dense, neutral, instrument-like. An evidence tool. | Editorial, calm, typographic. A point of view. |
 | Source of truth | `packages/brand/platform.css` | `packages/brand/tokens.css`, `app/globals.css` |
 | Governed by | **§1–§12 of this document** | **§13 of this document** |
@@ -294,7 +294,7 @@ Two selector techniques appear throughout and are deliberate:
 
 **No compatibility layer.** Every evaluation screen composes the `p-*` primitives. `app/(evaluation)/evaluation.css` keeps only the expert workbench grid and its save-conflict alert; a rule belongs there only when it is about one evaluation screen.
 
-**`/admin` is frozen scope** (`AGENTS.md`). Its 1,191-line module tree is maintained, not rewritten. It adopts the platform tokens by remapping the shadcn variables it already consumes (`.p-root[data-surface="admin"]`), so it reads as the same product without touching its code. Migrate a module to the primitives when it is next opened for real work.
+**The legacy `/admin` dashboard is removed.** It and all its subroutes return 404. Platform screens use the evaluation shell and primitives; do not restore the legacy sidebar, command palette or module UI.
 
 ---
 
