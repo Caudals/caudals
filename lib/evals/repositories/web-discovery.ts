@@ -84,7 +84,8 @@ export function parseDiscovery(output: unknown, systemHost: string | null, known
   for (const page of pages) {
     const url = safeUrl(page.url);
     if (!url || seen.has(url.href)) continue;
-    if (/(facebook|instagram|twitter|x|linkedin|tiktok|youtube|reddit)\.com$/i.test(url.hostname)) continue;
+    // Social networks, review sites and app stores are not documentation.
+    if (/(^|\.)(facebook|instagram|twitter|x|linkedin|tiktok|youtube|reddit|trustpilot|glassdoor|capterra|g2)\.com$|^(play\.google\.com|apps\.apple\.com)$/i.test(url.hostname)) continue;
     seen.add(url.href);
     out.push({
       url: url.href,

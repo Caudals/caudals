@@ -6,12 +6,14 @@ import { invocationSchema } from "../../lib/evals/providers/contracts";
 const output = (pages: unknown, citations: Array<{ url: string; title?: string }> = []) => ({ text: JSON.stringify({ pages }), complete: true, citations });
 
 describe("web source discovery", () => {
-  it("keeps public https pages, puts the company's own site first and skips known or social pages", () => {
+  it("keeps public https pages, puts the company's own site first and skips known, social, review and app-store pages", () => {
     const parsed = parseDiscovery(output([
       { url: "https://partner.example.org/fees", title: "Fees", why: "Partner fee table" },
       { url: "https://www.example.com/help/refunds?utm=1#top", title: "Refunds", why: "Refund policy" },
       { url: "http://example.com/insecure", title: "Old" },
       { url: "https://www.linkedin.com/company/example" },
+      { url: "https://www.trustpilot.com/review/example.com" },
+      { url: "https://play.google.com/store/apps/details" },
       { url: "https://example.com/terms" },
     ], [{ url: "https://example.com/pricing", title: "Pricing" }]), "chat.example.com", ["https://example.com/terms"]);
     expect(parsed?.map((item) => [item.url, item.same_site])).toEqual([
