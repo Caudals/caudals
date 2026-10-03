@@ -39,7 +39,7 @@ Caudals operates across two production VPS nodes connected via Tailscale:
 
 1. **`atlantic`** (formerly referred to as `caudals-1`):
    - **Provider / IP**: Hetzner, `168.119.49.95` (Tailscale `100.118.70.90`, user `caudals`).
-   - **Role**: Primary application and platform host. Runs the public site (`caudals.com`), internal Ops app (`ops.caudals.com` / `leads.caudals.com`), shared `caudals-postgres`, evaluation platform, `caudals-growth_social`, MinIO, and internal Tailscale dashboards.
+   - **Role**: Primary application and platform host. Runs the public site (`caudals.com`), internal Ops app (`ops.caudals.com`), shared `caudals-postgres`, evaluation platform, `caudals-growth_social`, MinIO, and internal Tailscale dashboards.
 2. **`arctic`** (or `artic`):
    - **Provider / IP**: AWS, `51.102.90.206` (Tailscale `100.93.226.39`, user `caudals`).
    - **Role**: Dedicated cold-outreach & campaign infrastructure host. Runs the Warmbly suite (`caudals-warmbly`), serving `out.caudals.com`, `out-admin.caudals.com`, `out-track.caudals.com`, and `out-forms.caudals.com` with isolated databases and enrichment workers.
@@ -47,7 +47,7 @@ Caudals operates across two production VPS nodes connected via Tailscale:
 ## Sibling Repository — Caudals Leads / Ops
 
 `../leads` (github.com/Caudals/leads) is the satellite repo for the internal operations
-engine: Caudals Ops (`ops.caudals.com` / `leads.caudals.com`), Content Suite, social
+engine: Caudals Ops (`ops.caudals.com`), Content Suite, social
 publishing, the *The Data Gap* newsletter, Hermes strategic prospecting, and the blog
 pipeline that publishes to this site. It runs on `atlantic` on the same `dokploy-network`,
 with its own `caudals_leads` database inside the shared `caudals-postgres` service, plus
@@ -58,7 +58,7 @@ the private `growth-social` execution service.
 - `../leads` owns the Ops schema and behaviour, and holds no platform contract.
 - Start there at `../leads/AGENTS.md`; it indexes its own docs.
 - Read it before changing shared infrastructure, the newsletter public archive,
-  the blog content path, or anything that consumes `leads.caudals.com`.
+  the blog content path, or anything that consumes `ops.caudals.com`.
 
 ## Read Order Before Non-Trivial Work
 

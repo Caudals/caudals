@@ -11,8 +11,8 @@ provenance. Bundled MDX is a resilience and hand-authored-content fallback.
 
 ## Public identity
 
-- Content API: `GET https://leads.caudals.com/api/blog?locale={locale}` and
-  `GET https://leads.caudals.com/api/blog/{slug}?locale={locale}`
+- Content API: `GET https://ops.caudals.com/api/blog?locale={locale}` and
+  `GET https://ops.caudals.com/api/blog/{slug}?locale={locale}`
 - Static fallback: `content/blog/{locale}/{slug}.mdx`
 - Locales: `en`, `es`
 - Public URL: `/{locale}/blog/{slug}` (`/en/blog/...`, `/es/blog/...`)

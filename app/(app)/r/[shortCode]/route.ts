@@ -11,7 +11,7 @@ type Resolution = {
 
 function attributionApiBase() {
   return (process.env.LEADS_ATTRIBUTION_API_URL ??
-    "https://leads.caudals.com/api/attribution/public").replace(/\/$/, "");
+    "https://ops.caudals.com/api/attribution/public").replace(/\/$/, "");
 }
 
 function publicSiteOrigin(request: NextRequest) {

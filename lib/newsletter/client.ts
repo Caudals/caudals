@@ -17,7 +17,7 @@ const REVALIDATE_SECONDS = 300;
 function config() {
   const url = (
     getSecretEnvValue("LEADS_NEWSLETTER_API_URL") ??
-    "https://leads.caudals.com/api/newsletter"
+    "https://ops.caudals.com/api/newsletter"
   ).replace(/\/+$/, "");
   return { url };
 }

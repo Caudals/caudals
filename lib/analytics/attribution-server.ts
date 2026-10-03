@@ -12,7 +12,7 @@ type ConversionInput = {
 
 function attributionApiBase() {
   return (process.env.LEADS_ATTRIBUTION_API_URL ??
-    "https://leads.caudals.com/api/attribution/public").replace(/\/$/, "");
+    "https://ops.caudals.com/api/attribution/public").replace(/\/$/, "");
 }
 
 export async function recordAttributionConversion(input: ConversionInput) {

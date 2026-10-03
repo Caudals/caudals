@@ -30,7 +30,7 @@ export interface PublishedBlogArticle extends PublishedBlogRecord {
 function endpoint() {
   return (
     getSecretEnvValue("LEADS_BLOG_API_URL") ??
-    "https://leads.caudals.com/api/blog"
+    "https://ops.caudals.com/api/blog"
   ).replace(/\/+$/, "");
 }
 
