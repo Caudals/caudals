@@ -7,8 +7,13 @@ export const invocationSchema=z.object({
   approvedProviderIds:z.array(z.string().uuid()),
   messages:z.array(z.object({role:z.enum(['system','user','assistant']),content:z.string().max(300000)}).strict()).min(1).max(100),
   maxOutputTokens:z.number().int().min(1).max(32768), reasoning:z.enum(['bounded','off']).optional(), timeoutMs:z.number().int().min(100).max(900000).default(60000),
-  /** Internal roles only: let the provider search the public web (OpenRouter web plugin); ignored where unsupported. */
-  webSearch:z.object({maxResults:z.number().int().min(1).max(10)}).strict().optional(),
+  /**
+   * Internal roles only: public web research. With `queries` the worker runs
+   * them on the connected search engine (Tavily, Exa) before the call, for
+   * any provider; otherwise only a provider's own web search applies
+   * (OpenRouter's web plugin). See docs/evals/grading-engine.md, "Web research".
+   */
+  webSearch:z.object({maxResults:z.number().int().min(1).max(10),queries:z.array(z.object({query:z.string().trim().min(2).max(400),site:z.string().max(253).regex(/^[a-z0-9.-]+$/i).optional()}).strict()).max(3).optional()}).strict().optional(),
   discoveryJobId:z.string().uuid().optional(),
   internalCostPerSecond:z.string().regex(/^(0|[1-9]\d*)(\.\d{1,9})?$/).default('0'),
   caseUnitId:z.string().uuid().optional(), caseRevisionId:z.string().uuid().optional(), targetRevisionId:z.string().uuid().optional(), repetition:z.number().int().nonnegative().optional(),
@@ -18,7 +23,8 @@ export const invocationSchema=z.object({
   // calls retain 120 seconds.
   const generation=!!input.generationJobId&&!!input.generationStep&&(["generator","context_analyzer"] as string[]).includes(input.role);
   const otherInternal=(!!input.judgeJobId&&input.role==="judge")||
-    (!!input.narrativeJobId&&input.role==="report_writer");
+    (!!input.narrativeJobId&&input.role==="report_writer")||
+    (!!input.discoveryJobId&&input.role==="context_analyzer");
   const extended=!input.probe&&(generation||(otherInternal&&(input.routing==="local_only"||input.timeoutMs<=300000)));
   if(input.timeoutMs>120000&&!extended)ctx.addIssue({code:"custom",path:["timeoutMs"],message:"extended_deadline_reserved_for_local_generation"});
   if(input.webSearch&&(input.probe||input.role==="target"))ctx.addIssue({code:"custom",path:["webSearch"],message:"web_search_reserved_for_internal_roles"});
@@ -42,8 +48,12 @@ export interface ProviderRevision {
  data_classes:string[]; regions:string[]; concurrency_limit:number; rpm:number;tpm:number; retired_at:Date|null;
 }
 export class ProviderFailure extends Error {
- constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0) {super(code);}
+ /** `detail`: the provider's own error message, shortened, for logs and diagnosis (never shown raw to customers). */
+ constructor(public readonly code:'network_unavailable'|'service_unavailable'|'model_missing'|'overloaded'|'malformed_output'|'unsupported_feature'|'invalid_credentials',public readonly outcome:'unknown'|'rejected',public readonly retryAfterMs=0,public readonly detail?:string) {super(code);}
 }
+export type WebResult={url:string;title:string;content:string;published?:string};
 export interface ProviderOutput {text:string; complete:boolean; finishReason:string; requestId?:string; usage?:{input:number;output:number;cached:number}; latencyMs:number; toolCalls?:Array<{name:string;arguments:string}>; capabilityEvidence?:{kind:'text'|'json_object'|'tools';status:'supported'|'unsupported'|'unknown';scope:'single_bounded_probe'};
- /** Public pages a web-searching provider consulted (OpenRouter url_citation annotations). */
- citations?:Array<{url:string;title?:string}>}
+ /** Public pages consulted: search-engine results, or a provider's url_citation annotations. */
+ citations?:Array<{url:string;title?:string}>;
+ /** What the engine searched before the call and what came back, kept with the result for provenance. */
+ webSearch?:{engine:string|null;queries:string[];results:Array<{url:string;title:string;published?:string}>;failed?:string}}

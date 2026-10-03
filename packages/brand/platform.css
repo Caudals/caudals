@@ -1341,6 +1341,70 @@
   color: var(--p-text-secondary);
 }
 
+/* Toggle: a switch for settings that apply at once. The native checkbox stays
+   in place (transparent) so focus, keyboard and screen readers just work. */
+.p-toggle {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 34px;
+  height: 20px;
+}
+.p-toggle input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.p-toggle input:disabled {
+  cursor: not-allowed;
+}
+.p-toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--p-surface-3);
+  box-shadow: inset 0 0 0 1px var(--p-border);
+  transition: background-color var(--p-dur-press) var(--p-ease-out);
+}
+.p-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--p-surface);
+  box-shadow: 0 1px 2px rgba(12, 12, 11, 0.24);
+  transition:
+    transform var(--p-dur-press) var(--p-ease-out),
+    background-color var(--p-dur-press) var(--p-ease-out);
+}
+.p-toggle input:checked + .p-toggle-track {
+  background: var(--p-action);
+  box-shadow: none;
+}
+.p-toggle input:checked + .p-toggle-track::after {
+  background: var(--p-action-text);
+  transform: translateX(14px);
+}
+.p-toggle input:focus-visible + .p-toggle-track {
+  outline: 2px solid var(--p-focus);
+  outline-offset: 2px;
+}
+.p-toggle input:disabled + .p-toggle-track {
+  opacity: 0.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .p-toggle-track,
+  .p-toggle-track::after {
+    transition: none;
+  }
+}
+
 /* -----------------------------------------------------------------------------
    6. Data display
    -------------------------------------------------------------------------- */
@@ -4888,6 +4952,78 @@
 }
 
 /* --- Web source discovery (preparation) --------------------------------------- */
+/* --- Web research (Settings → AI models) ---------------------------------- */
+
+.p-web-roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.p-web-role {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+  transition: box-shadow var(--p-dur-instant) var(--p-ease-out);
+}
+.p-web-role[data-on="true"] {
+  box-shadow: 0 0 0 1.5px var(--p-action);
+}
+.p-web-role-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.p-web-role-head svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--p-text-secondary);
+}
+.p-web-role[data-on="true"] .p-web-role-head svg {
+  color: var(--p-text);
+}
+.p-web-role-head h3 {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--p-text-label);
+  font-weight: 600;
+}
+.p-web-role-help {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+  line-height: 1.5;
+}
+.p-web-role-note {
+  margin-top: auto;
+  padding-top: 4px;
+  font-size: var(--p-text-micro);
+  color: var(--p-text-tertiary);
+}
+.p-web-engines {
+  margin-top: 24px;
+}
+.p-web-engines .p-head-text {
+  margin-bottom: 10px;
+}
+.p-web-engines h3 {
+  font-size: var(--p-text-body);
+  font-weight: 600;
+}
+.p-web-engines .p-head-text p {
+  margin-top: 2px;
+  max-width: 62ch;
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+}
+.p-cell-meta[data-tone="error"] {
+  color: var(--p-fail);
+}
+
 .p-discovery {
   display: grid;
   gap: 12px;

@@ -1431,3 +1431,42 @@ test("domain packs list their rubric, evaluators and prohibited assumptions", as
   await expect(page.getByRole("heading", { name: "Generic grounded Q&A" })).toBeVisible();
   await expect(page.getByText("Remembered laws")).toBeVisible();
 });
+
+test("AI model settings turn web research on per task and connect a search engine for every model", async ({ page }) => {
+  const now = new Date().toISOString();
+  const route = (role: string, web: boolean) => ({ role, provider_revision_id: `rev-${role}`, model_id: "qwen3-coder:30b", adapter: "dgx", account_id: "dgx", account_name: "DGX Spark", context_limit: 131072, input_price: "0", output_price: "0", currency: "EUR", updated_at: now, usable: true, web_research: web, web_capable: true });
+  let engines: Array<Record<string, unknown>> = [];
+  const web: unknown[] = [], keys: unknown[] = [];
+  await page.route("**/api/evals/v1/engine?**", (request) => request.fulfill({ json: { data: {
+    roles: ["context_analyzer", "generator", "judge", "report_writer"], dgxAvailable: true,
+    connections: [{ id: "dgx", name: "DGX Spark", adapter: "dgx", host: "DGX Spark (private network)", key_hint: null, enabled: true, has_key: false }],
+    platform: [route("context_analyzer", false), route("generator", false), route("judge", web.length > 0), route("report_writer", false)],
+    workspace: [], searchEngines: engines,
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/engine/routes/web", (request) => { web.push(request.request().postDataJSON()); return request.fulfill({ json: { data: { ok: true }, meta: {} } }); });
+  await page.route("**/api/evals/v1/engine/web-search", (request) => {
+    keys.push(request.request().postDataJSON());
+    engines = [{ engine: "tavily", key_hint: "…ab12", priority: 1, enabled: true, updated_at: now }];
+    return request.fulfill({ json: { data: { engine: "tavily" }, meta: {} } });
+  });
+  await page.goto("/workspace/settings/models");
+  const research = page.getByRole("region").filter({ has: page.getByRole("heading", { name: "Web research" }) }).or(page.locator("section", { has: page.getByRole("heading", { name: "Web research" }) }));
+  await expect(page.getByText(/No search engine is connected/)).toBeVisible();
+  await page.getByRole("row", { name: /Tavily/ }).getByRole("button", { name: "Connect" }).click();
+  const dialog = page.getByRole("dialog", { name: "Connect Tavily" });
+  await dialog.getByLabel("API key").fill("tvly-test-key-0001");
+  await dialog.getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByRole("row", { name: /Tavily/ }).getByText("Primary")).toBeVisible();
+  await expect(page.getByText(/No search engine is connected/)).toHaveCount(0);
+  expect(keys).toEqual([expect.objectContaining({ engine: "tavily", apiKey: "tvly-test-key-0001" })]);
+  // The key never comes back to the page.
+  await expect(page.getByText("tvly-test-key-0001")).toHaveCount(0);
+  // The switch reflects the saved setting, so it turns on once the server confirms.
+  await research.getByRole("switch", { name: "Grade answers" }).click();
+  await expect(research.getByRole("switch", { name: "Grade answers" })).toBeChecked();
+  expect(web).toEqual([expect.objectContaining({ scope: "platform", role: "judge", enabled: true })]);
+  await expect(research.getByText("Searches with Tavily")).toBeVisible();
+  await expect(page.getByRole("row", { name: /Grade answers/ }).getByText("Web", { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

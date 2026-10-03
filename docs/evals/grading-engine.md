@@ -149,24 +149,68 @@ Results download as CSV, PDF and Word with the expected answer and verdict.
 
 ## Web research
 
-Settings → AI models has a **Web research** switch per role (reading
-sources, drafting tests, grading). It is available for models connected
-through OpenRouter, whose web plugin searches the public web for any model
-(billed by OpenRouter per result, outside the token estimate).
+Settings → AI models has a **Web research** panel: one switch per task
+(reading sources, drafting tests, grading) and the **search engines** that
+make it work with every model, the private DGX Spark included.
 
-- **Grading:** the judge may check details the cited excerpts do not cover.
-  Details the web confirms are listed as "confirmed online"; details it
-  contradicts become contradictions. The expected answer stays the ground
-  truth; a web page never overrides it. Consulted pages are recorded with the
-  verdict (`web_sources`).
-- **Drafting tests:** web results only help phrase questions the way real
-  customers ask; answers, key facts and quotes still come from the sources.
-- **Find sources on the web** (preparation): the reading-sources model
-  proposes public pages about the product (help centre, FAQs, terms, pricing;
-  the company's own site first). The person picks which to add and each is
-  captured as an ordinary website source (up to 3 pages from that address),
-  so tests keep citing frozen excerpts (`evals.web_discovery_job`,
-  migration 070).
+- **Search engines** (migration 071, `evals.web_search_connection`): Tavily
+  (primary) and Exa (backup). Keys are platform secrets like provider keys:
+  write-only, checked with one live search before they are saved, encrypted
+  with the platform keyring (scope `web_search`) and read only by the
+  inference worker. Each search uses one credit from the engine's plan; that
+  cost is not in the token estimate.
+- **How a call searches:** an engine call that carries `webSearch.queries`
+  (at most three) has them run by the inference worker on the first engine
+  that answers, before the model is called. The results go to the model as
+  one extra message framed as untrusted data, trimmed to the room left in
+  its context (48 KB at most), and are kept with the result
+  (`output.webSearch`: engine, queries, pages) and as `citations`. With no
+  engine connected (or no results), an OpenRouter model can still use
+  OpenRouter's own web plugin; other models answer without the web.
+- **Grading:** the query is the test question led by the product name. The
+  judge may check details the cited excerpts do not cover. Details the web
+  confirms are listed as "confirmed online"; details it contradicts become
+  contradictions. The expected answer stays the ground truth; a web page
+  never overrides it. Consulted pages are recorded with the verdict
+  (`web_sources`).
+- **Drafting tests:** the query asks for the product's customer FAQs. Web
+  results only help phrase questions the way real customers ask; answers,
+  key facts and quotes still come from the sources.
+- **Find sources on the web** (preparation): two queries, one restricted to
+  the company's own domain, then the reading-sources model proposes public
+  pages about the product (help centre, FAQs, terms, pricing; the company's
+  own site first). The person picks which to add and each is captured as an
+  ordinary website source (up to 3 pages from that address), so tests keep
+  citing frozen excerpts (`evals.web_discovery_job`, migration 070; prompt
+  `caudals-web-discovery-v2`).
+
+## Model output and transient failures
+
+Free and small models do not always return clean JSON, even in JSON mode.
+`lib/evals/providers/model-json.ts` parses every engine reply (profiles,
+drafts, verdicts, web discovery) with structural repairs only: fences and
+prose are stripped, raw control characters escaped, trailing commas and
+stray or premature closing brackets dropped. Profiles also get a lost
+`{"values":` wrapper back (seen on 2026-10-03: `"materialRisks":[…],
+"confidence":…}` closed the whole profile early and paused every Indexa
+preparation). Repairs never invent content and the result is still
+validated against the contract; truncated output stays invalid.
+
+Provider failures on engine calls (`generator`, `context_analyzer`, `judge`,
+`report_writer`) no longer stop a job at the first error:
+
+- A busy, failing or unreachable provider (`overloaded`,
+  `service_unavailable`, `network_unavailable`) is tried again, three
+  attempts in all, after 15 s and 60 s. An attempt whose outcome is unknown
+  keeps its possible charge as an unresolved reservation. Calls to a
+  customer's system keep the stricter rule (unknown outcome = review).
+- A model that refuses a reasoning flag (OpenRouter: "Reasoning is mandatory
+  for this endpoint and cannot be disabled") is asked once more with its
+  default reasoning. The retry-after-invalid-output path asks for reasoning
+  off, which such models reject; this fallback is what keeps it working.
+- Every failure logs the provider's own explanation, shortened and with
+  key-like strings masked (`provider_call_failed`), and preparation shows
+  what to do next (another model, a new key, or try again later).
 
 ## Re-grading
 

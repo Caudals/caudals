@@ -49,3 +49,8 @@ DO $$ BEGIN
   GRANT SELECT ON evals.provider_connection TO evals_worker;
  END IF;
 END $$;
+DO $$ BEGIN
+ IF to_regclass('evals.web_search_connection') IS NOT NULL THEN
+  GRANT SELECT ON evals.web_search_connection TO evals_worker;
+ END IF;
+END $$;

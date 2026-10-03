@@ -8,17 +8,19 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Cpu, Globe, KeyRound, Plus, RotateCcw, Trash2, Zap } from "lucide-react";
+import { Cpu, FileSearch, Globe, KeyRound, PenLine, Plus, RotateCcw, Scale, Search, Trash2, Zap } from "lucide-react";
 import { evalRequest, EvalRequestError } from "./api";
-import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, SelectField, Status, Tabs } from "./primitives";
+import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, SelectField, Status, Switch, Tabs } from "./primitives";
 import { ActionMenu, Modal, notify } from "./overlays";
 import { useReauth } from "./reauth";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 
 type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
 type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
 type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean };
-type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[]; platform: Route[]; workspace: Route[] };
+type SearchEngineId = "tavily" | "exa";
+type SearchEngineRow = { engine: SearchEngineId; key_hint: string | null; priority: number; enabled: boolean; updated_at: string };
+type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[]; platform: Route[]; workspace: Route[]; searchEngines: SearchEngineRow[] };
 type Model = { id: string; label: string; detail: string | null };
 type Scope = "platform" | "workspace";
 
@@ -29,8 +31,17 @@ const ROLE_COPY: Record<Role, { title: string; help: string }> = {
   report_writer: { title: t("roleReportWriter"), help: t("roleReportWriterHelp") },
 };
 
-/** Roles that can use public web search: reading sources (web discovery), drafting tests and grading. */
-const WEB_ROLES = new Set<Role>(["context_analyzer", "generator", "judge"]);
+/** Roles that can use public web search, and what the web does for each. */
+const WEB_ROLES = ["context_analyzer", "generator", "judge"] as const satisfies readonly Role[];
+const WEB_ROLE_COPY: Record<(typeof WEB_ROLES)[number], { help: string; Icon: typeof Globe }> = {
+  context_analyzer: { help: t("engineWebRoleContext"), Icon: FileSearch },
+  generator: { help: t("engineWebRoleGenerator"), Icon: PenLine },
+  judge: { help: t("engineWebRoleJudge"), Icon: Scale },
+};
+const SEARCH_ENGINES: Array<{ id: SearchEngineId; name: string; help: string }> = [
+  { id: "tavily", name: "Tavily", help: t("engineWebTavily") },
+  { id: "exa", name: "Exa", help: t("engineWebExa") },
+];
 
 /** Common OpenAI-compatible base addresses, so nobody has to look them up. */
 const PRESETS = [
@@ -128,7 +139,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
           />
         }
       >
-        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), t("engineWebResearch"), { label: t("actions"), align: "end", hidden: true }]}>
+        <DataTable caption={t("engineTasks")} headers={[t("engineTask"), t("engineModel"), { label: t("actions"), align: "end", hidden: true }]}>
           {settings.roles.map((role) => {
             const { route, inherited } = effective(role);
             return (
@@ -141,6 +152,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                         {route.adapter === "dgx" ? <Cpu aria-hidden="true" width={14} /> : <Globe aria-hidden="true" width={14} />}
                         <strong>{route.model_id}</strong>
                         {inherited && <Badge>{t("engineInherited")}</Badge>}
+                        {route.web_research && <Badge tone="info"><Globe aria-hidden="true" width={12} />{t("engineWebBadge")}</Badge>}
                         {scope === "workspace" && !inherited && <Badge tone="info">{t("engineOverride")}</Badge>}
                       </span>
                       <span className="p-cell-meta">
@@ -150,29 +162,6 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                     </span>
                   ) : (
                     <Badge tone="warn" dot>{t("engineNotSet")}</Badge>
-                  )}
-                </td>
-                <td>
-                  {route && WEB_ROLES.has(role) ? (
-                    route.web_capable ? (
-                      <Check
-                        label={route.web_research ? t("engineWebOn") : t("engineWebOff")}
-                        description={inherited ? t("engineWebInherited") : undefined}
-                        checked={route.web_research}
-                        disabled={action.pending || inherited}
-                        onChange={(event) => {
-                          const enabled = event.target.checked;
-                          void action.run(async () => {
-                            await evalRequest("/engine/routes/web", "PUT", { orgId, scope, role, enabled });
-                            await reload();
-                          }, enabled ? t("engineWebEnabled") : t("engineWebDisabled"));
-                        }}
-                      />
-                    ) : (
-                      <span className="p-cell-meta" title={t("engineWebNeedsOpenRouter")}>{t("engineWebUnavailable")}</span>
-                    )
-                  ) : (
-                    <span className="p-cell-meta">—</span>
                   )}
                 </td>
                 <td className="p-table-action">
@@ -198,6 +187,8 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
           })}
         </DataTable>
       </Section>
+
+      <WebResearch orgId={orgId} scope={scope} engines={settings.searchEngines} effective={effective} action={action} reload={reload} />
 
       <Section
         title={t("engineProviders")}
@@ -526,6 +517,214 @@ function ReplaceKeyDialog({ orgId, connection, onClose, onSaved }: { orgId: stri
       <form id="engine-key" className="p-stack" onSubmit={save}>
         <Field id="edit-provider-name" label={t("engineProviderName")} value={name} onChange={(event) => setName(event.target.value)} required maxLength={120} />
         <Field id="edit-provider-key" label={t("engineNewApiKey")} type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" hint={t("engineApiKeyHelp")} />
+      </form>
+    </Modal>
+  );
+}
+
+/**
+ * Web research: one switch per task, and the search engines that let any
+ * model (the DGX included) use the web. Without an engine only OpenRouter
+ * models can search, through OpenRouter's own plugin.
+ */
+function WebResearch({
+  orgId, scope, engines, effective, action, reload,
+}: {
+  orgId: string; scope: Scope; engines: SearchEngineRow[];
+  effective: (role: Role) => { route: Route | null; inherited: boolean };
+  action: ReturnType<typeof useAction>; reload: () => Promise<unknown>;
+}) {
+  const [connecting, setConnecting] = useState<SearchEngineId | null>(null);
+  const [disconnecting, setDisconnecting] = useState<SearchEngineId | null>(null);
+  const [tests, setTests] = useState<Partial<Record<SearchEngineId, { ok: boolean; text: string }>>>({});
+  const connected = engines.filter((item) => item.enabled);
+  const primary = SEARCH_ENGINES.find((item) => item.id === connected[0]?.engine);
+  const nameOf = (id: SearchEngineId) => SEARCH_ENGINES.find((item) => item.id === id)?.name ?? id;
+  const switchable = WEB_ROLES.filter((role) => {
+    const { route, inherited } = effective(role);
+    return route && !inherited && route.web_capable && !route.web_research;
+  });
+
+  const toggle = (roles: readonly Role[], enabled: boolean) =>
+    void action.run(async () => {
+      for (const role of roles) await evalRequest("/engine/routes/web", "PUT", { orgId, scope, role, enabled });
+      await reload();
+    }, enabled ? t("engineWebEnabled") : t("engineWebDisabled"));
+
+  async function test(engine: SearchEngineId) {
+    setTests((current) => ({ ...current, [engine]: undefined }));
+    await action.run(async () => {
+      const result = await evalRequest<{ ok: boolean; latencyMs: number; results: Array<{ url: string; title: string }>; message?: string }>("/engine/web-search/test", "POST", { orgId, engine });
+      setTests((current) => ({ ...current, [engine]: { ok: result.ok, text: result.ok ? tv("engineWebTestOk", { count: result.results.length, seconds: Math.round(result.latencyMs / 100) / 10 }) : result.message ?? t("error") } }));
+    });
+  }
+
+  return (
+    <Section
+      title={t("engineWebTitle")}
+      description={t("engineWebHelp")}
+      actions={switchable.length > 1 ? (
+        <Action variant="secondary" disabled={action.pending} onClick={() => toggle(switchable, true)}>
+          <Globe aria-hidden="true" />
+          {t("engineWebTurnAllOn")}
+        </Action>
+      ) : undefined}
+    >
+      {!connected.length && <Status tone="info">{t("engineWebNoEngine")}</Status>}
+      <div className="p-web-roles">
+        {WEB_ROLES.map((role) => {
+          const { route, inherited } = effective(role);
+          const on = !!route?.web_research;
+          const { Icon, help } = WEB_ROLE_COPY[role];
+          const note = !route ? t("engineWebNeedsModel")
+            : inherited ? t("engineWebAllWorkspaces")
+            : !route.web_capable ? t("engineWebNeedsEngine")
+            : on ? (primary ? tv("engineWebVia", { engine: primary.name }) : t("engineWebViaOpenRouter")) : null;
+          return (
+            <div key={role} className="p-web-role" data-on={on ? "true" : undefined}>
+              <div className="p-web-role-head">
+                <Icon aria-hidden="true" />
+                <h3 id={`web-role-${role}`}>{ROLE_COPY[role].title}</h3>
+                <Switch
+                  aria-labelledby={`web-role-${role}`}
+                  checked={on}
+                  disabled={action.pending || !route || inherited || (!route.web_capable && !on)}
+                  onChange={(event) => toggle([role], event.target.checked)}
+                />
+              </div>
+              <p className="p-web-role-help">{help}</p>
+              {note && <p className="p-web-role-note">{note}</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="p-web-engines">
+        <div className="p-head-text">
+          <h3>{t("engineWebEngines")}</h3>
+          <p>{t("engineWebEnginesHelp")}</p>
+        </div>
+        <DataTable caption={t("engineWebEngines")} headers={[t("engineWebEngine"), t("engineWebStatus"), { label: t("actions"), align: "end", hidden: true }]}>
+          {SEARCH_ENGINES.map((engine) => {
+            const row = engines.find((item) => item.engine === engine.id && item.enabled);
+            const rank = row ? connected.indexOf(row) : -1;
+            const result = tests[engine.id];
+            return (
+              <tr key={engine.id}>
+                <RowTitle meta={engine.help}>
+                  <span className="p-row p-nowrap">
+                    <Search aria-hidden="true" width={14} />
+                    {engine.name}
+                  </span>
+                </RowTitle>
+                <td>
+                  {row ? (
+                    <span className="p-stack p-stack-tight">
+                      <span className="p-row p-nowrap">
+                        <Badge tone="pass" dot>{t("engineWebConnected")}</Badge>
+                        <Badge>{rank === 0 ? t("engineWebPrimary") : t("engineWebBackup")}</Badge>
+                        {row.key_hint && <span className="p-cell-meta">{row.key_hint}</span>}
+                      </span>
+                      {result && <span className="p-cell-meta" data-tone={result.ok ? undefined : "error"} role="status">{result.text}</span>}
+                    </span>
+                  ) : (
+                    <span className="p-cell-meta">{t("engineWebNotConnected")}</span>
+                  )}
+                </td>
+                <td className="p-table-action">
+                  {row ? (
+                    <span className="p-row p-nowrap">
+                      <Action variant="ghost" size="sm" disabled={action.pending} onClick={() => void test(engine.id)}>
+                        <Zap aria-hidden="true" />
+                        {t("engineWebTestSearch")}
+                      </Action>
+                      <ActionMenu
+                        label={t("moreActions")}
+                        items={[
+                          { label: t("engineWebReplaceKey"), icon: <KeyRound />, onSelect: () => setConnecting(engine.id) },
+                          { separator: true },
+                          { label: t("engineWebDisconnect"), icon: <Trash2 />, tone: "danger", onSelect: () => setDisconnecting(engine.id) },
+                        ]}
+                      />
+                    </span>
+                  ) : (
+                    <Action variant="secondary" size="sm" onClick={() => setConnecting(engine.id)}>
+                      {t("engineWebConnect")}
+                    </Action>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </DataTable>
+      </div>
+
+      {connecting && (
+        <ConnectSearchDialog
+          orgId={orgId}
+          engine={connecting}
+          name={nameOf(connecting)}
+          onClose={() => setConnecting(null)}
+          onSaved={async () => { setConnecting(null); await reload(); }}
+        />
+      )}
+      <Modal
+        open={!!disconnecting}
+        onOpenChange={(open) => !open && setDisconnecting(null)}
+        title={t("engineWebDisconnect")}
+        description={disconnecting ? nameOf(disconnecting) : undefined}
+        alert={action.message}
+        size="sm"
+        footer={
+          <>
+            <Action variant="secondary" onClick={() => setDisconnecting(null)}>{t("cancel")}</Action>
+            <Action
+              variant="danger"
+              disabled={action.pending}
+              onClick={() => disconnecting && void action.run(async () => {
+                await evalRequest(`/engine/web-search?orgId=${encodeURIComponent(orgId)}&engine=${disconnecting}`, "DELETE");
+                setDisconnecting(null);
+                await reload();
+              }, t("engineWebRemovedToast"))}
+            >
+              {action.pending ? t("working") : t("engineWebDisconnect")}
+            </Action>
+          </>
+        }
+      />
+    </Section>
+  );
+}
+
+function ConnectSearchDialog({ orgId, engine, name, onClose, onSaved }: { orgId: string; engine: SearchEngineId; name: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [apiKey, setApiKey] = useState("");
+  const action = useAction();
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    await action.run(async () => {
+      await evalRequest("/engine/web-search", "PUT", { orgId, engine, apiKey: apiKey.trim() });
+      await onSaved();
+    }, t("engineWebConnectedToast"));
+  }
+  return (
+    <Modal
+      open
+      onOpenChange={(value) => !value && onClose()}
+      title={tv("engineWebConnectTitle", { engine: name })}
+      description={SEARCH_ENGINES.find((item) => item.id === engine)?.help}
+      alert={action.message}
+      size="sm"
+      footer={
+        <>
+          <Action variant="secondary" onClick={onClose}>{t("cancel")}</Action>
+          <Action type="submit" form="engine-search-key" disabled={apiKey.trim().length < 8 || action.pending}>
+            {action.pending ? t("saving") : t("engineWebConnect")}
+          </Action>
+        </>
+      }
+    >
+      <form id="engine-search-key" className="p-stack" onSubmit={save}>
+        <Field id="search-key" label={t("engineWebKeyLabel")} type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" hint={t("engineWebKeyHelp")} required />
       </form>
     </Modal>
   );

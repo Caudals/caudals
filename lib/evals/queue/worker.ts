@@ -2,10 +2,11 @@ import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { reserve, settle, BudgetExceeded } from '../budget/ledger';
 import { decimal, priceUsage, units, worstCase } from '../budget/money';
-import { connectionInvocationSecret, invocationSecret } from '../security/secrets';
+import { connectionInvocationSecret, invocationSecret, webSearchSecrets } from '../security/secrets';
 import type { Keyring } from '../security/envelope';
-import { acquireCapacity, loadProvider } from '../providers/registry';
-import { invocationSchema, ProviderFailure, type ProviderOutput } from '../providers/contracts';
+import { acquireCapacity, loadProvider, WEB_RESULTS_MAX_BYTES } from '../providers/registry';
+import { runWebSearch, webResultsMessage } from '../providers/web-search';
+import { invocationSchema, ProviderFailure, type Invocation, type ProviderOutput, type ProviderRevision, type WebResult } from '../providers/contracts';
 import { invokeOpenAI } from '../providers/openai-compatible';
 import { digest, event, projectWorkflow, type Tenant, type TenantTransaction } from './store';
 import { jobSchema, type JobData } from './boss';
@@ -21,7 +22,19 @@ async function lockStep(c:PoolClient,orgId:string,stepId:string) {
  return {workflow,step};
 }
 async function projectRun(c:PoolClient,orgId:string,runId:string){const statuses=(await c.query("SELECT status FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows.map(row=>row.status as string);if(!statuses.length)return;const active=statuses.some(status=>["pending","queued","running"].includes(status)),usable=statuses.some(status=>status==="succeeded"),status=active?"running":statuses.every(value=>value==="succeeded")?"completed":usable?"partial":"failed";await c.query("UPDATE evals.run SET status=$3,phase=CASE WHEN $3 IN ('completed','partial','failed') THEN 'grading' ELSE 'target_execution' END,updated_at=now() WHERE org_id=$1 AND id=$2",[orgId,runId,status]);}
-export interface WorkerOptions {tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;dgxEndpoint?:string;invoke?:typeof invokeOpenAI;leaseSeconds?:number}
+export interface WorkerOptions {tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;dgxEndpoint?:string;invoke?:typeof invokeOpenAI;search?:typeof runWebSearch;leaseSeconds?:number}
+/** Engine roles whose calls are safe to repeat: a retry costs tokens, never a duplicate action on a customer's system. */
+const INTERNAL_ROLES=new Set(['generator','context_analyzer','judge','report_writer']);
+const TRANSIENT=new Set(['overloaded','service_unavailable','network_unavailable']);
+const internal=(input:unknown)=>{const parsed=invocationSchema.safeParse(input);return parsed.success&&INTERNAL_ROLES.has(parsed.data.role)&&!parsed.data.probe;};
+/** Keep the results that fit the room left in the model's context, never more than WEB_RESULTS_MAX_BYTES. */
+function fitWebResults(provider:ProviderRevision,input:Invocation,results:WebResult[]):WebResult[] {
+ const prompt=Buffer.byteLength(JSON.stringify(input.messages),'utf8')+1024;
+ const room=Math.min(WEB_RESULTS_MAX_BYTES,provider.context_limit-prompt-input.maxOutputTokens)-600;
+ const kept:WebResult[]=[];let used=0;
+ for(const item of results){const size=Buffer.byteLength(JSON.stringify(item),'utf8');if(used+size>room)break;kept.push(item);used+=size;}
+ return kept;
+}
 export class InvocationWorker {
  private readonly lease:number;
  constructor(private readonly options:WorkerOptions) {this.lease=options.leaseSeconds??150;if(this.lease<5)throw new Error('lease_too_short');}
@@ -72,7 +85,21 @@ export class InvocationWorker {
     await event(c,tenant.orgId,step.workflow_id,'attempt_dispatching');return true;
    });
    if(!dispatched)return;
-   const output=await (this.options.invoke??invokeOpenAI)(provider,input,secret,controller.signal,this.options.dgxEndpoint);
+   // Web research: run the call's queries on the connected search engine and
+   // hand the results to the model, whatever the provider. Without an engine
+   // (or results) an OpenRouter call can still use its own web plugin.
+   let call=input,webSearch:ProviderOutput['webSearch'];
+   if(input.webSearch?.queries?.length&&INTERNAL_ROLES.has(input.role)&&!input.probe) {
+    const engines=await this.options.tx(tenant,c=>webSearchSecrets(c,this.options.keys));
+    try {
+     const found=await (this.options.search??runWebSearch)(engines.map(item=>({engine:item.engine,key:item.key.toString('utf8')})),input.webSearch.queries,input.webSearch.maxResults,controller.signal);
+     const results=fitWebResults(provider,input,found.results);
+     webSearch={engine:found.engine,queries:input.webSearch.queries.map(item=>item.site?`${item.query} (site:${item.site})`:item.query),results:results.map(({url,title,published})=>({url,title,...(published?{published}:{})})),...(found.failed?{failed:found.failed}:{})};
+     if(results.length)call={...input,webSearch:undefined,messages:[...input.messages,{role:'user',content:webResultsMessage(input.webSearch.queries,results)}]};
+    } finally {engines.forEach(item=>item.key.fill(0));}
+   }
+   const answered=await (this.options.invoke??invokeOpenAI)(provider,call,secret,controller.signal,this.options.dgxEndpoint);
+   const output:ProviderOutput=webSearch?{...answered,webSearch,citations:[...new Map([...(answered.citations??[]),...webSearch.results.map(({url,title})=>({url,title}))].map(item=>[item.url,item])).values()].slice(0,20)}:answered;
    const actual=output.usage?priceUsage(price,output.usage.input,output.usage.output,output.usage.cached):amount;
    const internalEstimate=decimal((units(input.internalCostPerSecond)*BigInt(Math.ceil(output.latencyMs)) + BigInt(999))/BigInt(1000));
    await this.options.tx(tenant,async c=>{
@@ -115,7 +142,8 @@ export class InvocationWorker {
    const eligible=(await c.query('SELECT not_before<=now() AS ready FROM evals.workflow_step WHERE org_id=$1 AND id=$2',[tenant.orgId,step.id])).rows[0].ready;
    if(!eligible)return;
    const previous=(await c.query('SELECT status,ordinal FROM evals.execution_attempt WHERE org_id=$1 AND step_id=$2 ORDER BY ordinal DESC LIMIT 1',[tenant.orgId,step.id])).rows[0];
-   if(previous && (previous.ordinal>=3 || previous.status==='unknown'||previous.status==='dispatching'))throw new Error('attempt_review_required');
+   // An unknown outcome needs review before a target is called again; an engine call may simply be repeated.
+   if(previous && (previous.ordinal>=3 || previous.status==='dispatching' || previous.status==='unknown'&&!internal(step.input)))throw new Error('attempt_review_required');
    const input=invocationSchema.parse(step.input), {provider,price,inputBound}=await loadProvider(c,input);
    if(input.generationJobId&&input.generationStep)await c.query("UPDATE evals.generation_batch SET status='running',attempt_count=LEAST(attempt_count+1,3),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND version=$4",[tenant.orgId,input.generationJobId,input.generationStep,step.version]);
    const amount=worstCase(price,inputBound,input.maxOutputTokens),attemptId=randomUUID();
@@ -141,14 +169,19 @@ export class InvocationWorker {
    const dispatched=attempt.status==='dispatching', failure=error instanceof ProviderFailure?error:undefined;
    const unknown=dispatched&&failure?.outcome!=='rejected';
    const reason=failure?.code??'invocation_failed';
+   const engine=internal(step.input);
+   if(failure)console.warn(JSON.stringify({event:'provider_call_failed',reason,detail:failure.detail??null,attempt:attempt.ordinal,stepId:step.id}));
    if(unknown)await c.query("UPDATE evals.budget_reservation SET state='unresolved',provenance='unknown_external_outcome' WHERE org_id=$1 AND attempt_id=$2",[tenant.orgId,attemptId]);
    else await settle(c,tenant.orgId,attemptId,dispatched?amount:'0',dispatched?'bounded_estimate':'confirmed_not_dispatched');
    await c.query('UPDATE evals.execution_attempt SET status=$3,reason_code=$4,finished_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,attemptId,unknown?'unknown':'failed',reason]);
-   // Unknown accepted work retains its capacity slot until explicit reconciliation.
-   if(!unknown)await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
-   const retry=!unknown&&failure?.code==='overloaded'&&attempt.ordinal<3&&current.workflow.status==='running';
-   const state=unknown?'unknown':retry?'queued':current.workflow.status==='cancel_requested'?'canceled':'paused';
-   const delay=Math.max(failure?.retryAfterMs??0,1000*2**attempt.ordinal+Math.floor(Math.random()*1000));
+   // An engine call that hit a busy, failing or unreachable provider is tried
+   // again (three attempts in all, backing off) instead of stopping the job;
+   // its possible charge stays recorded as unresolved. Unknown work on a
+   // customer's system retains its capacity slot until explicit reconciliation.
+   const retry=current.workflow.status==='running'&&attempt.ordinal<3&&(engine?TRANSIENT.has(failure?.code??''):!unknown&&failure?.code==='overloaded');
+   if(!unknown||retry)await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
+   const state=retry?'queued':unknown?'unknown':current.workflow.status==='cancel_requested'?'canceled':'paused';
+   const delay=Math.max(failure?.retryAfterMs??0,engine&&failure?.code!=='overloaded'?15000*4**(attempt.ordinal-1):1000*2**attempt.ordinal+Math.floor(Math.random()*1000));
    await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,not_before=now()+$5::int*interval '1 millisecond',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state,reason,delay]);
    const parsedInput=invocationSchema.parse(step.input);
    if(parsedInput.generationJobId&&parsedInput.generationStep&&!retry){

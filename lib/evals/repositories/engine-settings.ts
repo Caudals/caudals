@@ -7,7 +7,8 @@ import { EvalError } from "../domain/errors";
 import type { EvalIdentity } from "../domain/identity";
 import { publicAddress, reasoningHint } from "../providers/openai-compatible";
 import { encryptSecret, decryptSecret, loadKeyring } from "../security/envelope";
-import { connectionSecretScope } from "../security/secrets";
+import { connectionSecretScope, webSearchSecretScope } from "../security/secrets";
+import { SEARCH_ENGINES, searchOnce, type SearchEngine } from "../providers/web-search";
 import { asAdmin, requirePlatformAdmin, requireRecentAuthentication } from "./platform";
 
 /**
@@ -54,7 +55,7 @@ type RouteRow = {
   currency: string;
   updated_at: string;
   usable: boolean;
-  /** Public web search for this role; only OpenRouter routes support it. */
+  /** Public web search for this role: through a connected search engine (any model) or OpenRouter's plugin. */
   web_research: boolean;
   web_capable: boolean;
 };
@@ -81,10 +82,13 @@ async function audit(c: PoolClient, orgId: string, actorId: string, action: stri
   await c.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,$3,$4)", [orgId, actorId, action, subjectId]);
 }
 
+/** A route can search the web when a search engine is connected, or natively through OpenRouter. */
+const WEB_CAPABLE = `EXISTS (SELECT 1 FROM evals.web_search_connection w WHERE w.enabled)
+  OR (p.adapter='openai_compatible' AND split_part(split_part(p.endpoint,'://',2),'/',1)='openrouter.ai')`;
 const ROUTE_SELECT = (table: string, where: string) => `SELECT r.role,r.provider_revision_id,p.model_id,p.adapter,p.account_id,a.name AS account_name,p.context_limit,
     pr.input_price::text AS input_price,pr.output_price::text AS output_price,pr.currency,r.updated_at,
     (a.enabled AND (p.retired_at IS NULL OR p.retired_at>now())) AS usable,
-    r.web_research,(p.adapter='openai_compatible' AND split_part(split_part(p.endpoint,'://',2),'/',1)='openrouter.ai') AS web_capable
+    r.web_research,(${WEB_CAPABLE}) AS web_capable
   FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
   JOIN evals.provider_account a ON a.id=p.account_id
   JOIN evals.price_revision pr ON pr.id=r.price_revision_id ${where} ORDER BY r.role`;
@@ -101,8 +105,10 @@ export async function getEngineSettings(identity: EvalIdentity, orgId: string) {
     const platform = (await c.query(ROUTE_SELECT("evals.platform_model_route", ""))).rows as RouteRow[];
     const workspace = (await c.query(ROUTE_SELECT("evals.generation_provider_route", "WHERE r.org_id=$1"), [orgId])).rows as RouteRow[];
     const dgx = dgxEndpoint();
+    const searchEngines = (await c.query("SELECT engine,key_hint,priority,enabled,updated_at FROM evals.web_search_connection ORDER BY priority,engine")).rows as Array<{ engine: SearchEngine; key_hint: string | null; priority: number; enabled: boolean; updated_at: string }>;
     return {
       roles: ENGINE_ROLES,
+      searchEngines,
       dgxAvailable: !!dgx,
       // The DGX appears even before its first use; it is created on first selection.
       connections: dgx && !connections.some((item) => item.adapter === "dgx")
@@ -261,9 +267,9 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
 }
 
 /**
- * Turn public web search on or off for one role's route. Only routes whose
- * provider supports it (OpenRouter's web plugin) can enable it; the search
- * cost is billed by the provider per result.
+ * Turn public web search on or off for one role's route. Any model can use
+ * it once a search engine (Tavily, Exa) is connected; without one, only
+ * OpenRouter routes can (its web plugin, billed per result by OpenRouter).
  */
 export async function setRouteWebResearch(identity: EvalIdentity, orgId: string, raw: unknown) {
   requirePlatformAdmin(identity);
@@ -271,15 +277,76 @@ export async function setRouteWebResearch(identity: EvalIdentity, orgId: string,
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
     const table = input.scope === "platform" ? "evals.platform_model_route" : "evals.generation_provider_route";
     const where = input.scope === "platform" ? "r.role=$1" : "r.role=$1 AND r.org_id=$2";
-    const route = (await c.query(`SELECT (p.adapter='openai_compatible' AND split_part(split_part(p.endpoint,'://',2),'/',1)='openrouter.ai') AS capable
+    const route = (await c.query(`SELECT (${WEB_CAPABLE}) AS capable
       FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id WHERE ${where}`, input.scope === "platform" ? [input.role] : [input.role, orgId])).rows[0];
     if (!route) throw new EvalError("INPUT_INVALID", 422, "Choose a model for this task first.");
-    if (input.enabled && !route.capable) throw new EvalError("INPUT_INVALID", 422, "Web research needs a model connected through OpenRouter.");
+    if (input.enabled && !route.capable) throw new EvalError("INPUT_INVALID", 422, "Connect a web search engine (Tavily or Exa) first, or use a model connected through OpenRouter.");
     await c.query(`UPDATE ${table} r SET web_research=$${input.scope === "platform" ? 2 : 3},updated_by=$${input.scope === "platform" ? 3 : 4},updated_at=now() WHERE ${where}`,
       input.scope === "platform" ? [input.role, input.enabled, identity.user.id] : [input.role, orgId, input.enabled, identity.user.id]);
     await audit(c, orgId, identity.user.id, `engine.web_research.${input.enabled ? "on" : "off"}`, input.role);
     return { role: input.role, scope: input.scope, enabled: input.enabled };
   });
+}
+
+// ------------------------------------------------------------ web search
+
+const searchKeySchema = z.strictObject({ engine: z.enum(SEARCH_ENGINES), apiKey: z.string().trim().min(8).max(512) });
+
+/** Connect a web search engine, or replace its key. Write-only, like provider keys. */
+export async function setWebSearchEngine(identity: EvalIdentity, orgId: string, raw: unknown) {
+  requireRecentAuthentication(identity);
+  const input = searchKeySchema.parse(raw);
+  const { keys, version } = keyring();
+  const value = Buffer.from(input.apiKey, "utf8");
+  try {
+    // Check the key before storing it, so a typo never silently disables research.
+    await searchOnce(input.engine, input.apiKey, { query: "Caudals AI evaluation" }, 1).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : "";
+      throw new EvalError("INPUT_INVALID", 422, reason === "web_search_key_rejected" ? "The search engine rejected this key." : reason === "web_search_quota" ? "This key has no search credits left." : "Could not reach the search engine with this key. Try again.");
+    });
+    return await asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
+      const envelope = encryptSecret(value, webSearchSecretScope(input.engine), version, keys);
+      const priority = input.engine === "tavily" ? 1 : 2;
+      await c.query(`INSERT INTO evals.web_search_connection(engine,envelope,key_hint,priority,enabled,created_by) VALUES($1,$2,$3,$4,true,$5)
+        ON CONFLICT(engine) DO UPDATE SET envelope=excluded.envelope,key_hint=excluded.key_hint,enabled=true,updated_at=now()`,
+      [input.engine, envelope, `…${input.apiKey.slice(-4)}`, priority, identity.user.id]);
+      await audit(c, orgId, identity.user.id, "engine.web_search.connected", input.engine);
+      return { engine: input.engine };
+    });
+  } finally {
+    value.fill(0);
+  }
+}
+
+/** Disconnect a search engine. Roles with web research on keep working with the other engine, or OpenRouter's plugin. */
+export async function removeWebSearchEngine(identity: EvalIdentity, orgId: string, engine: string) {
+  requireRecentAuthentication(identity);
+  const parsed = z.enum(SEARCH_ENGINES).parse(engine);
+  return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
+    await c.query("DELETE FROM evals.web_search_connection WHERE engine=$1", [parsed]);
+    await audit(c, orgId, identity.user.id, "engine.web_search.removed", parsed);
+    return { engine: parsed };
+  });
+}
+
+/** One live search with the stored key, to show what research would find. */
+export async function testWebSearch(identity: EvalIdentity, orgId: string, raw: unknown) {
+  requirePlatformAdmin(identity);
+  const input = z.strictObject({ engine: z.enum(SEARCH_ENGINES), query: z.string().trim().min(2).max(200).default("Caudals AI evaluation") }).parse(raw);
+  const { keys } = keyring();
+  const row = await asAdmin({ orgId, actorId: identity.user.id }, async (c) => (await c.query("SELECT envelope FROM evals.web_search_connection WHERE engine=$1", [input.engine])).rows[0]);
+  if (!row) throw new EvalError("SCOPE_DENIED", 404);
+  const key = decryptSecret(row.envelope, webSearchSecretScope(input.engine), keys);
+  const started = Date.now();
+  try {
+    const results = await searchOnce(input.engine, key.toString("utf8"), { query: input.query }, 3);
+    return { ok: true, latencyMs: Date.now() - started, results: results.map(({ url, title }) => ({ url, title })) };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "web_search_failed";
+    return { ok: false, latencyMs: Date.now() - started, results: [], message: reason === "web_search_key_rejected" ? "The search engine rejected the key." : reason === "web_search_quota" ? "The key has no search credits left." : "The search engine did not answer." };
+  } finally {
+    key.fill(0);
+  }
 }
 
 /** A workspace goes back to the platform default for one role (or all). */

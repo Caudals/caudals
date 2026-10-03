@@ -649,6 +649,16 @@ export function Check({
   );
 }
 
+/** On/off switch for a setting that applies immediately. Label it with aria-label or aria-labelledby. */
+export function Switch(props: Omit<ComponentProps<"input">, "type" | "role">) {
+  return (
+    <span className="p-toggle">
+      <input type="checkbox" role="switch" {...props} />
+      <span className="p-toggle-track" aria-hidden="true" />
+    </span>
+  );
+}
+
 /** Compact inline select for toolbars, where the label sits beside the control. */
 export function InlineSelect({
   label,

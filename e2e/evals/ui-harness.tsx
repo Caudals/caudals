@@ -9,6 +9,7 @@ import { WorkspaceSettings } from "../../components/evals/workspace-settings";
 import { AuthenticatedReport, ReportView } from "../../components/evals/report-view";
 import { ReviewQueue } from "../../components/evals/assessment-review";
 import { PlatformConsole } from "../../components/evals/platform-console";
+import { EngineSettings } from "../../components/evals/engine-settings";
 import { OperatorLibrary } from "../../components/evals/operator-library";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
@@ -119,6 +120,8 @@ const content =
     <NewEvaluationFlow />
   ) : location.pathname === "/workspace/settings" ? (
     <WorkspaceSettings />
+  ) : location.pathname === "/workspace/settings/models" ? (
+    <EngineSettings orgId="00000000-0000-4000-8000-000000000001" workspaceName="Acme" />
   ) : location.pathname === "/workspace/reports" ? (
     <WorkspaceReports />
   ) : location.pathname === "/workspace/test-sets" ? (

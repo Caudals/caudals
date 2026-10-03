@@ -4,6 +4,7 @@ import { assessmentSchema, type Assessment, type Observation } from "../contract
 import type { CefCase, Rubric } from "../contracts/cases";
 import { canonicalJson, withContentHash } from "../contracts/hashing";
 import { candidateValue, deterministicCheck } from "./deterministic";
+import { parseModelJsonText } from "../providers/model-json";
 import { JUDGE_EXTENSION, PENDING_CRITERIA_EXTENSION, type CalibrationSummary, type PendingCriterion, type SourceExcerpt } from "./judge";
 import { LEXICAL_FACT_THRESHOLD, factCoverage, foldText, guessLanguage, isEchoOfPrompt, languageName } from "./text";
 
@@ -276,32 +277,13 @@ const answerJudgeOutputSchema = z.object({
 });
 export type AnswerJudgeOutput = z.infer<typeof answerJudgeOutputSchema>;
 
-/** The first balanced JSON object in a model reply (models add prose or fences despite instructions). */
-function extractJson(text: string): unknown {
-  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  try { return JSON.parse(trimmed); } catch { /* raw control characters or an embedded object */ }
-  // Models sometimes put a raw tab or newline inside a string; as whitespace it is harmless.
-  try { return JSON.parse(trimmed.replace(/[\u0000-\u001f]+/g, " ")); } catch { /* look for an embedded object */ }
-  const start = trimmed.indexOf("{");
-  if (start < 0) throw new Error("no_json");
-  let depth = 0, inString = false, escaped = false;
-  for (let index = start; index < trimmed.length; index++) {
-    const char = trimmed[index];
-    if (inString) { if (escaped) escaped = false; else if (char === "\\") escaped = true; else if (char === '"') inString = false; continue; }
-    if (char === '"') inString = true;
-    else if (char === "{") depth++;
-    else if (char === "}" && --depth === 0) return JSON.parse(trimmed.slice(start, index + 1).replace(/[\u0000-\u001f]+/g, " "));
-  }
-  throw new Error("no_json");
-}
-
 export function parseAnswerJudgeOutput(output: unknown, criterionIds: string[]):
   { ok: true; output: AnswerJudgeOutput } | { ok: false; reason: string } {
   const envelope = z.object({ text: z.string(), complete: z.boolean() }).safeParse(output);
   if (!envelope.success) return { ok: false, reason: "judge_output_missing" };
   if (!envelope.data.text.trim()) return { ok: false, reason: envelope.data.complete ? "judge_output_missing" : "judge_output_incomplete" };
   let raw: unknown;
-  try { raw = extractJson(envelope.data.text); } catch { return { ok: false, reason: envelope.data.complete ? "judge_output_not_json" : "judge_output_incomplete" }; }
+  try { raw = parseModelJsonText(envelope.data.text); } catch { return { ok: false, reason: envelope.data.complete ? "judge_output_not_json" : "judge_output_incomplete" }; }
   const parsed = answerJudgeOutputSchema.safeParse(raw);
   if (!parsed.success || !parsed.data.explanation) return { ok: false, reason: "judge_output_schema_invalid" };
   // Keep one grade per requested criterion; derive any the judge omitted from its verdict.

@@ -81,6 +81,20 @@ createServer(async (req, res) => {
       { type: "generation", id: "gen-1", status: "drafting", reason_code: null, created_at: now, updated_at: now, evaluation_id: "eval-2", evaluation_title: "Onboarding bot — eligibility", subject: "Onboarding test set", done: 24, total: 40, phase: null, grading_done: null, grading_total: null, percent: 60, stage: "drafting", active: true },
       { type: "website", id: "web-1", status: "completed", reason_code: null, created_at: now, updated_at: now, evaluation_id: "eval-3", evaluation_title: "Claims triage — policy limits", subject: "claims.example.com", done: null, total: null, phase: null, grading_done: null, grading_total: null, percent: 100, stage: "done", active: false },
     ], meta: {} }));
+  } else if (req.url?.startsWith("/api/evals/v1/engine?") && process.env.HARNESS_FIXTURE === "demo") {
+    // Demo AI model settings: DGX and OpenRouter, Tavily connected, web research on for grading.
+    const route = (role, model, adapter, web) => ({ role, provider_revision_id: `rev-${role}`, model_id: model, adapter, account_id: adapter === "dgx" ? "dgx" : "acc-or", account_name: adapter === "dgx" ? "DGX Spark" : "OpenRouter", context_limit: 131072, input_price: "0", output_price: "0", currency: "EUR", updated_at: new Date().toISOString(), usable: true, web_research: web, web_capable: true });
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ data: {
+      roles: ["context_analyzer", "generator", "judge", "report_writer"], dgxAvailable: true,
+      connections: [
+        { id: "dgx", name: "DGX Spark", adapter: "dgx", host: "DGX Spark (private network)", key_hint: null, enabled: true, has_key: false },
+        { id: "acc-or", name: "OpenRouter", adapter: "openai_compatible", host: "openrouter.ai", key_hint: "…9f2c", enabled: true, has_key: true },
+      ],
+      platform: [route("context_analyzer", "qwen3-coder:30b", "dgx", false), route("generator", "qwen3-coder:30b", "dgx", false), route("judge", "qwen3-coder:30b", "dgx", true), route("report_writer", "qwen3-coder:30b", "dgx", false)],
+      workspace: [],
+      searchEngines: [{ engine: "tavily", key_hint: "…uDYN", priority: 1, enabled: true, updated_at: new Date().toISOString() }],
+    }, meta: {} }));
   } else if (req.url?.startsWith("/caudals-logo") || req.url?.startsWith("/caudals_logo")) {
     try {
       const filePath = root + "public" + req.url.split("?")[0];

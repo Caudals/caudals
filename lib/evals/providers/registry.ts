@@ -2,6 +2,12 @@ import type { PoolClient } from 'pg';
 import { boundedInputTokens, type Invocation, type ProviderRevision } from './contracts';
 import { units, type Price } from '../budget/money';
 export interface PriceRevision extends Price {id:string;currency:string;provider_revision_id:string}
+/** Upper bound, in bytes, of the web results message for an invocation that carries search queries. */
+export const WEB_RESULTS_MAX_BYTES=48_000;
+export function webResultsBound(input:Pick<Invocation,'webSearch'>):number {
+ const queries=input.webSearch?.queries?.length??0;
+ return queries?Math.min(WEB_RESULTS_MAX_BYTES,queries*input.webSearch!.maxResults*1600+600):0;
+}
 export async function loadProvider(client:PoolClient, input:Invocation):Promise<{provider:ProviderRevision;price:PriceRevision;inputBound:number}> {
  const provider=(await client.query('SELECT * FROM evals.provider_revision WHERE id=$1',[input.providerRevisionId])).rows[0] as ProviderRevision|undefined;
  const price=(await client.query('SELECT * FROM evals.price_revision WHERE id=$1 AND provider_revision_id=$2 AND effective_at<=now()',[input.priceRevisionId,input.providerRevisionId])).rows[0] as PriceRevision|undefined;
@@ -17,8 +23,10 @@ export async function loadProvider(client:PoolClient, input:Invocation):Promise<
  if(input.maxOutputTokens>provider.output_limit) throw new Error('output_bound_exceeded');
  // UTF-8 bytes conservatively dominate byte-level tokenization. Reserve the
  // prompt plus chat-template headroom, then check it against the context limit.
- const inputBound=boundedInputTokens(input.messages,provider.context_limit,input.maxOutputTokens);
- return {provider,price,inputBound};
+ const prompt=boundedInputTokens(input.messages,provider.context_limit,input.maxOutputTokens);
+ // Web results the worker may add (it trims them to whatever room is left).
+ const web=Math.min(webResultsBound(input),Math.max(0,provider.context_limit-prompt-input.maxOutputTokens));
+ return {provider,price,inputBound:prompt+web};
 }
 export async function acquireCapacity(client:PoolClient, provider:ProviderRevision, attemptId:string, tokenBound:number):Promise<void> {
  // One residency slot across ALL DGX accounts/revisions, not one per model.

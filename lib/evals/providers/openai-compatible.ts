@@ -48,7 +48,16 @@ export function reasoningHint(provider:Pick<ProviderRevision,'adapter'|'model_id
  return openai?{reasoning_effort:'low'}:{};
 }
 /** No redirect following; DNS is validated and pinned to the actual socket lookup. */
-async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:Buffer|undefined,signal:AbortSignal,dgxEndpoint?:string):Promise<ProviderOutput> {
+/** The provider's error message from a rejected call, shortened and with anything key-like masked. */
+export function providerErrorDetail(body:string):string|undefined {
+ let message=body;
+ try {const parsed=JSON.parse(body) as {error?:unknown;message?:unknown;detail?:unknown};const error=parsed.error;
+  message=typeof error==='string'?error:error&&typeof error==='object'&&typeof (error as {message?:unknown}).message==='string'?(error as {message:string}).message:typeof parsed.message==='string'?parsed.message:typeof parsed.detail==='string'?parsed.detail:body;
+ }catch{/* plain text body */}
+ const clean=message.replace(/\s+/g,' ').replace(/\b(sk|tvly|pk|rk|key)[-_][A-Za-z0-9_-]{6,}/gi,'[key]').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]').trim();
+ return clean?clean.slice(0,300):undefined;
+}
+async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:Buffer|undefined,signal:AbortSignal,dgxEndpoint?:string,options:{omitReasoning?:boolean}={}):Promise<ProviderOutput> {
  const base=new URL(provider.endpoint);
  if(base.username || base.password || base.search || base.hash) throw new Error('invalid_provider_endpoint');
  if(provider.adapter==='dgx') {
@@ -63,7 +72,7 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  // OpenAI's current models take max_completion_tokens and only the default temperature.
  const openai=provider.adapter!=='dgx'&&hostname==='api.openai.com';
  const payload=JSON.stringify({model:provider.model_id,messages:input.messages,stream:false,...(openai?{max_completion_tokens:input.maxOutputTokens}:{max_tokens:input.maxOutputTokens,temperature:0}),
-  ...reasoningHint(provider,hostname,input),
+  ...(options.omitReasoning?{}:reasoningHint(provider,hostname,input)),
   // Web research: OpenRouter's web plugin searches the public web for any model and returns url_citation annotations.
   ...(input.webSearch&&!input.probe&&INTERNAL_ROLES.has(input.role)&&hostname==='openrouter.ai'?{plugins:[{id:'web',max_results:input.webSearch.maxResults}]}:{}),
   ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
@@ -80,10 +89,15 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
   },response=>{
     const status=response.statusCode??0;
     if(status!==200) {
-      response.resume();
       const retryHeader=response.headers['retry-after'];const retry=typeof retryHeader==='string'?Number(retryHeader):0;
+      const code=status===401||status===403?'invalid_credentials':status===404?'model_missing':status===429?'overloaded':status>=500?'service_unavailable':'unsupported_feature';
+      // Keep the provider's own explanation (bounded) so a rejection can be diagnosed and, for reasoning flags, retried.
+      const body:Buffer[]=[];let read=0;
+      const reject=()=>fail(new ProviderFailure(code,status>=500?'unknown':'rejected',Number.isFinite(retry)?Math.min(300000,Math.max(0,retry*1000)):0,providerErrorDetail(Buffer.concat(body).toString('utf8'))));
+      response.on('data',(chunk:Buffer)=>{if(read<8192){body.push(chunk.subarray(0,8192-read));read+=chunk.length;}});
+      response.on('end',reject);response.on('error',reject);
       // Even explicit rejection can be billed; caller retains an estimated charge.
-      fail(new ProviderFailure(status===401||status===403?'invalid_credentials':status===404?'model_missing':status===429?'overloaded':status>=500?'service_unavailable':'unsupported_feature',status>=500?'unknown':'rejected',Number.isFinite(retry)?Math.min(300000,Math.max(0,retry*1000)):0));return;
+      return;
     }
     const chunks:Buffer[]=[];let size=0;
     response.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>2_000_000){response.destroy();fail(new ProviderFailure('malformed_output','unknown'));}else chunks.push(chunk);});
@@ -125,6 +139,17 @@ export async function invokeOpenAI(provider:ProviderRevision,input:Invocation,se
  let abortReject:(()=>void)|undefined;
  const deadline=new Promise<never>((_,reject)=>{abortReject=()=>reject(new ProviderFailure('network_unavailable','unknown'));controller.signal.addEventListener('abort',abortReject,{once:true});});
  if(signal.aborted)controller.abort();
- try {const result=await Promise.race([invokeRequest(provider,input,secret,controller.signal,dgxEndpoint),deadline]);return {...result,latencyMs:Date.now()-started};}
+ const attempt=(omitReasoning:boolean)=>Promise.race([invokeRequest(provider,input,secret,controller.signal,dgxEndpoint,{omitReasoning}),deadline]);
+ try {
+  let result:ProviderOutput;
+  try {result=await attempt(false);}catch(error){
+   // Some models cannot switch reasoning off or take no budget ("Reasoning is
+   // mandatory for this endpoint"): ask once more with the model's default.
+   const hinted=Object.keys(reasoningHint(provider,new URL(provider.endpoint).hostname.replace(/^\[|\]$/g,''),input)).length>0;
+   if(!(error instanceof ProviderFailure&&error.code==='unsupported_feature'&&hinted&&(!error.detail||/reason|think/i.test(error.detail)))||controller.signal.aborted)throw error;
+   result=await attempt(true);
+  }
+  return {...result,latencyMs:Date.now()-started};
+ }
  finally {clearTimeout(timer);signal.removeEventListener('abort',abort);if(abortReject)controller.signal.removeEventListener('abort',abortReject);}
 }

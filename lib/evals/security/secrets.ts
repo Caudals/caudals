@@ -99,3 +99,17 @@ export async function connectionInvocationSecret(client:PoolClient,orgId:string,
   if(!row.envelope) return undefined;
   return decryptSecret(row.envelope,connectionSecretScope(row.account_id),keys);
 }
+
+/** Web search engine keys (Tavily, Exa) belong to the platform, like provider keys. */
+export function webSearchSecretScope(engine:string):SecretScope {
+  return {orgId:PLATFORM_SECRET_ORG,recordId:engine,versionId:engine,purpose:'web_search',scopeId:engine};
+}
+/**
+ * Enabled search engines in priority order, keys decrypted. Read only by the
+ * inference worker for a call that carries web queries; callers zero the keys.
+ */
+export async function webSearchSecrets(client:PoolClient,keys:Keyring):Promise<Array<{engine:'tavily'|'exa';key:Buffer}>> {
+  if(!(await client.query("SELECT to_regclass('evals.web_search_connection') AS present")).rows[0].present) return [];
+  const rows=(await client.query("SELECT engine,envelope FROM evals.web_search_connection WHERE enabled ORDER BY priority,engine")).rows as Array<{engine:'tavily'|'exa';envelope:unknown}>;
+  return rows.flatMap(row=>{try{return [{engine:row.engine,key:decryptSecret(row.envelope,webSearchSecretScope(row.engine),keys)}];}catch{return [];}});
+}

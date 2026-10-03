@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { afterAll,beforeAll,describe,expect,it,vi } from 'vitest';
 import { fixture,type Fixture } from './worker-fixture';
 import { InvocationWorker } from '../../lib/evals/queue/worker';
@@ -8,6 +9,8 @@ import { publicAddress } from '../../lib/evals/providers/openai-compatible';
 import { acquireCapacity } from '../../lib/evals/providers/registry';
 import { ProviderFailure } from '../../lib/evals/providers/contracts';
 import { stageAOwnerUrl } from './stage-a-env';
+import { encryptSecret } from '../../lib/evals/security/envelope';
+import { webSearchSecretScope } from '../../lib/evals/security/secrets';
 const output={complete:true,finishReason:'stop',text:'fixture response',usage:{input:10,output:5,cached:0},latencyMs:10};
 it('hashes stable JSON regardless of Postgres key ordering',()=>expect(digest({b:2,a:1})).toBe(digest({a:1,b:2})));
 it('requires explicit environment-matching queue schema',()=>{
@@ -84,6 +87,47 @@ describe.skipIf(!stageAOwnerUrl)('durable worker',()=>{
   expect((await f.rows('SELECT status FROM evals.workflow_step WHERE id=$1',[task.job.stepId]))[0].status).toBe('unknown');
   expect(await f.rows('SELECT * FROM evals.execution_result WHERE step_id=$1',[task.job.stepId])).toHaveLength(0);
   await w.handle(task.job);expect(invoke).toHaveBeenCalledTimes(1);
+ });
+ /** A provider revision that also serves the judge role, so the call counts as an engine call. */
+ const judgeProvider=async()=>{
+  const id=randomUUID(),price=randomUUID();
+  await f.pool.query(`INSERT INTO evals.provider_revision(id,account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,rpm,tpm,concurrency_limit)
+   VALUES($1,$2,'openai_compatible','https://example.com/v1','fixture-judge','fixture',ARRAY['judge'],'{"text":true,"boundedTokens":true}',65536,128,ARRAY['test'],ARRAY['EU'],1000,1000000,16)`,[id,f.accountId]);
+  await f.pool.query("INSERT INTO evals.price_revision(id,provider_revision_id,currency,effective_at,billing_unit,input_price,output_price,cache_price,tool_price,uncertainty_bps,source) VALUES($1,$2,'EUR',now(),'token',0.001,0.002,0.001,0,0,'fixture')",[price,id]);
+  return {providerRevisionId:id,priceRevisionId:price,approvedProviderIds:[id],role:'judge' as const};
+ };
+ it('repeats an engine call after a provider error instead of stopping, keeping the possible charge',async()=>{
+  const task=await f.enqueue(await judgeProvider());let count=0;
+  const invoke=vi.fn(async()=>{if(count++===0)throw new ProviderFailure('service_unavailable','unknown');return output;});
+  const w=worker(invoke);await w.handle(task.job);
+  expect((await f.rows('SELECT status,reason_code FROM evals.workflow_step WHERE id=$1',[task.job.stepId]))[0]).toEqual({status:'queued',reason_code:'service_unavailable'});
+  await f.pool.query('UPDATE evals.provider_health SET circuit_until=NULL');
+  await f.rows('UPDATE evals.workflow_step SET not_before=now() WHERE id=$1',[task.job.stepId]);
+  await w.handle(task.job);expect(invoke).toHaveBeenCalledTimes(2);
+  expect((await f.rows('SELECT status FROM evals.workflow_step WHERE id=$1',[task.job.stepId]))[0].status).toBe('completed');
+  const entries=await f.rows('SELECT r.state FROM evals.budget_reservation r JOIN evals.execution_attempt a ON a.id=r.attempt_id WHERE a.step_id=$1 ORDER BY a.ordinal',[task.job.stepId]);
+  expect(entries.map(row=>row.state)).toEqual(['unresolved','settled']);
+ });
+ it('runs web queries on the connected engine and hands the results to any model',async()=>{
+  const keys=new Map([['v1',Buffer.alloc(32,7)]]);
+  // The worker fixture applies only the execution schema; add the engine keys table.
+  await f.pool.query(readFileSync('db/migrations/071_evals_web_search_engines.sql','utf8'));
+  await f.pool.query("INSERT INTO evals.web_search_connection(engine,envelope,key_hint,priority,created_by) VALUES('tavily',$1,'…test',1,'fixture')",[encryptSecret(Buffer.from('tvly-fixture'),webSearchSecretScope('tavily'),'v1',keys)]);
+  const task=await f.enqueue({...await judgeProvider(),webSearch:{maxResults:3,queries:[{query:'Indexa: comisiones'}]}});
+  const search=vi.fn(async(engines:Array<{engine:string;key:string}>)=>{
+   expect(engines).toEqual([{engine:'tavily',key:'tvly-fixture'}]);
+   return {engine:'tavily' as const,results:[{url:'https://indexacapital.com/fees',title:'Comisiones',content:'0,4 %'}],failed:undefined};
+  });
+  const invoke=vi.fn(async(_provider:unknown,input:{messages:Array<{content:string}>;webSearch?:unknown})=>{
+   expect(input.webSearch).toBeUndefined();expect(input.messages.at(-1)!.content).toContain('https://indexacapital.com/fees');return output;
+  });
+  const w=new InvocationWorker({tx:f.tx,keys,actorId:f.tenant.actorId,workerId:randomUUID(),invoke:invoke as never,search,leaseSeconds:5});
+  await w.handle(task.job);
+  expect(search).toHaveBeenCalledTimes(1);expect(invoke).toHaveBeenCalledTimes(1);
+  const result=(await f.rows('SELECT output FROM evals.execution_result WHERE step_id=$1',[task.job.stepId]))[0].output;
+  expect(result.webSearch).toEqual({engine:'tavily',queries:['Indexa: comisiones'],results:[{url:'https://indexacapital.com/fees',title:'Comisiones'}]});
+  expect(result.citations).toEqual([{url:'https://indexacapital.com/fees',title:'Comisiones'}]);
+  await f.pool.query('DELETE FROM evals.web_search_connection');
  });
  it('serializes DGX residency across distinct models AND provider accounts',async()=>{
   const make=async(model:string)=>{

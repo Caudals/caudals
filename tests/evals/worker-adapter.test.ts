@@ -1,8 +1,8 @@
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { describe,expect,it } from 'vitest';
-import { invokeOpenAI } from '../../lib/evals/providers/openai-compatible';
-import type { Invocation,ProviderRevision } from '../../lib/evals/providers/contracts';
+import { invokeOpenAI, providerErrorDetail } from '../../lib/evals/providers/openai-compatible';
+import { ProviderFailure, type Invocation,type ProviderRevision } from '../../lib/evals/providers/contracts';
 async function server(handler:http.RequestListener) {
  const server=http.createServer(handler);await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
  const address=server.address();if(!address||typeof address==='string')throw new Error();
@@ -29,6 +29,35 @@ describe('OpenAI-compatible adapter wire contract',()=>{
    });
   });
   try{const result=await invokeOpenAI(s.provider,{...s.input,probe:true,probeKind:kind},undefined,new AbortController().signal,s.endpoint);expect(result.capabilityEvidence).toEqual({kind,status:'supported',scope:'single_bounded_probe'});}finally{await s.close();}
+ });
+ it('asks again with the model default when a reasoning flag is refused',async()=>{
+  const bodies:Array<Record<string,unknown>>=[];
+  const s=await server((req,res)=>{
+   const chunks:Buffer[]=[];req.on('data',c=>chunks.push(c));req.on('end',()=>{
+    const body=JSON.parse(Buffer.concat(chunks).toString());bodies.push(body);
+    if('reasoning_effort' in body){res.writeHead(400,{'content-type':'application/json'});res.end(JSON.stringify({error:{message:'Reasoning is mandatory for this endpoint and cannot be disabled.',code:400}}));return;}
+    res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'{"ok":true}'}}]}));
+   });
+  });
+  try{
+   const input={...s.input,role:'generator' as const,reasoning:'off' as const,timeoutMs:2000};
+   const result=await invokeOpenAI({...s.provider,roles:['generator']},input,undefined,new AbortController().signal,s.endpoint);
+   expect(result.text).toBe('{"ok":true}');expect(bodies).toHaveLength(2);
+   expect(bodies[0].reasoning_effort).toBe('none');expect('reasoning_effort' in bodies[1]).toBe(false);
+  }finally{await s.close();}
+ });
+ it('keeps the provider explanation of any other rejection and does not repeat it',async()=>{
+  let calls=0;
+  const s=await server((_req,res)=>{calls++;res.writeHead(400,{'content-type':'application/json'});res.end(JSON.stringify({error:{message:'This model maximum context length is 2048 tokens.'}}));});
+  try{
+   const error=await invokeOpenAI({...s.provider,roles:['judge']},{...s.input,role:'judge',timeoutMs:2000},undefined,new AbortController().signal,s.endpoint).catch((value:unknown)=>value);
+   expect(error).toBeInstanceOf(ProviderFailure);expect((error as ProviderFailure).code).toBe('unsupported_feature');
+   expect((error as ProviderFailure).detail).toContain('maximum context length');expect(calls).toBe(1);
+  }finally{await s.close();}
+ });
+ it('masks anything key-like in a provider error',()=>{
+  expect(providerErrorDetail(JSON.stringify({error:{message:'Incorrect API key provided: sk-proj-abcdefghijklmnop'}}))).toBe('Incorrect API key provided: [key]');
+  expect(providerErrorDetail('upstream said no')).toBe('upstream said no');
  });
  it('refuses a customer/commercial private destination and DGX endpoint mismatch',async()=>{
   const s=await server((_req,res)=>res.end());

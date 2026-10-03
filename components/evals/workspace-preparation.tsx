@@ -752,6 +752,17 @@ export function generationStopMessage(reason: string | null | undefined) {
       return t("genStopNotJson");
     case "budget_exceeded":
       return t("genStopBudget");
+    case "unsupported_feature":
+      return t("genStopRejected");
+    case "invalid_credentials":
+      return t("genStopCredentials");
+    case "model_missing":
+      return t("genStopModelMissing");
+    case "service_unavailable":
+    case "overloaded":
+    case "provider_capacity_unavailable":
+    case "provider_circuit_open":
+      return t("genStopBusy");
     default:
       return t("genStopOther");
   }

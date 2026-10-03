@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 import { caseSchema, rubricSchema, type CefCase, type Rubric } from "../contracts/cases";
 import { assessmentSchema, observationSchema, type Assessment, type Observation } from "../contracts/results";
 import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
+import { webQuery } from "../providers/web-search";
 import { withContentHash } from "../contracts/hashing";
 import { digest, enqueueInvocation, type Tenant } from "../queue/store";
 import {
@@ -50,8 +51,8 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
   const pending = candidates.filter((candidate) => candidate.observation.status === "succeeded" && criterionIdsFor(candidate).length > 0);
   if (!pending.length) return { queued: 0, skipped: 0 };
   const route = await judgeRoute(db, scope.orgId);
-  const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
-    WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
+  const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency,p.title AS product FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
+    JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
   const workspaceBudget = evaluation ? await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency) : null;
   const unavailable = !route ? "judge_route_unavailable"
     : !workspaceBudget || !evaluation || workspaceBudget.currency !== route.currency || evaluation.currency !== route.currency ? "judge_budget_unavailable" : null;
@@ -90,7 +91,8 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
       workspaceBudgetId: workspaceBudget!.id, runBudgetId: runBudget.id, role: "judge",
       dataClass: route!.data_class, region: route!.region, ...routingFor(route!),
       messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, v2(candidate) ? 1536 : 1024),
-      ...(web ? { webSearch: { maxResults: 5 } } : {}),
+      // The test question, led by the product name, is what the judge may need to check online.
+      ...(web ? { webSearch: { maxResults: 5, queries: [{ query: webQuery(candidate.item.scenario.messages.filter((message) => message.role === "user").map((message) => message.content).join(" "), evaluation.product) }] } } : {}),
       timeoutMs: internalTimeoutMs(route!, 600000), internalCostPerSecond: route!.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.judge_job(id,org_id,run_id,observation_id,pending_assessment_id,case_revision_id,rubric_revision_id,criterion_ids,

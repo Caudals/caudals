@@ -32,7 +32,7 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
     expect(await requestWebDiscovery(scope, evaluationId)).toMatchObject({ id: started.id });
     expect(await getWebDiscovery(scope, evaluationId)).toMatchObject({ id: started.id, status: "queued" });
     const step = await withTenant(scope, async (c) => (await c.query("SELECT s.id,s.input_hash,s.input FROM evals.web_discovery_job j JOIN evals.workflow_step s ON (s.org_id,s.id)=(j.org_id,j.step_id) WHERE j.org_id=$1", [orgId])).rows[0]);
-    expect(step.input).toMatchObject({ role: "context_analyzer", webSearch: { maxResults: 10 } });
+    expect(step.input).toMatchObject({ role: "context_analyzer", webSearch: { maxResults: 8, queries: [expect.objectContaining({ query: expect.any(String) })] } });
     const tx: TenantTransaction = (tenant, fn) => withTenant(tenant, fn, workerPool);
     const worker = new InvocationWorker({ tx, keys: new Map(), actorId: "discovery-worker", workerId: randomUUID(), leaseSeconds: 30,
       invoke: async () => ({ text: JSON.stringify({ pages: [{ url: "https://help.example.com/fees", title: "Fees", why: "Fee table" }, { url: "ftp://example.com/x" }] }), complete: true, finishReason: "stop", latencyMs: 10, citations: [{ url: "https://example.org/terms", title: "Terms" }] }) });
