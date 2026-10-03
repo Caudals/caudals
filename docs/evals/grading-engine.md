@@ -259,6 +259,10 @@ language is detected from the question, and the title is the question itself.
   label clearly matches the question, the executor clicks it (at most two
   steps, never links leaving the site or purchase/contact/delete actions) and
   records the step in the transcript.
+- Saving an untested setup in the live browser (a newly taught draft) no
+  longer takes down a connection that already works: the verified setup
+  stays active, re-attested from its own probe evidence, until the draft
+  passes its test and replaces it.
 - Saved logins and website attestations do not expire; they stay until
   revoked. The live studio stays open for two hours (30 minutes idle).
 

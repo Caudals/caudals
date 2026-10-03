@@ -74,6 +74,15 @@ export function persistTaughtRecipe(scope: EvidenceScope, targetId: string, raw:
       await db.query("UPDATE evals.website_recipe_candidate SET status='validated',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, recipe.recipe_revision_id]);
     } else {
       await db.query(`INSERT INTO evals.website_recipe_candidate(id,org_id,project_id,target_id,target_revision_id,connection_check_id,source,status,document,reason_code) VALUES($1,$2,$3,$4,$5,$6,'operator_authored','needs_operator',$7,'test_connection_required')`, [recipe.recipe_revision_id, scope.orgId, row.project_id, targetId, config.target_revision_id, check.id, recipe]);
+      // An untested draft must not take down a connection that already works:
+      // the verified setup stays active (re-attested from its own evidence)
+      // until the draft passes its test and replaces it.
+      const active = config.recipe_revision_id ? (await db.query("SELECT document,probe_evidence FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, config.recipe_revision_id, targetId])).rows[0] : null;
+      const proof = active ? browserProbeEvidenceSchema.safeParse(active.probe_evidence) : null;
+      if (active && proof?.success && probeEvidenceReady(proof.data)) {
+        await db.query(`INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,created_at,completed_at) VALUES($1,$2,'ready',$3,$4,clock_timestamp(),clock_timestamp())`,
+          [scope.orgId, config.target_revision_id, capabilityReportForWebsite(websiteRecipeSchema.parse(active.document), proof.data), proof.data]);
+      }
     }
     await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,$3,$4)", [scope.orgId, scope.actorId, evidence ? "website.teach.validated" : "website.teach.saved", targetId]);
     return { status: evidence ? "ready" : "needs_operator", recipeRevisionId: recipe.recipe_revision_id };

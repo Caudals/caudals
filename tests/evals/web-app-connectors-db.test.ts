@@ -53,6 +53,16 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("taught connectors use the production 
       expect(ready.config.recipe_revision_id).toBe(recipe.recipe_revision_id);
       const checks = await withTenant(scope, client => client.query("SELECT status FROM evals.connection_check WHERE org_id=$1 AND target_revision_id=$2", [orgId, ready.config.target_revision_id]));
       expect(checks.rows[0].status).toBe("ready");
+      // Saving an untested draft later keeps the verified connection usable.
+      const { content_hash: _hash, ...base } = recipe;
+      const draftRecipe = withContentHash({ ...base, recipe_revision_id: randomUUID(), input: { kind: "test_id", value: "prompt-2", frames: [] } });
+      await storeLoginSession(scope, targetId, { storageState: state, expiresInHours: 24 });
+      expect(await persistTaughtRecipe(scope, targetId, draftRecipe)).toMatchObject({ status: "needs_operator" });
+      const kept = await websiteControlTarget(scope, targetId);
+      expect(kept.config.recipe_revision_id).toBe(recipe.recipe_revision_id);
+      expect(kept.recipe.recipe_revision_id).toBe(draftRecipe.recipe_revision_id);
+      const latest = await withTenant(scope, client => client.query("SELECT status FROM evals.connection_check WHERE org_id=$1 AND target_revision_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1", [orgId, kept.config.target_revision_id]));
+      expect(latest.rows[0].status).toBe("ready");
       await expect(websiteControlTarget({ ...scope, orgId: randomUUID() }, targetId)).rejects.toMatchObject({ status: 404 });
       await expect(withTenant(scope, client => client.query("SELECT envelope FROM evals.secret_version WHERE org_id=$1", [orgId]))).rejects.toThrow(/permission denied/);
       await owner.query("UPDATE evals.browser_login_session SET expires_at=now()-interval '1 minute' WHERE org_id=$1", [orgId]);
