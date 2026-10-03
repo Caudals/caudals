@@ -32,7 +32,28 @@ function discoverySystemPrompt() {
   ].join(" ");
 }
 
-const registrable = (host: string) => host.toLowerCase().replace(/^www\./, "").split(".").slice(-2).join(".");
+/** The registrable domain of a host (indexacapital.com, example.co.uk). */
+export function registrable(host: string) {
+  const labels = host.toLowerCase().replace(/^www\./, "").split(".");
+  const secondLevel = labels.length > 2 && labels.at(-1)!.length === 2 && /^(co|com|org|net|gov|gob|edu|ac|nhs)$/.test(labels.at(-2)!);
+  return labels.slice(secondLevel ? -3 : -2).join(".");
+}
+
+/**
+ * The company's own site: the registrable domain of the project's website
+ * connection, or of any address customers can open when no website
+ * connection exists. Web research uses it to search the company's pages first.
+ */
+export async function companySite(db: import("pg").PoolClient, orgId: string, projectId: string): Promise<string | null> {
+  const endpoint = (await db.query(`SELECT tr.document->>'endpoint' AS endpoint FROM evals.target t
+    JOIN LATERAL (SELECT document FROM evals.target_revision x WHERE x.org_id=t.org_id AND x.target_id=t.id ORDER BY x.created_at DESC,x.id DESC LIMIT 1) tr ON true
+    WHERE t.org_id=$1 AND t.project_id=$2 AND t.archived_at IS NULL AND tr.document->>'kind'='website' ORDER BY t.created_at DESC LIMIT 1`, [orgId, projectId])).rows[0]?.endpoint as string | undefined;
+  try {
+    return endpoint ? registrable(new URL(endpoint).hostname) : null;
+  } catch {
+    return null;
+  }
+}
 function safeUrl(raw: string): URL | null {
   try {
     const url = new URL(raw.trim());
@@ -116,10 +137,10 @@ export function requestWebDiscovery(scope: EvidenceScope, evaluationId: string) 
       dataClass: route.data_class, region: route.region, ...routingFor(route),
       messages, maxOutputTokens: boundedOutputTokens(messages, route.context_limit, route.output_limit, 2048),
       timeoutMs: internalTimeoutMs(route, 300000), internalCostPerSecond: route.internal_cost_per_second,
-      // The company's own site first, then the open web.
+      // The company's own site first, then the open web (named by its site: a project title can be an internal label).
       webSearch: { maxResults: 8, queries: [
-        ...(systemHost ? [{ query: webQuery("ayuda preguntas frecuentes condiciones precios help FAQ", evaluation.project_title), site: registrable(systemHost) }] : []),
-        { query: webQuery(evaluation.description?.slice(0, 200) || "help centre FAQ terms pricing", evaluation.project_title) },
+        ...(systemHost ? [{ query: "ayuda preguntas frecuentes condiciones precios help FAQ", site: registrable(systemHost) }] : []),
+        { query: webQuery(evaluation.description?.slice(0, 200) || "help centre FAQ terms pricing", systemHost ? registrable(systemHost) : evaluation.project_title) },
       ] },
     });
     await db.query(`INSERT INTO evals.web_discovery_job(id,org_id,evaluation_id,model_revision_id,prompt_revision,workflow_id,created_by)

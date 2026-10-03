@@ -12,6 +12,7 @@ import { enqueueInvocation, event, digest, type Tenant } from "../queue/store";
 import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { parseModelJsonText, restoreValuesWrapper } from "../providers/model-json";
 import { webQuery } from "../providers/web-search";
+import { companySite } from "./web-discovery";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { prepareGroundedSuiteOnce } from "./managed";
@@ -339,9 +340,10 @@ async function queueDraftGeneration(
   const avoidQuestions=accepted.map((item)=>item.question.slice(0,240));
   const request={profile,coverage,complexity:job.complexity,...(round>1?{round,avoidQuestions}:{}),maxCases:roundCases};
   const webDraft=!!draftRoute.web_research;
-  // How customers ask about the product: its name with the question words people search for.
-  const product=webDraft?(await db.query("SELECT p.title FROM evals.evaluation e JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE e.org_id=$1 AND e.id=$2",[scope.orgId,evaluationId])).rows[0]?.title as string|undefined:undefined;
-  const webQueries=webDraft?[{query:webQuery("preguntas frecuentes de clientes (FAQ)",product??job.title)}]:undefined;
+  // How customers ask about the product: the FAQ pages on its own site, or searched by its name.
+  const product=webDraft?(await db.query("SELECT p.title,e.project_id FROM evals.evaluation e JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE e.org_id=$1 AND e.id=$2",[scope.orgId,evaluationId])).rows[0] as {title:string;project_id:string}|undefined:undefined;
+  const site=product?await companySite(db,scope.orgId,product.project_id):null;
+  const webQueries=webDraft?[site?{query:"preguntas frecuentes de clientes FAQ dudas",site}:{query:webQuery("preguntas frecuentes de clientes (FAQ)",product?.title??job.title)}]:undefined;
   const systemPrompt=`${draftSystemPrompt()} ${COMPLEXITY_GUIDANCE[job.complexity]}${webDraft?" Public web search results may be attached: use them only to phrase questions the way real customers ask them. Every expected answer, key fact and quote must still come from the supplied sources.":""}`;
   const draftFixed=Buffer.byteLength(systemPrompt,"utf8")+Buffer.byteLength(canonicalJson(request),"utf8")+256;
   const draftOutputCap = generationOutputCap(draftRoute);

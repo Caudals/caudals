@@ -23,8 +23,8 @@ const CONTROL_ESCAPES: Record<string, string> = { "\n": "\\n", "\r": "\\r", "\t"
  * One pass over the text with a bracket stack:
  * - raw control characters inside strings become escapes,
  * - a closer that matches nothing open, or the wrong opener, is dropped,
- * - a closer that would end the top-level value while more members follow
- *   is dropped (the model closed too early),
+ * - a closer that would end the top-level value, or an object inside an
+ *   array, while more members follow is dropped (the model closed too early),
  * - trailing commas before a closer are removed,
  * - prose after the top-level value is ignored.
  * Unbalanced (truncated) text is returned as is and stays invalid.
@@ -49,6 +49,9 @@ export function repairJson(text: string): string {
     if (char === "{" || char === "[") { stack.push(char === "{" ? "}" : "]"); out += char; continue; }
     if (char === "}" || char === "]") {
       if (stack.at(-1) !== char) continue;
+      // Members after an object that sits at the top level or in an array mean
+      // it was closed too early (`"keyFacts":"…"},"anchorId":…` inside a list).
+      if (char === "}" && stack.at(-2) !== "}" && /^\s*,\s*"(?:[^"\\]|\\.)*"\s*:/.test(source.slice(index + 1, index + 400))) continue;
       if (stack.length === 1 && /^\s*,\s*"/.test(source.slice(index + 1, index + 64))) continue;
       stack.pop();
       out = out.replace(/,\s*$/, "") + char;

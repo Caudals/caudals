@@ -14,6 +14,15 @@ describe("model JSON repair", () => {
     expect(JSON.parse(repairJson('{"a":{"b":1}},"c":2}'))).toEqual({ a: { b: 1 }, c: 2 });
     expect(JSON.parse(repairJson('{"a":[1]]}'))).toEqual({ a: [1] });
   });
+  it("drops an object closed too early inside a list (seen in a production draft)", () => {
+    const draft = '{"cases":[{"question":"q1","keyFacts":"fact"},"anchorId":"a1","severity":"high"},{"question":"q2","keyFacts":["f"],"anchorId":"a2"}]}';
+    expect(parseModelJsonText(draft)).toEqual({ cases: [
+      { question: "q1", keyFacts: "fact", anchorId: "a1", severity: "high" },
+      { question: "q2", keyFacts: ["f"], anchorId: "a2" },
+    ] });
+    // A closer followed by the next member of its parent object is fine and kept.
+    expect(parseModelJsonText('{"a":{"b":1},"c":{"d":2}}')).toEqual({ a: { b: 1 }, c: { d: 2 } });
+  });
   it("leaves truncated output invalid instead of inventing an ending", () => {
     expect(() => parseModelJsonText('{"a":[1,2')).toThrow("model_output_not_json");
     expect(() => parseModelJsonText("no json here")).toThrow("model_output_not_json");

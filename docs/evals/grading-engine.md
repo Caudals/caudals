@@ -167,13 +167,17 @@ make it work with every model, the private DGX Spark included.
   (`output.webSearch`: engine, queries, pages) and as `citations`. With no
   engine connected (or no results), an OpenRouter model can still use
   OpenRouter's own web plugin; other models answer without the web.
-- **Grading:** the query is the test question led by the product name. The
+- **Where it searches:** the company's own site first. When the project has
+  a website connection, judge and draft queries are restricted to its
+  registrable domain (subdomains such as a help centre included); otherwise
+  they are led by the product name.
+- **Grading:** the query is the test question. The
   judge may check details the cited excerpts do not cover. Details the web
   confirms are listed as "confirmed online"; details it contradicts become
   contradictions. The expected answer stays the ground truth; a web page
   never overrides it. Consulted pages are recorded with the verdict
   (`web_sources`).
-- **Drafting tests:** the query asks for the product's customer FAQs. Web
+- **Drafting tests:** the query asks for the customers' FAQs. Web
   results only help phrase questions the way real customers ask; answers,
   key facts and quotes still come from the sources.
 - **Find sources on the web** (preparation): two queries, one restricted to
@@ -190,7 +194,8 @@ Free and small models do not always return clean JSON, even in JSON mode.
 `lib/evals/providers/model-json.ts` parses every engine reply (profiles,
 drafts, verdicts, web discovery) with structural repairs only: fences and
 prose are stripped, raw control characters escaped, trailing commas and
-stray or premature closing brackets dropped. Profiles also get a lost
+stray or premature closing brackets dropped (an object closed while its
+members still follow, at the top level or inside a list). Profiles also get a lost
 `{"values":` wrapper back (seen on 2026-10-03: `"materialRisks":[…],
 "confidence":…}` closed the whole profile early and paused every Indexa
 preparation). Repairs never invent content and the result is still
@@ -205,8 +210,8 @@ Provider failures on engine calls (`generator`, `context_analyzer`, `judge`,
   keeps its possible charge as an unresolved reservation. Calls to a
   customer's system keep the stricter rule (unknown outcome = review).
 - A model that refuses a reasoning flag (OpenRouter: "Reasoning is mandatory
-  for this endpoint and cannot be disabled") is asked once more with its
-  default reasoning. The retry-after-invalid-output path asks for reasoning
+  for this endpoint and cannot be disabled") is asked again with low
+  reasoning effort, then with no reasoning flag at all. The retry-after-invalid-output path asks for reasoning
   off, which such models reject; this fallback is what keeps it working.
 - Preparation no longer depends on the page staying open: every minute the
   scheduler advances jobs whose model step finished (`profile_ready`,

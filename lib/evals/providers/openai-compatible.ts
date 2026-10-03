@@ -57,7 +57,7 @@ export function providerErrorDetail(body:string):string|undefined {
  const clean=message.replace(/\s+/g,' ').replace(/\b(sk|tvly|pk|rk|key)[-_][A-Za-z0-9_-]{6,}/gi,'[key]').replace(/[A-Za-z0-9_-]{32,}/g,'[redacted]').trim();
  return clean?clean.slice(0,300):undefined;
 }
-async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:Buffer|undefined,signal:AbortSignal,dgxEndpoint?:string,options:{omitReasoning?:boolean}={}):Promise<ProviderOutput> {
+async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:Buffer|undefined,signal:AbortSignal,dgxEndpoint?:string,options:{reasoning?:Record<string,unknown>}={}):Promise<ProviderOutput> {
  const base=new URL(provider.endpoint);
  if(base.username || base.password || base.search || base.hash) throw new Error('invalid_provider_endpoint');
  if(provider.adapter==='dgx') {
@@ -72,7 +72,7 @@ async function invokeRequest(provider:ProviderRevision,input:Invocation,secret:B
  // OpenAI's current models take max_completion_tokens and only the default temperature.
  const openai=provider.adapter!=='dgx'&&hostname==='api.openai.com';
  const payload=JSON.stringify({model:provider.model_id,messages:input.messages,stream:false,...(openai?{max_completion_tokens:input.maxOutputTokens}:{max_tokens:input.maxOutputTokens,temperature:0}),
-  ...(options.omitReasoning?{}:reasoningHint(provider,hostname,input)),
+  ...(options.reasoning??reasoningHint(provider,hostname,input)),
   // Web research: OpenRouter's web plugin searches the public web for any model and returns url_citation annotations.
   ...(input.webSearch&&!input.probe&&INTERNAL_ROLES.has(input.role)&&hostname==='openrouter.ai'?{plugins:[{id:'web',max_results:input.webSearch.maxResults}]}:{}),
   ...((input.probe&&input.probeKind==='json_object'||!input.probe&&input.outputFormat==='json_object')?{response_format:{type:'json_object'}}:{}),
@@ -139,17 +139,22 @@ export async function invokeOpenAI(provider:ProviderRevision,input:Invocation,se
  let abortReject:(()=>void)|undefined;
  const deadline=new Promise<never>((_,reject)=>{abortReject=()=>reject(new ProviderFailure('network_unavailable','unknown'));controller.signal.addEventListener('abort',abortReject,{once:true});});
  if(signal.aborted)controller.abort();
- const attempt=(omitReasoning:boolean)=>Promise.race([invokeRequest(provider,input,secret,controller.signal,dgxEndpoint,{omitReasoning}),deadline]);
+ const attempt=(reasoning:Record<string,unknown>)=>Promise.race([invokeRequest(provider,input,secret,controller.signal,dgxEndpoint,{reasoning}),deadline]);
+ // Some models cannot switch reasoning off or take no budget ("Reasoning is
+ // mandatory for this endpoint"). When a reasoning flag is refused, ask again
+ // with the short-answer setting (low effort), then with no flag at all.
+ const host=new URL(provider.endpoint).hostname.replace(/^\[|\]$/g,'');
+ const primary=reasoningHint(provider,host,input),low=reasoningHint(provider,host,{...input,reasoning:undefined});
+ const same=(a:Record<string,unknown>,b:Record<string,unknown>)=>JSON.stringify(a)===JSON.stringify(b);
+ const chain=[primary,...(Object.keys(low).length&&!same(low,primary)?[low]:[]),...(Object.keys(primary).length?[{}]:[])];
  try {
-  let result:ProviderOutput;
-  try {result=await attempt(false);}catch(error){
-   // Some models cannot switch reasoning off or take no budget ("Reasoning is
-   // mandatory for this endpoint"): ask once more with the model's default.
-   const hinted=Object.keys(reasoningHint(provider,new URL(provider.endpoint).hostname.replace(/^\[|\]$/g,''),input)).length>0;
-   if(!(error instanceof ProviderFailure&&error.code==='unsupported_feature'&&hinted&&(!error.detail||/reason|think/i.test(error.detail)))||controller.signal.aborted)throw error;
-   result=await attempt(true);
+  for(let index=0;;index++) {
+   try {const result=await attempt(chain[index]);return {...result,latencyMs:Date.now()-started};}
+   catch(error){
+    const refused=error instanceof ProviderFailure&&error.code==='unsupported_feature'&&(!error.detail||/reason|think/i.test(error.detail));
+    if(!refused||index>=chain.length-1||controller.signal.aborted)throw error;
+   }
   }
-  return {...result,latencyMs:Date.now()-started};
  }
  finally {clearTimeout(timer);signal.removeEventListener('abort',abort);if(abortReject)controller.signal.removeEventListener('abort',abortReject);}
 }

@@ -5,6 +5,7 @@ import { caseSchema, rubricSchema, type CefCase, type Rubric } from "../contract
 import { assessmentSchema, observationSchema, type Assessment, type Observation } from "../contracts/results";
 import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { webQuery } from "../providers/web-search";
+import { companySite } from "./web-discovery";
 import { withContentHash } from "../contracts/hashing";
 import { digest, enqueueInvocation, type Tenant } from "../queue/store";
 import {
@@ -43,6 +44,11 @@ async function sourceExcerpts(db: PoolClient, orgId: string, item: CefCase): Pro
   });
 }
 
+/** A judge's web query: the question on the company's own site, or led by the product name when the site is unknown. */
+function webCheckQuery(question: string, site: string | null, product: string) {
+  return site ? { query: webQuery(question), site } : { query: webQuery(question, product) };
+}
+
 /** Called inside the scoring transaction for each new assessment waiting on a judge. */
 export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, runId: string, candidates: JudgeCandidate[]) {
   // v2 results grade every semantic criterion with the answer judge; v1 keeps its rubric judge.
@@ -51,7 +57,7 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
   const pending = candidates.filter((candidate) => candidate.observation.status === "succeeded" && criterionIdsFor(candidate).length > 0);
   if (!pending.length) return { queued: 0, skipped: 0 };
   const route = await judgeRoute(db, scope.orgId);
-  const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency,p.title AS product FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
+  const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency,e.project_id,p.title AS product FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
     JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
   const workspaceBudget = evaluation ? await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency) : null;
   const unavailable = !route ? "judge_route_unavailable"
@@ -68,6 +74,7 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
     return { queued: 0, skipped: pending.length };
   }
   const passId = randomUUID(), workflowId = randomUUID();
+  const site = route!.web_research ? await companySite(db, scope.orgId, evaluation.project_id) : null;
   const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling) VALUES($1,'run',$2,$3,$4) RETURNING id`,
     [scope.orgId, passId, evaluation.currency, evaluation.commercial_cap])).rows[0];
   const plan = digest({ runId, passId, judge: route!.provider_revision_id, prompt: pending.some(v2) ? ANSWER_JUDGE_REVISION : JUDGE_PROMPT_REVISION });
@@ -91,8 +98,8 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
       workspaceBudgetId: workspaceBudget!.id, runBudgetId: runBudget.id, role: "judge",
       dataClass: route!.data_class, region: route!.region, ...routingFor(route!),
       messages, maxOutputTokens: boundedOutputTokens(messages, route!.context_limit, route!.output_limit, v2(candidate) ? 1536 : 1024),
-      // The test question, led by the product name, is what the judge may need to check online.
-      ...(web ? { webSearch: { maxResults: 5, queries: [{ query: webQuery(candidate.item.scenario.messages.filter((message) => message.role === "user").map((message) => message.content).join(" "), evaluation.product) }] } } : {}),
+      // The test question is what the judge may need to check online: on the company's site when known.
+      ...(web ? { webSearch: { maxResults: 5, queries: [webCheckQuery(candidate.item.scenario.messages.filter((message) => message.role === "user").map((message) => message.content).join(" "), site, evaluation.product)] } } : {}),
       timeoutMs: internalTimeoutMs(route!, 600000), internalCostPerSecond: route!.internal_cost_per_second,
     });
     await db.query(`INSERT INTO evals.judge_job(id,org_id,run_id,observation_id,pending_assessment_id,case_revision_id,rubric_revision_id,criterion_ids,
