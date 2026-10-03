@@ -46,6 +46,7 @@ const migrations=[
  '069_evals_generation_depth_and_question_context.sql',
  '070_evals_web_research.sql',
  '071_evals_web_search_engines.sql',
+ '072_evals_provider_revision_retirement.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');
