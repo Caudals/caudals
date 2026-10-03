@@ -4,7 +4,9 @@ import JSZip from "jszip";
 import { buildReportSnapshot } from "../../lib/evals/reports/contracts";
 import { aggregateRun } from "../../lib/evals/scoring/aggregate";
 import { renderReportDocx } from "../../lib/evals/reports/docx";
-import { fitMaterial } from "../../lib/evals/repositories/automatic-generation";
+import { encodedBytes, fitMaterial } from "../../lib/evals/repositories/automatic-generation";
+import { canonicalJson } from "../../lib/evals/contracts/hashing";
+import { boundedOutputTokens } from "../../lib/evals/providers/contracts";
 import { materialBudgetBytes, routingFor, internalTimeoutMs } from "../../lib/evals/repositories/model-routes";
 import { evalRequest } from "../../components/evals/api";
 
@@ -61,6 +63,19 @@ describe("model routing and context fitting", () => {
     expect(() => fitMaterial(material, 50)).toThrow(/context window/);
     expect(materialBudgetBytes({ context_limit: 8192, output_limit: 4096, tpm: 8192 }, 4096, 2000)).toBe(8192 - 4096 - 1024 - 2000 - 512);
     expect(materialBudgetBytes({ context_limit: 1_000_000, output_limit: 8192, tpm: 1_000_000 }, 4096, 0)).toBe(200_000);
+  });
+
+  it("leaves the full output allowance once the fitted prompt is JSON-encoded", () => {
+    // Quotes and line breaks are escaped again in the request body; real web pages are full of both.
+    const excerpt = 'Comisión "Indexa" del 0,15 %\nMínimo: 1.000 €\n'.repeat(40);
+    const material = [{ sourceRevisionId: "web", title: "Web", rights: "customer", anchors: Array.from({ length: 400 }, (_, index) => ({ anchorId: `a${index}`, excerpt })) }];
+    const route = { context_limit: 131_072, output_limit: 16_384, tpm: 2_621_440 };
+    const system = 'Return {"purpose":{"value":string}} only.'.repeat(50);
+    const fixed = encodedBytes(system) + encodedBytes(canonicalJson("Robo-advisor")) + 256;
+    const fitted = fitMaterial(material, materialBudgetBytes(route, 8192, fixed));
+    const messages = [{ role: "system" as const, content: system }, { role: "user" as const, content: canonicalJson({ projectDescription: "Robo-advisor", sources: fitted }) }];
+    expect(fitted[0].anchors.length).toBeLessThan(400);
+    expect(boundedOutputTokens(messages, route.context_limit, route.output_limit, 8192)).toBe(8192);
   });
 });
 
