@@ -15,8 +15,8 @@ provenance. Bundled MDX is a resilience and hand-authored-content fallback.
   `GET https://leads.caudals.com/api/blog/{slug}?locale={locale}`
 - Static fallback: `content/blog/{locale}/{slug}.mdx`
 - Locales: `en`, `es`
-- Public URL: `/blog/{slug}`
-- Locale selection: request locale/cookie, not a locale URL prefix
+- Public URL: `/{locale}/blog/{slug}` (`/en/blog/...`, `/es/blog/...`)
+- Locale selection: canonical URL prefix; unprefixed requests negotiate and redirect via `proxy.ts`
 - Slug: lowercase ASCII and hyphens; use the same slug for translations
 
 Both API and file loaders may fall back to English when a translation is
@@ -76,7 +76,7 @@ publication, Leads:
 1. Refuses an empty MDX body or excerpt.
 2. Renders frontmatter according to this contract.
 3. Validates every available locale and matching slugs in a bilingual group.
-4. Atomically marks the rows `published`/`deployed` with `/blog/{slug}`.
+4. Atomically marks the rows `published`/`deployed`; stored `/blog/{slug}` paths are resolved to the canonical localized public URL.
 5. Exposes only those published rows through the cacheable public API.
 
 The Next.js server fetches the API with a 60-second revalidation window, merges

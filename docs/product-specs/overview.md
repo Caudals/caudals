@@ -29,6 +29,8 @@ Each step sells the next. The report names the gaps; the gaps size the subscript
 
 ## Offers and Pricing
 
+Reviewed 2026-09-28: these are internal offer/pricing references, not verified current public tariffs or booked revenue. The landing publishes the free diagnostic and quotes paid work by scope; it has no price section. The founder confirms that the 30–100-case regional pilot and the broader offer are experiments, not a definitive replacement of either. Confirm actual scope and price before quoting.
+
 | Offer | Price | Time | Scope | Deliverable |
 | --- | --- | --- | --- | --- |
 | Reality Check | Free | 48 h | 40 questions against a publicly reachable system, answers keyed to the company's own public documentation | 6-page PDF: score, failure categories, seven annotated transcripts, one page on what a full evaluation covers |
@@ -40,7 +42,7 @@ Each step sells the next. The report names the gaps; the gaps size the subscript
 
 Commercial rules:
 
-- Publish the pilot price on the website. Show dataset builds as "from €8,000".
+- The public website currently quotes Pilot Evaluation and subscription on scope and publishes only the free diagnostic. Do not publish the internal figures below without a separate commercial decision.
 - The founding offer is used three times only: €1,500 in exchange for a named case study (approved by the customer), a 20-minute recorded conversation and two peer introductions, all written into the contract.
 - Price steps are decided in advance: €2,400 after three founding customers, €3,200 after ten.
 - Pitch the subscription at the first delivery. It is cancellable in the first 90 days.
@@ -60,18 +62,24 @@ Text and document AI systems:
 - document triage, classification and extraction pipelines,
 - AI features inside products (quote assistants, clause analysers, valuation explanations).
 
-**Qualify on consequence, not existence.** Evaluate systems where a wrong answer costs money: contract terms and conditions, billing and fee eligibility, service tariffs, refund rights, regulatory compliance, dosage and safety limits, technical specifications. Skip low-stakes widgets: order tracking, store hours, bookings, generic lead capture.
+**Qualify on consequence, not existence.** Evaluate systems where a wrong answer costs money: insurance coverage and waiting periods, banking fees and eligibility, energy and telco tariffs, airline refund rights, dosage and interactions, technical specifications. Skip low-stakes widgets: order tracking, store hours, bookings, generic lead capture.
 
 **Public systems open the door; internal systems carry the budget.** A public assistant is often a small share of a company's AI spend. Its evaluation earns the meeting where we find the internal systems.
 
 ## Who We Sell To
 
+- **Sector one — insurance:** insurers, health insurers, mutuals and brokers. High-volume questions with objectively correct answers, dense documentation, compliance-literate buyers.
+- **Sector two — industrial after-sales and technical support:** automotive suppliers, machinery, components and agrifood equipment around Valladolid and Castilla y León. Unambiguous answers (part numbers, torque specs, intervals); physical proximity is an advantage.
+- **Reserve sectors:** legal and asesorías; utilities and energy retail; private healthcare groups (warm introductions only).
 - **Size and buyer:** 50–500 employees. The buyer owns the AI system — Atención al Cliente, Transformación Digital, Canal Digital, Postventa/Servicio Técnico, Calidad or Operaciones — and can sign €2,400 without a committee.
 - **Trigger:** the company launched or announced an AI system in the last 18 months.
 - **Channel partners:** Spanish AI and data integrators and agencies that build these systems. We are their independent test layer, white-labelled or on referral.
-- **Next segment:** Spanish AI product companies (vertical SaaS, legaltech, healthtech) that train their own models and buy expert-built training data directly.
+- **Not now:** AI startups as evaluation customers, IBEX-35 companies and large banks, public-administration tenders, and anyone with nothing deployed.
+- **Next segment:** Spanish AI product companies (vertical SaaS, insurtech, legaltech, healthtech) that train their own models and buy expert-built training data directly.
 
-Target definition: *Spanish companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
+Target hypothesis in the original evaluation brief: *Spanish insurance and industrial companies with 50–500 employees that launched a customer-facing or internal AI assistant in the last 18 months, where the owner cannot currently prove it answers correctly.*
+
+Current experiments (founder clarification, 2026-09-28): **España · Producto de IA**, focused on fiscal/accounting/payroll AI products, and **Caudals CyL v1**, a multisector regional pilot-entry campaign. Neither is definitive. The founder reports better qualitative results with Producto de IA, but overall acquisition results are still mixed and a better campaign is needed. CyL being active and Producto de IA paused in the observed CRM does not establish a strategic winner. Campaign rules govern research; the earlier “not now” segments above are hypotheses, not permission to override a campaign. CyL includes smaller 30–100-case pilots and digital/AI signals wider than current text delivery scope; assess feasibility before promising non-text work. See `../../../leads/docs/GROWTH.md` and `../../../leads/docs/STRATEGIC_PROSPECTING.md`.
 
 ## Where Ground Truth Comes From
 
@@ -110,8 +118,8 @@ How the data grows:
 
 We hire freelance domain experts to build custom datasets — the model AfterQuery and Mercor run for frontier labs, sized for the Spanish mid-market. Caudals owns the specification, tooling, review and quality; the experts bring the domain knowledge.
 
-- **Profiles:** practising or recently retired domain professionals — specialized engineers, technicians, legal and tax advisors, healthcare practitioners, and subject-matter experts.
-- **Roster:** 5–15 vetted experts per active sector, recruited once and reused across every customer in that sector. A managed roster, not an open marketplace.
+- **Profiles:** practising or recently retired professionals — peritos de seguros, claims handlers and underwriters; técnicos de mantenimiento and after-sales engineers; abogados and asesores fiscales; nurses and doctors.
+- **Roster target:** 5–15 vetted experts per active sector, recruited once and reused across customers. A managed roster, not an open marketplace. This target is not evidence that those experts have already been recruited.
 - **Recruiting:** colegios profesionales and sector associations, LinkedIn, Universidad de Valladolid and other alumni networks, freelance platforms, and referrals from customers' own experts.
 - **Vetting:** credentials check plus a paid trial task graded against gold items; only experts above the agreement threshold join.
 - **Pay:** per task or per accepted item, benchmarked at roughly €30–€60/hour. Expert cost is included in every dataset-build quote.
@@ -124,23 +132,23 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 - Sourcing or reselling third-party data.
 - Image, video, audio, geospatial and sensor data; deals needing more than a few gigabytes of processing.
 - Commodity labelling at volume, generic AI consulting or integration, and a self-serve evaluation SaaS for developers. We build expert-authored, domain-specific data, not generic annotation.
-- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, technical operations, industrial troubleshooting) as a public portfolio piece.
+- Frontier labs and RL-environment sales. Around month five or six, consider one open environment in our domain (Spanish customer service, claims handling, industrial troubleshooting) as a public portfolio piece.
 
 ## Market Context (2026)
 
-- **Evaluation is where AI data money moved.** Frontier labs now spend heavily on evaluation, RL environments and expert-built data; Mercor acquired Sepal AI in February 2026, and Scale, Surge, Turing and Centific sell evaluation alongside human data. The mid-market is unserved: too small for the giants, too unglamorous for product-led startups.
-- **Deployment outran reliability.** 2026 surveys put enterprise agent piloting near 78% with production below 15%, and roughly half of programmes stuck in proof-of-concept, citing reliability.
-- **Spain adopts fast and measures badly.** INE: 21.1% of companies with 10+ employees use AI, up from 12.4%. YouGov/IONOS: 35% plan AI budget in 2026, up from 22%. There is no independent referee.
-- **Regulation is dated, and later than widely assumed.** The EU Digital Omnibus (Regulation (EU) 2026/1744, in force 27 July 2026) moved Annex III high-risk obligations to 2 December 2027 and Annex I to 2 August 2028. Spain's draft Organic Law on AI governance (AESIA in A Coruña, sandboxes, fines up to €35m or 7% of turnover) was in parliament through mid-2026. Use regulation as timing — "arrive at 2027 with eighteen months of run history" — never as fear.
-- **Public funding has a trap.** Kit Consulting pays SMEs €12,000–€24,000 advisory vouchers including AI, but accredited advisers need at least €100,000 annual turnover. Partner with accredited advisers and subcontract under their vouchers instead of applying.
-- **Competition.** Evaluation platforms (Braintrust, LangSmith, Arize, Opik, Langfuse and others) are self-serve developer tools in a consolidating category; consultancies will productise evaluation within about two years. Our edge: expert-signed answer keys written in Spanish, a vetted Spanish expert roster, sector case libraries, a published methodology and local presence.
+- **Expert data and evaluation are the business reference.** AfterQuery's public positioning emphasizes expert knowledge structured into training data; its FinanceQA paper is a concrete benchmark reference ([AfterQuery](https://www.afterquery.com/), [FinanceQA](https://arxiv.org/abs/2501.18062)). Caudals adapts this to accessible Spanish buyers and evaluation-led entry, not an assumed frontier-lab customer base.
+- **Reliability is the problem to validate with buyers.** Deployment alone does not establish trustworthy answers. The earlier adoption percentages and supplier acquisition claims were not reverified in this documentation refresh; do not use them as current market evidence without dated primary sources.
+- **Spain is the initial market hypothesis.** Local professional expertise, Spanish-language material and regional access are differentiators to test, not proof of an unserved market or of paid demand.
+- **Regulation supports evidence work, not certification.** Verify current official legislation, applicability and dates for each proposal. Earlier specific AI Act/Omnibus dates in this brief are not maintained as legal authority. Caudals produces evaluation evidence, not conformity assessments.
+- **Public funding and institutional access are channels to investigate.** Check current eligibility and partner terms before relying on an advisory voucher or claiming an accredited status. Lists of regional institutions do not demonstrate an existing relationship.
+- **Competition.** Developer evaluation platforms, data providers and consultancies are alternatives buyers may already use. The intended edge is expert-validated answer keys, traceable datasets, domain libraries and close delivery. Validate it against actual buyer alternatives rather than assuming a fixed consolidation timeline.
 
 ## Product Surfaces
 
-- **Live public:** `/`, `/sectors` and sector pages, `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
+- **Live public:** `/`, `/sectors` and one page per sector (insurance, industrial after-sales, healthcare, banking, energy, telecoms, legal and advisory, travel), `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
 - **Private:** `/admin` Operator Console.
-- **Planned evaluation surfaces:** operator case authoring and grading queue, restricted expert workspace, customer evaluation dashboard, printable report view, and the public `/proof` demo. See `docs/ARCHITECTURE.md`.
-- **Legacy direct routes (frozen):** `/buyer`, `/supplier`, `/v1/*`, `/security` — deployed and protected, maintained but not extended or marketed.
+- **Deployed evaluation surfaces:** `/ops`, `/workspace`, assignment-scoped `/review`, private report sharing and exports, with invite-only access, entitlements and target-specific readiness. `/proof` remains a future demo, not a deployed funnel step. See `docs/ARCHITECTURE.md` and the evals work-package records.
+- **Removed marketplace routes:** `/buyer`, `/supplier`, `/v1/*`, `/security` and former pricing/catalogue surfaces return 404. Retained internal dataset-build modules do not make those routes a current product.
 
 ## Pitches
 
@@ -152,4 +160,4 @@ One-line variants:
 - We show you where your AI is wrong, then our domain experts build the data that fixes it.
 - Independent evaluation for AI assistants, in Spanish, with answer keys signed off by your own experts.
 - Custom datasets written by practising professionals, not generic annotators.
-- Homepage (ES): "Sabemos si tu asistente de IA responde bien. Con pruebas."
+- Public homepage copy is maintained in `lib/i18n/messages/{en,es}.json`; use those current strings when quoting the site, not an earlier pitch variant.

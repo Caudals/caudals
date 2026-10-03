@@ -17,7 +17,7 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Terminal: build/lint/file ops/repo diagnostics
 - `psql`: SQL migration, rollback, RLS, and schema inspection
 - Docker: local integration checks for PostgreSQL and runtime dependencies
-- Dokploy: VPS service lifecycle and deployment diagnostics
+- Docker Swarm/repository deploy scripts: VPS lifecycle; retained Dokploy Traefik handles ingress
 - Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
 - Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
 - GitHub MCP: issue/PR/review workflows
@@ -26,27 +26,27 @@ When interacting with production-like resources, use read-first diagnostics and 
 
 ## Evaluation test fixture (all stages)
 
-`scripts/evals/test-db.sh up` starts a disposable PostgreSQL 16 (pgvector) and a disposable MinIO on loopback, applies every repository migration plus the evaluation migrations through the real migrator, reapplies the service grant scripts, and prints the environment to export (`eval "$(scripts/evals/test-db.sh up)"`). It creates non-owner logins for the web runtime, the document worker and the configuration admin. Then `npx vitest run` runs every unit, contract and database suite (the older Stage A suites read `EVALS_TEST_OWNER_URL` automatically). `scripts/evals/test-db.sh down` removes both containers. MinIO registry images now require authentication; load the production-pinned image from the VPS with `ssh caudals@caudals-1 'sudo docker save quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1' | docker load` if the pull fails. Never point these fixtures at a shared database.
+`scripts/evals/test-db.sh up` starts a disposable PostgreSQL 16 (pgvector) and a disposable MinIO on loopback, applies every repository migration plus the evaluation migrations through the real migrator, reapplies the service grant scripts, and prints the environment to export (`eval "$(scripts/evals/test-db.sh up)"`). It creates non-owner logins for the web runtime, the document worker and the configuration admin. Then `npx vitest run` runs every unit, contract and database suite (the older Stage A suites read `EVALS_TEST_OWNER_URL` automatically). `scripts/evals/test-db.sh down` removes both containers. MinIO registry images now require authentication; load the production-pinned image from the VPS with `ssh caudals@atlantic 'sudo docker save quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1' | docker load` if the pull fails. Never point these fixtures at a shared database.
 
-Host jobs on `caudals-1` (daily encrypted backup and ten-minute operational alerts) are installed with `sudo scripts/install-evals-host-jobs.sh`; procedures for every alert are in `docs/evals/runbooks.md`.
+Host jobs on `atlantic` (daily encrypted backup and ten-minute operational alerts) are installed with `sudo scripts/install-evals-host-jobs.sh`; procedures for every alert are in `docs/evals/runbooks.md`.
 
 ## Evaluation Stage C local checks
 
-Use a disposable local PostgreSQL database and private storage endpoint for integration tests; never point destructive fixtures at the shared production database. Apply migrations 031–042 in order, then exercise tenant queries under a non-owner NOBYPASSRLS role. `npx vitest run tests/evals/stage-c.test.ts` checks website/scenario/customer policy contracts. `npx playwright test --config=e2e/evals/browser-fixture.config.ts` checks isolated browser fixtures, and `npx playwright test --config=e2e/evals/ui.config.ts` checks the invite-only UI harness. Run the two Playwright configs serially because the UI harness binds loopback port 4187. The UI harness does not prove Next.js routing, production network isolation, real widget consent or durable storage.
+Use a disposable local PostgreSQL database and private storage endpoint for integration tests; never point destructive fixtures at the shared production database. Apply all current migrations through the disposable fixture/migrator, then exercise tenant queries under a non-owner NOBYPASSRLS role. `npx vitest run tests/evals/stage-c.test.ts` checks website/scenario/customer policy contracts. `npx playwright test --config=e2e/evals/browser-fixture.config.ts` checks isolated browser fixtures, and `npx playwright test --config=e2e/evals/ui.config.ts` checks the invite-only UI harness. Run the two Playwright configs serially because the UI harness binds loopback port 4187. The UI harness does not prove Next.js routing, production network isolation, real widget consent or durable storage.
 
-Before interpreting a queue test failure, verify the installed `pg-boss` version against `package-lock.json`: this local workspace can contain a stale symlink to 10.3.3 while the lockfile specifies 12.33.1. Verify the release with the locked dependency set; do not alter the shared dependency tree merely to hide the mismatch. Stage C release gates are tracked in `docs/evals/work-packages/WP-09.md`–`WP-11.md`.
+Before interpreting a queue test failure, verify the installed `pg-boss` version against `package-lock.json`: the lockfile specifies 12.33.1, and an installed tree or symlink may differ. Verify the release with the locked dependency set; do not alter the shared dependency tree merely to hide the mismatch. Stage C release gates are tracked in `docs/evals/work-packages/WP-09.md`–`WP-11.md`.
 
 ## Evaluation Stage D local checks
 
-Use `npx vitest run tests/evals/stage-d-*.test.ts` for protocol, calendar and CLI fixtures. For the database tests, provision a disposable PostgreSQL database with migrations 031–042 and a non-owner role inheriting `evals_runtime`; set `EVALS_TEST_DATABASE_URL` to that role and `EVALS_TEST_OWNER_URL` to the disposable migration owner. Run `npx vitest run tests/evals/stage-d-runner-db.test.ts tests/evals/stage-d-monitor-db.test.ts`. These tests insert and update fixtures and must never target production.
+Use `npx vitest run tests/evals/stage-d-*.test.ts` for protocol, calendar and CLI fixtures. For the database tests, provision a disposable PostgreSQL database with all current migrations and a non-owner role inheriting `evals_runtime`; set `EVALS_TEST_DATABASE_URL` to that role and `EVALS_TEST_OWNER_URL` to the disposable migration owner. Run `npx vitest run tests/evals/stage-d-runner-db.test.ts tests/evals/stage-d-monitor-db.test.ts`. These tests insert and update fixtures and must never target production.
 
-Stage D is disabled unless `EVALS_SCHEDULES_ENABLED=true` on the allowlisted general worker. Before enabling it, mount `EVALS_WEBHOOK_KEYRING_FILE` on both web and general worker, set `EVALS_WEBHOOK_KEY_VERSION` on web to a version in that keyring, and provision the Ed25519 `EVALS_RUNNER_SIGNING_KEY` for bundle signing. Keep these out of logs and use mounted secret files where supported. Run `npm run typecheck`, the eval Vitest suite, and the browser fixtures before a release; then exercise a real approved target, worker restart and a customer-controlled webhook receiver. The web UI shows webhook secrets and customer tokens only once. A receiver verifies the exact body with the delivery ID/timestamp signature and records each delivery ID for at least five minutes to reject replay. Keep old webhook secrets accepted until queued deliveries made before rotation have drained.
+Scheduled monitoring is disabled unless `EVALS_SCHEDULES_ENABLED=true` on the separate scheduler service. Worker scope combines configured IDs with live workspaces through `evals.worker_workspace_ids()`; entitlements and target readiness still apply. Before enabling it, mount `EVALS_WEBHOOK_KEYRING_FILE` on both web and scheduler, set `EVALS_WEBHOOK_KEY_VERSION` on web to a version in that keyring, and provision the Ed25519 `EVALS_RUNNER_SIGNING_KEY` for bundle signing. Keep these out of logs and use mounted secret files where supported. Run `npm run typecheck`, the eval Vitest suite, and the browser fixtures before a release; then exercise a real approved target, worker restart and a customer-controlled webhook receiver. The web UI shows webhook secrets and customer tokens only once. A receiver verifies the exact body with the delivery ID/timestamp signature and records each delivery ID for at least five minutes to reject replay. Keep old webhook secrets accepted until queued deliveries made before rotation have drained.
 
 The private CLI package and adapter usage are in `packages/evals-runner/README.md`. Stage D release evidence and remaining gates are in `docs/evals/work-packages/WP-12.md`–`WP-13.md`.
 
 ## Evaluation Stage E local and release checks
 
-Use a disposable PostgreSQL 16 database with migrations 031–044. The fixture runtime login must inherit `evals_runtime` while remaining a non-owner without `SUPERUSER` or `BYPASSRLS`; set `EVALS_TEST_DATABASE_URL` to that login and `EVALS_TEST_OWNER_URL` to the disposable migration owner. Run `npx vitest run tests/evals/stage-e-*.test.ts`, the storage/scoring comparison tests, and `npx playwright test --config=e2e/evals/ui.config.ts`. These fixtures create attributed work and signed releases and must never target production.
+Use a disposable PostgreSQL 16 database with all current migrations (Stage E started at 043–044; later migrations remain required). The fixture runtime login must inherit `evals_runtime` while remaining a non-owner without `SUPERUSER` or `BYPASSRLS`; set `EVALS_TEST_DATABASE_URL` to that login and `EVALS_TEST_OWNER_URL` to the disposable migration owner. Run `npx vitest run tests/evals/stage-e-*.test.ts`, the storage/scoring comparison tests, and `npx playwright test --config=e2e/evals/ui.config.ts`. These fixtures create attributed work and signed releases and must never target production.
 
 Provision a PKCS#8 Ed25519 key through `EVALS_DATASET_SIGNING_KEY_FILE`. The production app deploy script creates a root-only key at `/root/.caudals/app/evals-dataset-signing-key.pem` when absent, validates its type, and mounts a digest-versioned Docker secret at `/run/secrets/evals_dataset_signing_key`; it never places private key bytes in the service environment. With `EVALS_MIGRATION_DATABASE_URL_FILE` pointing at the migration-owner connection, run `npm run evals:release-check-stage-e`. The checker is read-only and passes only when migrations 043–044 exist, the `evals_runtime` group and every login member are least-privileged and own no evaluation objects, required immutable triggers are enabled, the signing key is Ed25519 and `EVALS_EXPERT_WORK_ENABLED=true`. Its output contains identifiers/counts only. Keep key material out of commands, logs and documentation.
 
@@ -66,7 +66,7 @@ Apply migrations with `tsx scripts/evals/migrate.ts`; the migrator holds the `ca
 
 Runtime:
 
-- Target VPS SSH endpoint: `caudals@caudals-1` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
+- Target VPS SSH endpoint: `caudals@atlantic` (Hetzner Tailscale host `100.118.70.90`). Public SSH on `168.119.49.95` is not an operations path.
 - PostgreSQL target: private `caudals-postgres` swarm service on `dokploy-network`
 - Runtime image: `caudals-postgres:16-pgvector-cron` from `infra/postgres/Dockerfile`
 - App service: `caudals-app_app` (Swarm stack `caudals-app`,
@@ -89,13 +89,15 @@ Runtime:
 
 Direct SSH runtime inspection is allowed when local context is stale:
 
-- `ssh caudals@caudals-1`
+- `ssh caudals@atlantic`
 - `ssh root@168.119.49.95` is disabled on the Hetzner target; avoid routine root probes because denied root attempts can trigger fail2ban during the migration window
 
 Legacy Supabase containers, images, volumes, network, and host filesystem tree have been decommissioned. Verified encrypted database and filesystem archives are kept under `/root/.caudals/backups`.
 
-If Docker registry access is unavailable, restore the current deployed app image
-from the local archive before rescheduling the app service:
+The commands below refer to a **historical May migration image**, not the current
+deployed app. For a current registry outage, first identify the service’s current
+and PreviousSpec digest and available compatible local images. Do not restore an
+old image against the current schema without a verified recovery plan. Historical archive commands:
 
 - `sha256sum -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz.sha256`
 - `gunzip -c /root/.caudals/backups/caudals-image-phase1-2887c39-20260511T163435Z.tar.gz | docker load`
@@ -108,11 +110,11 @@ and the deployed orchestration image under
 ## Private Dashboard Access
 
 Internal dashboards are Tailscale-only and must never be exposed on the public
-interface. On the Hetzner production host (`caudals-1`, Tailscale
+interface. On the Hetzner production host (`atlantic`, Tailscale
 `100.118.70.90`) they are served by the `caudals-dashboards` nginx reverse-proxy
 container, whose published ports bind **only** to the Tailscale IP (so they have
 no public listener); a UFW rule additionally allows `7443:7453` only on
-`tailscale0`. Browse from any Tailnet device at `http://caudals-1:<port>`:
+`tailscale0`. Browse from any Tailnet device at `http://atlantic:<port>`:
 
 | Port | Dashboard | Upstream service |
 | --- | --- | --- |
@@ -128,10 +130,11 @@ no public listener); a UFW rule additionally allows `7443:7453` only on
 | 7452 | Qdrant (`/dashboard`, legacy) | `caudals-vector_qdrant:6333` |
 | 7453 | MinIO console | `caudals-object-storage_minio:9001` |
 
-As of 2026-09-11 only Dokploy (scaled to 0 replicas) and Umami have their
-upstream stacks on the host; the observability, object-storage and legacy
-stacks behind 7445–7453 are not deployed, so those ports have no upstream
-until the stack is redeployed.
+As of 2026-09-28 Umami, Temporal UI and MinIO upstream containers are running.
+The dedicated observability stack and other legacy tools were not observed.
+This table is a retained route map, not an HTTP health check of each dashboard;
+verify proxy configuration and upstream health before using a port. Current
+service state is maintained in `VPS_RUNTIME.md`.
 
 Proxy config and a redeploy helper live under `/root/.caudals/dashboards/`
 (`nginx.conf`, `redeploy.sh`). To add or change a dashboard, edit `nginx.conf`
@@ -156,13 +159,14 @@ Public routing is otherwise unaffected: only `80/443` (web) and `41641/udp`
 (Tailscale) are open on the public interface.
 
 The DigitalOcean-to-Hetzner migration completed on 2026-06-30. Production now
-runs on the Tailscale hostname `caudals-1` (`168.119.49.95`): Dokploy Traefik
+runs on the Tailscale hostname `atlantic` (`168.119.49.95`): Dokploy Traefik
 owns public `80/443`, serves valid Let's Encrypt certs, and routes to the local
 app, Umami, and private stacks. HAProxy is stopped and disabled (config retained
-for rollback). The DigitalOcean VPS remains online as the rollback origin with
-verified canonical backups under `/root/.caudals/backups`
-(`hetzner-migration-20260630T171257Z` and `hetzner-cutover-<ts>`); do not delete
-the droplet or its backups until a human approves decommissioning. Observability
+for rollback). The June cutover retained DigitalOcean as a rollback origin with
+then-verified canonical backups under `/root/.caudals/backups`
+(`hetzner-migration-20260630T171257Z` and `hetzner-cutover-<ts>`). Its current
+availability was not checked on 2026-09-28; do not assume it is a ready failover
+node or delete retained recovery material without the appropriate authorization. Observability
 and Umami analytics history were preserved across the move. Agents may install
 official Cloudflare and Tailscale CLIs or MCPs when scoped credentials are
 available; never print or commit those credentials.
@@ -295,7 +299,7 @@ Install caveat:
   `legacy.vector`). Otherwise the gate prints one `legacy` line saying they
   were skipped.
 - As of 2026-09-11 the observability and object-storage stacks are not
-  deployed on `caudals-1`, so `observability.stack` and `storage.object_store`
+  deployed on `atlantic`, so `observability.stack` and `storage.object_store`
   fail until they are redeployed (or object storage is explicitly waived).
 - `npm run platform:runtime-config -- --fail-on-missing` checks the local
   Stripe and Resend runtime variables without printing secret values. The
@@ -356,17 +360,17 @@ Install caveat:
 
 ## Legacy Private Stacks
 
-Legacy dataset-build infrastructure, frozen and shut down. The live public
+Legacy dataset-build infrastructure, frozen in scope; actual runtime is stack-specific. The live public
 funnel does not call it and new evaluation code must not depend on it;
 app-code references are limited to Operator Console snapshot data, the legacy
 CLI and frozen operator/supplier modules. When deployed, every stack runs on
 `dokploy-network` with no published ports — keep it that way.
 
-Status on `caudals-1` (2026-09-11): none of these stacks is deployed (the
-Dagster services were removed on 2026-09-10) and their images were pruned on
-2026-09-11. Their named volumes, the `dagster`, `temporal`,
-`temporal_visibility`, `marquez` and `lakefs` databases inside
-`caudals-postgres`, and their Docker secrets are retained.
+Status on `atlantic` (2026-09-28): Temporal and its UI are running; other
+legacy dataset-build stacks in this table were not observed. The active
+Postiz Redis is distinct from `infra/cache/`. Older removal/pruning records
+do not establish today’s image or volume inventory. Preserve retained named
+volumes, databases and secrets; consult `VPS_RUNTIME.md` before lifecycle work.
 
 | Stack | Scripts | Definition | Secrets and storage | Dashboard |
 | --- | --- | --- | --- | --- |
@@ -386,7 +390,7 @@ Dagster services were removed on 2026-09-10) and their images were pruned on
 - Do not extend these stacks or build on them. The evaluation runner uses a
   Postgres job queue instead (`docs/ARCHITECTURE.md`).
 - To restore a stack, get human approval, run its deploy script on
-  `caudals-1` (`npm run <stack>:deploy`), and set
+  `atlantic` (`npm run <stack>:deploy`), and set
   `CAUDALS_LEGACY_STACKS_GATE_ENABLED=true` if the completion gate should
   require it again. The deploy scripts reuse the retained volumes, databases
   and secrets.
@@ -401,7 +405,7 @@ Dagster services were removed on 2026-09-10) and their images were pruned on
 
 ## Host Disk Cleanup
 
-`caudals-1` has a 75 GB disk, and every deploy leaves a new image tag behind
+`atlantic` has a 75 GB disk, and every deploy leaves a new image tag behind
 (0.9–2.2 GB of unique layers each; Docker's containerd snapshotter keeps them
 under `/var/lib/containerd`). `caudals-docker-cleanup.timer` runs
 `scripts/host-docker-cleanup.sh` every hour (at :30 UTC, ±5 min); a burst of
@@ -432,6 +436,10 @@ more afterwards, because what remains is in use and needs a person.
   `/etc/default/caudals-docker-cleanup` (see the script header).
 
 ## Stripe CLI Usage Pattern
+
+Historical billing-tool reference only: marketplace checkout and its public
+Stripe flow were removed. Do not use the endpoints below as a current smoke
+suite or restore them as part of evaluation work.
 
 1. Use only for local/test webhook simulation.
 2. Forward webhooks:
@@ -581,7 +589,7 @@ Bootstrap:
 - `npm run object-storage:probe`: probe private object-storage health,
   bucket readiness, write/read/delete behavior, and port isolation
 - `sudo scripts/install-host-docker-cleanup.sh`: install the periodic Docker
-  cleanup timer on `caudals-1` — see Host Disk Cleanup
+  cleanup timer on `atlantic` — see Host Disk Cleanup
 - Legacy private stacks (frozen): `npm run {cache,labeling,cvat,lakehouse,orchestration,workflow,operations,vector}:deploy`
   and the matching `:probe` scripts — see Legacy Private Stacks
 - `npm run caudals`: legacy operations CLI; pass command arguments after `--`

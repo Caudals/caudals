@@ -2,11 +2,11 @@
 
 The user authorized Stages A–E (WP-00–15) of `../product-specs/evals-platform-implementation-spec.md`. That specification controls the new evaluation product; the old three-paid-pilot prerequisite and old `/e`/`proof` architecture do not block this work. Stage E is feature-gated and does not authorize an open expert marketplace, automated payouts or fine-tuning execution.
 
-Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and separate workers. Evaluation UI is English using its own catalog; public marketing localization and `/admin` remain separate. No legacy marketplace or frozen infrastructure dependency. Stage C remains invite-only: do not enable broad registration.
+Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and separate workers. Evaluation UI supports English and Spanish through its own catalogs and per-person `caudals_locale`; public marketing localization and English-only `/admin` remain separate. No legacy marketplace or frozen infrastructure dependency. Stage C remains invite-only: do not enable broad registration.
 
 Persist tenant identity server-side. `withTenant` checks a non-owner NOBYPASSRLS runtime role and uses transaction-local context. Identity grants are explicit, not inherited from legacy operators. Admin support reads are audited; workers use persisted job scope. Never make provider calls outside the reservation/attempt path.
 
-The browser worker is a separate service and queue with a dedicated database role, explicit tenant allowlist, browser-session-only keyring and policy-enforced public HTTPS egress. Recipes are declarative and require two successful reset probes before freezing. CAPTCHA, selector drift, expired login state and incomplete capture enter assistance; never bypass them.
+The browser worker is a separate service and queue with a dedicated database role, tenant scope resolved from configured IDs plus live workspaces (`worker_workspace_ids()`, refreshed every 30 seconds), browser-session-only keyring and policy-enforced public HTTPS egress. Recipes are declarative and require two successful reset probes before freezing. CAPTCHA, selector drift, expired login state and incomplete capture enter assistance; never bypass them.
 
 Multi-turn and tool cases use frozen scenario graphs and simulated deterministic fixtures. Model output never grants network, filesystem, secret, publication or spend authority. Customer run creation is bounded by server-side workspace entitlements; runtime users cannot raise them.
 

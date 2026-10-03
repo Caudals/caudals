@@ -1,5 +1,7 @@
 # WP-01 UI handoff
 
+> Context review / revisión de contexto: 2026-09-28. Historical WP-01 UI handoff. Its limited scope, screenshots and English-only sign-in description record that implementation stage. Current UI/routing/localization contracts are in ../../FRONTEND.md and ../../DESIGN.md.
+
 Implemented only in `app/(evaluation)`, `components/evals`, `lib/evals/messages`, `e2e/evals`, and this directory. No commits, auth/domain/proxy/schema edits or full builds were performed by the UI agent.
 
 ## Working routes

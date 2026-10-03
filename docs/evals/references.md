@@ -1,13 +1,15 @@
 # Foundation reference register
 
-Checked 2026-09-17 against code and installed versions. External documentation
+Reviewed 2026-09-29 against code and lockfiles; original adoption was checked
+on 2026-09-17. External documentation
 is API evidence, not a claim about our runtime.
 
 - [pg-boss official source](https://github.com/timgit/pg-boss), MIT. Pinned
-  `10.3.3`: npm metadata requires Node >=20; installed app Dockerfile Node20,
-  development22.23.2 and observed PostgreSQL16.13. Its only runtime dependencies
-  are pg, cron-parser, serialize-error. Package scripts are not executed during
-  adoption. Durable external effects still require attempts/reservations.
+  `12.33.1` in the current lockfile, requiring Node >=22.12.0. App and evals
+  Dockerfiles use Node24.21.0; observed PostgreSQL is16.13. Runtime dependencies
+  include pg, cron-parser, rrule-temporal and serialize-error. The original
+  adoption used10.3.3; dated test evidence remains historical. Durable external
+  effects still require attempts/reservations.
 - [PostgreSQL16 RLS](https://www.postgresql.org/docs/16/ddl-rowsecurity.html):
   FORCE policies and non-owner NOBYPASSRLS runtime; test pooled rollback and
   composite tenant references against real PostgreSQL.
