@@ -72,7 +72,7 @@ Do not infer image/volume/secret deletion from absence in this table.
 Installed on atlantic 2026-10-01; CRM of record by founder decision; moved to
 `arctic` on 2026-10-03 (stopped stacks, copied `/opt/warmbly` byte-identical,
 same secret names, all 219 table counts matched, DNS switched in Cloudflare).
-An encrypted-at-rest copy of the full install, including the unrecoverable
+An offline copy of the full install, including the unrecoverable
 encryption keys, is kept offline by the founder. Paths below are on `arctic`.
 Warmbly `v0.6.17`, images pinned by digest from `ghcr.io/warmbly/warmbly`,
 except `web`, a Caudals-patched image `caudals-warmbly-web:reviewer-1.0.3`.
