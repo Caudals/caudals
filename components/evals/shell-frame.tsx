@@ -451,20 +451,23 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
-  const [hasTestSets, setHasTestSets] = useState(false);
-  const groups = navFor(identity, features, expert, hasTestSets);
+  const [testSetsByOrg, setTestSetsByOrg] = useState<Record<string, boolean>>({});
+  const hasTestSets = testSetsByOrg[orgId] ?? false;
+  const groups = navFor(identity, features, expert || prefix("/review")(pathname), hasTestSets);
 
-  // Test sets are a secondary workflow: the entry appears once one exists.
+  // Refresh after navigation so the first newly created set becomes reachable.
+  // Keep the last successful result while loading or offline, scoped to its
+  // workspace, rather than removing the link during each request.
   useEffect(() => {
     if (!orgId) return;
     let live = true;
     void evalRequest<unknown[]>(`/suites?orgId=${encodeURIComponent(orgId)}&grouped=1`)
-      .then((items) => live && setHasTestSets(items.length > 0))
-      .catch(() => live && setHasTestSets(false));
+      .then((items) => live && setTestSetsByOrg((current) => ({ ...current, [orgId]: items.length > 0 })))
+      .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [orgId]);
+  }, [orgId, pathname]);
 
   /* The sidebar state is a per-device preference, not account data. */
   useEffect(() => {

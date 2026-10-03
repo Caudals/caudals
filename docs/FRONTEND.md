@@ -156,6 +156,10 @@ Applies to `/workspace/*`, `/ops/*`, `/share`, `/evaluation-entry`, `/auth/*` an
   action inside itself (`Modal`'s `alert`), never behind the scrim.
 - Workspace context comes from `useWorkspace()` (`workspace-context.tsx`); pages
   do not take a `workspaces` prop. Links into a workspace go through `withOrg`.
+- Authenticated workspace, operator and expert pages share one `EvalShell` in
+  `app/(evaluation)/(authenticated)/layout.tsx`. Pages render their content inside
+  it; navigation must preserve the sidebar, workspace selection and activity state.
+  Sign-in, recovery and public invitation handling stay outside this layout.
 - `app/(evaluation)/evaluation.css` holds only screen-specific rules (today the
   expert workbench). There is no legacy alias layer; do not reintroduce one.
 - `/admin` is frozen scope: it adopts the platform tokens through a variable
