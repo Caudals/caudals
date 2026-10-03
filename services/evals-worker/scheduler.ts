@@ -9,6 +9,7 @@ import { tickWebhookDeliveries } from "../../lib/evals/monitoring/webhooks";
 import { advanceJudgments } from "../../lib/evals/repositories/judging";
 import { advanceReportNarratives } from "../../lib/evals/repositories/narratives";
 import { finalizeRuns, refreshJudgedReports } from "../../lib/evals/repositories/finalize";
+import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 
@@ -42,6 +43,7 @@ async function main() {
             await tickSchedules(scope);
             await tickScheduledAlerts(scope);
             await tickWebhookDeliveries(scope, keys);
+            await advancePendingGenerations(scope);
             await advanceJudgments(scope);
             await advanceReportNarratives(scope);
             await finalizeRuns(scope);

@@ -208,6 +208,11 @@ Provider failures on engine calls (`generator`, `context_analyzer`, `judge`,
   for this endpoint and cannot be disabled") is asked once more with its
   default reasoning. The retry-after-invalid-output path asks for reasoning
   off, which such models reject; this fallback is what keeps it working.
+- Preparation no longer depends on the page staying open: every minute the
+  scheduler advances jobs whose model step finished (`profile_ready`,
+  `draft_ready`) or that stopped for a reason the engine retries itself, with
+  the same code the page calls (`advancePendingGenerations`). Finalizing is
+  idempotent per input, so page and scheduler can both advance a job.
 - Every failure logs the provider's own explanation, shortened and with
   key-like strings masked (`provider_call_failed`), and preparation shows
   what to do next (another model, a new key, or try again later).

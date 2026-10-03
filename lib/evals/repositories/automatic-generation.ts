@@ -543,6 +543,34 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
   return prepareGroundedSuiteOnce(scope,evaluationId,{sourceRevisionIds:final.sourceRevisionIds,title:final.title,executionMode:final.executionMode,questions:final.questions,promptRevision:final.promptRevision,generation:{generationJobId:final.jobId,generatorRevisionId:final.generatorRevisionId,promptRevisionId:final.promptRevisionId,modelRevisionId:final.modelRevisionId}},key);
 }
 
+/** Stopped for a reason the engine handles itself (it retries once, or keeps the tests written so far). */
+const SELF_RETRY_REASONS=["generation_output_exhausted","incomplete_response","invocation_configuration_invalid"];
+
+/**
+ * Preparation keeps going when nobody has the page open: the scheduler
+ * advances jobs whose model step has finished (or that stopped for a reason
+ * the engine retries itself) with the same code the page calls. Finalizing is
+ * idempotent per input, so the page and the scheduler can both advance a job.
+ */
+export async function advancePendingGenerations(scope: EvidenceScope) {
+  const jobs=await withTenant(scope,async db=>(await db.query(`SELECT id,evaluation_id,status,updated_at FROM evals.generation_job
+    WHERE org_id=$1 AND updated_at<now()-interval '20 seconds'
+      AND (status IN ('profile_ready','draft_ready') AND updated_at>now()-interval '2 days'
+        -- A pause the engine cannot retry stays paused; a few minutes of attempts are enough.
+        OR status='paused' AND reason_code=ANY($2::text[]) AND updated_at>now()-interval '10 minutes')
+    ORDER BY updated_at LIMIT 10`,[scope.orgId,SELF_RETRY_REASONS])).rows as Array<{id:string;evaluation_id:string;status:string;updated_at:Date}>);
+  let advanced=0;
+  for(const job of jobs){
+    try{
+      const result=await advanceAutomaticGeneration(scope,job.evaluation_id,job.id,`scheduler-${job.id}-${job.status}-${new Date(job.updated_at).getTime()}`);
+      if(result.status!==job.status)advanced++;
+    }catch(error){
+      console.error(JSON.stringify({event:"generation_advance_failed",orgId:scope.orgId,jobId:job.id,reason:error instanceof Error?error.message.slice(0,200):"unknown"}));
+    }
+  }
+  return advanced;
+}
+
 /**
  * Answer or skip a generation's open context questions in one step. A blank
  * answer skips the question: it stays on record as unanswered and stops

@@ -5,7 +5,7 @@ import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 import { buildContextProfile } from "../../lib/evals/generation/context";
 import { digest } from "../../lib/evals/queue/store";
-import { advanceAutomaticGeneration, getAutomaticGeneration } from "../../lib/evals/repositories/automatic-generation";
+import { advanceAutomaticGeneration, advancePendingGenerations, getAutomaticGeneration } from "../../lib/evals/repositories/automatic-generation";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -96,12 +96,14 @@ async function completeStep(db: PoolClient, orgId: string, stepId: string, provi
       await db2.query("BEGIN");
       await db2.query("SELECT set_config('evals.actor_id',$1,true),set_config('evals.org_id',$2,true)", [actorId, orgId]);
       await completeStep(db2, orgId, state.step.id, providerId, priceId, cases);
-      await db2.query("UPDATE evals.generation_job SET status='draft_ready' WHERE org_id=$1 AND id=$2", [orgId, jobId]);
+      await db2.query("UPDATE evals.generation_job SET status='draft_ready',updated_at=now()-interval '1 minute' WHERE org_id=$1 AND id=$2", [orgId, jobId]);
       await db2.query("COMMIT");
     } catch (error) { await db2.query("ROLLBACK"); throw error; }
     finally { db2.release(); }
-    const finished = await advanceAutomaticGeneration(scope, evaluationId, jobId, randomUUID());
-    expect(finished).toMatchObject({ status: "needs_review", cases: 2 });
+    // Nobody has the page open: the scheduler finishes the set with the same code.
+    const scheduler = { orgId, actorId: "service:evals-scheduler" };
+    expect(await advancePendingGenerations(scheduler)).toBe(1);
+    expect(await advancePendingGenerations(scheduler)).toBe(0);
     const final = await withTenant(scope, async (connection) => (await connection.query("SELECT status,suite_id IS NOT NULL AS has_suite FROM evals.generation_job WHERE org_id=$1 AND id=$2", [orgId, jobId])).rows[0]);
     expect(final).toEqual({ status: "needs_review", has_suite: true });
   });
