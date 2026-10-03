@@ -45,9 +45,7 @@ Lightsail browser SSH does not work by design. Separate Swarm, not joined to
 | --- | --- | --- |
 | `caudals-app_app` | 1/1 | Marketing, operator and evaluation web/API |
 | `caudals-leads_app` | 1/1 | Leads app (former CRM), outreach and integration workers |
-| `caudals-warmbly_*` (12) | 1/1 | Warmbly CRM/outreach: backend, consumer, worker, web, admin, tracking, forms, realtime, updater, postgres, redis, nats |
-| `caudals-warmbly-apollo_app` | 1/1 | Warmbly Apollo plugin |
-| `caudals-warmbly-rocketreach_app` | 1/1 | Warmbly RocketReach plugin |
+| `caudals-warmbly_*`, `caudals-warmbly-apollo_app`, `caudals-warmbly-rocketreach_app` | 0/0 | Retained after the 2026-10-03 move to `arctic`: definitions, secrets and `/opt/warmbly` data kept as rollback until removal is approved |
 | `caudals-growth_social` | 1/1 | Content generation and publishing execution |
 | `caudals-growth_hyperframes-renderer` | 1/1 | Isolated video rendering |
 | `caudals-postgres_db` | 1/1 | PostgreSQL 16 with pgvector/pg_cron |
@@ -69,9 +67,13 @@ work. The dedicated observability stack, Dagster, Label Studio, CVAT, lakeFS,
 Qdrant, legacy cache and Marquez were not observed as running services.
 Do not infer image/volume/secret deletion from absence in this table.
 
-## Warmbly CRM
+## Warmbly CRM (on `arctic` since 2026-10-03)
 
-Installed 2026-10-01 as the CRM of record (founder decision, 2026-10-03).
+Installed on atlantic 2026-10-01; CRM of record by founder decision; moved to
+`arctic` on 2026-10-03 (stopped stacks, copied `/opt/warmbly` byte-identical,
+same secret names, all 219 table counts matched, DNS switched in Cloudflare).
+An encrypted-at-rest copy of the full install, including the unrecoverable
+encryption keys, is kept offline by the founder. Paths below are on `arctic`.
 Warmbly `v0.6.17`, images pinned by digest from `ghcr.io/warmbly/warmbly`,
 except `web`, a Caudals-patched image `caudals-warmbly-web:reviewer-1.0.3`.
 Install material: `/opt/warmbly` (root-only: `.env`, generated `stack.yml`,
@@ -86,11 +88,12 @@ secret env files, plugin sources, data) and `~/warmbly-install`
   `prepare.py`.
 - Platform mail: Resend SMTP as `noreply@mail.caudals.com`. Auto-updater has no
   URL; upgrades are manual.
-- Admin CLI: `~/warmbly-install/ctl.sh <args>` runs `warmblyctl` in the backend.
+- Admin CLI: `docker exec` into the `caudals-warmbly_backend` container and run
+  `warmblyctl` (the `~/warmbly-install/ctl.sh` helper stays on atlantic).
 - Plugins: Apollo 1.0.1 and RocketReach 1.0.0, separate stacks reached through
   the Warmbly session; they never start campaigns, send mail or sync Leads.
-- **Not covered by the daily evals backup** (which dumps `caudals`,
-  `caudals_evals_queue`, `caudals_leads`, `postiz`). No Warmbly backup exists yet.
+- Backup: Lightsail automatic daily snapshot of `arctic` (02:00 UTC, last 7
+  kept). No application-level dump yet.
 
 ## Host-side services and DGX
 
