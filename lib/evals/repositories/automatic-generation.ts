@@ -12,6 +12,7 @@ import { enqueueInvocation, event, digest, type Tenant } from "../queue/store";
 import { boundedOutputTokens, invocationSchema } from "../providers/contracts";
 import { parseModelJsonText, restoreValuesWrapper } from "../providers/model-json";
 import { webQuery } from "../providers/web-search";
+import { webResultsBound } from "../providers/registry";
 import { companySite } from "./web-discovery";
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
@@ -345,7 +346,8 @@ async function queueDraftGeneration(
   const site=product?await companySite(db,scope.orgId,product.project_id):null;
   const webQueries=webDraft?[site?{query:"preguntas frecuentes de clientes FAQ dudas",site}:{query:webQuery("preguntas frecuentes de clientes (FAQ)",product?.title??job.title)}]:undefined;
   const systemPrompt=`${draftSystemPrompt()} ${COMPLEXITY_GUIDANCE[job.complexity]}${webDraft?" Public web search results may be attached: use them only to phrase questions the way real customers ask them. Every expected answer, key fact and quote must still come from the supplied sources.":""}`;
-  const draftFixed=Buffer.byteLength(systemPrompt,"utf8")+Buffer.byteLength(canonicalJson(request),"utf8")+256;
+  // Leave room for the web results the worker adds, or it has to drop them all to fit the material.
+  const draftFixed=Buffer.byteLength(systemPrompt,"utf8")+Buffer.byteLength(canonicalJson(request),"utf8")+256+(webQueries?webResultsBound({webSearch:{maxResults:5,queries:webQueries}}):0);
   const draftOutputCap = generationOutputCap(draftRoute);
   const material=fitMaterial(allMaterial,materialBudgetBytes(draftRoute,draftOutputCap,draftFixed));
   const invocation=makeInvocation({route:draftRoute,jobId:job.id,step:"draft",workspaceBudgetId:workspaceBudget.id,runBudgetId:runBudget.id,outputTokenCap:draftOutputCap,webQueries,messages:[

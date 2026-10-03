@@ -60,7 +60,7 @@ async function completeStep(db: PoolClient, orgId: string, stepId: string, provi
         VALUES($1,$2,'dgx','http://dgx.invalid/v1','fixture-generator','fixture',ARRAY['context_analyzer','generator','judge'],'{"text":true,"boundedTokens":true,"jsonObject":true}',32768,8192,ARRAY['synthetic'],ARRAY['private'],1000,10000000,4)`, [providerId, accountId]);
       await db.query("INSERT INTO evals.price_revision(id,provider_revision_id,currency,effective_at,billing_unit,input_price,output_price,cache_price,tool_price,uncertainty_bps,source) VALUES($1,$2,'EUR',now(),'token',0,0,0,0,0,'fixture')", [priceId, providerId]);
       for (const role of ["context_analyzer", "generator"])
-        await db.query("INSERT INTO evals.generation_provider_route(org_id,role,provider_revision_id,price_revision_id,data_class,region,internal_cost_per_second,updated_by) VALUES($1,$2,$3,$4,'synthetic','private',0.0001,$5)", [orgId, role, providerId, priceId, actorId]);
+        await db.query("INSERT INTO evals.generation_provider_route(org_id,role,provider_revision_id,price_revision_id,data_class,region,internal_cost_per_second,updated_by,web_research) VALUES($1,$2,$3,$4,'synthetic','private',0.0001,$5,$6)", [orgId, role, providerId, priceId, actorId, role === "generator"]);
       await db.query("INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling) VALUES($1,'workspace',$1,'EUR',10),($1,'run',$2,'EUR',5)", [orgId, jobId]);
       await db.query("INSERT INTO evals.context_profile_revision(id,org_id,evaluation_id,content_hash,document,model_revision_id,prompt_revision) VALUES($1,$2,$3,$4,$5,$6,$7)", [profileRevisionId, orgId, evaluationId, profile.content_hash, profile, providerId, job.promptRevision]);
       await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,complexity,status,profile_revision_id,created_by)
@@ -88,6 +88,9 @@ async function completeStep(db: PoolClient, orgId: string, stepId: string, provi
     const request = JSON.parse(state.step.input.messages[1].content);
     expect(request).toMatchObject({ round: 2, complexity: "expert", maxCases: 12, avoidQuestions: cases.map((item) => item.question) });
     expect(state.step.input.messages[0].content).toContain("Complexity is expert");
+    // Web research on drafting: the worker gets a query, and the material leaves room for its results.
+    expect(state.step.input.webSearch).toEqual({ maxResults: 5, queries: [{ query: "Rounds fixture: preguntas frecuentes de clientes (FAQ)" }] });
+    expect(Buffer.byteLength(JSON.stringify(state.step.input.messages)) + 1024 + 8600 + state.step.input.maxOutputTokens).toBeLessThanOrEqual(32768);
     expect((await getAutomaticGeneration(scope, evaluationId, jobId)).job?.progress).toMatchObject({ written: 2, target: 100, rounds: 1 });
 
     // Round 2 only repeats the same facts: the set is finished with the two validated cases.
