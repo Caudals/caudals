@@ -1,7 +1,7 @@
 import type { Browser, ElementHandle, Frame, Page } from "playwright";
 import type { BrowserLocator, WebsiteRecipe } from "../contracts/browser";
 import { scopedBrowserStorageState, type BrowserStorageState } from "../contracts/browser";
-import { browserLocator, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, sendWebsitePrompt, trackPageActivity, type PageActivity } from "./browser-executor";
+import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, sendWebsitePrompt, trackPageActivity, type PageActivity } from "./browser-executor";
 import { frameChain, locatorCandidates, pageScript, resilientLocator } from "./browser-locators";
 
 /**
@@ -86,7 +86,17 @@ const SCAN_INPUTS = `(frameHint) => {
       el.setAttribute('${MARK}', id);
       inputs.push({ id, score, area: rect.width * rect.height });
     }
-    const clickable = tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button' || el.hasAttribute('aria-haspopup') || tag === 'iframe';
+    // Widget launchers are often a plain element with a pointer cursor floating
+    // in a corner (an avatar or bubble) rather than a button.
+    const floatingWidget = () => {
+      if (getComputedStyle(el).cursor !== 'pointer' || (el.parentElement && getComputedStyle(el.parentElement).cursor === 'pointer')) return false;
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 32 || rect.width > 180 || rect.height < 32 || rect.height > 180) return false;
+      return rect.top > innerHeight * 0.5 && (rect.left > innerWidth * 0.6 || rect.right < innerWidth * 0.4) &&
+        [el, ...ancestry(el, 4)].some(node => getComputedStyle(node).position === 'fixed');
+    };
+    const clickable = tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button' || el.hasAttribute('aria-haspopup') || tag === 'iframe' ||
+      (['div', 'span', 'img', 'svg', 'figure', 'picture'].includes(tag) || tag.includes('-')) && floatingWidget();
     if (clickable && visible(el)) {
       const own = (el.innerText || '').trim().slice(0, 80);
       const img = el.querySelector('img[alt],svg[aria-label],svg title');
@@ -283,7 +293,10 @@ async function waitForInput(page: Page, timeoutMs: number) {
 /** Finds the chat controls on the live page, opening the chat when it is closed. */
 export async function detectChatControls(page: Page, options: { onStep?: (step: DetectStep) => void; signal?: AbortSignal } = {}): Promise<DetectedControls> {
   options.onStep?.("find_input");
+  await dismissConsent(page);
   let result = await waitForInput(page, 4_000);
+  // A consent dialog that appeared late still blocks the launcher.
+  if (!result.input && await dismissConsent(page)) result = await waitForInput(page, 2_000);
   let launcher: DetectedPart | null = null;
   if (!result.input) {
     options.onStep?.("open_chat");
@@ -465,6 +478,7 @@ export async function detectLauncherFor(page: Page, input: BrowserLocator, timeo
   const target = partLocator(page, input).first();
   const deadline = Date.now() + timeoutMs;
   if (await target.isVisible().catch(() => false)) return null;
+  if (await dismissConsent(page) && await target.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return null;
   try {
     const { launchers } = await scan(page);
     for (const candidate of launchers.slice(0, 4)) {
@@ -535,6 +549,7 @@ export async function autoDetectWebsiteRecipe(args: {
     page.setDefaultTimeout(10_000);
     await page.goto(args.url, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
+    await page.waitForTimeout(1_500);
     let controls: DetectedControls;
     try { controls = await detectChatControls(page, { signal: args.signal }); }
     catch (error) { if (await loginRequired(page, args.url)) throw new Error("login_required"); throw error; }

@@ -65,6 +65,20 @@ const pages: Record<string, string> = {
       };
     })();</script>`,
   "/no-chat": "<!doctype html><h1>Signed in, no chatbot here</h1>",
+  // A consent dialog that covers the page and a launcher that is a plain
+  // floating element (an avatar with a pointer cursor), as on many EU sites.
+  "/e": `<!doctype html><title>Epsilon</title><h1>Epsilon insurance</h1>
+    <div id="consent" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10"><div class="cookie-notice" style="background:#fff;margin:120px auto;width:520px;padding:24px">
+      <p>Usamos cookies propias y de terceros. Puedes aceptarlas o rechazarlas.</p><button id="cfg">Configurar cookies</button><button id="no">Rechazar</button><button id="yes">Aceptar</button></div></div>
+    <div class="assistant-avatar" style="position:fixed;right:24px;bottom:24px;width:72px;height:72px;border-radius:50%;background:#c00;cursor:pointer;z-index:5"></div>
+    <section class="panel" hidden style="position:fixed;right:24px;bottom:110px;width:360px"><div class="feed"></div><input class="field" placeholder="Escribe aquí"></section><script>
+    let choice='none';const close=value=>{choice=value;document.getElementById('consent').remove();};
+    setTimeout(()=>{},0);document.getElementById('no').onclick=()=>close('rejected');document.getElementById('yes').onclick=()=>close('accepted');
+    document.querySelector('.assistant-avatar').addEventListener('click',()=>{document.querySelector('.panel').hidden=false;});
+    const field=document.querySelector('.field');field.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const q=field.value.trim();if(!q)return;field.value='';
+      const feed=document.querySelector('.feed');const u=document.createElement('div');u.className='bubble mine';u.textContent=q;feed.append(u);
+      setTimeout(()=>{const a=document.createElement('div');a.className='bubble bot-answer';a.textContent='Epsilon: '+q+' (cookies '+choice+')';feed.append(a);},400);});
+    </script>`,
 };
 
 async function fixture() {
@@ -195,6 +209,14 @@ test("retains all login stores across a website-to-app handoff and replays the f
     expect(result.recipe.start_url).toBe(`${app}/d`);
     expect((await invokeWebsite({ browser, recipe: result.recipe, storageState: result.storageState, destinationCheck,
       input: question("Does the login persist?"), context: context(scope.orgId) })).messages.at(-1)?.content).toBe("App reply 1: Does the login persist?");
+    // "Connect again" while the page shows the probe's conversation URL starts over from the composer.
+    expect(browser.contexts().at(-1)!.pages()[0].url()).toBe(`${app}/d/conversation/one`);
+    await control.dispatch(scope, { action: "autoteach", sessionId });
+    await expect.poll(async () => (await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState).test.status,
+      { timeout: 90000, intervals: [500] }).toMatch(/ready|failed/);
+    const again = await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState;
+    expect(again.teach.error).toBeNull(); expect(again.test.error).toBeNull();
+    expect((await control.dispatch(scope, { action: "result", sessionId }) as { recipe: WebsiteRecipe }).recipe.start_url).toBe(`${app}/d`);
     await control.dispatch(scope, { action: "navigate", sessionId, url: `${app}/no-chat` });
     await control.dispatch(scope, { action: "autoteach", sessionId });
     await expect.poll(async () => (await control.dispatch(scope, { action: "snapshot", sessionId }) as RemoteState).teach.status,
@@ -202,4 +224,17 @@ test("retains all login stores across a website-to-app handoff and replays the f
     // No input or reply was found, but retaining the login still works.
     expect((await control.dispatch(scope, { action: "checkpoint", sessionId }) as { storageState: BrowserStorageState }).storageState.origins.length).toBeGreaterThan(0);
   } finally { await control.close(); }
+});
+
+test("declines a covering cookie dialog and opens a chat whose launcher is a floating avatar", async () => {
+  test.setTimeout(90_000);
+  const destinationCheck = async (url: string) => { if (new URL(url).origin !== site.origin) throw new Error("destination_denied"); };
+  const draft = await autoDetectWebsiteRecipe({ browser, url: `${site.origin}/e`, destinationCheck, recipeRevisionId: randomUUID() });
+  expect(draft.launcher).toMatchObject({ kind: "css", value: "div.assistant-avatar" });
+  expect(draft.submit).toEqual({ kind: "press_enter" });
+  const { withContentHash } = await import("../../lib/evals/contracts/hashing");
+  const recipe = withContentHash(draft) as WebsiteRecipe;
+  // Every fresh run session meets the dialog again and declines it.
+  const observation = await invokeWebsite({ browser, destinationCheck, recipe, input: question("¿Qué cubre el seguro de hogar?"), context: context(randomUUID()) });
+  expect(observation.messages.at(-1)?.content).toBe("Epsilon: ¿Qué cubre el seguro de hogar? (cookies rejected)");
 });

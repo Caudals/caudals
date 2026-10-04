@@ -17,9 +17,14 @@ worker's workspace allowlist.
    scroll, use back/forward/reload, the address bar and popup tabs to sign in
    and complete SSO, 2FA or CAPTCHA themselves.
 3. **Connect system** is one click. Caudals:
+   - declines a cookie-consent dialog that covers the page (Reject / necessary
+     only, never Accept; a notice with no choice is only acknowledged). Every
+     fresh session, run and Test does the same;
    - finds the message box in every frame (iframes, open shadow roots), scoring
      chat-like inputs and rejecting search, login and newsletter fields;
-   - opens the chat when it is closed, trying likely launchers;
+   - opens the chat when it is closed, trying likely launchers, including a
+     plain floating element with a pointer cursor in a corner (an avatar or
+     bubble that is not a button);
    - finds the Send button next to the input, or falls back to Enter;
    - sends one short hello, observes what the page adds, and identifies the
      reply as the largest new region that is not the user's own message (the
@@ -28,8 +33,12 @@ worker's workspace allowlist.
      disappears, Send becoming available again, or network-confirmed quiet;
    - reloads the start page in a fresh context and learns the launcher if the
      chat is closed there;
-   - runs Test Connection: two fresh sessions and a follow-up probe.
-   Detected elements are outlined on the live view with labels.
+   - runs Test Connection: two fresh sessions and a follow-up probe. Each
+     fresh session gets one more try before it fails the Test, and a reply's
+     allowance starts once the chat is open, not before the page loaded.
+   Detected elements are outlined on the live view with labels. **Connect
+   again** on a page that an earlier probe turned into a conversation URL goes
+   back to the chat it started from before detecting again.
 4. A passing test saves the encrypted login and freezes an immutable recipe
    and target revision. A failed test still saves the draft and login so the
    person never has to sign in twice. Saved logins and website attestations
@@ -99,6 +108,10 @@ rule-based assistants answer many questions with one sentence.
 
 Unattended connection checks run the same detection headlessly with the saved
 login, so many public chatbots connect without opening the live browser at all.
+They run ahead of queued test cases on the browser queue. A check that finishes
+after someone connected the system in the live browser does not replace that
+connection, and its new revision keeps any login saved meanwhile. A saved login
+carries over only a finished connection check, never a queued one.
 
 ## Live view and session lifecycle
 
@@ -151,15 +164,34 @@ the chat is closed (a widget that restores itself open is not toggled shut).
 - Selector failure, ambiguity, missing launcher or frame → `website_selector_failed`.
 - Incomplete streaming → `capture_incomplete`.
 
+A website test gets 120 s (the case and target allowances are not cut below
+that), and once the chat is open its reply always has at least 90 s (60 s for
+each follow-up turn of a conversation), so a slow page does not cut off a slow
+assistant.
+
+Real sites miss a reply now and then. A failed browser attempt is repeated in a
+fresh browser context, three attempts in all, 5 s and then 20 s apart. A
+browser turn has no external charge, so a failed one is recorded with its
+reason rather than left as an unknown outcome that would block retries or a
+resumed run. When the browser service restarts mid-test (a deploy), the test
+simply runs again. Partial answers are never graded.
+
+A test that still fails after its retries is recorded as not captured and the
+run continues. The run pauses for repair only when the connection itself looks
+broken: the saved login expired, the last three finished tests all failed, or
+nothing was captured after two tests. Only then is a `needs_operator`
+connection check recorded, so the evaluation page shows **Repair connection**.
+
+A paused run shows how many tests were answered and offers **Resume** (the
+remaining tests continue on the run's frozen revision) and **Finish and grade
+N answers**, which stops it and grades and reports the answers captured so far
+(a partial report). Stopping a run any other way also sends its captured
+answers to grading. Repairing the connection (teach or fix, then test) applies
+to new runs; existing run plans are never rewritten.
+
 A fully paused run releases its workspace execution slot. Running steps or
 case units still draining hold the slot, and resuming reacquires it under the
 same workspace lock as starting a run.
-
-Each connector failure pauses the remaining work, marks the connection as needing assistance and
-never grades partial answers. The evaluation page then shows **Repair
-connection**, which reopens the studio with the saved recipe and login; teach
-or fix, test, cancel the paused run and start a new one. Existing run plans
-are never rewritten.
 
 Supports public HTTPS apps reachable through the existing egress policy.
 Private network apps still use the private runner. Closed shadow roots,
@@ -177,8 +209,13 @@ both. Configuration and encrypted state remain in existing additive tables.
 - `e2e/evals/web-app-autoteach.contract.ts`: one-click teaching of a closed
   iframe widget with a Stop button (live frames, launcher learned, test,
   replay), unattended detection of an SSE-streamed reply with no visible
-  signal and hashed classes, and a rich-text composer sending on Enter with
-  typing dots. All three assistants echo the question.
+  signal and hashed classes, a rich-text composer sending on Enter with
+  typing dots, a cookie dialog covering a floating-avatar launcher (declined
+  in every fresh session), and Connect again from a conversation URL. The
+  first three assistants echo the question.
+- `tests/evals/website-run-resilience-db.test.ts`: retries in a fresh browser,
+  a run that keeps going past one failing test, the systematic pause with its
+  repair check, resume, and finishing with the captured answers.
 - `e2e/evals/web-app-fixture.contract.ts`: batched human input, popup SSO,
   manual Fix of each part in nested frames, encrypted-state reuse and
   normalized eval execution.

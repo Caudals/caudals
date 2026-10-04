@@ -12,7 +12,7 @@ import { HttpTargetAdapter } from "../connectors/http-target";
 import { runScenario,ScenarioFailure } from "../execution/scenario-runner";
 import { jobSchema,type JobData } from "./boss";
 import { digest,event,projectWorkflow,targetExecutionSchema,type Tenant,type TenantTransaction } from "./store";
-import { dispatchTargetCall,markTargetCallUnknown,recordTargetCall,recoverDispatchedTargetCalls,
+import { dispatchTargetCall,markTargetCallUnknown,recordFailedBrowserCalls,recordTargetCall,recoverDispatchedTargetCalls,
   markTargetDispatched,markTargetFailure,recordTargetObservation,
   releaseTargetClaim,reserveTargetInvocation,targetCapacity } from "./target-ledger";
 
@@ -27,8 +27,30 @@ async function locked(c:PoolClient,orgId:string,stepId:string){
  return {step,workflow};
 }
 
+/**
+ * Real websites are slow, flaky and change under load. A failed browser
+ * attempt is repeated in a fresh browser (three attempts in all, backing off)
+ * before the test is marked as not captured; nothing is charged for it.
+ */
+const WEBSITE_RETRYABLE=new Set(["capture_incomplete","website_selector_failed","target_transport_failed","browser_session_unavailable","target_execution_aborted"]);
+const WEBSITE_RETRY_DELAYS_MS=[5_000,20_000];
+
+/**
+ * One test that still fails after its retries is recorded and the run goes on.
+ * The run pauses for repair only when the connection itself looks broken: the
+ * saved login expired, the last three finished tests all failed, or nothing at
+ * all has been captured after two tests.
+ */
+async function websiteFailureSystematic(c:PoolClient,orgId:string,runId:string,code:string){
+ if(code==="browser_session_unavailable")return true;
+ const recent=(await c.query("SELECT status FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status NOT IN ('pending','queued','running','unsupported','canceled') ORDER BY updated_at DESC,id LIMIT 3",[orgId,runId])).rows.map(row=>row.status as string);
+ const totals=(await c.query("SELECT count(*) FILTER (WHERE status='succeeded')::int AS ok,count(*) FILTER (WHERE status IN ('capture_incomplete','transport_error','target_error','timeout'))::int AS bad FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows[0];
+ return (recent.length>=3&&recent.every(status=>status!=="succeeded"))||(totals.ok===0&&totals.bad>=2);
+}
+
 function failureReason(error:unknown){
  const value=error instanceof Error?error.message:"target_execution_failed";
+ if(value==="target_execution_aborted")return {unit:"capture_incomplete",code:value};
  if(value==="browser_session_unavailable"||value==="login_required")return {unit:"unsupported",code:"browser_session_unavailable"};
  if(value==="website_selector_failed")return {unit:"capture_incomplete",code:value};
  if(value==="invalid_credentials")return {unit:"target_error",code:value};
@@ -84,7 +106,7 @@ export class TargetExecutionWorker{
    await c.query("UPDATE evals.case_unit SET status='running',attempt_id=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attemptId]);
    await c.query("UPDATE evals.execution_workflow SET status='running',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,workflow.id]);
    await event(c,tenant.orgId,workflow.id,"target_claimed");
-   return {step:updated,workflow,input,attemptId,config};
+   return {step:updated,workflow,input,attemptId,config,ordinal:(previous?.ordinal??0)+1 as number};
   });
   if(!claimed)return;
   const controller=new AbortController(),timer=setInterval(()=>{void this.options.tx(tenant,async c=>{const renewed=await c.query("UPDATE evals.workflow_step SET lease_until=now()+$4::int*interval '1 second' WHERE org_id=$1 AND id=$2 AND fence=$3 AND status='running' AND lease_until>now() RETURNING id",[tenant.orgId,claimed.step.id,claimed.step.fence,this.lease]);if(!renewed.rowCount)controller.abort();}).catch(()=>controller.abort());},Math.max(1000,Math.floor(this.lease*1000/3)));
@@ -122,7 +144,9 @@ export class TargetExecutionWorker{
      await this.options.tx(tenant,c=>recordTargetCall(c,callScope,ordinal,result));
      return result;
     }catch(error){
-     await this.options.tx(tenant,c=>markTargetCallUnknown(c,callScope,ordinal,"target_transport_uncertain"));
+     await this.options.tx(tenant,c=>claimed.config.kind==="website"
+      ?recordFailedBrowserCalls(c,callScope,failureReason(error).code,ordinal)
+      :markTargetCallUnknown(c,callScope,ordinal,"target_transport_uncertain"));
      throw error;
     }
    };
@@ -133,18 +157,58 @@ export class TargetExecutionWorker{
    await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;await c.query("INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[observation.observation_id,tenant.orgId,claimed.input.runId,claimed.input.caseUnitId,claimed.attemptId,observation.content_hash,observation,observation.status]);await recordTargetObservation(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},observation);await c.query("UPDATE evals.target_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,observation.status,observation.error?.code??null]);await c.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,observation.error?.code??null]);await event(c,tenant.orgId,claimed.step.workflow_id,observation.status==="succeeded"?"target_completed":"target_observation_incomplete",observation.error?.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);});
   }catch(error){
    const failure=failureReason(error);
-   await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence)return;await recoverDispatchedTargetCalls(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},failure.code);await markTargetFailure(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},failure.code);await c.query("UPDATE evals.target_attempt SET status='failed',reason_code=$3,finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId,failure.code]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,failure.unit,failure.code]);await c.query("UPDATE evals.workflow_step SET status='failed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,failure.code]);await event(c,tenant.orgId,claimed.step.workflow_id,"target_failed",failure.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);
-   if (claimed.config.kind === "website" && ["browser_session_unavailable", "website_selector_failed", "capture_incomplete"].includes(failure.code)) {
-    await c.query("INSERT INTO evals.connection_check(org_id,target_revision_id,status,error_code,probe_evidence,completed_at) VALUES($1,$2,'needs_operator',$3,'{\"kind\":\"browser_execution_repair\"}',now())", [tenant.orgId,claimed.input.targetRevisionId,failure.code]);
-    await c.query("UPDATE evals.workflow_step SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND workflow_id=$2 AND status='queued'", [tenant.orgId,claimed.step.workflow_id,failure.code]);
-    await c.query("UPDATE evals.execution_workflow SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2", [tenant.orgId,claimed.step.workflow_id,failure.code]);
-    await c.query("UPDATE evals.run SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2", [tenant.orgId,claimed.input.runId,failure.code]);
-    await event(c,tenant.orgId,claimed.step.workflow_id,"website_repair_required",failure.code);
-   }
+   const website=claimed.config.kind==="website";
+   await this.options.tx(tenant,async c=>{
+    const current=await locked(c,tenant.orgId,claimed.step.id);
+    if(current.step.status!=="running"||current.step.fence!==claimed.step.fence)return;
+    const scope={orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId};
+    if(website)await recordFailedBrowserCalls(c,scope,failure.code);
+    else await recoverDispatchedTargetCalls(c,scope,failure.code);
+    await markTargetFailure(c,scope,failure.code);
+    await c.query("UPDATE evals.target_attempt SET status='failed',reason_code=$3,finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId,failure.code]);
+    if(website&&claimed.ordinal<3&&WEBSITE_RETRYABLE.has(failure.code)){
+     if(["queued","running"].includes(current.workflow.status)){
+      const delay=WEBSITE_RETRY_DELAYS_MS[claimed.ordinal-1]??20_000;
+      await c.query("UPDATE evals.case_unit SET status='queued',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,failure.code]);
+      await c.query("UPDATE evals.workflow_step SET status='queued',lease_until=NULL,reason_code=$3,not_before=now()+$4::int*interval '1 millisecond',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,failure.code,delay]);
+      await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+$4::int*interval '1 millisecond')",[tenant.orgId,claimed.step.id,claimed.step.step_kind,delay]);
+      await event(c,tenant.orgId,claimed.step.workflow_id,"target_retry_scheduled",failure.code);
+     }else{
+      // Paused or canceled meanwhile: the test waits for a resume instead of failing.
+      const canceled=current.workflow.status.startsWith("cancel");
+      await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,canceled?"canceled":"pending",canceled?"run_canceled":failure.code]);
+      await c.query("UPDATE evals.workflow_step SET status=$3,lease_until=NULL,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,canceled?"canceled":"paused",failure.code]);
+     }
+     await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);
+     return;
+    }
+    await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,failure.unit,failure.code]);
+    await c.query("UPDATE evals.workflow_step SET status='failed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,failure.code]);
+    await event(c,tenant.orgId,claimed.step.workflow_id,"target_failed",failure.code);
+    if(website&&["queued","running"].includes(current.workflow.status)&&await websiteFailureSystematic(c,tenant.orgId,claimed.input.runId,failure.code)){
+     const repair=failure.code==="browser_session_unavailable"?failure.code:failure.code==="website_selector_failed"?failure.code:"capture_incomplete";
+     await c.query("INSERT INTO evals.connection_check(org_id,target_revision_id,status,error_code,probe_evidence,completed_at) VALUES($1,$2,'needs_operator',$3,'{\"kind\":\"browser_execution_repair\"}',now())",[tenant.orgId,claimed.input.targetRevisionId,repair]);
+     await c.query("UPDATE evals.workflow_step SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND workflow_id=$2 AND status='queued'",[tenant.orgId,claimed.step.workflow_id,repair]);
+     await c.query("UPDATE evals.execution_workflow SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.workflow_id,repair]);
+     await event(c,tenant.orgId,claimed.step.workflow_id,"website_repair_required",repair);
+     await projectExecutionRun(c,tenant.orgId,claimed.input.runId);
+     await c.query("UPDATE evals.run SET reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2 AND status IN ('paused','pause_requested')",[tenant.orgId,claimed.input.runId,repair]);
+    }else await projectExecutionRun(c,tenant.orgId,claimed.input.runId);
+    await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);
    });
   }finally{clearInterval(timer);await this.options.onAttemptFinished?.(claimed.attemptId);}
  }
  async recover(tenant:Tenant){
-  return this.options.tx(tenant,async c=>{const rows=(await c.query(`SELECT s.id,s.workflow_id,s.step_kind,s.input,a.id AS attempt_id,a.status AS attempt_status FROM evals.workflow_step s JOIN evals.target_attempt a ON (a.org_id,a.step_id)=(s.org_id,s.id) WHERE s.org_id=$1 AND s.status='running' AND s.lease_until<=now() AND a.status IN ('claimed','dispatching') ORDER BY s.lease_until LIMIT 100 FOR UPDATE OF s,a SKIP LOCKED`,[tenant.orgId])).rows;for(const row of rows){const input=targetExecutionSchema.parse(row.input);if(row.attempt_status==="claimed"){await releaseTargetClaim(c,{orgId:tenant.orgId,runId:input.runId,attemptId:row.attempt_id,targetRevisionId:input.targetRevisionId},"worker_lease_expired_before_dispatch");await c.query("UPDATE evals.target_attempt SET status='canceled',reason_code='worker_lease_expired_before_dispatch',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.attempt_id]);await c.query("UPDATE evals.workflow_step SET status='queued',fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired_before_dispatch',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.id]);await c.query("UPDATE evals.case_unit SET status='queued',attempt_id=NULL,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId]);await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)",[tenant.orgId,row.id,row.step_kind]);await event(c,tenant.orgId,row.workflow_id,"target_lease_recovered","not_dispatched");}else{await recoverDispatchedTargetCalls(c,{orgId:tenant.orgId,runId:input.runId,attemptId:row.attempt_id,targetRevisionId:input.targetRevisionId},"worker_lease_expired");await markTargetFailure(c,{orgId:tenant.orgId,runId:input.runId,attemptId:row.attempt_id,targetRevisionId:input.targetRevisionId},"worker_lease_expired",true);await c.query("UPDATE evals.target_attempt SET status='unknown',reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.attempt_id]);await c.query("UPDATE evals.workflow_step SET status='unknown',fence=fence+1,lease_until=NULL,reason_code='unknown_external_outcome',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.id]);await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId]);await event(c,tenant.orgId,row.workflow_id,"target_attempt_unknown","worker_lease_expired");}await projectExecutionRun(c,tenant.orgId,input.runId);await projectWorkflow(c,tenant.orgId,row.workflow_id);}return rows.length;});
+  return this.options.tx(tenant,async c=>{const rows=(await c.query(`SELECT s.id,s.workflow_id,s.step_kind,s.input,a.id AS attempt_id,a.status AS attempt_status,a.ordinal,tr.document->>'kind' AS target_kind,w.status AS workflow_status FROM evals.workflow_step s JOIN evals.target_attempt a ON (a.org_id,a.step_id)=(s.org_id,s.id) JOIN evals.target_revision tr ON (tr.org_id,tr.id)=(a.org_id,a.target_revision_id) JOIN evals.execution_workflow w ON (w.org_id,w.id)=(s.org_id,s.workflow_id) WHERE s.org_id=$1 AND s.status='running' AND s.lease_until<=now() AND a.status IN ('claimed','dispatching') ORDER BY s.lease_until LIMIT 100 FOR UPDATE OF s,a SKIP LOCKED`,[tenant.orgId])).rows;for(const row of rows){const input=targetExecutionSchema.parse(row.input);const scope={orgId:tenant.orgId,runId:input.runId,attemptId:row.attempt_id,targetRevisionId:input.targetRevisionId};if(row.attempt_status==="claimed"){await releaseTargetClaim(c,scope,"worker_lease_expired_before_dispatch");await c.query("UPDATE evals.target_attempt SET status='canceled',reason_code='worker_lease_expired_before_dispatch',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.attempt_id]);await c.query("UPDATE evals.workflow_step SET status='queued',fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired_before_dispatch',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.id]);await c.query("UPDATE evals.case_unit SET status='queued',attempt_id=NULL,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId]);await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)",[tenant.orgId,row.id,row.step_kind]);await event(c,tenant.orgId,row.workflow_id,"target_lease_recovered","not_dispatched");}else if(row.target_kind==="website"){
+    // The browser service restarted (a deploy) mid-test: the browser context
+    // is gone and nothing was charged, so the test simply runs again.
+    await recordFailedBrowserCalls(c,scope,"worker_lease_expired");await markTargetFailure(c,scope,"worker_lease_expired");
+    await c.query("UPDATE evals.target_attempt SET status='failed',reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.attempt_id]);
+    const again=Number(row.ordinal)<3&&["queued","running"].includes(row.workflow_status);
+    await c.query("UPDATE evals.workflow_step SET status=$3,fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.id,again?"queued":["paused","pause_requested"].includes(row.workflow_status)&&Number(row.ordinal)<3?"paused":"failed"]);
+    await c.query("UPDATE evals.case_unit SET status=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,again?"queued":["paused","pause_requested"].includes(row.workflow_status)&&Number(row.ordinal)<3?"pending":"capture_incomplete"]);
+    if(again)await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)",[tenant.orgId,row.id,row.step_kind]);
+    await event(c,tenant.orgId,row.workflow_id,"target_lease_recovered",again?"website_retry":"website_attempts_exhausted");
+   }else{await recoverDispatchedTargetCalls(c,scope,"worker_lease_expired");await markTargetFailure(c,scope,"worker_lease_expired",true);await c.query("UPDATE evals.target_attempt SET status='unknown',reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.attempt_id]);await c.query("UPDATE evals.workflow_step SET status='unknown',fence=fence+1,lease_until=NULL,reason_code='unknown_external_outcome',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,row.id]);await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId]);await event(c,tenant.orgId,row.workflow_id,"target_attempt_unknown","worker_lease_expired");}await projectExecutionRun(c,tenant.orgId,input.runId);await projectWorkflow(c,tenant.orgId,row.workflow_id);}return rows.length;});
  }
 }

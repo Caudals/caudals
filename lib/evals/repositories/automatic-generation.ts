@@ -250,6 +250,72 @@ async function retryWithoutReasoning(db: PoolClient, scope: EvidenceScope, evalu
   return {status,jobId:job.id,stepId,retry:"reasoning_off" as const};
 }
 
+/** Model calls per profile, and per drafting round, before preparation stops for a person. */
+const MAX_STEP_ATTEMPTS=4;
+const RETRY_NOTE="Retry note:";
+/** Stops caused by the provider or the engine rather than the sources: a later attempt usually gets past them. */
+export const TRANSIENT_GENERATION_STOPS=["service_unavailable","network_unavailable","overloaded","malformed_output","worker_lease_expired","invocation_failed","provider_capacity_unavailable","provider_circuit_open"];
+function retryInstruction(reason: string) {
+  if(reason==="model_output_incomplete"||reason==="generation_output_exhausted"||reason==="incomplete_response"||reason==="model_reasoning_exhausted")return "Your previous answer stopped before the JSON was complete. The material and the number of cases are smaller now: answer briefly, write the JSON compactly and finish it.";
+  if(reason==="model_output_not_json")return "Your previous answer was not one valid JSON object. Return exactly one JSON object with the required shape and nothing else.";
+  return "Your previous answer did not pass validation: quotes must be copied exactly from the cited anchor, IDs must come from the supplied sources, and every key fact must appear in its quote. Answer again following every rule and return only the JSON object.";
+}
+/**
+ * Keeps about 60% of every source's excerpts and halves the cases asked for,
+ * so a model that ran out of output room can finish. Quotes stay valid: every
+ * excerpt kept is an unchanged excerpt of the frozen sources.
+ */
+export function shrinkGenerationRequest(content: string) {
+  let value: { sources?: Array<{ anchors?: unknown[] }>; maxCases?: number };
+  try { value=JSON.parse(content); } catch { return content; }
+  if(!value||typeof value!=="object"||!Array.isArray(value.sources))return content;
+  const sources=value.sources.map((source)=>Array.isArray(source.anchors)&&source.anchors.length>1?{...source,anchors:source.anchors.slice(0,Math.max(1,Math.ceil(source.anchors.length*0.6)))}:source);
+  return canonicalJson({...value,sources,...(typeof value.maxCases==="number"?{maxCases:Math.max(1,Math.ceil(value.maxCases/2))}:{})});
+}
+
+/**
+ * Queues the job's last profile or draft call again as a new step version:
+ * after an incomplete or invalid answer with a short corrective note (a
+ * temperature-0 model would otherwise repeat itself), with a smaller request
+ * when the output ran out, or unchanged after a provider failure. Bounded per
+ * profile and per drafting round; returns null when the budget is spent.
+ */
+async function retryGenerationStep(db: PoolClient, scope: EvidenceScope, evaluationId: string, job: GenerationJobRecord, step: "profile"|"draft", reason: string, mode: "note"|"shrink"|"same") {
+  const kind=step==="profile"?"profile":"generate";
+  const recent=(await db.query("SELECT status FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 ORDER BY version DESC",[scope.orgId,job.id,step])).rows as Array<{status:string}>;
+  // Every profile call counts; for drafting, only this round's calls (an accepted earlier round ends the count).
+  let attempts=0;
+  for(const [index,row] of recent.entries()){if(step==="draft"&&index>0&&row.status==="completed")break;attempts++;}
+  if(attempts>=MAX_STEP_ATTEMPTS)return null;
+  const last=(await db.query("SELECT input,version FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND step_kind=$3 AND input->>'generationJobId'=$4 ORDER BY version DESC,created_at DESC LIMIT 1",[scope.orgId,job.workflow_id,kind,job.id])).rows[0];
+  if(!last)return null;
+  const previous=invocationSchema.parse(last.input);
+  let messages=previous.messages.filter((message)=>!(message.role==="user"&&message.content.startsWith(RETRY_NOTE)));
+  if(mode==="shrink"){
+    const index=messages.findIndex((message)=>message.role==="user");
+    if(index>=0)messages=messages.map((message,position)=>position===index?{...message,content:shrinkGenerationRequest(message.content)}:message);
+  }
+  if(mode!=="same")messages=[...messages,{role:"user" as const,content:`${RETRY_NOTE} ${retryInstruction(reason)}`}];
+  const revision=(await db.query("SELECT output_limit,context_limit FROM evals.provider_revision WHERE id=$1",[previous.providerRevisionId])).rows[0] as {output_limit:number;context_limit:number}|undefined;
+  if(!revision)return null;
+  let maxOutputTokens=previous.maxOutputTokens;
+  try{maxOutputTokens=boundedOutputTokens(messages,revision.context_limit,revision.output_limit,previous.maxOutputTokens);}catch{return null;}
+  const input=invocationSchema.parse({...previous,messages,maxOutputTokens});
+  const version=Number(last.version)+1;
+  const workflow=await db.query("UPDATE evals.execution_workflow SET status='running',updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING plan_hash",[scope.orgId,job.workflow_id]);
+  if(!workflow.rowCount||workflow.rows[0].plan_hash!==planHash(job))return null;
+  await db.query("UPDATE evals.workflow_step SET status='failed',reason_code=COALESCE(reason_code,$4),updated_at=now() WHERE org_id=$1 AND workflow_id=$2 AND step_kind=$3 AND status IN ('paused','queued') AND input->>'generationJobId'=$5",[scope.orgId,job.workflow_id,kind,reason,job.id]);
+  await db.query("UPDATE evals.generation_batch SET status='failed',reason_code=COALESCE(reason_code,$4),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND status<>'failed' AND status<>'completed'",[scope.orgId,job.id,step,reason]);
+  if(step==="draft")await db.query("UPDATE evals.generation_batch SET status='failed',reason_code=COALESCE(reason_code,$4),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' AND version=$3 AND status='completed'",[scope.orgId,job.id,Number(last.version),reason]);
+  await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count) VALUES($1,$2,$3,$4,$5,$6,$7,$8,'queued',0) ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,step,digest(input),version,job.prompt_revision,previous.providerRevisionId]);
+  const stepId=await enqueueInvocation(db,scope as Tenant,{workflowId:job.workflow_id,runId:job.id,planHash:planHash(job),kind,version,input});
+  const status=step==="profile"?"profiling":"drafting";
+  await db.query("UPDATE evals.generation_job SET status=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,status]);
+  await db.query("UPDATE evals.evaluation SET preparation_status=$3,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId,step==="profile"?"profiling":"generating"]);
+  await event(db,scope.orgId,job.workflow_id,"generation_retry",`${mode}:${reason}`.slice(0,120));
+  return {status,jobId:job.id,stepId,retry:mode};
+}
+
 async function modelResult(db: PoolClient,orgId:string,workflowId:string,step:"profile"|"draft",jobId:string) {
   const row=(await db.query(`SELECT r.output FROM evals.execution_result r JOIN evals.workflow_step s ON (s.org_id,s.id)=(r.org_id,r.step_id)
     WHERE r.org_id=$1 AND s.workflow_id=$2 AND s.step_kind=$3 AND s.input->>'generationJobId'=$4 ORDER BY r.created_at DESC LIMIT 1`,[orgId,workflowId,step==="profile"?"profile":"generate",jobId])).rows[0];
@@ -429,9 +495,19 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
     // (output allowance spent, often on reasoning that spilled into the text).
     if(job.status==="paused"&&["generation_output_exhausted","incomplete_response"].includes(job.reason_code??"")){
       const stopped=(await db.query("SELECT step_kind FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND input->>'generationJobId'=$3 AND step_kind IN ('profile','generate') ORDER BY version DESC,created_at DESC LIMIT 1",[scope.orgId,job.workflow_id,job.id])).rows[0];
-      const retried=stopped&&await retryWithoutReasoning(db,scope,evaluationId,job,stopped.step_kind==="profile"?"profile":"draft","model_output_incomplete");
+      const stoppedStep=stopped?.step_kind==="profile"?"profile":"draft";
+      const retried=stopped&&(await retryWithoutReasoning(db,scope,evaluationId,job,stoppedStep,"model_output_incomplete")
+        ??await retryGenerationStep(db,scope,evaluationId,job,stoppedStep,job.reason_code??"model_output_incomplete","shrink"));
       if(retried)return retried;
       // A later round that ran out of room still leaves the earlier rounds' tests.
+      if(stopped?.step_kind==="generate"&&job.draft_cases.length)return finalizeRequest(db,scope.orgId,job,job.draft_cases);
+      return {status:job.status,jobId:job.id,reasonCode:job.reason_code};
+    }
+    // A provider hiccup or a worker restart: queue the same call again (bounded).
+    if(job.status==="paused"&&TRANSIENT_GENERATION_STOPS.includes(job.reason_code??"")){
+      const stopped=(await db.query("SELECT step_kind FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND input->>'generationJobId'=$3 AND step_kind IN ('profile','generate') ORDER BY version DESC,created_at DESC LIMIT 1",[scope.orgId,job.workflow_id,job.id])).rows[0];
+      const retried=stopped&&await retryGenerationStep(db,scope,evaluationId,job,stopped.step_kind==="profile"?"profile":"draft",job.reason_code!,"same");
+      if(retried)return retried;
       if(stopped?.step_kind==="generate"&&job.draft_cases.length)return finalizeRequest(db,scope.orgId,job,job.draft_cases);
       return {status:job.status,jobId:job.id,reasonCode:job.reason_code};
     }
@@ -490,7 +566,8 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
         let inferred;
         try{inferred=validateAutogeneratedProfile(await modelResult(db,scope.orgId,job.workflow_id,"profile",job.id),anchors);}catch(error){
           const reason=failureReason(error,"profile_validation_failed");
-          const retried=await retryWithoutReasoning(db,scope,evaluationId,job,"profile",reason);
+          const retried=await retryWithoutReasoning(db,scope,evaluationId,job,"profile",reason)
+            ??await retryGenerationStep(db,scope,evaluationId,job,"profile",reason,reason==="model_output_incomplete"||reason==="model_reasoning_exhausted"?"shrink":"note");
           if(retried)return retried;
           await db.query("UPDATE evals.generation_job SET status='quarantined',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,reason]);
           await db.query("UPDATE evals.generation_batch SET status='failed',reason_code=$3,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='profile'",[scope.orgId,job.id,reason]);
@@ -520,7 +597,12 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
       const remaining=Math.max(0,job.requested_case_count-accepted.length);
       let parsed;
       try{parsed=validateAutogeneratedDraft(await modelResult(db,scope.orgId,job.workflow_id,"draft",job.id),anchors,{knownFamilies:accepted.map((item)=>familyFingerprint(item.question)),limit:Math.max(1,Math.min(20,remaining))});}catch(error){
-        const retried=await retryWithoutReasoning(db,scope,evaluationId,job,"draft",failureReason(error,"generated_draft_invalid"));
+        const draftReason=failureReason(error,"generated_draft_invalid");
+        // A later round with nothing usable usually means the material is
+        // covered; only an unreadable answer is worth asking for again then.
+        const retryable=!accepted.length||MODEL_OUTPUT_FAILURES.includes(draftReason);
+        const retried=retryable?(await retryWithoutReasoning(db,scope,evaluationId,job,"draft",draftReason)
+          ??await retryGenerationStep(db,scope,evaluationId,job,"draft",draftReason,draftReason==="model_output_incomplete"||draftReason==="model_reasoning_exhausted"?"shrink":"note")):null;
         if(retried)return retried;
         const batch=(await db.query("SELECT id,version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft' ORDER BY version DESC LIMIT 1",[scope.orgId,job.id])).rows[0];
         if(batch)await db.query("INSERT INTO evals.case_quarantine(org_id,evaluation_id,generation_batch_id,draft,reason_code,schema_errors) VALUES($1,$2,$3,$4,'generated_draft_invalid',$5)",[scope.orgId,evaluationId,batch.id,{output_error:error instanceof Error?error.message:"invalid_output"},JSON.stringify([error instanceof Error?error.message:"invalid_output"])]);
@@ -557,7 +639,7 @@ export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluatio
 }
 
 /** Stopped for a reason the engine handles itself (it retries once, or keeps the tests written so far). */
-const SELF_RETRY_REASONS=["generation_output_exhausted","incomplete_response","invocation_configuration_invalid"];
+const SELF_RETRY_REASONS=["generation_output_exhausted","incomplete_response","invocation_configuration_invalid",...TRANSIENT_GENERATION_STOPS];
 
 /**
  * Preparation keeps going when nobody has the page open: the scheduler
@@ -569,8 +651,9 @@ export async function advancePendingGenerations(scope: EvidenceScope) {
   const jobs=await withTenant(scope,async db=>(await db.query(`SELECT id,evaluation_id,status,updated_at FROM evals.generation_job
     WHERE org_id=$1 AND updated_at<now()-interval '20 seconds'
       AND (status IN ('profile_ready','draft_ready') AND updated_at>now()-interval '2 days'
-        -- A pause the engine cannot retry stays paused; a few minutes of attempts are enough.
-        OR status='paused' AND reason_code=ANY($2::text[]) AND updated_at>now()-interval '10 minutes')
+        -- A pause the engine cannot retry stays paused. Retryable stops wait a
+        -- minute (a provider recovering) and are bounded by the step budget.
+        OR status='paused' AND reason_code=ANY($2::text[]) AND updated_at<now()-interval '60 seconds' AND updated_at>now()-interval '6 hours')
     ORDER BY updated_at LIMIT 10`,[scope.orgId,SELF_RETRY_REASONS])).rows as Array<{id:string;evaluation_id:string;status:string;updated_at:Date}>);
   let advanced=0;
   for(const job of jobs){

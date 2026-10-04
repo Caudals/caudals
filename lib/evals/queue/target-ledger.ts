@@ -41,6 +41,14 @@ export async function targetCapacity(
         WHERE l.org_id=$1 AND l.target_revision_id=$2 AND l.provenance='current'
           AND l.state<>'released' AND COALESCE(l.dispatched_at,l.claimed_at)>clock_timestamp()-interval '1 minute') AS next_slot`, [orgId,targetRevisionId]);
   const current=rows[0];
+  // A website session carries no external charge and ends with its browser
+  // context, so an attempt with an uncertain outcome never holds a session slot.
+  if (config.kind === "website") {
+    const live = (await db.query<{ active: number }>(`SELECT count(*)::int AS active FROM evals.target_invocation_ledger l
+      WHERE l.org_id=$1 AND l.target_revision_id=$2 AND l.provenance='current' AND l.state IN ('reserved','dispatched')`, [orgId, targetRevisionId])).rows[0];
+    current.active = live.active;
+    current.uncertain = 0;
+  }
   if (current.active >= config.concurrent_sessions && current.uncertain > 0) return {kind:"review"};
   if (current.active >= config.concurrent_sessions) return {kind:"wait",until:new Date(Date.now()+2000)};
   if (current.recent >= config.requests_per_minute) {
@@ -197,6 +205,23 @@ export async function markTargetCallUnknown(
     state='unknown',reason_code=$4,finished_at=now()
     WHERE org_id=$1 AND attempt_id=$2 AND turn_ordinal=$3 AND state='dispatched'`,
   [scope.orgId, scope.attemptId, ordinal, reason]);
+}
+
+/**
+ * A browser turn that failed has a known outcome: nothing was charged and the
+ * browser context is gone. Record it (with the failure reason) instead of
+ * leaving an unknown liability that blocks retries and resumed runs.
+ */
+export async function recordFailedBrowserCalls(
+  db: PoolClient,
+  scope: Scope,
+  reason: string,
+  ordinal?: number,
+): Promise<void> {
+  await db.query(`UPDATE evals.target_invocation_call SET
+    state='recorded',reason_code=$3,finished_at=now()
+    WHERE org_id=$1 AND attempt_id=$2 AND state='dispatched' AND ($4::int IS NULL OR turn_ordinal=$4)`,
+  [scope.orgId, scope.attemptId, reason, ordinal ?? null]);
 }
 
 export async function recoverDispatchedTargetCalls(

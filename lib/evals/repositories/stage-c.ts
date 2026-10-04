@@ -752,7 +752,11 @@ export function createSelfServiceRun(
               candidateInput: candidate,
               scenario: item.scenario,
               toolFixture: fixture,
-              timeoutMs: Math.min(item.limits.timeout_ms, config.limits.timeout_ms, 120_000),
+              // Pages, widgets and assistants that think before answering are
+              // slower than an API: a website test gets the longest allowance.
+              timeoutMs: config.kind === "website"
+                ? Math.min(Math.max(item.limits.timeout_ms, config.limits.timeout_ms), 120_000)
+                : Math.min(item.limits.timeout_ms, config.limits.timeout_ms, 120_000),
               destinationPolicyId:
                 config.kind === "website"
                   ? "browser-public-https-v1"
@@ -891,9 +895,13 @@ export function controlRun(
           WHEN EXISTS(
             SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status IN ('succeeded','unknown_external_outcome')
           ) THEN 'partial' ELSE 'canceled' END,
+          -- Answers already captured are graded and reported: stopping early
+          -- still yields a (partial) report instead of discarding the work.
           phase=CASE WHEN EXISTS(
             SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='running'
-          ) THEN phase ELSE 'done' END,
+          ) THEN phase WHEN EXISTS(
+            SELECT 1 FROM evals.case_unit cu WHERE cu.org_id=$1 AND cu.run_id=$2 AND cu.status='succeeded'
+          ) THEN 'grading' ELSE 'done' END,
           reason_code='run_canceled',updated_at=now()
           WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed')`,
         [scope.orgId, runId],
