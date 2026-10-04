@@ -495,7 +495,11 @@ async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
   while (Date.now() < deadline) {
     for (const value of inputs) {
       const match = locator(root, recipe, value);
-      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) return;
+      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) {
+        // A consent dialog can cover a chat box that is already visible.
+        if (!consentChecks) { consentChecks++; await page.waitForTimeout(Math.max(0, 800 - (Date.now() - loadedAt))); await dismissConsent(page); }
+        return;
+      }
     }
     // Consent managers load late; a dialog over the launcher blocks every click.
     if (consentChecks < 6 && Date.now() - loadedAt > 800 && Date.now() - lastConsent > 1_500) {

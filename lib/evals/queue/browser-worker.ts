@@ -479,6 +479,13 @@ export class BrowserJobWorker {
             { ...evidence, next_target_revision_id: nextTargetRevisionId },
           ],
         );
+        // The connection is read from the newest revision: it carries its own
+        // ready check, as a connection made in the live browser does.
+        await client.query(
+          `INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,completed_at)
+           VALUES($1,$2,'ready',$3,$4,now())`,
+          [tenant.orgId, nextTargetRevisionId, capabilityReportForWebsite(recipe, evidence), evidence],
+        );
         await client.query(
           "UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",
           [tenant.orgId, claimed.step.id],
