@@ -56,6 +56,15 @@ async function locked(client: PoolClient, orgId: string, stepId: string) {
   return { step, workflow };
 }
 
+/**
+ * Loading the page and opening the chat take part of a test's time. A reply
+ * always gets at least this long once the chat is open (follow-up turns of a
+ * conversation slightly less), so a slow assistant is not cut off by a slow page.
+ */
+const WEBSITE_REPLY_MS = 90_000, WEBSITE_TURN_MS = 60_000;
+const replyDeadline = (context: InvocationContext, floorMs: number): InvocationContext =>
+  ({ ...context, deadline: new Date(Math.max(Date.parse(context.deadline), Date.now() + floorMs)).toISOString() });
+
 export class BrowserJobWorker {
   private readonly targetWorker: TargetExecutionWorker;
   private readonly destinationCheck: ReturnType<typeof publicDestinationCheck>;
@@ -110,7 +119,7 @@ export class BrowserJobWorker {
       throw new Error("connection_unsupported");
     }
     const existing = this.sessions.get(context.attempt_id);
-    if (existing) return existing.invoke(input, context);
+    if (existing) return existing.invoke(input, replyDeadline(context, WEBSITE_TURN_MS));
     const recipe = await this.options.tx(
       { orgId: context.tenant_scope_handle, actorId: this.options.actorId },
       async (client) => {
@@ -150,7 +159,7 @@ export class BrowserJobWorker {
         storageState,
       });
       this.sessions.set(context.attempt_id, session);
-      return await session.invoke(input, context);
+      return await session.invoke(input, replyDeadline(context, WEBSITE_REPLY_MS));
     } finally {
       sessionBytes?.fill(0);
     }
@@ -389,17 +398,34 @@ export class BrowserJobWorker {
         throw new Error("recipe_probe_failed");
       }
       const nextTargetRevisionId = randomUUID();
-      const nextConfig = targetConfigSchema.parse({
-        ...claimed.config,
-        target_revision_id: nextTargetRevisionId,
-        recipe_revision_id: recipe.recipe_revision_id,
-      });
       await this.options.tx(tenant, async (client) => {
         const current = await locked(client, tenant.orgId, claimed.step.id);
         if (
           current.step.status !== "running" ||
           current.step.fence !== claimed.step.fence
         ) {
+          return;
+        }
+        // The system may have changed while this check ran: a login saved or a
+        // connection made in the live browser. Build on its latest revision,
+        // and never replace a connection someone made in the meantime.
+        const latest = targetConfigSchema.parse((await client.query(
+          "SELECT document FROM evals.target_revision WHERE org_id=$1 AND target_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1",
+          [tenant.orgId, claimed.target.target_id],
+        )).rows[0].document);
+        const superseded = latest.kind === "website" && !!latest.recipe_revision_id && latest.recipe_revision_id !== (claimed.config.kind === "website" ? claimed.config.recipe_revision_id : undefined);
+        const nextConfig = targetConfigSchema.parse({
+          ...latest,
+          target_revision_id: nextTargetRevisionId,
+          recipe_revision_id: recipe.recipe_revision_id,
+        });
+        if (superseded) {
+          await client.query("UPDATE evals.website_recipe_candidate SET status='validated',reason_code='superseded',updated_at=now() WHERE org_id=$1 AND id=$2", [tenant.orgId, claimed.candidate.id]);
+          await client.query("UPDATE evals.connection_check SET status='ready',capability_report=$3,error_code=NULL,probe_evidence=$4,completed_at=now() WHERE org_id=$1 AND id=$2",
+            [tenant.orgId, claimed.input.connectionCheckId, capabilityReportForWebsite(recipe, evidence), evidence]);
+          await client.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code='superseded',updated_at=now() WHERE org_id=$1 AND id=$2", [tenant.orgId, claimed.step.id]);
+          await event(client, tenant.orgId, claimed.step.workflow_id, "website_recipe_validated", "superseded");
+          await projectWorkflow(client, tenant.orgId, claimed.step.workflow_id);
           return;
         }
         await client.query(

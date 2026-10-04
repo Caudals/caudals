@@ -25,6 +25,17 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
      ORDER BY r.updated_at LIMIT $2`, [scope.orgId, limit, modes])).rows).then(async (runs) => {
     const result = { scored: 0, reported: 0, failed: 0, waiting: 0 };
     for (const run of runs) {
+      // One run that cannot be finalized must not hold back the others (they
+      // are taken oldest first, so it would block the workspace for good).
+      try { await finalizeOne(run); }
+      catch (error) {
+        console.error(JSON.stringify({ event: "run_finalize_failed", runId: run.id, reason: error instanceof Error && /^[a-z0-9_]{1,80}$/i.test(error.message) ? error.message : error instanceof Error ? error.name : "unknown" }));
+        // Rotate it behind the others; the next tick tries it again.
+        await withTenant(scope, (db) => db.query("UPDATE evals.run SET updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id])).catch(() => undefined);
+      }
+    }
+    return result;
+    async function finalizeOne(run: { id: string; status: string; phase: string; title: string; reported: boolean; judging: boolean }) {
       if (run.status === "failed") {
         // No usable deliverable under policy: tell the workspace once, keep the evidence.
         await withTenant(scope, async (db) => {
@@ -34,18 +45,18 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
           await db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2 AND status='failed'", [scope.orgId, run.id]);
         });
         result.failed++;
-        continue;
+        return;
       }
       if (run.phase === "grading") {
         await scoreRun(scope, run.id, AUTO_GRADER_REVISION);
         result.scored++;
-        continue;
+        return;
       }
       if (run.reported) {
         await withTenant(scope, (db) => db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]));
-        continue;
+        return;
       }
-      if (run.judging) { result.waiting++; continue; }
+      if (run.judging) { result.waiting++; return; }
       await settleRunStatus(scope, run.id);
       const report = await createReportForRun(scope, {
         runId: run.id, title: run.title, reviewStatus: "preliminary", scorerVersion: AUTO_REPORT_SCORER,
@@ -54,7 +65,6 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
       await withTenant(scope, (db) => db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]));
       result.reported++;
     }
-    return result;
   });
 }
 

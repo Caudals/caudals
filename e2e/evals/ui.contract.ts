@@ -1515,3 +1515,22 @@ test("queued evaluations explain automatic start and change to execution after p
   await expect(page.getByRole("heading", { name: "Asking the system", exact: true })).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole("heading", { name: "Evaluation queued" })).toHaveCount(0);
 });
+
+test("a paused run shows its progress and can be resumed or finished with the captured answers", async ({ page }) => {
+  const evaluationId = evaluationFixture.id, runId = "00000000-0000-4000-8000-000000000902";
+  let status = "paused";
+  const controls: string[] = [];
+  await page.route("**/api/evals/v1/workspace/summary?**", route => route.fulfill({ json: { data: summaryFixture({ evaluations: [{ ...evaluationFixture, latest_run_id: runId, latest_run_status: status }] }), meta: {} } }));
+  await page.route(`**/api/evals/v1/runs/${runId}?**`, route => route.fulfill({ json: { data: { run: { id: runId, status, phase: "target_execution", execution_mode: "deployed_system", suite_version_id: evaluationFixture.selected_suite_version_id, created_at: new Date().toISOString(), reason_code: "capture_incomplete" },
+    units: [{ id: "a", status: "succeeded" }, { id: "b", status: "succeeded" }, { id: "c", status: "capture_incomplete" }, { id: "d", status: "queued" }], targetUsage: { calls: 3, unknown: 0 } }, meta: {} } }));
+  await page.route(`**/api/evals/v1/runs/${runId}/control`, async route => { controls.push((route.request().postDataJSON() as { action: string }).action); status = "queued"; await route.fulfill({ json: { data: { runId }, meta: {} } }); });
+  await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
+  await expect(page.getByRole("heading", { name: "Evaluation paused" })).toBeVisible();
+  await expect(page.getByText("2 of 4 tests answered so far.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Each test was tried three times in a fresh browser.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Finish and grade 2 answers" })).toBeVisible();
+  await page.screenshot({ path: "/tmp/evaluation-run-paused-ui.png", fullPage: true });
+  await page.getByRole("button", { name: "Resume" }).click();
+  await expect.poll(() => controls).toEqual(["resume"]);
+  await expect(page.getByRole("heading", { name: "Evaluation queued" })).toBeVisible({ timeout: 10000 });
+});

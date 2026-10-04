@@ -139,7 +139,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
 
   const counts = useMemo(() => {
     const units = run?.units ?? [];
-    return { total: units.length, done: units.filter((unit) => FINISHED_UNIT.has(unit.status)).length, pending: units.filter((unit) => unit.status === "pending").length };
+    return { total: units.length, done: units.filter((unit) => FINISHED_UNIT.has(unit.status)).length, pending: units.filter((unit) => unit.status === "pending").length, answered: units.filter((unit) => unit.status === "succeeded").length };
   }, [run]);
 
   const runStatus = run?.run.status ?? evaluation?.latest_run_status ?? null;
@@ -172,6 +172,19 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
     setActionError(null);
     try {
       await evalRequest(`/runs/${latestRunId}/control`, "POST", { orgId, action: "cancel" });
+      await reload();
+    } catch (value) {
+      fail(value);
+    } finally {
+      setPending(false);
+    }
+  }
+  async function resume() {
+    if (!latestRunId) return;
+    setPending(true);
+    setActionError(null);
+    try {
+      await evalRequest(`/runs/${latestRunId}/control`, "POST", { orgId, action: "resume" });
       await reload();
     } catch (value) {
       fail(value);
@@ -246,7 +259,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
     ) : null;
 
   const menu = [
-    ...(running && canWrite ? [{ label: t("cancelRun"), icon: <Square />, onSelect: () => void cancel(), tone: "danger" as const }] : []),
+    ...((running || runStatus === "paused") && canWrite && !awaitingManualAnswers ? [{ label: t("cancelRun"), icon: <Square />, onSelect: () => void cancel(), tone: "danger" as const }] : []),
     ...(terminal && canWrite && evaluation.selected_suite_version_id ? [{ label: t("runAgain"), icon: <RotateCcw />, onSelect: () => void start() }] : []),
     ...(terminal && canWrite && reportRow && ["completed", "partial"].includes(runStatus ?? "") ? [{ label: t("regradeAnswers"), icon: <RefreshCcw />, onSelect: () => void regrade() }] : []),
     ...(evaluation.selected_suite_version_id && canWrite
@@ -300,7 +313,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         </Status>
       )}
 
-      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused"} onChanged={reload} />}
+      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
 
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
@@ -351,6 +364,35 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
                 {t("downloadSignedBundle")}
               </ActionAnchor>
             </div>
+          )}
+        </Panel>
+      ) : runStatus === "paused" ? (
+        <Panel title={t("runPausedTitle")}>
+          <p>
+            {t("runPausedProgress").replace("{done}", String(counts.answered)).replace("{total}", String(counts.total))}{" "}
+            {run.run.reason_code === "browser_session_unavailable"
+              ? t("runPausedLoginHelp")
+              : ["capture_incomplete", "website_selector_failed"].includes(run.run.reason_code ?? "")
+                ? t("runPausedWebsiteHelp")
+                : run.run.reason_code === "target_unknown_attempt_review"
+                  ? t("runPausedReviewHelp")
+                  : t("runPausedHelp")}
+          </p>
+          <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running={false} paused />
+          {canWrite && (
+            <>
+              <div className="p-row">
+                <Action onClick={() => void resume()} disabled={pending}>
+                  <Play aria-hidden="true" />
+                  {pending ? t("resuming") : t("resumeRun")}
+                </Action>
+                <Action variant="secondary" onClick={() => void cancel()} disabled={pending}>
+                  <Square aria-hidden="true" />
+                  {counts.answered ? t("finishRun").replace("{n}", String(counts.answered)) : t("finishRunNone")}
+                </Action>
+              </div>
+              {counts.answered > 0 && <p className="p-cell-meta">{t("finishRunHelp")}</p>}
+            </>
           )}
         </Panel>
       ) : runStatus === "queued" ? (
@@ -426,11 +468,14 @@ function RunPipeline({
   grading,
   phase,
   running,
+  paused = false,
 }: {
   counts: { total: number; done: number };
   grading?: { queued: number; done: number; total: number };
   phase: string;
   running: boolean;
+  /** Stopped mid-way: the current stage shows no activity. */
+  paused?: boolean;
 }) {
   const asked = counts.total > 0 && counts.done >= counts.total;
   const gradingTotal = grading?.total ?? 0;
@@ -445,7 +490,7 @@ function RunPipeline({
       {stages.map((stage) => (
         <li key={stage.key} data-state={stage.state}>
           <span className="p-pipeline-head">
-            {stage.state === "current" && <span className="p-spinner" aria-hidden="true" />}
+            {stage.state === "current" && !paused && <span className="p-spinner" aria-hidden="true" />}
             <span>{stage.label}</span>
             {stage.total > 0 && (
               <span className="p-pipeline-count">

@@ -54,7 +54,7 @@ function sourceState(id: string, detail: SourceDetail, fallbackRevision: string 
   return { pending: { id, title, kind, state: failed ? "failed" : "reading", reason: detail.websiteCapture?.reason_code ?? detail.ingestion?.reason_code ?? null } };
 }
 type Draft = { suiteId: string; suiteVersionId: string; suiteDraftVersion: number };
-type GenerationProgress = { written: number; target: number };
+type GenerationProgress = { written: number; target: number; rounds?: number };
 type GenerationStatus = "profiling" | "profile_ready" | "drafting" | "draft_ready" | "needs_input" | "needs_review" | "paused" | "quarantined" | "failed" | string;
 
 const ACCEPT = ".txt,.md,.docx,.pdf,.csv,.xlsx";
@@ -67,8 +67,10 @@ const MEDIA: Record<string, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 
-/** Paused because the model ran out of output allowance; the server can retry once without reasoning. */
+/** Paused because the model ran out of output allowance; the server retries with a smaller request. */
 const OUTPUT_RETRY_REASONS = new Set(["generation_output_exhausted", "incomplete_response"]);
+/** Provider hiccups and worker restarts: the server queues the call again by itself after a short wait. */
+const SERVER_RETRY_REASONS = new Set(["service_unavailable", "network_unavailable", "overloaded", "malformed_output", "worker_lease_expired", "invocation_failed", "provider_capacity_unavailable", "provider_circuit_open"]);
 
 async function stableKey(action: string, payload: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
@@ -294,10 +296,12 @@ export function PrepareEvaluation({
       try {
         // Large sets are drafted in rounds; allow about an hour before handing back.
         for (let attempt = 0; attempt < 1800; attempt++) {
-          const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null; progress?: GenerationProgress } | null }>(
+          const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null; updatedAt?: string; progress?: GenerationProgress } | null }>(
             `/evaluations/${evaluation.id}/generate?orgId=${orgId}&jobId=${jobId}`,
           );
-          setGeneration(state.status);
+          const retrying = state.status === "paused" && SERVER_RETRY_REASONS.has(state.job?.reasonCode ?? "");
+          // While the server retries by itself the page keeps showing the work in progress.
+          setGeneration(retrying ? (state.job?.progress?.rounds ? "drafting" : "profiling") : state.status);
           setStopReason(state.job?.reasonCode ?? null);
           if (state.job?.progress) setProgress(state.job.progress);
           if (state.status === "needs_review") {
@@ -340,7 +344,7 @@ export function PrepareEvaluation({
             if (resumed.status !== "drafting") throw new Error(t("generationPausedForReview"));
           } else if (state.status === "paused" && OUTPUT_RETRY_REASONS.has(state.job?.reasonCode ?? "")) {
             // The server retries once with reasoning off; a second stop stays paused.
-            const resumed = await evalRequest<{ status: string; suiteId?: string; suiteVersionId?: string; suiteDraftVersion?: number }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-output-retry-${jobId}`);
+            const resumed = await evalRequest<{ status: string; suiteId?: string; suiteVersionId?: string; suiteDraftVersion?: number }>(`/evaluations/${evaluation.id}/generate/advance`, "POST", { orgId, jobId }, `auto-output-retry-${jobId}-${state.job?.updatedAt ?? attempt}`);
             // A later round that ran out of room finishes with the tests already written.
             if (resumed.status === "needs_review" && resumed.suiteId && resumed.suiteVersionId) {
               const review = await evalRequest<{ draft: Draft | null; casePreviews: CasePreview[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
@@ -350,6 +354,9 @@ export function PrepareEvaluation({
               return;
             }
             if (!["profiling", "drafting"].includes(resumed.status)) return;
+          } else if (retrying) {
+            await wait(5000);
+            continue;
           } else if (state.status === "paused") {
             // A dispatched call may still have run. Show its saved reason; do
             // not suggest that polling or a page reload will replay it.
@@ -394,7 +401,7 @@ export function PrepareEvaluation({
         if (state.status === "needs_input") return;
         if (
           ["profiling", "profile_ready", "drafting", "draft_ready"].includes(state.status) ||
-          (state.status === "paused" && (state.job.reasonCode === "invocation_configuration_invalid" || OUTPUT_RETRY_REASONS.has(state.job.reasonCode ?? "")))
+          (state.status === "paused" && (state.job.reasonCode === "invocation_configuration_invalid" || OUTPUT_RETRY_REASONS.has(state.job.reasonCode ?? "") || SERVER_RETRY_REASONS.has(state.job.reasonCode ?? "")))
         ) {
           void continueAutomaticGeneration(state.job.id);
         }

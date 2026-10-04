@@ -27,7 +27,7 @@ async function lockStep(c:PoolClient,orgId:string,stepId:string) {
 export interface WorkerOptions {tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;dgxEndpoint?:string;invoke?:typeof invokeOpenAI;search?:typeof runWebSearch;leaseSeconds?:number}
 /** Engine roles whose calls are safe to repeat: a retry costs tokens, never a duplicate action on a customer's system. */
 const INTERNAL_ROLES=new Set(['generator','context_analyzer','judge','report_writer']);
-const TRANSIENT=new Set(['overloaded','service_unavailable','network_unavailable']);
+const TRANSIENT=new Set(['overloaded','service_unavailable','network_unavailable','malformed_output']);
 const internal=(input:unknown)=>{const parsed=invocationSchema.safeParse(input);return parsed.success&&INTERNAL_ROLES.has(parsed.data.role)&&!parsed.data.probe;};
 /** Keep the results that fit the room left in the model's context, never more than WEB_RESULTS_MAX_BYTES. */
 function fitWebResults(provider:ProviderRevision,input:Invocation,results:WebResult[]):WebResult[] {
@@ -219,16 +219,21 @@ export class InvocationWorker {
    const {workflow,step}=await lockStep(c,tenant.orgId,row.id);
    if(step.status!=='running'||!step.lease_until||step.lease_until.getTime()>Date.now())return;
    const attempts=(await c.query("SELECT * FROM evals.execution_attempt WHERE org_id=$1 AND step_id=$2 AND status IN ('reserved','dispatching') ORDER BY ordinal DESC",[tenant.orgId,step.id])).rows;
+   // An engine call interrupted by a worker restart (a deploy) is simply asked
+   // again: its possible charge stays unresolved, and the connection that held
+   // the provider slot is gone with the old process.
+   const engine=internal(step.input);
    let unknown=false;
    for(const attempt of attempts) {
     if(attempt.status==='dispatching') {
      unknown=true;await c.query("UPDATE evals.budget_reservation SET state='unresolved',provenance='worker_lease_expired' WHERE org_id=$1 AND attempt_id=$2",[tenant.orgId,attempt.id]);
+     if(engine)await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1 AND released_at IS NULL',[attempt.id]);
     } else {
      await settle(c,tenant.orgId,attempt.id,'0','confirmed_not_dispatched');await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attempt.id]);
     }
     await c.query("UPDATE evals.execution_attempt SET status=$3,reason_code='worker_lease_expired',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attempt.id,attempt.status==='dispatching'?'unknown':'canceled']);
    }
-   const state=unknown?'unknown':workflow.status==='cancel_requested'?'canceled':attempts.some(a=>a.ordinal>=3)?'paused':'queued';
+   const state=unknown&&!engine?'unknown':workflow.status==='cancel_requested'?'canceled':attempts.some(a=>a.ordinal>=3)?'paused':'queued';
    const recoveredInput=invocationSchema.safeParse(step.input);
    if(recoveredInput.success&&recoveredInput.data.generationJobId&&recoveredInput.data.generationStep&&state!=='queued'){
     await c.query("UPDATE evals.generation_batch SET status='paused',reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND version=$4",[tenant.orgId,recoveredInput.data.generationJobId,recoveredInput.data.generationStep,step.version]);
@@ -236,8 +241,8 @@ export class InvocationWorker {
    }
    await c.query("UPDATE evals.workflow_step SET status=$3,fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state]);
    if(state==='queued')await c.query('INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)',[tenant.orgId,step.id,step.step_kind]);
-   if(unknown){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectExecutionRun(c,tenant.orgId,workflow.run_id);}}
-   await event(c,tenant.orgId,step.workflow_id,'lease_recovered',unknown?'unknown_external_outcome':'not_dispatched');await projectWorkflow(c,tenant.orgId,step.workflow_id);
+   if(unknown&&!engine){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectExecutionRun(c,tenant.orgId,workflow.run_id);}}
+   await event(c,tenant.orgId,step.workflow_id,'lease_recovered',unknown?(engine?'engine_call_repeated':'unknown_external_outcome'):'not_dispatched');await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
   return stale.length;
  }

@@ -64,9 +64,11 @@ export async function storeLoginSession(scope: EvidenceScope, targetId: string, 
     await db.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",
       [next.target_revision_id, scope.orgId, targetId, sha256(canonicalJson(next)), next]);
     // A login refresh alone does not discard the last verified recipe/check.
+    // Only a finished check is carried over: a copied "queued" row would never
+    // be picked up by a worker and would show the system as waiting forever.
     await db.query(`INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report,probe_evidence,error_code,completed_at)
       SELECT org_id,$3,status,capability_report,probe_evidence,error_code,completed_at FROM evals.connection_check
-      WHERE org_id=$1 AND target_revision_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1`,
+      WHERE org_id=$1 AND target_revision_id=$2 AND status IN ('ready','needs_operator','failed') ORDER BY created_at DESC,id DESC LIMIT 1`,
       [scope.orgId, config.target_revision_id, next.target_revision_id]);
     await db.query("INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'website.login_session.stored',$3)", [scope.orgId, scope.actorId, sessionId]);
     return { sessionId, expiresAt: session.expires_at, targetRevisionId: next.target_revision_id };

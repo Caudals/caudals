@@ -15,7 +15,7 @@ GRANT UPDATE(status,reason_code,document,discovery_snapshot,updated_at)
 GRANT UPDATE(status,capability_report,error_code,probe_evidence,completed_at)
  ON evals.connection_check TO evals_browser;
 GRANT UPDATE(status,phase,reason_code,updated_at) ON evals.execution_workflow TO evals_browser;
-GRANT UPDATE(status,fence,lease_owner,lease_until,reason_code,updated_at)
+GRANT UPDATE(status,fence,lease_owner,lease_until,reason_code,not_before,updated_at)
  ON evals.workflow_step TO evals_browser;
 GRANT UPDATE(delivered_at) ON evals.outbox_event TO evals_browser;
 GRANT UPDATE(status,attempt_id,reason_code,updated_at) ON evals.case_unit TO evals_browser;

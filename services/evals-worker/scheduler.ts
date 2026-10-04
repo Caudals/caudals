@@ -38,20 +38,27 @@ async function main() {
         lastTick = Date.now();
         let healthy = true;
         for (const orgId of await orgs.refresh()) {
-          try {
-            const scope = { orgId, actorId };
-            await tickSchedules(scope);
-            await tickScheduledAlerts(scope);
-            await tickWebhookDeliveries(scope, keys);
-            await advancePendingGenerations(scope);
-            await advanceJudgments(scope);
-            await advanceReportNarratives(scope);
-            await finalizeRuns(scope);
-            await refreshJudgedReports(scope);
-            await queueRequiredInputNotifications(scope);
-          } catch {
-            healthy = false;
-            console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId }));
+          const scope = { orgId, actorId };
+          // Each task runs on its own: one failing step (a bad generation job,
+          // say) must not stop grading, reports or notifications for the workspace.
+          const tasks: Array<[string, () => Promise<unknown>]> = [
+            ["schedules", () => tickSchedules(scope)],
+            ["alerts", () => tickScheduledAlerts(scope)],
+            ["webhooks", () => tickWebhookDeliveries(scope, keys)],
+            ["generations", () => advancePendingGenerations(scope)],
+            ["judgments", () => advanceJudgments(scope)],
+            ["narratives", () => advanceReportNarratives(scope)],
+            ["finalize", () => finalizeRuns(scope)],
+            ["reports", () => refreshJudgedReports(scope)],
+            ["notifications", () => queueRequiredInputNotifications(scope)],
+          ];
+          for (const [task, run] of tasks) {
+            try {
+              await run();
+            } catch (error) {
+              healthy = false;
+              console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId, task, reason: error instanceof Error && /^[a-z0-9_]{1,80}$/i.test(error.message) ? error.message : error instanceof Error ? error.name : "unknown" }));
+            }
           }
         }
         // Retention and deletion cover every workspace, not only the dispatch allowlist.

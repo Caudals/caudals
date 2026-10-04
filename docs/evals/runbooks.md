@@ -40,7 +40,9 @@ Signals: attempts fail with `auth` reasons; provider health not healthy.
 
 ## 3. Website recipe drift
 
-Signals: browser runs end `capture_incomplete` or the connection enters `needs_operator`.
+Signals: a browser run pauses with `capture_incomplete`, `website_selector_failed` or `browser_session_unavailable`, or the connection enters `needs_operator`.
+
+A single missed reply never gets here: each website test is retried three times in a fresh browser, and a test that still fails is recorded as not captured while the run continues. A run pauses only when the login expired, the last three finished tests failed, or nothing was captured after two tests. The customer can **Resume** (transient outage) or **Finish and grade N answers** (partial report) from the evaluation page.
 
 1. Do not let a model click new controls during a paid run. Scored runs already refuse text-stability-only completion.
 2. Open the system, review the failed probe evidence, and submit a corrected declarative recipe (operator only). It must pass two fresh-context reset probes before a new immutable recipe revision is frozen.
@@ -51,7 +53,7 @@ Signals: browser runs end `capture_incomplete` or the connection enters `needs_o
 Signals: `lease_expired`, `unresolved_attempts`.
 
 1. A reserved-but-undispatched attempt releases its reservation automatically when the lease expires and may retry within three attempts.
-2. A dispatched attempt becomes `unknown`: its liability is kept and it is never replayed. A DGX attempt also keeps the residency slot until reconciled; a commercial API attempt releases its concurrency slot 15 minutes after it ended, so timed-out calls cannot block the route.
+2. A dispatched call to a customer's API becomes `unknown`: its liability is kept and it is never replayed. Two exceptions repeat by themselves within three attempts: an internal engine call (generation, judging, report writing), whose possible charge stays unresolved and whose provider slot is released; and a website test, which has no external charge and runs again in a fresh browser. Generation also re-queues a step after a provider failure, an incomplete or invalid answer (with a corrective note, or a smaller request when the output ran out), at most four calls per profile or drafting round. Any other unknown DGX attempt keeps the residency slot until reconciled; a commercial API attempt releases its concurrency slot 15 minutes after it ended, so timed-out calls cannot block the route.
 3. Reconcile each unknown attempt: find the provider's record (request ID in the attempt) or, for zero-price DGX calls, record `0`. Upload a short evidence note as a source artifact, then run
    `echo '{"attemptId":"…","actual":"0","evidenceId":"…"}' | sudo docker run --rm -i … services/evals-worker/admin.sh reconcile` with the admin credentials (see `docs/evals/work-packages/WP-03.md`).
 4. If the call must happen again, start a deliberate new run; reconciliation never requeues the old step.

@@ -20,7 +20,7 @@ import {
   type WebsiteRecipe,
   type BrowserStorageState,
 } from "../contracts/browser";
-import { observationSchema } from "../contracts/results";
+import { observationSchema, type Observation } from "../contracts/results";
 import { canonicalJson, sha256, withContentHash } from "../contracts/hashing";
 import { validatePublicDestination, type Lookup } from "./egress";
 import { contentWords, isEchoOfPrompt } from "../scoring/text";
@@ -258,6 +258,43 @@ export async function loginRequired(page: Page, startUrl: string) {
   return false;
 }
 
+// Cookie-consent dialogs cover launchers and inputs on most EU sites. Caudals
+// declines optional cookies (never accepts them for the customer) and only
+// acknowledges notices that offer no choice. Repository-owned page script.
+const DISMISS_CONSENT = new Function(`
+  const known = ['#onetrust-reject-all-handler', '.ot-pc-refuse-all-handler', '#CybotCookiebotDialogBodyButtonDecline',
+    '#CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll', '#didomi-notice-disagree-button', '[data-testid="uc-deny-all-button"]',
+    '.cky-btn-reject', '.cmplz-deny', '.iubenda-cs-reject-btn', '#cookiescript_reject', '.osano-cm-denyAll', '#hs-eu-decline-button',
+    '[data-cookiefirst-action="reject"]', '#wt-cli-reject-btn', '.cc-deny', '#axeptio_btn_dismiss', '#truste-consent-required', '.sp_choice_type_REJECT_ALL'];
+  const decline = /^(rechazar|rechazar todas?|rechazar todo|rechazar cookies|rechazar las cookies|rechazar opcionales|rechazar cookies opcionales|denegar|denegar todas?|no acepto|no aceptar|solo (las )?(necesarias|esenciales|t[eé]cnicas)|s[oó]lo (las )?(cookies )?(necesarias|esenciales|t[eé]cnicas)|usar s[oó]lo (las )?cookies (necesarias|t[eé]cnicas)|continuar sin aceptar|reject|reject all|reject all cookies|reject cookies|reject optional cookies|decline|decline all|decline cookies|deny|deny all|refuse|refuse all|only (necessary|essential)( cookies)?|necessary cookies only|use necessary cookies only|essential cookies only|continue without accepting|tout refuser|refuser|continuer sans accepter|ablehnen|alle ablehnen|rifiuta|rifiuta tutto|rejeitar|rejeitar todos)$/i;
+  const acknowledge = /^(ok|okay|vale|entendido|de acuerdo|got it|understood|i understand|close|cerrar|×|✕|x)$/i;
+  const accept = /accept|acepta|agree|allow|permitir|consent/i;
+  const about = /cookie|consent|consentimiento|privacidad|privacy|rgpd|gdpr|datos personales|personal data/i;
+  const visible = el => { const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return false; const s = getComputedStyle(el); return s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.05; };
+  const roots = [document]; for (let i = 0; i < roots.length && i < 50; i++) for (const el of roots[i].querySelectorAll('*')) if (el.shadowRoot) roots.push(el.shadowRoot);
+  for (const root of roots) for (const selector of known) { const el = root.querySelector(selector); if (el && visible(el)) { el.click(); return 'known'; } }
+  const label = el => (el.innerText || el.value || el.getAttribute('aria-label') || el.textContent || '').replace(/\\s+/g, ' ').trim();
+  const banner = el => { let node = el; for (let i = 0; i < 10 && node; i++) { node = node.parentElement || (node.getRootNode && node.getRootNode().host) || null; if (node && about.test((node.id || '') + ' ' + (typeof node.className === 'string' ? node.className : '') + ' ' + (node.getAttribute('aria-label') || '') + ' ' + (node.innerText || '').slice(0, 1500))) return node; } return null; };
+  const buttons = []; for (const root of roots) for (const el of root.querySelectorAll('button,[role="button"],a,input[type="button"],input[type="submit"]')) if (visible(el)) buttons.push(el);
+  for (const el of buttons) { const text = label(el); if (text.length <= 60 && decline.test(text) && banner(el)) { el.click(); return 'declined'; } }
+  // A notice without any choice: acknowledging it consents to nothing optional.
+  const notices = new Set(); for (const el of buttons) { const text = label(el); const box = text.length <= 30 && acknowledge.test(text) ? banner(el) : null; if (box) notices.add(box); }
+  for (const box of notices) { const choices = buttons.filter(el => box.contains(el) && accept.test(label(el))); if (choices.length) continue; const el = buttons.find(item => box.contains(item) && acknowledge.test(label(item))); if (el) { el.click(); return 'acknowledged'; } }
+  return null;
+`) as () => string | null;
+
+/** Declines a cookie-consent dialog in any frame; returns true when one was dismissed. */
+export async function dismissConsent(page: Page) {
+  let dismissed = false;
+  for (const frame of page.frames()) {
+    if (frame.isDetached()) continue;
+    const result = await frame.evaluate(DISMISS_CONSENT).catch(() => null);
+    if (result) dismissed = true;
+  }
+  if (dismissed) await page.waitForTimeout(600);
+  return dismissed;
+}
+
 export function assertScorableWebsiteRecipe(recipe: WebsiteRecipe) {
   if (recipe.completion.kind === "text_stable") {
     throw new Error("website_completion_unverified");
@@ -450,15 +487,20 @@ async function openRecipe(args: {
  * closed: a widget that restores itself open must not be toggled shut.
  */
 async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
-  const deadline = Date.now() + 25_000;
+  const deadline = Date.now() + 30_000;
   const loadedAt = Date.now();
-  let clicks = 0, lastClick = 0;
+  let clicks = 0, lastClick = 0, consentChecks = 0, lastConsent = 0;
   const inputs = partOptions(recipe, "input", recipe.input);
   const launchers = recipe.launcher ? partOptions(recipe, "launcher", recipe.launcher) : [];
   while (Date.now() < deadline) {
     for (const value of inputs) {
       const match = locator(root, recipe, value);
       if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) return;
+    }
+    // Consent managers load late; a dialog over the launcher blocks every click.
+    if (consentChecks < 6 && Date.now() - loadedAt > 800 && Date.now() - lastConsent > 1_500) {
+      consentChecks++; lastConsent = Date.now();
+      if (await dismissConsent(page)) continue;
     }
     if (launchers.length && clicks < 2 && Date.now() - loadedAt > 1_200 && Date.now() - lastClick > 5_000) {
       for (const value of launchers) {
@@ -498,14 +540,15 @@ const COLLECT_ACTIONS = new Function("el", "fromMessage", `
   const composer = panel.querySelector ? panel.querySelector(box) : null;
   const nodes = []; const visit = root => { for (const node of root.querySelectorAll(${JSON.stringify(ACTION_SELECTOR)})) nodes.push(node); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) visit(node.shadowRoot); };
   visit(panel);
-  const chrome = /^(send|send message|enviar|enviar mensaje|submit|close|cerrar|minimi[sz]e|minimizar|menu|menú|attach|adjuntar|emoji|copy|copiar|like|dislike|me gusta|no me gusta|feedback|reset|reiniciar|restart|new chat|nuevo chat|nueva conversaci[oó]n|expand|ampliar|more|más|options|opciones|share|compartir|x|×|✕|👍|👎|ver más|see more|leer más|read more)$/i;
+  const chrome = /^(send|send message|enviar|enviar mensaje|submit|close|cerrar|minimi[sz]e|minimizar|menu|menú|attach|adjuntar|emoji|copy|copiar|like|dislike|me gusta|no me gusta|feedback|reset|reiniciar|restart|new chat|nuevo chat|nueva conversaci[oó]n|expand|ampliar|more|más|options|opciones|share|compartir|x|×|✕|👍|👎|ver más|see more|leer más|read more|copiar texto|copiar respuesta|copy text|copy answer|copy response|copy to clipboard|copiar al portapapeles|regenerar|regenerate|volver a generar)$/i;
   const out = [];
   for (const node of nodes) {
     if (seen ? seen.has(node) : !(el.contains(node) || (el.compareDocumentPosition(node) & 4))) continue;
     if (!visible(node) || node.disabled || node.getAttribute('aria-disabled') === 'true') continue;
     if (composer && node.parentElement && (node.parentElement.contains(composer) || (node.parentElement.parentElement && node.parentElement.parentElement.contains(composer) && !node.parentElement.parentElement.contains(el)))) continue;
     const label = (node.innerText || node.value || node.getAttribute('aria-label') || node.textContent || '').replace(/\\s+/g, ' ').trim();
-    if (!label || label.length > 80 || chrome.test(label) || out.some(item => item.label === label)) continue;
+    // A bare URL is a cited source link, not something a person would pick.
+    if (!label || label.length > 80 || chrome.test(label) || /^https?:\\/\\//i.test(label) || out.some(item => item.label === label)) continue;
     let external = false;
     if (node.tagName === 'A') { try { const url = new URL(node.getAttribute('href'), location.href); external = url.origin !== location.origin || (url.pathname !== location.pathname && !url.hash); } catch { external = true; } }
     node.setAttribute('data-caudals-action', String(out.length));
@@ -737,7 +780,9 @@ export async function invokeWebsite(args: {
   storageState?: BrowserStorageState;
 }) {
   const session = await openWebsiteAttemptSession(args);
-  try { return await session.invoke(args.input, args.context); }
+  // The reply's allowance starts once the chat is open, not before the page loaded.
+  const deadline = new Date(Math.max(Date.parse(args.context.deadline), Date.now() + 45_000)).toISOString();
+  try { return await session.invoke(args.input, { ...args.context, deadline }); }
   finally { await session.close(); }
 }
 
@@ -756,32 +801,42 @@ export async function validateWebsiteRecipe(args: {
   ];
   const responses: string[] = [];
   const duplicateFlags: boolean[] = [];
-  for (const [index, prompt] of prompts.entries()) {
+  // A slow page load or one reply that misses its window should not fail the
+  // whole check: each fresh session gets one more try before it counts.
+  const probeOnce = async (index: number, prompt: string, attempt: number): Promise<Observation> => {
     if (args.signal?.aborted) throw new Error("target_execution_aborted");
     const controller = new AbortController();
-    const observation = await invokeWebsite({
-      ...args,
-      input: {
-        schema_version: "1.0",
-        case_id: `probe-${index + 1}`,
-        case_revision_id: `probe-${index + 1}`,
-        messages: [{ role: "user", content: prompt }],
-        attachments: [],
-        tools: [],
-      },
-      context: {
-        run_id: `probe-${index + 1}`,
-        target_revision_id: args.recipe.recipe_revision_id,
-        execution_plan_id: `probe-plan-${index + 1}`,
-        tenant_scope_handle: "probe",
-        deadline: new Date(Date.now() + (args.timeoutMs ?? 30_000)).toISOString(),
-        attempt_id: `probe-attempt-${index + 1}`,
-        scoped_credential_handle: null,
-        destination_policy_id: "public-https-v1",
-        reserved_cost: { amount: "0", currency: "EUR" },
-        signal: args.signal ?? controller.signal,
-      },
-    });
+    try {
+      return await invokeWebsite({
+        ...args,
+        input: {
+          schema_version: "1.0",
+          case_id: `probe-${index + 1}`,
+          case_revision_id: `probe-${index + 1}`,
+          messages: [{ role: "user", content: prompt }],
+          attachments: [],
+          tools: [],
+        },
+        context: {
+          run_id: `probe-${index + 1}`,
+          target_revision_id: args.recipe.recipe_revision_id,
+          execution_plan_id: `probe-plan-${index + 1}`,
+          tenant_scope_handle: "probe",
+          deadline: new Date(Date.now() + (args.timeoutMs ?? 30_000)).toISOString(),
+          attempt_id: `probe-attempt-${index + 1}`,
+          scoped_credential_handle: null,
+          destination_policy_id: "public-https-v1",
+          reserved_cost: { amount: "0", currency: "EUR" },
+          signal: args.signal ?? controller.signal,
+        },
+      });
+    } catch (error) {
+      if (attempt >= 2 || args.signal?.aborted || (error instanceof Error && error.message === "website_completion_unverified")) throw error;
+      return probeOnce(index, prompt, attempt + 1);
+    }
+  };
+  for (const [index, prompt] of prompts.entries()) {
+    const observation = await probeOnce(index, prompt, 1);
     responses.push(
       [...observation.messages]
         .reverse()

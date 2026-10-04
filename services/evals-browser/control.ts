@@ -3,7 +3,7 @@ import type { Browser, BrowserContext, CDPSession, Page } from "playwright";
 import { browserProbeEvidenceSchema, probeEvidenceReady, scopedBrowserStorageState, websiteRecipeSchema, type BrowserLocator, type BrowserProbeEvidence, type BrowserStorageState, type WebsiteRecipe } from "../../lib/evals/contracts/browser";
 import type { RemoteAction, RemoteInputEvent, RemoteRect, RemoteState, RemoteStreamMessage, TeachPart } from "../../lib/evals/contracts/remote-browser";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
-import { browserLocator, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, validateWebsiteRecipe } from "../../lib/evals/connectors/browser-executor";
+import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, validateWebsiteRecipe } from "../../lib/evals/connectors/browser-executor";
 import { detectChatControls, detectLauncherFor, probeChatReply, type DetectStep } from "../../lib/evals/connectors/browser-autodetect";
 import { selectAt } from "./teach";
 import { cleanWebsiteNavigation, websiteAppNavigation } from "../../lib/evals/contracts/website-navigation";
@@ -16,6 +16,8 @@ type Session = ControlScope & {
   selections: Partial<Record<TeachPart, BrowserLocator>>; alternates: Partial<Record<TeachPart, BrowserLocator[]>>;
   completion: WebsiteRecipe["completion"] | null;
   startUrl?: string;
+  /** Conversation URLs a probe message navigated to; a fresh chat never starts there. */
+  conversationUrls: Set<string>;
   created: number; touched: number; chain: Promise<unknown>;
   teach: Work & { reply: string }; test: Work & { response: string };
   work?: AbortController; evidence?: BrowserProbeEvidence; recipe?: WebsiteRecipe; state?: BrowserStorageState;
@@ -258,6 +260,14 @@ export class BrowserControl {
     const step = (value: DetectStep) => { session.teach.step = value; this.changed(session); };
     const run = async () => {
       const page = session.page;
+      // "Connect again" on a page an earlier probe turned into a conversation
+      // goes back to the chat it started from, so the recipe and its fresh
+      // sessions open the composer rather than an old conversation.
+      if (session.startUrl && session.conversationUrls.has(cleanWebsiteNavigation(page.url()))) {
+        await page.goto(session.startUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
+        await page.waitForTimeout(1_000);
+      }
       const controls = await detectChatControls(page, { onStep: step, signal: controller.signal });
       // Sending the first message can navigate to a conversation-specific URL.
       // A fresh evaluation must start at the composer we found before sending.
@@ -267,6 +277,8 @@ export class BrowserControl {
       session.completion = null;
       this.changed(session);
       const detected = await probeChatReply(page, controls, { onStep: step, signal: controller.signal });
+      const after = cleanWebsiteNavigation(page.url());
+      if (after !== session.startUrl) session.conversationUrls.add(after);
       session.selections.response = detected.response.locator; session.alternates.response = detected.response.alternates;
       session.completion = detected.completion; session.teach.reply = detected.reply;
       this.changed(session);
@@ -300,6 +312,8 @@ export class BrowserControl {
       const page = await context.newPage();
       page.setDefaultTimeout(10_000);
       await page.goto(draft.start_url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      await page.waitForTimeout(1_200);
+      await dismissConsent(page);
       let root: Page | ReturnType<Page["frameLocator"]> = page;
       for (const frame of draft.input.frames ?? []) root = browserLocator(root, frame).contentFrame();
       const input = browserLocator(root, draft.input).first();
@@ -429,7 +443,7 @@ export class BrowserControl {
       await guardBrowserContext(context, this.options.destinationCheck);
       await restoreBrowserSessionStorage(context, state);
       const page = await context.newPage();
-      const session: Session = { ...scope, id: randomUUID(), context, page, created: Date.now(), touched: Date.now(), mode: "control", pickPart: null, selections: {}, alternates: {}, completion: null,
+      const session: Session = { ...scope, id: randomUUID(), context, page, created: Date.now(), touched: Date.now(), mode: "control", pickPart: null, selections: {}, alternates: {}, completion: null, conversationUrls: new Set(),
         chain: Promise.resolve(), teach: { ...idle(), reply: "" }, test: { ...idle(), response: "" }, frame: null, listeners: new Set(), lastStreamAt: Date.now(), streamed: false, rects: {}, rectsAt: 0, loading: true };
       this.watch(session, page);
       context.on("page", popup => { this.watch(session, popup); session.page = popup; void this.cast(session).catch(() => {}); this.changed(session); });

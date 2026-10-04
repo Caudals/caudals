@@ -15,11 +15,13 @@ export function createBoss(env:Record<string,string|undefined>=process.env,optio
 export async function startBoss(boss:PgBoss) {await boss.start();for(const name of queues)await boss.createQueue(name);}
 /** Outbox read/send/mark are separate short transactions. Duplicate delivery is expected. */
 export async function dispatchOutbox(boss:Pick<PgBoss,'send'>,tx:TenantTransaction,tenant:Tenant,limit=25) {
- const events=await tx(tenant,async c=>(await c.query(`SELECT e.id,e.step_id,e.queue,s.input_hash FROM evals.outbox_event e
+ const events=await tx(tenant,async c=>(await c.query(`SELECT e.id,e.step_id,e.queue,s.input_hash,s.input->>'kind' AS kind FROM evals.outbox_event e
  JOIN evals.workflow_step s ON (s.org_id,s.id)=(e.org_id,e.step_id)
  WHERE e.org_id=$1 AND e.delivered_at IS NULL AND e.available_at<=now() ORDER BY e.created_at,e.id LIMIT $2`,[tenant.orgId,Math.min(100,limit)])).rows);
  for(const e of events) {
-  await boss.send(e.queue,{orgId:tenant.orgId,stepId:e.step_id,inputHash:e.input_hash},{id:e.id,singletonKey:e.id,retryLimit:2,expireInSeconds:e.queue==='profile'||e.queue==='generate'?1200:180});
+  await boss.send(e.queue,{orgId:tenant.orgId,stepId:e.step_id,inputHash:e.input_hash},{id:e.id,singletonKey:e.id,retryLimit:2,expireInSeconds:e.queue==='profile'||e.queue==='generate'?1200:e.queue==='execute_browser'?600:180,
+   // Connection checks are short and someone is usually waiting for them: they run before queued test cases.
+   ...(e.kind==='website_discovery'?{priority:10}:{})});
   await tx(tenant,async c=>{await c.query('UPDATE evals.outbox_event SET delivered_at=now() WHERE org_id=$1 AND id=$2 AND delivered_at IS NULL',[tenant.orgId,e.id]);});
  }
  return events.length;
