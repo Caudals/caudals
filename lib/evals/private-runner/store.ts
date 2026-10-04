@@ -9,6 +9,7 @@ import { observationSchema } from "../contracts/results";
 import { caseSchema } from "../contracts/cases";
 import { targetConfigSchema } from "../contracts/connectors";
 import { EvalError } from "../domain/errors";
+import { lockRunQueue, startQueuedRun } from "../repositories/run-capacity";
 import { withTenant, type TenantContext } from "../repositories/db";
 import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerCompletionStatus, runnerUploadSchema, signPayload, tokenHash, verifyPayload, type RunnerBundle } from "./protocol";
 
@@ -140,22 +141,28 @@ function signedJob(row: Record<string,unknown>) {
 }
 export function getOfflineBundle(scope: TenantContext, runId: string) {
   return withTenant(scope,async db=>{
+    await lockRunQueue(db,scope.orgId);
     const job=(await db.query(`SELECT j.* FROM evals.runner_job j JOIN evals.runner_identity i
       ON (i.org_id,i.id)=(j.org_id,j.runner_id) WHERE j.org_id=$1 AND j.run_id=$2
       AND j.status IN ('ready','claimed') AND i.revoked_at IS NULL`,[scope.orgId,runId])).rows[0];
     if(!job) denied();
+    if(!await startQueuedRun(db,scope.orgId,runId))throw new EvalError("SCOPE_DENIED",409,"This evaluation is queued until a run slot is available.");
+    await db.query("UPDATE evals.runner_job SET status='claimed',claimed_at=COALESCE(claimed_at,now()) WHERE org_id=$1 AND id=$2",[scope.orgId,job.id]);
     return signedJob(job);
   });
 }
 export async function pollRunner(db:PoolClient,orgId:string,runnerId:string) {
+  await lockRunQueue(db,orgId);
   const row=(await db.query(`SELECT * FROM evals.runner_job WHERE org_id=$1 AND runner_id=$2
     AND status IN ('ready','claimed') AND expires_at>now() ORDER BY created_at,id LIMIT 1 FOR UPDATE`,[orgId,runnerId])).rows[0];
   if(!row)return {job:null};
+  if(!await startQueuedRun(db,orgId,row.run_id))return {job:null};
   await db.query("UPDATE evals.runner_job SET status='claimed',claimed_at=COALESCE(claimed_at,now()) WHERE org_id=$1 AND id=$2",[orgId,row.id]);
   return {job:signedJob(row)};
 }
 
 export async function submitRunnerResult(db:PoolClient,runner:Record<string,unknown>,raw:unknown) {
+  await lockRunQueue(db,String(runner.org_id));
   const upload=runnerUploadSchema.parse(raw);
   const signed={job_id:upload.job_id,case_unit_id:upload.case_unit_id,result:upload.result};
   if(!verifyPayload(signed,upload.signature,String(runner.public_key))) denied();
@@ -181,6 +188,7 @@ export async function submitRunnerResult(db:PoolClient,runner:Record<string,unkn
     if(old.payload_hash!==payloadHash) throw new EvalError("VERSION_CONFLICT",409,"A different result is already committed for this test.");
     return {accepted:true,duplicate:true,submissionId:old.id};
   }
+  if(!await startQueuedRun(db,String(runner.org_id),job.run_id))throw new EvalError("SCOPE_DENIED",409,"This evaluation is queued until a run slot is available.");
   if(unit.status!=="pending") throw new EvalError("VERSION_CONFLICT",409,"This test is already resolved.");
   const id=randomUUID(), document=observationSchema.parse(withContentHash({schema_version:"1.0",observation_id:id,
     run_id:job.run_id,case_revision_id:unit.case_revision_id,repetition:unit.repetition,attempt_id:randomUUID(),
@@ -199,6 +207,6 @@ export async function submitRunnerResult(db:PoolClient,runner:Record<string,unkn
     await db.query("UPDATE evals.runner_job SET status='completed',completed_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,job.id]);
     await db.query("UPDATE evals.run SET status=$3,phase='grading',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",
       [runner.org_id,job.run_id,runnerCompletionStatus(Number(counts.total),Number(counts.succeeded))]);
-  } else await db.query("UPDATE evals.run SET status='paused',reason_code='runner_wait',updated_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,job.run_id]);
+  } else await db.query("UPDATE evals.run SET status='running',reason_code='runner_wait',updated_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,job.run_id]);
   return {accepted:true,duplicate:false,submissionId,remaining};
 }

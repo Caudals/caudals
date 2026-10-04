@@ -13,6 +13,7 @@ export type StageKey =
   | "needs_input"
   | "review_tests"
   | "ready"
+  | "queued"
   | "running"
   | "paused"
   | "finalizing"
@@ -48,6 +49,7 @@ const RUNNING = new Set(["queued", "running", "pause_requested", "cancel_request
 export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
   const run = evaluation.latest_run_status;
   if (run) {
+    if (run === "queued") return { key: "queued", label: tr("Queued"), tone: "info", live: true, step: 2, needsAction: false };
     if (RUNNING.has(run)) return { key: "running", label: tr("Running"), tone: "info", live: true, step: 2, needsAction: false };
     if (run === "paused" && evaluation.latest_run_execution_mode === "imported_responses")
       return { key: "paused", label: tr("Waiting for your answers"), tone: "warn", live: false, step: 2, needsAction: true };

@@ -47,3 +47,10 @@ DO $$ BEGIN
     reason_code,finished_at) ON evals.target_invocation_call TO evals_browser;
  END IF;
 END $$;
+
+-- Workspace run admission; entitlements remain read-only and tenant-scoped.
+DO $$ BEGIN
+ IF to_regclass('evals.workspace_entitlement') IS NOT NULL THEN
+  GRANT SELECT ON evals.workspace_entitlement,evals.runner_job TO evals_browser;
+ END IF;
+END $$;

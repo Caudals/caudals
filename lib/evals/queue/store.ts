@@ -39,7 +39,7 @@ export async function controlWorkflow(client:PoolClient,orgId:string,workflowId:
  if(!w)throw new Error('workflow_missing');
  if(['completed','partial','failed','canceled'].includes(w.status))return;
  if(action==='resume' && !['paused','pause_requested'].includes(w.status))throw new Error('workflow_not_paused');
- const status=action==='cancel'?'cancel_requested':action==='pause'?'pause_requested':'running';
+ const status=action==='cancel'?'cancel_requested':action==='pause'?'pause_requested':'queued';
  await client.query('UPDATE evals.execution_workflow SET status=$3,updated_at=now() WHERE org_id=$1 AND id=$2',[orgId,workflowId,status]);
  if(action==='cancel')await client.query("UPDATE evals.workflow_step SET status='canceled',updated_at=now() WHERE org_id=$1 AND workflow_id=$2 AND status IN ('queued','paused')",[orgId,workflowId]);
  if(action==='resume') {

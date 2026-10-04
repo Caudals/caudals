@@ -18,7 +18,7 @@ GRANT USAGE ON SEQUENCE evals.execution_event_id_seq TO evals_runtime;
 DO $$ BEGIN
  IF to_regclass('evals.case_unit') IS NOT NULL THEN
   GRANT SELECT ON evals.target,evals.target_revision,evals.run TO evals_worker;
-  GRANT UPDATE(status,phase,updated_at) ON evals.run TO evals_worker;
+  GRANT UPDATE(status,phase,reason_code,updated_at) ON evals.run TO evals_worker;
   GRANT SELECT,UPDATE ON evals.case_unit TO evals_worker;
   GRANT SELECT,INSERT ON evals.observation TO evals_worker;
   GRANT SELECT,INSERT,UPDATE ON evals.target_attempt TO evals_worker;
@@ -52,5 +52,12 @@ END $$;
 DO $$ BEGIN
  IF to_regclass('evals.web_search_connection') IS NOT NULL THEN
   GRANT SELECT ON evals.web_search_connection TO evals_worker;
+ END IF;
+END $$;
+
+-- Workspace run admission; entitlements remain read-only and tenant-scoped.
+DO $$ BEGIN
+ IF to_regclass('evals.workspace_entitlement') IS NOT NULL THEN
+  GRANT SELECT ON evals.workspace_entitlement,evals.runner_job TO evals_worker;
  END IF;
 END $$;

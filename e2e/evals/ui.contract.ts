@@ -1500,3 +1500,18 @@ test("AI model settings turn web research on per task and connect a search engin
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("queued evaluations explain automatic start and change to execution after polling", async ({ page }) => {
+  const evaluationId = evaluationFixture.id, runId = "00000000-0000-4000-8000-000000000901";
+  let status = "queued";
+  await page.route("**/api/evals/v1/workspace/summary?**", route => route.fulfill({ json: { data: summaryFixture({ evaluations: [{ ...evaluationFixture, latest_run_id: runId, latest_run_status: status }] }), meta: {} } }));
+  await page.route(`**/api/evals/v1/runs/${runId}?**`, route => route.fulfill({ json: { data: { run: { id: runId, status, phase: status === "queued" ? "preflight" : "target_execution", execution_mode: "deployed_system", suite_version_id: evaluationFixture.selected_suite_version_id, created_at: new Date().toISOString(), reason_code: null }, units: [{ id: "unit", status: "queued" }], targetUsage: { calls: 0, unknown: 0 } }, meta: {} } }));
+  await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
+  await expect(page.getByRole("heading", { name: "Evaluation queued" })).toBeVisible();
+  await expect(page.locator(".p-badge").getByText("Queued", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your evaluation will start automatically when a run slot is available.", { exact: false })).toBeVisible();
+  await page.screenshot({ path: "/tmp/evaluation-run-queue-ui.png", fullPage: true });
+  status = "running";
+  await expect(page.getByRole("heading", { name: "Asking the system", exact: true })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("heading", { name: "Evaluation queued" })).toHaveCount(0);
+});

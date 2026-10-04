@@ -11,7 +11,7 @@ import { createPrefixedId } from "../../lib/operator/ids";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import { createEvaluation } from "../../lib/evals/repositories/managed";
 import { controlRun, createSelfServiceRun, getWorkspaceSummary } from "../../lib/evals/repositories/stage-c";
-import { assertRunCapacity } from "../../lib/evals/repositories/run-capacity";
+import { lockRunQueue, startQueuedRun } from "../../lib/evals/repositories/run-capacity";
 import { syntheticAccountingFixture } from "../../lib/evals/generation/packs";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -96,16 +96,22 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("taught connectors use the production 
       expect(firstRun.queued).toBe(1);
       await controlRun(scope, firstRun.id, "pause");
       await owner.query("UPDATE evals.run SET status='paused' WHERE id=$1", [firstRun.id]);
-      await withTenant(scope, db => assertRunCapacity(db, orgId));
+      const anotherRun = await createSelfServiceRun(scope, { evaluationId: second.id }, randomUUID());
+      const admit = (id: string) => withTenant(scope, async db => {
+        await lockRunQueue(db, orgId);
+        return startQueuedRun(db, orgId, id);
+      });
       // A draining invocation keeps its slot even while the run says paused.
       await owner.query("UPDATE evals.case_unit SET status='running' WHERE run_id=$1", [firstRun.id]);
-      await expect(withTenant(scope, db => assertRunCapacity(db, orgId))).rejects.toMatchObject({ status: 409 });
+      expect(await admit(anotherRun.id)).toBe(false);
       await owner.query("UPDATE evals.case_unit SET status='queued' WHERE run_id=$1", [firstRun.id]);
-      const anotherRun = await createSelfServiceRun(scope, { evaluationId: second.id }, randomUUID());
-      await expect(controlRun(scope, firstRun.id, "resume")).rejects.toMatchObject({ status: 409 });
-      await controlRun(scope, anotherRun.id, "cancel");
+      expect(await admit(anotherRun.id)).toBe(true);
+      // Resume succeeds and joins the queue instead of rejecting a busy slot.
       await controlRun(scope, firstRun.id, "resume");
       expect((await owner.query("SELECT status FROM evals.run WHERE id=$1", [firstRun.id])).rows[0].status).toBe("queued");
+      expect(await admit(firstRun.id)).toBe(false);
+      await controlRun(scope, anotherRun.id, "cancel");
+      expect(await admit(firstRun.id)).toBe(true);
       // The original plan's login binding is immutable after another save.
       await storeLoginSession(scope, targetId, { storageState: state });
       expect((await owner.query("SELECT target_revision_id FROM evals.run WHERE id=$1", [firstRun.id])).rows[0].target_revision_id).toBe(refreshed.targetRevisionId);

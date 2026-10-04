@@ -61,7 +61,7 @@ suite("WP-12 private runner database path",()=>{
     await expect(completePairing(otherOrgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0")).rejects.toThrow();
     const identity=await completePairing(orgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0");
     await expect(completePairing(orgId,pairing.code,runnerPublic,"caudals-evals-cli:0.1.0")).rejects.toThrow();
-    await owner.query("INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase) VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution')",
+    await owner.query("INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,reason_code) VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution','runner_wait')",
       [runId,orgId,evaluationId,identity.targetRevisionId,suiteVersionId]);
     const job=await withTenant({orgId,actorId},db=>createRunnerJob(db,{orgId,actorId},{
       runnerId:identity.runnerId,connectorVersion:"caudals-evals-cli:0.1.0",projectId,targetId,targetRevisionId:identity.targetRevisionId,runId,suiteVersionId,

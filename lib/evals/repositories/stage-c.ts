@@ -21,7 +21,7 @@ import {
 import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
-import { assertRunCapacity } from "./run-capacity";
+import { assertRunAllowance, lockRunQueue } from "./run-capacity";
 
 function required<T>(value: T | undefined): T {
   if (!value) throw new EvalError("SCOPE_DENIED", 404);
@@ -482,7 +482,7 @@ export function createSelfServiceRun(
   const input = selfServiceRunInputSchema.parse(raw);
   return withTenant(scope, (db) =>
     idempotent(db, scope, "self-service-runs", key, input, async () => {
-      await assertRunCapacity(db, scope.orgId);
+      await assertRunAllowance(db, scope.orgId);
       const limits = required((await db.query(
         "SELECT * FROM evals.workspace_entitlement WHERE org_id=$1",
         [scope.orgId],
@@ -599,7 +599,7 @@ export function createSelfServiceRun(
           candidate_context_hash:sha256(canonicalJson({visibility:"candidate",suite:suite.content_hash})),
           repetition_policy:"frozen_case_limits",execution_conditions_hash:sha256(canonicalJson(config))});
         await db.query(`INSERT INTO evals.run(id,org_id,evaluation_id,target_revision_id,suite_version_id,execution_mode,status,phase,reason_code)
-          VALUES($1,$2,$3,$4,$5,'deployed_system','paused','target_execution','runner_wait')`,
+          VALUES($1,$2,$3,$4,$5,'deployed_system','queued','target_execution','runner_wait')`,
           [runId,scope.orgId,evaluation.id,target.id,suite.id]);
         await db.query("INSERT INTO evals.run_plan(org_id,run_id,content_hash,document) VALUES($1,$2,$3,$4)",
           [scope.orgId,runId,plan.content_hash,plan]);
@@ -794,7 +794,7 @@ export function controlRun(
   action: "pause" | "resume" | "cancel",
 ) {
   return withTenant(scope, async (db) => {
-    if (action === "resume") await assertRunCapacity(db, scope.orgId, runId);
+    await lockRunQueue(db, scope.orgId);
     const workflow = (
       await db.query(
         "SELECT id,status FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2",
@@ -870,7 +870,14 @@ export function controlRun(
       return { runId, action, status };
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
-    if (action === "resume") await db.query("UPDATE evals.run SET status='queued',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2 AND status IN ('paused','pause_requested')", [scope.orgId, runId]);
+    if (action === "pause" && !["completed", "partial", "failed", "canceled"].includes(workflow.status)) {
+      await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS (
+        SELECT 1 FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$3 AND status='running'
+      ) OR EXISTS (SELECT 1 FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status='running')
+        THEN 'pause_requested' ELSE 'paused' END,updated_at=now()
+        WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed','canceled')`, [scope.orgId, runId, workflow.id]);
+    }
+    if (action === "resume") await db.query("UPDATE evals.run SET status='queued',reason_code=NULL,queued_at=clock_timestamp(),updated_at=now() WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed','canceled')", [scope.orgId, runId]);
     if (action === "cancel" && !["completed", "partial", "failed"].includes(workflow.status)) {
       await db.query(
         "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",

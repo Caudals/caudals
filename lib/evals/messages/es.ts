@@ -627,6 +627,8 @@ export const es: Partial<Record<MessageKey, string>> = {
   runnerStepDoctor: "Comprueba la conexión:",
   runnerStepContinue: "Continúa para preparar las preguntas.",
   continueToPreparation: "Continuar con la preparación",
+  evaluationQueued: "Evaluación en cola",
+  evaluationQueuedHelp: "Tu evaluación se iniciará automáticamente cuando haya una plaza disponible. Las evaluaciones se ejecutan en el orden en que se añadieron a la cola.",
   evaluationProgress: "Progreso de la evaluación",
   evaluationNotFound: "Evaluación no encontrada",
   evaluationNotFoundHelp: "Puede pertenecer a otro espacio. Revisa el selector de espacios de la barra lateral.",

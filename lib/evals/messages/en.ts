@@ -648,6 +648,8 @@ export const messages = {
   runnerStepContinue: "Continue to prepare the questions.",
   continueToPreparation: "Continue to preparation",
   // Evaluation detail
+  evaluationQueued: "Evaluation queued",
+  evaluationQueuedHelp: "Your evaluation will start automatically when a run slot is available. Evaluations run in the order they were queued.",
   evaluationProgress: "Evaluation progress",
   evaluationNotFound: "Evaluation not found",
   evaluationNotFoundHelp: "It may belong to another workspace. Check the workspace switcher in the sidebar.",

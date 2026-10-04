@@ -38,6 +38,7 @@ const NEXT_STEP: Record<StageKey, string> = {
   needs_input: "Answer context questions",
   review_tests: "Approve the test set",
   ready: "Start the run",
+  queued: "Queued",
   running: "Running",
   paused: "Resume or reduce scope",
   finalizing: "Score and publish the report",
@@ -45,7 +46,7 @@ const NEXT_STEP: Record<StageKey, string> = {
   failed: "Inspect the failure",
   canceled: "Cancelled",
 };
-const PRIORITY: StageKey[] = ["failed", "paused", "needs_input", "review_tests", "finalizing", "ready", "running", "preparing", "setup", "results", "canceled"];
+const PRIORITY: StageKey[] = ["failed", "paused", "needs_input", "review_tests", "finalizing", "ready", "running", "queued", "preparing", "setup", "results", "canceled"];
 
 export type ClientSummary = { id: string; name: string; summary: WorkspaceSummary | null; error: boolean; message?: string };
 

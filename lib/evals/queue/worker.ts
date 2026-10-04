@@ -1,3 +1,5 @@
+import { projectExecutionRun } from "./run-status";
+import { lockRunQueue, startQueuedRun, deferRunStep } from "../repositories/run-capacity";
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { reserve, settle, BudgetExceeded } from '../budget/ledger';
@@ -21,7 +23,7 @@ async function lockStep(c:PoolClient,orgId:string,stepId:string) {
  const step=(await c.query('SELECT * FROM evals.workflow_step WHERE org_id=$1 AND id=$2 FOR UPDATE',[orgId,stepId])).rows[0] as Step;
  return {workflow,step};
 }
-async function projectRun(c:PoolClient,orgId:string,runId:string){const statuses=(await c.query("SELECT status FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows.map(row=>row.status as string);if(!statuses.length)return;const active=statuses.some(status=>["pending","queued","running"].includes(status)),usable=statuses.some(status=>status==="succeeded"),status=active?"running":statuses.every(value=>value==="succeeded")?"completed":usable?"partial":"failed";await c.query("UPDATE evals.run SET status=$3,phase=CASE WHEN $3 IN ('completed','partial','failed') THEN 'grading' ELSE 'target_execution' END,updated_at=now() WHERE org_id=$1 AND id=$2",[orgId,runId,status]);}
+
 export interface WorkerOptions {tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;dgxEndpoint?:string;invoke?:typeof invokeOpenAI;search?:typeof runWebSearch;leaseSeconds?:number}
 /** Engine roles whose calls are safe to repeat: a retry costs tokens, never a duplicate action on a customer's system. */
 const INTERNAL_ROLES=new Set(['generator','context_analyzer','judge','report_writer']);
@@ -56,6 +58,11 @@ export class InvocationWorker {
      }
     }
     await event(c,tenant.orgId,step.workflow_id,'dispatch_deferred',reason);await projectWorkflow(c,tenant.orgId,step.workflow_id);
+    const target=invocationSchema.safeParse(step.input);
+    if(reason!=='provider_capacity_unavailable'&&reason!=='provider_circuit_open'&&target.success&&target.data.role==='target'&&target.data.caseUnitId){
+     const workflow=(await c.query('SELECT run_id FROM evals.execution_workflow WHERE org_id=$1 AND id=$2',[tenant.orgId,step.workflow_id])).rows[0];
+     await projectExecutionRun(c,tenant.orgId,workflow.run_id);
+    }
    });return;
   }
   if(!claimed)return;
@@ -118,13 +125,13 @@ export class InvocationWorker {
      const observation=observationSchema.parse(withContentHash({schema_version:'1.0' as const,observation_id:observationId,run_id:current.workflow.run_id,case_revision_id:input.caseRevisionId,repetition:input.repetition??0,attempt_id:attemptId,target_revision_id:input.targetRevisionId,started_at:started,finished_at:finished,messages:[...input.messages,{role:'assistant' as const,content:output.text}],tool_events:[],artifacts:[],provider_request_id:output.requestId??null,status:output.complete?'succeeded' as const:'capture_incomplete' as const,error:output.complete?null:{category:'capture_incomplete' as const,code:'incomplete_response',retryable:false},metadata:{latency_ms:{value:output.latencyMs,provenance:'measured' as const},input_tokens:output.usage?{value:output.usage.input,provenance:'provider_reported' as const}:unknown,output_tokens:output.usage?{value:output.usage.output,provenance:'provider_reported' as const}:unknown,cost:{value:{amount:actual,currency:price.currency},provenance:output.usage?'provider_reported' as const:'estimated' as const},model_identity:{value:provider.model_id,provenance:'provider_reported' as const}},extensions:{}}));
      await c.query('INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[observationId,tenant.orgId,current.workflow.run_id,input.caseUnitId,attemptId,observation.content_hash,observation,observation.status]);
      await c.query('UPDATE evals.case_unit SET status=$3,attempt_id=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,input.caseUnitId,observation.status,attemptId,output.complete?null:'incomplete_response']);
-     await projectRun(c,tenant.orgId,current.workflow.run_id);
     }
     await settle(c,tenant.orgId,attemptId,actual,output.usage?'reported_usage':'bounded_estimate',internalEstimate);
     await c.query("UPDATE evals.execution_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,attemptId]);
     await c.query("UPDATE evals.workflow_step SET status=$3,reason_code=$4,lease_until=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,output.complete?'completed':'failed',output.complete?null:'incomplete_response']);
     await c.query('UPDATE evals.provider_slot SET released_at=now() WHERE attempt_id=$1',[attemptId]);
     await this.health(c,provider.id,'healthy');await event(c,tenant.orgId,step.workflow_id,'step_completed');await projectWorkflow(c,tenant.orgId,step.workflow_id);
+    if(input.caseUnitId)await projectExecutionRun(c,tenant.orgId,current.workflow.run_id);
    });
   }catch(error){await this.finishFailure(tenant,step,attemptId,provider.id,amount,error);}
   finally{clearInterval(timer);secret?.fill(0);}
@@ -134,6 +141,7 @@ export class InvocationWorker {
  }
  private async claim(tenant:Tenant,job:JobData) {
   return this.options.tx(tenant,async c=>{
+   await lockRunQueue(c,tenant.orgId);
    const {workflow,step}=await lockStep(c,tenant.orgId,job.stepId);
    if(step.input_hash!==job.inputHash || digest(step.input)!==step.input_hash)throw new Error('input_hash_mismatch');
    if(step.status!=='queued')return;
@@ -145,7 +153,9 @@ export class InvocationWorker {
    const previous=(await c.query('SELECT status,ordinal FROM evals.execution_attempt WHERE org_id=$1 AND step_id=$2 ORDER BY ordinal DESC LIMIT 1',[tenant.orgId,step.id])).rows[0];
    // An unknown outcome needs review before a target is called again; an engine call may simply be repeated.
    if(previous && (previous.ordinal>=3 || previous.status==='dispatching' || previous.status==='unknown'&&!internal(step.input)))throw new Error('attempt_review_required');
-   const input=invocationSchema.parse(step.input), {provider,price,inputBound}=await loadProvider(c,input);
+   const input=invocationSchema.parse(step.input);
+   if(input.role==='target'&&input.caseUnitId&&!await startQueuedRun(c,tenant.orgId,workflow.run_id)){await deferRunStep(c,tenant.orgId,step.id,step.step_kind);return;}
+   const {provider,price,inputBound}=await loadProvider(c,input);
    if(input.generationJobId&&input.generationStep)await c.query("UPDATE evals.generation_batch SET status='running',attempt_count=LEAST(attempt_count+1,3),updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$3 AND version=$4",[tenant.orgId,input.generationJobId,input.generationStep,step.version]);
    const amount=worstCase(price,inputBound,input.maxOutputTokens),attemptId=randomUUID();
    const updated=(await c.query("UPDATE evals.workflow_step SET status='running',fence=fence+1,lease_owner=$3,lease_until=now()+$4::int*interval '1 second',updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *",[tenant.orgId,step.id,this.options.workerId,this.lease])).rows[0] as Step;
@@ -189,7 +199,7 @@ export class InvocationWorker {
     await c.query("UPDATE evals.generation_batch SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND generation_job_id=$2 AND step_kind=$4 AND version=$5",[tenant.orgId,parsedInput.generationJobId,reason,parsedInput.generationStep,step.version]);
     await c.query("UPDATE evals.generation_job SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,parsedInput.generationJobId,reason]);
    }
-   if(parsedInput.caseUnitId&&!retry){await c.query('UPDATE evals.case_unit SET status=$3,attempt_id=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,parsedInput.caseUnitId,unknown?'unknown_external_outcome':failure?.code==='network_unavailable'?'transport_error':failure?.code==='service_unavailable'?'target_error':current.workflow.status==='cancel_requested'?'canceled':'target_error',attemptId,reason]);await projectRun(c,tenant.orgId,current.workflow.run_id);}
+   if(parsedInput.caseUnitId&&!retry){await c.query('UPDATE evals.case_unit SET status=$3,attempt_id=$4,reason_code=$5,updated_at=now() WHERE org_id=$1 AND id=$2',[tenant.orgId,parsedInput.caseUnitId,unknown?'unknown_external_outcome':failure?.code==='network_unavailable'?'transport_error':failure?.code==='service_unavailable'?'target_error':current.workflow.status==='cancel_requested'?'canceled':'target_error',attemptId,reason]);await projectExecutionRun(c,tenant.orgId,current.workflow.run_id);}
    if(retry)await c.query("INSERT INTO evals.outbox_event(org_id,step_id,queue,available_at) VALUES($1,$2,$3,now()+$4::int*interval '1 millisecond')",[tenant.orgId,step.id,step.step_kind,delay]);
    // Out of credit is not a bad key: open the short circuit instead of blocking the provider until its key is replaced.
    if(failure)await this.health(c,providerId,failure.code==='quota_exceeded'?'overloaded':failure.code);
@@ -226,7 +236,7 @@ export class InvocationWorker {
    }
    await c.query("UPDATE evals.workflow_step SET status=$3,fence=fence+1,lease_until=NULL,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id,state]);
    if(state==='queued')await c.query('INSERT INTO evals.outbox_event(org_id,step_id,queue) VALUES($1,$2,$3)',[tenant.orgId,step.id,step.step_kind]);
-   if(unknown){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectRun(c,tenant.orgId,workflow.run_id);}}
+   if(unknown){const input=invocationSchema.parse(step.input);if(input.caseUnitId){await c.query("UPDATE evals.case_unit SET status='unknown_external_outcome',attempt_id=$3,reason_code='worker_lease_expired',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId,attempts[0]?.id??null]);await projectExecutionRun(c,tenant.orgId,workflow.run_id);}}
    await event(c,tenant.orgId,step.workflow_id,'lease_recovered',unknown?'unknown_external_outcome':'not_dispatched');await projectWorkflow(c,tenant.orgId,step.workflow_id);
   });
   return stale.length;

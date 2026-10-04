@@ -233,7 +233,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
   const stage = evaluationStage({ ...evaluation, latest_run_status: runStatus }, !!reportRow);
   const executionMode = system?.document.kind === "imported_responses" ? "imported_responses" : "deployed_system";
   const awaitingManualAnswers = run?.run.execution_mode === "imported_responses" && counts.pending > 0 && !["canceled", "failed"].includes(run.run.status);
-  const awaitingPrivateRunner = system?.document.kind === "private_runner" && run?.run.status === "paused" && run.run.reason_code === "runner_wait";
+  const awaitingPrivateRunner = system?.document.kind === "private_runner" && (run?.run.status === "queued" || run?.run.status === "running" || run?.run.status === "paused" && run.run.reason_code === "runner_wait");
   const terminal = !!runStatus && ["completed", "partial", "failed", "canceled"].includes(runStatus);
   const canPrepareManualReport =
     !reportRow && canWrite && terminal && (run?.run.execution_mode === "imported_responses" || system?.document.kind === "private_runner") && ["completed", "partial"].includes(runStatus ?? "");
@@ -339,6 +339,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         )
       ) : awaitingPrivateRunner ? (
         <Panel title={t("waitingForRunner")} live>
+          {runStatus === "queued" && <p>{t("evaluationQueuedHelp")}</p>}
           <p>
             {counts.done} {t("of")} {counts.total} {t("testsReceived")}. {t("runnerWaitHelp")}
           </p>
@@ -351,6 +352,11 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
               </ActionAnchor>
             </div>
           )}
+        </Panel>
+      ) : runStatus === "queued" ? (
+        <Panel title={t("evaluationQueued")} live>
+          <p>{t("evaluationQueuedHelp")}</p>
+          <p className="p-cell-meta">{t("closePageHelp")}</p>
         </Panel>
       ) : running ? (
         <Panel title={humanize(run.run.phase)} live>
