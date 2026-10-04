@@ -13,6 +13,14 @@ sudo systemctl start caudals-evals-backup.service        # take a backup now
 
 Pause dispatch for a whole service with `sudo docker service scale caudals-evals_worker=0` (or `_browser`, `_scheduler`). Durable jobs stay in the queue; nothing is lost.
 
+## Workspace evaluation queue
+
+When the workspace's active-run allowance is occupied, new evaluations enter a durable FIFO queue. Workers retry admission after five seconds without creating target attempts or reserving spend. Completion, cancellation and a fully paused run release the slot; pause or cancellation with calls still draining retains it. Resuming a paused run joins the back of the queue. Disabled allowances and exhausted budgets retain their existing guards.
+
+Keep admission-aware workers when rolling back another part of the release. Before reverting to workers or private-runner endpoints that predate queue admission, stop general and browser dispatch and private-runner acquisition, then drain or cancel waiting evaluations. Retain migration `073_evals_run_queue.sql` and its additive grants; reverting only the application does not remove the queue schema.
+
+Production acceptance on 2026-10-04 used release `9644eb80c7ab74b0c9d5eed94cbe0da39f629ad0`: two evaluations against the owned synthetic endpoint remained queued with zero target attempts while a slot was occupied, then automatically completed target execution in FIFO order after release. There were no paid provider calls or spend. Internal grading was excluded by a zero budget, and the synthetic workspace and credentials were retired after verification.
+
 ## 1. DGX down
 
 Signals: `dgx_unreachable` or `provider_unhealthy`; preparation shows "paused"; `/ops/platform/inference` shows `circuit_open`.
