@@ -179,7 +179,10 @@ fresh browser context, three attempts in all, 5 s and then 20 s apart. A
 browser turn has no external charge, so a failed one is recorded with its
 reason rather than left as an unknown outcome that would block retries or a
 resumed run. When the browser service restarts mid-test (a deploy), the test
-simply runs again. Partial answers are never graded.
+simply runs again. A short reply that only reports a temporary failure of the
+assistant ("Ha ocurrido un error, inténtalo más tarde", "Something went wrong")
+is asked again the same way, and recorded as the answer only on the last
+attempt. Partial answers are never graded.
 
 A test that still fails after its retries is recorded as not captured and the
 run continues. The run pauses for repair only when the connection itself looks

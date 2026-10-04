@@ -10,6 +10,7 @@ import { targetInvocationSecret } from "../security/secrets";
 import { targetConfigSchema } from "../contracts/connectors";
 import { HttpTargetAdapter } from "../connectors/http-target";
 import { runScenario,ScenarioFailure } from "../execution/scenario-runner";
+import { transientErrorReply } from "../scoring/text";
 import { jobSchema,type JobData } from "./boss";
 import { digest,event,projectWorkflow,targetExecutionSchema,type Tenant,type TenantTransaction } from "./store";
 import { dispatchTargetCall,markTargetCallUnknown,recordFailedBrowserCalls,recordTargetCall,recoverDispatchedTargetCalls,
@@ -32,7 +33,7 @@ async function locked(c:PoolClient,orgId:string,stepId:string){
  * attempt is repeated in a fresh browser (three attempts in all, backing off)
  * before the test is marked as not captured; nothing is charged for it.
  */
-const WEBSITE_RETRYABLE=new Set(["capture_incomplete","website_selector_failed","target_transport_failed","browser_session_unavailable","target_execution_aborted"]);
+const WEBSITE_RETRYABLE=new Set(["capture_incomplete","website_selector_failed","target_transport_failed","browser_session_unavailable","target_execution_aborted","target_reply_error"]);
 const WEBSITE_RETRY_DELAYS_MS=[5_000,20_000];
 
 /**
@@ -50,6 +51,7 @@ async function websiteFailureSystematic(c:PoolClient,orgId:string,runId:string,c
 
 function failureReason(error:unknown){
  const value=error instanceof Error?error.message:"target_execution_failed";
+ if(value==="target_reply_error")return {unit:"target_error",code:value};
  if(value==="target_execution_aborted")return {unit:"capture_incomplete",code:value};
  if(value==="browser_session_unavailable"||value==="login_required")return {unit:"unsupported",code:"browser_session_unavailable"};
  if(value==="website_selector_failed")return {unit:"capture_incomplete",code:value};
@@ -151,9 +153,14 @@ export class TargetExecutionWorker{
     }
    };
    const scenario=claimed.input.scenario;
-   const observation=scenario&&(scenario.mode==="conversation"||scenario.mode==="tool_workflow")
+   const answered=scenario&&(scenario.mode==="conversation"||scenario.mode==="tool_workflow")
     ?await runScenario({scenario,candidateInput:claimed.input.candidateInput,fixture:claimed.input.toolFixture,invoke:executeMetered,limits:{maxTurns:Math.min(scenario.termination.kind==="turn_limit"?scenario.termination.max_turns:claimed.config.limits.max_turns,claimed.config.limits.max_turns),maxToolCalls:claimed.config.limits.max_tool_calls,maxOutputTokens:claimed.config.limits.max_output_tokens,deadlineMs:new Date(context.deadline).getTime()},repetition:claimed.input.repetition})
     :await executeMetered(claimed.input.candidateInput);
+   // A website assistant that only reports a temporary error is asked again in
+   // a fresh browser; on the last attempt its reply is recorded as the answer.
+   const reply=answered.messages.at(-1);
+   if(claimed.config.kind==="website"&&claimed.ordinal<3&&reply?.role==="assistant"&&transientErrorReply(reply.content))throw new Error("target_reply_error");
+   const observation=answered;
    await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;await c.query("INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[observation.observation_id,tenant.orgId,claimed.input.runId,claimed.input.caseUnitId,claimed.attemptId,observation.content_hash,observation,observation.status]);await recordTargetObservation(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},observation);await c.query("UPDATE evals.target_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,observation.status,observation.error?.code??null]);await c.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,observation.error?.code??null]);await event(c,tenant.orgId,claimed.step.workflow_id,observation.status==="succeeded"?"target_completed":"target_observation_incomplete",observation.error?.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);});
   }catch(error){
    const failure=failureReason(error);

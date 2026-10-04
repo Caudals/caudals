@@ -80,3 +80,14 @@ export function languageName(tag: string | null | undefined): string {
   if (primary === "en" || !primary) return "English";
   try { return new Intl.DisplayNames(["en"], { type: "language" }).of(primary) ?? "English"; } catch { return "English"; }
 }
+
+/**
+ * A short reply that only reports a temporary failure of the assistant ("Ha
+ * ocurrido un error, inténtalo más tarde"): worth asking again in a fresh
+ * browser before it is recorded as the system's answer.
+ */
+export function transientErrorReply(text: string) {
+  const value = text.replace(/\s+/g, " ").trim();
+  if (!value || value.length > 220) return false;
+  return /(ha ocurrido|se ha producido|hubo|ocurri[oó]) (un|algún) error|algo (ha ido|sali[oó]) mal|int[eé]nta(lo|r)( de nuevo)? m[aá]s tarde|vuelve a intentarlo|no (he podido|puedo) (procesar|responder) (tu|su) (consulta|mensaje|solicitud) en este momento|servicio no (est[aá] )?disponible|error interno|demasiadas (solicitudes|peticiones)|something went wrong|an (unexpected )?error (has )?occurred|(please )?try again later|service (is )?(temporarily )?unavailable|internal (server )?error|too many requests|network error|error de (red|conexi[oó]n)/i.test(value);
+}
