@@ -97,6 +97,27 @@ async function fixture() {
   execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
   const server: Server = createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (request, response) => {
     const url = new URL(request.url ?? "/", "https://fixture");
+    // A Clerk-style app: a short session cookie for the site, refreshed by a
+    // handshake on its own auth subdomain that holds the long-lived cookie.
+    const host = request.headers.host ?? "", port = host.split(":").at(-1);
+    if (host.startsWith("sso.other.test")) { response.writeHead(302, { "set-cookie": "idp=third-party; Secure; Path=/", location: `https://clerk.example.test:${port}/login` }); response.end(); return; }
+    if (host.startsWith("clerk.example.test")) {
+      const signedIn = url.pathname === "/login" || request.headers.cookie?.includes("__client=c1");
+      response.writeHead(302, signedIn
+        ? { "set-cookie": ["__client=c1; Secure; HttpOnly; Path=/; Max-Age=86400", "sess=ok; Domain=example.test; Secure; Path=/; Max-Age=3"], location: `https://www.example.test:${port}/g` }
+        : { location: `https://www.example.test:${port}/sign-in` });
+      response.end(); return;
+    }
+    if (host.startsWith("www.example.test")) {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      if (url.pathname === "/sign-in") { response.end("<!doctype html><h1>Sign in</h1><input type=\"password\">"); return; }
+      if (!request.headers.cookie?.includes("sess=ok")) { response.end(`<!doctype html><script>location.href='https://clerk.example.test:${port}/handshake'</script>`); return; }
+      response.end(`<!doctype html><div class="log"></div><textarea placeholder="Ask"></textarea><script>
+        const ta=document.querySelector('textarea');ta.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();const q=ta.value.trim();ta.value='';
+        const u=document.createElement('p');u.className='me';u.textContent=q;document.querySelector('.log').append(u);
+        setTimeout(()=>{const a=document.createElement('p');a.className='bot';a.textContent='Signed in: '+q;document.querySelector('.log').append(a);},300);});</script>`);
+      return;
+    }
     if (request.headers.host?.startsWith("www.localhost") && url.pathname === "/d") {
       response.writeHead(302, { location: `https://app.localhost:${request.headers.host.split(":").at(-1)}/d` }); response.end(); return;
     }
@@ -123,7 +144,7 @@ const question = (content: string) => ({ schema_version: "1.0" as const, case_id
 
 let browser: Browser;
 let site: Awaited<ReturnType<typeof fixture>>;
-test.beforeAll(async () => { site = await fixture(); browser = await chromium.launch({ args: ["--ignore-certificate-errors", "--host-resolver-rules=MAP www.localhost 127.0.0.1, MAP app.localhost 127.0.0.1"] }); });
+test.beforeAll(async () => { site = await fixture(); browser = await chromium.launch({ args: ["--ignore-certificate-errors", "--host-resolver-rules=MAP www.localhost 127.0.0.1, MAP app.localhost 127.0.0.1, MAP www.example.test 127.0.0.1, MAP clerk.example.test 127.0.0.1, MAP sso.other.test 127.0.0.1"] }); });
 test.afterAll(async () => { await browser.close(); await site.close(); });
 
 test("one click teaches a closed iframe widget, streams live frames and validates a reusable connector", async () => {
@@ -258,4 +279,31 @@ test("a launcher that leads to another page is undone and the next candidate ope
   const { withContentHash } = await import("../../lib/evals/contracts/hashing");
   const observation = await invokeWebsite({ browser, destinationCheck, recipe: withContentHash(draft) as WebsiteRecipe, input: question("Opening hours?"), context: context(randomUUID()) });
   expect(observation.messages.at(-1)?.content).toBe("Phi: Opening hours?");
+});
+
+test("a saved login keeps the site's own auth subdomain, so a fresh browser stays signed in, but never a third-party provider", async () => {
+  test.setTimeout(90_000);
+  const port = new URL(site.origin).port;
+  const endpoint = `https://www.example.test:${port}/g`;
+  const allowed = [`https://www.example.test:${port}`, `https://clerk.example.test:${port}`, `https://sso.other.test:${port}`];
+  const destinationCheck = async (url: string) => { if (!allowed.includes(new URL(url).origin)) throw new Error("destination_denied"); };
+  const control = new BrowserControl({ browser, destinationCheck });
+  const scope = { orgId: randomUUID(), actorId: "owner", targetId: randomUUID(), endpoint };
+  try {
+    const { sessionId } = await control.dispatch(scope, { action: "open" }) as { sessionId: string };
+    // Sign in through a third-party identity provider that hands off to the site's auth subdomain.
+    await control.dispatch(scope, { action: "navigate", sessionId, url: `https://sso.other.test:${port}/` });
+    await browser.contexts().at(-1)!.pages()[0].getByPlaceholder("Ask").waitFor();
+    const saved = (await control.dispatch(scope, { action: "checkpoint", sessionId }) as { storageState: BrowserStorageState }).storageState;
+    expect(saved.cookies.map(cookie => `${cookie.name}@${cookie.domain}`)).toEqual(expect.arrayContaining(["__client@clerk.example.test"]));
+    expect(saved.cookies.some(cookie => cookie.name === "idp")).toBe(false);
+    // The short session cookie expires; a fresh browser refreshes it through the auth subdomain.
+    await new Promise(resolve => setTimeout(resolve, 3_500));
+    const { withContentHash } = await import("../../lib/evals/contracts/hashing");
+    const recipe = withContentHash({ schema_version: "1.0", recipe_revision_id: randomUUID(), source: "operator_authored", start_url: endpoint, launcher: null, frame_chain: [],
+      input: { kind: "css", value: "textarea", frames: [] }, submit: { kind: "press_enter" }, message_container: { kind: "css", value: ".bot", frames: [] }, assistant_message: { kind: "css", value: ".bot", frames: [] },
+      completion: { kind: "quiescent", quiet_ms: 1500 }, reset: { kind: "new_context" }, assistant_extraction: "last_new_message", created_at: new Date().toISOString(), extensions: {} }) as WebsiteRecipe;
+    const observation = await invokeWebsite({ browser, destinationCheck, recipe, storageState: saved, input: question("Still signed in?"), context: context(scope.orgId) });
+    expect(observation.messages.at(-1)?.content).toBe("Signed in: Still signed in?");
+  } finally { await control.close(); }
 });

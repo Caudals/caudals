@@ -59,7 +59,10 @@ The studio shows Connected only after persistence succeeds and offers a save
 retry if the server fails. A site can hand off between its apex, `www` and
 `app` HTTPS origins (for example `www.maite.ai` → `app.maite.ai`); other
 origins remain outside this navigation allowance. Only the target, its app,
-and taught frames enter the saved state, never an unrelated SSO provider.
+taught frames and the site's own same-site hosts (registrable domain per the
+Public Suffix List, e.g. a Clerk or Auth0 custom domain such as
+`clerk.example.com`, which some apps need to refresh a session in a fresh
+browser) enter the saved state, never an unrelated SSO provider.
 The clean authenticated page is saved for reopening even before a recipe
 passes. Recipes use the composer URL from before the first probe, so a
 conversation URL created by sending a message is not mistaken for a fresh chat.
@@ -147,8 +150,8 @@ minutes after its last viewer disconnects (unless Caudals is still working).
 Source captures defer while an interactive session is active.
 
 Saved cookies, local storage, IndexedDB and session storage belong only to the
-target and the taught frame origins; identity-provider state is discarded
-after sign-in. Encryption uses the target-scoped envelope registry; only the
+target, the taught frame origins and the site's own same-site hosts;
+third-party identity-provider state is discarded after sign-in. Encryption uses the target-scoped envelope registry; only the
 browser executor decrypts saved state. Saved sessions have no Caudals-side
 expiry (stored as a far-future `expires_at`) and can be revoked through the
 session UI. Eval scenarios always use fresh
