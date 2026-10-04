@@ -793,6 +793,8 @@ export async function validateWebsiteRecipe(args: {
   timeoutMs?: number;
   storageState?: BrowserStorageState;
   onResponse?: (response: string) => void;
+  /** Content-free diagnostics for a probe attempt that failed. */
+  onProbeFailed?: (failure: { probe: number; attempt: number; code: string; ms: number }) => void;
   signal?: AbortSignal;
 }): Promise<BrowserProbeEvidence> {
   const prompts = [
@@ -806,6 +808,7 @@ export async function validateWebsiteRecipe(args: {
   const probeOnce = async (index: number, prompt: string, attempt: number): Promise<Observation> => {
     if (args.signal?.aborted) throw new Error("target_execution_aborted");
     const controller = new AbortController();
+    const started = Date.now();
     try {
       return await invokeWebsite({
         ...args,
@@ -831,6 +834,7 @@ export async function validateWebsiteRecipe(args: {
         },
       });
     } catch (error) {
+      args.onProbeFailed?.({ probe: index + 1, attempt, code: error instanceof Error ? (/^[a-z][a-z0-9_]{2,60}$/.test(error.message) ? error.message : error.name) : "unknown", ms: Date.now() - started });
       if (attempt >= 2 || args.signal?.aborted || (error instanceof Error && error.message === "website_completion_unverified")) throw error;
       return probeOnce(index, prompt, attempt + 1);
     }

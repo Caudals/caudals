@@ -24,7 +24,9 @@ worker's workspace allowlist.
      chat-like inputs and rejecting search, login and newsletter fields;
    - opens the chat when it is closed, trying likely launchers, including a
      plain floating element with a pointer cursor in a corner (an avatar or
-     bubble that is not a button);
+     bubble that is not a button). Links to other pages rank below in-page
+     widgets, and a click that leads to a page without a chat (an article, a
+     sales form) is undone before the next candidate is tried;
    - finds the Send button next to the input, or falls back to Enter;
    - sends one short hello, observes what the page adds, and identifies the
      reply as the largest new region that is not the user's own message (the
@@ -211,7 +213,8 @@ both. Configuration and encrypted state remain in existing additive tables.
   replay), unattended detection of an SSE-streamed reply with no visible
   signal and hashed classes, a rich-text composer sending on Enter with
   typing dots, a cookie dialog covering a floating-avatar launcher (declined
-  in every fresh session), and Connect again from a conversation URL. The
+  in every fresh session), a launcher that navigates away (undone), and
+  Connect again from a conversation URL. The
   first three assistants echo the question.
 - `tests/evals/website-run-resilience-db.test.ts`: retries in a fresh browser,
   a run that keeps going past one failing test, the systematic pause with its

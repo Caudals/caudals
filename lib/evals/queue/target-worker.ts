@@ -158,6 +158,7 @@ export class TargetExecutionWorker{
   }catch(error){
    const failure=failureReason(error);
    const website=claimed.config.kind==="website";
+   console.warn(JSON.stringify({event:"target_attempt_failed",stepId:claimed.step.id,attempt:claimed.ordinal,code:failure.code,cause:error instanceof Error?(/^[a-z][a-z0-9_]{2,60}$/.test(error.message)?error.message:error.name):"unknown"}));
    await this.options.tx(tenant,async c=>{
     const current=await locked(c,tenant.orgId,claimed.step.id);
     if(current.step.status!=="running"||current.step.fence!==claimed.step.fence)return;

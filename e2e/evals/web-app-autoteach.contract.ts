@@ -65,6 +65,16 @@ const pages: Record<string, string> = {
       };
     })();</script>`,
   "/no-chat": "<!doctype html><h1>Signed in, no chatbot here</h1>",
+  // The likeliest-looking launcher leads to a sales page; the real chat sits behind "Help".
+  "/f": `<!doctype html><title>Phi</title><h1>Phi bank</h1>
+    <button style="position:fixed;right:24px;bottom:100px;width:64px;height:64px" onclick="location.href='/f/sales'">Talk to sales</button>
+    <button class="help-btn" style="position:fixed;right:24px;bottom:24px;width:120px;height:40px" onclick="document.querySelector('.box').hidden=false">Help</button>
+    <div class="box" hidden><div class="feed"></div><textarea placeholder="Type your question"></textarea></div><script>
+    const ta=document.querySelector('textarea');ta.addEventListener('keydown',e=>{if(e.key!=='Enter')return;e.preventDefault();const q=ta.value.trim();if(!q)return;ta.value='';
+      const feed=document.querySelector('.feed');const u=document.createElement('p');u.className='q';u.textContent=q;feed.append(u);
+      setTimeout(()=>{const a=document.createElement('p');a.className='answer';a.textContent='Phi: '+q;feed.append(a);},300);});
+    </script>`,
+  "/f/sales": "<!doctype html><h1>Book a sales call</h1><form><input name=\"company\" placeholder=\"Company\"></form>",
   // A consent dialog that covers the page and a launcher that is a plain
   // floating element (an avatar with a pointer cursor), as on many EU sites.
   "/e": `<!doctype html><title>Epsilon</title><h1>Epsilon insurance</h1>
@@ -237,4 +247,15 @@ test("declines a covering cookie dialog and opens a chat whose launcher is a flo
   // Every fresh run session meets the dialog again and declines it.
   const observation = await invokeWebsite({ browser, destinationCheck, recipe, input: question("¿Qué cubre el seguro de hogar?"), context: context(randomUUID()) });
   expect(observation.messages.at(-1)?.content).toBe("Epsilon: ¿Qué cubre el seguro de hogar? (cookies rejected)");
+});
+
+test("a launcher that leads to another page is undone and the next candidate opens the chat", async () => {
+  test.setTimeout(90_000);
+  const destinationCheck = async (url: string) => { if (new URL(url).origin !== site.origin) throw new Error("destination_denied"); };
+  const draft = await autoDetectWebsiteRecipe({ browser, url: `${site.origin}/f`, destinationCheck, recipeRevisionId: randomUUID() });
+  expect(draft.start_url).toBe(`${site.origin}/f`);
+  expect(draft.launcher).toMatchObject({ kind: "role", role: "button", name: "Help" });
+  const { withContentHash } = await import("../../lib/evals/contracts/hashing");
+  const observation = await invokeWebsite({ browser, destinationCheck, recipe: withContentHash(draft) as WebsiteRecipe, input: question("Opening hours?"), context: context(randomUUID()) });
+  expect(observation.messages.at(-1)?.content).toBe("Phi: Opening hours?");
 });
