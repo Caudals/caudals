@@ -68,9 +68,9 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("website run resilience on PostgreSQL"
     return { scope, orgId, run, revisionId, cases };
   }
 
-  const answer = (input: CandidateInput, context: InvocationContext) => {
+  const answer = (input: CandidateInput, context: InvocationContext, content = "EUR 135.80") => {
     const unknown = { value: null, provenance: "unavailable" as const };
-    return withContentHash({ schema_version: "1.0" as const, observation_id: randomUUID(), run_id: context.run_id, case_revision_id: input.case_revision_id, repetition: 0, attempt_id: context.attempt_id, target_revision_id: context.target_revision_id, started_at: new Date().toISOString(), finished_at: new Date().toISOString(), messages: [...input.messages, { role: "assistant" as const, content: "EUR 135.80" }], tool_events: [], artifacts: [], provider_request_id: null, status: "succeeded" as const, error: null, metadata: { latency_ms: { value: 1, provenance: "measured" as const }, input_tokens: unknown, output_tokens: unknown, cost: unknown, model_identity: unknown }, extensions: {} });
+    return withContentHash({ schema_version: "1.0" as const, observation_id: randomUUID(), run_id: context.run_id, case_revision_id: input.case_revision_id, repetition: 0, attempt_id: context.attempt_id, target_revision_id: context.target_revision_id, started_at: new Date().toISOString(), finished_at: new Date().toISOString(), messages: [...input.messages, { role: "assistant" as const, content }], tool_events: [], artifacts: [], provider_request_id: null, status: "succeeded" as const, error: null, metadata: { latency_ms: { value: 1, provenance: "measured" as const }, input_tokens: unknown, output_tokens: unknown, cost: unknown, model_identity: unknown }, extensions: {} });
   };
   const question = (input: CandidateInput) => input.messages.at(-1)!.content;
 
@@ -106,6 +106,22 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("website run resilience on PostgreSQL"
     expect(ledger).toEqual([{ state: "recorded", n: 6 }]);
     const repair = await owner.query("SELECT 1 FROM evals.connection_check WHERE target_revision_id=$1 AND status='needs_operator'", [f.revisionId]);
     expect(repair.rowCount).toBe(0);
+  }, 30000);
+
+  it("asks again when the assistant only reports a temporary error, and records it if it persists", async () => {
+    const f = await seed(2);
+    const attempts = new Map<string, number>();
+    const worker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: f.scope.actorId, workerId: randomUUID(), execute: async (_config, input, context) => {
+      const asked = question(input);
+      attempts.set(asked, (attempts.get(asked) ?? 0) + 1);
+      const failing = asked === "Question 2" || attempts.get(asked) === 1;
+      return answer(input, context, failing ? "Ha ocurrido un error, por favor, inténtalo más tarde." : "EUR 135.80");
+    } });
+    await drain(f.orgId, f.run.id, worker);
+    expect(Object.fromEntries(attempts)).toEqual({ "Question 1": 2, "Question 2": 3 });
+    const replies = (await owner.query("SELECT o.document->'messages'->-1->>'content' AS reply FROM evals.observation o WHERE o.run_id=$1 ORDER BY o.created_at", [f.run.id])).rows.map(row => row.reply);
+    expect(replies).toEqual(["EUR 135.80", "Ha ocurrido un error, por favor, inténtalo más tarde."]);
+    expect(await runRow(f.run.id)).toMatchObject({ status: "completed", phase: "grading" });
   }, 30000);
 
   it("pauses only when the connection looks broken, resumes, and finishing grades the captured answers", async () => {

@@ -62,6 +62,8 @@ async function locked(client: PoolClient, orgId: string, stepId: string) {
  * conversation slightly less), so a slow assistant is not cut off by a slow page.
  */
 const WEBSITE_REPLY_MS = 90_000, WEBSITE_TURN_MS = 60_000;
+/** An error code safe to log: our own snake_case codes, or the error class. Never page text. */
+const diagnosticCode = (error: unknown) => error instanceof Error ? (/^[a-z][a-z0-9_]{2,60}$/.test(error.message) ? error.message : error.name) : "unknown";
 const replyDeadline = (context: InvocationContext, floorMs: number): InvocationContext =>
   ({ ...context, deadline: new Date(Math.max(Date.parse(context.deadline), Date.now() + floorMs)).toISOString() });
 
@@ -268,6 +270,8 @@ export class BrowserJobWorker {
         [tenant.orgId, claimed.step.id, claimed.step.fence, lease],
       )).catch(() => {});
     }, Math.max(5_000, (lease * 1000) / 3));
+    const startedAt = Date.now();
+    let stage = "load_state";
     try {
       if (claimed.config.kind !== "website") throw new Error("connection_unsupported");
       let snapshot = claimed.candidate.discovery_snapshot;
@@ -286,12 +290,14 @@ export class BrowserJobWorker {
       if (!recipe) {
         // Most chatbots are found without a person: detect the controls,
         // send one probe and learn the reply. Otherwise ask for Teach Mode.
+        stage = "detect";
         try {
           recipe = websiteRecipeSchema.parse(withContentHash(await autoDetectWebsiteRecipe({
             browser: this.options.browser, url: claimed.config.endpoint, destinationCheck: this.destinationCheck,
             storageState, recipeRevisionId: randomUUID(), signal: AbortSignal.timeout(150_000),
           })));
-        } catch {
+        } catch (error) {
+          console.warn(JSON.stringify({ event: "website_detection_failed", stepId: claimed.step.id, code: diagnosticCode(error), ms: Date.now() - startedAt }));
           recipe = null;
         }
       }
@@ -387,12 +393,14 @@ export class BrowserJobWorker {
         return;
       }
 
+      stage = "test";
       const evidence: BrowserProbeEvidence = await validateWebsiteRecipe({
         browser: this.options.browser,
         recipe,
         destinationCheck: this.destinationCheck,
         timeoutMs: claimed.input.timeoutMs,
         storageState,
+        onProbeFailed: (failure) => console.warn(JSON.stringify({ event: "website_probe_failed", stepId: claimed.step.id, ...failure })),
       });
       if (!probeEvidenceReady(evidence)) {
         throw new Error("recipe_probe_failed");
@@ -499,6 +507,7 @@ export class BrowserJobWorker {
         ].includes(error.message)
           ? error.message
           : "website_discovery_failed";
+      console.warn(JSON.stringify({ event: "website_discovery_failed", stepId: claimed.step.id, stage, reason, code: diagnosticCode(error), ms: Date.now() - startedAt }));
       await this.options.tx(tenant, async (client) => {
         const current = await locked(client, tenant.orgId, claimed.step.id);
         if (

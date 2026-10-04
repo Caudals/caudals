@@ -7,6 +7,7 @@ import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, res
 import { detectChatControls, detectLauncherFor, probeChatReply, type DetectStep } from "../../lib/evals/connectors/browser-autodetect";
 import { selectAt } from "./teach";
 import { cleanWebsiteNavigation, websiteAppNavigation } from "../../lib/evals/contracts/website-navigation";
+import { sameSiteHost } from "../../lib/evals/contracts/website-site";
 
 export type ControlScope = { orgId: string; actorId: string; targetId: string; endpoint: string };
 type Work = { status: "idle" | "running" | "ready" | "failed"; error: string | null; step: string | null };
@@ -170,8 +171,9 @@ export class BrowserControl {
   // ----------------------------------------------------------- persistence --
   private async captureState(session: Session) {
     if (!websiteAppNavigation(session.endpoint, session.page.url()) || await loginRequired(session.page, session.page.url())) throw new Error("login_required");
-    // Only the target and explicitly taught frame origins are persisted. SSO
-    // provider cookies are intentionally discarded after they grant app access.
+    // Only the target, its taught frame origins and the site's own same-site
+    // hosts are persisted. Third-party SSO provider cookies are intentionally
+    // discarded after they grant app access.
     const allowed = new Set([new URL(session.endpoint).origin, new URL(session.page.url()).origin]);
     for (const selection of Object.values(session.selections)) {
       let frame = session.page.mainFrame();
@@ -183,9 +185,19 @@ export class BrowserControl {
         try { const url = new URL(frame.url()); if (url.protocol === "https:") allowed.add(url.origin); } catch { /* about:srcdoc frames share the parent origin */ }
       }
     }
+    const state = await session.context.storageState({ indexedDB: true });
+    // The site's own auth subdomain keeps a login alive in a fresh browser:
+    // Clerk, for one, refreshes its short session through clerk.<site> with a
+    // cookie that lives only there. Same-site hosts are kept (PSL-aware);
+    // a third-party identity provider never is.
+    const siteHosts = [...state.cookies.filter(cookie => !cookie.domain.startsWith(".")).map(cookie => cookie.domain), ...state.origins.map(origin => new URL(origin.origin).hostname)];
+    const port = new URL(session.endpoint).port;
+    for (const host of siteHosts) {
+      if (allowed.size >= 20) break;
+      if (sameSiteHost(session.endpoint, host)) allowed.add(`https://${host}${port ? `:${port}` : ""}`);
+    }
     for (const origin of [...allowed]) await this.options.destinationCheck(origin).catch(() => allowed.delete(origin));
     if (!allowed.has(new URL(session.endpoint).origin)) throw new Error("destination_denied");
-    const state = await session.context.storageState({ indexedDB: true });
     const sessionStorage: Array<{ origin: string; entries: Array<{ name: string; value: string }> }> = [];
     for (const frame of session.page.frames()) {
       try {

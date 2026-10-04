@@ -112,6 +112,9 @@ const SCAN_INPUTS = `(frameHint) => {
       if (frameChat) score += 3;
       if (tag === 'iframe') score -= 2;
       if (tag === 'a' && /^(https?:|\\/)/.test(el.getAttribute('href') || '') && !/chat|assistant|bot|copilot|ask/i.test(el.getAttribute('href') || '')) score -= 4;
+      // A link to another page (an article about chat, a sales form) ranks
+      // below an in-page widget; a chat page link can still win when alone.
+      if (tag === 'a') { try { const url = new URL(el.getAttribute('href') || '#', location.href); if (url.origin !== location.origin || url.pathname !== location.pathname) score -= 3; } catch {} }
       if (/cookie|accept|reject|aceptar|rechazar|privacy|privacidad|close|cerrar|menu|login|sign in|iniciar/i.test(text)) score -= 6;
       if (score >= 5) { const id = 'l' + (n++); el.setAttribute('${MARK}', id); launchers.push({ id, score }); }
     }
@@ -300,22 +303,41 @@ export async function detectChatControls(page: Page, options: { onStep?: (step: 
   let launcher: DetectedPart | null = null;
   if (!result.input) {
     options.onStep?.("open_chat");
-    const tried = result.launchers.slice(0, 4);
-    for (const candidate of tried) {
+    const origin = page.url();
+    const tried = new Set<string>();
+    for (let clicks = 0; clicks < 5 && !result.input; clicks++) {
       if (options.signal?.aborted) throw new Error("target_execution_aborted");
-      const handle = await marked(candidate.frame, candidate.id);
-      if (!handle) continue;
+      // Candidates are re-read after every click: a page we came back to has new elements.
+      let next: { candidate: (typeof result.launchers)[number]; handle: ElementHandle<Element>; signature: string } | null = null;
+      for (const candidate of result.launchers.slice(0, 8)) {
+        const handle = await marked(candidate.frame, candidate.id);
+        if (!handle) continue;
+        const signature = candidate.frame.url() + "|" + await handle.evaluate(pageScript<Element, string>("el => [el.tagName, el.id, el.getAttribute('aria-label'), el.getAttribute('href'), typeof el.className === 'string' ? el.className : '', (el.textContent || '').trim().slice(0, 60)].join('|')")).catch(() => "");
+        if (tried.has(signature)) { await handle.dispose(); continue; }
+        next = { candidate, handle, signature };
+        break;
+      }
+      if (!next) break;
+      tried.add(next.signature);
       let described: DetectedPart | null = null;
-      try { described = await describePart(handle, candidate.frame); } catch { /* clicked but not recordable */ }
+      try { described = await describePart(next.handle, next.candidate.frame); } catch { /* clicked but not recordable */ }
       const before = page.url();
-      try { await handle.click({ timeout: 5_000 }); } catch { await handle.dispose(); continue; }
-      await handle.dispose();
-      result = await waitForInput(page, 6_000);
+      const clicked = await next.handle.click({ timeout: 5_000 }).then(() => true, () => false);
+      await next.handle.dispose();
+      if (clicked) result = await waitForInput(page, 6_000);
       if (result.input) {
         // A launcher that navigated to a chat page is replaced by that page's URL.
         launcher = page.url() === before ? described : null;
         break;
       }
+      // The click led somewhere without a chat (an article, a sales form): go back and try the next candidate.
+      if (page.url() !== origin) {
+        await page.goto(origin, { waitUntil: "domcontentloaded", timeout: 30_000 }).catch(() => {});
+        await page.waitForLoadState("load", { timeout: 8_000 }).catch(() => {});
+        await page.waitForTimeout(1_000);
+        await dismissConsent(page);
+      }
+      result = await waitForInput(page, 1_500);
     }
   }
   if (!result.input) throw new Error("chat_input_not_found");

@@ -24,7 +24,9 @@ worker's workspace allowlist.
      chat-like inputs and rejecting search, login and newsletter fields;
    - opens the chat when it is closed, trying likely launchers, including a
      plain floating element with a pointer cursor in a corner (an avatar or
-     bubble that is not a button);
+     bubble that is not a button). Links to other pages rank below in-page
+     widgets, and a click that leads to a page without a chat (an article, a
+     sales form) is undone before the next candidate is tried;
    - finds the Send button next to the input, or falls back to Enter;
    - sends one short hello, observes what the page adds, and identifies the
      reply as the largest new region that is not the user's own message (the
@@ -57,7 +59,10 @@ The studio shows Connected only after persistence succeeds and offers a save
 retry if the server fails. A site can hand off between its apex, `www` and
 `app` HTTPS origins (for example `www.maite.ai` → `app.maite.ai`); other
 origins remain outside this navigation allowance. Only the target, its app,
-and taught frames enter the saved state, never an unrelated SSO provider.
+taught frames and the site's own same-site hosts (registrable domain per the
+Public Suffix List, e.g. a Clerk or Auth0 custom domain such as
+`clerk.example.com`, which some apps need to refresh a session in a fresh
+browser) enter the saved state, never an unrelated SSO provider.
 The clean authenticated page is saved for reopening even before a recipe
 passes. Recipes use the composer URL from before the first probe, so a
 conversation URL created by sending a message is not mistaken for a fresh chat.
@@ -145,8 +150,8 @@ minutes after its last viewer disconnects (unless Caudals is still working).
 Source captures defer while an interactive session is active.
 
 Saved cookies, local storage, IndexedDB and session storage belong only to the
-target and the taught frame origins; identity-provider state is discarded
-after sign-in. Encryption uses the target-scoped envelope registry; only the
+target, the taught frame origins and the site's own same-site hosts;
+third-party identity-provider state is discarded after sign-in. Encryption uses the target-scoped envelope registry; only the
 browser executor decrypts saved state. Saved sessions have no Caudals-side
 expiry (stored as a far-future `expires_at`) and can be revoked through the
 session UI. Eval scenarios always use fresh
@@ -174,7 +179,10 @@ fresh browser context, three attempts in all, 5 s and then 20 s apart. A
 browser turn has no external charge, so a failed one is recorded with its
 reason rather than left as an unknown outcome that would block retries or a
 resumed run. When the browser service restarts mid-test (a deploy), the test
-simply runs again. Partial answers are never graded.
+simply runs again. A short reply that only reports a temporary failure of the
+assistant ("Ha ocurrido un error, inténtalo más tarde", "Something went wrong")
+is asked again the same way, and recorded as the answer only on the last
+attempt. Partial answers are never graded.
 
 A test that still fails after its retries is recorded as not captured and the
 run continues. The run pauses for repair only when the connection itself looks
@@ -211,7 +219,8 @@ both. Configuration and encrypted state remain in existing additive tables.
   replay), unattended detection of an SSE-streamed reply with no visible
   signal and hashed classes, a rich-text composer sending on Enter with
   typing dots, a cookie dialog covering a floating-avatar launcher (declined
-  in every fresh session), and Connect again from a conversation URL. The
+  in every fresh session), a launcher that navigates away (undone), and
+  Connect again from a conversation URL. The
   first three assistants echo the question.
 - `tests/evals/website-run-resilience-db.test.ts`: retries in a fresh browser,
   a run that keeps going past one failing test, the systematic pause with its
