@@ -10,7 +10,9 @@ import { getPostgresPool } from "@/lib/db/client";
  */
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 /** Tried in order; OpenRouter falls through on provider errors and rate limits. */
-export const DEFAULT_DEMO_MODELS = ["qwen/qwen3.8-27b:free", "google/gemma-4-31b-it:free", "nvidia/nemotron-3.5-lightning:free"];
+// Checked 2026-10-05 for clean JSON with reasoning excluded. Avoid models that
+// write their "thinking process" into the reply (nemotron-3.5-lightning).
+export const DEFAULT_DEMO_MODELS = ["qwen/qwen3.8-27b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "poolside/laguna-s-2.1:free"];
 
 export function demoModels() {
   const configured = (process.env.DEMO_MODELS ?? "").split(",").map((model) => model.trim()).filter(Boolean);
@@ -77,15 +79,23 @@ export async function chat(args: {
   timeoutMs?: number;
   json?: boolean;
   onText?: (text: string) => void;
+  /** Rejects a reply that is not usable (for example, unparseable JSON), so the next model is tried. */
+  accept?: (text: string) => boolean;
   signal?: AbortSignal;
 }): Promise<ChatResult> {
   const key = getSecretEnvValue("DEMO_OPENROUTER_API_KEY");
   if (!key) throw new ModelError("demo_model_unconfigured");
   const models = demoModels();
   let lastError: Error = new ModelError("model_failed");
-  for (let attempt = 0; attempt < Math.min(2, models.length); attempt++) {
+  // Free models are often rate-limited upstream for a few seconds: wait, then
+  // start the fallback chain one model further along.
+  const waits = [0, 8_000, 20_000];
+  for (let attempt = 0; attempt < waits.length; attempt++) {
+    if (waits[attempt]) await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+    if (args.signal?.aborted) throw new ModelError("aborted");
     await reserveCall();
-    const ordered = [...models.slice(attempt), ...models.slice(0, attempt)];
+    const shift = attempt % models.length;
+    const ordered = [...models.slice(shift), ...models.slice(0, shift)];
     const timeout = AbortSignal.timeout(args.timeoutMs ?? 120_000);
     const signal = args.signal ? AbortSignal.any([args.signal, timeout]) : timeout;
     try {
@@ -116,11 +126,13 @@ export async function chat(args: {
       }
       const result = args.onText ? await readStream(response, args.onText) : await readJson(response);
       if (!result.text.trim()) { lastError = new ModelError("model_empty"); continue; }
+      if (args.accept && !args.accept(result.text)) { lastError = new ModelError("model_unusable"); continue; }
       return result;
     } catch (error) {
       if (args.signal?.aborted) throw error;
       lastError = error instanceof ModelError ? error : new ModelError(timeout.aborted ? "model_timeout" : "model_unreachable");
     }
+    console.warn("demo_model_attempt_failed", { attempt, code: lastError.message, model: ordered[0] });
   }
   throw lastError;
 }

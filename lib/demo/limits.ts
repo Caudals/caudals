@@ -7,7 +7,7 @@ import { usage } from "./store";
  * (so nobody points the demo at a third party's chatbot all day); three at a
  * time overall; and only while today's free model quota can finish a run.
  */
-const CALLS_PER_RUN = 3;
+const CALLS_PER_RUN = 4;
 
 function intEnv(name: string, fallback: number) {
   const value = Number(process.env[name]);
