@@ -7,7 +7,8 @@ Caudals evaluates companies' AI systems and builds custom datasets with freelanc
 Current production scope:
 
 - Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
-- Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`
+- Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`, `/api/demo/*`
+- Public demo: `/demo` (soft launch); self-serve sign-up from it at `/workspace/signup`
 - Private operator access: `/auth/*`, `/api/auth/*` (retained internal-account auth)
 - Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 
@@ -45,7 +46,7 @@ Schema notes: `audit_event`, `signing_key`, operator record notes, escalation ru
 
 ## Evaluation Product Implementation (feature-gated)
 
-The current evaluation implementation uses `app/(evaluation)` for separate `/ops`, `/workspace` and assignment-scoped `/review` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, the `evals` PostgreSQL schema with additive migrations, and separate general, document, scheduler and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only. Website recipes are declarative and require validation before use; the deployed browser worker has a private egress gateway and DB relay, with synthetic acceptance recorded and customer recipes/authorizations checked per target. Stage D adds a customer-side outbound private runner and a separate gated scheduler service. Stage E adds redacted expert assignments, immutable submissions/reviews and privately delivered signed improvement datasets with family-aware splits and observational follow-up evidence. Stage E is disabled unless `EVALS_EXPERT_WORK_ENABLED=true` and the migration, role, trigger and Ed25519 release checks pass. See `evals/work-packages/WP-09.md`–`WP-15.md` for precise status and remaining release checks.
+The current evaluation implementation uses `app/(evaluation)` for separate `/ops`, `/workspace` and assignment-scoped `/review` routes, `/api/evals/v1` for scoped APIs, `lib/evals` for typed evidence and execution, the `evals` PostgreSQL schema with additive migrations, and separate general, document, scheduler and browser workers. Workspace membership is verified server-side; tenant queries run under a non-owner, NOBYPASSRLS role. Stage C keeps registration invite-only, except self-serve free-plan sign-up from the public demo (see Public Demo). Website recipes are declarative and require validation before use; the deployed browser worker has a private egress gateway and DB relay, with synthetic acceptance recorded and customer recipes/authorizations checked per target. Stage D adds a customer-side outbound private runner and a separate gated scheduler service. Stage E adds redacted expert assignments, immutable submissions/reviews and privately delivered signed improvement datasets with family-aware splits and observational follow-up evidence. Stage E is disabled unless `EVALS_EXPERT_WORK_ENABLED=true` and the migration, role, trigger and Ed25519 release checks pass. See `evals/work-packages/WP-09.md`–`WP-15.md` for precise status and remaining release checks.
 
 Engine models and lifecycle (migrations 063–064):
 
@@ -54,6 +55,19 @@ Engine models and lifecycle (migrations 063–064):
 - **Worker scope.** The general, document, scheduler and browser workers serve their deploy-time `EVALS_*_ORG_IDS` plus every live workspace from `evals.worker_workspace_ids()`, refreshed every 30 s, so new clients need no redeploy. Every job still runs inside its own tenant scope under RLS.
 - **Lifecycle.** Evaluations, systems, test sets, reports and reference material can be renamed and deleted (`/api/evals/v1/items/:kind/:id`). Delete archives (`archived_at`): the item leaves every list, share links of deleted reports are revoked, schedules pause, and immutable evidence follows the retention policy. Workspaces are renamed through `evals.rename_workspace()`; deleting a workspace remains the audited deletion workflow.
 - **Report exports.** PDF (document worker), editable Word (`lib/evals/reports/docx.ts`), CSV results and the CEF evidence bundle.
+
+## Public Demo
+
+A no-signup, eight-question test of a visitor's AI system (founder decision 2026-10-05). It is deliberately separate from the tenant engine: no workspace, RLS, budget ledger or queue, so it stays fast and its abuse surface stays small.
+
+- **Code:** `lib/demo/*` (engine), `app/(app)/api/demo/*` (API), `components/demo/*` and `app/[locale]/demo` (page), `services/evals-browser/demo-worker.ts` (website work), `app/api/evals/v1/signup` + `components/evals/self-serve-signup.tsx` (account).
+- **Data:** schema `demo` (migration 075): `demo.run` (one row per test: pages read, questions, answers, verdicts, summary; deleted seven days after creation), `demo.llm_usage` (model calls per UTC day), `demo.challenge_use` (spent proof-of-work challenges). Never a credential: API keys and curl headers live only in the web process's memory and are dropped when the run ends.
+- **Flow:** the web process runs each run through `reading` (pinned HTTPS fetch of up to six same-site pages, robots.txt honoured, ranked toward help/pricing/conditions) → `writing` (one streamed call writes eight questions with answer, key facts and a verbatim quote; each is accepted only when the quote is found in the cited excerpt) → `asking` (APIs called from the web process, one per second; website chats asked by the browser worker in fresh contexts) → `grading` (one batch judge call, grading engine v2 semantics, deterministic pre-checks and a lexical fallback) → `done`. A 45-second lease lets a restarted process resume unfinished runs; the client polls `GET /api/demo/runs/:id` with an ETag.
+- **Website chats:** the browser worker (`EVALS_BROWSER_DEMO_ENABLED=true`) finds the chat as soon as the run exists, using the connector's auto-detection, and the engine writes questions only after the chat is found, so a missing chat costs no model quota. The demo loop runs beside the platform's browser slot (one demo at a time, `EVALS_BROWSER_DEMO_PARALLEL` questions at once) and never blocks customer jobs. Pages that need a browser to render are read there too. The worker's role has column-level grants on `demo.run`.
+- **Models:** OpenRouter free models only (`DEMO_MODELS`, default `qwen/qwen3.8-27b:free` then Gemma 4 31B and Nemotron 3.5) on a dedicated key (`DEMO_OPENROUTER_API_KEY`), about two calls per demo. Free models allow about 50 requests a day per key; `DEMO_DAILY_MODEL_CALLS` (46) and the key's live remaining count close the demo for the day before the provider would refuse.
+- **Abuse controls:** a self-hosted proof of work (18 bits, signed, bound to the visitor, single use) instead of a CAPTCHA; the visitor key is an HMAC of their IP (`cf-connecting-ip` only when the peer is a Cloudflare edge, IPv6 per /64), never the raw address; one successful test per visitor a day and six attempts; three a day per tested site and per documentation site; three at a time overall; public HTTPS destinations only, DNS pinned and every redirect re-checked; byte and time limits everywhere; same-origin checks on writes; private `noindex` capability links. Questions are ordinary customer questions, never adversarial.
+- **Sign-up:** the report's account card emails a one-time link (`evals.request_self_serve_signup`; only its sha256 is stored, two days). `/workspace/signup` lets the person set a name and password; `evals.enroll_self_serve` creates the verified account, a workspace with the person as owner and a free-plan entitlement (`plan = free`: one system, 50 tests per set, three runs a month, one active run, no schedules, local DGX models only), and the demo is imported as a project, evaluation, system (without its key) and website source. The limits are database triggers on `evals.target`, `evals.run` and `evals.generation_job`, so no code path can skip them.
+- **Flags:** `DEMO_ENABLED`, `DEMO_BROWSER_ENABLED` (web) and `EVALS_BROWSER_DEMO_ENABLED` (browser worker); optional `DEMO_SECRET` (otherwise derived from `BETTER_AUTH_SECRET`), `DEMO_RUNS_PER_VISITOR`, `DEMO_RUNS_PER_SITE`, `DEMO_MAX_ACTIVE`, `DEMO_APP_ORIGIN`.
 
 ## Earlier Evaluation Architecture Sketch (superseded)
 
@@ -294,7 +308,7 @@ Evaluation and dataset domains:
 
 ## Core Lifecycle Flows
 
-1. Demand capture: a visitor reads the landing page, blog or newsletter → contacts us, books a call or (planned) tries `/proof` → operators qualify the opportunity in the Leads CRM.
+1. Demand capture: a visitor reads the landing page, blog or newsletter → contacts us, books a call or runs the free `/demo` (and may open a free account from it) → operators qualify the opportunity in the Leads CRM.
 2. Reality Check: operators pick a qualifying public system → run a 40-case probe under the rules of engagement → send a teaser → deliver the free report and readout.
 3. Pilot or Full Evaluation: kickoff → documents, real questions and expert session → suite authored and signed off → runs (hosted, self-run or output-only) → grading and review → report, live readout and JSONL export.
 4. Subscription: monthly (or weekly) runs → new cases and new data, including expert-authored cases → regression report.

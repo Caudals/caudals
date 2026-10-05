@@ -19,7 +19,8 @@ Current deployment includes the public funnel and the invite-only evaluation pro
 
 - public landing page, sector pages, contact form, meeting booking, blog, newsletter, and legal pages,
 - legacy internal-account auth (`/auth/*`); the `/admin` dashboard is removed and returns `404`,
-- evaluation operations (`/ops`), customer workspaces (`/workspace`), expert assignments (`/review`), private report sharing and scoped `/api/evals/v1` APIs on `app.caudals.com`.
+- evaluation operations (`/ops`), customer workspaces (`/workspace`), expert assignments (`/review`), private report sharing and scoped `/api/evals/v1` APIs on `app.caudals.com`,
+- the public no-signup demo `caudals.com/{en,es}/demo` (soft launch: not linked from the landing, `noindex`) and self-serve free-plan sign-up from its report (`/workspace/signup`). See `docs/ARCHITECTURE.md` → Public demo.
 
 Evaluation stages A–E are implemented and deployed with feature, entitlement and per-target readiness controls. Read `docs/evals/AGENTS.md` and the latest work-package records for remaining customer release gates; deployment does not imply unrestricted signup or universal connector support.
 
@@ -111,7 +112,6 @@ the private `growth-social` execution service.
 - Preserve webhook consistency and idempotency; do not reintroduce removed payment flows as part of evaluation work.
 - Preserve provenance, consent, PII redaction and auditability for every case, run, report and dataset item.
 - Freelance experts see only the redacted material their task needs and work under confidentiality, data-processing and IP-assignment terms.
-- Never publish or expose a named company's evaluation results without its written consent.
 - Never build or run adversarial tests (prompt injection, jailbreaks, prompt extraction) against a system without its owner's written authorisation.
 - Never describe Caudals as certifying AI systems or making anyone AI Act compliant; we produce evidence, not conformity assessments.
 - Never use subagents: perform all research, inspection, file edits, and tool calls directly in your primary session; do not invoke subagent tools or spawn child sessions.

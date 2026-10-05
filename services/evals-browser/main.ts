@@ -16,6 +16,7 @@ import { processWebsiteSourceOne } from "./website-source-worker";
 import { BrowserControl } from "./control";
 import { startBrowserControl } from "./control-server";
 import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
+import { startDemoBrowserWorker } from "./demo-worker";
 
 let startupPhase = "configuration";
 let browserBusy = false;
@@ -80,6 +81,10 @@ async function main() {
     };
     process.once("SIGTERM", stop);
     process.once("SIGINT", stop);
+    // The public demo's website work (docs/ARCHITECTURE.md, Public demo).
+    const stopDemo = process.env.EVALS_BROWSER_DEMO_ENABLED === "true"
+      ? startDemoBrowserWorker({ pool: getEvalsPool(), browser, destinationCheck: (url) => checkBrowserDestination(url, egressHost, egressPort) })
+      : () => {};
     console.info(JSON.stringify({ event: "browser_worker_ready" }));
     while (!stopping) {
       for (const orgId of await orgs.refresh()) {
@@ -100,6 +105,7 @@ async function main() {
       writeFileSync("/tmp/evals-browser-heartbeat", String(Date.now()));
       await new Promise((resolve) => setTimeout(resolve, 1_000));
     }
+    stopDemo();
   } finally {
     await boss.stop({ graceful: true, timeout: 150_000 });
     await stopControl();

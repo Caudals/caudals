@@ -140,7 +140,8 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 
 - **Live public:** `/`, `/sectors` and one page per sector (insurance, industrial after-sales, healthcare, banking, energy, telecoms, legal and advisory, travel), `/contact`, `/call`, `/blog`, `/newsletter`, `/legal`.
 - **Retired:** the legacy `/admin` Operator Console returns 404; historical dataset-build data and internal tooling remain retained.
-- **Deployed evaluation surfaces:** `/ops`, `/workspace`, assignment-scoped `/review`, private report sharing and exports, with invite-only access, entitlements and target-specific readiness. `/proof` remains a future demo, not a deployed funnel step. See `docs/ARCHITECTURE.md` and the evals work-package records.
+- **Deployed evaluation surfaces:** `/ops`, `/workspace`, assignment-scoped `/review`, private report sharing and exports, with invite-only access, entitlements and target-specific readiness, plus self-serve free-plan sign-up from the demo.
+- **Public demo:** `/demo` (soft launch, unlinked and `noindex`): a visitor pastes the address of a website chat, an OpenAI-compatible API or a curl command; Caudals reads up to six pages of their site, writes eight cited questions, asks the system and grades every answer, live, with no account. One test per visitor a day on free OpenRouter models. The report leads to a free account (one system, 50 tests per set, three runs a month), which imports the demo as a real evaluation. See `docs/ARCHITECTURE.md` and the evals work-package records.
 - **Removed marketplace routes:** `/buyer`, `/supplier`, `/v1/*`, `/security` and former pricing/catalogue surfaces return 404. Retained internal dataset-build modules do not make those routes a current product.
 
 ## Pitches

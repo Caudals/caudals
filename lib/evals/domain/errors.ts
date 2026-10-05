@@ -16,8 +16,15 @@ const INPUT_ERRORS: Record<string, string> = {
   context_bound_exceeded: "The selected material does not fit the model's context window. Choose fewer sources or a model with a larger context in Settings → AI models.",
 };
 
+/** Free-plan limits raised by the database triggers of migration 075. */
+const PLAN_LIMITS: Record<string, string> = {
+  PLAN_LIMIT_SYSTEMS: "The free plan includes one AI system. Delete the current one or talk to us about a pilot.",
+  PLAN_LIMIT_RUNS: "The free plan includes three runs a month. Talk to us about a pilot for more.",
+};
+
 export function inputError(error: unknown): EvalError | null {
   if (error instanceof EvalError || !(error instanceof Error)) return null;
+  if (PLAN_LIMITS[error.message]) return new EvalError("PLAN_LIMIT", 403, PLAN_LIMITS[error.message]);
   const message = INPUT_ERRORS[error.message];
   return message ? new EvalError("INPUT_INVALID", 422, message) : null;
 }
