@@ -169,7 +169,13 @@ async function writing(run: RunRow) {
     const result = await chat({
       messages, maxTokens: 4_500, temperature: 0.3, timeoutMs: 150_000,
       onText: (text) => { const objects = completeObjects(text); if (objects.length > seen) pending = pending.then(() => take(objects)); },
-    }).catch((error) => { if (error instanceof QuotaError || accepted.length === 0) throw error; return null; });
+      // A reply with no test objects at all (a model that only "thinks") moves to the next model.
+      accept: (text) => completeObjects(text).length > 0,
+    }).catch((error) => {
+      console.error("demo_generation_failed", { run_id: run.id, code: error instanceof Error ? error.message : "unknown" });
+      if (error instanceof QuotaError || accepted.length === 0) throw error;
+      return null;
+    });
     await pending;
     if (result) await take(completeObjects(result.text));
   }
@@ -236,10 +242,15 @@ async function grading(run: RunRow) {
     let judged = new Map<string, DemoVerdict>();
     try {
       await countLlmCall(run.id);
-      const result = await chat({ messages: judgeMessages(pending, locale), maxTokens: 3_500, temperature: 0, json: true, timeoutMs: 120_000 });
+      // A reply that grades fewer than half of the answers is retried on the next model.
+      const result = await chat({
+        messages: judgeMessages(pending, locale), maxTokens: 3_500, temperature: 0, json: true, timeoutMs: 120_000,
+        accept: (text) => parseJudgement(text).size * 2 >= pending.length,
+      });
       judged = parseJudgement(result.text);
     } catch (error) {
       if (!(error instanceof QuotaError) && !(error instanceof ModelError)) throw error;
+      console.error("demo_judge_failed", { run_id: run.id, code: error.message });
     }
     for (const { item, answer } of pending) verdicts[item.id] = judged.get(item.id) ?? lexicalVerdict(item, answer, locale);
   }
