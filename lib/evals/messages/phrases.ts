@@ -46,6 +46,8 @@ const SERVER_ES: Record<string, string> = {
   "A workspace generation budget must be configured before preparing this dataset.": "Hay que configurar un presupuesto de generación del espacio antes de preparar este conjunto.",
   "Set a positive evaluation budget before generating a dataset.": "Define un presupuesto de evaluación positivo antes de generar un conjunto.",
   "Answer each question in 1 to 2,000 characters.": "Responde cada pregunta con entre 1 y 2.000 caracteres.",
+  "The free plan includes one AI system. Delete the current one or talk to us about a pilot.": "El plan gratis incluye un sistema de IA. Borra el actual o habla con nosotros de un piloto.",
+  "The free plan includes three runs a month. Talk to us about a pilot for more.": "El plan gratis incluye tres ejecuciones al mes. Habla con nosotros de un piloto para hacer más.",
   "Enter the effective date as YYYY-MM-DD. A year such as 2027 or a month such as 2027-03 also works.": "Escribe la fecha de vigencia como AAAA-MM-DD. También vale un año, como 2027, o un mes, como 2027-03.",
   "Enter language tags such as en or es-ES, separated by commas.": "Escribe códigos de idioma como en o es-ES, separados por comas.",
   "That answer no longer matches an open question. Reload the page and answer again.": "Esa respuesta ya no corresponde a una pregunta abierta. Recarga la página y vuelve a responder.",

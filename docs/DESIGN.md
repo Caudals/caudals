@@ -318,6 +318,8 @@ Two selector techniques appear throughout and are deliberate:
 - Offers come from `lib/public/evaluation-offers.ts` and appear only in `/llms.txt`, agent markdown and structured data; the landing shows no prices.
 - Sector pages share the landing's frame (`components/landing/landing-shell.tsx`) and order: breadcrumb, hero (audience label, headline with one serif word, the sector's own checked conversation), the stakes in two serif sentences, three numbered steps (what we test as two hairline lists · failure modes with the sector's examples · the sector's experts and datasets), a hairline FAQ (`<details>`, a plus that turns into a minus), cards to the other sectors, the closing CTA. The hub lists every sector as a hairline row. Share images use the same canvas, ink and type.
 
+- The demo (`/demo`, `components/demo/demo.css`, scoped `.dm` inside the landing's `.lp` palette) uses the same language: a 760px column, one rounded input bar with the pill CTA, hairline step grid (mono numerals, an ink rule that fills as each step completes, a blinking block caret on the active one), a hairline ledger, the score as one oversized Geist numeral with a Newsreader sentence, and one white sheet for the account offer plus a pinned pill bar that leads to it. Verdict marks are ink only: outlined tick (correct), solid cross (wrong), half disc (partly right), dash (no answer), dotted ring (not scored), always with a word.
+
 Do not import `platform.css` here, and do not carry Newsreader into the platform.
 
 ---
@@ -326,6 +328,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-05 | The public demo joins the Paper language; §13 documents its parts and verdict marks. |
 | 2026-09-27 | Sector pages and the sectors hub join the public site in the Paper language; §13 documents their order. |
 | 2026-09-26 | Public site moves to the Paper language: warm canvas, no colour accent (teal removed), Geist + Newsreader + Geist Mono, shorter landing with five illustrated steps. §13 rewritten. |
 | 2026-09-20 | Platform redesign. New ElevenLabs-inspired system in `packages/brand/platform.css`; monochrome chrome with semantic-only colour; three-plane shell; expanded primitive kit; dark-ready tokens. Marketing language unchanged, now documented separately in §13. |
