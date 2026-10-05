@@ -12,7 +12,8 @@ const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 /** Tried in order; OpenRouter falls through on provider errors and rate limits. */
 // Checked 2026-10-05 for clean JSON with reasoning excluded. Avoid models that
 // write their "thinking process" into the reply (nemotron-3.5-lightning).
-export const DEFAULT_DEMO_MODELS = ["qwen/qwen3.8-27b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "poolside/laguna-s-2.1:free"];
+// Space Bunny first (founder choice 2026-10-05); it requires reasoning, which "low" keeps on.
+export const DEFAULT_DEMO_MODELS = ["stealth/space-bunny-alpha", "qwen/qwen3.8-27b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
 
 export function demoModels() {
   const configured = (process.env.DEMO_MODELS ?? "").split(",").map((model) => model.trim()).filter(Boolean);
