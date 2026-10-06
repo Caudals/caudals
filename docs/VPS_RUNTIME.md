@@ -36,7 +36,15 @@ and `dokploy-traefik` (Traefik v3.6.7, file provider in
 `/etc/dokploy/traefik/dynamic`, HTTP-01 Let's Encrypt; unlike `atlantic` it has
 no Docker socket and no insecure API). Bootstrap:
 [`infra/host/arctic/lightsail-launch.sh`](../infra/host/arctic/lightsail-launch.sh).
-Lightsail browser SSH does not work by design. Separate Swarm, not joined to
+Lightsail browser SSH does not work by design.
+
+Also on `arctic` since 2026-10-06: **Umami** (`analytics.caudals.com`), a
+Docker Compose project in `/opt/umami` (images pinned by digest, its own
+PostgreSQL 15 volume `umami_db-data`). Public routes are only `/script.js` and
+`/api/send`; the admin panel is Tailscale-only at `http://arctic:7444`. On
+atlantic the old containers are stopped with restart disabled and their
+volume kept as rollback; the old Traefik route is in
+`/root/.caudals/backups/umami-moved-to-arctic-20261006/`. Separate Swarm, not joined to
 `atlantic`; services that move take their own data.
 
 ## Observed Swarm services
