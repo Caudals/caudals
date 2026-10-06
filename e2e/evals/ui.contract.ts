@@ -1501,6 +1501,43 @@ test("AI model settings turn web research on per task and connect a search engin
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test("admins save the public demo model globally, keep the choice on reload and recover from save errors", async ({ page }) => {
+  let modelId = "deepseek";
+  let fail = true;
+  const writes: unknown[] = [];
+  await page.route("**/api/evals/v1/engine?**", route => route.fulfill({ json: { data: {
+    roles: [], dgxAvailable: true, connections: [], platform: [], workspace: [], searchEngines: [],
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/engine/demo/models", route => route.fulfill({ json: { data: [
+    { id: "deepseek", label: "DeepSeek" }, { id: "qwen", label: "Provider / Model with a very long name and a large context window for drafting and grading demo questions" },
+  ], meta: {} } }));
+  await page.route("**/api/evals/v1/engine/demo?**", route => route.fulfill({ json: { data: { modelId, provider: "DGX Spark" }, meta: {} } }));
+  await page.route("**/api/evals/v1/engine/demo", route => {
+    writes.push(route.request().postDataJSON());
+    if (fail) return route.fulfill({ status: 503, json: { error: { code: "PROVIDER_UNAVAILABLE", message: "Save failed; try again." } } });
+    modelId = route.request().postDataJSON().modelId;
+    return route.fulfill({ json: { data: { modelId }, meta: {} } });
+  });
+  await page.goto("/workspace/settings/models");
+  const section = page.locator("section", { has: page.getByRole("heading", { name: "Public demo", exact: true }) });
+  await expect(section.getByLabel("Model", { exact: true })).toHaveValue("deepseek");
+  await expect(section.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+  await section.getByLabel("Model", { exact: true }).selectOption("qwen");
+  await section.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(section.getByText("Save failed; try again.")).toBeVisible();
+  await expect(section.getByLabel("Model", { exact: true })).toHaveValue("qwen");
+  fail = false;
+  await section.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(section.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+  expect(writes).toEqual([{ orgId: id, modelId: "qwen" }, { orgId: id, modelId: "qwen" }]);
+  await page.reload();
+  await expect(section.getByLabel("Model", { exact: true })).toHaveValue("qwen");
+  await expect(page.getByText("192.168.70.19")).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await section.boundingBox())!.width).toBeLessThanOrEqual(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("queued evaluations explain automatic start and change to execution after polling", async ({ page }) => {
   const evaluationId = evaluationFixture.id, runId = "00000000-0000-4000-8000-000000000901";
   let status = "queued";

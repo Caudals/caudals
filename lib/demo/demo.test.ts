@@ -8,6 +8,7 @@ import { lexicalVerdict, parseJudgement, precheck, summarize } from "./judge";
 import { issueChallenge, leadingZeroBits, verifyChallenge } from "./pow";
 import { classifyTarget, findMessageSlot, findResponsePath, parseCurl, setPath, TargetInputError } from "./target";
 import { allowedByRobots, extractPage, pinPublic, rankLinks, robotsDisallows } from "./web";
+import { dailyCallLimit, demoEndpoint, demoModels, providerRemaining } from "./llm";
 
 vi.stubEnv("DEMO_SECRET", "test-secret");
 
@@ -160,3 +161,31 @@ describe("answer text", () => {
     expect(plainAnswer("**Sí.** Puedes:\n\n- cancelar en 14 días\n- [ver condiciones](https://e.es/c)")).toBe("Sí. Puedes: · cancelar en 14 días · ver condiciones");
   });
 });
+
+describe("demo llm (DGX Spark DeepSeek)", () => {
+  it("defaults endpoint to the private DGX Spark completions route", () => {
+    expect(demoEndpoint()).toBe("http://192.168.70.19:11434/v1/chat/completions");
+  });
+
+  it("defaults model to DeepSeek V4 Flash on DGX Spark", async () => {
+    expect(await demoModels()).toEqual(["bluehawana/deepseek-v4-flash:iq2_m"]);
+  });
+
+  it("respects custom DEMO_ENDPOINT and DEMO_MODELS", async () => {
+    vi.stubEnv("DEMO_ENDPOINT", "http://10.0.0.5:11434/v1");
+    expect(demoEndpoint()).toBe("http://10.0.0.5:11434/v1/chat/completions");
+    vi.stubEnv("DEMO_MODELS", "deepseek-v4, custom-model");
+    expect(await demoModels()).toEqual(["deepseek-v4", "custom-model"]);
+    vi.unstubAllEnvs();
+    vi.stubEnv("DEMO_SECRET", "test-secret");
+  });
+
+  it("defaults daily call limit to 200 on DGX Spark", () => {
+    expect(dailyCallLimit()).toBe(200);
+  });
+
+  it("returns null providerRemaining when targeting DGX Spark", async () => {
+    expect(await providerRemaining()).toBeNull();
+  });
+});
+

@@ -61,6 +61,8 @@ const SERVER_ES: Record<string, string> = {
   "A platform administrator is required.": "Se necesita un administrador de la plataforma.",
   "Sign in again to confirm this platform change.": "Vuelve a iniciar sesión para confirmar este cambio de la plataforma.",
   "Could not list models from this provider. Check the address and key, then try again.": "No se han podido listar los modelos de este proveedor. Revisa la dirección y la clave e inténtalo de nuevo.",
+  "Could not list models from the demo provider. Check its connection and try again.": "No se han podido listar los modelos del proveedor de la demo. Revisa su conexión e inténtalo de nuevo.",
+  "Choose an available model from the demo provider.": "Elige un modelo disponible en el proveedor de la demo.",
   "That address does not resolve to a public HTTPS API.": "Esa dirección no corresponde a una API HTTPS pública.",
   "Use the provider's HTTPS API base address, for example https://api.openai.com/v1.": "Usa la dirección base HTTPS de la API del proveedor, por ejemplo https://api.openai.com/v1.",
   "The DGX Spark is not connected in this environment.": "El DGX Spark no está conectado en este entorno.",
