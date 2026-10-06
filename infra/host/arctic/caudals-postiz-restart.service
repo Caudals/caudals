@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly Postiz restart (releases the memory its orchestrator accumulates)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker service update --force --detach=false --quiet caudals-social_postiz
+TimeoutStartSec=15min

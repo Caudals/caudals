@@ -44,7 +44,22 @@ PostgreSQL 15 volume `umami_db-data`). Public routes are only `/script.js` and
 `/api/send`; the admin panel is Tailscale-only at `http://arctic:7444`. On
 atlantic the old containers are stopped with restart disabled and their
 volume kept as rollback; the old Traefik route is in
-`/root/.caudals/backups/umami-moved-to-arctic-20261006/`. Separate Swarm, not joined to
+`/root/.caudals/backups/umami-moved-to-arctic-20261006/`.
+
+Also on `arctic` since 2026-10-06: **Postiz** (`postiz.caudals.com`) with the
+**Temporal** server it uses, stack `caudals-social` from
+[`infra/social/arctic-stack.yml`](../infra/social/arctic-stack.yml). It has
+its own PostgreSQL 16 (databases `postiz`, `temporal`, `temporal_visibility`;
+role `temporal` connection limit 60) and Redis on the internal overlay
+`social-private`, which has no route outside the host and publishes no port.
+Postiz holds the LinkedIn and X OAuth tokens: only Postiz joins
+`dokploy-network`, behind Traefik with registration disabled, as before.
+growth-social on atlantic calls it at `https://postiz.caudals.com`.
+`caudals-postiz-restart.timer` restarts Postiz every Sunday 04:00 UTC to
+release the memory its orchestrator accumulates. On atlantic the old stacks
+are scaled to 0 with their databases in `caudals-postgres` kept as rollback,
+and `deploy-social-stack.sh` / `deploy-workflow-stack.sh` refuse to run there
+without `CAUDALS_ALLOW_ATLANTIC_SOCIAL=1`. Separate Swarm, not joined to
 `atlantic`; services that move take their own data.
 
 ## Observed Swarm services
