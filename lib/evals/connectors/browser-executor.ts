@@ -248,6 +248,13 @@ export async function sendWebsitePrompt(
   // Send buttons usually enable a moment after the input event.
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline && !(await submit.isEnabled().catch(() => true))) await new Promise((resolve) => setTimeout(resolve, 100));
+  // Check actionability without sending. A notice may appear while Send is
+  // enabling or animating; dismiss it before the single real click.
+  const actionableUntil = Date.now() + 10_000;
+  while (Date.now() < actionableUntil) {
+    if (await submit.click({ trial: true, timeout: 1_000 }).then(() => true, () => false)) break;
+    await dismissConsent(page);
+  }
   await submit.click({ timeout: 10_000 });
 }
 
@@ -297,8 +304,8 @@ const FIND_NOTICE_CLOSE = new Function(`
   const roots=[document];for(let i=0;i<roots.length&&i<50;i++)for(const el of roots[i].querySelectorAll('*'))if(el.shadowRoot)roots.push(el.shadowRoot);
   for(const root of roots)for(const el of root.querySelectorAll('button,[role="button"],[onclick],a,span')){
     if(!visible(el))continue;
-    const label=(el.getAttribute('aria-label')||el.getAttribute('title')||el.innerText||el.textContent||'').trim();
-    if(!close.test(label))continue;
+    const labels=[el.getAttribute('aria-label'),el.getAttribute('title'),el.innerText,el.textContent];
+    if(!labels.some(label=>label&&close.test(label.trim())))continue;
     if(!el.matches('button,[role="button"],[onclick],a')&&getComputedStyle(el).cursor!=='pointer')continue;
     let box=el.parentElement||el.getRootNode()?.host,notice=null;
     for(let depth=0;box&&depth<10;depth++,box=box.parentElement||box.getRootNode()?.host){
@@ -306,7 +313,7 @@ const FIND_NOTICE_CLOSE = new Function(`
       const hint=(box.id||'')+' '+(typeof box.className==='string'?box.className:'');
       if(!(box.matches('[role="dialog"],[aria-modal="true"]')||/notice|announcement|promo|modal|overlay|popup|popover/i.test(hint)))continue;
       const text=(box.innerText||'').slice(0,6000);
-      if(protectedText.test(text)||/cookie|consent/i.test(hint)||box.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[type="checkbox"],iframe[src*="captcha" i]')){notice=null;break;}
+      if(protectedText.test(text)||/cookie|consent/i.test(hint)||box.querySelector('textarea,[contenteditable="true"],[role="textbox"],input[type="password"],input[autocomplete="one-time-code"],input[type="checkbox"],iframe[src*="captcha" i]')){notice=null;break;}
       notice=box;
     }
     if(notice){el.setAttribute('data-caudals-notice-close','');return true;}
@@ -324,8 +331,11 @@ export async function dismissConsent(page: Page) {
     const notice = await frame.evaluate(FIND_NOTICE_CLOSE).catch(() => false);
     if (notice) {
       const match = frame.locator("[data-caudals-notice-close]").first();
-      if (await match.click({ timeout: 2_000 }).then(() => true, () => false)) dismissed = true;
-      await match.evaluate(new Function("el", "el.removeAttribute('data-caudals-notice-close')") as (el: Element) => void).catch(() => {});
+      const clicked = await match.click({ timeout: 2_000 }).then(() => true, () => false);
+      // Some oversized fixed announcements put their Close control outside
+      // the viewport. Invoke only that verified dismissal's own click handler.
+      if (clicked || await match.evaluate(new Function("el", "if (!el.isConnected) return false; el.click(); return true") as (el: HTMLElement) => boolean).catch(() => false)) dismissed = true;
+      await frame.locator("[data-caudals-notice-close]").evaluateAll(new Function("els", "for (const el of els) el.removeAttribute('data-caudals-notice-close')") as (els: Element[]) => void).catch(() => {});
     }
   }
   if (dismissed) await page.waitForTimeout(600);
