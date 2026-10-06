@@ -1,29 +1,17 @@
 import "server-only";
-import { getSecretEnvValue } from "@/lib/env/secrets";
 import { getPostgresPool } from "@/lib/db/client";
+import { demoEndpoint, demoModels, safeDemoSecret as safeSecret } from "./model-settings";
+export { DEFAULT_DGX_ENDPOINT, DEFAULT_DEMO_MODELS, demoEndpoint, demoModels } from "./model-settings";
 
 /**
- * The demo's only model provider: OpenRouter free models on a dedicated key
- * (DEMO_OPENROUTER_API_KEY). Free models allow a small daily number of
- * requests per key, so every call is counted in demo.llm_usage first and the
- * demo closes for the day before the provider would start refusing.
+ * The demo's primary model provider: DeepSeek on the private DGX Spark (via Ollama
+ * OpenAI-compatible /v1 endpoint), with optional fallback or override through
+ * environment variables.
  */
-const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-/** Tried in order; OpenRouter falls through on provider errors and rate limits. */
-// Checked 2026-10-05 for clean JSON with reasoning excluded. Avoid models that
-// write their "thinking process" into the reply (nemotron-3.5-lightning).
-// Space Bunny first (founder choice 2026-10-05); it requires reasoning, which "low" keeps on.
-export const DEFAULT_DEMO_MODELS = ["stealth/space-bunny-alpha", "qwen/qwen3.8-27b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
-
-export function demoModels() {
-  const configured = (process.env.DEMO_MODELS ?? "").split(",").map((model) => model.trim()).filter(Boolean);
-  return configured.length ? configured : DEFAULT_DEMO_MODELS;
-}
-
-/** Model calls the demo may make per UTC day; the provider's free tier allows 50 per key. */
-export function dailyCallLimit() {
-  const value = Number(process.env.DEMO_DAILY_MODEL_CALLS ?? 46);
-  return Number.isInteger(value) && value > 0 ? value : 46;
+/** Model calls the demo may make per UTC day; defaults to 200 on DGX Spark. */
+export function dailyCallLimit(): number {
+  const value = Number(process.env.DEMO_DAILY_MODEL_CALLS ?? 200);
+  return Number.isInteger(value) && value > 0 ? value : 200;
 }
 
 export class QuotaError extends Error { constructor() { super("demo_quota_exhausted"); } }
@@ -47,10 +35,12 @@ async function reserveCall() {
 }
 
 let keyStatus: { at: number; remaining: number | null } | null = null;
-/** The provider's own count of free requests left today, cached for a minute. Null when unknown. */
+/** The provider's own count of free requests left today when using OpenRouter. Null on DGX Spark. */
 export async function providerRemaining(): Promise<number | null> {
+  const endpoint = demoEndpoint();
+  if (!endpoint.includes("openrouter.ai")) return null;
   if (keyStatus && Date.now() - keyStatus.at < 60_000) return keyStatus.remaining;
-  const key = getSecretEnvValue("DEMO_OPENROUTER_API_KEY");
+  const key = safeSecret("DEMO_OPENROUTER_API_KEY");
   if (!key) return 0;
   let remaining: number | null = null;
   try {
@@ -70,8 +60,7 @@ export type ChatResult = { text: string; model: string };
 
 /**
  * One chat completion. With `onText`, the reply streams and `onText` receives
- * the text so far after every chunk. Retries the next model on a rate limit or
- * provider error, each retry counting as a call.
+ * the text so far after every chunk.
  */
 export async function chat(args: {
   messages: ChatMessage[];
@@ -84,41 +73,59 @@ export async function chat(args: {
   accept?: (text: string) => boolean;
   signal?: AbortSignal;
 }): Promise<ChatResult> {
-  const key = getSecretEnvValue("DEMO_OPENROUTER_API_KEY");
-  if (!key) throw new ModelError("demo_model_unconfigured");
-  const models = demoModels();
+  const endpoint = demoEndpoint();
+  const isOpenRouter = endpoint.includes("openrouter.ai");
+  const key = safeSecret("DEMO_API_KEY") ?? safeSecret("DEMO_OPENROUTER_API_KEY");
+  if (isOpenRouter && !key) throw new ModelError("demo_model_unconfigured");
+
+  const models = await demoModels();
   let lastError: Error = new ModelError("model_failed");
-  // Free models are often rate-limited upstream for a few seconds: wait, then
-  // start the fallback chain one model further along.
-  const waits = [0, 8_000, 20_000];
+  const waits = [0, 4_000, 10_000];
   for (let attempt = 0; attempt < waits.length; attempt++) {
     if (waits[attempt]) await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
     if (args.signal?.aborted) throw new ModelError("aborted");
     await reserveCall();
     const shift = attempt % models.length;
     const ordered = [...models.slice(shift), ...models.slice(0, shift)];
+    const model = ordered[0];
     const timeout = AbortSignal.timeout(args.timeoutMs ?? 120_000);
     const signal = args.signal ? AbortSignal.any([args.signal, timeout]) : timeout;
+
+    const headers: Record<string, string> = {
+      "content-type": "application/json",
+    };
+    if (key && (isOpenRouter || !endpoint.includes("192.168."))) {
+      headers.authorization = `Bearer ${key}`;
+    }
+    if (isOpenRouter) {
+      headers["http-referer"] = "https://caudals.com/demo";
+      headers["x-title"] = "Caudals demo";
+    }
+
+    const body: Record<string, unknown> = {
+      model,
+      messages: args.messages,
+      max_tokens: args.maxTokens,
+      temperature: args.temperature ?? 0.2,
+      stream: Boolean(args.onText),
+      ...(args.json ? { response_format: { type: "json_object" } } : {}),
+    };
+
+    if (isOpenRouter) {
+      body.models = ordered.slice(0, 3);
+      body.reasoning = { effort: "low", exclude: true };
+    } else {
+      // Ollama / DGX Spark: DeepSeek V4 Flash requires reasoning_effort: "none"
+      // to output content directly instead of spending all tokens reasoning.
+      body.reasoning_effort = "none";
+    }
+
     try {
-      const response = await fetch(ENDPOINT, {
+      const response = await fetch(endpoint, {
         method: "POST",
         signal,
-        headers: {
-          authorization: `Bearer ${key}`,
-          "content-type": "application/json",
-          "http-referer": "https://caudals.com/demo",
-          "x-title": "Caudals demo",
-        },
-        body: JSON.stringify({
-          model: ordered[0],
-          models: ordered.slice(0, 3),
-          messages: args.messages,
-          max_tokens: args.maxTokens,
-          temperature: args.temperature ?? 0.2,
-          stream: Boolean(args.onText),
-          reasoning: { effort: "low", exclude: true },
-          ...(args.json ? { response_format: { type: "json_object" } } : {}),
-        }),
+        headers,
+        body: JSON.stringify(body),
       });
       if (!response.ok) {
         lastError = new ModelError(response.status === 429 ? "model_rate_limited" : `model_http_${response.status}`);
@@ -133,7 +140,7 @@ export async function chat(args: {
       if (args.signal?.aborted) throw error;
       lastError = error instanceof ModelError ? error : new ModelError(timeout.aborted ? "model_timeout" : "model_unreachable");
     }
-    console.warn("demo_model_attempt_failed", { attempt, code: lastError.message, model: ordered[0] });
+    console.warn("demo_model_attempt_failed", { attempt, code: lastError.message, model });
   }
   throw lastError;
 }

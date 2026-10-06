@@ -722,10 +722,11 @@ Operational env controls:
 
 ## Public Demo Operations
 
-- Secrets and flags live in the app's root-only `credentials.env` on `atlantic`: store `DEMO_OPENROUTER_API_KEY` with `sudo scripts/set-app-credentials.sh DEMO_OPENROUTER_API_KEY` (value on stdin, never in shell history), and `DEMO_ENABLED=true` / `DEMO_BROWSER_ENABLED=true` the same way; the next app deploy rebuilds the `app_runtime_env` secret. The browser worker's `EVALS_BROWSER_DEMO_ENABLED` is set in `infra/evals/production-stack.yml`.
-- Quota: `curl -s https://openrouter.ai/api/v1/key -H "Authorization: Bearer $KEY"` reports `free_model_daily_requests`; `SELECT * FROM demo.llm_usage ORDER BY day DESC LIMIT 7` is the demo's own count.
+- Primary model inference runs on the private DGX Spark (`bluehawana/deepseek-v4-flash:iq2_m` via Ollama at `http://192.168.70.19:11434/v1`, resolved through `EVALS_DGX_ENDPOINT_FILE` / `DEMO_DGX_ENDPOINT`). It requires no external API key.
+- Flags and optional overrides live in the app's root-only `credentials.env` on `atlantic`: set flags with `sudo scripts/set-app-credentials.sh DEMO_ENABLED` (value `true` on stdin) and `DEMO_BROWSER_ENABLED=true` the same way; the next app deploy rebuilds the `app_runtime_env` secret. The browser worker's `EVALS_BROWSER_DEMO_ENABLED` is set in `infra/evals/production-stack.yml`.
+- Usage: `SELECT * FROM demo.llm_usage ORDER BY day DESC LIMIT 7` tracks calls made on the daily safety limit (`DEMO_DAILY_MODEL_CALLS`, default 200).
 - Runs: `SELECT phase, error_code, target_kind, target_host, llm_calls, created_at, finished_at FROM demo.run ORDER BY created_at DESC LIMIT 20` (as `postgres`). A run stuck for 25 minutes is failed as `interrupted` by the sweeper; expired runs are deleted.
-- Local end to end: `eval "$(scripts/evals/test-db.sh up)"`, start the "Demo dev" launch configuration (port 3100), and for website chats run the demo browser loop with local Chromium as in `.lab/demo-browser.mts`. Every local run spends the same free quota as production.
+- Local end to end: `eval "$(scripts/evals/test-db.sh up)"`, start the "Demo dev" launch configuration (port 3100), and for website chats run the demo browser loop with local Chromium as in `.lab/demo-browser.mts`. Local runs route to the DGX Spark via WireGuard.
 
 ## Troubleshooting Quick Hits
 

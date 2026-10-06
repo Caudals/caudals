@@ -108,6 +108,26 @@
         "HARNESS_FIXTURE": "demo"
       },
       "port": 4187
+    },
+    {
+      "name": "Demo dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "dev",
+        "-p",
+        "3100"
+      ],
+      "env": {
+        "DATABASE_URL": "postgres://evals_test_runtime:runtime@127.0.0.1:55439/caudals",
+        "EVALS_DATABASE_URL": "postgres://evals_test_runtime:runtime@127.0.0.1:55439/caudals",
+        "DEMO_ENABLED": "true",
+        "EVALS_DGX_ENDPOINT": "http://192.168.70.19:11434/v1",
+        "DEMO_RUNS_PER_VISITOR": "20",
+        "DEMO_SECRET": "local-demo-secret",
+        "DEMO_BROWSER_ENABLED": "true"
+      },
+      "port": 3100
     }
   ]
 }

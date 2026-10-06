@@ -9,6 +9,20 @@
 
 @import "../../packages/brand/platform.css";
 
+/* Long provider model IDs must fit the demo selector on narrow screens. */
+.eval-engine-settings {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.eval-demo-model-form {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.eval-demo-model-form select {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
 /* Expert workbench: assigned evidence on the left, the contribution form on
    the right. One column on narrow screens. */
 .eval-expert-grid {

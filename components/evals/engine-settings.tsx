@@ -14,6 +14,7 @@ import { Action, Badge, Check, Chip, DataTable, Field, RowTitle, Section, Select
 import { ActionMenu, Modal, notify } from "./overlays";
 import { useReauth } from "./reauth";
 import { t, tv } from "@/lib/evals/messages/en";
+import { DemoModelSettings } from "./demo-model-settings";
 
 type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
 type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
@@ -119,7 +120,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
   const missing = settings.roles.filter((role) => !settings.platform.some((item) => item.role === role && item.usable));
 
   return (
-    <div className="p-stack">
+    <div className="p-stack eval-engine-settings">
       {load.message}
       {action.message}
       {missing.length > 0 && scope === "platform" && <Status>{t("engineMissingDefaults")}</Status>}
@@ -189,6 +190,8 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
       </Section>
 
       <WebResearch orgId={orgId} scope={scope} engines={settings.searchEngines} effective={effective} action={action} reload={reload} />
+
+      <DemoModelSettings key={orgId} orgId={orgId} />
 
       <Section
         title={t("engineProviders")}
