@@ -186,7 +186,14 @@ test("a popup with clickable controls and no assistant answer is not a successfu
 });
 
 test("usage-limit dialogs stop detection and execution without retries or dismissing the limit", async () => {
-  await expect(invokeWebsite({ browser, recipe: legacyRecipe("/limit"), destinationCheck, input: question("Check limit"), context: invocation() })).rejects.toThrow("website_usage_limit");
+  const recipe = legacyRecipe("/limit"), session = await openWebsiteAttemptSession({ browser, recipe, destinationCheck });
+  try {
+    await expect(session.invoke(question("Check limit"), invocation())).rejects.toThrow("website_usage_limit");
+    await expect(browser.contexts()[0].pages()[0].locator(".modal-backdrop-plan")).toBeVisible();
+  } finally { await session.close(); }
+  let failedProbes = 0;
+  await expect(validateWebsiteRecipe({ browser, recipe, destinationCheck, onProbeFailed: () => { failedProbes++; } })).rejects.toThrow("website_usage_limit");
+  expect(failedProbes).toBe(1);
   await expect(autoDetectWebsiteRecipe({ browser, url: origin + "/limit", destinationCheck, recipeRevisionId: randomUUID() })).rejects.toThrow("website_usage_limit");
   // Discussing quotas in a reply is not a limit enforced by the website.
   const context = await browser.newContext(), page = await context.newPage();
