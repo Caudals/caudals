@@ -88,7 +88,7 @@ test.beforeAll(async () => {
       const replacement = path === "/choices"
         ? "thread.insertAdjacentHTML('beforeend','<div class=choices><button>Option one</button><button>Option two</button></div>');"
         : "document.body.insertAdjacentHTML('beforeend'," + JSON.stringify(popup) + ");" + (path === "/chrome" ? "setTimeout(()=>{" + addReply + "},6000);" : "");
-      response.end(html.replace(addReply, replacement)); return;
+      response.end(html.replaceAll(addReply, replacement)); return;
     }
     response.end(path === "/notice" ? html.replace("<style>", `<div id="notice-overlay" hidden style="position:fixed;inset:0;z-index:9999;background:white">
       <h2>Join our next webinar</h2><button onclick="document.body.dataset.reserved='yes'">Reserve a place</button>
