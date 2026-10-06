@@ -1,17 +1,17 @@
 # VPS Runtime
 
-Checked: **2026-09-28**, updated **2026-10-03** (host rename and Warmbly
-stack), read-only SSH inspection of `atlantic` (formerly `caudals-1`) using Docker
-service/container listings, disk information and systemd state. This is the
-shared runtime inventory for `caudals` and `leads`. Replica counts prove
-scheduled/running tasks, not complete business acceptance or provider health.
+Checked: **2026-10-06**, read-only SSH inspection of both `atlantic` and
+`arctic`, followed by authenticated Ops/Postiz, media round-trip and video
+render verification after the Growth migration. This is the shared runtime
+inventory for `caudals` and `leads`. Replica counts prove scheduled/running
+tasks; the migration checks below cover the affected dependency paths.
 
 ## Ownership and access
 
 - Platform owner: `caudals`; Leads app schema/growth behaviour owner: `leads`.
 - CRM of record since 2026-10-03: self-hosted **Warmbly** at `out.caudals.com`
-  (see below). `leads.caudals.com` is still deployed; which Leads functions
-  remain is pending a founder decision.
+  (see below). The internal app is **Caudals Ops** at `ops.caudals.com`;
+  it retains content, newsletter/blog, Hermes prospecting and DGX operations.
 - Host: Hetzner `atlantic` (renamed from `caudals-1`, same Tailscale IP
   `100.118.70.90`); operations use `caudals@atlantic` through Tailscale.
 - Ingress: Cloudflare and retained `dokploy-traefik`; repository deploy scripts
@@ -22,7 +22,8 @@ scheduled/running tasks, not complete business acceptance or provider health.
 
 ## Second host: `arctic` (AWS Lightsail)
 
-Created 2026-10-03 to spread services off `atlantic`; no workloads yet. AWS
+Created 2026-10-03 to spread services off `atlantic`; runs Warmbly, Umami,
+Postiz/Temporal and Growth/HyperFrames as of 2026-10-06. AWS
 account `310356785933`, Lightsail `medium_3_0` in `eu-central-1a` (2 vCPU,
 4 GB RAM, 80 GB disk, USD 24/month, paid from AWS Activate credits). Static IP
 `51.102.90.206`; Tailscale `arctic` (`100.93.226.39`, `tag:ssh-all`).
@@ -54,38 +55,59 @@ role `temporal` connection limit 60) and Redis on the internal overlay
 `social-private`, which has no route outside the host and publishes no port.
 Postiz holds the LinkedIn and X OAuth tokens: only Postiz joins
 `dokploy-network`, behind Traefik with registration disabled, as before.
-growth-social on atlantic calls it at `https://postiz.caudals.com`.
+Growth runs on the same host and calls the local Postiz overlay alias.
 `caudals-postiz-restart.timer` restarts Postiz every Sunday 04:00 UTC to
-release the memory its orchestrator accumulates. On atlantic the old stacks
-are scaled to 0 with their databases in `caudals-postgres` kept as rollback,
-and `deploy-social-stack.sh` / `deploy-workflow-stack.sh` refuse to run there
-without `CAUDALS_ALLOW_ATLANTIC_SOCIAL=1`. Separate Swarm, not joined to
-`atlantic`; services that move take their own data.
+release the memory its orchestrator accumulates. The source social/workflow
+stacks, their Postiz/Temporal databases, volumes and images were removed from
+atlantic after the separate Postiz migration was checked. Social/workflow
+scripts refuse atlantic without `CAUDALS_ALLOW_ATLANTIC_SOCIAL=1`.
+
+Also migrated to arctic on 2026-10-06: **Growth and HyperFrames**, stack
+`caudals-growth`. All 322 captured entries in four durable volumes matched
+SHA256, numeric ownership and mode after transfer. Codex login remains valid.
+The immutable f4a64996 images were reused; renderer cleanup is supplied by
+versioned Docker config `hyperframes_render_mjs_ee6e2891e20f` until the next
+normal build. Growth deployment now targets arctic and rejects atlantic by
+default. Source services, volumes, images and unused Growth secrets were
+removed after successful authenticated Ops/Postiz calls, PNG upload/public
+read/checksum/deletion and a 640×360 H.264 render (30 fps, 90 decoded frames).
+The existing video-workflow flag remains disabled.
+
+Ops, `caudals_leads` and published media stay on atlantic. Small Docker relays
+bind only Tailscale addresses: Ops `100.118.70.90:18080`, Growth
+`100.93.226.39:18081`, and the existing office DGX tunnel through
+`100.118.70.90:18034`. Ops retains its original private Growth alias through
+the reverse relay. Auth remains enforced on application calls. The renderer
+keeps an internal-only overlay and has no published port. Deployment and
+shared-volume permissions are owned by `leads/scripts` and documented in
+`leads/docs/OPERATIONS.md`. These are separate Swarms.
 
 ## Observed Swarm services
 
-| Service | Replicas | Role |
-| --- | --- | --- |
-| `caudals-app_app` | 1/1 | Marketing, operator and evaluation web/API |
-| `caudals-leads_app` | 1/1 | Leads app (former CRM), outreach and integration workers |
-| `caudals-warmbly_*`, `caudals-warmbly-apollo_app`, `caudals-warmbly-rocketreach_app` | 0/0 | Retained after the 2026-10-03 move to `arctic`: definitions, secrets and `/opt/warmbly` data kept as rollback until removal is approved |
-| `caudals-growth_social` | 1/1 | Content generation and publishing execution |
-| `caudals-growth_hyperframes-renderer` | 1/1 | Isolated video rendering |
-| `caudals-postgres_db` | 1/1 | PostgreSQL 16 with pgvector/pg_cron |
-| `caudals-object-storage_minio` | 1/1 | Private objects/evidence |
-| `caudals-evals_worker` | 1/1 | General evaluation/inference queue |
-| `caudals-evals_documents` | 1/1 | Source extraction and document exports |
-| `caudals-evals_scheduler` | 1/1 | Scheduled evaluation and lifecycle jobs |
-| `caudals-evals_browser` | 1/1 | Controlled browser execution |
-| `caudals-evals_browser-egress` | 1/1 | Browser public-HTTPS egress policy |
-| `caudals-evals_browser-db-relay` | 1/1 | Browser database relay |
-| `caudals-social_postiz` | 1/1 | Social publishing integration |
-| `caudals-social_redis` | 1/1 | Social stack Redis, not the legacy cache |
-| `caudals-workflow_temporal` | 1/1 | Retained Temporal runtime |
-| `caudals-workflow_ui` | 1/1 | Temporal UI |
+| Host | Service | Replicas | Role |
+| --- | --- | --- | --- |
+| atlantic | `caudals-app_app` | 1/1 | Marketing and evaluation web/API |
+| atlantic | `caudals-leads_app` | 1/1 | Ops, authenticated data API and content management |
+| atlantic | `caudals-postgres_db` | 1/1 | Shared PostgreSQL 16 with pgvector/pg_cron |
+| atlantic | `caudals-object-storage_minio` | 1/1 | Private objects/evidence |
+| atlantic | `caudals-evals_worker` | 1/1 | General evaluation/inference queue |
+| atlantic | `caudals-evals_documents` | 1/1 | Source extraction and document exports |
+| atlantic | `caudals-evals_scheduler` | 1/1 | Scheduled evaluation and lifecycle jobs |
+| atlantic | `caudals-evals_browser` | 1/1 | Controlled browser execution |
+| atlantic | `caudals-evals_browser-egress` | 1/1 | Browser public-HTTPS egress policy |
+| atlantic | `caudals-evals_browser-db-relay` | 1/1 | Browser database relay |
+| arctic | `caudals-growth_social` | 1/1 | Content generation and publishing execution |
+| arctic | `caudals-growth_hyperframes-renderer` | 1/1 | Isolated video rendering |
+| arctic | `caudals-social_postiz` | 1/1 | Social publishing integration |
+| arctic | `caudals-social_redis` | 1/1 | Dedicated social Redis |
+| arctic | `caudals-social_db` | 1/1 | Dedicated Postiz and Temporal PostgreSQL |
+| arctic | `caudals-social_temporal` | 1/1 | Postiz workflow runtime |
+| arctic | `caudals-warmbly_*` | 1/1 each | Warmbly CRM, backend and outreach services |
+| arctic | `caudals-warmbly-apollo_app`, `caudals-warmbly-rocketreach_app` | 1/1 each | Warmbly provider integrations |
 
-Additional containers: `dokploy-traefik`, `caudals-dashboards`, Umami and its
-own database. A running dashboards proxy does not prove all upstream routes
+Additional containers: Traefik on both hosts; `caudals-dashboards` and the
+private Ops/Growth/DGX relays on atlantic; Growth relay and Umami with its own
+database on arctic. A running dashboards proxy does not prove all upstream routes
 work. The dedicated observability stack, Dagster, Label Studio, CVAT, lakeFS,
 Qdrant, legacy cache and Marquez were not observed as running services.
 Do not infer image/volume/secret deletion from absence in this table.
@@ -141,6 +163,11 @@ Host memory: approximately 7.6 GiB RAM plus 4 GiB swap. 2026-09-28: about
 3 GiB available RAM, 3.2 GiB swap occupied, disk 59/75 GB (81%). 2026-10-03,
 with Warmbly: about 2.8 GiB available, 3.4 GiB swap occupied (0.6 GiB free),
 disk 63 GB used and 11 GB free (86%). These are point-in-time values.
+After the 2026-10-06 migrations and targeted cleanup: atlantic disk about
+45 GiB used / 28 GiB free (62%), about 4.1 GiB available RAM and 1.5 GiB
+swap occupied. Arctic disk about 24 GiB used / 54 GiB free (31%), about
+1.5 GiB available RAM; swap occupancy rose temporarily during transfer and
+render checks. These are point-in-time readings, not workload guarantees.
 Keep per-service limits and bounded render/model concurrency; image extraction
 and deployment can consume significantly more than steady-state usage.
 

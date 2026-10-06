@@ -40,10 +40,10 @@ Caudals operates across two production VPS nodes connected via Tailscale:
 
 1. **`atlantic`** (formerly referred to as `caudals-1`):
    - **Provider / IP**: Hetzner, `168.119.49.95` (Tailscale `100.118.70.90`, user `caudals`).
-   - **Role**: Primary application and platform host. Runs the public site (`caudals.com`), internal Ops app (`ops.caudals.com`), shared `caudals-postgres`, evaluation platform, `caudals-growth_social`, MinIO, and internal Tailscale dashboards.
+   - **Role**: Primary application and platform host. Runs the public site (`caudals.com`), internal Ops app (`ops.caudals.com`), shared `caudals-postgres`, evaluation platform, MinIO, and internal Tailscale dashboards.
 2. **`arctic`** (or `artic`):
    - **Provider / IP**: AWS, `51.102.90.206` (Tailscale `100.93.226.39`, user `caudals`).
-   - **Role**: Dedicated cold-outreach & campaign infrastructure host. Runs the Warmbly suite (`caudals-warmbly`), serving `out.caudals.com`, `out-admin.caudals.com`, `out-track.caudals.com`, and `out-forms.caudals.com` with isolated databases and enrichment workers.
+   - **Role**: Dedicated outreach and growth host. Runs Postiz/Temporal (`caudals-social`), Growth/HyperFrames (`caudals-growth`), Umami, and the Warmbly suite (`caudals-warmbly`), serving `out.caudals.com`, `out-admin.caudals.com`, `out-track.caudals.com`, and `out-forms.caudals.com` with isolated databases and enrichment workers.
 
 ## Sibling Repository — Caudals Leads / Ops
 
@@ -51,8 +51,9 @@ Caudals operates across two production VPS nodes connected via Tailscale:
 engine: Caudals Ops (`ops.caudals.com`), Content Suite, social
 publishing, the *The Data Gap* newsletter, Hermes strategic prospecting, and the blog
 pipeline that publishes to this site. It runs on `atlantic` on the same `dokploy-network`,
-with its own `caudals_leads` database inside the shared `caudals-postgres` service, plus
-the private `growth-social` execution service.
+with its own `caudals_leads` database inside the shared `caudals-postgres` service.
+Since 2026-10-06 the private `growth-social` execution service runs on arctic,
+connected to Ops through private Tailscale relays.
 
 - This repo owns the platform: VPS nodes (`atlantic` and `arctic`), `caudals-postgres`, Docker secrets, Swarm
   stack conventions, Postiz, and the frozen legacy stacks.
