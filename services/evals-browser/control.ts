@@ -290,7 +290,7 @@ export class BrowserControl {
   /** One click: find the chat, send a probe, learn the reply, verify a fresh load, then test. */
   private startAutoTeach(session: Session) {
     // Retrying after a manual repair tests that repair instead of overwriting it.
-    if (session.manual.size && session.selections.input && session.selections.response) { this.startTest(session); return; }
+    if ((session.manual.has("input") || session.manual.has("response")) && session.selections.input && session.selections.response) { this.startTest(session); return; }
     const controller = session.work = new AbortController();
     session.teach = { status: "running", error: null, step: "find_input", reply: "" };
     session.mode = "control"; session.pickPart = null;
@@ -306,8 +306,13 @@ export class BrowserControl {
         await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
         await page.waitForTimeout(1_000);
       }
-      const controls = await detectChatControls(page, { onStep: step, signal: controller.signal });
+      const detectedControls = await detectChatControls(page, { onStep: step, signal: controller.signal });
       if (controller.signal.aborted) throw new Error("target_execution_aborted");
+      const controls = {
+        ...detectedControls,
+        input: session.manual.has("input") && session.selections.input ? { locator: session.selections.input, alternates: [] } : detectedControls.input,
+        submit: session.manual.has("submit") ? (session.selections.submit ? { locator: session.selections.submit, alternates: [] } : null) : detectedControls.submit,
+      };
       // Sending the first message can navigate to a conversation-specific URL.
       // A fresh evaluation must start at the composer we found before sending.
       session.startUrl = cleanWebsiteNavigation(page.url());

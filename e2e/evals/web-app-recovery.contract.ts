@@ -140,7 +140,10 @@ test("a manually selected new-conversation button is honored even when the input
   const control = new BrowserControl({ browser, destinationCheck });
   const scope = { orgId: randomUUID(), actorId: "owner", targetId: randomUUID(), endpoint: origin + path };
   try {
-    const { sessionId } = await control.dispatch(scope, { action: "open" }, { recipe: legacyRecipe(path) }) as { sessionId: string };
+    // An older failed draft picked the conversation title as its reply. Fixing
+    // the reset must retain that manual choice and redetect the other parts.
+    const stale = websiteRecipeSchema.parse(withContentHash({ ...legacyRecipe(path), assistant_message: { kind: "css", value: "button.conversation-title" } }));
+    const { sessionId } = await control.dispatch(scope, { action: "open" }, { recipe: stale }) as { sessionId: string };
     const page = browser.contexts().at(-1)!.pages()[0];
     const button = page.getByRole("button", { name: "Nueva conversación" });
     await button.waitFor();
@@ -153,6 +156,7 @@ test("a manually selected new-conversation button is honored even when the input
     expect(state.test.error).toBeNull();
     const result = await control.dispatch(scope, { action: "result", sessionId }) as { recipe: WebsiteRecipe };
     expect(result.recipe.reset.kind).toBe("click");
+    expect(result.recipe.assistant_message).toMatchObject({ kind: "css", value: "p.assistant-message" });
     const answer = await invokeWebsite({ browser, recipe: result.recipe, destinationCheck, input: question("After repair"), context: invocation() });
     expect(answer.messages.at(-1)?.content).toBe("The connection works. Turn 1");
   } finally { await control.close(); }
