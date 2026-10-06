@@ -15,7 +15,7 @@ set -euo pipefail
 backup_dir="${CAUDALS_BACKUP_DIR:-/root/.caudals/backups}"
 passphrase_file="${CAUDALS_BACKUP_PASSPHRASE_FILE:-/root/.caudals/evals-production/local-backup-passphrase}"
 retention_days="${CAUDALS_BACKUP_RETENTION_DAYS:-7}"
-databases=(caudals caudals_evals_queue caudals_leads postiz)
+databases=(caudals caudals_evals_queue caudals_leads)  # postiz moved to arctic (2026-10-06)
 volume="${CAUDALS_BACKUP_OBJECT_VOLUME:-caudals-object-storage-minio-data}"
 [[ -s $passphrase_file ]] || { echo "Missing backup passphrase file" >&2; exit 1; }
 
