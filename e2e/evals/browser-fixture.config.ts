@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: ".",
-  testMatch: ["browser-fixture.contract.ts", "web-app-fixture.contract.ts", "web-app-autoteach.contract.ts"],
+  testMatch: ["browser-fixture.contract.ts", "web-app-fixture.contract.ts", "web-app-autoteach.contract.ts", "web-app-recovery.contract.ts"],
   workers: 1,
   fullyParallel: false,
   outputDir: "/tmp/evals-browser-fixture-results",

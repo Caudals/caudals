@@ -20,6 +20,9 @@ worker's workspace allowlist.
    - declines a cookie-consent dialog that covers the page (Reject / necessary
      only, never Accept; a notice with no choice is only acknowledged). Every
      fresh session, run and Test does the same;
+   - closes an ordinary announcement through its explicit Close control,
+     including one that appears after focusing the composer. Authentication,
+     CAPTCHA and agreement screens remain under the person's control;
    - finds the message box in every frame (iframes, open shadow roots), scoring
      chat-like inputs and rejecting search, login and newsletter fields;
    - opens the chat when it is closed, trying likely launchers, including a
@@ -30,11 +33,15 @@ worker's workspace allowlist.
    - finds the Send button next to the input, or falls back to Enter;
    - sends one short hello, observes what the page adds, and identifies the
      reply as the largest new region that is not the user's own message (the
-     element whose text is exactly the prompt, so echoing assistants work);
+     element whose text is exactly the prompt, so echoing assistants work),
+     excluding sidebar conversation titles and navigation;
    - learns the completion signal: a Stop button or loading indicator that
      disappears, Send becoming available again, or network-confirmed quiet;
    - reloads the start page in a fresh context and learns the launcher if the
      chat is closed there;
+   - detects an explicit New chat / New conversation action even when the
+     composer is already visible. It is frozen as the conversation reset,
+     separately from a widget's open button;
    - runs Test Connection: two fresh sessions and a follow-up probe. Each
      fresh session gets one more try before it fails the Test, and a reply's
      allowance starts once the chat is open, not before the page loaded.
@@ -51,6 +58,10 @@ worker's workspace allowlist.
 5. The element list (**What Caudals uses**) and manual **Fix** controls appear
    only after a failed connection attempt. Click Fix, select the element in
    the live view, and test again; the controls disappear after a saved success.
+   Fix **Open or start a chat** with the app's New conversation button when it
+   restores an existing conversation. Connect again preserves manual repairs.
+   Stop aborts fresh browser contexts and immediately permits another attempt;
+   the stopped attempt cannot overwrite a later result.
 
 Login state is checkpointed before connecting, after failed detection (even
 when no reply locator was found), and when closing the live browser. Saving a
@@ -73,7 +84,8 @@ own projects, sources and test sets. New runs follow the system's latest
 website connection revision; existing run plans remain immutable.
 
 Locators prefer test IDs, exact roles/accessible names, labels and stable
-attributes or class names (build-hashed classes are ignored). Up to three
+attributes or class names (build-hashed classes are ignored). Reply locators
+avoid accessible names and title attributes containing generated text. Up to three
 fallback locators per part are frozen in the recipe
 (`extensions["caudals.evals/teach"].alternates`), so a fallback used during a
 run is reproducible. No XPath, positional CSS or customer JavaScript is
@@ -112,7 +124,8 @@ replies to different prompts are recorded (`distinct_responses`) but allowed:
 rule-based assistants answer many questions with one sentence.
 
 Unattended connection checks run the same detection headlessly with the saved
-login, so many public chatbots connect without opening the live browser at all.
+login and authenticated start page, so many public chatbots connect without
+opening the live browser at all.
 They run ahead of queued test cases on the browser queue. A check that finishes
 after someone connected the system in the live browser does not replace that
 connection, and its new revision keeps any login saved meanwhile. A saved login
@@ -163,6 +176,11 @@ Eval runs use the normalized target interface (`TargetExecutionWorker`), the
 same observations, scoped attempt credentials and usage ledger as API targets.
 On load the executor waits for the input and clicks the launcher only while
 the chat is closed (a widget that restores itself open is not toggled shut).
+It then executes the frozen New conversation reset even if the input is
+visible, waiting for the previous reply to clear and the reset's network
+activity to settle before sending. Follow-up turns keep that same conversation.
+A reset that leaves the previous conversation visible requires repair instead
+of sending an evaluation question into stale history.
 
 - Expired login (redirect off the target origin, a login path, or a visible
   password field) → `browser_session_unavailable`.
@@ -228,6 +246,12 @@ both. Configuration and encrypted state remain in existing additive tables.
 - `e2e/evals/web-app-fixture.contract.ts`: batched human input, popup SSO,
   manual Fix of each part in nested frames, encrypted-state reuse and
   normalized eval execution.
+- `e2e/evals/web-app-recovery.contract.ts`: server-restored conversation
+  history, sidebar title exclusion, automatic and manual New conversation
+  reset, delayed reset completion, late announcement dismissal, protected
+  authentication/agreement dialogs, and Stop followed by an immediate retry.
+- `tests/evals/website-discovery.integration.test.ts`: queued detection uses
+  the saved app path and persists a ready check on the newest target revision.
 - `e2e/evals/browser-fixture.contract.ts`: streaming pauses, selector drift,
   blocked HTTP/private WebSocket egress, and a basic chatbot that echoes the
   question into a shared bubble class, splits its reply, offers buttons and is

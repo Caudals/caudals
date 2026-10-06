@@ -110,8 +110,10 @@ export const websiteRecipeSchema = z
 export const websiteTeachExtensionSchema = z.object({
   version: z.number().int(),
   detected: z.boolean().optional(),
+  manual_parts: z.array(z.enum(["launcher", "input", "submit", "response", "busy"])).max(5).optional(),
   alternates: z.object({
     launcher: z.array(browserLocatorSchema).max(3).optional(),
+    reset: z.array(browserLocatorSchema).max(3).optional(),
     input: z.array(browserLocatorSchema).max(3).optional(),
     submit: z.array(browserLocatorSchema).max(3).optional(),
     assistant_message: z.array(browserLocatorSchema).max(3).optional(),

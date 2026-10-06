@@ -107,7 +107,7 @@ export class BrowserJobWorker {
       // grading partial answers.
       if (error instanceof Error && error.message === "login_required") throw new Error("browser_session_unavailable");
       if (error instanceof Error && (error.name === "TimeoutError" || error.message.includes("strict mode violation") ||
-        ["selector_unavailable", "launcher_unavailable", "selector_ambiguous", "website_frame_unavailable"].includes(error.message))) throw new Error("website_selector_failed");
+        ["selector_unavailable", "launcher_unavailable", "selector_ambiguous", "website_frame_unavailable", "conversation_reset_unverified"].includes(error.message))) throw new Error("website_selector_failed");
       throw error;
     }
   }
@@ -159,6 +159,7 @@ export class BrowserJobWorker {
         recipe,
         destinationCheck: this.destinationCheck,
         storageState,
+        signal: context.signal,
       });
       this.sessions.set(context.attempt_id, session);
       return await session.invoke(input, replyDeadline(context, WEBSITE_REPLY_MS));
@@ -293,7 +294,7 @@ export class BrowserJobWorker {
         stage = "detect";
         try {
           recipe = websiteRecipeSchema.parse(withContentHash(await autoDetectWebsiteRecipe({
-            browser: this.options.browser, url: claimed.config.endpoint, destinationCheck: this.destinationCheck,
+            browser: this.options.browser, url: claimed.config.login_start_url ?? claimed.config.endpoint, destinationCheck: this.destinationCheck,
             storageState, recipeRevisionId: randomUUID(), signal: AbortSignal.timeout(150_000),
           })));
         } catch (error) {
@@ -304,7 +305,7 @@ export class BrowserJobWorker {
       if (!recipe) {
         snapshot = await discoverWebsite({
           browser: this.options.browser,
-          url: claimed.config.endpoint,
+          url: claimed.config.login_start_url ?? claimed.config.endpoint,
           destinationCheck: this.destinationCheck,
           timeoutMs: claimed.input.timeoutMs,
           onScreenshot: (bytes) => { screenshot = bytes; },

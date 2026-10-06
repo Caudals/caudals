@@ -51,7 +51,7 @@ async function recipeRoot(page: Page, _recipe: WebsiteRecipe): Promise<FrameLike
 // built from strings rather than serialized TypeScript callbacks.
 const innerTexts = new Function("els", "return els.map(el => (el.innerText || el.textContent || ''))") as (elements: Element[]) => string[];
 
-type Part = "launcher" | "input" | "submit" | "assistant_message";
+type Part = "launcher" | "reset" | "input" | "submit" | "assistant_message";
 function partOptions(recipe: WebsiteRecipe, part: Part, primary: BrowserLocator) {
   return [primary, ...(websiteTeachExtension(recipe)?.alternates?.[part] ?? [])];
 }
@@ -222,6 +222,7 @@ export async function sendWebsitePrompt(
   const recipe = { frame_chain: parts.frame_chain ?? [] };
   const input = resolved?.input ?? locator(root, recipe, parts.input).first();
   const page = input.page();
+  await dismissConsent(page);
   await input.click({ timeout: 10_000 }).catch(() => input.focus({ timeout: 5_000 }));
   const editable = await input.evaluate(new Function("el", "return el.isContentEditable && !('value' in el)") as (element: Element) => boolean);
   const read = new Function("el", "return ('value' in el ? el.value : el.innerText) || ''") as (element: Element) => string;
@@ -241,6 +242,9 @@ export async function sendWebsitePrompt(
   }
   if (!parts.submit) { await input.press("Enter"); return; }
   const submit = resolved?.submit ?? locator(root, recipe, parts.submit).first();
+  // Announcements can appear after the composer is focused. Close an ordinary
+  // notice through its own close control before trying to send.
+  await dismissConsent(page);
   // Send buttons usually enable a moment after the input event.
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline && !(await submit.isEnabled().catch(() => true))) await new Promise((resolve) => setTimeout(resolve, 100));
@@ -283,13 +287,46 @@ const DISMISS_CONSENT = new Function(`
   return null;
 `) as () => string | null;
 
-/** Declines a cookie-consent dialog in any frame; returns true when one was dismissed. */
+// A fresh browser can show the same promotional announcement every time. Only
+// close it through an explicit dismissal; authentication, consent and binding
+// agreement screens stay under the person's control.
+const FIND_NOTICE_CLOSE = new Function(`
+  const visible=el=>{const r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>3&&r.height>3&&s.display!=='none'&&s.visibility!=='hidden';};
+  const close=/^(×|✕|x|close|cerrar|dismiss|descartar|not now|ahora no|later|más tarde|got it|entendido)$/i;
+  const protectedText=/captcha|two.factor|2fa|one.time code|verification code|c[oó]digo de verificaci[oó]n|sign in|log in|iniciar sesi[oó]n|acepto.{0,40}(t[eé]rminos|condiciones)|agree.{0,40}(terms|conditions)|accept.{0,40}(terms|conditions)|terms of (use|service)|t[eé]rminos (de uso|y condiciones)/i;
+  const roots=[document];for(let i=0;i<roots.length&&i<50;i++)for(const el of roots[i].querySelectorAll('*'))if(el.shadowRoot)roots.push(el.shadowRoot);
+  for(const root of roots)for(const el of root.querySelectorAll('button,[role="button"],[onclick],a,span')){
+    if(!visible(el))continue;
+    const label=(el.getAttribute('aria-label')||el.getAttribute('title')||el.innerText||el.textContent||'').trim();
+    if(!close.test(label))continue;
+    if(!el.matches('button,[role="button"],[onclick],a')&&getComputedStyle(el).cursor!=='pointer')continue;
+    let box=el.parentElement||el.getRootNode()?.host,notice=null;
+    for(let depth=0;box&&depth<10;depth++,box=box.parentElement||box.getRootNode()?.host){
+      if(box===document.body||box===document.documentElement)break;
+      const hint=(box.id||'')+' '+(typeof box.className==='string'?box.className:'');
+      if(!(box.matches('[role="dialog"],[aria-modal="true"]')||/notice|announcement|promo|modal|overlay|popup|popover/i.test(hint)))continue;
+      const text=(box.innerText||'').slice(0,6000);
+      if(protectedText.test(text)||/cookie|consent/i.test(hint)||box.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[type="checkbox"],iframe[src*="captcha" i]')){notice=null;break;}
+      notice=box;
+    }
+    if(notice){el.setAttribute('data-caudals-notice-close','');return true;}
+  }
+  return false;
+`) as () => boolean;
+
+/** Declines optional cookies and closes ordinary notices in every frame. */
 export async function dismissConsent(page: Page) {
   let dismissed = false;
   for (const frame of page.frames()) {
     if (frame.isDetached()) continue;
     const result = await frame.evaluate(DISMISS_CONSENT).catch(() => null);
     if (result) dismissed = true;
+    const notice = await frame.evaluate(FIND_NOTICE_CLOSE).catch(() => false);
+    if (notice) {
+      const match = frame.locator("[data-caudals-notice-close]").first();
+      if (await match.click({ timeout: 2_000 }).then(() => true, () => false)) dismissed = true;
+      await match.evaluate(new Function("el", "el.removeAttribute('data-caudals-notice-close')") as (el: Element) => void).catch(() => {});
+    }
   }
   if (dismissed) await page.waitForTimeout(600);
   return dismissed;
@@ -456,13 +493,18 @@ async function openRecipe(args: {
   recipe: WebsiteRecipe;
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
+  signal?: AbortSignal;
 }) {
+  if (args.signal?.aborted) throw new Error("target_execution_aborted");
   const context = await args.browser.newContext({
     acceptDownloads: false,
     serviceWorkers: "block",
     viewport: { width: 1280, height: 800 },
     ...(args.storageState ? { storageState: scopedBrowserStorageState(args.storageState, args.recipe.start_url) } : {}),
   });
+  const abort = () => { void context.close().catch(() => {}); };
+  args.signal?.addEventListener("abort", abort, { once: true });
+  if (args.signal?.aborted) abort();
   try {
     await guardBrowserContext(context, args.destinationCheck);
     await restoreBrowserSessionStorage(context, args.storageState);
@@ -475,9 +517,36 @@ async function openRecipe(args: {
     });
     const root = await recipeRoot(page, args.recipe);
     await openChat(page, root, args.recipe);
-    return { context, page, root, activity };
+    if (args.recipe.reset.kind === "click") {
+      // A new context preserves authentication, but many apps also restore the
+      // last conversation from the server. Reset it even with a visible input.
+      const reset = await resolvePart(root, args.recipe, "reset", args.recipe.reset.locator, 10_000);
+      await dismissConsent(page);
+      const messages = locator(root, args.recipe, args.recipe.assistant_message);
+      await messages.evaluateAll(new Function("els", "for (const el of els) el.setAttribute('data-caudals-before-reset', el.innerText || el.textContent || '')") as (els: Element[]) => void);
+      activity.mark();
+      await reset.click({ timeout: 10_000 });
+      await openChat(page, root, args.recipe);
+      // New chat commonly waits for an API call while leaving the old input
+      // visible. Do not send the next question into that outgoing conversation.
+      const resetDeadline = Date.now() + 15_000;
+      let settled = false;
+      try {
+        while (Date.now() < resetDeadline) {
+          const stale = await messages.evaluateAll(new Function("els", "return els.some(el => el.hasAttribute('data-caudals-before-reset') && el.getAttribute('data-caudals-before-reset') === (el.innerText || el.textContent || '') && (el.innerText || el.textContent || '').trim())") as (els: Element[]) => boolean);
+          if (!stale && activity.inflight() === 0 && Date.now() - activity.lastActivity() >= 800) { settled = true; break; }
+          await page.waitForTimeout(200);
+        }
+      } finally {
+        await messages.evaluateAll(new Function("els", "for (const el of els) el.removeAttribute('data-caudals-before-reset')") as (els: Element[]) => void).catch(() => {});
+      }
+      if (!settled) throw new Error("conversation_reset_unverified");
+    }
+    return { context, page, root, activity, release: () => args.signal?.removeEventListener("abort", abort) };
   } catch (error) {
-    await context.close();
+    args.signal?.removeEventListener("abort", abort);
+    await context.close().catch(() => {});
+    if (args.signal?.aborted) throw new Error("target_execution_aborted");
     throw error;
   }
 }
@@ -738,6 +807,7 @@ export async function openWebsiteAttemptSession(args: {
   recipe: WebsiteRecipe;
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
+  signal?: AbortSignal;
 }) {
   assertScorableWebsiteRecipe(args.recipe);
   const session = await openRecipe(args);
@@ -770,6 +840,7 @@ export async function openWebsiteAttemptSession(args: {
     async close() {
       if (closed) return;
       closed = true;
+      session.release();
       await session.context.close();
     },
   };
@@ -783,7 +854,7 @@ export async function invokeWebsite(args: {
   destinationCheck: DestinationCheck;
   storageState?: BrowserStorageState;
 }) {
-  const session = await openWebsiteAttemptSession(args);
+  const session = await openWebsiteAttemptSession({ ...args, signal: args.context.signal });
   // The reply's allowance starts once the chat is open, not before the page loaded.
   const deadline = new Date(Math.max(Date.parse(args.context.deadline), Date.now() + 45_000)).toISOString();
   try { return await session.invoke(args.input, { ...args.context, deadline }); }
@@ -907,9 +978,10 @@ async function probeWebsiteFollowUp(args: {
   });
   let session: Awaited<ReturnType<typeof openWebsiteAttemptSession>> | null = null;
   try {
-    session = await openWebsiteAttemptSession(args);
-    const first = await session.invoke(input([{ role: "user", content: prompts[0] }]), context);
-    const second = await session.invoke(input([...first.messages, { role: "user", content: prompts[1] }]), context);
+    session = await openWebsiteAttemptSession({ ...args, signal: context.signal });
+    const turnContext = () => ({ ...context, deadline: new Date(Date.now() + (args.timeoutMs ?? 45_000)).toISOString() });
+    const first = await session.invoke(input([{ role: "user", content: prompts[0] }]), turnContext());
+    const second = await session.invoke(input([...first.messages, { role: "user", content: prompts[1] }]), turnContext());
     const [a, b] = [reply(first), reply(second)];
     const verified = Boolean(a.text && b.text && a.text !== b.text && a.duplicateFree && b.duplicateFree);
     return { verified, probe: verified ? { prompt_hash: sha256(prompts.join("\n")), response_hash: sha256(b.text) } : null };

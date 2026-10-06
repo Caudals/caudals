@@ -18,6 +18,7 @@ export type DetectedControls = {
   input: DetectedPart;
   submit: DetectedPart | null;
   launcher: DetectedPart | null;
+  reset?: DetectedPart | null;
 };
 export type DetectedConnector = DetectedControls & {
   response: DetectedPart;
@@ -199,6 +200,17 @@ const READ_REPLY = `(prompt) => {
   const isNew = node => { for (let cur = node, i = 0; cur && i < 60; cur = parentOf(cur), i++) if (state.added.has(cur)) return true; return false; };
   const text = el => (el.innerText || el.textContent || '').trim();
   const input = document.querySelector('[data-caudals-input]');
+  // Conversation titles, menus and navigation can change in response to the
+  // prompt too. They are not replies, even when longer than the assistant.
+  // A widget may itself live in an aside, so keep the panel with the composer.
+  const outsideChat = el => {
+    for (const node of [el, ...ancestry(el, 12)]) {
+      if (input && node.contains(input)) break;
+      if (node.matches('nav,aside,[role="navigation"],[role="complementary"]') ||
+          /sidebar|conversation[-_ ]?(list|title)|chat[-_ ]?list|history[-_ ]?list/i.test(described(node))) return true;
+    }
+    return !!el.closest('button,a,[role="button"],[role="menuitem"],[role="option"]');
+  };
   const touched = [...state.added, ...state.changed].filter(el => el.isConnected && el.nodeType === 1 && !(input && (el.contains(input) || input.contains(el))));
   let users = [];
   for (const el of touched) walk(el, child => { if (normal(child.textContent) === wanted) users.push(child); });
@@ -209,7 +221,7 @@ const READ_REPLY = `(prompt) => {
   const holdsUser = el => users.some(user => el === user || el.contains(user) || user.contains(el));
   const tops = new Set();
   for (const el of touched) {
-    if (holdsUser(el)) continue;
+    if (holdsUser(el) || outsideChat(el)) continue;
     let top = el;
     for (let parent = parentOf(top); parent && parent !== document.body && parent !== document.documentElement && isNew(parent) && !holdsUser(parent) && !(input && parent.contains(input)); parent = parentOf(parent)) top = parent;
     tops.add(top);
@@ -217,7 +229,7 @@ const READ_REPLY = `(prompt) => {
   let best = null, bestLength = 0;
   for (const top of tops) {
     const value = text(top);
-    if (value.length > bestLength && visible(top)) { best = top; bestLength = value.length; }
+    if (value.length > bestLength && visible(top) && !outsideChat(top)) { best = top; bestLength = value.length; }
   }
   for (const el of document.querySelectorAll('[data-caudals-reply],[data-caudals-busy],[data-caudals-stop]')) { el.removeAttribute('data-caudals-reply'); el.removeAttribute('data-caudals-busy'); el.removeAttribute('data-caudals-stop'); }
   let reply = '';
@@ -354,7 +366,7 @@ export async function detectChatControls(page: Page, options: { onStep?: (step: 
       catch { /* not uniquely addressable; Enter remains */ }
       finally { await handle.dispose(); }
     }
-    return { input, submit, launcher };
+    return { input, submit, launcher, reset: await detectResetFor(page) };
   } finally {
     await inputHandle.dispose();
     for (const frame of liveFrames(page)) await evaluateIn(frame, CLEAR_MARKS);
@@ -523,6 +535,39 @@ export async function detectLauncherFor(page: Page, input: BrowserLocator, timeo
   throw new Error("chat_launcher_not_found");
 }
 
+// Keep opening a widget separate from starting a new conversation. These
+// explicit actions are safe to learn without clicking arbitrary navigation.
+const NEW_CHAT = /^(?:[+＋]\s*)?(?:new\s+(?:chat|conversation|session)|start\s+(?:a\s+)?new\s+(?:chat|conversation)|nuevo\s+chat|nueva\s+(?:conversaci[oó]n|sesi[oó]n)|iniciar\s+(?:una\s+)?(?:nueva\s+conversaci[oó]n|nuevo\s+chat))(?:\s*[+＋])?$/i;
+export async function isNewConversationControl(page: Page, value: BrowserLocator) {
+  const match = partLocator(page, value);
+  if (await match.count().catch(() => 0) !== 1) return false;
+  const label = await match.evaluate(pageScript<Element, string>(
+    "el => (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.textContent || '').trim()",
+  )).catch(() => "");
+  return NEW_CHAT.test(label);
+}
+export async function detectResetFor(page: Page): Promise<DetectedPart | null> {
+  for (const frame of liveFrames(page)) {
+    const candidates = frame.locator('button,[role="button"],a');
+    const labels = await candidates.evaluateAll(pageScript<Element[], string[]>(
+      "els => els.slice(0,150).map(el => (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.textContent || '').trim())",
+    )).catch(() => []);
+    for (const [index, label] of labels.entries()) {
+      if (!NEW_CHAT.test(label)) continue;
+      const match = candidates.nth(index);
+      if (!await match.isVisible().catch(() => false)) continue;
+      const handle = await match.elementHandle();
+      if (!handle) continue;
+      try {
+        const described = await describePart(handle as ElementHandle<Element>, frame).catch(() => null);
+        if (described) return described;
+      }
+      finally { await handle.dispose(); }
+    }
+  }
+  return null;
+}
+
 export { resilientLocator };
 
 /** A recipe from detected controls; the caller validates it before use. */
@@ -535,13 +580,14 @@ export function recipeFromDetection(detected: DetectedConnector, pageUrl: string
     ...(detected.input.alternates.length ? { input: detected.input.alternates } : {}),
     ...(detected.submit?.alternates.length ? { submit: detected.submit.alternates } : {}),
     ...(detected.response.alternates.length ? { assistant_message: detected.response.alternates } : {}),
+    ...(detected.reset?.alternates.length ? { reset: detected.reset.alternates } : {}),
   };
   return {
     schema_version: "1.0", recipe_revision_id: recipeRevisionId, source, start_url: url.toString(),
     launcher: detected.launcher?.locator ?? null, frame_chain: [], input: detected.input.locator,
     submit: detected.submit ? { kind: "click", locator: detected.submit.locator } : { kind: "press_enter" },
     message_container: detected.response.locator, assistant_message: detected.response.locator,
-    completion: detected.completion, reset: { kind: "new_context" }, assistant_extraction: "last_new_message",
+    completion: detected.completion, reset: detected.reset ? { kind: "click", locator: detected.reset.locator } : { kind: "new_context" }, assistant_extraction: "last_new_message",
     created_at: new Date().toISOString(),
     extensions: { "caudals.evals/teach": { version: 2, detected: true, ...(Object.keys(alternates).length ? { alternates } : {}) } },
   };
@@ -558,12 +604,17 @@ export async function autoDetectWebsiteRecipe(args: {
   storageState?: BrowserStorageState;
   recipeRevisionId: string;
   signal?: AbortSignal;
+  onStep?: (step: DetectStep) => void;
 }) {
+  if (args.signal?.aborted) throw new Error("target_execution_aborted");
   await args.destinationCheck(args.url);
   const context = await args.browser.newContext({
     viewport: { width: 1280, height: 800 }, acceptDownloads: false, serviceWorkers: "block",
     ...(args.storageState ? { storageState: scopedBrowserStorageState(args.storageState, args.url) } : {}),
   });
+  const abort = () => { void context.close().catch(() => {}); };
+  args.signal?.addEventListener("abort", abort, { once: true });
+  if (args.signal?.aborted) abort();
   try {
     await guardBrowserContext(context, args.destinationCheck);
     await restoreBrowserSessionStorage(context, args.storageState);
@@ -573,11 +624,14 @@ export async function autoDetectWebsiteRecipe(args: {
     await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
     await page.waitForTimeout(1_500);
     let controls: DetectedControls;
-    try { controls = await detectChatControls(page, { signal: args.signal }); }
+    try { controls = await detectChatControls(page, { signal: args.signal, onStep: args.onStep }); }
     catch (error) { if (await loginRequired(page, args.url)) throw new Error("login_required"); throw error; }
-    const detected = await probeChatReply(page, controls, { signal: args.signal });
-    return recipeFromDetection(detected, page.url(), "known_recipe", args.recipeRevisionId);
+    // Freeze the composer URL before a probe creates a conversation URL.
+    const startUrl = page.url();
+    const detected = await probeChatReply(page, controls, { signal: args.signal, onStep: args.onStep });
+    return recipeFromDetection(detected, startUrl, "known_recipe", args.recipeRevisionId);
   } finally {
+    args.signal?.removeEventListener("abort", abort);
     await context.close().catch(() => {});
   }
 }
