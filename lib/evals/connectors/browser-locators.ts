@@ -26,7 +26,7 @@ export async function resilientLocator(element: ElementHandle<Element>, frame: F
 }
 
 export async function locatorCandidates(element: ElementHandle<Element>, frame: Frame, repeatable = false, limit = 4): Promise<BrowserLocator[]> {
-  const raw: unknown[] = await element.evaluate(pageScript<Element, unknown[]>(`(el) => {
+  const raw: unknown[] = await element.evaluate(pageScript<Element, unknown[], boolean>(`(el, repeatable) => {
     const out = [], attr = name => el.getAttribute(name), tag = el.tagName.toLowerCase();
     const quote = value => JSON.stringify(value);
     const unstable = ${UNSTABLE_CLASS};
@@ -38,6 +38,9 @@ export async function locatorCandidates(element: ElementHandle<Element>, frame: 
     if (['button','textbox','dialog','status','log'].includes(role) && name) out.push({kind:'role',role,name:name.slice(0,200)});
     if (labels[0]) out.push({kind:'label',text:labels[0].slice(0,200)});
     for (const name of ['data-message-author-role','data-role','data-author','data-sender','data-test-id','data-qa','data-cy','data-test','name','aria-label','placeholder','title','type']) {
+      // A message's accessible label or title often contains its generated
+      // text. A repeated reply locator must survive the next conversation.
+      if (repeatable && ['name','aria-label','placeholder','title'].includes(name)) continue;
       const value = attr(name); if (value && value.length <= 120 && !(name==='type' && !['submit','button'].includes(value))) out.push({kind:'css',value:tag+'['+name+'='+quote(value)+']'});
     }
     if (el.id && !/\\d{3}|[a-f0-9]{8}|[:.]/i.test(el.id)) out.push({kind:'css',value:'[id='+quote(el.id)+']'});
@@ -50,7 +53,7 @@ export async function locatorCandidates(element: ElementHandle<Element>, frame: 
     if (['textarea','iframe'].includes(tag) || el.isContentEditable) out.push({kind:'css',value:tag+(attr('contenteditable')?'[contenteditable='+quote(attr('contenteditable'))+']':'')});
     if (tag==='input' && role==='textbox') out.push({kind:'css',value:'input[type='+quote(attr('type') || 'text')+']'});
     return out;
-  }`));
+  }`), repeatable);
   const found: BrowserLocator[] = [];
   const seen = new Set<string>();
   await element.evaluate(pageScript<Element, void>("el => el.setAttribute('data-caudals-own','')"));

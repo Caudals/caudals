@@ -1,6 +1,54 @@
 import { test, expect } from "@playwright/test";
 const id = "00000000-0000-4000-8000-000000000001";
 const token = "a".repeat(43);
+test("manual connector repairs retain every Fix action and Test again until persistence succeeds", async ({ page }) => {
+  const sessionId = "00000000-0000-4000-8000-000000000801";
+  let status = "idle", mode = "control", pickPart: string | null = null;
+  const commands: string[] = [];
+  const parts = { input: { kind: "role", frames: 0, rect: null }, response: { kind: "css", frames: 0, rect: null } };
+  const snapshot = () => ({ sessionId, mode, pickPart, url: "https://example.test/chat", title: "Chat", loading: false,
+    tabs: [{ index: 0, url: "https://example.test/chat", active: true }], parts, completion: "quiescent",
+    teach: { status: status === "idle" ? "idle" : "ready", error: null, step: null, reply: "" },
+    test: { status, error: status === "failed" ? "selector_unavailable" : null, step: null, response: "" },
+    expiresAt: new Date(Date.now() + 1_800_000).toISOString() });
+  await page.route("**/api/evals/v1/**", async route => {
+    if (route.request().url().includes("/web-app/stream")) {
+      await route.fulfill({ headers: { "content-type": "text/event-stream" },
+        body: `retry: 100\n\ndata: ${JSON.stringify({ type: "state", state: snapshot() })}\n\n` });
+      return;
+    }
+    const command = route.request().postDataJSON()?.command;
+    if (!command) { await route.fulfill({ json: { data: [], meta: {} } }); return; }
+    commands.push(command.action);
+    let data: unknown = {};
+    if (command.action === "open") data = { sessionId };
+    if (command.action === "autoteach") status = "failed";
+    if (command.action === "mode") { mode = command.mode; pickPart = command.part ?? null; }
+    if (command.action === "click") { status = "idle"; mode = "control"; pickPart = null; }
+    if (command.action === "test") status = "ready";
+    if (command.action === "result") data = { status: "ready", saved: true };
+    await route.fulfill({ json: { data, meta: {} } });
+  });
+  await page.goto("/workspace/web-app-fixture?owner");
+  await page.getByRole("button", { name: "Open live browser" }).click();
+  const studio = page.getByRole("dialog", { name: "Web app connection" });
+  await studio.getByRole("button", { name: "Connect system", exact: true }).click();
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toBeVisible();
+  await studio.getByRole("listitem").filter({ hasText: "Reply" }).getByRole("button", { name: "Fix" }).click();
+  await expect(studio.getByText("Click the Reply in the browser.", { exact: false })).toBeVisible();
+  await studio.getByRole("application").click({ position: { x: 100, y: 100 } });
+  await expect.poll(() => commands.includes("click")).toBe(true);
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toBeVisible();
+  await expect(studio.getByRole("button", { name: "Test again", exact: true })).toBeVisible();
+  await studio.getByRole("listitem").filter({ hasText: "Open or start a chat" }).getByRole("button", { name: "Fix" }).click();
+  await expect(studio.getByText("Click the Open or start a chat in the browser.", { exact: false })).toBeVisible();
+  await studio.getByRole("application").click({ position: { x: 100, y: 100 } });
+  await expect(studio.getByRole("button", { name: "Test again", exact: true })).toBeVisible();
+  await studio.getByRole("button", { name: "Test again", exact: true }).click();
+  await expect.poll(() => commands.includes("result")).toBe(true);
+  await expect(studio.getByRole("heading", { name: "What Caudals uses" })).toHaveCount(0);
+  expect(commands.filter(action => action === "autoteach")).toHaveLength(1);
+});
 test("web app studio streams live pixels, teaches in one click and offers repair", async ({ page }) => {
   let teach = "idle", test = "idle", teachError: string | null = null, mode = "control", pickPart: string | null = null;
   const commands: string[] = [];

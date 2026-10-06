@@ -21,6 +21,7 @@ const ERRORS: Record<string, MessageKey> = {
   chat_input_not_found: "webAppErrInput",
   chat_launcher_not_found: "webAppErrLauncher",
   launcher_unavailable: "webAppErrLauncher",
+  conversation_reset_unverified: "webAppErrReset",
   response_not_identified: "webAppErrResponse",
   submit_unverified: "webAppErrSubmit",
   login_required: "webAppErrLogin",
@@ -108,6 +109,7 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
   const [connected, setConnected] = useState(false);
   const [hasFrame, setHasFrame] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [box, setBox] = useState({ width: 0, height: 0 });
   const canvas = useRef<HTMLCanvasElement>(null);
   const surface = useRef<HTMLDivElement>(null);
@@ -188,11 +190,14 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
     previous.current = { teach: state.teach.status, test: state.test.status };
     if (state.test.status === "ready" && !committed.current) {
       committed.current = true;
-      void command({ action: "result", sessionId }).then(() => { setSaved(true); onReady(); }, fail);
+      void command({ action: "result", sessionId }).then(() => { setSaved(true); setRepairing(false); onReady(); }, fail);
     }
     if (state.test.status === "running") { committed.current = false; if (saved) setSaved(false); }
     const failedNow = (before.test !== "failed" && state.test.status === "failed") || (before.teach !== "failed" && state.teach.status === "failed");
-    if (failedNow) void command({ action: state.parts.input && state.parts.response ? "save" : "checkpoint", sessionId }).then(onSaved, fail);
+    if (failedNow) {
+      setRepairing(true);
+      void command({ action: state.parts.input && state.parts.response ? "save" : "checkpoint", sessionId }).then(onSaved, fail);
+    }
   }, [command, fail, onReady, onSaved, saved, sessionId, state]);
 
   // The dialog portal mounts after the first commit, so observe through a callback ref.
@@ -291,7 +296,9 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
   const failure = state?.test.status === "failed" ? state.test.error : state?.teach.status === "failed" ? state.teach.error : null;
   const ready = state?.test.status === "ready" && saved;
   const verified = state?.test.status === "ready";
-  const needsRepair = !!failure && !working && !ready;
+  // A manual selection invalidates the old test. Keep the other Fix actions
+  // and Test again visible until the repaired connection has been saved.
+  const needsRepair = (repairing || !!failure) && !working && !ready;
   const completion = state?.completion === "selector_hidden" ? t("webAppCompletionHidden") : state?.completion === "send_enabled" ? t("webAppCompletionSend") : state?.completion === "quiescent" ? t("webAppCompletionQuiet") : null;
   const reply = state?.test.response || state?.teach.reply;
   const taught = !!(parts.input && parts.response);
@@ -361,7 +368,7 @@ function WebAppStudio({ orgId, targetId, sessionId, command, onClose, onReady, o
         {verified && !saved && <Status>{error ? t("webAppSaveFailed") : t("webAppSaving")}</Status>}
         {verified && !saved && error && <Action onClick={() => {
           setError("");
-          void command({ action: "result", sessionId }).then(() => { setSaved(true); onReady(); }, fail);
+          void command({ action: "result", sessionId }).then(() => { setSaved(true); setRepairing(false); onReady(); }, fail);
         }}>{t("webAppSaveConnection")}</Action>}
 
         {needsRepair && <div className="p-web-parts">

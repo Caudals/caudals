@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { Browser, BrowserContext, CDPSession, Page } from "playwright";
-import { browserProbeEvidenceSchema, probeEvidenceReady, scopedBrowserStorageState, websiteRecipeSchema, type BrowserLocator, type BrowserProbeEvidence, type BrowserStorageState, type WebsiteRecipe } from "../../lib/evals/contracts/browser";
+import { browserProbeEvidenceSchema, probeEvidenceReady, scopedBrowserStorageState, websiteRecipeSchema, websiteTeachExtension, type BrowserLocator, type BrowserProbeEvidence, type BrowserStorageState, type WebsiteRecipe } from "../../lib/evals/contracts/browser";
 import type { RemoteAction, RemoteInputEvent, RemoteRect, RemoteState, RemoteStreamMessage, TeachPart } from "../../lib/evals/contracts/remote-browser";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
 import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, validateWebsiteRecipe } from "../../lib/evals/connectors/browser-executor";
-import { detectChatControls, detectLauncherFor, probeChatReply, type DetectStep } from "../../lib/evals/connectors/browser-autodetect";
+import { detectChatControls, detectLauncherFor, detectResetFor, isNewConversationControl, probeChatReply, type DetectStep } from "../../lib/evals/connectors/browser-autodetect";
 import { selectAt } from "./teach";
 import { cleanWebsiteNavigation, websiteAppNavigation } from "../../lib/evals/contracts/website-navigation";
 import { sameSiteHost } from "../../lib/evals/contracts/website-site";
@@ -16,6 +16,8 @@ type Session = ControlScope & {
   id: string; context: BrowserContext; page: Page; mode: "view" | "control" | "teach"; pickPart: TeachPart | null;
   selections: Partial<Record<TeachPart, BrowserLocator>>; alternates: Partial<Record<TeachPart, BrowserLocator[]>>;
   completion: WebsiteRecipe["completion"] | null;
+  reset: WebsiteRecipe["reset"]; manual: Set<TeachPart>;
+  chatLauncher: BrowserLocator | null; chatLauncherAlternates: BrowserLocator[];
   startUrl?: string;
   /** Conversation URLs a probe message navigated to; a fresh chat never starts there. */
   conversationUrls: Set<string>;
@@ -31,6 +33,7 @@ type Session = ControlScope & {
 const IDLE_MS = 20 * 60_000, LIFETIME_MS = 120 * 60_000, ABANDONED_MS = 3 * 60_000;
 const failureCodes = new Set(["browser_session_expired", "browser_capacity", "browser_busy", "control_required", "teach_required", "selector_ambiguous", "selector_unavailable", "teach_incomplete", "completion_signal_required", "website_frame_unavailable", "recipe_probe_failed", "capture_incomplete", "destination_denied", "destination_invalid", "browser_session_unavailable", "login_required", "website_recipe_origin_mismatch", "chat_input_not_found", "chat_launcher_not_found", "launcher_unavailable", "response_not_identified", "submit_unverified", "target_execution_aborted", "browser_state_too_large", "browser_control_denied"]);
 export function browserControlError(error: unknown) {
+  if (error instanceof Error && error.message === "conversation_reset_unverified") return error.message;
   if (error instanceof Error && failureCodes.has(error.message)) return error.message;
   if (error instanceof Error && error.name === "TimeoutError") return "selector_or_navigation_timeout";
   if (error instanceof Error && /strict mode violation/.test(error.message)) return "selector_ambiguous";
@@ -218,7 +221,7 @@ export class BrowserControl {
     }, session.endpoint);
   }
   private recipe(session: Session) {
-    const { input, submit, response, launcher, busy } = session.selections;
+    const { input, submit, response, busy } = session.selections;
     if (!input || !response) throw new Error("teach_incomplete");
     const url = new URL(session.startUrl ?? session.page.url());
     if (!websiteAppNavigation(session.endpoint, url.toString())) throw new Error("website_recipe_origin_mismatch");
@@ -232,14 +235,15 @@ export class BrowserControl {
       : session.completion?.kind === "send_enabled" ? (submit ? { kind: "send_enabled", locator: submit } : quiet)
       : session.completion ?? quiet;
     const alternates: Record<string, BrowserLocator[]> = {};
-    for (const [part, key] of [["launcher", "launcher"], ["input", "input"], ["submit", "submit"], ["response", "assistant_message"]] as const) {
+    for (const [part, key] of [["launcher", session.reset.kind === "click" ? "reset" : "launcher"], ["input", "input"], ["submit", "submit"], ["response", "assistant_message"]] as const) {
       const list = session.alternates[part];
       if (list?.length && session.selections[part]) alternates[key] = list.slice(0, 3);
     }
-    return websiteRecipeSchema.parse(withContentHash({ schema_version: "1.0", recipe_revision_id: randomUUID(), source: "operator_authored", start_url: url.toString(), launcher: launcher ?? null, frame_chain: [], input,
+    if (session.chatLauncherAlternates.length) alternates.launcher = session.chatLauncherAlternates.slice(0, 3);
+    return websiteRecipeSchema.parse(withContentHash({ schema_version: "1.0", recipe_revision_id: randomUUID(), source: "operator_authored", start_url: url.toString(), launcher: session.chatLauncher, frame_chain: [], input,
       submit: submit ? { kind: "click", locator: submit } : { kind: "press_enter" }, message_container: response, assistant_message: response,
-      completion, reset: { kind: "new_context" }, assistant_extraction: "last_new_message", created_at: new Date().toISOString(),
-      extensions: { "caudals.evals/teach": { version: 2, detected: !!session.completion, ...(Object.keys(alternates).length ? { alternates } : {}) } } }));
+      completion, reset: session.reset, assistant_extraction: "last_new_message", created_at: new Date().toISOString(),
+      extensions: { "caudals.evals/teach": { version: 3, detected: !!session.completion, ...(session.manual.size ? { manual_parts: [...session.manual] } : {}), ...(Object.keys(alternates).length ? { alternates } : {}) } } }));
   }
 
   // ------------------------------------------------------- background work --
@@ -247,29 +251,51 @@ export class BrowserControl {
     session.recipe = undefined; session.evidence = undefined;
     if (session.test.status !== "running") session.test = { ...idle(), response: "" };
   }
+  private stopWork(session: Session) {
+    const work = session.work;
+    session.work = undefined;
+    work?.abort();
+    if (session.teach.status === "running") session.teach = { ...session.teach, status: "failed", step: null, error: "target_execution_aborted" };
+    if (session.test.status === "running") session.test = { ...session.test, status: "failed", step: null, error: "target_execution_aborted" };
+    this.changed(session);
+  }
   private startTest(session: Session) {
-    session.recipe ??= this.recipe(session);
+    let recipe = session.recipe ??= this.recipe(session);
+    if (session.teach.status === "failed") session.teach = { ...session.teach, ...idle() };
     session.test = { status: "running", error: null, step: "fresh_session", response: "" }; session.evidence = undefined;
     const controller = session.work = new AbortController();
     this.changed(session);
     const run = async () => {
-      session.state = await this.captureState(session);
-      return validateWebsiteRecipe({ browser: this.options.browser, destinationCheck: this.options.destinationCheck, recipe: session.recipe!, storageState: session.state, timeoutMs: 75_000, signal: controller.signal,
-        onResponse: response => { session.test.response = response.slice(0, 50_000); session.test.step = "follow_up"; this.changed(session); } });
+      // Older drafts used the launcher field for New conversation too.
+      if (session.reset.kind === "new_context" && session.selections.launcher && await isNewConversationControl(session.page, session.selections.launcher)) {
+        if (controller.signal.aborted) throw new Error("target_execution_aborted");
+        session.reset = { kind: "click", locator: session.selections.launcher };
+        session.chatLauncher = null; session.chatLauncherAlternates = [];
+        recipe = session.recipe = this.recipe(session);
+      }
+      const state = await this.captureState(session);
+      if (controller.signal.aborted) throw new Error("target_execution_aborted");
+      session.state = state;
+      return validateWebsiteRecipe({ browser: this.options.browser, destinationCheck: this.options.destinationCheck, recipe, storageState: state, timeoutMs: 75_000, signal: controller.signal,
+        onResponse: response => { if (session.work === controller) { session.test.response = response.slice(0, 50_000); session.test.step = "follow_up"; this.changed(session); } } });
     };
     void run().then(evidence => {
+      if (session.work !== controller || controller.signal.aborted) return;
       if (!probeEvidenceReady(evidence)) throw new Error("recipe_probe_failed");
       session.evidence = browserProbeEvidenceSchema.parse(evidence); session.test = { ...session.test, status: "ready", step: null };
-    }).catch(error => { session.test = { ...session.test, status: "failed", step: null, error: controller.signal.aborted ? "target_execution_aborted" : browserControlError(error) }; })
+      session.teach = { ...session.teach, status: "ready", error: null, step: null };
+    }).catch(error => { if (session.work === controller) session.test = { ...session.test, status: "failed", step: null, error: controller.signal.aborted ? "target_execution_aborted" : browserControlError(error) }; })
       .finally(() => { if (session.work === controller) session.work = undefined; this.changed(session); });
   }
   /** One click: find the chat, send a probe, learn the reply, verify a fresh load, then test. */
   private startAutoTeach(session: Session) {
+    // Retrying after a manual repair tests that repair instead of overwriting it.
+    if (session.manual.size && session.selections.input && session.selections.response) { this.startTest(session); return; }
     const controller = session.work = new AbortController();
     session.teach = { status: "running", error: null, step: "find_input", reply: "" };
     session.mode = "control"; session.pickPart = null;
     this.invalidate(session);
-    const step = (value: DetectStep) => { session.teach.step = value; this.changed(session); };
+    const step = (value: DetectStep) => { if (session.work === controller) { session.teach.step = value; this.changed(session); } };
     const run = async () => {
       const page = session.page;
       // "Connect again" on a page an earlier probe turned into a conversation
@@ -281,31 +307,47 @@ export class BrowserControl {
         await page.waitForTimeout(1_000);
       }
       const controls = await detectChatControls(page, { onStep: step, signal: controller.signal });
+      if (controller.signal.aborted) throw new Error("target_execution_aborted");
       // Sending the first message can navigate to a conversation-specific URL.
       // A fresh evaluation must start at the composer we found before sending.
       session.startUrl = cleanWebsiteNavigation(page.url());
-      session.selections = { input: controls.input.locator, ...(controls.submit ? { submit: controls.submit.locator } : {}), ...(controls.launcher ? { launcher: controls.launcher.locator } : {}) };
-      session.alternates = { input: controls.input.alternates, submit: controls.submit?.alternates ?? [], launcher: controls.launcher?.alternates ?? [] };
+      const manual = Object.fromEntries([...session.manual].map(part => [part, session.selections[part]]));
+      session.selections = { input: controls.input.locator, ...(controls.submit ? { submit: controls.submit.locator } : {}), ...(controls.launcher ? { launcher: controls.launcher.locator } : {}), ...manual };
+      if (!session.manual.has("launcher")) {
+        session.chatLauncher = controls.launcher?.locator ?? null;
+        session.chatLauncherAlternates = controls.launcher?.alternates ?? [];
+        session.reset = controls.reset ? { kind: "click", locator: controls.reset.locator } : { kind: "new_context" };
+        if (controls.reset) session.selections.launcher = controls.reset.locator;
+      }
+      session.alternates = { input: controls.input.alternates, submit: controls.submit?.alternates ?? [], launcher: controls.reset?.alternates ?? controls.launcher?.alternates ?? [] };
+      for (const part of session.manual) delete session.alternates[part];
       session.completion = null;
       this.changed(session);
       const detected = await probeChatReply(page, controls, { onStep: step, signal: controller.signal });
+      if (controller.signal.aborted) throw new Error("target_execution_aborted");
       const after = cleanWebsiteNavigation(page.url());
       if (after !== session.startUrl) session.conversationUrls.add(after);
       session.selections.response = detected.response.locator; session.alternates.response = detected.response.alternates;
       session.completion = detected.completion; session.teach.reply = detected.reply;
       this.changed(session);
-      if (!controls.launcher) {
+      if (!controls.launcher && !controls.reset && !session.manual.has("launcher")) {
         step("verify_fresh");
         const launcher = await this.freshLauncher(session, controller.signal);
-        if (launcher) { session.selections.launcher = launcher.locator; session.alternates.launcher = launcher.alternates; }
+        if (controller.signal.aborted) throw new Error("target_execution_aborted");
+        if (launcher) {
+          session.selections.launcher = launcher.locator; session.alternates.launcher = launcher.alternates;
+          if (session.reset.kind !== "click") { session.chatLauncher = launcher.locator; session.chatLauncherAlternates = launcher.alternates; }
+        }
       }
       session.recipe = this.recipe(session);
     };
     void run().then(() => {
+      if (session.work !== controller || controller.signal.aborted) return;
       session.teach = { ...session.teach, status: "ready", step: null };
       if (session.work === controller) session.work = undefined;
       this.startTest(session);
     }).catch(error => {
+      if (session.work !== controller) return;
       session.teach = { ...session.teach, status: "failed", step: null, error: controller.signal.aborted ? "target_execution_aborted" : browserControlError(error) };
       if (session.work === controller) session.work = undefined;
       this.changed(session);
@@ -315,9 +357,11 @@ export class BrowserControl {
   private async freshLauncher(session: Session, signal: AbortSignal) {
     const draft = this.recipe(session);
     const state = await this.captureState(session);
+    if (signal.aborted) throw new Error("target_execution_aborted");
     const context = await this.options.browser.newContext({ viewport: { width: 1280, height: 800 }, acceptDownloads: false, serviceWorkers: "block", storageState: scopedBrowserStorageState(state, session.endpoint) });
     const abort = () => { void context.close().catch(() => {}); };
     signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) abort();
     try {
       await guardBrowserContext(context, this.options.destinationCheck);
       await restoreBrowserSessionStorage(context, state);
@@ -329,7 +373,12 @@ export class BrowserControl {
       let root: Page | ReturnType<Page["frameLocator"]> = page;
       for (const frame of draft.input.frames ?? []) root = browserLocator(root, frame).contentFrame();
       const input = browserLocator(root, draft.input).first();
-      if (await input.waitFor({ state: "visible", timeout: 12_000 }).then(() => true, () => false)) return null;
+      if (await input.waitFor({ state: "visible", timeout: 12_000 }).then(() => true, () => false)) {
+        const reset = await detectResetFor(page);
+        if (signal.aborted) throw new Error("target_execution_aborted");
+        if (reset) session.reset = { kind: "click", locator: reset.locator };
+        return reset;
+      }
       if (await loginRequired(page, draft.start_url)) throw new Error("login_required");
       return await detectLauncherFor(page, draft.input);
     } finally {
@@ -375,7 +424,7 @@ export class BrowserControl {
         const image = session.frame?.image ?? (await session.page.screenshot({ type: "jpeg", quality: 60, timeout: 5000 })).toString("base64");
         return { ...state, image, width: session.frame?.width ?? 1280, height: session.frame?.height ?? 800 };
       }
-      case "cancel": session.work?.abort(); return { cancelled: true };
+      case "cancel": this.stopWork(session); return { cancelled: true };
       case "result":
         if (session.test.status !== "ready" || !session.evidence || !session.recipe || !session.state) throw new Error("recipe_probe_failed");
         return { recipe: session.recipe, storageState: session.state, evidence: session.evidence, response: session.test.response };
@@ -396,6 +445,8 @@ export class BrowserControl {
         this.changed(session); return { mode: session.mode };
       case "clear":
         delete session.selections[action.part]; delete session.alternates[action.part];
+        session.manual.add(action.part);
+        if (action.part === "launcher") { session.reset = { kind: "new_context" }; session.chatLauncher = null; session.chatLauncherAlternates = []; }
         if (action.part === "submit" && session.completion?.kind === "send_enabled") session.completion = null;
         this.invalidate(session); this.changed(session); return { cleared: true };
     }
@@ -404,6 +455,11 @@ export class BrowserControl {
       if (!part) throw new Error("teach_required");
       const value = await this.serial(session, () => selectAt(session.page, action.x, action.y, part === "response" || part === "busy"));
       session.selections[part] = value; delete session.alternates[part];
+      session.manual.add(part);
+      if (part === "launcher") {
+        if (await isNewConversationControl(session.page, value)) session.reset = { kind: "click", locator: value };
+        else { session.reset = { kind: "new_context" }; session.chatLauncher = value; session.chatLauncherAlternates = []; }
+      }
       if (part === "submit" && session.completion?.kind === "send_enabled") session.completion = { kind: "send_enabled", locator: value };
       session.mode = "control"; session.pickPart = null;
       this.invalidate(session); this.changed(session);
@@ -455,7 +511,7 @@ export class BrowserControl {
       await guardBrowserContext(context, this.options.destinationCheck);
       await restoreBrowserSessionStorage(context, state);
       const page = await context.newPage();
-      const session: Session = { ...scope, id: randomUUID(), context, page, created: Date.now(), touched: Date.now(), mode: "control", pickPart: null, selections: {}, alternates: {}, completion: null, conversationUrls: new Set(),
+      const session: Session = { ...scope, id: randomUUID(), context, page, created: Date.now(), touched: Date.now(), mode: "control", pickPart: null, selections: {}, alternates: {}, completion: null, reset: { kind: "new_context" }, chatLauncher: null, chatLauncherAlternates: [], manual: new Set(), conversationUrls: new Set(),
         chain: Promise.resolve(), teach: { ...idle(), reply: "" }, test: { ...idle(), response: "" }, frame: null, listeners: new Set(), lastStreamAt: Date.now(), streamed: false, rects: {}, rectsAt: 0, loading: true };
       this.watch(session, page);
       context.on("page", popup => { this.watch(session, popup); session.page = popup; void this.cast(session).catch(() => {}); this.changed(session); });
@@ -463,12 +519,18 @@ export class BrowserControl {
       if (initial?.recipe) {
         const recipe = initial.recipe;
         session.startUrl = recipe.start_url;
+        session.reset = recipe.reset;
         const scoped = (value: BrowserLocator) => ({ ...value, frames: value.frames ?? recipe.frame_chain });
+        session.chatLauncher = recipe.launcher ? scoped(recipe.launcher) : null;
         session.selections = { input: scoped(recipe.input), response: scoped(recipe.assistant_message), ...(recipe.launcher ? { launcher: scoped(recipe.launcher) } : {}), ...(recipe.submit.kind === "click" ? { submit: scoped(recipe.submit.locator) } : {}) };
+        if (recipe.reset.kind === "click") session.selections.launcher = scoped(recipe.reset.locator);
         if (recipe.completion.kind === "selector_hidden") session.completion = recipe.completion;
         else if (recipe.completion.kind === "send_enabled" || recipe.completion.kind === "quiescent") session.completion = recipe.completion;
-        const alternates = (recipe.extensions["caudals.evals/teach"] as { alternates?: Record<string, BrowserLocator[]> } | undefined)?.alternates;
-        if (alternates) session.alternates = { launcher: alternates.launcher, input: alternates.input, submit: alternates.submit, response: alternates.assistant_message };
+        const taught = websiteTeachExtension(recipe);
+        session.manual = new Set(taught?.manual_parts ?? []);
+        const alternates = taught?.alternates;
+        session.chatLauncherAlternates = alternates?.launcher ?? [];
+        if (alternates) session.alternates = { launcher: recipe.reset.kind === "click" ? alternates.reset : alternates.launcher, input: alternates.input, submit: alternates.submit, response: alternates.assistant_message };
       }
       this.sessions.set(session.id, session);
       await this.cast(session).catch(() => {});

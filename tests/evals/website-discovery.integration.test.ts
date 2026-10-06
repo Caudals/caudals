@@ -31,8 +31,9 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("unattended website connection check o
     const directory = mkdtempSync(join(tmpdir(), "evals-discovery-"));
     const key = join(directory, "key.pem"), cert = join(directory, "cert.pem");
     execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
-    const server = createHttpsServer({ key: readFileSync(key), cert: readFileSync(cert) }, (_request, response) => {
+    const server = createHttpsServer({ key: readFileSync(key), cert: readFileSync(cert) }, (request, response) => {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+      if (request.url !== "/help") { response.end("<!doctype html><h1>Marketing page</h1>"); return; }
       response.end(`<!doctype html><h1>Help centre</h1>
         <div class="cookie-banner" style="position:fixed;inset:0;background:#0008"><div style="background:#fff;margin:150px auto;width:420px;padding:20px">
         <p>We use cookies.</p><button onclick="this.closest('.cookie-banner').remove()">Reject all</button><button>Accept all</button></div></div>
@@ -51,7 +52,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("unattended website connection check o
     const orgId = randomUUID(), projectId = randomUUID(), targetId = randomUUID(), revisionId = randomUUID();
     const scope = { orgId, actorId };
     try {
-      const config = { schema_version: "1.0", target_revision_id: revisionId, kind: "website", endpoint: url, recipe_revision_id: null, login_session_id: null,
+      const config = { schema_version: "1.0", target_revision_id: revisionId, kind: "website", endpoint: new URL(url).origin + "/", login_start_url: url, recipe_revision_id: null, login_session_id: null,
         limits: { max_turns: 1, max_output_tokens: 500, max_tool_calls: 0, timeout_ms: 30_000, repetitions: 1 }, requests_per_minute: 60, concurrent_sessions: 1, reset: "fresh_session" };
       const db = await owner.connect();
       try {
@@ -63,7 +64,7 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("unattended website connection check o
         await db.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Help centre')", [projectId, orgId]);
         await db.query("INSERT INTO evals.target(id,org_id,project_id,title) VALUES($1,$2,$3,'Help chat')", [targetId, orgId, projectId]);
         await db.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document) VALUES($1,$2,$3,$4,$5)", [revisionId, orgId, targetId, "a".repeat(64), config]);
-        await db.query("INSERT INTO evals.authorization_record(org_id,project_id,target_id,basis,scope,traffic_limit,expires_at) VALUES($1,$2,$3,'workspace_member_attestation',$4,'{}',now()+interval '1 day')", [orgId, projectId, targetId, { endpoint: url }]);
+        await db.query("INSERT INTO evals.authorization_record(org_id,project_id,target_id,basis,scope,traffic_limit,expires_at) VALUES($1,$2,$3,'workspace_member_attestation',$4,'{}',now()+interval '1 day')", [orgId, projectId, targetId, { endpoint: config.endpoint }]);
         await db.query("COMMIT");
       } catch (error) { await db.query("ROLLBACK"); throw error; } finally { db.release(); }
 
