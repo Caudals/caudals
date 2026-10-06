@@ -163,11 +163,25 @@ Host memory: approximately 7.6 GiB RAM plus 4 GiB swap. 2026-09-28: about
 3 GiB available RAM, 3.2 GiB swap occupied, disk 59/75 GB (81%). 2026-10-03,
 with Warmbly: about 2.8 GiB available, 3.4 GiB swap occupied (0.6 GiB free),
 disk 63 GB used and 11 GB free (86%). These are point-in-time values.
-After the 2026-10-06 migrations and targeted cleanup: atlantic disk about
-45 GiB used / 28 GiB free (62%), about 4.1 GiB available RAM and 1.5 GiB
-swap occupied. Arctic disk about 24 GiB used / 54 GiB free (31%), about
-1.5 GiB available RAM; swap occupancy rose temporarily during transfer and
-render checks. These are point-in-time readings, not workload guarantees.
+After the 2026-10-06 migrations and the additional founder-requested storage
+cleanup: atlantic disk about 33.6 GiB used / 39.7 GiB free (46%), about
+4.3 GiB available RAM and 1.3 GiB swap occupied. Arctic disk about 22.8 GiB
+used / 53.6 GiB free (30%). These are point-in-time readings, not workload
+guarantees.
+
+The additional cleanup reclaimed about 11.5 GiB on atlantic and 0.55 GiB on
+arctic. Twelve unused image revisions and eight stopped Swarm tasks were
+removed, while current service/container images and named volumes stayed
+intact. Build cache is now 0 B on both hosts. Atlántic's pinned build cache
+was released by a controlled Docker restart after verifying idle evaluation
+work; Caudals/Ops probes and all running service replicas recovered.
+
+Snap cleanup removed eight disabled revisions and the unused `core22` base
+on atlantic, cleared download caches and set `refresh.retain=2`. Chromium and
+its declared dependencies stay installed on atlantic; AWS SSM stays active
+on arctic. Postiz/Warmbly public routes and the arctic-to-Ops private path
+passed after cleanup. Root-only audit records are stored per host under
+`/opt/caudals-maintenance-20261006/`.
 Keep per-service limits and bounded render/model concurrency; image extraction
 and deployment can consume significantly more than steady-state usage.
 
