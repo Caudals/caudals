@@ -43,7 +43,7 @@ const WEBSITE_RETRY_DELAYS_MS=[5_000,20_000];
  * all has been captured after two tests.
  */
 async function websiteFailureSystematic(c:PoolClient,orgId:string,runId:string,code:string){
- if(code==="browser_session_unavailable")return true;
+ if(code==="browser_session_unavailable"||code==="website_usage_limit")return true;
  const recent=(await c.query("SELECT status FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status NOT IN ('pending','queued','running','unsupported','canceled') ORDER BY updated_at DESC,id LIMIT 3",[orgId,runId])).rows.map(row=>row.status as string);
  const totals=(await c.query("SELECT count(*) FILTER (WHERE status='succeeded')::int AS ok,count(*) FILTER (WHERE status IN ('capture_incomplete','transport_error','target_error','timeout'))::int AS bad FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[orgId,runId])).rows[0];
  return (recent.length>=3&&recent.every(status=>status!=="succeeded"))||(totals.ok===0&&totals.bad>=2);
@@ -55,6 +55,7 @@ function failureReason(error:unknown){
  if(value==="target_execution_aborted")return {unit:"capture_incomplete",code:value};
  if(value==="browser_session_unavailable"||value==="login_required")return {unit:"unsupported",code:"browser_session_unavailable"};
  if(value==="website_selector_failed")return {unit:"capture_incomplete",code:value};
+ if(value==="website_usage_limit")return {unit:"target_error",code:value};
  if(value==="invalid_credentials")return {unit:"target_error",code:value};
  if(value==="response_shape_invalid"||value.startsWith("target_http_"))return {unit:"target_error",code:value};
  if(value==="destination_denied"||value==="destination_invalid")return {unit:"transport_error",code:value};
@@ -194,7 +195,7 @@ export class TargetExecutionWorker{
     await c.query("UPDATE evals.workflow_step SET status='failed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,failure.code]);
     await event(c,tenant.orgId,claimed.step.workflow_id,"target_failed",failure.code);
     if(website&&["queued","running"].includes(current.workflow.status)&&await websiteFailureSystematic(c,tenant.orgId,claimed.input.runId,failure.code)){
-     const repair=failure.code==="browser_session_unavailable"?failure.code:failure.code==="website_selector_failed"?failure.code:"capture_incomplete";
+     const repair=["browser_session_unavailable","website_selector_failed","website_usage_limit"].includes(failure.code)?failure.code:"capture_incomplete";
      await c.query("INSERT INTO evals.connection_check(org_id,target_revision_id,status,error_code,probe_evidence,completed_at) VALUES($1,$2,'needs_operator',$3,'{\"kind\":\"browser_execution_repair\"}',now())",[tenant.orgId,claimed.input.targetRevisionId,repair]);
      await c.query("UPDATE evals.workflow_step SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND workflow_id=$2 AND status='queued'",[tenant.orgId,claimed.step.workflow_id,repair]);
      await c.query("UPDATE evals.execution_workflow SET status='paused',reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.workflow_id,repair]);

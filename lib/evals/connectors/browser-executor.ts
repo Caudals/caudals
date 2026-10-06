@@ -110,6 +110,26 @@ export function newAssistantMessages(previous: string[], current: string[], prom
 }
 const joinTurn = (messages: string[]) => messages.map((value) => value.trim()).filter(Boolean).join("\n\n");
 
+// Only explicit limits in visible application dialogs/banners count. An
+// assistant discussing quotas in its answer is still ordinary reply content.
+const USAGE_LIMIT = new Function("els", `
+  const exhausted=/(?:reached|exceeded).{0,80}(?:limit|quota)|(?:limit|quota).{0,60}(?:reached|exceeded|exhausted)|(?:alcanzad[oa]|superad[oa]|agotad[oa]).{0,80}(?:l[ií]mite|cupo|cuota|cr[eé]ditos|interacciones)|(?:l[ií]mite|cupo|cuota|cr[eé]ditos).{0,60}(?:alcanzad[oa]|superad[oa]|agotad[oa])|(?:no|insufficient|not enough) (?:remaining |available )?credits|sin cr[eé]ditos/i;
+  return els.some(el=>{
+    const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+    if(r.width<4||r.height<4||s.display==='none'||s.visibility==='hidden'||Number(s.opacity)<0.05)return false;
+    if(el.querySelector('textarea,[contenteditable="true"],[role="textbox"]')||el.closest('[data-message-author-role],.message-assistant,.assistant-message,.bot-message'))return false;
+    return exhausted.test((el.innerText||el.textContent||'').replace(/\\s+/g,' ').slice(0,6000));
+  });
+`) as (elements: Element[]) => boolean;
+export async function websiteUsageLimitReached(root: FrameLike) {
+  if ("frames" in root) {
+    for (const frame of root.frames()) if (await websiteUsageLimitReached(frame)) return true;
+    return false;
+  }
+  return root.locator('[role="dialog"],[aria-modal="true"],[role="alert"],[class*="modal" i],[class*="overlay" i],[class*="quota" i],[id*="quota" i],[class*="limit" i],[id*="limit" i]')
+    .evaluateAll(USAGE_LIMIT);
+}
+
 /** Network and WebSocket activity, so completion never relies on text stability alone. */
 export type PageActivity = { inflight(): number; lastActivity(): number; mark(): void; dispose(): void };
 export function trackPageActivity(page: Page): PageActivity {
@@ -147,6 +167,7 @@ export async function waitForCompletion(
   let candidate = "";
   const waitStarted = Date.now();
   let lastActionCheck = 0;
+  let lastLimitCheck = 0;
   let changedAt = 0;
   let prior = "";
   let busySeen = false;
@@ -179,6 +200,10 @@ export async function waitForCompletion(
       signalMissed = busySeen && !enabled;
     }
     const messages = await textSnapshot(root, recipe);
+    if (Date.now() - lastLimitCheck >= 1_000) {
+      lastLimitCheck = Date.now();
+      if (await websiteUsageLimitReached(root)) throw new Error("website_usage_limit");
+    }
     const fresh = newAssistantMessages(previous, messages, prompt);
     // Every bubble the turn added counts: basic bots split one reply into several.
     candidate =
@@ -222,6 +247,7 @@ export async function sendWebsitePrompt(
   const recipe = { frame_chain: parts.frame_chain ?? [] };
   const input = resolved?.input ?? locator(root, recipe, parts.input).first();
   const page = input.page();
+  if (await websiteUsageLimitReached(page)) throw new Error("website_usage_limit");
   await dismissConsent(page);
   await input.click({ timeout: 10_000 }).catch(() => input.focus({ timeout: 5_000 }));
   const editable = await input.evaluate(new Function("el", "return el.isContentEditable && !('value' in el)") as (element: Element) => boolean);
@@ -609,6 +635,7 @@ const MARK_ACTIONS = new Function("el", `
   const visit = root => { for (const node of root.querySelectorAll(${JSON.stringify(ACTION_SELECTOR)})) all.push(node); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) visit(node.shadowRoot); };
   visit(el.getRootNode && el.getRootNode().querySelectorAll ? el.getRootNode() : el.ownerDocument);
   window.__caudalsSeenActions = new WeakSet(all);
+  window.__caudalsChatInput = el;
 `) as (element: Element) => void;
 // Buttons added since MARK_ACTIONS, in the chat panel (from a message: the
 // nearest ancestor holding a text box; from the input: its whole document).
@@ -620,12 +647,22 @@ const COLLECT_ACTIONS = new Function("el", "fromMessage", `
   const visible = node => { const r = node.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return false; const s = getComputedStyle(node); return s.visibility !== 'hidden' && s.display !== 'none' && Number(s.opacity) > 0.05; };
   let panel = el.getRootNode && el.getRootNode().querySelectorAll ? el.getRootNode() : el.ownerDocument;
   if (fromMessage) { panel = el; for (let i = 0; i < 14 && panel.parentElement; i++) { panel = panel.parentElement; if (panel.querySelector(box)) break; } }
-  const composer = panel.querySelector ? panel.querySelector(box) : null;
+  const composer = window.__caudalsChatInput && window.__caudalsChatInput.isConnected ? window.__caudalsChatInput : panel.querySelector ? panel.querySelector(box) : null;
+  const parentOf = node => node.parentElement || (node.getRootNode && node.getRootNode().host) || null;
+  const outsideChat = node => {
+    for(let cur=node,depth=0;cur&&depth<24;cur=parentOf(cur),depth++){
+      if(composer && cur.contains(composer)) break;
+      const hint=(cur.id||'')+' '+(typeof cur.className==='string'?cur.className:'');
+      if(cur.matches('nav,aside,header,footer,[role="navigation"],[role="complementary"],[role="banner"],[role="contentinfo"],[role="dialog"],[aria-modal="true"]') || /sidebar|conversation[-_ ]?(list|title)|chat[-_ ]?list|history[-_ ]?list|modal|overlay|announcement|promo|popover/i.test(hint))return true;
+    }
+    return false;
+  };
   const nodes = []; const visit = root => { for (const node of root.querySelectorAll(${JSON.stringify(ACTION_SELECTOR)})) nodes.push(node); for (const node of root.querySelectorAll('*')) if (node.shadowRoot) visit(node.shadowRoot); };
   visit(panel);
   const chrome = /^(send|send message|enviar|enviar mensaje|submit|close|cerrar|minimi[sz]e|minimizar|menu|menú|attach|adjuntar|emoji|copy|copiar|like|dislike|me gusta|no me gusta|feedback|reset|reiniciar|restart|new chat|nuevo chat|nueva conversaci[oó]n|expand|ampliar|more|más|options|opciones|share|compartir|x|×|✕|👍|👎|ver más|see more|leer más|read more|copiar texto|copiar respuesta|copy text|copy answer|copy response|copy to clipboard|copiar al portapapeles|regenerar|regenerate|volver a generar)$/i;
   const out = [];
   for (const node of nodes) {
+    if (outsideChat(node)) continue;
     if (seen ? seen.has(node) : !(el.contains(node) || (el.compareDocumentPosition(node) & 4))) continue;
     if (!visible(node) || node.disabled || node.getAttribute('aria-disabled') === 'true') continue;
     if (composer && node.parentElement && (node.parentElement.contains(composer) || (node.parentElement.parentElement && node.parentElement.parentElement.contains(composer) && !node.parentElement.parentElement.contains(el)))) continue;
@@ -920,7 +957,7 @@ export async function validateWebsiteRecipe(args: {
       });
     } catch (error) {
       args.onProbeFailed?.({ probe: index + 1, attempt, code: error instanceof Error ? (/^[a-z][a-z0-9_]{2,60}$/.test(error.message) ? error.message : error.name) : "unknown", ms: Date.now() - started });
-      if (attempt >= 2 || args.signal?.aborted || (error instanceof Error && error.message === "website_completion_unverified")) throw error;
+      if (attempt >= 2 || args.signal?.aborted || (error instanceof Error && ["website_completion_unverified", "website_usage_limit"].includes(error.message))) throw error;
       return probeOnce(index, prompt, attempt + 1);
     }
   };

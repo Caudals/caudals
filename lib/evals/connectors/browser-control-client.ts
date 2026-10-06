@@ -17,6 +17,7 @@ export const browserControlMessages: Record<string, string> = {
   completion_signal_required: "Select a send button that disables during streaming, or teach a loading indicator while it is visible.",
   selector_or_navigation_timeout: "The page or selected element timed out. Sign in again or repair the connector in the live browser.",
   capture_incomplete: "The response did not finish. Teach the app's loading indicator or a send button that disables during streaming, then test again.",
+  website_usage_limit: "The website reports that its interaction or credit limit has been reached. Try again when that website allows more messages.",
   recipe_probe_failed: "The connection could not capture complete replies after a fresh-session reset. Repair the response or completion element in the live browser.",
   login_required: "The app is asking you to sign in. Use the live browser to sign in, then run Connect system again.",
   website_recipe_origin_mismatch: "Return to the configured app before teaching or saving its connector.",

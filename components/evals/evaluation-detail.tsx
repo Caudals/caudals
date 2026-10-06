@@ -313,7 +313,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         </Status>
       )}
 
-      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
+      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable", "website_usage_limit"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
 
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
@@ -370,7 +370,9 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         <Panel title={t("runPausedTitle")}>
           <p>
             {t("runPausedProgress").replace("{done}", String(counts.answered)).replace("{total}", String(counts.total))}{" "}
-            {run.run.reason_code === "browser_session_unavailable"
+            {run.run.reason_code === "website_usage_limit"
+              ? t("webAppErrUsageLimit")
+              : run.run.reason_code === "browser_session_unavailable"
               ? t("runPausedLoginHelp")
               : ["capture_incomplete", "website_selector_failed"].includes(run.run.reason_code ?? "")
                 ? t("runPausedWebsiteHelp")

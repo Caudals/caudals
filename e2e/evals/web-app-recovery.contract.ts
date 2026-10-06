@@ -10,7 +10,7 @@ import type { RemoteState } from "../../lib/evals/contracts/remote-browser";
 import { websiteRecipeSchema, type WebsiteRecipe } from "../../lib/evals/contracts/browser";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
 import { autoDetectWebsiteRecipe } from "../../lib/evals/connectors/browser-autodetect";
-import { dismissConsent, invokeWebsite, openWebsiteAttemptSession, validateWebsiteRecipe } from "../../lib/evals/connectors/browser-executor";
+import { dismissConsent, invokeWebsite, openWebsiteAttemptSession, validateWebsiteRecipe, websiteUsageLimitReached } from "../../lib/evals/connectors/browser-executor";
 
 // An authenticated SPA restores its server-side conversation in every new
 // browser. Sending a prompt also adds a longer, clickable title in the sidebar.
@@ -80,6 +80,16 @@ test.beforeAll(async () => {
       return;
     }
     if (path === "/no-reset") { response.end(html.replace("await fetch(api,{method:'DELETE'});", "return;")); return; }
+    if (["/chrome", "/blocked", "/limit", "/choices"].includes(path)) {
+      const addReply = "const a=document.createElement('p');a.className='assistant-message';a.textContent=row.reply;thread.append(a);";
+      const popup = path === "/limit"
+        ? '<div class="modal-backdrop-plan"><div class="modal-plan-body"><h2>Límite de interacciones</h2><p>Has alcanzado el límite de interacciones permitido en tu plan.</p><a href="/plans">Mejorar mi plan</a><button>Cerrar</button></div></div>'
+        : '<div role="dialog" class="modal-announcement"><h2>Latest product news</h2><a href="/plans">View plans</a><button>Explore features</button></div>';
+      const replacement = path === "/choices"
+        ? "thread.insertAdjacentHTML('beforeend','<div class=choices><button>Option one</button><button>Option two</button></div>');"
+        : "document.body.insertAdjacentHTML('beforeend'," + JSON.stringify(popup) + ");" + (path === "/chrome" ? "setTimeout(()=>{" + addReply + "},6000);" : "");
+      response.end(html.replaceAll(addReply, replacement)); return;
+    }
     response.end(path === "/notice" ? html.replace("<style>", `<div id="notice-overlay" hidden style="position:fixed;inset:0;z-index:9999;background:white">
       <h2>Join our next webinar</h2><button onclick="document.body.dataset.reserved='yes'">Reserve a place</button>
       <span aria-label="Cerrar anuncio" style="position:absolute;top:-100px;cursor:pointer" onclick="this.parentElement.remove()">×</span></div>
@@ -160,6 +170,47 @@ test("a manually selected new-conversation button is honored even when the input
     const answer = await invokeWebsite({ browser, recipe: result.recipe, destinationCheck, input: question("After repair"), context: invocation() });
     expect(answer.messages.at(-1)?.content).toBe("The connection works. Turn 1");
   } finally { await control.close(); }
+});
+
+test("new sidebar titles and standalone popups cannot complete a reply before the assistant answers", async () => {
+  const answer = await invokeWebsite({ browser, recipe: legacyRecipe("/chrome"), destinationCheck, input: question("Check delayed capture"), context: invocation() });
+  expect(answer.messages.at(-1)?.content).toBe("The connection works. Turn 1");
+  expect(answer.extensions["caudals.evals/browser"]).not.toHaveProperty("actions");
+});
+
+test("a popup with clickable controls and no assistant answer is not a successful empty capture", async () => {
+  const session = await openWebsiteAttemptSession({ browser, recipe: legacyRecipe("/blocked"), destinationCheck });
+  try {
+    await expect(session.invoke(question("Check blocked capture"), { ...invocation(), deadline: new Date(Date.now() + 6_000).toISOString() })).rejects.toThrow("capture_incomplete");
+  } finally { await session.close(); }
+});
+
+test("usage-limit dialogs stop detection and execution without retries or dismissing the limit", async () => {
+  const recipe = legacyRecipe("/limit"), session = await openWebsiteAttemptSession({ browser, recipe, destinationCheck });
+  try {
+    await expect(session.invoke(question("Check limit"), invocation())).rejects.toThrow("website_usage_limit");
+    await expect(browser.contexts()[0].pages()[0].locator(".modal-backdrop-plan")).toBeVisible();
+  } finally { await session.close(); }
+  let failedProbes = 0;
+  await expect(validateWebsiteRecipe({ browser, recipe, destinationCheck, onProbeFailed: () => { failedProbes++; } })).rejects.toThrow("website_usage_limit");
+  expect(failedProbes).toBe(1);
+  await expect(autoDetectWebsiteRecipe({ browser, url: origin + "/limit", destinationCheck, recipeRevisionId: randomUUID() })).rejects.toThrow("website_usage_limit");
+  // Discussing quotas in a reply is not a limit enforced by the website.
+  const context = await browser.newContext(), page = await context.newPage();
+  try {
+    await page.setContent('<div class="message-assistant"><div role="alert">You have reached the limit in this hypothetical example.</div></div><div class="modal" hidden>Has alcanzado el límite de interacciones.</div>');
+    expect(await websiteUsageLimitReached(page)).toBe(false);
+    await page.setContent('<iframe title="Chat"></iframe>');
+    await page.locator("iframe").evaluate((frame: HTMLIFrameElement) => { frame.srcdoc = '<div role="dialog">You have reached your interaction limit.</div>'; });
+    await page.frameLocator("iframe").getByRole("dialog").waitFor();
+    expect(await websiteUsageLimitReached(page)).toBe(true);
+  } finally { await context.close(); }
+});
+
+test("actual buttons-only assistant choices are still captured", async () => {
+  const answer = await invokeWebsite({ browser, recipe: legacyRecipe("/choices"), destinationCheck, input: question("Show the available choices"), context: invocation() });
+  expect(answer.status).toBe("succeeded");
+  expect(answer.extensions["caudals.evals/browser"]).toMatchObject({ actions: ["Option one", "Option two"] });
 });
 
 test("keeps a closed widget's opener and its new-conversation action in the same recipe", async () => {

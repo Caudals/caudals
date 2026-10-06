@@ -33,7 +33,7 @@ type Session = ControlScope & {
 const IDLE_MS = 20 * 60_000, LIFETIME_MS = 120 * 60_000, ABANDONED_MS = 3 * 60_000;
 const failureCodes = new Set(["browser_session_expired", "browser_capacity", "browser_busy", "control_required", "teach_required", "selector_ambiguous", "selector_unavailable", "teach_incomplete", "completion_signal_required", "website_frame_unavailable", "recipe_probe_failed", "capture_incomplete", "destination_denied", "destination_invalid", "browser_session_unavailable", "login_required", "website_recipe_origin_mismatch", "chat_input_not_found", "chat_launcher_not_found", "launcher_unavailable", "response_not_identified", "submit_unverified", "target_execution_aborted", "browser_state_too_large", "browser_control_denied"]);
 export function browserControlError(error: unknown) {
-  if (error instanceof Error && error.message === "conversation_reset_unverified") return error.message;
+  if (error instanceof Error && ["conversation_reset_unverified", "website_usage_limit"].includes(error.message)) return error.message;
   if (error instanceof Error && failureCodes.has(error.message)) return error.message;
   if (error instanceof Error && error.name === "TimeoutError") return "selector_or_navigation_timeout";
   if (error instanceof Error && /strict mode violation/.test(error.message)) return "selector_ambiguous";

@@ -510,6 +510,7 @@ export class BrowserJobWorker {
         error instanceof Error &&
         [
           "capture_incomplete",
+          "website_usage_limit",
           "recipe_probe_failed",
           "website_frame_unavailable",
           "connection_unsupported",
