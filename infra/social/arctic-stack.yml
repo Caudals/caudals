@@ -1,0 +1,195 @@
+version: "3.8"
+
+# Postiz on arctic (moved from atlantic on 2026-10-06), with its own PostgreSQL
+# and the Temporal server it uses, instead of atlantic's shared services.
+#
+# Postiz holds the OAuth tokens of the company LinkedIn and X accounts, so:
+#   - PostgreSQL, Redis and Temporal sit on `social-private`, an internal
+#     overlay with no route outside the host. Only Postiz and Temporal join it.
+#   - Nothing publishes a port. Postiz is reached only through Traefik on
+#     dokploy-network at postiz.caudals.com, exactly as on atlantic.
+#   - Every credential is a Docker secret; none appears in this spec.
+# The secrets keep their atlantic names and the services keep the hostnames
+# Postiz and Temporal already use (caudals-postgres, caudals-social-redis,
+# caudals-workflow-temporal), as aliases on social-private only.
+#
+# Deploy on arctic: sudo docker stack deploy -c arctic-stack.yml caudals-social
+
+services:
+  db:
+    image: postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea # 16-alpine
+    networks:
+      social-private:
+        aliases:
+          - caudals-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/social_db_superuser_password
+    secrets:
+      - social_db_superuser_password
+    volumes:
+      - social-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    deploy:
+      replicas: 1
+      restart_policy: {condition: any, delay: 10s}
+      resources:
+        limits: {memory: 384M}
+
+  redis:
+    image: redis@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952 # 7.4.2-alpine
+    networks:
+      social-private:
+        aliases:
+          - caudals-social-redis
+    secrets:
+      - postiz_redis_password
+    volumes:
+      - social-redis-data:/data
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        REDIS_PASSWORD="$$(tr -d '\r\n' </run/secrets/postiz_redis_password)"
+        cat >/tmp/redis.conf <<EOF
+        bind 0.0.0.0
+        port 6379
+        protected-mode yes
+        dir /data
+        appendonly yes
+        appendfsync everysec
+        save 60 1000
+        maxmemory 128mb
+        maxmemory-policy noeviction
+        requirepass $${REDIS_PASSWORD}
+        EOF
+        exec redis-server /tmp/redis.conf
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 | grep -Eq 'PONG|NOAUTH'"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+    deploy:
+      replicas: 1
+      restart_policy: {condition: any, delay: 10s}
+      resources:
+        limits: {memory: 192M}
+
+  temporal:
+    image: temporalio/server@sha256:b021b3b58c3f169634cdbb0451fcc0e69e8190b40454323362c7c52bbd4ff7b9 # 1.31.0
+    networks:
+      social-private:
+        aliases:
+          - caudals-workflow-temporal
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: temporal
+      POSTGRES_SEEDS: caudals-postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      BIND_ON_IP: 0.0.0.0
+      LOG_LEVEL: info
+    secrets:
+      - temporal_postgres_password
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        cat > /tmp/caudals-temporal-dynamicconfig.yaml <<'YAML'
+        limit.maxIDLength:
+          - value: 255
+            constraints: {}
+        YAML
+        export POSTGRES_PWD="$$(tr -d '\r\n' </run/secrets/temporal_postgres_password)"
+        export SQL_PASSWORD="$$POSTGRES_PWD"
+        export DYNAMIC_CONFIG_FILE_PATH=/tmp/caudals-temporal-dynamicconfig.yaml
+        exec /etc/temporal/entrypoint.sh
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    deploy:
+      replicas: 1
+      restart_policy: {condition: any, delay: 10s}
+      resources:
+        limits: {memory: 512M}
+
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app@sha256:785f97312f66a347fb96cdccc4ded5a33ced69a672c89a9adc8054e7d6a21dc5
+    networks:
+      social-private: {}
+      dokploy-network:
+        aliases:
+          - caudals-social-postiz
+          - caudals-postiz
+    environment:
+      MAIN_URL: https://postiz.caudals.com
+      FRONTEND_URL: https://postiz.caudals.com
+      NEXT_PUBLIC_BACKEND_URL: https://postiz.caudals.com/api
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      TEMPORAL_ADDRESS: caudals-workflow-temporal:7233
+      TEMPORAL_NAMESPACE: postiz
+      IS_GENERAL: "true"
+      RUN_CRON: "true"
+      DISABLE_REGISTRATION: "true"
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      API_LIMIT: "300"
+      NX_ADD_PLUGINS: "false"
+      NODE_OPTIONS: --max-old-space-size=896
+    secrets:
+      - postiz_env
+    volumes:
+      - postiz-config:/config
+      - postiz-uploads:/uploads
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -eu
+        set -a
+        . /run/secrets/postiz_env
+        set +a
+        exec sh -c "nginx && pnpm run pm2"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:5000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+    deploy:
+      replicas: 1
+      restart_policy: {condition: any, delay: 20s}
+      resources:
+        # The orchestrator bundles its workflows at start and peaks ~1.3 GB.
+        limits: {memory: 2560M}
+        reservations: {memory: 512M}
+
+networks:
+  social-private:
+    driver: overlay
+    internal: true
+  dokploy-network:
+    external: true
+
+volumes:
+  social-db-data:
+  social-redis-data:
+  postiz-config:
+  postiz-uploads:
+
+secrets:
+  social_db_superuser_password: {external: true}
+  postiz_env: {external: true}
+  postiz_redis_password: {external: true}
+  temporal_postgres_password: {external: true}

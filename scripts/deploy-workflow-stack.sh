@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Postiz and Temporal moved to arctic on 2026-10-06 (infra/social/arctic-stack.yml).
+# Running this on atlantic would start a second Postiz against the old data.
+if [[ "$(hostname)" == "atlantic" && "${CAUDALS_ALLOW_ATLANTIC_SOCIAL:-}" != "1" ]]; then
+  echo "Postiz/Temporal now run on arctic; see infra/social/arctic-stack.yml. Set CAUDALS_ALLOW_ATLANTIC_SOCIAL=1 only to roll back." >&2
+  exit 1
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACK_NAME="${CAUDALS_WORKFLOW_STACK_NAME:-caudals-workflow}"
 NETWORK="${CAUDALS_WORKFLOW_NETWORK:-dokploy-network}"
