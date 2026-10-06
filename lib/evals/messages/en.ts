@@ -1432,6 +1432,7 @@ export const messages = {
   webAppErrSubmit: "The test message wasn't sent. Use Fix next to Send button and click the app's Send button.",
   webAppErrLogin: "The app asked to sign in. Sign in in the browser, then select Connect system again.",
   webAppErrIncomplete: "The reply didn't finish in time. Test again; if it keeps happening, use Fix next to Loading indicator.",
+  webAppErrUsageLimit: "This website has reached its interaction or credit limit. Try again when it allows more messages.",
   webAppErrProbe: "Fresh sessions did not return complete replies. Connect again, or fix the Reply.",
   webAppErrChanged: "The page changed or an element couldn't be found. Connect system again to repair the connection.",
   webAppErrOrigin: "Go back to your app's address before connecting: the chatbot must be on this system's site.",

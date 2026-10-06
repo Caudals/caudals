@@ -157,4 +157,17 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("website run resilience on PostgreSQL"
     await controlRun(f.scope, f.run.id, "cancel");
     expect(await runRow(f.run.id)).toMatchObject({ status: "partial", phase: "grading" });
   }, 30000);
+
+  it("pauses immediately on a website usage limit without retrying or grading an empty reply", async () => {
+    const f = await seed(3);
+    let calls = 0;
+    const worker = new TargetExecutionWorker({ tx, keys: new Map(), actorId: f.scope.actorId, workerId: randomUUID(), execute: async () => {
+      calls++; throw new Error("website_usage_limit");
+    } });
+    await drain(f.orgId, f.run.id, worker);
+    expect(calls).toBe(1);
+    expect(await runRow(f.run.id)).toMatchObject({ status: "paused", reason_code: "website_usage_limit" });
+    expect((await owner.query("SELECT error_code FROM evals.connection_check WHERE target_revision_id=$1 AND status='needs_operator'", [f.revisionId])).rows).toEqual([{ error_code: "website_usage_limit" }]);
+    expect((await owner.query("SELECT count(*)::int AS n FROM evals.observation WHERE run_id=$1", [f.run.id])).rows[0].n).toBe(0);
+  }, 30000);
 });

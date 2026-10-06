@@ -1401,6 +1401,7 @@ export const es: Partial<Record<MessageKey, string>> = {
   webAppErrSubmit: "El mensaje de prueba no se envió. Usa Corregir junto a Botón de enviar y haz clic en el botón de enviar de la aplicación.",
   webAppErrLogin: "La aplicación pide iniciar sesión. Inicia sesión en el navegador y vuelve a seleccionar Conectar sistema.",
   webAppErrIncomplete: "La respuesta no terminó a tiempo. Prueba de nuevo; si se repite, usa Corregir junto a Indicador de carga.",
+  webAppErrUsageLimit: "Este sitio ha alcanzado su límite de interacciones o créditos. Prueba de nuevo cuando permita más mensajes.",
   webAppErrProbe: "Las sesiones nuevas no devolvieron respuestas completas. Vuelve a conectar o corrige la Respuesta.",
   webAppErrChanged: "La página ha cambiado o no se encuentra un elemento. Vuelve a conectar el sistema para reparar la conexión.",
   webAppErrOrigin: "Vuelve a la dirección de tu aplicación antes de conectar: el chatbot debe estar en el sitio de este sistema.",

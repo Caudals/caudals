@@ -113,7 +113,9 @@ Capture rules for real, imperfect chatbots (`docs/evals/grading-engine.md`):
 - after the completion signal a 1.5 s settle window catches late bubbles;
 - quick-reply buttons added with the reply are recorded in
   `caudals.evals/browser.actions` and shown to the judge and the customer; a
-  reply made only of buttons completes on network quiet;
+  reply made only of buttons completes on network quiet. Sidebar titles,
+  navigation and standalone dialogs are excluded, so an upgrade popup cannot
+  become a successful empty reply;
 - guided follow-up: when exactly one button's label clearly matches the
   question (shared word stems ≥ 50 %, unique best), the executor clicks it, at
   most twice, never for links leaving the page or purchase, contact, sign-in,
@@ -124,6 +126,12 @@ A probe qualifies when both fresh sessions captured a complete, new,
 duplicate-free reply and the reset held (`probeEvidenceReady`). Identical
 replies to different prompts are recorded (`distinct_responses`) but allowed:
 rule-based assistants answer many questions with one sentence.
+
+An explicit website interaction/credit limit in a visible dialog or banner
+stops with `website_usage_limit`. Detection/probes do not retry that failure;
+evaluation runs pause immediately with the same actionable reason. No empty
+answer is recorded or graded, and the remaining tests can resume when the
+website permits more messages.
 
 Unattended connection checks run the same detection headlessly with the saved
 login and authenticated start page, so many public chatbots connect without
@@ -246,14 +254,16 @@ both. Configuration and encrypted state remain in existing additive tables.
   first three assistants echo the question.
 - `tests/evals/website-run-resilience-db.test.ts`: retries in a fresh browser,
   a run that keeps going past one failing test, the systematic pause with its
-  repair check, resume, and finishing with the captured answers.
+  repair check, resume, finishing with the captured answers, and a usage-limit
+  pause after one attempt with no empty observation.
 - `e2e/evals/web-app-fixture.contract.ts`: batched human input, popup SSO,
   manual Fix of each part in nested frames, encrypted-state reuse and
   normalized eval execution.
 - `e2e/evals/web-app-recovery.contract.ts`: server-restored conversation
   history, sidebar title exclusion, automatic and manual New conversation
   reset, delayed reset completion, late announcement dismissal, protected
-  authentication/agreement dialogs, and Stop followed by an immediate retry.
+  authentication/agreement dialogs, Stop followed by an immediate retry,
+  popup controls excluded from capture, and explicit usage-limit failures.
 - `tests/evals/website-discovery.integration.test.ts`: queued detection uses
   the saved app path and persists a ready check on the newest target revision.
 - `e2e/evals/browser-fixture.contract.ts`: streaming pauses, selector drift,

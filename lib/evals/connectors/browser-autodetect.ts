@@ -1,7 +1,7 @@
 import type { Browser, ElementHandle, Frame, Page } from "playwright";
 import type { BrowserLocator, WebsiteRecipe } from "../contracts/browser";
 import { scopedBrowserStorageState, type BrowserStorageState } from "../contracts/browser";
-import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, sendWebsitePrompt, trackPageActivity, type PageActivity } from "./browser-executor";
+import { browserLocator, dismissConsent, guardBrowserContext, loginRequired, restoreBrowserSessionStorage, sendWebsitePrompt, trackPageActivity, websiteUsageLimitReached, type PageActivity } from "./browser-executor";
 import { frameChain, locatorCandidates, pageScript, resilientLocator } from "./browser-locators";
 
 /**
@@ -206,8 +206,8 @@ const READ_REPLY = `(prompt) => {
   const outsideChat = el => {
     for (const node of [el, ...ancestry(el, 12)]) {
       if (input && node.contains(input)) break;
-      if (node.matches('nav,aside,[role="navigation"],[role="complementary"]') ||
-          /sidebar|conversation[-_ ]?(list|title)|chat[-_ ]?list|history[-_ ]?list/i.test(described(node))) return true;
+      if (node.matches('nav,aside,[role="navigation"],[role="complementary"],[role="dialog"],[aria-modal="true"]') ||
+          /sidebar|conversation[-_ ]?(list|title)|chat[-_ ]?list|history[-_ ]?list|modal|overlay|announcement|promo|popover/i.test(described(node))) return true;
     }
     return !!el.closest('button,a,[role="button"],[role="menuitem"],[role="option"]');
   };
@@ -473,6 +473,7 @@ export async function probeChatReply(page: Page, controls: DetectedControls, opt
     let replyFrame: Frame | null = null;
     while (Date.now() < deadline) {
       if (options.signal?.aborted) throw new Error("target_execution_aborted");
+      for (const frame of liveFrames(page)) if (await websiteUsageLimitReached(frame)) throw new Error("website_usage_limit");
       const state = await readReply(page, prompt);
       if (state.stop && !stopLocator) { sawStop = true; stopLocator = await signalLocator(page, "data-caudals-stop"); }
       if (state.busy && !busyLocator) { sawBusy = true; busyLocator = await signalLocator(page, "data-caudals-busy"); }

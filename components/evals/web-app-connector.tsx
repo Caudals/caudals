@@ -27,6 +27,7 @@ const ERRORS: Record<string, MessageKey> = {
   login_required: "webAppErrLogin",
   browser_session_unavailable: "webAppErrLogin",
   capture_incomplete: "webAppErrIncomplete",
+  website_usage_limit: "webAppErrUsageLimit",
   recipe_probe_failed: "webAppErrProbe",
   selector_unavailable: "webAppErrChanged",
   selector_ambiguous: "webAppErrChanged",
@@ -45,6 +46,7 @@ const REPAIRS: Record<string, MessageKey> = {
   selector_unavailable: "webAppRepairChanged",
   launcher_unavailable: "webAppRepairChanged",
   capture_incomplete: "webAppRepairIncomplete",
+  website_usage_limit: "webAppErrUsageLimit",
 };
 const errorText = (code: string | null | undefined) => t(ERRORS[code ?? ""] ?? "webAppErrGeneric");
 const ENDED = new Set(["lifetime", "idle", "abandoned", "closed", "shutdown", "browser_session_expired", "browser_control_denied"]);
