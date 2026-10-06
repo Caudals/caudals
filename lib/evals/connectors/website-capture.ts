@@ -17,12 +17,18 @@ type CaptureOptions = {
 
 type PageText = { title: string; text: string; links: string[] };
 
-export function approvedWebsiteUrl(raw: string): URL {
+function publicWebsiteUrl(raw: string): URL {
   let url: URL;
   try { url = new URL(raw); } catch { throw new Error("website_url_invalid"); }
-  if (url.protocol !== "https:" || url.username || url.password || url.port || url.search || url.hash) {
+  if (url.protocol !== "https:" || url.username || url.password || url.port) {
     throw new Error("website_url_invalid");
   }
+  return url;
+}
+
+export function approvedWebsiteUrl(raw: string): URL {
+  const url = publicWebsiteUrl(raw);
+  if (url.search || url.hash) throw new Error("website_url_invalid");
   return url;
 }
 
@@ -58,18 +64,25 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
   });
   const pages = new Set<string>();
   const excerpts: string[] = [];
+  let crawlOrigin = start.origin;
   let requestCount = 0;
   await context.route("**/*", async (route) => {
     const request = route.request();
     let url: URL;
     try { url = new URL(request.url()); } catch { await route.abort(); return; }
-    if (url.protocol !== "https:" ||
-        (request.isNavigationRequest() && url.origin !== start.origin) ||
+    if (url.protocol !== "https:" || url.username || url.password || url.port ||
+        (request.isNavigationRequest() && pages.size > 0 && url.origin !== crawlOrigin) ||
         ["image", "media", "font"].includes(request.resourceType()) ||
         ++requestCount > MAX_REQUESTS_PER_PAGE) {
       await route.abort();
       return;
     }
+    if (request.isNavigationRequest()) {
+      try { await options.destinationCheck(url.href); }
+      catch { await route.abort(); return; }
+    }
+    // The production HTTPS egress proxy also validates and pins every redirect
+    // connection, including hops Playwright does not expose to this handler.
     await route.continue();
   });
   await context.routeWebSocket("**/*", (socket) => socket.close());
@@ -79,7 +92,7 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
     const page = await context.newPage();
     while (queue.length && pages.size < maxPages && (pages.size === 0 || Date.now() < deadline)) {
       const item = queue.shift()!;
-      const safe = inScopePage(item.url, start.origin);
+      const safe = inScopePage(item.url, crawlOrigin);
       if (!safe || pages.has(safe.href)) continue;
       await options.destinationCheck(safe.href);
       requestCount = 0;
@@ -90,11 +103,11 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
         if (pages.size === 0) throw new Error("website_page_unavailable");
         continue;
       }
-      const finalUrl = approvedWebsiteUrl(page.url());
-      if (finalUrl.origin !== start.origin) {
-        if (pages.size === 0) throw new Error("website_redirect_scope_denied");
-        continue;
-      }
+      const finalUrl = publicWebsiteUrl(page.url());
+      finalUrl.hash = "";
+      if (pages.size > 0 && finalUrl.origin !== crawlOrigin) continue;
+      if (pages.has(finalUrl.href)) continue;
+      await options.destinationCheck(finalUrl.href);
       if (!response || response.status() >= 400) {
         if (pages.size === 0) throw new Error("website_page_unavailable");
         continue;
@@ -105,6 +118,8 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
         if (pages.size === 0) throw new Error("website_text_unavailable");
         continue;
       }
+      // Resolve the submitted page first, then sample links from its final site.
+      if (pages.size === 0) crawlOrigin = finalUrl.origin;
       const url = finalUrl.href;
       pages.add(url);
       const block = "# " + (captured.title.trim().slice(0, 300) || url) + "\n\nSource URL: " + url + "\n\n" + text;
@@ -115,7 +130,7 @@ export async function captureWebsiteContext(options: CaptureOptions): Promise<{ 
       await options.onPage?.(url, pages.size);
       if (item.depth === 0) {
         for (const link of captured.links) {
-          const next = inScopePage(link, start.origin);
+          const next = inScopePage(link, crawlOrigin);
           if (next && !pages.has(next.href) && !queue.some((queued) => queued.url === next.href)) {
             queue.push({ url: next.href, depth: 1 });
             if (queue.length >= maxPages * 4) break;
