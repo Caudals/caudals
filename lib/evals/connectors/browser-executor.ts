@@ -313,7 +313,7 @@ const FIND_NOTICE_CLOSE = new Function(`
       const hint=(box.id||'')+' '+(typeof box.className==='string'?box.className:'');
       if(!(box.matches('[role="dialog"],[aria-modal="true"]')||/notice|announcement|promo|modal|overlay|popup|popover/i.test(hint)))continue;
       const text=(box.innerText||'').slice(0,6000);
-      if(protectedText.test(text)||/cookie|consent/i.test(hint)||box.querySelector('input[type="password"],input[autocomplete="one-time-code"],input[type="checkbox"],iframe[src*="captcha" i]')){notice=null;break;}
+      if(protectedText.test(text)||/cookie|consent/i.test(hint)||box.querySelector('textarea,[contenteditable="true"],[role="textbox"],input[type="password"],input[autocomplete="one-time-code"],input[type="checkbox"],iframe[src*="captcha" i]')){notice=null;break;}
       notice=box;
     }
     if(notice){el.setAttribute('data-caudals-notice-close','');return true;}

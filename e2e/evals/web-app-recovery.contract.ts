@@ -201,6 +201,7 @@ test("closes a late announcement through its close button and never accepts an a
       '<h2>Sign in</h2><input type="password">',
       '<h2>Accept terms of service</h2><input type="checkbox">',
       '<h2>Complete CAPTCHA</h2>',
+      '<h2>Chat assistant</h2><textarea placeholder="Your question"></textarea>',
     ]) {
       await page.setContent('<div role="dialog" class="notice-overlay">' + content + '<div class="modal-header"><button onclick="this.closest(\'[role=dialog]\').remove()">Close</button></div></div>');
       expect(await dismissConsent(page)).toBe(false);
