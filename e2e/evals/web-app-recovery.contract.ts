@@ -200,6 +200,10 @@ test("usage-limit dialogs stop detection and execution without retries or dismis
   try {
     await page.setContent('<div class="message-assistant"><div role="alert">You have reached the limit in this hypothetical example.</div></div><div class="modal" hidden>Has alcanzado el límite de interacciones.</div>');
     expect(await websiteUsageLimitReached(page)).toBe(false);
+    await page.setContent('<iframe title="Chat"></iframe>');
+    await page.locator("iframe").evaluate((frame: HTMLIFrameElement) => { frame.srcdoc = '<div role="dialog">You have reached your interaction limit.</div>'; });
+    await page.frameLocator("iframe").getByRole("dialog").waitFor();
+    expect(await websiteUsageLimitReached(page)).toBe(true);
   } finally { await context.close(); }
 });
 

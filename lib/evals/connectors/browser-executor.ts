@@ -122,6 +122,10 @@ const USAGE_LIMIT = new Function("els", `
   });
 `) as (elements: Element[]) => boolean;
 export async function websiteUsageLimitReached(root: FrameLike) {
+  if ("frames" in root) {
+    for (const frame of root.frames()) if (await websiteUsageLimitReached(frame)) return true;
+    return false;
+  }
   return root.locator('[role="dialog"],[aria-modal="true"],[role="alert"],[class*="modal" i],[class*="overlay" i],[class*="quota" i],[id*="quota" i],[class*="limit" i],[id*="limit" i]')
     .evaluateAll(USAGE_LIMIT);
 }
@@ -243,7 +247,7 @@ export async function sendWebsitePrompt(
   const recipe = { frame_chain: parts.frame_chain ?? [] };
   const input = resolved?.input ?? locator(root, recipe, parts.input).first();
   const page = input.page();
-  for (const frame of page.frames()) if (await websiteUsageLimitReached(frame)) throw new Error("website_usage_limit");
+  if (await websiteUsageLimitReached(page)) throw new Error("website_usage_limit");
   await dismissConsent(page);
   await input.click({ timeout: 10_000 }).catch(() => input.focus({ timeout: 5_000 }));
   const editable = await input.evaluate(new Function("el", "return el.isContentEditable && !('value' in el)") as (element: Element) => boolean);
