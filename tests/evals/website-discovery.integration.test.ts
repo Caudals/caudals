@@ -31,9 +31,11 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("unattended website connection check o
     const directory = mkdtempSync(join(tmpdir(), "evals-discovery-"));
     const key = join(directory, "key.pem"), cert = join(directory, "cert.pem");
     execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", key, "-out", cert], { stdio: "ignore" });
+    let firstLoad = true;
     const server = createHttpsServer({ key: readFileSync(key), cert: readFileSync(cert) }, (request, response) => {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
       if (request.url !== "/help") { response.end("<!doctype html><h1>Marketing page</h1>"); return; }
+      if (firstLoad) { firstLoad = false; response.end("<!doctype html><h1>Temporarily unavailable</h1>"); return; }
       response.end(`<!doctype html><h1>Help centre</h1>
         <div class="cookie-banner" style="position:fixed;inset:0;background:#0008"><div style="background:#fff;margin:150px auto;width:420px;padding:20px">
         <p>We use cookies.</p><button onclick="this.closest('.cookie-banner').remove()">Reject all</button><button>Accept all</button></div></div>

@@ -82,8 +82,8 @@ test.beforeAll(async () => {
     if (path === "/no-reset") { response.end(html.replace("await fetch(api,{method:'DELETE'});", "return;")); return; }
     response.end(path === "/notice" ? html.replace("<style>", `<div id="notice-overlay" hidden style="position:fixed;inset:0;z-index:9999;background:white">
       <h2>Join our next webinar</h2><button onclick="document.body.dataset.reserved='yes'">Reserve a place</button>
-      <button onclick="this.parentElement.remove()">×</button></div>
-      <script>addEventListener('DOMContentLoaded',()=>document.querySelector('textarea').addEventListener('input',()=>{const notice=document.getElementById('notice-overlay');if(notice)notice.hidden=false;}));</script><style>`) : html);
+      <span aria-label="Cerrar anuncio" style="position:absolute;top:-100px;cursor:pointer" onclick="this.parentElement.remove()">×</span></div>
+      <script>addEventListener('DOMContentLoaded',()=>document.querySelector('textarea').addEventListener('input',()=>{const notice=document.getElementById('notice-overlay');if(!notice)return;const send=document.querySelector('[type=submit]');send.disabled=true;setTimeout(()=>notice.hidden=false,200);setTimeout(()=>send.disabled=false,450);}));</script><style>`) : html);
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();

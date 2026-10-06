@@ -22,7 +22,9 @@ worker's workspace allowlist.
      fresh session, run and Test does the same;
    - closes an ordinary announcement through its explicit Close control,
      including one that appears after focusing the composer. Authentication,
-     CAPTCHA and agreement screens remain under the person's control;
+     CAPTCHA and agreement screens remain under the person's control. An
+     oversized notice whose Close is outside the viewport uses only that
+     verified dismissal's click handler;
    - finds the message box in every frame (iframes, open shadow roots), scoring
      chat-like inputs and rejecting search, login and newsletter fields;
    - opens the chat when it is closed, trying likely launchers, including a
@@ -127,6 +129,8 @@ Unattended connection checks run the same detection headlessly with the saved
 login and authenticated start page, so many public chatbots connect without
 opening the live browser at all.
 They run ahead of queued test cases on the browser queue. A check that finishes
+its first page load with a transient timeout or missing composer gets one
+retry in another fresh context before requesting assistance. A check that finishes
 after someone connected the system in the live browser does not replace that
 connection, and its new revision keeps any login saved meanwhile. A saved login
 carries over only a finished connection check, never a queued one.

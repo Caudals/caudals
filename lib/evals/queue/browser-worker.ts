@@ -292,14 +292,20 @@ export class BrowserJobWorker {
         // Most chatbots are found without a person: detect the controls,
         // send one probe and learn the reply. Otherwise ask for Teach Mode.
         stage = "detect";
-        try {
-          recipe = websiteRecipeSchema.parse(withContentHash(await autoDetectWebsiteRecipe({
-            browser: this.options.browser, url: claimed.config.login_start_url ?? claimed.config.endpoint, destinationCheck: this.destinationCheck,
-            storageState, recipeRevisionId: randomUUID(), signal: AbortSignal.timeout(150_000),
-          })));
-        } catch (error) {
-          console.warn(JSON.stringify({ event: "website_detection_failed", stepId: claimed.step.id, code: diagnosticCode(error), ms: Date.now() - startedAt }));
-          recipe = null;
+        const signal = AbortSignal.timeout(180_000);
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            recipe = websiteRecipeSchema.parse(withContentHash(await autoDetectWebsiteRecipe({
+              browser: this.options.browser, url: claimed.config.login_start_url ?? claimed.config.endpoint, destinationCheck: this.destinationCheck,
+              storageState, recipeRevisionId: randomUUID(), signal,
+            })));
+            break;
+          } catch (error) {
+            console.warn(JSON.stringify({ event: "website_detection_failed", stepId: claimed.step.id, attempt, code: diagnosticCode(error), ms: Date.now() - startedAt }));
+            recipe = null;
+            const transient = error instanceof Error && (error.name === "TimeoutError" || error.message === "chat_input_not_found" || /net::ERR_(CONNECTION|TIMED_OUT|NETWORK)/.test(error.message));
+            if (!transient || signal.aborted) break;
+          }
         }
       }
       if (!recipe) {
