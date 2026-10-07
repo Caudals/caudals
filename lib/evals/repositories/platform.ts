@@ -57,6 +57,7 @@ function adminError(error: unknown): never {
     generation_provider_not_approved: "This model revision is not approved for that role, data class or region.",
     currency_mismatch: "The price currency must match the provider account.",
     probe_not_approved: "Probes run only on DGX revisions with approved zero-price probing.",
+    last_workspace_owner: "Assign another owner before changing the last owner’s role.",
     platform_admin_required: "A platform administrator is required.",
   };
   if (known[message]) throw new EvalError("INPUT_INVALID", 422, known[message]);
@@ -145,6 +146,7 @@ const amendmentSchema = z.discriminatedUnion("targetKind", [
   z.strictObject({
     targetKind: z.literal("entitlement"), reason: z.string().trim().min(3).max(2000),
     maxActiveRuns: z.number().int().min(0).max(100), monthlySpendLimit: MONEY,
+    expectedVersion: z.number().int().positive().optional(),
     allowedConnectionTypes: z.array(z.enum(["website", "openai_compatible", "provider_native", "https_json", "imported_responses", "private_runner"])).max(6),
     canSchedule: z.boolean(), canExport: z.boolean(), reviewAllowance: z.number().int().min(0).max(100000),
   }),
@@ -157,7 +159,7 @@ export async function amendBudget(identity: EvalIdentity, orgId: string, raw: un
   const scope = { orgId, actorId: identity.user.id };
   try {
     return await asAdmin(scope, async (c) => {
-      let targetId = orgId, previous: unknown, next: unknown;
+      let targetId = orgId, previous: Record<string, unknown> | null, next: unknown;
       if (input.targetKind === "workspace_budget") {
         previous = (await c.query("SELECT ceiling,currency FROM evals.execution_budget WHERE org_id=$1 AND kind='workspace' AND scope_id=$1", [orgId])).rows[0] ?? null;
         const result = await setBudget(c, scope, { kind: "workspace", scopeId: orgId, currency: input.currency, ceiling: input.ceiling });
@@ -176,6 +178,7 @@ export async function amendBudget(identity: EvalIdentity, orgId: string, raw: un
       } else {
         previous = (await c.query("SELECT max_active_runs,monthly_spend_limit,allowed_connection_types,can_schedule,can_export,review_allowance,version FROM evals.workspace_entitlement WHERE org_id=$1 FOR UPDATE", [orgId])).rows[0] ?? null;
         if (!previous) throw new EvalError("SCOPE_DENIED", 404);
+        if (input.expectedVersion !== undefined && input.expectedVersion !== previous.version) throw new EvalError("SETTINGS_CONFLICT", 409);
         await c.query(`UPDATE evals.workspace_entitlement SET max_active_runs=$2,monthly_spend_limit=$3,allowed_connection_types=$4,can_schedule=$5,can_export=$6,
             review_allowance=$7,version=version+1,updated_by=$8,updated_at=now() WHERE org_id=$1`,
         [orgId, input.maxActiveRuns, input.monthlySpendLimit, input.allowedConnectionTypes, input.canSchedule, input.canExport, input.reviewAllowance, identity.user.id]);
@@ -272,4 +275,24 @@ export async function probeModel(identity: EvalIdentity, orgId: string, raw: unk
       });
     });
   } catch (error) { adminError(error); }
+}
+
+/** Workspace membership changes do not grant or revoke platform roles. */
+export async function amendWorkspaceMemberRole(identity: EvalIdentity, orgId: string, userId: string, raw: unknown) {
+  requireRecentAuthentication(identity);
+  const input = z.strictObject({
+    role: z.enum(["owner", "editor", "viewer", "operator"]),
+    previousRole: z.enum(["owner", "editor", "viewer", "operator"]),
+    reason: z.string().trim().min(3).max(2000),
+  }).parse(raw);
+  try {
+    return await asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
+      const result = await c.query("SELECT evals.amend_workspace_member_role($1,$2,$3,$4) AS role", [userId, input.role, input.previousRole, input.reason]);
+      return { userId, role: result.rows[0].role };
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "membership_role_conflict") throw new EvalError("SETTINGS_CONFLICT", 409);
+    if (error instanceof Error && error.message === "workspace_member_not_found") throw new EvalError("SCOPE_DENIED", 404);
+    adminError(error);
+  }
 }

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { Pool } from "pg";
 import { getEvalsPool, withTenant } from "../../lib/evals/repositories/db";
 import type { EvalIdentity } from "../../lib/evals/domain/identity";
-import { accountsOverview, amendBudget, auditLog, listProviders, usageOverview, writeProviderKey } from "../../lib/evals/repositories/platform";
+import { accountsOverview, amendBudget, amendWorkspaceMemberRole, auditLog, listProviders, usageOverview, writeProviderKey } from "../../lib/evals/repositories/platform";
 import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
@@ -25,18 +25,22 @@ const adminUrl = process.env.EVALS_TEST_ADMIN_URL;
     process.env.EVALS_ADMIN_DATABASE_URL_FILE = join(dir, "admin.url");
     process.env.EVALS_MASTER_KEYRING_FILE = join(dir, "keyring.json");
 
-    const adminId = createPrefixedId("au"), operatorId = createPrefixedId("au");
+    const adminId = createPrefixedId("au"), operatorId = createPrefixedId("au"), memberId = createPrefixedId("au");
+    const otherOrgId = randomUUID(), otherMemberId = createPrefixedId("au");
     const orgId = randomUUID(), projectId = randomUUID(), evaluationId = randomUUID(), accountId = randomUUID(), providerId = randomUUID();
     const db = await owner.connect();
     try {
       await db.query("BEGIN");
       await db.query("SELECT set_config('evals.actor_id',$1,true),set_config('evals.org_id',$2,true)", [adminId, orgId]);
-      for (const [id, email] of [[adminId, `admin-${randomUUID()}@example.test`], [operatorId, `op-${randomUUID()}@example.test`]]) {
+      for (const [id, email] of [[adminId, `admin-${randomUUID()}@example.test`], [operatorId, `op-${randomUUID()}@example.test`], [memberId, `member-${randomUUID()}@example.test`], [otherMemberId, `other-${randomUUID()}@example.test`]]) {
         await db.query('INSERT INTO public.auth_user(id,name,email,"emailVerified") VALUES($1,$2,$3,true)', [id, "Platform fixture", email]);
       }
       await db.query("INSERT INTO evals.platform_role(user_id,role) VALUES($1,'platform_admin'),($2,'operator')", [adminId, operatorId]);
       await db.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Platform fixture',$2)", [orgId, adminId]);
       await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'operator')", [orgId, adminId]);
+      await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'owner')", [orgId, memberId]);
+      await db.query("INSERT INTO evals.workspace(id,name,created_by) VALUES($1,'Other fixture',$2)", [otherOrgId, adminId]);
+      await db.query("INSERT INTO evals.membership(org_id,user_id,role) VALUES($1,$2,'viewer')", [otherOrgId, otherMemberId]);
       await db.query("INSERT INTO evals.project(id,org_id,title) VALUES($1,$2,'Platform')", [projectId, orgId]);
       await db.query("INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,commercial_cap,currency) VALUES($1,$2,$3,'Capped','source_grounded',500,'EUR')", [evaluationId, orgId, projectId]);
       await db.query("INSERT INTO evals.provider_account(id,name,currency,ceiling,enabled) VALUES($1,'fixture','EUR',50,true)", [accountId]);
@@ -66,6 +70,42 @@ const adminUrl = process.env.EVALS_TEST_ADMIN_URL;
     expect(usage.budgets.find((item) => item.kind === "workspace")).toMatchObject({ ceiling: "250.000000000" });
     expect(usage.amendments.map((item) => item.target_kind).sort()).toEqual(["entitlement", "evaluation_cap", "provider_account", "workspace_budget"]);
     await expect(owner.query("UPDATE evals.budget_amendment SET reason='changed' WHERE org_id=$1", [orgId])).rejects.toThrow(/immutable/);
+
+    const entitlementInput = { targetKind: "entitlement", reason: "Later agreement", maxActiveRuns: 3, monthlySpendLimit: "800", allowedConnectionTypes: ["website"], canSchedule: false, canExport: false, reviewAllowance: 31 };
+    await expect(amendBudget(admin, orgId, { ...entitlementInput, expectedVersion: 1 })).rejects.toMatchObject({ code: "SETTINGS_CONFLICT", status: 409 });
+    await expect(amendBudget(operator, orgId, entitlementInput)).rejects.toMatchObject({ status: 403 });
+    expect((await usageOverview({ orgId, actorId: adminId })).entitlement).toMatchObject({ version: 2, max_active_runs: 2 });
+
+    // Roles are tenant-scoped and need the dedicated admin connection and fresh authentication.
+    const roleChange = { role: "editor", previousRole: "owner", reason: "Updated responsibilities" };
+    const customer = { ...admin, platformRole: null, user: { ...admin.user, id: memberId } };
+    await expect(amendWorkspaceMemberRole(customer, orgId, memberId, roleChange)).rejects.toMatchObject({ status: 403 });
+    await expect(amendWorkspaceMemberRole(operator, orgId, memberId, roleChange)).rejects.toMatchObject({ status: 403 });
+    await expect(amendWorkspaceMemberRole(stale, orgId, memberId, roleChange)).rejects.toMatchObject({ code: "REAUTHENTICATION_REQUIRED" });
+    await expect(amendWorkspaceMemberRole(admin, orgId, otherMemberId, { ...roleChange, previousRole: "viewer" })).rejects.toMatchObject({ status: 404 });
+    await expect(amendWorkspaceMemberRole(admin, orgId, memberId, roleChange)).rejects.toMatchObject({ status: 422 });
+    await expect(withTenant({ orgId, actorId: adminId }, (c) => c.query("UPDATE evals.membership SET role='owner' WHERE org_id=$1", [orgId]))).rejects.toThrow(/permission denied/);
+    await expect(withTenant({ orgId, actorId: adminId }, (c) => c.query("SELECT evals.amend_workspace_member_role($1,'owner','operator','Direct write')", [adminId]))).rejects.toThrow(/permission denied/);
+    await amendWorkspaceMemberRole(admin, orgId, adminId, { role: "owner", previousRole: "operator", reason: "Assign another owner" });
+    // Concurrent demotions serialize; one owner always survives.
+    const demotions = await Promise.allSettled([
+      amendWorkspaceMemberRole(admin, orgId, adminId, { role: "viewer", previousRole: "owner", reason: "Change first owner" }),
+      amendWorkspaceMemberRole(admin, orgId, memberId, { role: "editor", previousRole: "owner", reason: "Change second owner" }),
+    ]);
+    expect(demotions.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect((await owner.query("SELECT count(*)::int AS n FROM evals.membership WHERE org_id=$1 AND role='owner'", [orgId])).rows[0].n).toBe(1);
+    const changed = demotions[0].status === "fulfilled" ? adminId : memberId;
+    await expect(amendWorkspaceMemberRole(admin, orgId, changed, { role: "operator", previousRole: "owner", reason: "Stale role" })).rejects.toMatchObject({ code: "SETTINGS_CONFLICT" });
+    const scopedMembers = await withTenant({ orgId, actorId: adminId }, (c) => c.query("SELECT * FROM evals.list_workspace_members($1)", [orgId]));
+    expect(scopedMembers.rows.map((row) => row.user_id).sort()).toEqual([adminId, memberId].sort());
+    const hiddenMembers = await withTenant({ orgId, actorId: memberId }, (c) => c.query("SELECT * FROM evals.list_workspace_members($1)", [orgId]));
+    expect(hiddenMembers.rows).toEqual([]);
+    const wrongScope = await withTenant({ orgId, actorId: adminId }, (c) => c.query("SELECT * FROM evals.list_workspace_members($1)", [otherOrgId]));
+    expect(wrongScope.rows).toEqual([]);
+    const roleAudits = (await owner.query("SELECT actor_id,details FROM evals.audit_event WHERE org_id=$1 AND action='membership.role_amended' ORDER BY created_at", [orgId])).rows;
+    expect(roleAudits).toHaveLength(2);
+    expect(roleAudits[0]).toMatchObject({ actor_id: adminId, details: { previous_role: "operator", role: "owner", reason: "Assign another owner" } });
+    expect((await owner.query("SELECT role FROM evals.platform_role WHERE user_id=$1", [adminId])).rows[0].role).toBe("platform_admin");
 
     const key = await writeProviderKey(admin, orgId, { providerRevisionId: providerId, value: "sk-platform-fixture-key" });
     const providers = await listProviders({ orgId, actorId: adminId });

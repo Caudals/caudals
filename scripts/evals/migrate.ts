@@ -51,6 +51,7 @@ const migrations=[
  '074_evals_browser_step_retry.sql',
  '075_demo_and_self_serve.sql',
  '076_demo_model_settings.sql',
+ '077_evals_workspace_member_roles.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

@@ -79,7 +79,7 @@ const identity = {
     name: "Test operator",
     email: "operator@example.test",
   },
-  platformRole: viewer ? null : ("operator" as const),
+  platformRole: viewer ? null : params.has("admin") ? ("platform_admin" as const) : ("operator" as const),
   workspaces: [
     {
       id: "00000000-0000-4000-8000-000000000001",
