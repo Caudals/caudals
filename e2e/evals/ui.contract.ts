@@ -1989,3 +1989,25 @@ for(const width of [1280,390]){
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  });
 }
+
+for(const reason of ["operator_paused","operator_stopped","model_invocation_failed"]){
+ test(`halted preparation shows recovery instead of ongoing work (${reason})`,async({page})=>{
+  const evaluationId=evaluationFixture.id,jobId="00000000-0000-4000-8000-000000000910",sourceId="00000000-0000-4000-8000-000000000911",revisionId="00000000-0000-4000-8000-000000000912";
+  const stopped=reason==="operator_stopped",status=stopped?"stopped":"paused";
+  await page.route("**/api/evals/v1/**",async route=>{
+   const url=new URL(route.request().url());let data:unknown=[];
+   if(url.pathname.endsWith("/workspace/summary"))data=summaryFixture({evaluations:[{...evaluationFixture,selected_suite_version_id:null,latest_source_id:sourceId,latest_source_revision_id:revisionId,preparation_status:stopped?"canceled":"needs_input",reason_code:reason,latest_generation_job_id:jobId}]});
+   if(url.pathname.endsWith(`/sources/${sourceId}`))data={id:sourceId,revisions:[{id:revisionId}],chunks:[{id:"excerpt",excerpt:"Synthetic source material."}]};
+   if(url.pathname.endsWith(`/evaluations/${evaluationId}/context`))data={draft:null,casePreviews:[],questions:[]};
+   if(url.pathname.endsWith(`/evaluations/${evaluationId}/generate`))data={status,job:{id:jobId,reasonCode:reason}};
+   if(url.pathname.endsWith(`/evaluations/${evaluationId}/control`))data={subject:{id:jobId,kind:"generation",status,updatedAt:"2026-10-07T10:00:00Z"},restart:null,actions:stopped?["restart"]:["resume","stop","restart"]};
+   await route.fulfill({json:{data,meta:{}}});
+  });
+  await page.goto(`/workspace/evaluations/${evaluationId}?editor`);
+  await expect(page.getByRole("button",{name:"Prepare tests — needs attention",exact:true})).toBeVisible();
+  await expect(page.getByText("Use the evaluation’s three-dot menu to resume or restart preparation.",{exact:true})).toBeVisible();
+  await expect(page.getByText("You can close this page; preparation continues in the background.",{exact:true})).toHaveCount(0);
+  await expect(page.getByText("You can close this page. Your evaluation will continue.",{exact:true})).toHaveCount(0);
+  if(reason==="model_invocation_failed")await expect(page.getByText("Check the model in Connect → AI models",{exact:false})).toBeVisible();
+ });
+}

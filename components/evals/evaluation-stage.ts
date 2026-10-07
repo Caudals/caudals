@@ -87,7 +87,7 @@ export function stepStates(stage: Stage) {
       index < stage.step || (index === 3 && stage.key === "results")
         ? ("done" as const)
         : index === stage.step
-          ? stage.tone === "fail" || stage.key === "needs_input" || stage.label === "Paused"
+          ? stage.tone === "fail" || stage.key === "needs_input" || stage.key === "paused" || stage.key === "canceled"
             ? ("blocked" as const)
             : ("current" as const)
           : ("upcoming" as const),

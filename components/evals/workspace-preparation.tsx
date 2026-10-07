@@ -687,7 +687,7 @@ export function PrepareEvaluation({
                 <Sparkles aria-hidden="true" />
                 {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
               </Action>
-              <span className="p-cell-meta">{pendingSources.some((item) => item.state === "reading") ? t("generateWaitForReading") : sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>
+              {!stopped && <span className="p-cell-meta">{pendingSources.some((item) => item.state === "reading") ? t("generateWaitForReading") : sources.length ? t("generateHelp") : t("generateNeedsSources")}</span>}
             </div>
           </div>
         )}
