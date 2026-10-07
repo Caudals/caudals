@@ -5,7 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { evalRequest } from "./api";
 import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs, formatMoney } from "./primitives";
 import { Meter } from "./charts";
-import { notify } from "./overlays";
+import { Modal, notify } from "./overlays";
+import { EntitlementForm, type WorkspaceEntitlement } from "./entitlement-form";
+import { usePlatformAction } from "./platform-action";
 import { InvitationManager } from "./invitation-manager";
 import { DeveloperAccess, MonitoringSchedules } from "./workspace-monitoring";
 import { WorkspaceDeletion } from "./workspace-deletion";
@@ -28,7 +30,7 @@ export function WorkspaceSettings() {
   const owner = role === "owner";
   const tabs: Array<{ value: Tab; label: string }> = [
     { value: "general", label: t("general") },
-    ...(canManage ? [{ value: "members" as const, label: t("members") }] : []),
+    ...(canManage || platformAdmin ? [{ value: "members" as const, label: t("members") }] : []),
     { value: "notifications", label: t("notifications") },
     { value: "monitoring", label: t("monitoring") },
     { value: "developers", label: t("developers") },
@@ -61,7 +63,7 @@ export function WorkspaceSettings() {
           {t("loading")}
         </p>
       ) : tab === "general" ? (
-        <General summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} />
+        <General key={orgId} platformAdmin={platformAdmin} onManageRoles={() => select("members")} onSaved={reload} summary={summary} orgId={orgId} workspaceName={workspace.name} role={role} canRename={canManage || platformAdmin} />
       ) : tab === "members" ? (
         <InvitationManager orgId={orgId} workspaceName={workspace.name} />
       ) : tab === "notifications" ? (
@@ -79,14 +81,41 @@ export function WorkspaceSettings() {
   );
 }
 
-function General({ summary, orgId, workspaceName, role, canRename }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean }) {
+function General({ summary, orgId, workspaceName, role, canRename, platformAdmin, onSaved, onManageRoles }: { summary: WorkspaceSummary; orgId: string; workspaceName: string; role: string; canRename: boolean; platformAdmin: boolean; onSaved: () => Promise<void>; onManageRoles: () => void }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editable, setEditable] = useState<WorkspaceEntitlement | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const { run, pending, messages, clearError } = usePlatformAction();
+  async function edit() {
+    setEditing(true);
+    setEditable(null);
+    setLoadError("");
+    clearError();
+    try {
+      const data = await evalRequest<{ entitlement: WorkspaceEntitlement }>(`/usage?orgId=${encodeURIComponent(orgId)}`);
+      setEditable(data.entitlement);
+    } catch (value) {
+      setLoadError(value instanceof Error ? value.message : t("error"));
+    }
+  }
+  async function save(body: Record<string, unknown>) {
+    const ok = await run(() => evalRequest(`/budgets/${orgId}/amendments`, "POST", body), t("amendmentRecorded"));
+    if (ok) {
+      setEditing(false);
+      await onSaved();
+    }
+  }
+  const editAction = (label: string) => platformAdmin && (
+    <Action variant="secondary" size="sm" aria-label={`${t("edit")} ${label}`} onClick={() => void edit()} disabled={editing}>{t("edit")}</Action>
+  );
   const { entitlement, usage } = summary;
   const limit = Number(entitlement.monthly_spend_limit);
   const used = Number(usage.settled) + Number(usage.outstanding);
   return (
     <div className="p-settings">
+      {!editing && messages}
       <SettingsRow title={t("workspace")} description={t("workspaceNameHelp")}>
         <span className="p-row p-nowrap">
           <strong>{workspaceName}</strong>
@@ -113,7 +142,10 @@ function General({ summary, orgId, workspaceName, role, canRename }: { summary: 
         <LocaleSwitch compact />
       </SettingsRow>
       <SettingsRow title={t("yourRole")} description={t("yourRoleHelp")}>
-        <Badge>{t((role || "viewer") as "owner" | "editor" | "viewer" | "operator")}</Badge>
+        <span className="p-row">
+          <Badge>{t((role || "viewer") as "owner" | "editor" | "viewer" | "operator")}</Badge>
+          {platformAdmin && <Action variant="secondary" size="sm" onClick={onManageRoles}>{t("manageRoles")}</Action>}
+        </span>
       </SettingsRow>
       <SettingsRow
         title={t("spendThisMonth")}
@@ -122,18 +154,20 @@ function General({ summary, orgId, workspaceName, role, canRename }: { summary: 
         <span className="p-row p-nowrap">
           <Meter value={limit > 0 ? used / limit : null} label={t("spendThisMonth")} />
           <span className="p-cell-meta">
-            {formatMoney(used)} / {formatMoney(entitlement.monthly_spend_limit, entitlement.currency)}
+            {formatMoney(used, entitlement.currency)} / {formatMoney(entitlement.monthly_spend_limit, entitlement.currency)}
           </span>
+          {editAction(t("monthlyLimit"))}
         </span>
       </SettingsRow>
       <SettingsRow title={t("activeRunAllowance")} description={t("activeRunAllowanceHelp")}>
-        <strong>{entitlement.max_active_runs}</strong>
+        <span className="p-row"><strong>{entitlement.max_active_runs}</strong>{editAction(t("activeRunAllowance"))}</span>
       </SettingsRow>
       <SettingsRow title={t("allowedConnections")} description={t("allowedConnectionsHelp")}>
         <span className="p-row">
           {[...new Set(entitlement.allowed_connection_types.map(connectionLabel))].map((label) => (
             <Badge key={label}>{label}</Badge>
           ))}
+          {editAction(t("allowedConnections"))}
         </span>
       </SettingsRow>
       <SettingsRow title={t("exportsAndScheduling")} description={t("exportsAndSchedulingHelp")}>
@@ -144,8 +178,19 @@ function General({ summary, orgId, workspaceName, role, canRename }: { summary: 
           <Badge tone={entitlement.can_schedule ? "pass" : "neutral"} dot>
             {entitlement.can_schedule ? t("schedulingOn") : t("schedulingOff")}
           </Badge>
+          {editAction(t("exportsAndScheduling"))}
         </span>
       </SettingsRow>
+      {editing && (
+        <Modal open onOpenChange={(value) => !value && !pending && setEditing(false)} size="lg" title={t("editWorkspaceSettings")} description={t("amendmentHelp")} alert={messages}
+          footer={<>
+            <Action variant="secondary" disabled={pending} onClick={() => setEditing(false)}>{t("cancel")}</Action>
+            <Action type="submit" form="workspace-entitlement-form" disabled={pending || !editable}>{pending ? t("saving") : t("save")}</Action>
+          </>}
+        >
+          {loadError ? <Status error action={<Action variant="secondary" onClick={() => void edit()}>{t("retry")}</Action>}>{loadError}</Status> : editable ? <EntitlementForm id="workspace-entitlement-form" entitlement={editable} pending={pending} onSubmit={save} /> : <p className="p-loading" role="status">{t("loading")}</p>}
+        </Modal>
+      )}
     </div>
   );
 }
