@@ -175,21 +175,22 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     if (!evaluation) throw new EvalError("SCOPE_DENIED", 404);
     const sourceRows = await loadSources(db, scope.orgId, evaluationId, evaluation.project_id, input.sourceRevisionIds);
     const { material: fullMaterial } = anchorMaterial(sourceRows);
-    const routes = await resolveModelRoutes(db, scope.orgId, ["context_analyzer", "generator"]);
-    const profileRoute = routeFor("context_analyzer", routes), draftRoute = routeFor("generator", routes);
-    if (profileRoute.currency !== evaluation.currency || draftRoute.currency !== evaluation.currency || profileRoute.currency !== draftRoute.currency) throw new EvalError("INPUT_INVALID", 422, "The generation models and this evaluation's budget must use the same currency.");
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
     if (!workspaceBudget || workspaceBudget.currency !== evaluation.currency) throw new EvalError("BUDGET_UNAVAILABLE", 409, "A workspace generation budget must be configured before preparing this dataset.");
-    const profilePrompt = `${profileSystemPrompt()} ${questionGuidance(input.locale)}`;
-    const profileFixed = encodedBytes(profilePrompt) + encodedBytes(canonicalJson(evaluation.project_description ?? null)) + 256;
-    const profileOutputCap = generationOutputCap(profileRoute);
-    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, profileOutputCap, profileFixed));
     if (Number(evaluation.commercial_cap) <= 0) throw new EvalError("BUDGET_UNAVAILABLE", 409, "Set a positive evaluation budget before generating a dataset.");
     const jobId = randomUUID(), workflowId = randomUUID(), promptRevisionId = randomUUID();
     const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling)
       VALUES($1,'run',$2,$3,$4) RETURNING id`, [scope.orgId, jobId, evaluation.currency, evaluation.commercial_cap])).rows[0];
     const job = (await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,complexity,status,created_by)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'profiling',$12) RETURNING *`, [scope.orgId, jobId, evaluationId, workflowId, input.title, input.executionMode, input.sourceRevisionIds, input.promptRevision, promptRevisionId, input.maxCases, input.complexity, scope.actorId])).rows[0];
+    // Use the inserted job snapshot even when a workspace default changes concurrently.
+    const routes = await resolveModelRoutes(db, scope.orgId, ["context_analyzer", "generator"], evaluationId, {kind:"generation",id:jobId});
+    const profileRoute = routeFor("context_analyzer", routes), draftRoute = routeFor("generator", routes);
+    if (profileRoute.currency !== evaluation.currency || draftRoute.currency !== evaluation.currency || profileRoute.currency !== draftRoute.currency) throw new EvalError("INPUT_INVALID", 422, "The generation models and this evaluation's budget must use the same currency.");
+    const profilePrompt = `${profileSystemPrompt()} ${questionGuidance(input.locale)}`;
+    const profileFixed = encodedBytes(profilePrompt) + encodedBytes(canonicalJson(evaluation.project_description ?? null)) + 256;
+    const profileOutputCap = generationOutputCap(profileRoute);
+    const material = fitMaterial(fullMaterial, materialBudgetBytes(profileRoute, profileOutputCap, profileFixed));
     const plan = planHash(job);
     await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'extract',$4,1,$5,$6,'completed',1,$7)", [scope.orgId,evaluationId,jobId,digest({sourceRevisionIds:input.sourceRevisionIds}),input.promptRevision,profileRoute.provider_revision_id,{sourceRevisionIds:input.sourceRevisionIds,anchorCount:material.reduce((sum,source)=>sum+source.anchors.length,0)}]);
     const profileBatchHash = digest({step:"profile",sourceRevisionIds:input.sourceRevisionIds,promptRevision:input.promptRevision});
@@ -398,7 +399,7 @@ async function queueDraftGeneration(
   const draftVersion=Number((await db.query("SELECT COALESCE(MAX(version),0)::int AS version FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 AND step_kind='draft'",[scope.orgId,job.id])).rows[0].version)+1;
   await db.query("UPDATE evals.generation_job SET status='drafting',profile_revision_id=$3,coverage_plan=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,profileRevisionId,coverage]);
   await db.query("INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,model_revision_id,status,attempt_count,output) VALUES($1,$2,$3,'plan',$4,1,$5,$6,'completed',1,$7) ON CONFLICT(org_id,generation_job_id,step_kind,version) WHERE generation_job_id IS NOT NULL DO NOTHING",[scope.orgId,evaluationId,job.id,digest({profile:profile.content_hash,coverage}),job.prompt_revision,contextModelRevisionId,coverage]);
-  const draftRoute=(await resolveModelRoutes(db,scope.orgId,["generator"])).get("generator");
+  const draftRoute=(await resolveModelRoutes(db,scope.orgId,["generator"],evaluationId,{kind:"generation",id:job.id})).get("generator");
   if(!draftRoute)throw new EvalError("PROVIDER_UNAVAILABLE",503,"No model is set up for test generation. A Caudals administrator can choose one in Settings → AI models.");
   if(draftRoute.currency!==job.currency)throw new EvalError("PROVIDER_UNAVAILABLE",503,"The generation model's price currency does not match this evaluation's budget.");
   const budgetIds=(await db.query("SELECT id,kind FROM evals.execution_budget WHERE org_id=$1 AND ((kind='workspace' AND scope_id=$1) OR (kind='run' AND scope_id=$2))",[scope.orgId,job.id])).rows;

@@ -28,8 +28,9 @@ export type JudgeCandidate = { assessment: Assessment; observationId: string; ob
 
 type JudgeRoute = ModelRoute;
 
-async function judgeRoute(db: PoolClient, orgId: string): Promise<JudgeRoute | null> {
-  return resolveModelRoute(db, orgId, "judge");
+async function judgeRoute(db: PoolClient, orgId: string, runId: string): Promise<JudgeRoute | null> {
+  const run = (await db.query("SELECT evaluation_id FROM evals.run WHERE org_id=$1 AND id=$2", [orgId, runId])).rows[0];
+  return resolveModelRoute(db, orgId, "judge", run?.evaluation_id, {kind:"run",id:runId});
 }
 
 /** Exact excerpts for the anchors a case cites, from its frozen source revisions. */
@@ -56,7 +57,7 @@ export async function queueRunJudgments(db: PoolClient, scope: EvidenceScope, ru
   const criterionIdsFor = (candidate: JudgeCandidate) => (v2(candidate) ? semanticCriterionIds(candidate.item, candidate.rubric) : judgeCriterionIds(candidate.item, candidate.rubric));
   const pending = candidates.filter((candidate) => candidate.observation.status === "succeeded" && criterionIdsFor(candidate).length > 0);
   if (!pending.length) return { queued: 0, skipped: 0 };
-  const route = await judgeRoute(db, scope.orgId);
+  const route = await judgeRoute(db, scope.orgId, runId);
   const evaluation = (await db.query(`SELECT e.commercial_cap,e.currency,e.project_id,p.title AS product FROM evals.run r JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
     JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
   const workspaceBudget = evaluation ? await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency) : null;

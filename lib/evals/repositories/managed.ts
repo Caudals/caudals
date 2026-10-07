@@ -118,7 +118,7 @@ export function prepareGroundedSuite(
       ON CONFLICT(org_id,evaluation_id,step_kind,input_hash,version) WHERE generation_job_id IS NULL
       DO UPDATE SET updated_at=now() RETURNING *`,batchValues)).rows[0];
   try{
-   const judgeRoute=await resolveModelRoute(db,scope.orgId,"judge");
+   const judgeRoute=await resolveModelRoute(db,scope.orgId,"judge",evaluationId,input.generation ? {kind:"generation",id:input.generation.generationJobId} : undefined);
    const pack=genericGroundedQaPack({judge:judgeRoute?{modelRevisionId:judgeRoute.provider_revision_id,promptRevisionId:JUDGE_PROMPT_REVISION_ID}:undefined,sources,questions,authorId:scope.actorId,generation:input.generation?{generatorRevisionId:input.generation.generatorRevisionId,promptRevisionId:input.generation.promptRevisionId}:undefined});
    const suiteId=randomUUID(),suiteVersionId=randomUUID();
    await db.query("INSERT INTO evals.rubric_revision(id,org_id,project_id,content_hash,document) VALUES($1,$2,$3,$4,$5)",[pack.rubric.revision_id,scope.orgId,evaluation.project_id,pack.rubric.content_hash,pack.rubric]);
@@ -254,7 +254,7 @@ export function scoreRun(scope:EvidenceScope,runId:string,graderRevisionId:strin
  const run=required((await db.query("SELECT * FROM evals.run WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,runId])).rows[0]);
  const rows=(await db.query(`SELECT o.id AS observation_id,o.document AS observation,cr.document AS case_document,rr.document AS rubric_document FROM evals.observation o JOIN evals.case_unit cu ON (cu.org_id,cu.id)=(o.org_id,o.case_unit_id) JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(cu.org_id,cu.case_revision_id) JOIN evals.rubric_revision rr ON (rr.org_id,rr.id)=(cr.org_id,cr.rubric_revision_id) WHERE o.org_id=$1 AND o.run_id=$2 ORDER BY cu.created_at,cu.id`,[scope.orgId,runId])).rows;
  const v2=graderRevisionId===GRADER_V2;
- const mode:V2Mode=v2&&await resolveModelRoute(db,scope.orgId,"judge")?"judge":"lexical";
+ const mode:V2Mode=v2&&await resolveModelRoute(db,scope.orgId,"judge",run.evaluation_id,{kind:"run",id:runId})?"judge":"lexical";
  let created=0,skipped=0;const judgeCandidates:JudgeCandidate[]=[];
  for(const row of rows){
   const old=(await db.query(`SELECT a.id,a.document,EXISTS (SELECT 1 FROM evals.review_decision d WHERE d.org_id=a.org_id AND d.assessment_id=a.id) AS decided,

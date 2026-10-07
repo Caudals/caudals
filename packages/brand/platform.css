@@ -5167,3 +5167,29 @@
 @media (max-width: 640px) {
   .p-jobs-pill .p-progress { display: none; }
 }
+
+/* Evaluation model choices reuse the platform's quiet disclosure and task rows. */
+.p-evaluation-models { border: 1px solid var(--p-border); border-radius: var(--p-radius-lg); margin-block: 20px; }
+.p-evaluation-models > summary { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; list-style: none; }
+.p-evaluation-models > summary::-webkit-details-marker { display: none; }
+.p-evaluation-models > summary > svg { width: 16px; height: 16px; flex-shrink: 0; }
+.p-evaluation-models > summary > svg:last-child { margin-left: auto; transition: transform var(--p-dur-instant) var(--p-ease-out); }
+.p-evaluation-models[open] > summary > svg:last-child { transform: rotate(180deg); }
+.p-evaluation-models > summary:focus-visible { outline: 2px solid var(--p-action); outline-offset: 2px; }
+.p-evaluation-models > .p-stack { padding: 0 16px 16px; }
+.p-engine-model-options { max-height: 264px; overflow-y: auto; display: grid; gap: 4px; }
+.p-engine-model-options .p-check { padding: 8px; border-radius: var(--p-radius-sm); }
+.p-engine-model-options .p-check[data-selected="true"] { background: var(--p-surface-3); }
+
+.p-model-task-list { list-style: none; padding: 0; margin: 0; }
+.p-model-task-list > li { display: grid; grid-template-columns: minmax(130px,1fr) minmax(0,2fr) auto; align-items: center; gap: 16px; padding-block: 16px; border-bottom: 1px solid var(--p-border-hairline); }
+.p-model-task-list > li > strong { font-size: var(--p-text-label); font-weight: 500; }
+.p-model-task-value { min-width: 0; }
+.p-model-task-value > span { display: block; overflow-wrap: anywhere; }
+.p-model-task-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+@media (max-width: 640px) {
+ .p-model-task-list > li { grid-template-columns: minmax(0,1fr); gap: 8px; }
+ .p-model-task-actions { justify-content: flex-start; }
+ .p-evaluation-models > summary { flex-wrap: wrap; gap: 8px; }
+ .p-evaluation-models > summary > svg:last-child { margin-left: auto; }
+}

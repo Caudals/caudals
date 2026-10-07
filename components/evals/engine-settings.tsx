@@ -16,9 +16,9 @@ import { useReauth } from "./reauth";
 import { t, tv } from "@/lib/evals/messages/en";
 import { DemoModelSettings } from "./demo-model-settings";
 
-type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
-type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
-type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean };
+export type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
+export type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
+export type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean };
 type SearchEngineId = "tavily" | "exa";
 type SearchEngineRow = { engine: SearchEngineId; key_hint: string | null; priority: number; enabled: boolean; updated_at: string };
 type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[]; platform: Route[]; workspace: Route[]; searchEngines: SearchEngineRow[] };
@@ -67,7 +67,7 @@ function useAction() {
   const [pending, setPending] = useState(false);
   const reauth = useReauth();
   const { confirm } = reauth;
-  const run = useCallback(async (work: () => Promise<unknown>, done?: string) => {
+  const run = useCallback(async (work: () => Promise<unknown>, done?: string, isCurrent: () => boolean = () => true) => {
     setPending(true);
     setError(null);
     try {
@@ -75,16 +75,16 @@ function useAction() {
         await work();
       } catch (reason) {
         // A sensitive change asks for a fresh confirmation: confirm in place, then retry once.
-        if (!(reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED") || !(await confirm())) throw reason;
+        if (!isCurrent() || !(reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED") || !(await confirm())) throw reason;
         await work();
       }
-      if (done) notify(done);
+      if (done && isCurrent()) notify(done);
       return true;
     } catch (reason) {
-      setError({ message: reason instanceof Error ? reason.message : t("error") });
+      if (isCurrent()) setError({ message: reason instanceof Error ? reason.message : t("error") });
       return false;
     } finally {
-      setPending(false);
+      if (isCurrent()) setPending(false);
     }
   }, [confirm]);
   const message = (
@@ -93,7 +93,7 @@ function useAction() {
       {error ? <Status error>{error.message}</Status> : null}
     </>
   );
-  return { run, pending, message, clear: () => setError(null) };
+  return { run, pending, message, error, clear: () => setError(null) };
 }
 
 export function EngineSettings({ orgId, workspaceName }: { orgId: string; workspaceName: string }) {
@@ -285,10 +285,10 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
   );
 }
 
-function RouteDialog({
-  orgId, role, scope, workspaceName, connections, current, onClose, onSaved,
+export function RouteDialog({
+  orgId, role, scope, workspaceName, connections, current, onClose, onSaved, evaluationId,
 }: {
-  orgId: string; role: Role; scope: Scope; workspaceName: string; connections: Connection[]; current: Route | null;
+  orgId: string; role: Role; scope: Scope | "evaluation"; evaluationId?: string; workspaceName: string; connections: Connection[]; current: Route | null;
   onClose: () => void; onSaved: () => Promise<void>;
 }) {
   const initialConnection = connections.find((item) => item.id === current?.account_id) ?? connections.find((item) => item.adapter === (current?.adapter ?? "dgx")) ?? connections[0];
@@ -309,6 +309,7 @@ function RouteDialog({
   // Only the latest request may fill the list: a slow answer from the
   // previously selected provider must never replace it or pick a model.
   const request = useRef(0);
+  const [listVersion,setListVersion] = useState(0);
   useEffect(() => {
     if (!connectionId) return;
     const ticket = ++request.current;
@@ -317,9 +318,10 @@ function RouteDialog({
     void listing.run(async () => {
       const list = await evalRequest<Model[]>(`/engine/models?orgId=${encodeURIComponent(orgId)}&connectionId=${encodeURIComponent(connectionId)}`);
       if (ticket === request.current) setModels(list);
-    });
+    }, undefined, () => ticket === request.current);
+    return () => { request.current++; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectionId, orgId]);
+  }, [connectionId, orgId, listVersion]);
 
   function chooseConnection(id: string) {
     setConnectionId(id);
@@ -338,13 +340,17 @@ function RouteDialog({
 
   async function runTest() {
     setTest(null);
-    await listing.run(async () => setTest(await evalRequest(`/engine/test`, "POST", { orgId, connectionId, modelId })));
+    const ticket=request.current;
+    await listing.run(async () => {
+      const result=await evalRequest<{ok:boolean;message:string;latencyMs:number}>(`/engine/test`, "POST", { orgId, connectionId, modelId });
+      if(ticket===request.current)setTest(result);
+    }, undefined, () => ticket===request.current);
   }
   async function save(event: React.FormEvent) {
     event.preventDefault();
     await saving.run(async () => {
-      await evalRequest(`/engine/routes`, "PUT", {
-        orgId, scope, role, connectionId, modelId: modelId.trim(), allRoles,
+      await evalRequest(evaluationId ? `/evaluations/${evaluationId}/models` : `/engine/routes`, "PUT", {
+        orgId, ...(evaluationId ? {} : {scope}), role, connectionId, modelId: modelId.trim(), allRoles,
         ...(commercial ? { inputPrice: inputPrice || "0", outputPrice: outputPrice || "0" } : {}),
         ...(contextLimit ? { contextLimit: Number(contextLimit) } : {}),
       });
@@ -357,8 +363,8 @@ function RouteDialog({
       open
       onOpenChange={(open) => !open && onClose()}
       title={`${t("engineChooseModel")} · ${ROLE_COPY[role].title}`}
-      description={scope === "platform" ? t("engineAppliesPlatform") : `${t("engineAppliesWorkspace")} ${workspaceName}.`}
-      alert={saving.message ?? listing.message}
+      description={scope === "evaluation" ? t("evaluationModelsApply") : scope === "platform" ? t("engineAppliesPlatform") : `${t("engineAppliesWorkspace")} ${workspaceName}.`}
+      alert={<>{saving.message}{listing.message}</>}
       footer={
         <>
           <Action variant="secondary" onClick={runTest} disabled={!modelId || listing.pending}>
@@ -379,17 +385,18 @@ function RouteDialog({
             </option>
           ))}
         </SelectField>
-        {models === null ? (
+        {listing.error && <Action variant="secondary" size="sm" onClick={()=>setListVersion(value=>value+1)}>{t("retry")}</Action>}
+        {models === null && !listing.error ? (
           <p className="p-loading" role="status"><span className="p-spinner" aria-hidden="true" />{t("engineLoadingModels")}</p>
-        ) : models.length > 12 ? (
+        ) : models && models.length > 12 ? (
           <Field id="engine-filter" label={t("engineFilterModels")} value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="gpt, claude, llama…" autoComplete="off" />
         ) : null}
         {models && models.length > 0 ? (
           <fieldset className="p-fieldset">
             <legend>{t("engineModel")}</legend>
-            <div role="radiogroup" aria-label={t("engineModel")} style={{ maxHeight: 264, overflowY: "auto", display: "grid", gap: 2 }}>
+            <div role="radiogroup" aria-label={t("engineModel")} className="p-engine-model-options">
               {visible.map((item) => (
-                <label key={item.id} className="p-check" data-selected={item.id === modelId ? "true" : undefined} style={{ padding: "6px 8px", borderRadius: 6, background: item.id === modelId ? "var(--p-surface-3)" : undefined }}>
+                <label key={item.id} className="p-check" data-selected={item.id === modelId ? "true" : undefined}>
                   <input type="radio" name="engine-model" value={item.id} checked={item.id === modelId} onChange={() => setModelId(item.id)} />
                   <span>
                     <span className="p-check-label">{item.label}</span>
