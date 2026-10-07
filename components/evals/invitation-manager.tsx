@@ -6,6 +6,8 @@ import { evalRequest } from "./api";
 import { invitationPath } from "./auth-path";
 import { Action, Badge, DataTable, EmptyState, Field, RowTitle, SelectField, Status, Time } from "./primitives";
 import { CopyField, Modal, notify } from "./overlays";
+import { useWorkspace } from "./workspace-context";
+import { WorkspaceMemberRoles } from "./workspace-member-roles";
 import { t } from "@/lib/evals/messages/en";
 
 type Invitation = {
@@ -31,6 +33,7 @@ function invitationState(item: Invitation) {
  * in Settings and by operators on a client.
  */
 export function InvitationManager({ orgId, workspaceName }: { orgId: string; workspaceName: string }) {
+  const { platformAdmin } = useWorkspace();
   const [items, setItems] = useState<Invitation[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -142,6 +145,8 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
           <p>{t("noInvitationsHelp")}</p>
         </EmptyState>
       )}
+
+      {platformAdmin && <WorkspaceMemberRoles key={orgId} orgId={orgId} />}
 
       <Modal
         open={open}

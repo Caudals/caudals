@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { KeyRound, Plus, SlidersHorizontal } from "lucide-react";
-import { evalRequest, EvalRequestError } from "./api";
+import { evalRequest } from "./api";
 import {
   Action,
   Badge,
@@ -31,14 +31,14 @@ import {
   formatMoney,
   humanize,
 } from "./primitives";
-import { ActionMenu, Modal, notify } from "./overlays";
+import { ActionMenu, Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
-import { useReauth } from "./reauth";
+import { usePlatformAction } from "./platform-action";
+import { EntitlementForm } from "./entitlement-form";
 import { t } from "@/lib/evals/messages/en";
 
 export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit";
 const ROLES = ["target", "generator", "context_analyzer", "judge", "adjudicator", "report_writer", "embedding"] as const;
-const CONNECTIONS = ["website", "openai_compatible", "provider_native", "https_json", "imported_responses", "private_runner"] as const;
 const CAPABILITIES = ["text", "boundedTokens", "jsonObject", "probeApproved"] as const;
 const money = (value: string | null | undefined) => (value == null ? "—" : String(Number(value)));
 const list = (value: FormDataEntryValue | null) =>
@@ -46,40 +46,6 @@ const list = (value: FormDataEntryValue | null) =>
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-
-function usePlatformAction() {
-  const [error, setError] = useState<{ message: string } | null>(null);
-  const [pending, setPending] = useState(false);
-  const reauth = useReauth();
-  const { confirm } = reauth;
-  const run = useCallback(async (work: () => Promise<unknown>, done: string) => {
-    setPending(true);
-    setError(null);
-    try {
-      try {
-        await work();
-      } catch (reason) {
-        // A sensitive change asks for a fresh confirmation: confirm in place, then retry once.
-        if (!(reason instanceof EvalRequestError && reason.code === "REAUTHENTICATION_REQUIRED") || !(await confirm())) throw reason;
-        await work();
-      }
-      notify(done);
-      return true;
-    } catch (reason) {
-      setError({ message: reason instanceof Error ? reason.message : t("error") });
-      return false;
-    } finally {
-      setPending(false);
-    }
-  }, [confirm]);
-  const messages = (
-    <>
-      {reauth.dialog}
-      {error ? <Status error>{error.message}</Status> : null}
-    </>
-  );
-  return { run, pending, messages };
-}
 
 const SECTIONS: Array<{ id: PlatformSection; href: string; label: string }> = [
   { id: "providers", href: "/ops/platform", label: t("providersModels") },
@@ -865,43 +831,7 @@ function Usage({ admin }: { admin: boolean }) {
             </>
           }
         >
-          <form
-            id="entitlement-form"
-            className="p-stack"
-            key={entitlement.version}
-            onSubmit={(event) => {
-              event.preventDefault();
-              const form = new FormData(event.currentTarget);
-              void amend({
-                targetKind: "entitlement",
-                reason: form.get("reason"),
-                maxActiveRuns: Number(form.get("maxActiveRuns")),
-                monthlySpendLimit: form.get("monthlySpendLimit"),
-                allowedConnectionTypes: CONNECTIONS.filter((kind) => form.has(`conn-${kind}`)),
-                canSchedule: form.has("canSchedule"),
-                canExport: form.has("canExport"),
-                reviewAllowance: Number(form.get("reviewAllowance")),
-              });
-            }}
-          >
-            <div className="p-grid-2 p-form-grid">
-              <Field id="ent-runs" name="maxActiveRuns" type="number" min={0} max={100} label={t("activeRunAllowance")} defaultValue={entitlement.max_active_runs} />
-              <Field id="ent-limit" name="monthlySpendLimit" label={`${t("monthlyLimit")} (${entitlement.currency})`} defaultValue={money(entitlement.monthly_spend_limit)} inputMode="decimal" />
-              <Field id="ent-review" name="reviewAllowance" type="number" min={0} label={t("reviewAllowance")} defaultValue={entitlement.review_allowance} />
-            </div>
-            <fieldset className="p-fieldset p-checks p-checks-grid">
-              <legend>{t("allowedConnections")}</legend>
-              {CONNECTIONS.map((kind) => (
-                <Check key={kind} name={`conn-${kind}`} defaultChecked={entitlement.allowed_connection_types.includes(kind)} label={humanize(kind)} />
-              ))}
-            </fieldset>
-            <fieldset className="p-fieldset p-checks">
-              <legend>{t("features")}</legend>
-              <Check name="canSchedule" defaultChecked={entitlement.can_schedule} label={t("canSchedule")} />
-              <Check name="canExport" defaultChecked={entitlement.can_export} label={t("canExport")} />
-            </fieldset>
-            <Field id="ent-reason" name="reason" label={t("amendmentReason")} required minLength={3} />
-          </form>
+          <EntitlementForm id="entitlement-form" entitlement={entitlement} pending={pending} onSubmit={amend} />
         </Modal>
       )}
 

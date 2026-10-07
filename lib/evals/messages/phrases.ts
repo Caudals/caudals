@@ -42,6 +42,7 @@ export function tr(text: string): string {
 
 /** Curated server messages (API errors) that people commonly see, in Spanish. */
 const SERVER_ES: Record<string, string> = {
+  "Assign another owner before changing the last owner’s role.": "Asigna otro propietario antes de cambiar el rol del último.",
   "No model is set up for test generation. A Caudals administrator can choose one in Settings → AI models.": "No hay ningún modelo configurado para generar pruebas. Un administrador de Caudals puede elegirlo en Ajustes → Modelos de IA.",
   "A workspace generation budget must be configured before preparing this dataset.": "Hay que configurar un presupuesto de generación del espacio antes de preparar este conjunto.",
   "Set a positive evaluation budget before generating a dataset.": "Define un presupuesto de evaluación positivo antes de generar un conjunto.",
