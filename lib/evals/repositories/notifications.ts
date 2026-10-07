@@ -18,18 +18,40 @@ export const NOTICE_CATEGORY: Record<string, "completion" | "required_input" | "
   website_started: "progress", generation_started: "progress", run_started: "progress",
 };
 
-export function listNotifications(scope: EvidenceScope, limit = 50) {
+export const notificationQuerySchema = z.strictObject({
+  limit: z.number().int().min(1).max(100).default(50),
+  unreadOnly: z.boolean().default(false),
+  before: z.strictObject({ createdAt: z.iso.datetime(), id: z.uuid() }).optional(),
+});
+
+/** A stable, newest-first page; the badge counts every visible unread notice, not just this page. */
+export function listNotifications(scope: EvidenceScope, raw: unknown = {}) {
+  const input = notificationQuerySchema.parse(raw);
   return withTenant(scope, async (db) => {
     const preferences = (await db.query("SELECT completion,required_input,failure FROM evals.notification_preference WHERE org_id=$1 AND user_id=$2", [scope.orgId, scope.actorId])).rows[0]
       ?? { completion: true, required_input: true, failure: true };
-    const hidden = Object.entries(NOTICE_CATEGORY).filter(([, category]) => category !== "progress" && !preferences[category]).map(([kind]) => kind);
-    const rows = (await db.query(`SELECT n.id,n.kind,n.payload,n.created_at,(r.notification_id IS NOT NULL) AS read
-      FROM evals.notification n LEFT JOIN evals.notification_read r ON (r.org_id,r.notification_id)=(n.org_id,n.id) AND r.user_id=$2
-      WHERE n.org_id=$1 AND n.audience='workspace' AND n.status<>'dismissed' AND n.created_at>now()-interval '30 days' AND NOT (n.kind=ANY($3::text[]))
-      ORDER BY n.created_at DESC,n.id LIMIT $4`, [scope.orgId, scope.actorId, hidden, Math.min(200, Math.max(1, limit))])).rows;
-    // Progress notices ("started") are shown in Activity, not counted as unread.
-    const unread = rows.filter((row) => !row.read && NOTICE_CATEGORY[row.kind] !== "progress").length;
-    return { notifications: rows.map((row) => ({ ...row, category: NOTICE_CATEGORY[row.kind] ?? "completion" })), unread };
+    // Started events belong to Activity. Exclude them before pagination so they cannot crowd out results.
+    const hidden = Object.entries(NOTICE_CATEGORY).filter(([, category]) => category === "progress" || !preferences[category]).map(([kind]) => kind);
+    const visible = `FROM evals.notification n LEFT JOIN evals.notification_read r
+      ON (r.org_id,r.notification_id)=(n.org_id,n.id) AND r.user_id=$2
+      WHERE n.org_id=$1 AND n.audience='workspace' AND n.status<>'dismissed'
+        AND n.created_at>now()-interval '30 days' AND NOT (n.kind=ANY($3::text[]))`;
+    const params = [scope.orgId, scope.actorId, hidden];
+    const unread = (await db.query(`SELECT count(*)::int AS unread ${visible} AND r.notification_id IS NULL`, params)).rows[0].unread as number;
+    const rows = (await db.query(`SELECT n.id,n.kind,n.payload,n.created_at,(r.notification_id IS NOT NULL) AS read,
+        to_char(n.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_created_at
+      ${visible} AND ($4::boolean=false OR r.notification_id IS NULL)
+        AND ($5::timestamptz IS NULL OR (n.created_at,n.id)<($5::timestamptz,$6::uuid))
+      ORDER BY n.created_at DESC,n.id DESC LIMIT $7`,
+      [...params, input.unreadOnly, input.before?.createdAt ?? null, input.before?.id ?? null, input.limit + 1])).rows;
+    const page = rows.slice(0, input.limit);
+    const last = page.at(-1);
+    return {
+      notifications: page.map(({ cursor_created_at, ...row }) => ({ ...row, created_at: cursor_created_at as string, category: NOTICE_CATEGORY[row.kind] ?? "completion" })),
+      unread,
+      // Keep PostgreSQL's microseconds in the cursor: JS Date truncation would skip notices.
+      nextCursor: rows.length > input.limit && last ? { createdAt: last.cursor_created_at as string, id: last.id as string } : null,
+    };
   });
 }
 
@@ -38,14 +60,14 @@ export function markNotificationsRead(scope: EvidenceScope, raw: unknown) {
   return withTenant(scope, async (db) => {
     const result = "all" in input
       ? await db.query(`INSERT INTO evals.notification_read(org_id,notification_id,user_id)
-          SELECT org_id,id,$2 FROM evals.notification WHERE org_id=$1 AND created_at>now()-interval '30 days' ON CONFLICT DO NOTHING`, [scope.orgId, scope.actorId])
+          SELECT org_id,id,$2 FROM evals.notification WHERE org_id=$1 AND audience='workspace' AND status<>'dismissed' AND created_at>now()-interval '30 days' ON CONFLICT DO NOTHING`, [scope.orgId, scope.actorId])
       : await db.query(`INSERT INTO evals.notification_read(org_id,notification_id,user_id)
-          SELECT org_id,id,$2 FROM evals.notification WHERE org_id=$1 AND id=ANY($3::uuid[]) ON CONFLICT DO NOTHING`, [scope.orgId, scope.actorId, input.ids]);
+          SELECT org_id,id,$2 FROM evals.notification WHERE org_id=$1 AND audience='workspace' AND status<>'dismissed' AND id=ANY($3::uuid[]) ON CONFLICT DO NOTHING`, [scope.orgId, scope.actorId, input.ids]);
     return { marked: result.rowCount ?? 0 };
   });
 }
 
-export type ActivityStage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "done" | "failed";
+export type ActivityStage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "canceling" | "canceled" | "done" | "failed";
 type ActivityRow = {
   type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null;
   created_at: string; updated_at: string; evaluation_id: string | null; evaluation_title: string | null; subject: string | null;
@@ -78,7 +100,8 @@ export function jobProgress(row: Pick<ActivityRow, "type" | "status" | "done" | 
     return { percent: clamp(15 + 75 * share(row.done, row.total)), stage: "drafting", active: true };
   }
   // run
-  if (row.status === "canceled") return { percent: null, stage: "failed", active: false };
+  if (row.status === "canceled") return { percent: null, stage: "canceled", active: false };
+  if (row.status === "cancel_requested") return { percent: null, stage: "canceling", active: true };
   if (row.status === "paused" || row.status === "pause_requested") return { percent: clamp(5 + 75 * share(row.done, row.total)), stage: "paused", active: false };
   if (row.status === "queued" || row.phase === "preflight") return { percent: 2, stage: "queued", active: true };
   if (row.phase === "target_execution") return { percent: clamp(5 + 75 * share(row.done, row.total)), stage: "asking", active: true };
@@ -121,6 +144,6 @@ export function listActivity(scope: EvidenceScope) {
         JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id) LEFT JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
         WHERE x.org_id=$1 AND (x.status IN ('queued','running') OR x.updated_at>now()-interval '3 days')
     ) jobs
-    ORDER BY (status IN ('queued','running','profiling','profile_ready','drafting','draft_ready','captured','persisting','extracting','pause_requested','cancel_requested') OR phase IN ('grading','reporting')) DESC, updated_at DESC
+    ORDER BY updated_at DESC,created_at DESC,type,id DESC
     LIMIT 60`, [scope.orgId])).rows.map((row: ActivityRow) => ({ ...row, ...jobProgress(row) })));
 }

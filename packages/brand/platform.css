@@ -4842,6 +4842,39 @@
   color: var(--p-text-secondary);
 }
 
+/* --- Notification centre -------------------------------------------------- */
+.p-notice-center { display: grid; gap: 12px; }
+.p-notice-toolbar .p-tabs { margin-bottom: 0; }
+.p-notice-center .p-job-list { margin-top: 0; }
+.p-notice-center .p-job-body { overflow-wrap: anywhere; }
+.p-notice-center .p-job[data-stage="failed"] .p-job-head > svg { color: var(--p-fail); }
+.p-notice-center .p-job:is([data-stage="paused"], [data-stage="needs_input"]) .p-job-head > svg { color: var(--p-warn); }
+.p-notice-bell { position: relative; }
+.p-notice-count {
+  position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: var(--p-radius-pill); background: var(--p-action); color: var(--p-action-text);
+  font-size: var(--p-text-nano); line-height: 16px; font-weight: 600;
+}
+.p-notice-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.p-notice-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.p-notice-filters > .p-btn { margin-left: auto; }
+.p-notice-order { margin: 0; color: var(--p-text-secondary); font-size: var(--p-text-micro); }
+.p-notice-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.p-notice { display: flex; align-items: flex-start; gap: 4px; border-radius: var(--p-radius-md); }
+.p-notice[data-read="false"] { background: var(--p-surface-2); }
+.p-notice-title { font-weight: 400; }
+.p-notice[data-read="false"] .p-notice-title { font-weight: 600; }
+.p-notice-link { display: flex; flex: 1; align-items: flex-start; gap: 10px; min-width: 0; padding: 12px 10px; color: inherit; text-decoration: none; border-radius: inherit; }
+.p-notice-link > svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.p-notice .p-job-body { overflow-wrap: anywhere; }
+.p-notice > .p-btn { flex: none; margin: 8px 4px 0 0; }
+.p-notice[data-category="failure"] .p-notice-link > svg { color: var(--p-fail); }
+.p-notice[data-category="required_input"] .p-notice-link > svg { color: var(--p-warn); }
+.p-notice[data-category="completion"] .p-notice-link > svg { color: var(--p-pass); }
+.p-notice-link:focus-visible, .p-job-link:focus-visible { outline: 2px solid var(--p-action); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  a.p-notice-link:hover, .p-job-link:hover { background: var(--p-surface-2); }
+}
 /* --- Background jobs: live progress in the top bar and the activity panel ---- */
 .p-jobs-pill {
   display: inline-flex;
