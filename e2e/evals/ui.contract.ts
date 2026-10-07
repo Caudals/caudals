@@ -1983,6 +1983,8 @@ for(const width of [1280,390]){
   const stop=page.getByRole("dialog",{name:"Stop evaluation",exact:true});
   await expect(stop.getByText("Cancel the pending restart",{exact:false})).toBeVisible();
   await stop.getByRole("button",{name:"Stop evaluation",exact:true}).click();await expect(stop).toBeHidden();
+  restart!.status="failed";
+  await expect(page.getByText("The restart could not start. Check the connection, models and budget",{exact:false})).toBeVisible({timeout:10000});
   await page.screenshot({path:`/tmp/evaluation-controls-${width}.png`,fullPage:true});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  });
