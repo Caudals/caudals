@@ -31,7 +31,8 @@ async function runningClaims(db: PoolClient, orgId: string, subject: Subject) {
 
 async function state(db: PoolClient, scope: EvidenceScope, evaluationId: string) {
   const { subject } = await currentSubject(db, scope, evaluationId);
-  const restart = (await db.query("SELECT id,status,reason_code,new_subject_id FROM evals.evaluation_restart WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1", [scope.orgId, evaluationId])).rows[0] ?? null;
+  const savedRestart = (await db.query("SELECT id,status,reason_code,new_subject_id,subject_id FROM evals.evaluation_restart WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1", [scope.orgId, evaluationId])).rows[0] ?? null;
+  const restart = savedRestart && (savedRestart.subject_id === subject?.id || savedRestart.new_subject_id === subject?.id) ? savedRestart : null;
   if (!subject) return { subject: null, restart, actions: [] as EvaluationControlAction[] };
   const workflow = (await db.query("SELECT id,status FROM evals.execution_workflow WHERE org_id=$1 AND run_id=$2", [scope.orgId, subject.id])).rows[0];
   const draining = await runningClaims(db, scope.orgId, subject);
