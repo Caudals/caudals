@@ -28,6 +28,7 @@ import {
 import { OutcomeBar, percent } from "./charts";
 import { ActionMenu, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
+import { EvaluationModels } from "./evaluation-models";
 import { PrepareEvaluation } from "./workspace-preparation";
 import { ManualAnswers, publishPreliminaryManualReport } from "./workspace-manual-answers";
 import { NoWorkspace } from "./workspace-evaluations";
@@ -62,7 +63,7 @@ function useElapsed(since: string | null | undefined, active: boolean) {
 }
 
 export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
-  const { orgId, workspace, canWrite, canManage, operator, withOrg } = useWorkspace();
+  const { orgId, workspace, canWrite, canManage, operator, platformAdmin, withOrg } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const [run, setRun] = useState<RunView | null>(null);
   const [report, setReport] = useState<ReportSnapshot | null>(null);
@@ -306,6 +307,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       />
       <Steps steps={stepStates(stage)} label={t("evaluationProgress")} />
       {items.dialog}
+      {platformAdmin && <EvaluationModels key={`${orgId}-${evaluationId}`} orgId={orgId} evaluationId={evaluationId} />}
 
       {actionError && (
         <Status error action={<Action variant="secondary" size="sm" onClick={() => setActionError(null)}>{t("dismiss")}</Action>}>

@@ -117,7 +117,7 @@ export function requestWebDiscovery(scope: EvidenceScope, evaluationId: string) 
     const { evaluation, systemHost, known } = await evaluationContext(db, scope.orgId, evaluationId);
     const running = (await db.query("SELECT id,status FROM evals.web_discovery_job WHERE org_id=$1 AND evaluation_id=$2 AND status='queued' AND created_at>now()-interval '10 minutes' ORDER BY created_at DESC LIMIT 1", [scope.orgId, evaluationId])).rows[0];
     if (running) return running as { id: string; status: string };
-    const route = await resolveModelRoute(db, scope.orgId, "context_analyzer");
+    const route = await resolveModelRoute(db, scope.orgId, "context_analyzer", evaluationId);
     if (!route?.web_research) throw new EvalError("PROVIDER_UNAVAILABLE", 503, "Web search is not turned on for this workspace. A Caudals administrator can enable it in Settings → AI models.");
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
     if (!workspaceBudget || workspaceBudget.currency !== route.currency || evaluation.currency !== route.currency) throw new EvalError("BUDGET_UNAVAILABLE", 409, "A workspace budget in the model's currency is needed to search the web.");

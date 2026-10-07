@@ -17,7 +17,7 @@ import type { EvidenceScope } from "./evidence";
 
 export function requestReportNarrative(scope: EvidenceScope, reportId: string, reportRevisionId: string) {
   return withTenant(scope, async (db) => {
-    const revision = (await db.query(`SELECT rr.id,rr.snapshot,e.commercial_cap,e.currency FROM evals.report_revision rr
+    const revision = (await db.query(`SELECT rr.id,rr.snapshot,r.id AS run_id,r.evaluation_id,e.commercial_cap,e.currency FROM evals.report_revision rr
       JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id) JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
       WHERE rr.org_id=$1 AND rr.id=$2 AND rr.report_id=$3`, [scope.orgId, reportRevisionId, reportId])).rows[0];
     if (!revision) throw new EvalError("SCOPE_DENIED", 404);
@@ -26,7 +26,7 @@ export function requestReportNarrative(scope: EvidenceScope, reportId: string, r
     const existing = (await db.query("SELECT id,status,reason_code FROM evals.report_narrative_job WHERE org_id=$1 AND report_revision_id=$2 AND evidence_packet_hash=$3",
       [scope.orgId, reportRevisionId, packetHash])).rows[0];
     if (existing) return existing;
-    const route = await resolveModelRoute(db, scope.orgId, "report_writer");
+    const route = await resolveModelRoute(db, scope.orgId, "report_writer", revision.evaluation_id, {kind:"run",id:revision.run_id});
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, revision.currency);
     const jobId = randomUUID();
     const skip = !route ? "narrative_route_unavailable"

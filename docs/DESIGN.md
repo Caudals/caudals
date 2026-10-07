@@ -222,6 +222,8 @@ In-flight states (`running`, `queued`, `validating`, `generating`, `checking_con
 
 **Evaluation page** — one header (stage badge, system, created date, one primary action, secondary actions in `ActionMenu`) over a four-step tracker (Connect · Prepare tests · Run · Results) and exactly one panel for the current stage. `evaluation-stage.ts` projects the separate backend state dimensions into that one stage; the database keeps them separate.
 
+The evaluation detail page exposes **AI models** in a compact, keyboard-accessible disclosure after the progress steps for platform administrators. Each engine task shows the model, provider and whether it inherits the workspace default, with Change and reset actions using the existing connected-provider picker. The picker explains that queued work retains its models and the target system stays separate. Failed catalog reads show an in-dialog retry. Model identifiers wrap; task rows stack on narrow screens so every action remains visible.
+
 **Inspector** (`.p-inspect` / `.p-inspector`) — from 1024px, the result list stays usable on the left and the evidence sits in a sticky, **nonmodal** `aside` on the right. Below 1024px the same evidence opens in a modal `SidePanel` (full screen under 640px) that returns focus to the row that opened it. Spec §1518.
 
 **Overlays** (`components/evals/overlays.tsx`) — one of each, never nested decisions:

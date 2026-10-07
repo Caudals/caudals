@@ -1,10 +1,10 @@
 import type { PoolClient } from "pg";
 
 /**
- * Which model serves an internal engine role for a workspace.
+ * Which model serves an internal engine role for an evaluation.
  *
- * A workspace route (evals.generation_provider_route) wins; otherwise the
- * platform default (evals.platform_model_route) applies. Both point at a
+ * An evaluation choice wins, followed by its workspace and platform defaults.
+ * Queued jobs read their immutable snapshot. Every route points at a
  * registered provider revision and its price, so every call stays budgeted,
  * attributed and reproducible. DGX revisions run local-only; OpenAI-compatible
  * revisions run through the approved-provider path with the account's key.
@@ -23,7 +23,7 @@ export type ModelRoute = {
   adapter: "dgx" | "openai_compatible";
   model_id: string;
   currency: string;
-  source: "workspace" | "platform";
+  source: "evaluation" | "workspace" | "platform";
   /** Opt-in public web search for this role (applied where the provider supports it). */
   web_research: boolean;
 };
@@ -34,10 +34,28 @@ const JOINS = `JOIN evals.provider_revision p ON p.id=r.provider_revision_id AND
   JOIN evals.provider_account a ON a.id=p.account_id AND a.enabled
   JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)`;
 
-export async function resolveModelRoutes(db: PoolClient, orgId: string, roles: EngineRole[]): Promise<Map<EngineRole, ModelRoute>> {
+export type ModelJob = { kind: "run" | "generation"; id: string };
+export async function resolveModelRoutes(db: PoolClient, orgId: string, roles: EngineRole[], evaluationId?: string, job?: ModelJob): Promise<Map<EngineRole, ModelRoute>> {
+  if (job) {
+    const table = job.kind === "run" ? "evals.run" : "evals.generation_job";
+    const row = (await db.query(`SELECT model_routes FROM ${table} WHERE org_id=$1 AND id=$2`, [orgId, job.id])).rows[0];
+    if (!row) return new Map();
+    if (row.model_routes != null) return new Map(roles.flatMap(role => row.model_routes[role] ? [[role, row.model_routes[role] as ModelRoute] as const] : []));
+    // Pre-migration jobs retain their workspace/platform routing; a new evaluation
+    // choice must not replace models for work that was already queued.
+    evaluationId = undefined;
+  }
   const found = new Map<EngineRole, ModelRoute>();
+  if (evaluationId) {
+    // Keep an explicit choice visible even if its provider becomes unavailable.
+    const overrides = (await db.query(`SELECT ${COLUMNS},'evaluation' AS source FROM evals.evaluation_model_route r
+      JOIN evals.provider_revision p ON p.id=r.provider_revision_id
+      JOIN evals.price_revision pr ON (pr.id,pr.provider_revision_id)=(r.price_revision_id,r.provider_revision_id)
+      WHERE r.org_id=$1 AND r.evaluation_id=$2 AND r.role=ANY($3::text[])`, [orgId, evaluationId, roles])).rows as ModelRoute[];
+    for (const row of overrides) found.set(row.role,row);
+  }
   const own = (await db.query(`SELECT ${COLUMNS},'workspace' AS source FROM evals.generation_provider_route r ${JOINS} WHERE r.org_id=$1 AND r.role=ANY($2::text[])`, [orgId, roles])).rows as ModelRoute[];
-  for (const row of own) found.set(row.role, row);
+  for (const row of own) if (!found.has(row.role)) found.set(row.role, row);
   const missing = roles.filter((role) => !found.has(role));
   if (missing.length) {
     const platform = (await db.query(`SELECT ${COLUMNS},'platform' AS source FROM evals.platform_model_route r ${JOINS} WHERE r.role=ANY($1::text[])`, [missing])).rows as ModelRoute[];
@@ -46,8 +64,8 @@ export async function resolveModelRoutes(db: PoolClient, orgId: string, roles: E
   return found;
 }
 
-export async function resolveModelRoute(db: PoolClient, orgId: string, role: EngineRole): Promise<ModelRoute | null> {
-  return (await resolveModelRoutes(db, orgId, [role])).get(role) ?? null;
+export async function resolveModelRoute(db: PoolClient, orgId: string, role: EngineRole, evaluationId?: string, job?: ModelJob): Promise<ModelRoute | null> {
+  return (await resolveModelRoutes(db, orgId, [role], evaluationId, job)).get(role) ?? null;
 }
 
 /** Invocation routing for a route: local DGX work never leaves the private network. */

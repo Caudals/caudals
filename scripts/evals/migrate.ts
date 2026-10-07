@@ -52,6 +52,7 @@ const migrations=[
  '075_demo_and_self_serve.sql',
  '076_demo_model_settings.sql',
  '077_evals_workspace_member_roles.sql',
+ '078_evals_evaluation_models.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

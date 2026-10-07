@@ -10,6 +10,7 @@ import { encryptSecret, decryptSecret, loadKeyring } from "../security/envelope"
 import { connectionSecretScope, webSearchSecretScope } from "../security/secrets";
 import { SEARCH_ENGINES, searchOnce, type SearchEngine } from "../providers/web-search";
 import { asAdmin, requirePlatformAdmin, requireRecentAuthentication } from "./platform";
+import { resolveModelRoutes } from "./model-routes";
 
 /**
  * Settings → AI models: which model runs each internal engine role
@@ -222,7 +223,8 @@ export async function removeProviderConnection(identity: EvalIdentity, orgId: st
 }
 
 const routeSchema = z.strictObject({
-  scope: z.enum(["platform", "workspace"]),
+  scope: z.enum(["platform", "workspace", "evaluation"]),
+  evaluationId: z.uuid().optional(),
   role: z.enum(ENGINE_ROLES),
   connectionId: z.string().min(1).max(64),
   modelId: z.string().trim().min(1).max(200),
@@ -239,9 +241,17 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
   // Choosing among approved models is not credential-sensitive: admin role and audit suffice.
   requirePlatformAdmin(identity);
   const input = routeSchema.parse(raw);
+  if (input.scope === "evaluation" && !input.evaluationId) throw new EvalError("INPUT_INVALID",422,"Choose an evaluation.");
   const target = await connectionTarget(identity, orgId, input.connectionId, false);
   const contextLimit = input.contextLimit ?? (target.adapter === "dgx" ? await dgxContextLimit(target.endpoint, input.modelId) : 128_000);
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
+    if (input.scope === "evaluation") {
+      const evaluation = (await c.query("SELECT id,currency FROM evals.evaluation WHERE org_id=$1 AND id=$2 AND archived_at IS NULL FOR UPDATE", [orgId,input.evaluationId])).rows[0];
+      if (!evaluation) throw new EvalError("SCOPE_DENIED",404);
+      if (evaluation.currency !== "EUR") throw new EvalError("INPUT_INVALID",422,"The model and evaluation budget must use the same currency.");
+      const plan = (await c.query("SELECT plan FROM evals.workspace_entitlement WHERE org_id=$1", [orgId])).rows[0]?.plan;
+      if (plan === "free" && target.adapter !== "dgx") throw new EvalError("INPUT_INVALID",422,"Free workspaces use models on the private DGX Spark.");
+    }
     const accountId = target.accountId ?? await ensureDgxConnection(c, identity.user.id, target.endpoint);
     const revision = await ensureRevision(c, identity.user.id, { accountId, adapter: target.adapter, endpoint: target.endpoint, modelId: input.modelId, contextLimit });
     const price = await ensurePrice(c, revision, target.adapter === "dgx" ? "0" : input.inputPrice, target.adapter === "dgx" ? "0" : input.outputPrice);
@@ -254,6 +264,14 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
           VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(role) DO UPDATE SET provider_revision_id=excluded.provider_revision_id,price_revision_id=excluded.price_revision_id,
           data_class=excluded.data_class,region=excluded.region,internal_cost_per_second=excluded.internal_cost_per_second,updated_by=excluded.updated_by,updated_at=now()`,
         [role, revision, price, ROUTE_DATA_CLASS, region, cost, identity.user.id]);
+      } else if (input.scope === "evaluation") {
+        const defaults = await resolveModelRoutes(c,orgId,[role]);
+        const capable = (await c.query(`SELECT (${WEB_CAPABLE}) AS capable FROM evals.provider_revision p WHERE p.id=$1`, [revision])).rows[0]?.capable;
+        await c.query(`INSERT INTO evals.evaluation_model_route(org_id,evaluation_id,role,provider_revision_id,price_revision_id,data_class,region,internal_cost_per_second,web_research,updated_by)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(org_id,evaluation_id,role) DO UPDATE SET
+          provider_revision_id=excluded.provider_revision_id,price_revision_id=excluded.price_revision_id,data_class=excluded.data_class,
+          region=excluded.region,internal_cost_per_second=excluded.internal_cost_per_second,updated_by=excluded.updated_by,updated_at=now(),web_research=excluded.web_research`,
+          [orgId,input.evaluationId,role,revision,price,ROUTE_DATA_CLASS,region,cost,!!capable && !!defaults.get(role)?.web_research,identity.user.id]);
       } else {
         await c.query(`INSERT INTO evals.generation_provider_route(org_id,role,provider_revision_id,price_revision_id,data_class,region,internal_cost_per_second,updated_by)
           VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(org_id,role) DO UPDATE SET provider_revision_id=excluded.provider_revision_id,price_revision_id=excluded.price_revision_id,
@@ -261,7 +279,7 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
         [orgId, role, revision, price, ROUTE_DATA_CLASS, region, cost, identity.user.id]);
       }
     }
-    await audit(c, orgId, identity.user.id, `engine.route.${input.scope}`, revision);
+    await audit(c, orgId, identity.user.id, `engine.route.${input.scope}`, input.evaluationId ?? revision);
     return { providerRevisionId: revision, roles, scope: input.scope };
   });
 }
@@ -508,4 +526,25 @@ async function fetchJson(url: string, headers: Record<string, string>, timeoutMs
     throw new EvalError("PROVIDER_UNAVAILABLE", 503, detail ? `${hint} ${detail.slice(0, 200)}` : hint);
   }
   return parsed;
+}
+
+
+export async function getEvaluationEngineSettings(identity: EvalIdentity, orgId: string, evaluationId: string) {
+  requirePlatformAdmin(identity);
+  const settings = await getEngineSettings(identity,orgId);
+  const evaluation = await asAdmin({orgId,actorId:identity.user.id}, async c => {
+    if (!(await c.query("SELECT id FROM evals.evaluation WHERE org_id=$1 AND id=$2 AND archived_at IS NULL",[orgId,evaluationId])).rowCount) throw new EvalError("SCOPE_DENIED",404);
+    return (await c.query(ROUTE_SELECT("evals.evaluation_model_route","WHERE r.org_id=$1 AND r.evaluation_id=$2"),[orgId,evaluationId])).rows as RouteRow[];
+  });
+  return {...settings,evaluation};
+}
+
+export async function clearEvaluationRoute(identity: EvalIdentity, orgId: string, evaluationId: string, role: EngineRoleName | "all") {
+  requirePlatformAdmin(identity);
+  return asAdmin({orgId,actorId:identity.user.id}, async c => {
+    if (!(await c.query("SELECT id FROM evals.evaluation WHERE org_id=$1 AND id=$2 AND archived_at IS NULL FOR UPDATE",[orgId,evaluationId])).rowCount) throw new EvalError("SCOPE_DENIED",404);
+    await c.query("DELETE FROM evals.evaluation_model_route WHERE org_id=$1 AND evaluation_id=$2 AND ($3='all' OR role=$3)",[orgId,evaluationId,role]);
+    await audit(c,orgId,identity.user.id,"engine.route.evaluation_cleared",evaluationId);
+    return {role};
+  });
 }

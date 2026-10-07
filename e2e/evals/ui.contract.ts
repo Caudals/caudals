@@ -195,8 +195,12 @@ test("creates clients, scopes and revokes invitations with UUID idempotency keys
     await page.getByLabel("Client name", { exact: true }).fill(name);
     await page.getByRole("button", { name: "Create client", exact: true }).click();
     await expect(page.getByText(`Client created: ${name}`)).toBeVisible();
-    // The harness identity is static; in the app the refreshed identity opens the new client's panel.
+    // Wait for the refreshed identity to open the client panel before dismissing it.
+    // The harness identity stays on Example client.
+    const createdPanel=page.getByRole("dialog",{name:"Example client",exact:true});
+    if(name==="Client one")await expect(createdPanel).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(createdPanel).toBeHidden();
   }
   // Invitations are scoped to the selected client (the harness identity's workspace).
   await page.getByRole("button", { name: "Example client", exact: true }).click();
@@ -1864,4 +1868,69 @@ test("a delayed older page cannot undo a read or repopulate a changed filter", a
   await panel.getByRole("button", { name: "Refresh", exact: true }).click();
   await expect(panel.getByText("Stale older results")).toHaveCount(0);
   await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications");
+});
+
+
+for (const width of [390,1440]) test(`evaluation model choices save, reset and retry at ${width}px`,async({page})=>{
+ const roles=['context_analyzer','generator','judge','report_writer'];
+ const dgx={id:'dgx',name:'DGX Spark',adapter:'dgx',host:'DGX Spark (private network)',enabled:true,has_key:false,key_hint:null};
+ const base={provider_revision_id:id,model_id:'workspace-model',adapter:'dgx',account_id:'dgx',account_name:'DGX Spark',context_limit:32000,input_price:'0',output_price:'0',currency:'EUR',usable:true,web_research:false,web_capable:false};
+ let overrides:unknown[]=[],listFailed=true,saveFailed=true,held=false;
+ let releaseCatalog:()=>void=()=>{};
+ const writes:unknown[]=[];
+ await page.route('**/api/evals/v1/**',async route=>{
+  const url=new URL(route.request().url());let data:unknown=[];
+  if(url.pathname.endsWith('/workspace/summary'))data=summaryFixture({evaluations:[evaluationFixture]});
+  if(url.pathname.endsWith(`/evaluations/${evaluationFixture.id}/models`)){
+   if(route.request().method()==='PUT'){
+    writes.push(route.request().postDataJSON());
+    if(saveFailed){saveFailed=false;await route.fulfill({status:503,json:{error:{code:'PROVIDER_UNAVAILABLE',message:'Try saving again.',request_id:'fixture'}}});return;}
+    const body=route.request().postDataJSON();overrides=[{...base,role:body.role,model_id:body.modelId}];
+   }else if(route.request().method()==='DELETE')overrides=[];
+   data={roles,connections:[dgx,{...dgx,id:"other",name:"Other provider"}],evaluation:overrides,workspace:roles.map(role=>({...base,role})),platform:[]};
+  }
+  if(url.pathname.endsWith('/engine/models')){
+   if(url.searchParams.get('connectionId')==='other'){
+    held=true;await new Promise<void>(resolve=>{releaseCatalog=resolve;});
+    await route.fulfill({status:503,json:{error:{code:'PROVIDER_UNAVAILABLE',message:'Stale catalog error.',request_id:'fixture'}}});return;
+   }
+   if(listFailed){listFailed=false;await route.fulfill({status:503,json:{error:{code:'PROVIDER_UNAVAILABLE',message:'Catalog unavailable.',request_id:'fixture'}}});return;}
+   data=[{id:'evaluation-model',label:'evaluation-model',detail:'Fixture'}];
+  }
+  if(url.pathname.endsWith('/suites'))data=[{suite_version_id:evaluationFixture.selected_suite_version_id,case_count:8}];
+  await route.fulfill({json:{data,meta:{}}});
+ });
+ await page.setViewportSize({width,height:1000});
+ await page.goto(`/workspace/evaluations/${evaluationFixture.id}?admin`);
+ await page.locator('.p-evaluation-models > summary').click();
+ const table=page.getByRole('list',{name:'AI models',exact:true});
+ await expect(table.getByText('workspace-model',{exact:true})).toHaveCount(4);
+ await table.getByRole('listitem').filter({hasText:'Draft tests'}).getByRole('button',{name:'Change',exact:true}).click();
+ const dialog=page.getByRole('dialog');
+ await expect(dialog.getByText('Catalog unavailable.',{exact:true})).toBeVisible();
+ await dialog.getByRole('button',{name:'Try again',exact:true}).click();
+ await dialog.getByRole('radio',{name:'evaluation-model Fixture',exact:true}).check();
+ await dialog.getByRole('button',{name:'Save',exact:true}).click();
+ await expect(dialog.getByText('Try saving again.',{exact:true})).toBeVisible();
+ await dialog.getByRole('button',{name:'Save',exact:true}).click();
+ await expect(dialog).toBeHidden();
+ await expect(table.getByText('evaluation-model',{exact:true})).toBeVisible();
+ expect(writes).toHaveLength(2);
+ expect(writes[1]).toMatchObject({orgId:id,role:'generator',modelId:'evaluation-model',connectionId:'dgx'});
+ expect(writes[1]).not.toHaveProperty('scope');
+ await page.screenshot({path:`/tmp/evaluation-models-${width}.png`});
+ await table.getByRole('button',{name:'Use workspace default',exact:true}).click();
+ await expect(table.getByText('workspace-model',{exact:true})).toHaveCount(4);
+ await table.getByRole('listitem').filter({hasText:'Draft tests'}).getByRole('button',{name:'Change',exact:true}).click();
+ await dialog.getByLabel('Provider',{exact:true}).selectOption('other');
+ await expect.poll(()=>held).toBe(true);
+ await dialog.getByLabel('Provider',{exact:true}).selectOption('dgx');
+ await expect(dialog.getByRole('radio',{name:'evaluation-model Fixture',exact:true})).toBeVisible();
+ const staleResponse=page.waitForResponse(response=>new URL(response.url()).searchParams.get("connectionId")==="other");
+ releaseCatalog();
+ await (await staleResponse).finished();
+ await page.waitForLoadState("networkidle");
+ await expect(dialog.getByText('Stale catalog error.',{exact:true})).toHaveCount(0);
+ await expect(dialog.getByRole('radio',{name:'evaluation-model Fixture',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
