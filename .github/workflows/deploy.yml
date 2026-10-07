@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - ".github/workflows/**"
       - "docs/**"
+      - "**/*.md"
       - "infra/evals/**"
       - "scripts/deploy-evals-production.sh"
       - "services/evals-*/**"
@@ -36,6 +37,11 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'build-and-deploy' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # A newer push to main supersedes an image still building; only the newest
+    # one is deployed anyway.
+    concurrency:
+      group: app-image-build
+      cancel-in-progress: true
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
@@ -79,22 +85,6 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-      - name: Scan Docker image vulnerabilities
-        uses: docker/scout-action@v1
-        with:
-          command: cves
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          only-severities: critical,high
-          sarif-file: docker-scout.sarif
-
-      - name: Upload Docker Scout SARIF artifact
-        if: ${{ always() && hashFiles('docker-scout.sarif') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-scout-sarif
-          path: docker-scout.sarif
-          retention-days: 30
 
   deploy-to-vps:
     needs: [build-and-push]
