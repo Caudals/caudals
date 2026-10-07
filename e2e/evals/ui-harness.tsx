@@ -90,6 +90,7 @@ const identity = {
           ? ("editor" as const)
           : ("viewer" as const),
     },
+    ...(params.has("two-workspaces") ? [{ id: "00000000-0000-4000-8000-000000000002", name: "Second client", role: "owner" as const }] : []),
   ],
 };
 const content =

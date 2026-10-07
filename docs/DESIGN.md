@@ -235,6 +235,8 @@ In-flight states (`running`, `queued`, `validating`, `generating`, `checking_con
 
 **Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab), and `⌘K` for the command palette. There are no in-page back links: breadcrumbs carry the hierarchy.
 
+**Notification centre** — the topbar bell opens a `SidePanel` with Notifications and Activity tabs. Both show the latest changes first. Quiet filter chips narrow notices to unread or activity to work in progress, attention and completed work. Notices use `.p-notice-*` from the platform kit: semantic icon plus a written outcome, evaluation name, exact timestamp on hover, and an independent mark-as-read action. The badge counts all unread notices; older history loads in place. Refresh and write errors render inside the panel. Closing returns focus to its bell or work-in-progress trigger.
+
 **Session expiry** — any API call answering 401 raises one shell-level alert with *Sign in again* (returning to the current page) and *Recover account*, and hides the page underneath without unmounting it. The invitation page keeps its own recovery because its bearer lives only in the fragment.
 
 **Auth** (`.p-auth`) — one centred `400px` column on the chrome plane. Wordmark, title, description, card, footnote. No split hero, no marketing copy: the person is here to get in.

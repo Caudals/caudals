@@ -1721,3 +1721,147 @@ test("a paused run shows its progress and can be resumed or finished with the ca
   await expect.poll(() => controls).toEqual(["resume"]);
   await expect(page.getByRole("heading", { name: "Evaluation queued" })).toBeVisible({ timeout: 10000 });
 });
+
+test("notifications paginate, filter unread and retain read state when a write fails", async ({ page }) => {
+  const firstId = "00000000-0000-4000-8000-000000000901", secondId = "00000000-0000-4000-8000-000000000902";
+  const notice = (noticeId: string, title: string, read = false) => ({ id: noticeId, kind: "report_published", category: "completion", read,
+    created_at: noticeId === firstId ? "2026-10-07T10:00:00.000002Z" : "2026-10-07T10:00:00.000001Z", payload: { evaluationTitle: title } });
+  let failed = true, marked = false;
+  await page.route("**/api/evals/v1/notifications**", async route => {
+    if (route.request().method() === "POST") {
+      if (failed) { failed = false; await route.fulfill({ status: 503, json: { error: { code: "UNAVAILABLE" } } }); return; }
+      expect(route.request().postDataJSON().ids).toEqual([firstId]);
+      marked = true;
+      await route.fulfill({ json: { data: { marked: 1 } } }); return;
+    }
+    const url = new URL(route.request().url());
+    const older = url.searchParams.has("beforeAt");
+    const data = older ? [notice(secondId, "Older results", true)] : marked && url.searchParams.get("unreadOnly") === "true" ? [] : [notice(firstId, "Latest results", marked)];
+    await route.fulfill({ json: { data: { notifications: data, unread: marked ? 0 : 1,
+      nextCursor: older ? null : { createdAt: "2026-10-07T10:00:00.000002Z", id: firstId } } } });
+  });
+  await page.route("**/api/evals/v1/activity**", route => route.fulfill({ json: { data: [] } }));
+  await page.goto("/workspace/evaluations?owner");
+  const bell = page.getByRole("button", { name: /^Notifications: 1 unread$/ });
+  await bell.click();
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await expect(panel.getByText("Latest changes first")).toBeVisible();
+  await panel.getByRole("button", { name: "Load older notifications" }).click();
+  await expect(panel.locator(".p-notice-list > li")).toHaveCount(2);
+  await expect(panel.locator(".p-notice-list > li").first()).toContainText("Latest results");
+  await panel.getByRole("button", { name: "Mark as read: Results are ready" }).click();
+  await expect(panel.getByRole("alert")).toContainText("Could not mark these notices as read");
+  await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications: 1 unread");
+  await expect(panel.locator('.p-notice[data-read="false"]')).toHaveCount(1);
+  await panel.getByRole("alert").getByRole("button", { name: "Try again" }).click();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
+  await expect(panel.locator('.p-notice[data-read="false"]')).toHaveCount(0);
+  await panel.getByRole("button", { name: "Unread", exact: true }).click();
+  await expect(panel.getByText("No unread notifications", { exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Notifications", exact: true })).toBeFocused();
+});
+for (const width of [390, 1440]) {
+  test(`activity filters preserve newest-first order and fit ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const jobs = [
+      { type: "run", id: "recent", stage: "done", active: false, evaluation_title: "Latest completed run", updated_at: "2026-10-07T10:00:00Z", percent: 100 },
+      { type: "generation", id: "running", stage: "drafting", active: true, evaluation_title: "Older running generation", updated_at: "2026-10-07T09:00:00Z", percent: 25 },
+      { type: "run", id: "paused", stage: "paused", active: false, evaluation_title: "Paused run", updated_at: "2026-10-07T08:00:00Z", percent: 40 },
+    ].map(job => ({ ...job, status: job.stage, reason_code: null, created_at: "2026-10-07T07:00:00Z", evaluation_id: id, subject: null,
+      done: 2, total: 8, grading_done: 0, grading_total: 0 }));
+    await page.route("**/api/evals/v1/activity**", route => route.fulfill({ json: { data: jobs } }));
+    await page.route("**/api/evals/v1/notifications**", route => route.fulfill({ json: { data: { notifications: [], unread: 0, nextCursor: null } } }));
+    await page.goto("/workspace/evaluations?owner");
+    await page.getByRole("button", { name: /Work in progress:/ }).click();
+    const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+    await expect(panel.locator(".p-job-list > li").first()).toContainText("Latest completed run");
+    await panel.getByRole("button", { name: "In progress", exact: true }).click();
+    await expect(panel.locator(".p-job-list > li")).toHaveCount(1);
+    await expect(panel.locator(".p-job-list")).toContainText("Older running generation");
+    await panel.getByRole("button", { name: "Needs attention", exact: true }).click();
+    await expect(panel.locator(".p-job-list")).toContainText("Paused run");
+    await panel.getByRole("button", { name: "Completed", exact: true }).click();
+    await expect(panel.locator(".p-job-list")).toContainText("Latest completed run");
+    await panel.getByRole("button", { name: "All", exact: true }).click();
+    expect(await panel.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/notifications-activity-${width}.png` });
+  });
+}
+test("failed notification refresh offers recovery without a perpetual loading state", async ({ page }) => {
+  let unavailable = true;
+  await page.route("**/api/evals/v1/notifications**", route => route.fulfill(unavailable
+    ? { status: 503, json: { error: { code: "UNAVAILABLE" } } }
+    : { json: { data: { notifications: [], unread: 0, nextCursor: null } } }));
+  await page.route("**/api/evals/v1/activity**", route => route.fulfill({ json: { data: [] } }));
+  await page.goto("/workspace/evaluations?owner");
+  await page.getByRole("button", { name: "Notifications", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await expect(panel.getByText("Could not refresh.", { exact: false })).toBeVisible();
+  await expect(panel.getByText("Loading…", { exact: true })).toHaveCount(0);
+  unavailable = false;
+  await panel.getByRole("button", { name: "Try again" }).click();
+  await expect(panel.getByText("You are all caught up")).toBeVisible();
+  await expect(panel.getByText("Could not refresh.", { exact: false })).toHaveCount(0);
+});
+test("workspace changes discard delayed activity and notification responses", async ({ page }) => {
+  const secondOrg = "00000000-0000-4000-8000-000000000002";
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const requested = new Promise<void>(resolve => { arrived = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/evals/v1/notifications**", async route => {
+    const second = new URL(route.request().url()).searchParams.get("orgId") === secondOrg;
+    if (!second) { arrived(); await delayed; }
+    await route.fulfill({ json: { data: { notifications: [{ id: second ? "second" : "first", kind: "report_published", category: "completion", read: false,
+      created_at: new Date().toISOString(), payload: { evaluationTitle: second ? "Second client results" : "First client results" } }], unread: second ? 1 : 7, nextCursor: null } } });
+  });
+  await page.route("**/api/evals/v1/activity**", async route => {
+    const second = new URL(route.request().url()).searchParams.get("orgId") === secondOrg;
+    if (!second) await delayed;
+    await route.fulfill({ json: { data: [] } });
+  });
+  await page.goto("/workspace/evaluations?owner&two-workspaces");
+  await requested;
+  await page.getByRole("button", { name: /Workspace: Example client/ }).click();
+  await page.getByRole("menuitem", { name: "Second client", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Notifications: 1 unread", exact: true })).toBeVisible();
+  release();
+  await page.getByRole("button", { name: "Notifications: 1 unread", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await expect(panel.getByText("Second client results")).toBeVisible();
+  await expect(panel.getByText("First client results")).toHaveCount(0);
+  await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications: 1 unread");
+});
+test("a delayed older page cannot undo a read or repopulate a changed filter", async ({ page }) => {
+  const noticeId = "00000000-0000-4000-8000-000000000911";
+  let marked = false;
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const requested = new Promise<void>(resolve => { arrived = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/evals/v1/notifications**", async route => {
+    if (route.request().method() === "POST") { marked = true; await route.fulfill({ json: { data: { marked: 1 } } }); return; }
+    const params = new URL(route.request().url()).searchParams;
+    if (params.has("beforeAt")) {
+      arrived(); await delayed;
+      await route.fulfill({ json: { data: { notifications: [{ id: "old", kind: "report_published", category: "completion", read: false, created_at: "2026-10-06T10:00:00Z", payload: { evaluationTitle: "Stale older results" } }], unread: 7, nextCursor: null } } }); return;
+    }
+    await route.fulfill({ json: { data: { notifications: marked && params.get("unreadOnly") === "true" ? [] : [{ id: noticeId, kind: "report_published", category: "completion", read: marked, created_at: "2026-10-07T10:00:00Z", payload: { evaluationTitle: "Latest results" } }], unread: marked ? 0 : 1,
+      nextCursor: marked ? null : { createdAt: "2026-10-07T10:00:00Z", id: noticeId } } } });
+  });
+  await page.route("**/api/evals/v1/activity**", route => route.fulfill({ json: { data: [] } }));
+  await page.goto("/workspace/evaluations?owner");
+  await page.getByRole("button", { name: "Notifications: 1 unread", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await panel.getByRole("button", { name: "Load older notifications" }).click();
+  await requested;
+  await panel.getByRole("button", { name: "Mark as read: Results are ready" }).click();
+  await expect(panel.locator('.p-notice[data-read="false"]')).toHaveCount(0);
+  await panel.getByRole("button", { name: "Unread", exact: true }).click();
+  await expect(panel.getByText("No unread notifications", { exact: true })).toBeVisible();
+  release();
+  await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(panel.getByText("Stale older results")).toHaveCount(0);
+  await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications");
+});
