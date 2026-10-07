@@ -37,9 +37,9 @@ const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
         [source.revision_id, orgId, source.source_id, artifactId, source.content_hash, source]);
       await db.query("INSERT INTO evals.evaluation(id,org_id,project_id,title,evidence_policy,commercial_cap,currency) VALUES($1,$2,$3,'Generation fixture','source_grounded',1,'EUR')", [evaluationId, orgId, projectId]);
       for (const generationJobId of generationJobIds) {
-        await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,status,created_by)
-          VALUES($1,$2,$3,$4,'Retry fixture','imported_responses',$5,'schema-retry-v1',$6,1,'profiling',$7)`,
-        [orgId, generationJobId, evaluationId, randomUUID(), [source.revision_id], randomUUID(), actorId]);
+        await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,status,created_by,created_at)
+          VALUES($1,$2,$3,$4,'Retry fixture','imported_responses',$5,'schema-retry-v1',$6,1,'profiling',$7,$8)`,
+        [orgId, generationJobId, evaluationId, randomUUID(), [source.revision_id], randomUUID(), actorId, new Date(Date.now()-(generationJobId===generationJobIds[0]?0:60000))]);
       }
       await db.query(`INSERT INTO evals.generation_batch(org_id,evaluation_id,generation_job_id,step_kind,input_hash,version,prompt_revision,status,attempt_count)
         VALUES($1,$2,$3,'extract',$4,1,'schema-retry-v1','completed',1),

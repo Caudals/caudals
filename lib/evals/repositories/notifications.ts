@@ -67,7 +67,7 @@ export function markNotificationsRead(scope: EvidenceScope, raw: unknown) {
   });
 }
 
-export type ActivityStage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "canceling" | "canceled" | "done" | "failed";
+export type ActivityStage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "pausing" | "canceling" | "canceled" | "done" | "failed";
 type ActivityRow = {
   type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null;
   created_at: string; updated_at: string; evaluation_id: string | null; evaluation_title: string | null; subject: string | null;
@@ -82,6 +82,9 @@ const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
  */
 export function jobProgress(row: Pick<ActivityRow, "type" | "status" | "done" | "total" | "phase" | "grading_done" | "grading_total">): { percent: number | null; stage: ActivityStage; active: boolean } {
   const share = (done: number | null, total: number | null) => (total ? Math.min(1, (done ?? 0) / total) : 0);
+  if (row.status === "canceled") return { percent: null, stage: "canceled", active: false };
+  if (row.status === "cancel_requested") return { percent: null, stage: "canceling", active: true };
+  if (row.status === "pause_requested") return { percent: null, stage: "pausing", active: true };
   if (row.status === "failed" || row.status === "quarantined") return { percent: null, stage: "failed", active: false };
   if (row.type === "website") {
     const steps: Record<string, number> = { queued: 5, running: 30, captured: 55, persisting: 70, extracting: 85, completed: 100 };
@@ -124,9 +127,12 @@ export function listActivity(scope: EvidenceScope) {
         WHERE j.org_id=$1 AND NOT EXISTS (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=j.org_id AND w.source_id=j.source_id)
           AND (j.status NOT IN ('completed','failed') OR j.updated_at>now()-interval '3 days')
       UNION ALL
-      SELECT 'generation',g.id,g.status,g.reason_code,g.created_at,g.updated_at,g.evaluation_id,e.title,g.title,jsonb_array_length(g.draft_cases),g.requested_case_count,NULL,NULL,NULL
+      SELECT 'generation',g.id,CASE WHEN g.control_state='active' THEN g.status
+          WHEN EXISTS(SELECT 1 FROM evals.workflow_step ws WHERE ws.org_id=g.org_id AND ws.workflow_id=g.workflow_id AND ws.status='running') THEN CASE g.control_state WHEN 'paused' THEN 'pause_requested' ELSE 'cancel_requested' END
+          ELSE CASE g.control_state WHEN 'paused' THEN 'paused' ELSE 'canceled' END END,
+          CASE WHEN g.control_state='active' THEN g.reason_code ELSE 'operator_'||g.control_state END,g.created_at,g.updated_at,g.evaluation_id,e.title,g.title,jsonb_array_length(g.draft_cases),g.requested_case_count,NULL,NULL,NULL
         FROM evals.generation_job g JOIN evals.evaluation e ON (e.org_id,e.id)=(g.org_id,g.evaluation_id)
-        WHERE g.org_id=$1 AND (g.status IN ('profiling','profile_ready','drafting','draft_ready') OR g.updated_at>now()-interval '3 days')
+        WHERE g.org_id=$1 AND (g.control_state='active' AND g.status IN ('profiling','profile_ready','drafting','draft_ready') OR g.updated_at>now()-interval '3 days')
       UNION ALL
       SELECT 'run',r.id,r.status,r.reason_code,r.created_at,r.updated_at,r.evaluation_id,e.title,NULL,
           (SELECT count(*)::int FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id AND u.status NOT IN ('pending','queued','running')),

@@ -491,28 +491,20 @@ export function Progress({ value, max, label }: { value: number; max: number; la
  * Stage tracker for a multi-step workflow. Each stage is a projection of a
  * real backend state, never a timed animation.
  */
-export function Steps({
-  steps,
-  label,
-}: {
+export function Steps({ steps, label, selected, onSelect }: {
   steps: ReadonlyArray<{ label: string; state: "done" | "current" | "upcoming" | "blocked" }>;
   label: string;
+  selected?: number;
+  onSelect?: (index: number) => void;
 }) {
-  return (
-    <ol className="p-steps" aria-label={label}>
-      {steps.map((step, index) => (
-        <li key={step.label} data-state={step.state} aria-current={step.state === "current" ? "step" : undefined}>
-          <span className="p-step-mark" aria-hidden="true">
-            {step.state === "done" ? <CheckIcon /> : step.state === "blocked" ? <TriangleAlert /> : index + 1}
-          </span>
-          <span className="p-step-label">{step.label}</span>
-          <span className="sr-only">
-            {step.state === "done" ? " — done" : step.state === "current" ? " — in progress" : step.state === "blocked" ? " — needs attention" : ""}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
+  return <ol className="p-steps" aria-label={label}>
+    {steps.map((step, index) => {
+      const content = <><span className="p-step-mark" aria-hidden="true">{step.state === "done" ? <CheckIcon /> : step.state === "blocked" ? <TriangleAlert /> : index + 1}</span><span className="p-step-label">{step.label}</span><span className="sr-only">{step.state === "done" ? " — done" : step.state === "current" ? " — in progress" : step.state === "blocked" ? " — needs attention" : ""}</span></>;
+      return <li key={step.label} data-state={step.state} aria-current={step.state === "current" ? "step" : undefined}>
+        {onSelect ? <button type="button" className="p-step-button" disabled={index !== 0 && step.state !== "current" && step.state !== "blocked" && !(index === 3 && step.state === "done")} aria-pressed={selected === index} onClick={() => onSelect(index)}>{content}</button> : content}
+      </li>;
+    })}
+  </ol>;
 }
 
 /* ----------------------------------------------------------------- stats -- */

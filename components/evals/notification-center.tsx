@@ -16,7 +16,7 @@ type Notice = {
 };
 type Cursor = { createdAt: string; id: string };
 type NoticePage = { notifications: Notice[]; unread: number; nextCursor: Cursor | null };
-type Stage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "canceling" | "canceled" | "done" | "failed";
+type Stage = "queued" | "reading" | "analysing" | "drafting" | "needs_input" | "asking" | "grading" | "reporting" | "exporting" | "paused" | "pausing" | "canceling" | "canceled" | "done" | "failed";
 type Job = {
   type: "website" | "document" | "generation" | "run" | "export"; id: string; status: string; reason_code: string | null; created_at: string; updated_at: string;
   evaluation_id: string | null; evaluation_title: string | null; subject: string | null; done: number | null; total: number | null;
@@ -24,7 +24,7 @@ type Job = {
 };
 const STAGE_LABEL: Record<Stage, MessageKey> = {
   queued: "stageQueued", reading: "stageReading", analysing: "stageAnalysing", drafting: "stageDrafting", needs_input: "stageNeedsInput",
-  asking: "stageAsking", grading: "stageGrading", reporting: "stageReporting", exporting: "stageExporting", paused: "stagePaused",
+  asking: "stageAsking", grading: "stageGrading", reporting: "stageReporting", exporting: "stageExporting", paused: "stagePaused", pausing: "stagePausing",
   canceling: "stageCanceling", canceled: "stageCanceled", done: "stageDone", failed: "stageFailed",
 };
 function stageCount(job: Job) {

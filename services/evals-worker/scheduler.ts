@@ -9,6 +9,7 @@ import { tickWebhookDeliveries } from "../../lib/evals/monitoring/webhooks";
 import { advanceJudgments } from "../../lib/evals/repositories/judging";
 import { advanceReportNarratives } from "../../lib/evals/repositories/narratives";
 import { finalizeRuns, refreshJudgedReports } from "../../lib/evals/repositories/finalize";
+import { advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluation-controls";
 import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
@@ -45,6 +46,7 @@ async function main() {
             ["schedules", () => tickSchedules(scope)],
             ["alerts", () => tickScheduledAlerts(scope)],
             ["webhooks", () => tickWebhookDeliveries(scope, keys)],
+            ["restarts", () => advanceEvaluationRestarts(scope)],
             ["generations", () => advancePendingGenerations(scope)],
             ["judgments", () => advanceJudgments(scope)],
             ["narratives", () => advanceReportNarratives(scope)],

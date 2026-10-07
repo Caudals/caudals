@@ -14,6 +14,8 @@ import { createPrefixedId } from "../../lib/operator/ids";
 
 const ownerUrl = process.env.EVALS_TEST_OWNER_URL;
 const runtimeUrl = process.env.EVALS_TEST_DATABASE_URL;
+import { controlEvaluation, getEvaluationControls, advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluation-controls";
+
 describe.skipIf(!ownerUrl || !runtimeUrl)("workspace run queue on the production schema", () => {
   const owner = new Pool({ connectionString: ownerUrl, max: 4 });
   const workerPool = new Pool({ connectionString: ownerUrl, max: 4 });
@@ -59,6 +61,27 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("workspace run queue on the production
     const status = async (runId: string) => (await owner.query("SELECT status FROM evals.run WHERE id=$1", [runId])).rows[0].status;
     return { scope, create, job, status, orgId, evaluationId, item };
   }
+
+  it("exposes scoped pause, resume, stop and a durable idempotent restart", async () => {
+    const f=await seed(),first=await f.create();
+    const command=(action:"pause"|"resume"|"stop"|"restart",key=randomUUID())=>controlEvaluation(f.scope,f.evaluationId,{action,subjectId:first.id,subjectKind:"run",locale:"en"},key);
+    expect((await getEvaluationControls(f.scope,f.evaluationId)).actions).toContain("pause");
+    await command("pause");expect(await f.status(first.id)).toBe("paused");
+    await command("resume");expect(await f.status(first.id)).toBe("queued");
+    const previous=(await owner.query("SELECT tr.* FROM evals.target_revision tr JOIN evals.run r ON r.target_revision_id=tr.id WHERE r.id=$1",[first.id])).rows[0],revisionId=randomUUID();
+    const document={...previous.document,target_revision_id:revisionId,model:"edited connection"};
+    await owner.query("INSERT INTO evals.target_revision(id,org_id,target_id,content_hash,document,created_at) VALUES($1,$2,$3,$4,$5,clock_timestamp())",[revisionId,f.orgId,previous.target_id,"b".repeat(64),document]);
+    await owner.query("INSERT INTO evals.connection_check(org_id,target_revision_id,status,capability_report) VALUES($1,$2,'ready',$3)",[f.orgId,revisionId,{features:[{capability:"text",status:"supported"}]}]);
+    const key=randomUUID();await command("restart",key);await command("restart",key);
+    expect(await f.status(first.id)).toBe("canceled");
+    expect(await advanceEvaluationRestarts(f.scope)).toBe(1);
+    expect(await advanceEvaluationRestarts(f.scope)).toBe(0);
+    const next=(await getEvaluationControls(f.scope,f.evaluationId)).subject!;
+    expect(next.id).not.toBe(first.id);expect(next.status).toBe("queued");
+    expect((await owner.query("SELECT target_revision_id FROM evals.run WHERE id=$1",[next.id])).rows[0].target_revision_id).toBe(revisionId);
+    await expect(command("stop")).rejects.toMatchObject({code:"VERSION_CONFLICT"});
+    expect((await owner.query("SELECT 1 FROM evals.run WHERE evaluation_id=$1",[f.evaluationId])).rowCount).toBe(2);
+  });
 
   it("queues while occupied, defers without attempts, preserves FIFO across redelivery and releases on completion", async () => {
     const f = await seed();

@@ -5193,3 +5193,9 @@
  .p-evaluation-models > summary { flex-wrap: wrap; gap: 8px; }
  .p-evaluation-models > summary > svg:last-child { margin-left: auto; }
 }
+
+.p-step-button { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 4px 0; color: inherit; font: inherit; cursor: pointer; }
+.p-step-button:disabled { cursor: default; }
+.p-step-button:not(:disabled):hover .p-step-label { text-decoration: underline; text-underline-offset: 4px; }
+.p-step-button[aria-pressed="true"] .p-step-label { color: var(--p-text); font-weight: 600; }
+.p-step-button:focus-visible { outline: 2px solid var(--p-action); outline-offset: 4px; border-radius: var(--p-radius-sm); }

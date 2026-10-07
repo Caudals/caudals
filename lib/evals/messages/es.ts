@@ -6,6 +6,28 @@ import type { MessageKey } from "./en";
  * precise and without hype. Use "tú" in the interface.
  */
 export const es: Partial<Record<MessageKey, string>> = {
+  stagePausing: "Pausando",
+  evaluationRestartFromMenu: "Usa el menú de tres puntos de la evaluación para reanudar o reiniciar la preparación.",
+  pauseEvaluation: "Pausar evaluación",
+  resumeEvaluation: "Reanudar evaluación",
+  stopEvaluation: "Detener evaluación",
+  restartEvaluation: "Reiniciar evaluación",
+  evaluationControlsLoadError: "No se han podido cargar los controles. Reinténtalo para obtener el estado actual.",
+  evaluationControlSaved: "Control de evaluación guardado.",
+  evaluationRestartWaiting: "Reinicio solicitado. Esperando a que terminen las llamadas actuales antes de crear un nuevo intento. Puedes cerrar esta página.",
+  evaluationPauseWaiting: "Pausa solicitada. Las llamadas actuales terminarán; no se iniciarán nuevas llamadas.",
+  evaluationStopWaiting: "Detención solicitada. Esperando a que terminen las llamadas actuales. Se conservan las evidencias capturadas.",
+  evaluationPreparationPaused: "La preparación está pausada. Reanúdala desde el menú de la evaluación para continuar con los modelos y el progreso guardados.",
+  evaluationPreparationStopped: "Preparación detenida. Sus evidencias están guardadas. Reiníciala desde el menú de la evaluación para volver a intentarlo.",
+  evaluationRestartFailed: "No se ha podido iniciar el nuevo intento. Comprueba la conexión, los modelos y el presupuesto y vuelve a elegir Reiniciar evaluación.",
+  evaluationRestartHelp: "Detén el intento actual e inicia uno nuevo con los modelos y la conexión actuales. Se conservan las evidencias y los resultados anteriores. Primero terminan las llamadas actuales. Las nuevas llamadas cuentan para tu presupuesto.",
+  evaluationStopHelp: "Detén el trabajo pendiente de este intento. Las llamadas en curso terminan de forma segura. Se conservan las respuestas capturadas y los tests preparados; las respuestas capturadas pueden generar un informe parcial.",
+  evaluationStopRestartHelp: "Cancela el reinicio pendiente y deja este intento detenido. Se conservan todas las evidencias guardadas.",
+  connectEvaluation: "Conectar",
+  connectEvaluationHelp: "Gestiona la conexión del sistema y elige los modelos de IA que se usarán en esta evaluación.",
+  manageConnection: "Gestionar conexión",
+  backToEvaluation: "Volver a la evaluación",
+
   recoveryInvitationHelp: "Después de restablecer la contraseña, vuelve a abrir tu enlace de invitación privado original.",
   signOut: "Cerrar sesión",
   signingOut: "Cerrando sesión…",

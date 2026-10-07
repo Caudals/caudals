@@ -48,7 +48,7 @@ type GenerationRoute = ModelRoute;
 const generationReasoning = (route: Pick<GenerationRoute, "adapter">) => (route.adapter === "dgx" ? "off" : "bounded");
 const generationOutputCap = (route: Pick<GenerationRoute, "adapter" | "tpm">) => Math.min(route.adapter === "dgx" ? 8192 : 24576, Math.floor(route.tpm / 2));
 type SourceRecord = { id: string; content_hash: string; document: unknown; title: string; rights: string };
-type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; complexity:Complexity; draft_cases:AutoDraftCase[]; draft_rounds:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null };
+type GenerationJobRecord = { id:string; workflow_id:string; source_revision_ids:string[]; title:string; prompt_revision:string; prompt_revision_id:string; execution_mode:string; requested_case_count:number; complexity:Complexity; draft_cases:AutoDraftCase[]; draft_rounds:number; status:string; profile_revision_id:string|null; reason_code:string|null; suite_id:string|null; suite_version_id:string|null; control_state:"active"|"paused"|"stopped" };
 /** Context shown with a question: why it matters and likely answers. */
 type QuestionContext = { why?: string; suggestions?: string[] };
 
@@ -169,10 +169,18 @@ function draftSystemPrompt() {
 }
 
 export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: string, raw: unknown, key: string) {
+  return withTenant(scope, db => startAutomaticGenerationInTransaction(db, scope, evaluationId, raw, key));
+}
+
+export function startAutomaticGenerationInTransaction(db: PoolClient, scope: EvidenceScope, evaluationId: string, raw: unknown, key: string) {
   const input = startSchema.parse(raw);
-  return withTenant(scope, (db) => idempotent(db, scope, `evaluation-auto-generation/${evaluationId}`, key, input, async () => {
+  return idempotent(db, scope, `evaluation-auto-generation/${evaluationId}`, key, input, async () => {
     const evaluation = (await db.query("SELECT e.id,e.project_id,p.description AS project_description,e.commercial_cap,e.currency FROM evals.evaluation e JOIN evals.project p ON (p.org_id,p.id)=(e.org_id,e.project_id) WHERE e.org_id=$1 AND e.id=$2 FOR UPDATE OF e", [scope.orgId, evaluationId])).rows[0];
     if (!evaluation) throw new EvalError("SCOPE_DENIED", 404);
+    const active = (await db.query(`SELECT 1 FROM evals.generation_job g WHERE g.org_id=$1 AND g.evaluation_id=$2
+      AND (g.control_state='active' AND g.status NOT IN ('needs_review','quarantined','failed')
+        OR EXISTS(SELECT 1 FROM evals.workflow_step s WHERE s.org_id=g.org_id AND s.workflow_id=g.workflow_id AND s.status='running')) LIMIT 1`, [scope.orgId,evaluationId])).rowCount;
+    if(active) throw new EvalError("VERSION_CONFLICT",409,"Stop the current preparation before starting another.");
     const sourceRows = await loadSources(db, scope.orgId, evaluationId, evaluation.project_id, input.sourceRevisionIds);
     const { material: fullMaterial } = anchorMaterial(sourceRows);
     const workspaceBudget = await ensureWorkspaceBudget(db, scope.orgId, evaluation.currency);
@@ -181,8 +189,8 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     const jobId = randomUUID(), workflowId = randomUUID(), promptRevisionId = randomUUID();
     const runBudget = (await db.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling)
       VALUES($1,'run',$2,$3,$4) RETURNING id`, [scope.orgId, jobId, evaluation.currency, evaluation.commercial_cap])).rows[0];
-    const job = (await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,complexity,status,created_by)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'profiling',$12) RETURNING *`, [scope.orgId, jobId, evaluationId, workflowId, input.title, input.executionMode, input.sourceRevisionIds, input.promptRevision, promptRevisionId, input.maxCases, input.complexity, scope.actorId])).rows[0];
+    const job = (await db.query(`INSERT INTO evals.generation_job(org_id,id,evaluation_id,workflow_id,title,execution_mode,source_revision_ids,prompt_revision,prompt_revision_id,requested_case_count,complexity,status,created_by,start_input)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'profiling',$12,$13) RETURNING *`, [scope.orgId, jobId, evaluationId, workflowId, input.title, input.executionMode, input.sourceRevisionIds, input.promptRevision, promptRevisionId, input.maxCases, input.complexity, scope.actorId, input])).rows[0];
     // Use the inserted job snapshot even when a workspace default changes concurrently.
     const routes = await resolveModelRoutes(db, scope.orgId, ["context_analyzer", "generator"], evaluationId, {kind:"generation",id:jobId});
     const profileRoute = routeFor("context_analyzer", routes), draftRoute = routeFor("generator", routes);
@@ -202,7 +210,7 @@ export function startAutomaticGeneration(scope: EvidenceScope, evaluationId: str
     const stepId = await enqueueInvocation(db,scope as Tenant,{workflowId,runId:jobId,planHash:plan,kind:"profile",version:1,input:invocation});
     await db.query("UPDATE evals.evaluation SET preparation_status='profiling',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
     return {jobId,workflowId,stepId,status:"profiling" as const};
-  }));
+  });
 }
 
 function parseModelJson(output: unknown, step: "profile"|"draft") {
@@ -467,8 +475,13 @@ async function queueNextRound(db: PoolClient, scope: EvidenceScope, evaluationId
 export async function advanceAutomaticGeneration(scope: EvidenceScope, evaluationId: string, jobId: string, key: string, options: { finishPartial?: boolean } = {}) {
   if(!key||key.length>200)throw new EvalError("INPUT_INVALID",400,"Idempotency-Key required.");
   const prepared=await withTenant(scope,async db=>{
+    await db.query("SELECT id FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,evaluationId]);
+    await db.query("SELECT w.id FROM evals.execution_workflow w JOIN evals.generation_job g ON g.org_id=w.org_id AND g.workflow_id=w.id WHERE g.org_id=$1 AND g.id=$2 FOR UPDATE OF w",[scope.orgId,jobId]);
     const job=(await db.query("SELECT * FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 AND id=$3 FOR UPDATE",[scope.orgId,evaluationId,jobId])).rows[0] as GenerationJobRecord|undefined;
     if(!job)throw new EvalError("SCOPE_DENIED",404);
+    const latest=(await db.query("SELECT id FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1",[scope.orgId,evaluationId])).rows[0];
+    if(latest?.id!==job.id) throw new EvalError("VERSION_CONFLICT",409,"A newer preparation has replaced this one.");
+    if(job.control_state!=="active")return {status:job.control_state,jobId:job.id,reasonCode:`operator_${job.control_state}`};
     job.draft_cases=Array.isArray(job.draft_cases)?job.draft_cases:[];
     // A stopped large set can still be used: keep the source-validated cases written so far.
     if(options.finishPartial){
@@ -650,7 +663,7 @@ const SELF_RETRY_REASONS=["generation_output_exhausted","incomplete_response","i
  */
 export async function advancePendingGenerations(scope: EvidenceScope) {
   const jobs=await withTenant(scope,async db=>(await db.query(`SELECT id,evaluation_id,status,updated_at FROM evals.generation_job
-    WHERE org_id=$1 AND updated_at<now()-interval '20 seconds'
+    WHERE org_id=$1 AND control_state='active' AND updated_at<now()-interval '20 seconds'
       AND (status IN ('profile_ready','draft_ready') AND updated_at>now()-interval '2 days'
         -- A pause the engine cannot retry stays paused. Retryable stops wait a
         -- minute (a provider recovering) and are bounded by the step budget.
@@ -706,14 +719,15 @@ function inputHint(error: unknown) {
 
 export function getAutomaticGeneration(scope: EvidenceScope, evaluationId: string, jobId?: string) {
   return withTenant(scope,async db=>{
-    const job=(await db.query(`SELECT id,workflow_id,status,reason_code,profile_revision_id,suite_id,suite_version_id,requested_case_count,complexity,jsonb_array_length(draft_cases)::int AS written,draft_rounds,created_at,updated_at
+    const job=(await db.query(`SELECT id,workflow_id,status,control_state,reason_code,profile_revision_id,suite_id,suite_version_id,requested_case_count,complexity,jsonb_array_length(draft_cases)::int AS written,draft_rounds,created_at,updated_at
       FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 AND ($3::uuid IS NULL OR id=$3)
       ORDER BY created_at DESC,id DESC LIMIT 1`,[scope.orgId,evaluationId,jobId??null])).rows[0];
     if(!job)return {status:"idle",job:null,batches:[]};
     // A finished job may keep an older paused step from a round it moved past.
-    const pausedStep=job.status==="needs_review"?undefined:(await db.query("SELECT reason_code FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 AND status='paused' ORDER BY version DESC,updated_at DESC LIMIT 1",[scope.orgId,job.workflow_id])).rows[0];
+    const lastStep=(await db.query("SELECT status,reason_code FROM evals.workflow_step WHERE org_id=$1 AND workflow_id=$2 ORDER BY created_at DESC,version DESC,id DESC LIMIT 1",[scope.orgId,job.workflow_id])).rows[0];
+    const pausedStep=["profiling","drafting","paused"].includes(job.status)&&lastStep?.status==="paused"?lastStep:undefined;
     const batches=(await db.query("SELECT step_kind,version,status,attempt_count,reason_code,updated_at FROM evals.generation_batch WHERE org_id=$1 AND generation_job_id=$2 ORDER BY created_at,id",[scope.orgId,job.id])).rows;
-    return {status:pausedStep?"paused":job.status,job:{id:job.id,reasonCode:job.reason_code??pausedStep?.reason_code??null,profileRevisionId:job.profile_revision_id,suiteId:job.suite_id,suiteVersionId:job.suite_version_id,createdAt:job.created_at,updatedAt:job.updated_at,
+    return {status:job.control_state!=="active"?job.control_state:pausedStep?"paused":job.status,job:{id:job.id,reasonCode:job.control_state!=="active"?`operator_${job.control_state}`:job.reason_code??pausedStep?.reason_code??null,profileRevisionId:job.profile_revision_id,suiteId:job.suite_id,suiteVersionId:job.suite_version_id,createdAt:job.created_at,updatedAt:job.updated_at,
       progress:{written:job.written,target:job.requested_case_count,rounds:job.draft_rounds,complexity:job.complexity}},batches};
   });
 }

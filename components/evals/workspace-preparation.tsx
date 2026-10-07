@@ -70,7 +70,6 @@ const MEDIA: Record<string, string> = {
 /** Paused because the model ran out of output allowance; the server retries with a smaller request. */
 const OUTPUT_RETRY_REASONS = new Set(["generation_output_exhausted", "incomplete_response"]);
 /** Provider hiccups and worker restarts: the server queues the call again by itself after a short wait. */
-const SERVER_RETRY_REASONS = new Set(["service_unavailable", "network_unavailable", "overloaded", "malformed_output", "worker_lease_expired", "invocation_failed", "provider_capacity_unavailable", "provider_circuit_open"]);
 
 async function stableKey(action: string, payload: unknown) {
   const bytes = new TextEncoder().encode(JSON.stringify(payload));
@@ -92,11 +91,13 @@ export function PrepareEvaluation({
   orgId,
   evaluation,
   executionMode = "deployed_system",
+  controlUpdatedAt,
   onReady,
 }: {
   orgId: string;
   evaluation: Evaluation;
   executionMode?: "deployed_system" | "imported_responses";
+  controlUpdatedAt?: string;
   onReady: () => Promise<void>;
 }) {
   const [sources, setSources] = useState<PreparedSource[]>([]);
@@ -128,6 +129,8 @@ export function PrepareEvaluation({
   const [anchor, setAnchor] = useState("");
   const [manualSource, setManualSource] = useState("");
   const autoResumeRef = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const source = sources.find((item) => item.id === manualSource) ?? sources[0] ?? null;
 
@@ -295,13 +298,12 @@ export function PrepareEvaluation({
       setError("");
       try {
         // Large sets are drafted in rounds; allow about an hour before handing back.
-        for (let attempt = 0; attempt < 1800; attempt++) {
+        for (let attempt = 0; attempt < 1800 && mounted.current; attempt++) {
           const state = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null; suiteId?: string | null; suiteVersionId?: string | null; updatedAt?: string; progress?: GenerationProgress } | null }>(
             `/evaluations/${evaluation.id}/generate?orgId=${orgId}&jobId=${jobId}`,
           );
-          const retrying = state.status === "paused" && SERVER_RETRY_REASONS.has(state.job?.reasonCode ?? "");
-          // While the server retries by itself the page keeps showing the work in progress.
-          setGeneration(retrying ? (state.job?.progress?.rounds ? "drafting" : "profiling") : state.status);
+          if (!mounted.current) return;
+          setGeneration(state.status);
           setStopReason(state.job?.reasonCode ?? null);
           if (state.job?.progress) setProgress(state.job.progress);
           if (state.status === "needs_review") {
@@ -354,14 +356,12 @@ export function PrepareEvaluation({
               return;
             }
             if (!["profiling", "drafting"].includes(resumed.status)) return;
-          } else if (retrying) {
-            await wait(5000);
-            continue;
+
           } else if (state.status === "paused") {
             // A dispatched call may still have run. Show its saved reason; do
             // not suggest that polling or a page reload will replay it.
             return;
-          } else if (["quarantined", "failed"].includes(state.status)) {
+          } else if (["quarantined", "failed", "stopped"].includes(state.status)) {
             // The stopped panel explains why, from the job's reason code.
             return;
           }
@@ -380,7 +380,7 @@ export function PrepareEvaluation({
 
   // Resume saved preparation after a reload or on another device.
   useEffect(() => {
-    if (!["needs_review", "profiling", "generating", "needs_input", "validating"].includes(evaluation.preparation_status)) return;
+    if (!["needs_review", "profiling", "generating", "needs_input", "validating", "canceled"].includes(evaluation.preparation_status)) return;
     let live = true;
     void Promise.all([
       evalRequest<{ draft: Draft | null; casePreviews: CasePreview[]; questions: ContextQuestion[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`),
@@ -401,7 +401,7 @@ export function PrepareEvaluation({
         if (state.status === "needs_input") return;
         if (
           ["profiling", "profile_ready", "drafting", "draft_ready"].includes(state.status) ||
-          (state.status === "paused" && (state.job.reasonCode === "invocation_configuration_invalid" || OUTPUT_RETRY_REASONS.has(state.job.reasonCode ?? "") || SERVER_RETRY_REASONS.has(state.job.reasonCode ?? "")))
+          (state.status === "paused" && (state.job.reasonCode === "invocation_configuration_invalid" || OUTPUT_RETRY_REASONS.has(state.job.reasonCode ?? "")))
         ) {
           void continueAutomaticGeneration(state.job.id);
         }
@@ -412,7 +412,7 @@ export function PrepareEvaluation({
     return () => {
       live = false;
     };
-  }, [continueAutomaticGeneration, evaluation.id, evaluation.preparation_status, orgId]);
+  }, [continueAutomaticGeneration, evaluation.id, evaluation.preparation_status, orgId, controlUpdatedAt]);
 
   async function generateAutomatically() {
     if (!sources.length || pending) return;
@@ -525,7 +525,7 @@ export function PrepareEvaluation({
   /* ------------------------------------------------------------ view --- */
 
   const openQuestions = contextQuestions.filter((item) => item.critical && item.status === "open" && (!autoJobId || !item.jobId || item.jobId === autoJobId));
-  const stopped = generation === "quarantined" || generation === "failed" || generation === "paused";
+  const stopped = generation === "quarantined" || generation === "failed" || generation === "paused" || generation === "stopped";
   const generating = pending === "generate" || (!!autoJobId && !draft && !openQuestions.length && ["profiling", "profile_ready", "drafting", "draft_ready"].includes(generation ?? ""));
   const stage = generationStage(generation);
   const stages = [t("stageUnderstanding"), t("stagePreparingQuestions"), t("stageCheckingSet")];
@@ -671,18 +671,19 @@ export function PrepareEvaluation({
         ) : (
           <div className="p-generate-block">
             {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}
-            {stopped && !!progress?.written && (
+            {stopped && !!progress?.written && !stopReason?.startsWith("operator_") && (
               <div className="p-row">
                 <Action variant="secondary" onClick={() => void keepPartial()} disabled={!!pending}>
                   {tv("keepPartial", { n: progress.written })}
                 </Action>
               </div>
             )}
-            {!(autoJobId && !stopped && generation !== "paused") && (
+            {!stopped && !(autoJobId && generation !== "paused") && (
               <ScopePicker size={scopeSize} complexity={complexity} disabled={!!pending} onSize={setScopeSize} onComplexity={setComplexity} />
             )}
+            {stopped && autoJobId && <p className="p-field-hint">{t("evaluationRestartFromMenu")}</p>}
             <div className="p-generate">
-              <Action onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending}>
+              <Action hidden={stopped && !!autoJobId} onClick={() => void generateAutomatically()} disabled={!sources.length || !!pending || stopReason === "operator_paused" || stopReason === "operator_stopped"}>
                 <Sparkles aria-hidden="true" />
                 {stopped ? t("generateAgain") : autoJobId && generation !== "paused" ? t("resumePreparation") : t("generateTestSet")}
               </Action>
@@ -746,6 +747,8 @@ function RemoveSourceButton({ title, disabled, onClick }: { title: string; disab
 /** Why a generation stopped, in terms of what to do next. */
 export function generationStopMessage(reason: string | null | undefined) {
   switch (reason) {
+    case "operator_paused": return t("evaluationPreparationPaused");
+    case "operator_stopped": return t("evaluationPreparationStopped");
     case "network_unavailable":
     case "worker_lease_expired":
       return t("genStopUnknownAttempt");
