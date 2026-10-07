@@ -1,10 +1,14 @@
+import { existsSync } from "node:fs";
 import { chromium, type Browser, type Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { selectAt } from "../../services/evals-browser/teach";
 
+// Like the other browser suites, runs only where Chromium is installed.
+const chromiumInstalled = existsSync(chromium.executablePath());
+
 // Manual repair ("Fix") of the reply part: a click on a message's text must
 // map to that one message, never to the history that holds every message.
-describe("selectAt for the reply part", () => {
+describe.skipIf(!chromiumInstalled)("selectAt for the reply part", () => {
   let browser: Browser;
   let page: Page;
   beforeAll(async () => {
