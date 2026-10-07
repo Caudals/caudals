@@ -1734,3 +1734,35 @@ test("workspace changes discard delayed activity and notification responses", as
   await expect(panel.getByText("First client results")).toHaveCount(0);
   await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications: 1 unread");
 });
+test("a delayed older page cannot undo a read or repopulate a changed filter", async ({ page }) => {
+  const noticeId = "00000000-0000-4000-8000-000000000911";
+  let marked = false;
+  let release: () => void = () => undefined;
+  let arrived: () => void = () => undefined;
+  const requested = new Promise<void>(resolve => { arrived = resolve; });
+  const delayed = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/api/evals/v1/notifications**", async route => {
+    if (route.request().method() === "POST") { marked = true; await route.fulfill({ json: { data: { marked: 1 } } }); return; }
+    const params = new URL(route.request().url()).searchParams;
+    if (params.has("beforeAt")) {
+      arrived(); await delayed;
+      await route.fulfill({ json: { data: { notifications: [{ id: "old", kind: "report_published", category: "completion", read: false, created_at: "2026-10-06T10:00:00Z", payload: { evaluationTitle: "Stale older results" } }], unread: 7, nextCursor: null } } }); return;
+    }
+    await route.fulfill({ json: { data: { notifications: marked && params.get("unreadOnly") === "true" ? [] : [{ id: noticeId, kind: "report_published", category: "completion", read: marked, created_at: "2026-10-07T10:00:00Z", payload: { evaluationTitle: "Latest results" } }], unread: marked ? 0 : 1,
+      nextCursor: marked ? null : { createdAt: "2026-10-07T10:00:00Z", id: noticeId } } } });
+  });
+  await page.route("**/api/evals/v1/activity**", route => route.fulfill({ json: { data: [] } }));
+  await page.goto("/workspace/evaluations?owner");
+  await page.getByRole("button", { name: "Notifications: 1 unread", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await panel.getByRole("button", { name: "Load older notifications" }).click();
+  await requested;
+  await panel.getByRole("button", { name: "Mark as read: Results are ready" }).click();
+  await expect(panel.locator('.p-notice[data-read="false"]')).toHaveCount(0);
+  await panel.getByRole("button", { name: "Unread", exact: true }).click();
+  await expect(panel.getByText("No unread notifications", { exact: true })).toBeVisible();
+  release();
+  await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(panel.getByText("Stale older results")).toHaveCount(0);
+  await expect(page.locator(".p-notice-bell")).toHaveAttribute("aria-label", "Notifications");
+});

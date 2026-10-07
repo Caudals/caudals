@@ -153,6 +153,8 @@ function WorkspaceNotifications() {
       if (alive.current && request === sequence.current) setNoticeError(true);
     }
   }, [orgId, noticeFilter]);
+  const latestLoadNotices = useRef(loadNotices);
+  useEffect(() => { latestLoadNotices.current = loadNotices; }, [loadNotices]);
   const loadJobs = useCallback(async () => {
     if (!orgId) return;
     const request = ++jobSequence.current;
@@ -207,6 +209,7 @@ function WorkspaceNotifications() {
     if (!all && !fresh.length) return;
     fresh.forEach(id => pendingReads.current.add(id));
     sequence.current++; // Ignore a poll begun before this write.
+    filterVersion.current++; // An older-page snapshot cannot undo a confirmed read.
     try {
       await evalRequest("/notifications/read", "POST", { orgId, ...(all ? { all: true } : { ids: fresh }) });
       if (!alive.current) return;
@@ -217,10 +220,10 @@ function WorkspaceNotifications() {
       setNotices(next);
       setUnread(value => all ? 0 : Math.max(0, value - count));
       setReadError(null);
-      await loadNotices(); // Counts come from durable state, including notices arriving during the write.
+      await latestLoadNotices.current(); // Reload the current filter, even if it changed during the write.
     } catch { if (alive.current) setReadError({ ids: fresh, all }); }
     finally { fresh.forEach(id => pendingReads.current.delete(id)); }
-  }, [orgId, loadNotices]);
+  }, [orgId]);
   useEffect(() => { attemptedReads.current.clear(); }, [pathname]);
   useEffect(() => {
     const match = /\/workspace\/(evaluations|reports)\/([0-9a-f-]{36})/.exec(pathname ?? "");
@@ -240,6 +243,7 @@ function WorkspaceNotifications() {
   async function refresh() {
     if (refreshing) return;
     setRefreshing(true);
+    filterVersion.current++;
     olderLoaded.current = false;
     await Promise.allSettled([loadNotices(), loadJobs()]);
     if (alive.current) setRefreshing(false);
@@ -255,6 +259,7 @@ function WorkspaceNotifications() {
   function showPanel(element: HTMLElement, nextTab: typeof tab = "notifications") {
     trigger.current = element;
     setTab(nextTab);
+    filterVersion.current++;
     olderLoaded.current = false;
     setOpen(true);
     void loadNotices(); void loadJobs();
