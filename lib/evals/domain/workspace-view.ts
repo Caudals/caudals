@@ -53,6 +53,7 @@ export function customerWorkspaceView(value: Summary) {
       title: item.title,
       current_revision_id: item.current_revision_id,
       evaluation_id: item.evaluation_id,
+      run_id: item.run_id,
       updated_at: item.updated_at,
       revision_created_at: item.revision_created_at,
       system_name: item.system_name,

@@ -1714,7 +1714,10 @@ test("a paused run shows its progress and can be resumed or finished with the ca
   await page.route("**/api/evals/v1/workspace/summary?**", route => route.fulfill({ json: { data: summaryFixture({ evaluations: [{ ...evaluationFixture, latest_run_id: runId, latest_run_status: status }] }), meta: {} } }));
   await page.route(`**/api/evals/v1/runs/${runId}?**`, route => route.fulfill({ json: { data: { run: { id: runId, status, phase: "target_execution", execution_mode: "deployed_system", suite_version_id: evaluationFixture.selected_suite_version_id, created_at: new Date().toISOString(), reason_code: "capture_incomplete" },
     units: [{ id: "a", status: "succeeded" }, { id: "b", status: "succeeded" }, { id: "c", status: "capture_incomplete" }, { id: "d", status: "queued" }], targetUsage: { calls: 3, unknown: 0 } }, meta: {} } }));
-  await page.route(`**/api/evals/v1/runs/${runId}/control`, async route => { controls.push((route.request().postDataJSON() as { action: string }).action); status = "queued"; await route.fulfill({ json: { data: { runId }, meta: {} } }); });
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/control*`, async route => {
+    if(route.request().method()==="POST"){controls.push(route.request().postDataJSON().action);status="queued";}
+    await route.fulfill({json:{data:{subject:{id:runId,kind:"run",status,updatedAt:new Date().toISOString()},restart:null,actions:status==="paused"?["resume","stop","restart"]:["pause","stop","restart"]},meta:{}}});
+  });
   await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&editor`);
   await expect(page.getByRole("heading", { name: "Evaluation paused" })).toBeVisible();
   await expect(page.getByText("2 of 4 tests answered so far.", { exact: false })).toBeVisible();
@@ -1902,7 +1905,7 @@ for (const width of [390,1440]) test(`evaluation model choices save, reset and r
  });
  await page.setViewportSize({width,height:1000});
  await page.goto(`/workspace/evaluations/${evaluationFixture.id}?admin`);
- await page.locator('.p-evaluation-models > summary').click();
+ await page.getByRole('button', { name: /Connect.*done/ }).click();
  const table=page.getByRole('list',{name:'AI models',exact:true});
  await expect(table.getByText('workspace-model',{exact:true})).toHaveCount(4);
  await table.getByRole('listitem').filter({hasText:'Draft tests'}).getByRole('button',{name:'Change',exact:true}).click();
@@ -1934,3 +1937,55 @@ for (const width of [390,1440]) test(`evaluation model choices save, reset and r
  await expect(dialog.getByRole('radio',{name:'evaluation-model Fixture',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
+
+for(const width of [1280,390]){
+ test(`evaluation menu pauses, resumes and confirms recovery actions at ${width}px`,async({page})=>{
+  const evaluationId=evaluationFixture.id,runId="00000000-0000-4000-8000-000000000909";
+  let status="running",restart:null|{id:string;status:string;reason_code:null}=null,failRestart=true;
+  const commands:Array<{action:string;subjectId:string;subjectKind:string;key:string|null}>=[];
+  const state=()=>({subject:{id:runId,kind:"run",status,updatedAt:"2026-10-07T10:00:00Z"},restart,actions:restart?.status==="pending"?["stop"]:status==="paused"?["resume","stop","restart"]:status==="canceled"?["restart"]:["pause","stop","restart"]});
+  await page.route("**/api/evals/v1/**",async route=>{
+   const url=new URL(route.request().url());let data:unknown=[];
+   if(url.pathname.endsWith("/workspace/summary"))data=summaryFixture({evaluations:[{...evaluationFixture,latest_run_id:runId,latest_run_status:status}]});
+   if(url.pathname.endsWith(`/runs/${runId}`))data={run:{id:runId,status,phase:"target_execution",execution_mode:"deployed_system",suite_version_id:evaluationFixture.selected_suite_version_id,created_at:new Date().toISOString(),reason_code:null},units:[{id:"a",status:"queued"}],targetUsage:{calls:0,unknown:0}};
+   if(url.pathname.endsWith(`/evaluations/${evaluationId}/control`)){
+    if(route.request().method()==="POST"){
+     const input=route.request().postDataJSON();commands.push({...input,key:route.request().headers()["idempotency-key"]});
+     if(input.action==="restart"&&failRestart){failRestart=false;await route.fulfill({status:503,json:{error:{code:"PROVIDER_UNAVAILABLE",message:"Temporary restart failure.",request_id:"fixture"}}});return;}
+     if(input.action==="pause")status="paused";
+     if(input.action==="resume")status="running";
+     if(input.action==="stop"){status="canceled";if(restart)restart.status="canceled";}
+     if(input.action==="restart")restart={id:"restart",status:"pending",reason_code:null};
+    }
+    data=state();
+   }
+   await route.fulfill({json:{data,meta:{}}});
+  });
+  await page.setViewportSize({width,height:900});
+  await page.goto(`/workspace/evaluations/${evaluationId}?editor`);
+  const menu=()=>page.getByRole("button",{name:"More actions",exact:true});
+  await menu().click();await page.getByRole("menuitem",{name:"Pause evaluation",exact:true}).click();
+  await expect.poll(()=>commands.map(x=>x.action)).toEqual(["pause"]);
+  await menu().click();await page.getByRole("menuitem",{name:"Resume evaluation",exact:true}).click();
+  await expect.poll(()=>commands.map(x=>x.action)).toEqual(["pause","resume"]);
+  await menu().click();await page.getByRole("menuitem",{name:"Restart evaluation",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Restart evaluation",exact:true});
+  await expect(dialog.getByText("New calls count toward your budget.",{exact:false})).toBeVisible();
+  await dialog.getByRole("button",{name:"Cancel",exact:true}).click();expect(commands).toHaveLength(2);
+  await menu().click();await page.getByRole("menuitem",{name:"Restart evaluation",exact:true}).click();
+  await dialog.getByRole("button",{name:"Restart evaluation",exact:true}).click();
+  await expect(dialog.getByText("Temporary restart failure.",{exact:true})).toBeVisible();
+  await dialog.getByRole("button",{name:"Restart evaluation",exact:true}).click();
+  await expect(dialog).toBeHidden();
+  expect(commands[2].key).toBe(commands[3].key);expect(commands[3]).toMatchObject({subjectId:runId,subjectKind:"run"});
+  await expect(page.getByText("Restart requested. Waiting for current calls",{exact:false})).toBeVisible();
+  await menu().click();await page.getByRole("menuitem",{name:"Stop evaluation",exact:true}).click();
+  const stop=page.getByRole("dialog",{name:"Stop evaluation",exact:true});
+  await expect(stop.getByText("Cancel the pending restart",{exact:false})).toBeVisible();
+  await stop.getByRole("button",{name:"Stop evaluation",exact:true}).click();await expect(stop).toBeHidden();
+  restart!.status="failed";
+  await expect(page.getByText("The restart could not start. Check the connection, models and budget",{exact:false})).toBeVisible({timeout:10000});
+  await page.screenshot({path:`/tmp/evaluation-controls-${width}.png`,fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ });
+}

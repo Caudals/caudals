@@ -9,7 +9,7 @@ import { t } from "@/lib/evals/messages/en";
 type Settings={roles:Role[];connections:Connection[];evaluation:Route[];workspace:Route[];platform:Route[]};
 const titles:Record<Role,()=>string>={context_analyzer:()=>t("roleContextAnalyzer"),generator:()=>t("roleGenerator"),judge:()=>t("roleJudge"),report_writer:()=>t("roleReportWriter")};
 /** Keyed by workspace and evaluation at the call site; stale reads cannot cross either. */
-export function EvaluationModels({orgId,evaluationId}:{orgId:string;evaluationId:string}) {
+export function EvaluationModels({orgId,evaluationId, expanded = false}:{orgId:string;evaluationId:string;expanded?:boolean}) {
   const [settings,setSettings]=useState<Settings|null>(null);
   const [editing,setEditing]=useState<Role|null>(null);
   const [error,setError]=useState<string|null>(null);
@@ -32,7 +32,7 @@ export function EvaluationModels({orgId,evaluationId}:{orgId:string;evaluationId
     } catch(reason){setError(reason instanceof Error?reason.message:t("error"));}
     finally{setPending(false);}
   }
-  return <details className="p-evaluation-models">
+  return <details className="p-evaluation-models" open={expanded || undefined}>
     <summary><Cpu aria-hidden="true"/><strong>{t("evaluationModels")}</strong><span className="p-cell-meta">{settings?.evaluation.length?t("evaluationModelsCustom"):t("evaluationModelsDefault")}</span><ChevronDown aria-hidden="true"/></summary>
     <div className="p-stack">
       <p className="p-field-hint">{t("evaluationModelsHelp")}</p>

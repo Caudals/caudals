@@ -69,6 +69,7 @@ export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
   if (prep === "needs_review" && /validation|quarantin|^model_/.test(evaluation.reason_code ?? ""))
     return { key: "needs_input", label: tr("Draft needs another try"), tone: "warn", live: false, step: 1, needsAction: true };
   if (prep === "needs_review") return { key: "review_tests", label: tr("Review test set"), tone: "warn", live: false, step: 1, needsAction: true };
+  if (prep === "needs_input" && evaluation.reason_code === "operator_paused") return { key: "paused", label: tr("Paused"), tone: "warn", live: false, step: 1, needsAction: true };
   if (prep === "needs_input") return { key: "needs_input", label: tr("Needs your input"), tone: "warn", live: false, step: 1, needsAction: true };
   if (PREPARING.has(prep)) return { key: "preparing", label: tr("Preparing tests"), tone: "info", live: true, step: 1, needsAction: false };
   if (prep === "failed") return { key: "failed", label: tr("Preparation failed"), tone: "fail", live: false, step: 1, needsAction: true };

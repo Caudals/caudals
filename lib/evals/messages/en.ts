@@ -1,6 +1,28 @@
 import { es } from "./es";
 
 export const messages = {
+  stagePausing: "Pausing",
+  evaluationRestartFromMenu: "Use the evaluation’s three-dot menu to resume or restart preparation.",
+  pauseEvaluation: "Pause evaluation",
+  resumeEvaluation: "Resume evaluation",
+  stopEvaluation: "Stop evaluation",
+  restartEvaluation: "Restart evaluation",
+  evaluationControlsLoadError: "Evaluation controls could not be loaded. Retry to get the current state.",
+  evaluationControlSaved: "Evaluation control saved.",
+  evaluationRestartWaiting: "Restart requested. Waiting for current calls to finish before creating a fresh attempt. You can close this page.",
+  evaluationPauseWaiting: "Pause requested. Current calls will finish; no new calls will start.",
+  evaluationStopWaiting: "Stop requested. Waiting for current calls to finish. Captured evidence is kept.",
+  evaluationPreparationPaused: "Preparation is paused. Resume it from the evaluation menu to continue with the saved models and progress.",
+  evaluationPreparationStopped: "Preparation stopped. Its evidence is saved. Restart from the evaluation menu to try again.",
+  evaluationRestartFailed: "The restart could not start. Check the connection, models and budget, then choose Restart evaluation again.",
+  evaluationRestartHelp: "Stop the current attempt and start a fresh one with the current model choices and connection. Previous evidence and results stay saved. Current calls finish first. New calls count toward your budget.",
+  evaluationStopHelp: "Stop pending work for this attempt. Calls already in progress finish safely. Captured answers and prepared tests stay saved; captured answers can still produce a partial report.",
+  evaluationStopRestartHelp: "Cancel the pending restart and leave this attempt stopped. All saved evidence is kept.",
+  connectEvaluation: "Connect",
+  connectEvaluationHelp: "Manage the system connection and choose the AI models used for this evaluation.",
+  manageConnection: "Manage connection",
+  backToEvaluation: "Back to evaluation",
+
   recoveryInvitationHelp:
     "After resetting your password, reopen your original private invitation link.",
   signOut: "Sign out",

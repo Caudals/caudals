@@ -62,7 +62,8 @@ export function getPreparation(scope:EvidenceScope,evaluationId:string){return w
  const evaluation=required((await db.query("SELECT * FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId])).rows[0]);
  const profiles=(await db.query("SELECT id,content_hash,document,prompt_revision,model_revision_id,created_at FROM evals.context_profile_revision WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 10",[scope.orgId,evaluationId])).rows;
  const questions=(await db.query("SELECT * FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 ORDER BY critical DESC,created_at,id",[scope.orgId,evaluationId])).rows;
- const batches=(await db.query("SELECT * FROM evals.generation_batch WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20",[scope.orgId,evaluationId])).rows;
+ const latestJob=(await db.query("SELECT id FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1",[scope.orgId,evaluationId])).rows[0];
+ const batches=(await db.query("SELECT * FROM evals.generation_batch WHERE org_id=$1 AND evaluation_id=$2 AND ($3::uuid IS NULL AND generation_job_id IS NULL OR generation_job_id=$3) ORDER BY created_at DESC,id DESC LIMIT 20",[scope.orgId,evaluationId,latestJob?.id??null])).rows;
  const quarantine=(await db.query("SELECT id,generation_batch_id,reason_code,schema_errors,created_at FROM evals.case_quarantine WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at,id",[scope.orgId,evaluationId])).rows;
  const completed=batches.find(batch=>batch.status==="completed"&&Array.isArray(batch.output?.caseRevisionIds));
  const caseIds=(completed?.output.caseRevisionIds??[]).slice(0,200) as string[];
@@ -95,6 +96,10 @@ export function prepareGroundedSuite(
 ){
  return withTenant(scope,db=>idempotent(db,scope,`evaluation-generation/${evaluationId}`,key,input,async()=>{
   const evaluation=required((await db.query("SELECT * FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,evaluationId])).rows[0]);
+  if(input.generation){
+   const latest=(await db.query("SELECT id,control_state FROM evals.generation_job WHERE org_id=$1 AND evaluation_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1",[scope.orgId,evaluationId])).rows[0];
+   if(latest?.id!==input.generation.generationJobId||latest.control_state!=="active")throw new EvalError("VERSION_CONFLICT",409,"Preparation was paused, stopped or replaced.");
+  }
   const sourceIds=[...new Set(input.sourceRevisionIds??(input.sourceRevisionId?[input.sourceRevisionId]:[]))];
   if(!sourceIds.length||sourceIds.length>20)throw new EvalError("INPUT_INVALID",422,"Choose between one and twenty source revisions.");
   const sourceRows=(await db.query(`SELECT sr.id,sr.document,sr.content_hash,a.id AS artifact_id,a.export_path,a.sha256,a.byte_size

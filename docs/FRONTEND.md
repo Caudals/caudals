@@ -192,3 +192,5 @@ For frontend changes, use the level of inspection appropriate to the risk of the
 - browser/devtools inspection for changed routes,
 - console and network review for changed interaction paths,
 - viewport review when layout or responsive behavior changes.
+
+Evaluation model selection lives under **1. Connect** in the evaluation journey, alongside system connection management. The current step remains reachable while Connect is open; active preparation stays mounted. Lifecycle actions belong to the evaluation's three-dot menu and reflect server capabilities. Stop/restart dialogs explain retained evidence, draining calls and new budget use. Pause/stop/restart intent is shown from persisted state, and a new run must never display a previous run's progress or report as its results.

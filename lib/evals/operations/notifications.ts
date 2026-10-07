@@ -29,7 +29,7 @@ export async function resendSender(): Promise<SendEmail> {
 export function queueRequiredInputNotifications(scope: Scope) {
   return withTenant(scope, async (db) => (await db.query(`INSERT INTO evals.notification(org_id,event_id,kind,audience,payload,status,delivered_at)
     SELECT org_id,'evaluation:'||id||':needs_input:'||COALESCE(reason_code,'context'),'input_required','workspace',jsonb_build_object('evaluationId',id),'delivered',now()
-    FROM evals.evaluation WHERE org_id=$1 AND preparation_status='needs_input'
+    FROM evals.evaluation WHERE org_id=$1 AND preparation_status='needs_input' AND reason_code IS DISTINCT FROM 'operator_paused'
     ON CONFLICT (org_id,event_id,audience) DO NOTHING`, [scope.orgId])).rowCount ?? 0);
 }
 

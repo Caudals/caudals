@@ -28,6 +28,7 @@ import {
 import { OutcomeBar, percent } from "./charts";
 import { ActionMenu, notify } from "./overlays";
 import { useItemActions } from "./item-actions";
+import { useEvaluationControls } from "./evaluation-controls";
 import { EvaluationModels } from "./evaluation-models";
 import { PrepareEvaluation } from "./workspace-preparation";
 import { ManualAnswers, publishPreliminaryManualReport } from "./workspace-manual-answers";
@@ -63,12 +64,19 @@ function useElapsed(since: string | null | undefined, active: boolean) {
 }
 
 export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
+  const { orgId } = useWorkspace();
+  return <EvaluationJourneyContent key={`${orgId}-${evaluationId}`} evaluationId={evaluationId} />;
+}
+
+function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   const { orgId, workspace, canWrite, canManage, operator, platformAdmin, withOrg } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
-  const [run, setRun] = useState<RunView | null>(null);
+  const [loadedRun, setRun] = useState<RunView | null>(null);
   const [report, setReport] = useState<ReportSnapshot | null>(null);
   const [caseCount, setCaseCount] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  const controls = useEvaluationControls(orgId, evaluationId, canWrite, reload);
   const [actionError, setActionError] = useState<{ message: string; help: string } | null>(null);
   const startKey = useRef(crypto.randomUUID());
   const router = useRouter();
@@ -80,12 +88,16 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
 
   const evaluation = summary?.evaluations.find((item) => item.id === evaluationId);
   const system = summary?.systems.find((item) => (evaluation?.selected_target_id ? item.id === evaluation.selected_target_id : item.project_id === evaluation?.project_id));
-  const reportRow = summary?.reports.find((item) => item.evaluation_id === evaluationId);
   const latestRunId = evaluation?.latest_run_id;
+  const scopedRun = loadedRun?.run.id === latestRunId ? loadedRun : null;
+  const controlledRun = controls.state?.subject?.kind === "run" && controls.state.subject.id === latestRunId ? controls.state.subject : null;
+  const run = useMemo(() => scopedRun && controlledRun ? { ...scopedRun, run: { ...scopedRun.run, status: controlledRun.status, phase: controlledRun.phase ?? scopedRun.run.phase } } : scopedRun, [scopedRun, controlledRun]);
+  const reportRow = summary?.reports.find((item) => item.evaluation_id === evaluationId && (!item.run_id || item.run_id === latestRunId));
   usePageCrumb(evaluation?.title);
 
   // Live run progress. Polling is bounded to this page and stops on leave.
   useEffect(() => {
+    setRun(null);
     if (!latestRunId || !orgId) return;
     let stopped = false;
     let timer = 0;
@@ -180,19 +192,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       setPending(false);
     }
   }
-  async function resume() {
-    if (!latestRunId) return;
-    setPending(true);
-    setActionError(null);
-    try {
-      await evalRequest(`/runs/${latestRunId}/control`, "POST", { orgId, action: "resume" });
-      await reload();
-    } catch (value) {
-      fail(value);
-    } finally {
-      setPending(false);
-    }
-  }
+
   async function regrade() {
     if (!latestRunId) return;
     setActionError(null);
@@ -244,7 +244,8 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
       </>
     );
 
-  const stage = evaluationStage({ ...evaluation, latest_run_status: runStatus }, !!reportRow);
+  const preparationPaused = controls.state?.subject?.kind === "generation" && ["paused","pause_requested"].includes(controls.state.subject.status);
+  const stage = evaluationStage({ ...evaluation, ...(preparationPaused ? { preparation_status: "needs_input", reason_code: "operator_paused" } : {}), latest_run_status: runStatus }, !!reportRow);
   const executionMode = system?.document.kind === "imported_responses" ? "imported_responses" : "deployed_system";
   const awaitingManualAnswers = run?.run.execution_mode === "imported_responses" && counts.pending > 0 && !["canceled", "failed"].includes(run.run.status);
   const awaitingPrivateRunner = system?.document.kind === "private_runner" && (run?.run.status === "queued" || run?.run.status === "running" || run?.run.status === "paused" && run.run.reason_code === "runner_wait");
@@ -260,8 +261,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
     ) : null;
 
   const menu = [
-    ...((running || runStatus === "paused") && canWrite && !awaitingManualAnswers ? [{ label: t("cancelRun"), icon: <Square />, onSelect: () => void cancel(), tone: "danger" as const }] : []),
-    ...(terminal && canWrite && evaluation.selected_suite_version_id ? [{ label: t("runAgain"), icon: <RotateCcw />, onSelect: () => void start() }] : []),
+    ...controls.menu,
     ...(terminal && canWrite && reportRow && ["completed", "partial"].includes(runStatus ?? "") ? [{ label: t("regradeAnswers"), icon: <RefreshCcw />, onSelect: () => void regrade() }] : []),
     ...(evaluation.selected_suite_version_id && canWrite
       ? [{ label: t("downloadQuestionSheet"), icon: <Download />, href: `/api/evals/v1/suites/${evaluation.selected_suite_version_id}/candidate-template?orgId=${encodeURIComponent(orgId)}&format=csv`, external: true }]
@@ -305,9 +305,17 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
           </>
         }
       />
-      <Steps steps={stepStates(stage)} label={t("evaluationProgress")} />
+      <Steps steps={stepStates(stage)} label={t("evaluationProgress")} selected={connectOpen ? 0 : stage.step} onSelect={index => setConnectOpen(index === 0)} />
       {items.dialog}
-      {platformAdmin && <EvaluationModels key={`${orgId}-${evaluationId}`} orgId={orgId} evaluationId={evaluationId} />}
+      {controls.dialog}
+      {controls.alert}
+      {connectOpen && <Panel title={t("connectEvaluation")}>
+        <p>{t("connectEvaluationHelp")}</p>
+        {system && <div className="p-row"><strong>{system.title}</strong><Badge>{connectionLabel(system.document.kind)}</Badge><ActionLink variant="secondary" href={withOrg(`/workspace/systems/${system.id}`)}>{t("manageConnection")}</ActionLink></div>}
+        {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} onChanged={reload} />}
+        {platformAdmin && <EvaluationModels expanded orgId={orgId} evaluationId={evaluationId} />}
+        <div className="p-row"><Action variant="secondary" onClick={() => setConnectOpen(false)}>{t("backToEvaluation")}<ArrowRight aria-hidden="true" /></Action></div>
+      </Panel>}
 
       {actionError && (
         <Status error action={<Action variant="secondary" size="sm" onClick={() => setActionError(null)}>{t("dismiss")}</Action>}>
@@ -315,11 +323,12 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
         </Status>
       )}
 
-      {system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable", "website_usage_limit"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
+      {!connectOpen && system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable", "website_usage_limit"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
 
+      <div hidden={connectOpen}>
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
-          <PrepareEvaluation orgId={orgId} evaluation={evaluation} executionMode={executionMode} onReady={reload} />
+          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} />
         ) : (
           <Panel title={stage.label} live={stage.live}>
             <p>{t("viewerPreparationHelp")}</p>
@@ -386,7 +395,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
           {canWrite && (
             <>
               <div className="p-row">
-                <Action onClick={() => void resume()} disabled={pending}>
+                <Action onClick={() => void controls.apply("resume")} disabled={pending || controls.pending || !controls.state?.actions.includes("resume")}>
                   <Play aria-hidden="true" />
                   {pending ? t("resuming") : t("resumeRun")}
                 </Action>
@@ -450,6 +459,7 @@ export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
           </Panel>
         )
       ) : null}
+      </div>
     </>
   );
 }

@@ -1,0 +1,7 @@
+-- Forward repair only. Keep operator intent, restart history and saved inputs.
+-- App and scheduler must understand migration 079 together. Rolling back to
+-- older images can ignore manual preparation controls and advance stopped jobs.
+-- Pause the scheduler and pending workflows first; reconcile each controlled
+-- preparation and pending restart before running pre-079 images. Do not delete
+-- evidence, clear unresolved spend/capacity, edit checksums or reset fences.
+-- Prefer restoring a tested 079-compatible app/worker image.

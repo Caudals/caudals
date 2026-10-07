@@ -45,6 +45,7 @@ export type WorkspaceSystem = {
 };
 
 export type WorkspaceReport = {
+  run_id?: string;
   id: string;
   title: string;
   current_revision_id: string;

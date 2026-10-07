@@ -382,7 +382,7 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
     const reports = (
       await db.query(
         `SELECT rp.id,rp.title,rp.current_revision_id,rp.publication_status,rp.updated_at,
-                r.evaluation_id,rr.created_at AS revision_created_at,
+                r.evaluation_id,r.id AS run_id,rr.created_at AS revision_created_at,
                 rr.snapshot->'system'->>'name' AS system_name,
                 rr.snapshot->'scope'->>'review_status' AS review_status,
                 rr.snapshot->'metrics'->>'headline_status' AS headline_status,
@@ -479,9 +479,12 @@ export function createSelfServiceRun(
   raw: unknown,
   key: string,
 ) {
+  return withTenant(scope, db => createSelfServiceRunInTransaction(db, scope, raw, key));
+}
+
+export function createSelfServiceRunInTransaction(db: PoolClient, scope: EvidenceScope, raw: unknown, key: string) {
   const input = selfServiceRunInputSchema.parse(raw);
-  return withTenant(scope, (db) =>
-    idempotent(db, scope, "self-service-runs", key, input, async () => {
+  return idempotent(db, scope, "self-service-runs", key, input, async () => {
       await assertRunAllowance(db, scope.orgId);
       const limits = required((await db.query(
         "SELECT * FROM evals.workspace_entitlement WHERE org_id=$1",
@@ -788,8 +791,7 @@ export function createSelfServiceRun(
         excluded,
         planHash: plan.content_hash,
       };
-    }),
-  );
+    });
 }
 
 export function controlRun(
@@ -797,7 +799,10 @@ export function controlRun(
   runId: string,
   action: "pause" | "resume" | "cancel",
 ) {
-  return withTenant(scope, async (db) => {
+  return withTenant(scope, db => controlRunInTransaction(db, scope, runId, action));
+}
+
+export async function controlRunInTransaction(db: PoolClient, scope: EvidenceScope, runId: string, action: "pause" | "resume" | "cancel") {
     await lockRunQueue(db, scope.orgId);
     const workflow = (
       await db.query(
@@ -908,7 +913,6 @@ export function controlRun(
       );
     }
     return { runId, action };
-  });
 }
 
 export function forkSuite(
