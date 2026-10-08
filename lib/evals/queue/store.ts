@@ -9,7 +9,7 @@ export type Tenant={orgId:string;actorId:string};
 export type TenantTransaction=<T>(tenant:Tenant,fn:(client:PoolClient)=>Promise<T>)=>Promise<T>;
 export const queues=['ingest','profile','generate','validate','execute_api','execute_browser','grade','aggregate','report','export','notify','cleanup'] as const;
 export type Queue=typeof queues[number];
-export const targetExecutionSchema=z.strictObject({kind:z.literal('target_execution'),runId:z.uuid(),caseUnitId:z.uuid(),caseRevisionId:z.uuid(),targetRevisionId:z.uuid(),repetition:z.number().int().nonnegative(),candidateInput:candidateInputSchema,scenario:scenarioSchema.optional(),toolFixture:toolFixtureSchema.nullable().optional(),timeoutMs:z.number().int().min(100).max(120000),destinationPolicyId:z.string().min(1).max(200)});
+export const targetExecutionSchema=z.strictObject({kind:z.literal('target_execution'),runId:z.uuid(),caseUnitId:z.uuid(),caseRevisionId:z.uuid(),targetRevisionId:z.uuid(),repetition:z.number().int().nonnegative(),candidateInput:candidateInputSchema,scenario:scenarioSchema.optional(),toolFixture:toolFixtureSchema.nullable().optional(),timeoutMs:z.number().int().min(100).max(300000),destinationPolicyId:z.string().min(1).max(200)});
 export type TargetExecution=z.infer<typeof targetExecutionSchema>;
 export const browserDiscoverySchema=z.strictObject({kind:z.literal('website_discovery'),targetRevisionId:z.uuid(),connectionCheckId:z.uuid(),candidateId:z.uuid(),timeoutMs:z.number().int().min(1000).max(120000),destinationPolicyId:z.string().min(1).max(200)});
 export type BrowserDiscovery=z.infer<typeof browserDiscoverySchema>;
