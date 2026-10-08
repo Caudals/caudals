@@ -75,6 +75,8 @@ Adding a question to a draft, or editing a question or its expected answer, rebu
 
 A question added by hand cites no source excerpt, so a source-grounded draft that contains one cannot be frozen as is. **Freeze as exploratory** (`POST /suites/:id/versions` with `exploratory: true`) freezes that version with `evidence_policy: exploratory`: the judge grades against the reference answer, key facts and web research, and every other bundle check still applies.
 
+**Importing questions with their source** (`POST /suites/:id/cases/import`, up to 100 per call): each item carries the question, expected answer, optional key facts, alternatives, answerability and severity, and `source: {quote, url?}`. The quote must appear verbatim (case and spacing ignored) in the draft's frozen sources, inside the given page when `url` is set; the case then cites the anchors the quote spans, exactly as a generated case does, so the draft can be frozen as source-grounded. Any quote that is not found rejects the whole batch and names the rows (`lib/evals/contracts/quote-anchors.ts`).
+
 ### Answer judge v2
 
 Input (judge-only, never sent to the system under test): the question(s), the
