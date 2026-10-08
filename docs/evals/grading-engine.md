@@ -244,6 +244,30 @@ Judge calls are budgeted like any other; when they finish, a new preliminary
 report revision is published and the workspace is notified ("Results
 updated").
 
+## Complete results sheets
+
+When the answers are collected and graded by people (for example while a
+website connection cannot capture a chatbot), an evaluation with an approved
+test set accepts a complete results sheet instead of a run:
+
+- **Download grading sheet** (`GET /evaluations/{id}/graded-results`) lists every
+  question with its ids, expected answer, key facts, expected behaviour and the
+  cited source excerpt, plus empty `system_answer`, `veredicto`, `motivo`,
+  `datos_clave_estado`, `categoria_fallo` and `contradicciones` columns.
+- **Upload complete results** (`POST`, CSV with comma or semicolon, or XLSX)
+  requires every question exactly once. `veredicto` is `correcta`, `parcial`,
+  `incorrecta` or `no responde` (English values work too); `motivo` is required;
+  `datos_clave_estado` lists `presente`, `falta` or `contradice` per key fact,
+  separated by `|`.
+- One transaction creates an `imported_responses` run, each answer as an
+  observation, the lexical v2 grade as baseline and the person's verdict as a
+  human override of it with a review decision, the same trail as reviewing in
+  the app. The verdict is stored in the `caudals.evals/verdict` extension
+  (`engine: human-review`), so key facts, failure category and contradictions
+  read in the report exactly as a judged result does, with `graded_by: human`.
+- A reviewed report is then created and published. Uploading the same file again
+  returns the same run and retries the report.
+
 ## Test generation v2
 
 Draft cases carry a natural-language `expected` answer that directly answers
