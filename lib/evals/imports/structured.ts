@@ -8,12 +8,12 @@ export type ColumnMapping=z.infer<typeof columnMappingSchema>;
 export type ImportRow={rowNumber:number;original:Record<string,string>;normalized?:Record<string,unknown>;errors:string[]};
 export type ImportPreview={headers:string[];rows:ImportRow[];acceptedCount:number;rejectedCount:number;truncated:boolean};
 
-function csvRows(text:string):string[][] {
+function csvRows(text:string,delimiter=","):string[][] {
   const rows:string[][]=[];let row:string[]=[],field="",quoted=false;
   for(let i=0;i<text.length;i++) {const char=text[i];
     if(quoted){if(char==='"'&&text[i+1]==='"'){field+='"';i++;}else if(char==='"')quoted=false;else field+=char;}
     else if(char==='"'){if(field)throw new Error("csv_quote_invalid");quoted=true;}
-    else if(char===','){row.push(field);field="";}
+    else if(char===delimiter){row.push(field);field="";}
     else if(char==='\n'){row.push(field.replace(/\r$/,""));rows.push(row);row=[];field="";}
     else field+=char;
   }
@@ -80,8 +80,18 @@ export async function previewImport(bytes:Uint8Array,format:"csv"|"xlsx"|"jsonl"
   return mapRows(parsed.headers,parsed.records,columnMappingSchema.parse(mapping),importIntentSchema.parse(intent),previewLimit);
 }
 
+/** Header-keyed records of a CSV (comma or, as spreadsheet apps in Spain save it, semicolon) or XLSX sheet. */
+export async function tabularRecords(bytes:Uint8Array,format:"csv"|"xlsx"):Promise<{headers:string[];records:Record<string,string>[]}>{
+  if(bytes.byteLength>25_000_000)throw new Error("import_too_large");
+  if(format==="xlsx")return records(await xlsxRows(bytes));
+  const text=new TextDecoder("utf-8",{fatal:true}).decode(bytes).replace(/^\uFEFF/,"");
+  const header=text.slice(0,text.search(/\r?\n|$/));
+  const delimiter=header.split(";").length>header.split(",").length?";":",";
+  return records(csvRows(text,delimiter));
+}
+
 export function spreadsheetSafe(value:string):string{return /^[=+\-@\t\r]/.test(value)?`'${value}`:value;}
-function csvCell(value:string):string {const safe=spreadsheetSafe(value);return /[",\r\n]/.test(safe)?`"${safe.replaceAll('"','""')}"`:safe;}
+export function csvCell(value:string):string {const safe=spreadsheetSafe(value);return /[",\r\n]/.test(safe)?`"${safe.replaceAll('"','""')}"`:safe;}
 export function candidateAnswerTemplate(args:{suiteVersionId:string;cases:Array<{caseId:string;caseRevisionId:string;input:string}>},format:"csv"|"jsonl") {
   const rows=args.cases.map(item=>({suite_version_id:args.suiteVersionId,case_id:item.caseId,case_revision_id:item.caseRevisionId,input:item.input,system_answer:""}));
   if(format==="jsonl")return rows.map(row=>JSON.stringify(row)).join("\n")+"\n";
