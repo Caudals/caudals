@@ -69,6 +69,10 @@ intervals stay in the methodology.
    fact is `unscorable` (needs review) rather than `fail`.
 4. **Outcome mapping** (below) and **review policy**.
 
+### Questions written or edited by people
+
+Adding a question to a draft, or editing a question or its expected answer, rebuilds its reference (`lib/evals/contracts/reference-edits.ts`): key facts, acceptable alternatives, answerability, prohibited claims and cited excerpts are taken from the edit or cleared, never inherited from the template or the previous wording, because the judge requires every key fact. Without key facts the judge grades against the expected answer alone. The editor exposes key facts, other acceptable answers and the expected behaviour (answer, decline or refer, ask for missing information, say it is not documented). A title-only edit keeps everything. Grader order is preserved because rubric criteria are matched to graders by position.
+
 ### Answer judge v2
 
 Input (judge-only, never sent to the system under test): the question(s), the
