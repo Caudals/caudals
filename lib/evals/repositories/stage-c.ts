@@ -468,6 +468,9 @@ export function supportsCase(
   return true;
 }
 
+// Long enough for a chatbot that types a long reply out at a few dozen characters a second.
+const WEBSITE_ANSWER_TIMEOUT_MS = 300_000;
+
 export const selfServiceRunInputSchema = z.strictObject({
   evaluationId: z.uuid(),
   targetRevisionId: z.uuid().optional(),
@@ -755,10 +758,11 @@ export function createSelfServiceRunInTransaction(db: PoolClient, scope: Evidenc
               candidateInput: candidate,
               scenario: item.scenario,
               toolFixture: fixture,
-              // Pages, widgets and assistants that think before answering are
-              // slower than an API: a website test gets the longest allowance.
+              // Pages, widgets and assistants that think before answering, or
+              // type their reply out character by character, are slower than an
+              // API: a website test gets the longest allowance.
               timeoutMs: config.kind === "website"
-                ? Math.min(Math.max(item.limits.timeout_ms, config.limits.timeout_ms), 120_000)
+                ? WEBSITE_ANSWER_TIMEOUT_MS
                 : Math.min(item.limits.timeout_ms, config.limits.timeout_ms, 120_000),
               destinationPolicyId:
                 config.kind === "website"
