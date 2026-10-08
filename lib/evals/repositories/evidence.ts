@@ -7,6 +7,7 @@ import { bundleSchema, parseBundle } from '../contracts/bundle';
 import { toolFixtureSchema } from '../contracts/scenarios';
 import { targetConfigSchema } from '../contracts/connectors';
 import { manifestSchema } from '../contracts/manifest';
+import { editedReference, type ReferenceEdit } from '../contracts/reference-edits';
 import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
@@ -190,7 +191,7 @@ export function editSuiteDraftCase(
   scope: EvidenceScope,
   suiteId: string,
   caseRevisionId: string,
-  input: { title: string; contents: string[]; expected: unknown },
+  input: { title: string; contents: string[]; expected: unknown } & ReferenceEdit,
   key: string,
 ) {
   return withTenant(scope, db => idempotent(db,scope,`suite-case-edit/${suiteId}/${caseRevisionId}`,key,input,async () => {
@@ -216,7 +217,8 @@ export function editSuiteDraftCase(
       revision_id: revisionId,
       title: input.title,
       scenario: { ...original.scenario, messages: original.scenario.messages.map((message,index) => ({...message,content:input.contents[index]})) },
-      reference: { ...original.reference, expected: input.expected as typeof original.reference.expected },
+      reference: editedReference(original.reference, input.expected as typeof original.reference.expected, input,
+        input.contents.some((content, index) => content !== original.scenario.messages[index].content) || canonicalJson(input.expected) !== canonicalJson(original.reference.expected)),
       provenance: { ...original.provenance, evidence_level: 'customer_supplied_unreviewed' as const, reviewer_ids: [] },
       extensions: { ...original.extensions, 'caudals.evals/customer-edit': { actor_id: scope.actorId, edited_at: editedAt } },
     }));
@@ -557,7 +559,7 @@ async function editableDraft(db: PoolClient, scope: EvidenceScope, suiteId: stri
 }
 
 /** Add a question to an editable draft, modelled on an existing case (same rubric, domain and limits). */
-export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: { title: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical" }, key: string) {
+export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: { title: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical" } & ReferenceEdit, key: string) {
   return withTenant(scope, (db) => idempotent(db, scope, `suite-case-add/${suiteId}`, key, input, async () => {
     const { suite, manifest } = await editableDraft(db, scope, suiteId);
     const templateRef = manifest.case_revisions.find((item) => item.split !== "holdout");
@@ -570,7 +572,7 @@ export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: 
       case_id: caseId, revision_id: revisionId, family_id: familyId,
       title: input.title, severity: input.severity, split: template.split,
       scenario: { ...template.scenario, messages: [{ ...template.scenario.messages[0], content: input.question }] },
-      reference: { ...template.reference, expected: input.expected, source_refs: [] },
+      reference: editedReference(template.reference, input.expected, input, true),
       provenance: { ...template.provenance, evidence_level: "customer_supplied_unreviewed" as const, reviewer_ids: [] },
       extensions: { "caudals.evals/customer-edit": { actor_id: scope.actorId, edited_at: now, added: true } },
     }));
