@@ -17,12 +17,175 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Terminal: build/lint/file ops/repo diagnostics
 - `psql`: SQL migration, rollback, RLS, and schema inspection
 - Docker: local integration checks for PostgreSQL and runtime dependencies
-- Docker Swarm/repository deploy scripts: VPS lifecycle; retained Dokploy Traefik handles ingress
-- Stripe CLI: webhook forwarding and deterministic event simulation when payment code is touched
-- Stripe MCP: Stripe object inspection and controlled support operations when payment workflows are active
+- Tailscale + SSH + Docker Swarm/repository deploy scripts: private VPS lifecycle; retained Dokploy Traefik handles ingress
+- Postiz CLI + `postiz:postiz` skill: social integrations, drafts, uploads and analytics
+- Warmbly CLI + `warmbly-cli` skill: outreach and CRM product operations
+- `warmbly-apollo` / `warmbly-rocketreach` CLIs, MCPs and skills: prospect search/enrichment and direct Warmbly imports
+- Cloudflare CLI (`cf`, alias `cloudflare`): DNS and edge/API inspection
+- Hermes: strategic-prospecting host/service diagnostics; behaviour belongs to `../leads`
+- `caudals-evals`: private customer-side evaluation runner; the older `caudals` CLI remains frozen
+- Artifact skills, document/media utilities and connected app tools: see the inventory below
+- Stripe CLI/MCP: historical billing support only; the MCP is disabled in the inspected local configuration
 - GitHub MCP: issue/PR/review workflows
 - GitHub CLI (`gh`): CI run and failed-job triage
-- Browser/devtools tooling: route rendering, interaction, console, and network inspection
+- Browser/devtools tooling: Chrome DevTools MCP, Playwright, unified computer use and Node REPL when available in the active session
+
+## Installed CLI, MCP and Skill Inventory
+
+Checked **2026-10-09** against local executable/package metadata, installed skill files, the active MCP tool list and read-only SSH inspection. This records availability, not account authorization or provider health. Recheck with `command -v TOOL`, `TOOL --help` and the relevant status command before use. VPS SSH sessions may omit `~/.local/bin` from `PATH`.
+
+| Tool | Observed location | Purpose / first check |
+| --- | --- | --- |
+| `postiz` 2.0.16 | Local `~/.local/bin/postiz` | Social public API; `postiz --help` |
+| `warmbly` v0.6.20 | Local `~/.local/bin/warmbly` | Customer REST API; `warmbly version`, `warmbly auth status --json` |
+| `warmbly`, `warmblyctl` | `arctic` Warmbly backend container; its `warmbly` binary reports v0.6.33 | Product CLI / direct-database operator CLI; container binaries do not establish a host installation |
+| `warmbly-apollo`, `warmbly-rocketreach` | Local `~/.local/bin/`; corresponding sidecars run on `arctic` | JSON CLIs and authenticated MCP bridges; `status`, `--help` |
+| `cf` / `cloudflare` 1.0.0-beta.10 | Local and `atlantic` `~/.local/bin/` | Unified Cloudflare CLI; `cf cli search`, `cf auth whoami` |
+| `cloudflared` | `atlantic` `/usr/local/bin/cloudflared` | Tunnel client; `cloudflared --version`. Separate from the `cf` API CLI |
+| `tailscale`, `ssh`, Docker | Local and both VPS nodes | Private connectivity and container/Swarm inspection |
+| `psql` | `atlantic`; also available in database containers | SQL inspection. Not on the inspected local default `PATH`; use a configured client or container |
+| `gh`, Git, Node/npm, Python, `uv`/`uvx`, `rg`, `jq` | Local developer tools; host availability varies | CI, build, scripts, search and JSON. Use the repo lockfile/runtime requirements |
+| `hermes` | Local and `atlantic` `~/.local/bin/hermes` | Existing prospecting agent/service diagnostics; `hermes --help` |
+| `codex`, `claude`, `cursor-agent`, `agy` | Local agent/editor launchers; Codex/Claude also observed on `atlantic` | Existing tooling only; do not invoke child sessions under this repo's no-subagent rule |
+| `ntn` | Local `~/.local/bin/ntn` | Notion CLI (beta): `ntn --help`, `ntn doctor`; authentication/resource access is separate |
+| `ffmpeg`, `ffprobe`, `magick`, `pdftoppm` | Local Homebrew tools | Media encoding/inspection, ImageMagick and PDF page rendering; inspect command help |
+| `nano-pdf`, `blender-mcp` | Local `~/.local/bin/` | Optional AI PDF editing / Blender bridge. `nano-pdf --help`; model/API access may be paid |
+| `stripe` | Local Homebrew CLI | Historical billing tooling only; no current checkout or payment product |
+
+Local installed skills are discovered under `~/.agents/skills` and `~/.codex/skills`; bundled plugin skills have versioned locations supplied by the session. Read the exact `SKILL.md` advertised by that session before applying a skill. These local paths are not assumed to exist on the VPS.
+
+| Skill | Guide / use |
+| --- | --- |
+| `postiz:postiz` | Local `~/.agents/skills/postiz/SKILL.md` (also exposed from `postiz/skills/postiz/`); social CLI workflow |
+| `warmbly-cli` | Local `~/.agents/skills/warmbly-cli/SKILL.md`; read `references/caudals.md` for the self-host URL/sign-in |
+| `warmbly-apollo` | [Repository SKILL.md](../infra/warmbly/apollo/SKILL.md), [runbook](../infra/warmbly/apollo/README.md); local installed copies in both discovery roots |
+| `warmbly-rocketreach` | [Repository SKILL.md](../infra/warmbly/rocketreach/SKILL.md), [runbook](../infra/warmbly/rocketreach/README.md); local installed copies in both discovery roots |
+| `frontend-design`, `frontend-skill` | Local UI skills; follow [DESIGN.md](DESIGN.md) and [FRONTEND.md](FRONTEND.md) |
+| Documents, PDF, Spreadsheets, Presentations | Session-provided artifact skills; use the workspace dependency loader and each skill's rendering/verification workflow |
+| Google Drive / Docs / Sheets / Slides / comments | Session-provided connected Drive skills; discover tools and verify file access before reading or editing |
+| `imagegen`, `remotion-best-practices`, `visualize:visualize` | Image assets, React video and interactive explanations when relevant to the task |
+| `openai-docs`, `skill-creator`, `skill-installer`, `find-skills`, plugin management | Codex/OpenAI guidance and extending skill/plugin capabilities when requested |
+
+The active session exposes GitHub, Chrome DevTools, Apollo, RocketReach, live Word, Blender, Node REPL, unified computer use and Codex app tools. App tools include workspace dependency loading, file/preview panels, LaTeX compilation, managed worktrees and automations. Use purpose-built APIs before UI automation. The inspected local Stripe, Supabase, Paper and older computer-use MCP configurations are disabled; a retained configuration or installed skill alone does not establish a usable connection. Other connectors depend on the session's installed plugins and access checks.
+
+## Postiz CLI and Skill
+
+The service is `caudals-social_postiz` on `arctic`, behind `https://postiz.caudals.com`. Platform topology is in [VPS_RUNTIME.md](VPS_RUNTIME.md) and [infra/social/arctic-stack.yml](../infra/social/arctic-stack.yml); content review and publishing behaviour belong to `../leads/docs/CONTENT.md`.
+
+Use the installed `postiz:postiz` skill. To install a missing CLI in an approved developer environment, use `npm install -g postiz` (retain a reviewed version rather than upgrading production tooling incidentally).
+
+```bash
+export POSTIZ_API_URL=https://postiz.caudals.com/api
+# Supply POSTIZ_API_KEY through a protected environment/secret file.
+# auth:status prints a credential prefix in this CLI version; remove those lines.
+postiz auth:status | sed -E '/Token:|Key:/d'
+# Only continue when the status verifies credentials for the intended API URL.
+postiz integrations:list
+postiz integrations:settings INTEGRATION_ID
+postiz posts:list
+postiz analytics:platform INTEGRATION_ID -d 30
+```
+
+The CLI appends `/public/v1`, so the self-hosted base must include `/api`. Saved OAuth credentials in `~/.postiz/credentials.json` take precedence over **both** environment key and URL. Inspect the redacted status to confirm the target; do not overwrite an unrelated sign-in. `postiz auth:login` uses its configured OAuth server and is not proof of access to the Caudals self-host. For that instance use an authorized key from Postiz Settings → Public API, provided through a protected environment.
+
+Create a review draft only within an authorized content task:
+
+```bash
+postiz integrations:settings INTEGRATION_ID
+postiz posts:create -c "Approved draft text" -s "2026-10-15T08:00:00Z" -t draft -i INTEGRATION_ID
+```
+
+`posts:create` defaults to **schedule**, so always pass `-t draft` for review. For media, run `postiz upload /absolute/path/to/media.png` first and attach only its returned `.path` with `-m`; raw local filenames and external URLs do not substitute for upload. Read the integration's `rules`, field descriptions and dynamic tools before choosing settings. For an authorized TikTok publication use `content_posting_method: DIRECT_POST` unless the user explicitly wants to finish in the TikTok app. Inspect existing posts after an uncertain create response before retrying to avoid duplicates.
+
+`posts:status ID --status schedule` queues a draft using its stored date and requires launch authorization. If post analytics returns `{"missing":true}`, inspect `posts:missing ID`, match the published provider content, then use `posts:connect ID --release-id RELEASE_ID`. Confirm CLI/server support before relying on newer command families; successful API acceptance alone does not prove provider publication.
+
+## Warmbly Customer CLI and Recovery CLI
+
+Warmbly is the CRM of record at `https://out.caudals.com` on `arctic`. Product operations use the `warmbly-cli` skill and customer CLI, whose per-host credentials live in `~/.config/warmbly`. Its REST base has **no** `/v1` suffix:
+
+```bash
+export WARMBLY_HOST=out.caudals.com
+export WARMBLY_API_URL=https://out.caudals.com
+warmbly auth status --json
+# If sign-in is needed, the operator completes browser approval:
+warmbly auth login --hostname out.caudals.com --api-url https://out.caudals.com --web
+warmbly status --json
+warmbly campaign list --json
+warmbly contact list --json --limit 100
+warmbly mailbox list --json
+warmbly inbox list --json
+warmbly campaign preflight CAMPAIGN_ID --json
+warmbly campaign plan CAMPAIGN_ID --json
+```
+
+If missing, the developer installer is `https://warmbly.com/cli.sh`; download/review it before running it, or use the CLI already inside the backend container. Inspect `warmbly version` and command help: local and container versions can differ. `WARMBLY_TOKEN` overrides stored sign-ins; never use `auth status --show-token` or print `auth token` output in an agent transcript. Enrichment bridges read the latter internally.
+
+Always request `--json`. Paginated lists return `data` plus `pagination.next_cursor` / `has_more`; use `--all` or the returned opaque `--cursor`. For routes without a command, `warmbly api "/campaigns?limit=10" --paginate` uses paths relative to `/v1`. Retry the identical write with the same `--idempotency-key`; respect `Retry-After` on `rate_limit_exceeded`, and retain the error `code` and `request_id` for diagnosis. Exit 4 indicates a missing/rejected credential or scope.
+
+Campaigns stay draft unless launch is authorized. Run preflight before an authorized `campaign start`; read `campaign plan` before changing limits. `campaign test`, placement tests, `mailbox send`, inbox replies/composition and draft approval send real mail too. Pass `--yes` only for the specific user-authorized send. Mailbox connection needs browser OAuth/credential entry. Member/role/billing administration can require a browser session; do not replace missing product scopes with direct database access.
+
+`warmblyctl` is the separate instance recovery/account CLI. Read [infra/warmbly/README.md](../infra/warmbly/README.md) and [ctl.sh](../infra/warmbly/ctl.sh) before using it: operator commands need the backend's secret-backed process environment (`PRIMARY_DB`, encryption settings), which plain `docker exec` does not inherit. The inspected `caudals-warmblyctl` host wrapper on `atlantic` predates the move; verify any wrapper targets the live `arctic` backend. Do not run setup/reset/admin/restore commands as a workaround for product sign-in. Preserve encryption keys and the founder's no-application-backup preference; copying documentation does not authorize data backups or an instance upgrade.
+
+## Warmbly Apollo and RocketReach CLIs/MCPs
+
+Use each provider's installed skill or its repository `SKILL.md`, plus the [Apollo](../infra/warmbly/apollo/README.md) / [RocketReach](../infra/warmbly/rocketreach/README.md) runbook. Their authenticated APIs are `https://out.caudals.com/v1/apollo` and `/v1/rocketreach`. Both CLIs reuse the Warmbly sign-in for `out.caudals.com`, or protected `WARMBLY_TOKEN` / `WARMBLY_API_KEY`; integration operations require `READ_CONTACTS`, `WRITE_CONTACTS` and `INTEGRATIONS` scopes.
+
+```bash
+warmbly-apollo status
+warmbly-apollo accounts list
+warmbly-apollo results
+warmbly-rocketreach status
+warmbly-rocketreach accounts list
+warmbly-rocketreach results
+# Agent MCP registrations invoke these bridges, with no credential in config:
+warmbly-apollo mcp-stdio
+warmbly-rocketreach mcp-stdio
+```
+
+Both output JSON and offer `execute`, `results`, `companies`, `receipts`, `jobs`, `poll JOB_ID` and `import`. MCP servers are exposed as `warmbly-apollo` / `warmbly-rocketreach`; use their tools directly when available rather than starting another bridge manually. Provider search returns previews, not necessarily unlocked/verified email.
+
+For an authorized Apollo people-search task:
+
+```bash
+warmbly-apollo execute people.search --params '{"person_titles":["CTO"],"person_locations":["Spain"],"page":1,"per_page":25}'
+```
+
+Apollo people search does not consume credits in this integration; company operations/enrichment can. RocketReach search is chargeable. Paid operations require `--spend` and a stable `--idempotency-key`, within the user's authorized provider/batch scope. Show unclear batch/phone/waterfall costs before proceeding; local reservations are estimates, not guaranteed provider billing caps. After a timeout, inspect `receipts` / `jobs` and retry identical inputs with the same key. Poll on the originating account. Do not rotate keys or API modes to evade denials, throttles or suspensions.
+
+Imports use stored result IDs and a stable import key, default to verified email and new contacts unsubscribed, preserve existing opt-outs and never start campaigns. Account keys belong in the integration UI or `accounts add --key-file /protected/key`, not command arguments or MCP configuration. The plugins store company results; contact imports do not create a separate company CRM entity.
+
+## Cloudflare CLI (`cf` / `cloudflare`)
+
+The installed package is the unified Cloudflare **`cf`** npm CLI (beta), not Wrangler or `cloudflared`. Local and `atlantic` binaries are `~/.local/bin/cf`; `cloudflare` is an alias. Installation, if required in an approved environment, is `npm install -g cf` with Node.js 22+; confirm a reviewed version first.
+
+```bash
+cf --version
+cf cli search "show authentication status"
+cf auth whoami
+cf cli search "list DNS records"
+cf dns records list --help
+cf schema dns records list
+cf dns records list --zone caudals.com --type MX
+cf dns records list --zone caudals.com --type TXT
+```
+
+Keep `cf cli search` queries anonymous: describe only the action/resource type, without domains, names, emails, IDs or tokens. Select one result, then use its `--help` and `cf schema ...` to inspect flags and request shape. The zone belongs in the subsequent authorized resource command, not the discovery query. List responses are paginated; inspect `result_info` and documented page/per-page flags before treating a page as a complete zone inventory.
+
+Authentication prefers protected `CLOUDFLARE_API_TOKEN`, then the selected OAuth profile (`--profile`, directory binding or default). `cf auth login` needs operator browser authorization; `cf auth whoami` verifies access without dumping tokens. A historical OAuth 403 is not proof of current access: diagnose the credential/scope rather than retrying writes. For a scoped DNS change, first export the existing records with `cf dns records export --zone caudals.com` to a protected file and show the proposed diff. DNS/mail, edge security and paid-resource mutations need explicit authorization; preserve unrelated records and verify authoritative/public DNS and affected HTTPS/mail behaviour afterwards. Do not run `cf deploy` for the VPS-hosted Caudals app.
+
+## Other Available Tools and Skills
+
+- **Private access:** `tailscale status` / `tailscale ping HOST` diagnose reachability; use `ssh -o BatchMode=yes caudals@atlantic` or `caudals@arctic`. Inspect `sudo -n docker service ls` and `service ps`; do not dump service secret/env values. `cloudflared` tunnel changes are separate from this connectivity path and require a scoped task.
+- **Hermes:** `hermes --help` and host/user-service status diagnose existing prospecting infrastructure. Read `../leads/docs/STRATEGIC_PROSPECTING.md` and `../leads/docs/OPERATIONS.md` before editing jobs, configuration or schedules. Do not launch another agent or messaging gateway to delegate work from this repo.
+- **Private evaluation CLI:** [packages/evals-runner/README.md](../packages/evals-runner/README.md) documents `caudals-evals pair`, `doctor`, `fetch`, `run`, `upload` and `logout`. Install a reviewed package on the authorized customer machine; keep credentials in the local adapter and preserve signed/idempotent results.
+- **Artifacts:** use the session's document/PDF/spreadsheet/presentation skills and Codex workspace dependency loader before creating files. `pdftoppm` renders PDF QA images; `ffprobe` inspects media, `ffmpeg` encodes it and `magick` handles image utilities. Image generation, Remotion, Blender and `nano-pdf` serve authorized content/artifact tasks and do not extend the frozen evaluation modalities. AI-backed CLI operations can consume provider credits.
+- **Connected editing:** live Word MCP and Google Drive tools use their own access/session checks; use the corresponding skill for the requested document operation. The local Notion CLI offers `ntn doctor`, `whoami`, `pages`, `datasources`, `files` and `api`; inspect `ntn COMMAND --help` and confirm access before writes. An installed CLI is not a connected Notion plugin.
+- **Browser/runtime work:** use Chrome DevTools MCP for page/console/network diagnosis, Playwright for repository browser checks, unified computer use for supported native/browser interaction and Node REPL for persistent scripting when exposed. UI automation does not authorize bypassing SSO/2FA/CAPTCHA.
+- **Diagnostics:** `rg` / `rg --files` for source searches, `jq` for structured output, `curl` for bounded HTTP probes, `dig` for DNS and OpenSSL for public certificate/signature checks. Keep raw credentials, headers and private key material out of recorded output. `uv`/`uvx` manage Python tools; do not install or upgrade unrelated runtimes incidentally.
+
+### Documentation deployment
+
+For a change limited to `AGENTS.md` and documentation, deploy the reviewed files/patch to the VPS checkout over Tailscale/SSH, run `git apply --check` first, preserve existing local edits and verify deployed content/checksums. Record the source commit and target path. If publishing such a commit to `main`, `[skip ci]` avoids an application rebuild triggered by the root `AGENTS.md` change; run the documentation checks directly. The app Docker runtime does not copy these guides, so a documentation-only release needs no service restart. Code, stack or runtime changes still follow their normal build/deployment and acceptance gates.
 
 ## Evaluation test fixture (all stages)
 
@@ -56,8 +219,15 @@ Apply migrations with `tsx scripts/evals/migrate.ts`; the migrator holds the `ca
 
 - Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database
 - Ad hoc DB inspection/read queries: `psql` over Tailscale/SSH tunnel
-- Local webhook event simulation: Stripe CLI
-- Stripe object lookup/limited write operations: Stripe MCP
+- Social drafts, integrations, uploads and analytics: Postiz CLI/skill; preserve Ops review gates
+- Warmbly CRM/campaign/mailbox/inbox operations: `warmbly` CLI + `warmbly-cli` skill
+- Prospect search/enrichment/import: matching Apollo or RocketReach CLI/MCP + skill
+- Instance recovery/accounts: explicitly scoped `warmblyctl` on the live Warmbly backend
+- DNS and edge inspection: Cloudflare `cf`; private host access: Tailscale + SSH
+- Private customer execution: `caudals-evals` runner
+- Existing Hermes prospecting operations: host/service diagnostics + Leads runbooks
+- Artifact creation/connected editing: corresponding artifact/Drive skill and available connector
+- Historical local webhook simulation/object support: Stripe CLI; MCP only when enabled for that task
 - PR/issues/review actions: GitHub MCP
 - CI/CD run diagnostics: `gh`
 - Frontend runtime inspection: browser/devtools tooling

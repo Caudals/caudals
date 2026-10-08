@@ -100,11 +100,18 @@ connected to Ops through private Tailscale relays.
 
 ## Tooling and Skills
 
-- PostgreSQL (`psql`, disposable containers): schema checks, migrations and runtime inspection — see `docs/TOOLS.md`.
-- Stripe MCP/CLI: only for explicitly scoped historical billing work; Stripe checkout and marketplace billing are not current product surfaces.
-- GitHub MCP and `gh`: issue/PR workflows and CI triage.
-- Browser/devtools tooling: UI inspection and interaction checks.
-- Terminal tooling: build, lint, static analysis and repository diagnostics.
+- Read [docs/TOOLS.md](docs/TOOLS.md) for the verified CLI/MCP inventory, skill locations, authentication, command examples and host differences. Installed tools do not imply authenticated access; use command help and read-only status checks first.
+- Postiz: use the `postiz:postiz` skill and `postiz` CLI for social integrations, drafts, media uploads and analytics at `postiz.caudals.com` on `arctic`. Set `POSTIZ_API_URL=https://postiz.caudals.com/api`; upload media before attaching it. Publishing or scheduling requires the user's authorization; preserve Ops content review gates.
+- Warmbly: use the `warmbly-cli` skill and `warmbly` customer CLI for campaigns, contacts, mailboxes, inbox and CRM at `out.caudals.com` on `arctic`. Use `warmblyctl` only for explicitly scoped instance recovery/account administration; it accesses the database directly. Keep campaigns draft unless launch is authorized, and run preflight before an authorized start.
+- Warmbly enrichment: use the `warmbly-apollo` and `warmbly-rocketreach` skills with their matching CLIs/MCPs. Repo guides live in `infra/warmbly/{apollo,rocketreach}/`. Paid calls require authorized scope, explicit spend and stable idempotency keys; imports preserve opt-outs and never activate campaigns.
+- Cloudflare: the installed CLI is `cf` (alias `cloudflare`), with task discovery through `cf cli search` and request inspection through `cf schema`. Keep discovery queries anonymous. Inspect DNS/edge configuration first; obtain explicit authorization for DNS/mail, security policy and paid-resource changes.
+- Tailscale, SSH and Docker/Swarm: private access to `atlantic` and `arctic`, service inspection and repository deployment scripts. `cf` on `atlantic` may require `~/.local/bin/cf`; do not assume local CLI installations or credentials exist on either VPS.
+- PostgreSQL (`psql`, disposable containers) and the `caudals-evals` private runner: schema/RLS checks, migrations and approved customer-side evaluation execution. The retained `caudals` dataset-build CLI remains frozen.
+- GitHub MCP and `gh`: issue/PR/review workflows and CI/deploy diagnostics. Browser tooling includes Chrome DevTools MCP, Playwright, unified computer use and Node REPL when exposed by the active session.
+- Hermes: host/service diagnostics and strategic-prospecting operations owned by `../leads`; read its prospecting and operations docs before changing schedules. Installed agent CLIs do not authorize child sessions or delegation; the no-subagent rule below still applies.
+- Artifact tooling: document/PDF/spreadsheet/presentation skills, connected Google Drive skills, image generation, Remotion, FFmpeg/ImageMagick, live Word MCP, Blender MCP and the installed Notion CLI (`ntn`) when the task needs them. Confirm session availability, credentials and scope before using external services.
+- Terminal tooling: Node/npm, Python/`uv`, `rg`, `jq`, Git, `curl`, `dig` and OpenSSL for build, file, API, DNS and repository diagnostics. Keep credential values out of output.
+- Stripe CLI/MCP: only for explicitly scoped historical billing work; Stripe checkout and marketplace billing are not current product surfaces. Disabled or retained MCP configurations do not establish live access.
 - UI work must follow `docs/DESIGN.md` and the local `frontend-design` skill.
 
 ## Non-Negotiables
