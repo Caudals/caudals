@@ -504,6 +504,7 @@ type ReviewCase = {
 };
 type TestSetView = {
   draft: { version: number; caseCount: number } | null;
+  versions?: Array<{ id: string; created_at: string }>;
   cases: Array<{ caseRevisionId: string; document: CefCase; excerpts: Array<{ sourceRevisionId: string; sourceTitle: string; anchor: string; excerpt: string }> }>;
 };
 export type CasePreview = { caseRevisionId: string; question: string; approvedAnswer: string; sourceExcerpt: string | null };
@@ -511,6 +512,11 @@ export type CasePreview = { caseRevisionId: string; question: string; approvedAn
 const DIFFICULTIES = ["routine", "advanced", "challenge"] as const;
 const PAGE = 20;
 const DIFFICULTY_TONE: Record<string, "neutral" | "info" | "warn"> = { routine: "neutral", advanced: "info", challenge: "warn" };
+
+// With no draft left, the test set was already frozen: approve its newest version.
+function latestVersion(view: TestSetView) {
+  return [...(view.versions ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]?.id ?? null;
+}
 
 function expectedText(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value);
@@ -536,7 +542,7 @@ export function TestSetReview({
   editorHref: string;
   pending: boolean;
   error: string;
-  onApprove: (draftVersion: number | null, count: number) => void;
+  onApprove: (draftVersion: number | null, count: number, frozenVersionId: string | null) => void;
 }) {
   const [view, setView] = useState<TestSetView | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -719,7 +725,7 @@ export function TestSetReview({
         <ActionLink variant="secondary" href={editorHref}>
           {t("reviewEditTestSet")}
         </ActionLink>
-        <Action onClick={() => onApprove(view?.draft?.version ?? null, cases.length)} disabled={pending || !cases.length}>
+        <Action onClick={() => onApprove(view?.draft?.version ?? null, cases.length, view && !view.draft ? latestVersion(view) : null)} disabled={pending || !cases.length}>
           {pending ? t("saving") : `${t("approveTestSet")} (${cases.length})`}
         </Action>
       </div>

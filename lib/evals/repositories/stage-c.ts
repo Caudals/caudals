@@ -285,13 +285,13 @@ export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string,
     if (evaluation.preparation_status !== "needs_review") {
       throw new EvalError("INPUT_INVALID", 409, "The test set is not ready for approval.");
     }
+    // Any frozen version of the generated test set counts, so edits made during review can be approved.
     const suite = (await db.query(
       `SELECT sv.id FROM evals.suite_version sv
        JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
        JOIN evals.generation_batch b ON b.org_id=sv.org_id
          AND b.evaluation_id=$2 AND b.status='completed'
          AND b.output->>'suiteId'=s.id::text
-         AND b.output->>'suiteVersionId'=sv.id::text
          AND b.id=(SELECT x.id FROM evals.generation_batch x
            WHERE x.org_id=$1 AND x.evaluation_id=$2 AND x.status='completed'
            ORDER BY x.created_at DESC,x.id DESC LIMIT 1)
@@ -467,6 +467,9 @@ export function supportsCase(
   }
   return true;
 }
+
+// Long enough for a chatbot that types a long reply out at a few dozen characters a second.
+const WEBSITE_ANSWER_TIMEOUT_MS = 300_000;
 
 export const selfServiceRunInputSchema = z.strictObject({
   evaluationId: z.uuid(),
@@ -755,10 +758,11 @@ export function createSelfServiceRunInTransaction(db: PoolClient, scope: Evidenc
               candidateInput: candidate,
               scenario: item.scenario,
               toolFixture: fixture,
-              // Pages, widgets and assistants that think before answering are
-              // slower than an API: a website test gets the longest allowance.
+              // Pages, widgets and assistants that think before answering, or
+              // type their reply out character by character, are slower than an
+              // API: a website test gets the longest allowance.
               timeoutMs: config.kind === "website"
-                ? Math.min(Math.max(item.limits.timeout_ms, config.limits.timeout_ms), 120_000)
+                ? WEBSITE_ANSWER_TIMEOUT_MS
                 : Math.min(item.limits.timeout_ms, config.limits.timeout_ms, 120_000),
               destinationPolicyId:
                 config.kind === "website"

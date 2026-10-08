@@ -69,6 +69,14 @@ intervals stay in the methodology.
    fact is `unscorable` (needs review) rather than `fail`.
 4. **Outcome mapping** (below) and **review policy**.
 
+### Questions written or edited by people
+
+Adding a question to a draft, or editing a question or its expected answer, rebuilds its reference (`lib/evals/contracts/reference-edits.ts`): key facts, acceptable alternatives, answerability, prohibited claims and cited excerpts are taken from the edit or cleared, never inherited from the template or the previous wording, because the judge requires every key fact. Without key facts the judge grades against the expected answer alone. The editor exposes key facts, other acceptable answers and the expected behaviour (answer, decline or refer, ask for missing information, say it is not documented). A title-only edit keeps everything. Grader order is preserved because rubric criteria are matched to graders by position.
+
+A question added by hand cites no source excerpt, so a source-grounded draft that contains one cannot be frozen as is. **Freeze as exploratory** (`POST /suites/:id/versions` with `exploratory: true`) freezes that version with `evidence_policy: exploratory`: the judge grades against the reference answer, key facts and web research, and every other bundle check still applies.
+
+**Importing questions with their source** (`POST /suites/:id/cases/import`, up to 100 per call): each item carries the question, expected answer, optional key facts, alternatives, answerability and severity, and `source: {quote, url?}`. The quote must appear verbatim (case and spacing ignored) in the draft's frozen sources, inside the given page when `url` is set; the case then cites the anchors the quote spans, exactly as a generated case does, so the draft can be frozen as source-grounded. Any quote that is not found rejects the whole batch and names the rows (`lib/evals/contracts/quote-anchors.ts`).
+
 ### Answer judge v2
 
 Input (judge-only, never sent to the system under test): the question(s), the
@@ -235,6 +243,30 @@ system again. It skips results with a human override or review decision.
 Judge calls are budgeted like any other; when they finish, a new preliminary
 report revision is published and the workspace is notified ("Results
 updated").
+
+## Complete results sheets
+
+When the answers are collected and graded by people (for example while a
+website connection cannot capture a chatbot), an evaluation with an approved
+test set accepts a complete results sheet instead of a run:
+
+- **Download grading sheet** (`GET /evaluations/{id}/graded-results`) lists every
+  question with its ids, expected answer, key facts, expected behaviour and the
+  cited source excerpt, plus empty `system_answer`, `veredicto`, `motivo`,
+  `datos_clave_estado`, `categoria_fallo` and `contradicciones` columns.
+- **Upload complete results** (`POST`, CSV with comma or semicolon, or XLSX)
+  requires every question exactly once. `veredicto` is `correcta`, `parcial`,
+  `incorrecta` or `no responde` (English values work too); `motivo` is required;
+  `datos_clave_estado` lists `presente`, `falta` or `contradice` per key fact,
+  separated by `|`.
+- One transaction creates an `imported_responses` run, each answer as an
+  observation, the lexical v2 grade as baseline and the person's verdict as a
+  human override of it with a review decision, the same trail as reviewing in
+  the app. The verdict is stored in the `caudals.evals/verdict` extension
+  (`engine: human-review`), so key facts, failure category and contradictions
+  read in the report exactly as a judged result does, with `graded_by: human`.
+- A reviewed report is then created and published. Uploading the same file again
+  returns the same run and retries the report.
 
 ## Test generation v2
 

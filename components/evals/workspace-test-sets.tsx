@@ -232,12 +232,12 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
   const isDraft = view?.selected === "draft" && !!view.draft;
   const editable = canWrite && isDraft;
 
-  async function freeze() {
+  async function freeze(exploratory = false) {
     if (!view?.draft || pending) return;
     setPending(true);
     setError("");
     try {
-      await evalRequest(`/suites/${suiteId}/versions`, "POST", { orgId, version: view.draft.version }, crypto.randomUUID());
+      await evalRequest(`/suites/${suiteId}/versions`, "POST", { orgId, version: view.draft.version, ...(exploratory ? { exploratory: true } : {}) }, crypto.randomUUID());
       notify(t("testSetFrozen"));
       setVersion(undefined);
       if (from) router.push(withOrg(`/workspace/evaluations/${from}`));
@@ -310,9 +310,16 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
           canWrite && (
             <>
               {isDraft ? (
-                <Action onClick={() => void freeze()} disabled={pending || !view.cases.length}>
-                  {pending ? t("freezing") : from ? t("freezeAndReturn") : t("freezeTestSet")}
-                </Action>
+                <>
+                  {view.cases.some((item) => !item.excerpts.length) && (
+                    <Action variant="secondary" title={t("freezeExploratoryHint")} onClick={() => void freeze(true)} disabled={pending}>
+                      {t("freezeExploratory")}
+                    </Action>
+                  )}
+                  <Action onClick={() => void freeze()} disabled={pending || !view.cases.length}>
+                    {pending ? t("freezing") : from ? t("freezeAndReturn") : t("freezeTestSet")}
+                  </Action>
+                </>
               ) : (
                 view.versions.length > 0 && (
                   <Action variant="secondary" onClick={() => { setForkTitle(`${view.suite.title} (edited)`.slice(0, 200)); setForking(true); }}>
@@ -426,6 +433,42 @@ function expectedText(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value, null, 2);
 }
 
+type Answerability = CefCase["reference"]["answerability"];
+const ANSWERABILITY: Array<[Answerability, Parameters<typeof t>[0]]> = [
+  ["answerable", "answerabilityAnswerable"],
+  ["must_abstain", "answerabilityMustAbstain"],
+  ["missing_information", "answerabilityMissingInformation"],
+  ["unanswerable", "answerabilityUnanswerable"],
+];
+
+/** One entry per non-empty line, as the API expects key facts and alternatives. */
+function lines(value: string) {
+  return value.split("\n").map((line) => line.trim()).filter(Boolean);
+}
+
+/** The key facts the judge requires: the claims grader's list, else the reference's. */
+function keyFactsOf(reference: CefCase["reference"]) {
+  const graded = reference.graders.flatMap((grader) => (grader.kind === "claims" ? grader.required : []));
+  return graded.length ? graded : reference.required_claims;
+}
+
+function GradingFields({ id, keyFacts, alternatives, answerability, onKeyFacts, onAlternatives, onAnswerability }: {
+  id: string; keyFacts: string; alternatives: string; answerability: Answerability;
+  onKeyFacts: (value: string) => void; onAlternatives: (value: string) => void; onAnswerability: (value: Answerability) => void;
+}) {
+  return (
+    <>
+      <TextArea id={`${id}-key-facts`} label={t("keyFacts")} hint={t("keyFactsHint")} value={keyFacts} rows={3} onChange={(event) => onKeyFacts(event.target.value)} />
+      <TextArea id={`${id}-alternatives`} label={t("acceptableAlternatives")} hint={t("acceptableAlternativesHint")} value={alternatives} rows={2} onChange={(event) => onAlternatives(event.target.value)} />
+      <SelectField id={`${id}-answerability`} label={t("expectedBehaviour")} value={answerability} onChange={(event) => onAnswerability(event.target.value as Answerability)}>
+        {ANSWERABILITY.map(([value, label]) => (
+          <option key={value} value={value}>{t(label)}</option>
+        ))}
+      </SelectField>
+    </>
+  );
+}
+
 function CaseCard({ index, item, actions }: { index: number; item: CaseView; actions: React.ReactNode }) {
   const document = item.document;
   return (
@@ -451,6 +494,32 @@ function CaseCard({ index, item, actions }: { index: number; item: CaseView; act
             <dt>{t("expectedAnswer")}</dt>
             <dd style={{ whiteSpace: "pre-wrap" }}>{expectedText(document.reference.expected)}</dd>
           </div>
+          {document.reference.answerability !== "answerable" && (
+            <div>
+              <dt>{t("expectedBehaviour")}</dt>
+              <dd>{t(ANSWERABILITY.find(([value]) => value === document.reference.answerability)?.[1] ?? "answerabilityAnswerable")}</dd>
+            </div>
+          )}
+          {keyFactsOf(document.reference).length > 0 && (
+            <div>
+              <dt>{t("keyFacts")}</dt>
+              <dd>
+                <ul className="p-stack" style={{ margin: 0, paddingLeft: 18 }}>
+                  {keyFactsOf(document.reference).map((fact) => <li key={fact}>{fact}</li>)}
+                </ul>
+              </dd>
+            </div>
+          )}
+          {document.reference.acceptable_alternatives.length > 0 && (
+            <div>
+              <dt>{t("acceptableAlternatives")}</dt>
+              <dd>
+                <ul className="p-stack" style={{ margin: 0, paddingLeft: 18 }}>
+                  {document.reference.acceptable_alternatives.map((value) => <li key={expectedText(value)}>{expectedText(value)}</li>)}
+                </ul>
+              </dd>
+            </div>
+          )}
           <div>
             <dt>{t("sourceExcerpt")}</dt>
             <dd>
@@ -474,6 +543,9 @@ function AddCaseDialog({ orgId, suiteId, onClose, onSaved }: { orgId: string; su
   const [question, setQuestion] = useState("");
   const [expected, setExpected] = useState("");
   const [severity, setSeverity] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [keyFacts, setKeyFacts] = useState("");
+  const [alternatives, setAlternatives] = useState("");
+  const [answerability, setAnswerability] = useState<Answerability>("answerable");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const key = useRef(crypto.randomUUID());
@@ -482,7 +554,10 @@ function AddCaseDialog({ orgId, suiteId, onClose, onSaved }: { orgId: string; su
     setPending(true);
     setError("");
     try {
-      await evalRequest(`/suites/${suiteId}/cases`, "POST", { orgId, title: (title.trim() || question.trim()).slice(0, 200), question: question.trim(), expected: expected.trim(), severity }, key.current);
+      await evalRequest(`/suites/${suiteId}/cases`, "POST", {
+        orgId, title: (title.trim() || question.trim()).slice(0, 200), question: question.trim(), expected: expected.trim(), severity,
+        keyFacts: lines(keyFacts), acceptableAlternatives: lines(alternatives), answerability,
+      }, key.current);
       await onSaved();
     } catch (value) {
       setError(value instanceof Error ? value.message : t("error"));
@@ -507,6 +582,7 @@ function AddCaseDialog({ orgId, suiteId, onClose, onSaved }: { orgId: string; su
       <form id="add-case" className="p-stack" onSubmit={save}>
         <TextArea id="add-case-question" label={t("question")} value={question} rows={3} required onChange={(event) => setQuestion(event.target.value)} />
         <TextArea id="add-case-expected" label={t("referenceAnswer")} value={expected} rows={3} required onChange={(event) => setExpected(event.target.value)} />
+        <GradingFields id="add-case" keyFacts={keyFacts} alternatives={alternatives} answerability={answerability} onKeyFacts={setKeyFacts} onAlternatives={setAlternatives} onAnswerability={setAnswerability} />
         <Field id="add-case-title" label={t("caseTitleOptional")} value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} />
         <SelectField id="add-case-severity" label={t("severity")} value={severity} onChange={(event) => setSeverity(event.target.value as typeof severity)}>
           {(["low", "medium", "high", "critical"] as const).map((value) => (
@@ -523,12 +599,21 @@ function TestSetCaseEditor({ index, orgId, suiteId, item, onSaved, onCancel }: {
   const [contents, setContents] = useState(item.document.scenario.messages.map((message) => message.content));
   const originalExpected = item.document.reference.expected;
   const [expected, setExpected] = useState(typeof originalExpected === "string" ? originalExpected : JSON.stringify(originalExpected, null, 2));
+  const reference = item.document.reference;
+  const originalKeyFacts = keyFactsOf(reference).join("\n");
+  const originalAlternatives = reference.acceptable_alternatives.map(expectedText).join("\n");
+  const [keyFacts, setKeyFacts] = useState(originalKeyFacts);
+  const [alternatives, setAlternatives] = useState(originalAlternatives);
+  const [answerability, setAnswerability] = useState<Answerability>(reference.answerability);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const dirty =
-    title !== item.document.title ||
+  const contentChanged =
     contents.some((content, i) => content !== item.document.scenario.messages[i].content) ||
     expected !== (typeof originalExpected === "string" ? originalExpected : JSON.stringify(originalExpected, null, 2));
+  const keyFactsChanged = keyFacts !== originalKeyFacts;
+  const alternativesChanged = alternatives !== originalAlternatives;
+  const answerabilityChanged = answerability !== reference.answerability;
+  const dirty = title !== item.document.title || contentChanged || keyFactsChanged || alternativesChanged || answerabilityChanged;
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -545,7 +630,13 @@ function TestSetCaseEditor({ index, orgId, suiteId, item, onSaved, onCancel }: {
     setPending(true);
     setError("");
     try {
-      await evalRequest(`/suites/${suiteId}/cases/${item.caseRevisionId}`, "POST", { orgId, title: title.trim(), contents, expected: value }, crypto.randomUUID());
+      await evalRequest(`/suites/${suiteId}/cases/${item.caseRevisionId}`, "POST", {
+        orgId, title: title.trim(), contents, expected: value,
+        // Unedited grading fields are left to the server, which drops them when the question or answer changed.
+        ...(keyFactsChanged ? { keyFacts: lines(keyFacts) } : {}),
+        ...(alternativesChanged ? { acceptableAlternatives: lines(alternatives) } : {}),
+        ...(answerabilityChanged ? { answerability } : {}),
+      }, crypto.randomUUID());
       await onSaved();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t("error"));
@@ -570,6 +661,8 @@ function TestSetCaseEditor({ index, orgId, suiteId, item, onSaved, onCancel }: {
           />
         ))}
         <TextArea id={`case-expected-${item.caseRevisionId}`} label={t("referenceAnswer")} hint={typeof originalExpected === "string" ? undefined : t("referenceAnswerJson")} value={expected} rows={4} onChange={(event) => setExpected(event.target.value)} />
+        <GradingFields id={`case-${item.caseRevisionId}`} keyFacts={keyFacts} alternatives={alternatives} answerability={answerability} onKeyFacts={setKeyFacts} onAlternatives={setAlternatives} onAnswerability={setAnswerability} />
+        {contentChanged && !(keyFactsChanged && alternativesChanged) && <Status>{t("keyFactsResetHint")}</Status>}
         {error && <Status error>{error}</Status>}
         <div className="p-row">
           <Action type="submit" variant="secondary" disabled={pending || !dirty}>

@@ -6,7 +6,7 @@
  * switching devices never loses progress (spec §5.2, §5.3).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowRight, Download, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
+import { Activity, ArrowRight, Download, FileCheck2, LifeBuoy, Pencil, Play, RefreshCcw, RotateCcw, Square, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest, EvalRequestError } from "./api";
@@ -81,6 +81,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   const startKey = useRef(crypto.randomUUID());
   const router = useRouter();
   const deletedRef = useRef(false);
+  const gradedInput = useRef<HTMLInputElement>(null);
   const items = useItemActions(orgId, async () => {
     if (deletedRef.current) router.push(withOrg("/workspace/evaluations"));
     else await reload();
@@ -204,6 +205,29 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       fail(value);
     }
   }
+  // A complete results sheet (answers plus a person's verdicts) becomes a reviewed, published report.
+  async function uploadGradedResults(file: File) {
+    if (!evaluation) return;
+    setPending(true);
+    setActionError(null);
+    try {
+      const form = new FormData();
+      form.set("orgId", orgId);
+      form.set("file", file);
+      const hash = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const key = `graded-${evaluation.id}-${[...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      const response = await fetch(`/api/evals/v1/evaluations/${evaluation.id}/graded-results`, { method: "POST", headers: { "Idempotency-Key": key }, body: form });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.error?.message ?? t("gradedResultsFailed"));
+      notify(t("gradedResultsSaved"));
+      router.push(withOrg(`/workspace/reports/${body.data.reportId}`));
+    } catch (value) {
+      fail(value);
+    } finally {
+      setPending(false);
+      if (gradedInput.current) gradedInput.current.value = "";
+    }
+  }
   async function finishManualReport() {
     if (!latestRunId) return;
     setPending(true);
@@ -266,6 +290,12 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
     ...(evaluation.selected_suite_version_id && canWrite
       ? [{ label: t("downloadQuestionSheet"), icon: <Download />, href: `/api/evals/v1/suites/${evaluation.selected_suite_version_id}/candidate-template?orgId=${encodeURIComponent(orgId)}&format=csv`, external: true }]
       : []),
+    ...(evaluation.selected_suite_version_id && canWrite
+      ? [
+          { label: t("downloadGradingSheet"), icon: <Download />, href: `/api/evals/v1/evaluations/${evaluation.id}/graded-results?orgId=${encodeURIComponent(orgId)}`, external: true },
+          { label: t("uploadGradedResults"), icon: <FileCheck2 />, onSelect: () => gradedInput.current?.click() },
+        ]
+      : []),
     ...(operator && evaluation.latest_run_id ? [{ label: t("inspectRun"), icon: <Activity />, href: `/ops/runs/${evaluation.latest_run_id}?orgId=${encodeURIComponent(orgId)}` }] : []),
     { label: t("requestAssistance"), icon: <LifeBuoy />, href: `mailto:hello@caudals.com?subject=${encodeURIComponent(`Evaluation assistance: ${evaluation.title}`)}`, external: true },
     ...(canWrite
@@ -279,6 +309,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
 
   return (
     <>
+      <input ref={gradedInput} type="file" accept=".csv,.xlsx" hidden aria-hidden="true" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadGradedResults(file); }} />
       <PageHeading
         title={evaluation.title}
         meta={

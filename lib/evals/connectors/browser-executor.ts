@@ -597,14 +597,26 @@ async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
   let clicks = 0, lastClick = 0, consentChecks = 0, lastConsent = 0;
   const inputs = partOptions(recipe, "input", recipe.input);
   const launchers = recipe.launcher ? partOptions(recipe, "launcher", recipe.launcher) : [];
-  while (Date.now() < deadline) {
+  const inputOpen = async () => {
     for (const value of inputs) {
       const match = locator(root, recipe, value);
-      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false))) {
-        // A consent dialog can cover a chat box that is already visible.
-        if (!consentChecks) { consentChecks++; await page.waitForTimeout(Math.max(0, 800 - (Date.now() - loadedAt))); await dismissConsent(page); }
-        return;
-      }
+      // A launcher's widget can paint its closed panel unstyled in the page
+      // before its stylesheet hides it (Visor.ai): only an input on screen
+      // means that chat is open.
+      if ((await match.count().catch(() => 0)) === 1 && (await match.isVisible().catch(() => false)) && (!launchers.length || await onScreen(page, match))) return true;
+    }
+    return false;
+  };
+  while (Date.now() < deadline) {
+    if (await inputOpen()) {
+      // A consent dialog can cover a chat box that is already visible.
+      if (!consentChecks) { consentChecks++; await page.waitForTimeout(Math.max(0, 800 - (Date.now() - loadedAt))); await dismissConsent(page); }
+      // Greetings often arrive after the input, and an unstyled panel can close
+      // itself once styled: let the chat settle, then confirm it is still open,
+      // so the reply snapshot starts after the greeting.
+      await settleMessages(root, recipe, Math.min(deadline, Date.now() + 6_000));
+      if (await inputOpen()) return;
+      continue;
     }
     // Consent managers load late; a dialog over the launcher blocks every click.
     if (consentChecks < 6 && Date.now() - loadedAt > 800 && Date.now() - lastConsent > 1_500) {
@@ -623,6 +635,22 @@ async function openChat(page: Page, root: FrameLike, recipe: WebsiteRecipe) {
   }
   if (await loginRequired(page, recipe.start_url)) throw new Error("login_required");
   throw new Error(recipe.launcher && !clicks ? "launcher_unavailable" : "selector_unavailable");
+}
+
+async function settleMessages(root: FrameLike, recipe: WebsiteRecipe, until: number) {
+  const read = async () => JSON.stringify(await textSnapshot(root, recipe).catch(() => []));
+  let last = await read(), since = Date.now();
+  while (Date.now() < until && Date.now() - since < 1_500) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const next = await read();
+    if (next !== last) { last = next; since = Date.now(); }
+  }
+}
+
+async function onScreen(page: Page, match: Locator) {
+  const box = await match.boundingBox().catch(() => null);
+  const view = page.viewportSize();
+  return !!box && !!view && box.x < view.width && box.x + box.width > 0 && box.y < view.height && box.y + box.height > 0;
 }
 
 /* ------------------------------------------------- quick-reply actions --- */

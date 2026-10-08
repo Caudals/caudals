@@ -7,6 +7,8 @@ import { bundleSchema, parseBundle } from '../contracts/bundle';
 import { toolFixtureSchema } from '../contracts/scenarios';
 import { targetConfigSchema } from '../contracts/connectors';
 import { manifestSchema } from '../contracts/manifest';
+import { editedReference, type ReferenceEdit } from '../contracts/reference-edits';
+import { locateQuote, type QuotableSource } from '../contracts/quote-anchors';
 import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
@@ -190,7 +192,7 @@ export function editSuiteDraftCase(
   scope: EvidenceScope,
   suiteId: string,
   caseRevisionId: string,
-  input: { title: string; contents: string[]; expected: unknown },
+  input: { title: string; contents: string[]; expected: unknown } & ReferenceEdit,
   key: string,
 ) {
   return withTenant(scope, db => idempotent(db,scope,`suite-case-edit/${suiteId}/${caseRevisionId}`,key,input,async () => {
@@ -216,7 +218,8 @@ export function editSuiteDraftCase(
       revision_id: revisionId,
       title: input.title,
       scenario: { ...original.scenario, messages: original.scenario.messages.map((message,index) => ({...message,content:input.contents[index]})) },
-      reference: { ...original.reference, expected: input.expected as typeof original.reference.expected },
+      reference: editedReference(original.reference, input.expected as typeof original.reference.expected, input,
+        input.contents.some((content, index) => content !== original.scenario.messages[index].content) || canonicalJson(input.expected) !== canonicalJson(original.reference.expected)),
       provenance: { ...original.provenance, evidence_level: 'customer_supplied_unreviewed' as const, reviewer_ids: [] },
       extensions: { ...original.extensions, 'caudals.evals/customer-edit': { actor_id: scope.actorId, edited_at: editedAt } },
     }));
@@ -255,12 +258,19 @@ export function assertReleasedRegressionRevision(
     throw new EvidenceError(409,'Regression revision must be redacted and revalidated before freezing');
   }
 }
-export function freezeSuite(scope: EvidenceScope, id: string, version: number, key: string) {
-  return withTenant(scope,db => idempotent(db,scope,`freeze/${id}`,key,{version},async () => {
+export function freezeSuite(scope: EvidenceScope, id: string, version: number, key: string, options: { exploratory?: boolean } = {}) {
+  return withTenant(scope,db => idempotent(db,scope,`freeze/${id}`,key,{version,...(options.exploratory ? { exploratory: true } : {})},async () => {
     const suite = required((await db.query('SELECT * FROM evals.suite WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,id])).rows[0]);
     if (suite.version !== version) throw new EvidenceError(409,'Draft changed');
-    const manifest = manifestSchema.parse(suite.draft);
+    let manifest = manifestSchema.parse(suite.draft);
     verifiedHash(manifest);
+    // A person may freeze a source-grounded draft as exploratory when questions they wrote cite no excerpt;
+    // the frozen version says so, and every other bundle check still applies.
+    if (options.exploratory && manifest.evidence_policy === 'source_grounded') {
+      const { content_hash: _previous, ...rest } = manifest;
+      void _previous;
+      manifest = manifestSchema.parse(withContentHash({ ...rest, evidence_policy: 'exploratory' as const }));
+    }
     if (manifest.suite_id !== id || !/^[0-9a-f-]{36}$/i.test(manifest.suite_version_id)) throw new EvidenceError(400,'Manifest identity mismatch');
     const frozen = (await db.query('SELECT content_hash FROM evals.suite_version WHERE org_id=$1 AND id=$2 AND suite_id=$3',[scope.orgId,manifest.suite_version_id,id])).rows[0];
     if (frozen) {
@@ -557,7 +567,7 @@ async function editableDraft(db: PoolClient, scope: EvidenceScope, suiteId: stri
 }
 
 /** Add a question to an editable draft, modelled on an existing case (same rubric, domain and limits). */
-export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: { title: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical" }, key: string) {
+export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: { title: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical" } & ReferenceEdit, key: string) {
   return withTenant(scope, (db) => idempotent(db, scope, `suite-case-add/${suiteId}`, key, input, async () => {
     const { suite, manifest } = await editableDraft(db, scope, suiteId);
     const templateRef = manifest.case_revisions.find((item) => item.split !== "holdout");
@@ -570,7 +580,7 @@ export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: 
       case_id: caseId, revision_id: revisionId, family_id: familyId,
       title: input.title, severity: input.severity, split: template.split,
       scenario: { ...template.scenario, messages: [{ ...template.scenario.messages[0], content: input.question }] },
-      reference: { ...template.reference, expected: input.expected, source_refs: [] },
+      reference: editedReference(template.reference, input.expected, input, true),
       provenance: { ...template.provenance, evidence_level: "customer_supplied_unreviewed" as const, reviewer_ids: [] },
       extensions: { "caudals.evals/customer-edit": { actor_id: scope.actorId, edited_at: now, added: true } },
     }));
@@ -579,6 +589,70 @@ export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: 
       [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
     const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, [...manifest.case_revisions, { case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight }]);
     return { suiteId, version, caseRevisionId: revisionId };
+  }));
+}
+
+export type ImportedCase = { title?: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical"; source: { quote: string; url?: string } } & ReferenceEdit;
+
+/**
+ * Import hand-written questions into an editable draft, each tied to the frozen
+ * excerpt its expected answer comes from, as generated questions are. The quote
+ * must appear verbatim (ignoring case and spacing) in one of the draft's sources,
+ * and inside the given page when a URL is given. All or nothing: any quote that
+ * cannot be found rejects the batch and names the failing rows.
+ */
+export function importSuiteDraftCases(scope: EvidenceScope, suiteId: string, items: ImportedCase[], key: string) {
+  return withTenant(scope, (db) => idempotent(db, scope, `suite-case-import/${suiteId}`, key, items, async () => {
+    const { suite, manifest } = await editableDraft(db, scope, suiteId);
+    const templateRef = manifest.case_revisions.find((item) => item.split !== "holdout");
+    if (!templateRef) throw new EvidenceError(422, "Add a first question by generating or importing a test set.");
+    const template = caseSchema.parse(required((await db.query("SELECT document FROM evals.case_revision WHERE org_id=$1 AND id=$2", [scope.orgId, templateRef.revision_id])).rows[0]).document);
+    if (template.scenario.messages.length !== 1 || template.scenario.messages[0].role !== "user") throw new EvidenceError(422, "Questions can only be imported into single-question test sets.");
+    // The draft's own sources first, then the newest revision of every other live source of the project,
+    // so a page added to the evaluation after generation can be cited too.
+    const documents = new Map<string, ReturnType<typeof sourceSchema.parse>>();
+    for (const ref of manifest.source_revisions) {
+      const row = required((await db.query("SELECT document FROM evals.source_revision WHERE org_id=$1 AND id=$2", [scope.orgId, ref.revision_id])).rows[0]);
+      documents.set(ref.revision_id, sourceSchema.parse(row.document));
+    }
+    const others = (await db.query(`SELECT DISTINCT ON (sr.source_id) sr.document FROM evals.source_revision sr JOIN evals."source" so ON (so.org_id,so.id)=(sr.org_id,sr.source_id)
+      WHERE sr.org_id=$1 AND so.project_id=$2 AND so.archived_at IS NULL ORDER BY sr.source_id, sr.created_at DESC`, [scope.orgId, suite.project_id])).rows;
+    for (const row of others) { const document = sourceSchema.parse(row.document); if (!documents.has(document.revision_id)) documents.set(document.revision_id, document); }
+    const sources: QuotableSource[] = [...documents.values()];
+    const located = items.map((item) => locateQuote(sources, item.source.quote, item.source.url));
+    const missing = located.flatMap((place, index) => (place ? [] : [index + 1]));
+    if (missing.length) throw new EvidenceError(422, `Quote not found in this test set's sources for rows ${missing.join(", ")}. Copy it verbatim from the page, or add that page as a source first.`);
+    const now = new Date().toISOString();
+    const added: { case_id: string; revision_id: string; content_hash: string; family_id: string; split: typeof template.split; weight: number }[] = [];
+    for (const [index, item] of items.entries()) {
+      const place = located[index]!;
+      const caseId = randomUUID(), revisionId = randomUUID(), familyId = randomUUID();
+      const reference = editedReference(template.reference, item.expected, item, true);
+      const document = caseSchema.parse(withContentHash({
+        ...template,
+        case_id: caseId, revision_id: revisionId, family_id: familyId,
+        title: (item.title?.trim() || item.question).slice(0, 200), severity: item.severity, split: template.split,
+        scenario: { ...template.scenario, messages: [{ ...template.scenario.messages[0], content: item.question }] },
+        reference: { ...reference, source_refs: place.anchors.map((anchor) => ({ source_revision_id: place.source_revision_id, anchor })) },
+        provenance: { ...template.provenance, method: "human_authored" as const, generator_revision: null, prompt_revision: null, author_ids: [scope.actorId], reviewer_ids: [], evidence_level: "customer_supplied_unreviewed" as const, created_at: now },
+        extensions: { "caudals.evals/customer-edit": { actor_id: scope.actorId, edited_at: now, added: true, imported: true, source_url: place.url } },
+      }));
+      await db.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [caseId, scope.orgId, suite.project_id]);
+      await db.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+        [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
+      added.push({ case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight });
+    }
+    // Cite a source the draft did not carry yet: add its revision and its file, as generation does.
+    let cited = manifest;
+    for (const revisionId of new Set(located.map((place) => place!.source_revision_id))) {
+      if (cited.source_revisions.some((ref) => ref.revision_id === revisionId)) continue;
+      const document = documents.get(revisionId)!;
+      cited = { ...cited,
+        source_revisions: [...cited.source_revisions, { revision_id: document.revision_id, content_hash: document.content_hash }],
+        files: cited.files.some((file) => file.path === document.artifact.path) ? cited.files : [...cited.files, { path: document.artifact.path, sha256: document.artifact.sha256, size_bytes: document.artifact.size_bytes }] };
+    }
+    const version = await saveDraftCases(db, suiteId, scope.orgId, cited, [...manifest.case_revisions, ...added]);
+    return { suiteId, version, added: added.length, caseRevisionIds: added.map((item) => item.revision_id), sources: located.map((place) => place!.url) };
   }));
 }
 

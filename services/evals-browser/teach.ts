@@ -33,10 +33,12 @@ export async function selectAt(page: Page, x: number, y: number, response = fals
         frame = child;
         continue;
       }
-      // A click on a message's text maps to its assistant wrapper. Input/send
-      // descendants similarly map to the actual actionable element.
+      // A click on a message's text maps to its assistant wrapper, never to the
+      // history that holds every message (Visor.ai: div.direct-chat-messages >
+      // div.direct-chat-msg > div.direct-chat-text). Input/send descendants
+      // similarly map to the actual actionable element.
       const chosenHandle = await element.evaluateHandle(pageScript<Element, Element>(response
-        ? `el => el.closest('[data-message-author-role="assistant"],[data-role="assistant"],[class*="assistant" i],[class*="markdown" i],[class*="message" i],[role="log"] > *') || el`
+        ? `el => el.closest('[data-message-author-role="assistant"],[data-role="assistant"],[class*="assistant" i],[class*="markdown" i],[class*="message" i]:not([class*="messages" i]),[class*="bubble" i],[class*="chat-text" i],[role="log"] > *') || el`
         : `el => el.closest('button,input,textarea,[role="button"],[role="textbox"],[contenteditable="true"],[contenteditable="plaintext-only"],a') || el`));
       const chosen = chosenHandle.asElement() as ElementHandle<Element> | null;
       if (!chosen) throw new Error("selector_unavailable");
