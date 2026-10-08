@@ -73,6 +73,8 @@ intervals stay in the methodology.
 
 Adding a question to a draft, or editing a question or its expected answer, rebuilds its reference (`lib/evals/contracts/reference-edits.ts`): key facts, acceptable alternatives, answerability, prohibited claims and cited excerpts are taken from the edit or cleared, never inherited from the template or the previous wording, because the judge requires every key fact. Without key facts the judge grades against the expected answer alone. The editor exposes key facts, other acceptable answers and the expected behaviour (answer, decline or refer, ask for missing information, say it is not documented). A title-only edit keeps everything. Grader order is preserved because rubric criteria are matched to graders by position.
 
+A question added by hand cites no source excerpt, so a source-grounded draft that contains one cannot be frozen as is. **Freeze as exploratory** (`POST /suites/:id/versions` with `exploratory: true`) freezes that version with `evidence_policy: exploratory`: the judge grades against the reference answer, key facts and web research, and every other bundle check still applies.
+
 ### Answer judge v2
 
 Input (judge-only, never sent to the system under test): the question(s), the

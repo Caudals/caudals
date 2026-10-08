@@ -232,12 +232,12 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
   const isDraft = view?.selected === "draft" && !!view.draft;
   const editable = canWrite && isDraft;
 
-  async function freeze() {
+  async function freeze(exploratory = false) {
     if (!view?.draft || pending) return;
     setPending(true);
     setError("");
     try {
-      await evalRequest(`/suites/${suiteId}/versions`, "POST", { orgId, version: view.draft.version }, crypto.randomUUID());
+      await evalRequest(`/suites/${suiteId}/versions`, "POST", { orgId, version: view.draft.version, ...(exploratory ? { exploratory: true } : {}) }, crypto.randomUUID());
       notify(t("testSetFrozen"));
       setVersion(undefined);
       if (from) router.push(withOrg(`/workspace/evaluations/${from}`));
@@ -310,9 +310,16 @@ export function WorkspaceTestSetEditor({ suiteId }: { suiteId: string }) {
           canWrite && (
             <>
               {isDraft ? (
-                <Action onClick={() => void freeze()} disabled={pending || !view.cases.length}>
-                  {pending ? t("freezing") : from ? t("freezeAndReturn") : t("freezeTestSet")}
-                </Action>
+                <>
+                  {view.cases.some((item) => !item.excerpts.length) && (
+                    <Action variant="secondary" title={t("freezeExploratoryHint")} onClick={() => void freeze(true)} disabled={pending}>
+                      {t("freezeExploratory")}
+                    </Action>
+                  )}
+                  <Action onClick={() => void freeze()} disabled={pending || !view.cases.length}>
+                    {pending ? t("freezing") : from ? t("freezeAndReturn") : t("freezeTestSet")}
+                  </Action>
+                </>
               ) : (
                 view.versions.length > 0 && (
                   <Action variant="secondary" onClick={() => { setForkTitle(`${view.suite.title} (edited)`.slice(0, 200)); setForking(true); }}>

@@ -257,12 +257,19 @@ export function assertReleasedRegressionRevision(
     throw new EvidenceError(409,'Regression revision must be redacted and revalidated before freezing');
   }
 }
-export function freezeSuite(scope: EvidenceScope, id: string, version: number, key: string) {
-  return withTenant(scope,db => idempotent(db,scope,`freeze/${id}`,key,{version},async () => {
+export function freezeSuite(scope: EvidenceScope, id: string, version: number, key: string, options: { exploratory?: boolean } = {}) {
+  return withTenant(scope,db => idempotent(db,scope,`freeze/${id}`,key,{version,...(options.exploratory ? { exploratory: true } : {})},async () => {
     const suite = required((await db.query('SELECT * FROM evals.suite WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,id])).rows[0]);
     if (suite.version !== version) throw new EvidenceError(409,'Draft changed');
-    const manifest = manifestSchema.parse(suite.draft);
+    let manifest = manifestSchema.parse(suite.draft);
     verifiedHash(manifest);
+    // A person may freeze a source-grounded draft as exploratory when questions they wrote cite no excerpt;
+    // the frozen version says so, and every other bundle check still applies.
+    if (options.exploratory && manifest.evidence_policy === 'source_grounded') {
+      const { content_hash: _previous, ...rest } = manifest;
+      void _previous;
+      manifest = manifestSchema.parse(withContentHash({ ...rest, evidence_policy: 'exploratory' as const }));
+    }
     if (manifest.suite_id !== id || !/^[0-9a-f-]{36}$/i.test(manifest.suite_version_id)) throw new EvidenceError(400,'Manifest identity mismatch');
     const frozen = (await db.query('SELECT content_hash FROM evals.suite_version WHERE org_id=$1 AND id=$2 AND suite_id=$3',[scope.orgId,manifest.suite_version_id,id])).rows[0];
     if (frozen) {
