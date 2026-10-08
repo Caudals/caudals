@@ -503,12 +503,17 @@ export function PrepareEvaluation({
     }
   }
 
-  async function approve(draftVersion: number | null, count: number) {
+  async function approve(draftVersion: number | null, count: number, frozenVersionId: string | null) {
     if (!draft || pending || !count) return;
     setPending("approve");
     setError("");
     try {
       // The test set may have been edited since this page loaded: freeze its current draft and approve that version.
+      if (frozenVersionId) {
+        await evalRequest(`/evaluations/${evaluation.id}/approve-suite`, "POST", { orgId, suiteVersionId: frozenVersionId }, `suite-approve-${evaluation.id}-${frozenVersionId}`);
+        await onReady();
+        return;
+      }
       const current = await evalRequest<{ draft: Draft | null }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`).then((value) => value.draft ?? draft).catch(() => draft);
       const version = draftVersion ?? current.suiteDraftVersion;
       const frozen = await evalRequest<{ id: string }>(`/suites/${current.suiteId}/versions`, "POST", { orgId, version }, `suite-freeze-${current.suiteId}-${version}`);
@@ -539,7 +544,7 @@ export function PrepareEvaluation({
         editorHref={`/workspace/test-sets/${draft.suiteId}?orgId=${encodeURIComponent(orgId)}&from=${encodeURIComponent(evaluation.id)}`}
         pending={pending === "approve"}
         error={error}
-        onApprove={(version, count) => void approve(version, count)}
+        onApprove={(version, count, frozen) => void approve(version, count, frozen)}
       />
     );
 
