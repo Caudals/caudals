@@ -46,6 +46,7 @@ const EN = {
   scoredWord: "scored", preliminaryResults: "results", notCertification: "Caudals reports evidence about observed behaviour on this test set. It is not a certification or a conformity assessment.",
   eyebrow: "CAUDALS · EVALUATION REPORT",
   expectedAnswer: "Expected answer", offeredOptions: "Buttons offered",
+  sharedCopy: "Shared copy: the sender chose which sections of the report to include.", identifiers: "Identifiers",
 };
 type Strings = typeof EN;
 
@@ -88,6 +89,7 @@ const ES: Strings = {
   scoredWord: "puntuadas", preliminaryResults: "resultados", notCertification: "Caudals aporta evidencias sobre el comportamiento observado en este conjunto de pruebas. No es una certificación ni una evaluación de conformidad.",
   eyebrow: "CAUDALS · INFORME DE EVALUACIÓN",
   expectedAnswer: "Respuesta esperada", offeredOptions: "Botones ofrecidos",
+  sharedCopy: "Copia compartida: quien la envía eligió qué secciones del informe incluir.", identifiers: "Identificadores",
 };
 
 const LABEL_ES: Record<string, string> = {

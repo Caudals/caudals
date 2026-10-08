@@ -238,6 +238,7 @@ export const messages = {
   input: "Input",
   output: "System output",
   shareUnavailable: "This private report link is invalid, expired or revoked.",
+  shareDownloadFailed: "This file could not be prepared. Try again in a few minutes.",
   loadingReport: "Loading private report…",
   newEvaluationAction: "New evaluation",
   systems: "Systems",
