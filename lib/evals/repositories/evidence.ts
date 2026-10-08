@@ -8,6 +8,7 @@ import { toolFixtureSchema } from '../contracts/scenarios';
 import { targetConfigSchema } from '../contracts/connectors';
 import { manifestSchema } from '../contracts/manifest';
 import { editedReference, type ReferenceEdit } from '../contracts/reference-edits';
+import { locateQuote, type QuotableSource } from '../contracts/quote-anchors';
 import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
@@ -588,6 +589,70 @@ export function addSuiteDraftCase(scope: EvidenceScope, suiteId: string, input: 
       [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
     const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, [...manifest.case_revisions, { case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight }]);
     return { suiteId, version, caseRevisionId: revisionId };
+  }));
+}
+
+export type ImportedCase = { title?: string; question: string; expected: string; severity: "low" | "medium" | "high" | "critical"; source: { quote: string; url?: string } } & ReferenceEdit;
+
+/**
+ * Import hand-written questions into an editable draft, each tied to the frozen
+ * excerpt its expected answer comes from, as generated questions are. The quote
+ * must appear verbatim (ignoring case and spacing) in one of the draft's sources,
+ * and inside the given page when a URL is given. All or nothing: any quote that
+ * cannot be found rejects the batch and names the failing rows.
+ */
+export function importSuiteDraftCases(scope: EvidenceScope, suiteId: string, items: ImportedCase[], key: string) {
+  return withTenant(scope, (db) => idempotent(db, scope, `suite-case-import/${suiteId}`, key, items, async () => {
+    const { suite, manifest } = await editableDraft(db, scope, suiteId);
+    const templateRef = manifest.case_revisions.find((item) => item.split !== "holdout");
+    if (!templateRef) throw new EvidenceError(422, "Add a first question by generating or importing a test set.");
+    const template = caseSchema.parse(required((await db.query("SELECT document FROM evals.case_revision WHERE org_id=$1 AND id=$2", [scope.orgId, templateRef.revision_id])).rows[0]).document);
+    if (template.scenario.messages.length !== 1 || template.scenario.messages[0].role !== "user") throw new EvidenceError(422, "Questions can only be imported into single-question test sets.");
+    // The draft's own sources first, then the newest revision of every other live source of the project,
+    // so a page added to the evaluation after generation can be cited too.
+    const documents = new Map<string, ReturnType<typeof sourceSchema.parse>>();
+    for (const ref of manifest.source_revisions) {
+      const row = required((await db.query("SELECT document FROM evals.source_revision WHERE org_id=$1 AND id=$2", [scope.orgId, ref.revision_id])).rows[0]);
+      documents.set(ref.revision_id, sourceSchema.parse(row.document));
+    }
+    const others = (await db.query(`SELECT DISTINCT ON (sr.source_id) sr.document FROM evals.source_revision sr JOIN evals."source" so ON (so.org_id,so.id)=(sr.org_id,sr.source_id)
+      WHERE sr.org_id=$1 AND so.project_id=$2 AND so.archived_at IS NULL ORDER BY sr.source_id, sr.created_at DESC`, [scope.orgId, suite.project_id])).rows;
+    for (const row of others) { const document = sourceSchema.parse(row.document); if (!documents.has(document.revision_id)) documents.set(document.revision_id, document); }
+    const sources: QuotableSource[] = [...documents.values()];
+    const located = items.map((item) => locateQuote(sources, item.source.quote, item.source.url));
+    const missing = located.flatMap((place, index) => (place ? [] : [index + 1]));
+    if (missing.length) throw new EvidenceError(422, `Quote not found in this test set's sources for rows ${missing.join(", ")}. Copy it verbatim from the page, or add that page as a source first.`);
+    const now = new Date().toISOString();
+    const added: { case_id: string; revision_id: string; content_hash: string; family_id: string; split: typeof template.split; weight: number }[] = [];
+    for (const [index, item] of items.entries()) {
+      const place = located[index]!;
+      const caseId = randomUUID(), revisionId = randomUUID(), familyId = randomUUID();
+      const reference = editedReference(template.reference, item.expected, item, true);
+      const document = caseSchema.parse(withContentHash({
+        ...template,
+        case_id: caseId, revision_id: revisionId, family_id: familyId,
+        title: (item.title?.trim() || item.question).slice(0, 200), severity: item.severity, split: template.split,
+        scenario: { ...template.scenario, messages: [{ ...template.scenario.messages[0], content: item.question }] },
+        reference: { ...reference, source_refs: place.anchors.map((anchor) => ({ source_revision_id: place.source_revision_id, anchor })) },
+        provenance: { ...template.provenance, method: "human_authored" as const, generator_revision: null, prompt_revision: null, author_ids: [scope.actorId], reviewer_ids: [], evidence_level: "customer_supplied_unreviewed" as const, created_at: now },
+        extensions: { "caudals.evals/customer-edit": { actor_id: scope.actorId, edited_at: now, added: true, imported: true, source_url: place.url } },
+      }));
+      await db.query('INSERT INTO evals."case"(id,org_id,project_id) VALUES($1,$2,$3)', [caseId, scope.orgId, suite.project_id]);
+      await db.query("INSERT INTO evals.case_revision(id,org_id,case_id,family_id,split,content_hash,document,rubric_revision_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
+        [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
+      added.push({ case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight });
+    }
+    // Cite a source the draft did not carry yet: add its revision and its file, as generation does.
+    let cited = manifest;
+    for (const revisionId of new Set(located.map((place) => place!.source_revision_id))) {
+      if (cited.source_revisions.some((ref) => ref.revision_id === revisionId)) continue;
+      const document = documents.get(revisionId)!;
+      cited = { ...cited,
+        source_revisions: [...cited.source_revisions, { revision_id: document.revision_id, content_hash: document.content_hash }],
+        files: cited.files.some((file) => file.path === document.artifact.path) ? cited.files : [...cited.files, { path: document.artifact.path, sha256: document.artifact.sha256, size_bytes: document.artifact.size_bytes }] };
+    }
+    const version = await saveDraftCases(db, suiteId, scope.orgId, cited, [...manifest.case_revisions, ...added]);
+    return { suiteId, version, added: added.length, caseRevisionIds: added.map((item) => item.revision_id), sources: located.map((place) => place!.url) };
   }));
 }
 
