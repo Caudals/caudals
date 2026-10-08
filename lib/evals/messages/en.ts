@@ -1364,6 +1364,8 @@ export const messages = {
   answerabilityMustAbstain: "Decline or refer to a person",
   answerabilityMissingInformation: "Ask for the missing information",
   answerabilityUnanswerable: "Say it is not documented",
+  freezeExploratory: "Freeze as exploratory",
+  freezeExploratoryHint: "Some questions cite no source excerpt. An exploratory version grades them against the reference answer and key facts instead of requiring an excerpt.",
   edit: "Edit",
   generateWaitForReading: "Material is still being read. Wait for it to be ready to include it in the tests.",
   // Notification centre

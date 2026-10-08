@@ -1330,6 +1330,8 @@ export const es: Partial<Record<MessageKey, string>> = {
   answerabilityMustAbstain: "No responder o derivar a una persona",
   answerabilityMissingInformation: "Pedir el dato que falta",
   answerabilityUnanswerable: "Decir que no está documentado",
+  freezeExploratory: "Congelar como exploratoria",
+  freezeExploratoryHint: "Algunas preguntas no citan ningún extracto. Una versión exploratoria las puntúa con la respuesta de referencia y los datos clave, sin exigir extracto.",
   edit: "Editar",
   generateWaitForReading: "Todavía se está leyendo material. Espera a que esté listo para incluirlo en las pruebas.",
   notificationFilters: "Filtros de notificaciones",
