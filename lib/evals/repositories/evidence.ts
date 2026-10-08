@@ -608,11 +608,17 @@ export function importSuiteDraftCases(scope: EvidenceScope, suiteId: string, ite
     if (!templateRef) throw new EvidenceError(422, "Add a first question by generating or importing a test set.");
     const template = caseSchema.parse(required((await db.query("SELECT document FROM evals.case_revision WHERE org_id=$1 AND id=$2", [scope.orgId, templateRef.revision_id])).rows[0]).document);
     if (template.scenario.messages.length !== 1 || template.scenario.messages[0].role !== "user") throw new EvidenceError(422, "Questions can only be imported into single-question test sets.");
-    const sources: QuotableSource[] = [];
+    // The draft's own sources first, then the newest revision of every other live source of the project,
+    // so a page added to the evaluation after generation can be cited too.
+    const documents = new Map<string, ReturnType<typeof sourceSchema.parse>>();
     for (const ref of manifest.source_revisions) {
       const row = required((await db.query("SELECT document FROM evals.source_revision WHERE org_id=$1 AND id=$2", [scope.orgId, ref.revision_id])).rows[0]);
-      sources.push(sourceSchema.parse(row.document));
+      documents.set(ref.revision_id, sourceSchema.parse(row.document));
     }
+    const others = (await db.query(`SELECT DISTINCT ON (sr.source_id) sr.document FROM evals.source_revision sr JOIN evals."source" so ON (so.org_id,so.id)=(sr.org_id,sr.source_id)
+      WHERE sr.org_id=$1 AND so.project_id=$2 AND so.archived_at IS NULL ORDER BY sr.source_id, sr.created_at DESC`, [scope.orgId, suite.project_id])).rows;
+    for (const row of others) { const document = sourceSchema.parse(row.document); if (!documents.has(document.revision_id)) documents.set(document.revision_id, document); }
+    const sources: QuotableSource[] = [...documents.values()];
     const located = items.map((item) => locateQuote(sources, item.source.quote, item.source.url));
     const missing = located.flatMap((place, index) => (place ? [] : [index + 1]));
     if (missing.length) throw new EvidenceError(422, `Quote not found in this test set's sources for rows ${missing.join(", ")}. Copy it verbatim from the page, or add that page as a source first.`);
@@ -636,7 +642,16 @@ export function importSuiteDraftCases(scope: EvidenceScope, suiteId: string, ite
         [revisionId, scope.orgId, caseId, familyId, document.split, document.content_hash, document, document.reference.rubric_revision_id]);
       added.push({ case_id: caseId, revision_id: revisionId, content_hash: document.content_hash, family_id: familyId, split: document.split, weight: document.weight });
     }
-    const version = await saveDraftCases(db, suiteId, scope.orgId, manifest, [...manifest.case_revisions, ...added]);
+    // Cite a source the draft did not carry yet: add its revision and its file, as generation does.
+    let cited = manifest;
+    for (const revisionId of new Set(located.map((place) => place!.source_revision_id))) {
+      if (cited.source_revisions.some((ref) => ref.revision_id === revisionId)) continue;
+      const document = documents.get(revisionId)!;
+      cited = { ...cited,
+        source_revisions: [...cited.source_revisions, { revision_id: document.revision_id, content_hash: document.content_hash }],
+        files: cited.files.some((file) => file.path === document.artifact.path) ? cited.files : [...cited.files, { path: document.artifact.path, sha256: document.artifact.sha256, size_bytes: document.artifact.size_bytes }] };
+    }
+    const version = await saveDraftCases(db, suiteId, scope.orgId, cited, [...manifest.case_revisions, ...added]);
     return { suiteId, version, added: added.length, caseRevisionIds: added.map((item) => item.revision_id), sources: located.map((place) => place!.url) };
   }));
 }
