@@ -148,7 +148,7 @@ export function listActivity(scope: EvidenceScope) {
       SELECT 'export',x.id,x.status,x.reason_code,x.created_at,x.updated_at,r.evaluation_id,e.title,x.kind,NULL,NULL,NULL,NULL,NULL
         FROM evals.export_job x JOIN evals.report_revision rr ON (rr.org_id,rr.id)=(x.org_id,x.report_revision_id)
         JOIN evals.run r ON (r.org_id,r.id)=(rr.org_id,rr.run_id) LEFT JOIN evals.evaluation e ON (e.org_id,e.id)=(r.org_id,r.evaluation_id)
-        WHERE x.org_id=$1 AND (x.status IN ('queued','running') OR x.updated_at>now()-interval '3 days')
+        WHERE x.org_id=$1 AND x.share_id IS NULL AND (x.status IN ('queued','running') OR x.updated_at>now()-interval '3 days')
     ) jobs
     ORDER BY updated_at DESC,created_at DESC,type,id DESC
     LIMIT 60`, [scope.orgId])).rows.map((row: ActivityRow) => ({ ...row, ...jobProgress(row) })));

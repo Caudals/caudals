@@ -85,9 +85,14 @@ function pre(value: string) {
   return `<pre>${escapeHtml(value)}</pre>`;
 }
 
-export function renderReportDocument(report: ReportSnapshot, language: ReportLocale = "en"): string {
+/**
+ * `hidden` names report sections a private share did not allow (see
+ * ./share-sections.ts); they are left out of the document entirely.
+ */
+export function renderReportDocument(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): string {
   locale = language;
   S = reportStrings(language);
+  const show = (section: string) => !hidden.has(section);
   const m = report.metrics;
   const results = report.results;
   const findings = bySeverity(report.findings);
@@ -168,7 +173,82 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
 
   const limitations = [...report.methodology.limitations, ...report.methodology.exclusions].map(tx);
 
-  return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${escapeHtml(report.system.name)} — ${S.evaluationReport}</title><style>
+  const meta = [
+    ...(show("scope") ? [`<div><dt>${S.evaluated}</dt><dd>${dates}</dd></div>`] : []),
+    ...(show("system") ? [`<div><dt>${S.whatWasTested}</dt><dd>${label(report.system.execution_mode)}</dd></div>`] : []),
+    ...(show("scope") ? [`<div><dt>${S.evidencePolicy}</dt><dd>${label(report.scope.evidence_policy)}</dd></div>`] : []),
+    ...(show("metrics") ? [`<div><dt>${S.testsAssessed}</dt><dd>${m.n_scorable} ${S.of} ${m.n_eligible} ${S.eligible}</dd></div>`] : []),
+    ...(show("scope") ? [`<div><dt>${S.reviewStatus}</dt><dd>${label(report.scope.review_status)}</dd></div>`] : []),
+    ...(show("metrics") ? [`<div><dt>${S.resultStatus}</dt><dd>${label(m.headline_status)}</dd></div>`] : []),
+  ];
+  // Numbered in reading order, so a shared copy without some sections has no gaps.
+  let numbered = 0;
+  const num = () => `<span class="num">${++numbered}</span>`;
+  const glance = show("results")
+    ? `<h2>${num()}${S.resultsAtAGlance}</h2>
+  <p class="lead">${S.ratesLead}</p>
+  <div class="two">
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.byTopic}</h3>${topics.length ? rateRows(topics) : `<p class="muted">${S.noAssessedTopics}</p>`}</div>
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.bySeverity}</h3>${severities.length ? rateRows(severities) : `<p class="muted">${S.noAssessedTests}</p>`}</div>
+  </div>
+  ${matrix.length ? `<div class="block keep"><h3 style="font-size:10pt;margin-bottom:6px">${S.outcomesBySeverity}</h3><table class="grid"><thead><tr><th>${S.severity}</th>${OUTCOME_ORDER.map((o) => `<th class="c">${label(o)}</th>`).join("")}</tr></thead><tbody>${matrix.map((row) => `<tr><td>${chip(row.level)}</td>${row.counts.map((count) => `<td class="c">${count || '<span class="muted">·</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}`
+    : "";
+  const findingsPart = show("findings") ? `<div class="block"><h2>${num()}${S.findings}</h2><p class="lead">${S.findingsLead}</p>${findingBlocks}</div>` : "";
+  const improvementsPart = show("improvements") ? `<h2>${num()}${S.improvements}</h2>
+  <p class="lead">${S.improvementsLead}</p>
+  ${improvementRows}` : "";
+  const resultsPart = show("results")
+    ? `<div class="block"><h2>${num()}${S.testResults}</h2><p class="lead">${S.testResultsLead}</p>
+  <table class="grid"><colgroup><col style="width:9mm"><col style="width:34%"><col style="width:15mm"><col style="width:17mm"><col></colgroup><thead><tr><th class="n">#</th><th>${S.test}</th><th>${S.severity}</th><th>${S.outcome}</th><th>${S.assessment}</th></tr></thead><tbody>${resultRows}</tbody></table></div>`
+    : "";
+  const identifiers = `<dt>${S.run}</dt><dd class="mono">${escapeHtml(report.run_id)}</dd>
+    <dt>${S.reportRevision}</dt><dd class="mono">${escapeHtml(report.report_revision_id)}</dd>
+    <dt>${S.contentHash}</dt><dd class="mono">${escapeHtml(report.content_hash)}</dd>`;
+  const appendix = show("methodology")
+    ? `<h2><span class="num">B</span>${S.methodologyLimitations}</h2>
+  ${show("metrics") ? `<p class="lead">${S.denominatorsLead}</p>
+  <div class="denoms">
+    <div><span>${S.planned}</span><b>${m.n_planned}</b></div><div><span>${S.eligibleCap}</span><b>${m.n_eligible}</b></div><div><span>${S.executed}</span><b>${m.n_executed}</b></div>
+    <div><span>${S.assessed}</span><b>${m.n_scorable}</b></div><div><span>${S.notScored}</span><b>${m.n_unscorable}</b></div><div><span>${S.pending}</span><b>${m.n_pending}</b></div>
+  </div>` : ""}
+  <dl class="defs">
+    ${show("system") && show("scope") ? `<dt>${S.scope}</dt><dd>${label(report.system.execution_mode)} · ${label(report.scope.evidence_policy)} · ${S.languages} ${escapeHtml(report.scope.languages.join(", ") || "—")}</dd>` : ""}
+    <dt>${S.sampling}</dt><dd>${escapeHtml(tx(report.methodology.sampling || "—"))}</dd>
+    <dt>${S.reviewCoverage}</dt><dd>${escapeHtml(tx(report.methodology.review_coverage || "—"))}</dd>
+    <dt>${S.scoring}</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · ${S.graders} ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
+    ${show("metrics") && m.pass_bounds ? `<dt>${S.missingBounds}</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} ${S.missingBoundsHelp}</dd>` : ""}
+    ${show("metrics") && m.wilson_interval ? `<dt>${S.uncertainty}</dt><dd>${S.wilson}: ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}</dd>` : ""}
+    <dt>${S.sources}</dt><dd>${report.methodology.source_revisions.length} ${report.methodology.source_revisions.length === 1 ? S.sourceRevision : S.sourceRevisions}</dd>
+    ${show("scope") ? `<dt>${S.testSet}</dt><dd class="mono">${escapeHtml(report.scope.suite_version_id)}</dd>` : ""}
+    ${identifiers}
+  </dl>
+  <div class="block"><h3 style="font-size:10pt;margin-bottom:6px">${S.limitations}</h3>${limitations.length ? `<ul class="plain">${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p class="muted">${S.noLimitations}</p>`}</div>`
+    : `<h2><span class="num">B</span>${S.identifiers}</h2>
+  <dl class="defs">${identifiers}</dl>`;
+  const body = [
+    // Without the results, findings and improvements are short enough to share a page.
+    glance || findingsPart ? `<section class="section">
+  ${glance}
+  ${findingsPart}
+  ${show("results") ? "" : `<div class="block">${improvementsPart}</div>`}
+</section>` : "",
+    (show("results") || !findingsPart) && (improvementsPart || resultsPart) ? `<section class="section">
+  ${improvementsPart}
+  ${resultsPart}
+</section>` : "",
+    show("results") ? `<section class="section">
+  <h2><span class="num">A</span>${S.interactionEvidence}</h2>
+  <p class="lead">${S.evidenceLead}</p>
+  ${evidence || `<p class="muted">${S.noResults}</p>`}
+</section>` : "",
+    `<section class="section">
+  ${appendix}
+  ${hidden.size ? `<p class="disclaimer">${S.sharedCopy}</p>` : ""}
+  <p class="disclaimer">${S.disclaimer}</p>
+</section>`,
+  ].filter(Boolean).join("\n\n");
+
+  return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${show("system") ? `${escapeHtml(report.system.name)} — ` : ""}${S.evaluationReport}</title><style>
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @page{size:A4;margin:18mm 16mm 20mm}
@@ -271,20 +351,13 @@ ul.plain li{margin:3px 0}
 </style></head><body>
 
 <section class="cover">
-  <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>${S.evaluationReport}</span><span class="spacer"></span>${chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral")}<span>${day(report.created_at)}</span></div>
-  <p class="eyebrow">${S.evaluationOf}</p>
+  <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>${S.evaluationReport}</span><span class="spacer"></span>${show("scope") ? chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral") : ""}<span>${day(report.created_at)}</span></div>
+  ${show("system") ? `<p class="eyebrow">${S.evaluationOf}</p>
   <h1>${escapeHtml(report.system.name)}</h1>
-  <p class="lede">${escapeHtml(report.system.purpose)}</p>
-  <dl class="meta">
-    <div><dt>${S.evaluated}</dt><dd>${dates}</dd></div>
-    <div><dt>${S.whatWasTested}</dt><dd>${label(report.system.execution_mode)}</dd></div>
-    <div><dt>${S.evidencePolicy}</dt><dd>${label(report.scope.evidence_policy)}</dd></div>
-    <div><dt>${S.testsAssessed}</dt><dd>${m.n_scorable} ${S.of} ${m.n_eligible} ${S.eligible}</dd></div>
-    <div><dt>${S.reviewStatus}</dt><dd>${label(report.scope.review_status)}</dd></div>
-    <div><dt>${S.resultStatus}</dt><dd>${label(m.headline_status)}</dd></div>
-  </dl>
+  <p class="lede">${escapeHtml(report.system.purpose)}</p>` : `<h1>${S.evaluationReport}</h1>`}
+  ${meta.length ? `<dl class="meta">${meta.join("")}</dl>` : ""}
   ${incomplete ? `<div class="alert"><b>${S.incompleteResult}</b> ${S.incompleteHelp}${limitations.length ? `<ul>${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</div>` : ""}
-  <div class="headline">
+  ${show("metrics") ? `<div class="headline">
     <div class="score">
       <span class="k">${S.strictPassRate}</span>
       <span class="big">${pct(m.strict_pass_rate, 1)}</span>
@@ -293,66 +366,19 @@ ul.plain li{margin:3px 0}
     </div>
     <div class="kpis">
       <div><span>${S.assessedCoverage}</span><b>${pct(m.assessed_coverage)}<small>${m.n_scorable} ${S.of} ${m.n_eligible}</small></b></div>
-      <div><span>${S.criticalFailures}</span><b>${criticalFailed}<small>${m.critical_unassessed ? `${m.critical_unassessed} ${S.criticalNotAssessed}` : S.criticalFailedOrPartial}</small></b></div>
-      <div><span>${m.rubric_score != null ? S.rubricScore : S.findings}</span><b>${m.rubric_score != null ? `${Math.round(m.rubric_score)}/100` : findings.length}<small>${m.rubric_score != null ? S.weightedCriteria : S.evidencePatterns}</small></b></div>
+      ${show("results") ? `<div><span>${S.criticalFailures}</span><b>${criticalFailed}<small>${m.critical_unassessed ? `${m.critical_unassessed} ${S.criticalNotAssessed}` : S.criticalFailedOrPartial}</small></b></div>` : ""}
+      ${m.rubric_score != null || show("findings") ? `<div><span>${m.rubric_score != null ? S.rubricScore : S.findings}</span><b>${m.rubric_score != null ? `${Math.round(m.rubric_score)}/100` : findings.length}<small>${m.rubric_score != null ? S.weightedCriteria : S.evidencePatterns}</small></b></div>` : ""}
     </div>
-  </div>
+  </div>` : ""}
   ${takeaways}
 </section>
 
-<section class="section">
-  <h2><span class="num">1</span>${S.resultsAtAGlance}</h2>
-  <p class="lead">${S.ratesLead}</p>
-  <div class="two">
-    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.byTopic}</h3>${topics.length ? rateRows(topics) : `<p class="muted">${S.noAssessedTopics}</p>`}</div>
-    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.bySeverity}</h3>${severities.length ? rateRows(severities) : `<p class="muted">${S.noAssessedTests}</p>`}</div>
-  </div>
-  ${matrix.length ? `<div class="block keep"><h3 style="font-size:10pt;margin-bottom:6px">${S.outcomesBySeverity}</h3><table class="grid"><thead><tr><th>${S.severity}</th>${OUTCOME_ORDER.map((o) => `<th class="c">${label(o)}</th>`).join("")}</tr></thead><tbody>${matrix.map((row) => `<tr><td>${chip(row.level)}</td>${row.counts.map((count) => `<td class="c">${count || '<span class="muted">·</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}
-  <div class="block"><h2><span class="num">2</span>${S.findings}</h2><p class="lead">${S.findingsLead}</p>${findingBlocks}</div>
-</section>
-
-<section class="section">
-  <h2><span class="num">3</span>${S.improvements}</h2>
-  <p class="lead">${S.improvementsLead}</p>
-  ${improvementRows}
-  <div class="block"><h2><span class="num">4</span>${S.testResults}</h2><p class="lead">${S.testResultsLead}</p>
-  <table class="grid"><colgroup><col style="width:9mm"><col style="width:34%"><col style="width:15mm"><col style="width:17mm"><col></colgroup><thead><tr><th class="n">#</th><th>${S.test}</th><th>${S.severity}</th><th>${S.outcome}</th><th>${S.assessment}</th></tr></thead><tbody>${resultRows}</tbody></table></div>
-</section>
-
-<section class="section">
-  <h2><span class="num">A</span>${S.interactionEvidence}</h2>
-  <p class="lead">${S.evidenceLead}</p>
-  ${evidence || `<p class="muted">${S.noResults}</p>`}
-</section>
-
-<section class="section">
-  <h2><span class="num">B</span>${S.methodologyLimitations}</h2>
-  <p class="lead">${S.denominatorsLead}</p>
-  <div class="denoms">
-    <div><span>${S.planned}</span><b>${m.n_planned}</b></div><div><span>${S.eligibleCap}</span><b>${m.n_eligible}</b></div><div><span>${S.executed}</span><b>${m.n_executed}</b></div>
-    <div><span>${S.assessed}</span><b>${m.n_scorable}</b></div><div><span>${S.notScored}</span><b>${m.n_unscorable}</b></div><div><span>${S.pending}</span><b>${m.n_pending}</b></div>
-  </div>
-  <dl class="defs">
-    <dt>${S.scope}</dt><dd>${label(report.system.execution_mode)} · ${label(report.scope.evidence_policy)} · ${S.languages} ${escapeHtml(report.scope.languages.join(", ") || "—")}</dd>
-    <dt>${S.sampling}</dt><dd>${escapeHtml(tx(report.methodology.sampling || "—"))}</dd>
-    <dt>${S.reviewCoverage}</dt><dd>${escapeHtml(tx(report.methodology.review_coverage || "—"))}</dd>
-    <dt>${S.scoring}</dt><dd>${escapeHtml(report.methodology.scorer_version)} · CEF ${escapeHtml(report.methodology.cef_version)} · ${S.graders} ${escapeHtml(report.methodology.grader_revisions.join(", ") || "—")}</dd>
-    ${m.pass_bounds ? `<dt>${S.missingBounds}</dt><dd>${pct(m.pass_bounds.low)}–${pct(m.pass_bounds.high)} ${S.missingBoundsHelp}</dd>` : ""}
-    ${m.wilson_interval ? `<dt>${S.uncertainty}</dt><dd>${S.wilson}: ${pct(m.wilson_interval.low)}–${pct(m.wilson_interval.high)}</dd>` : ""}
-    <dt>${S.sources}</dt><dd>${report.methodology.source_revisions.length} ${report.methodology.source_revisions.length === 1 ? S.sourceRevision : S.sourceRevisions}</dd>
-    <dt>${S.testSet}</dt><dd class="mono">${escapeHtml(report.scope.suite_version_id)}</dd>
-    <dt>${S.run}</dt><dd class="mono">${escapeHtml(report.run_id)}</dd>
-    <dt>${S.reportRevision}</dt><dd class="mono">${escapeHtml(report.report_revision_id)}</dd>
-    <dt>${S.contentHash}</dt><dd class="mono">${escapeHtml(report.content_hash)}</dd>
-  </dl>
-  <div class="block"><h3 style="font-size:10pt;margin-bottom:6px">${S.limitations}</h3>${limitations.length ? `<ul class="plain">${limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p class="muted">${S.noLimitations}</p>`}</div>
-  <p class="disclaimer">${S.disclaimer}</p>
-</section>
+${body}
 </body></html>`;
 }
 
 /** Page footer for the PDF: identifies the document on every page. */
-export function reportFooterTemplate(report: ReportSnapshot, language: ReportLocale = "en"): string {
+export function reportFooterTemplate(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): string {
   const strings = reportStrings(language);
-  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${escapeHtml(report.system.name)} · ${strings.revision} ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(reportDate(report.created_at, language))}</span><span>${strings.page} <span class="pageNumber"></span> ${strings.pageOf} <span class="totalPages"></span></span></div>`;
+  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${hidden.has("system") ? "" : `${escapeHtml(report.system.name)} · `}${strings.revision} ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(reportDate(report.created_at, language))}</span><span>${strings.page} <span class="pageNumber"></span> ${strings.pageOf} <span class="totalPages"></span></span></div>`;
 }

@@ -62,10 +62,12 @@ function table(headers: string[], rows: string[][], widths?: number[]) {
   });
 }
 
-export async function renderReportDocx(raw: ReportSnapshot, language: ReportLocale = "en"): Promise<Buffer> {
+/** `hidden` names report sections a private share did not allow (./share-sections.ts); they are left out. */
+export async function renderReportDocx(raw: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): Promise<Buffer> {
   locale = language;
   const S = reportStrings(language);
   const report = reportSnapshotSchema.parse(raw);
+  const show = (section: string) => !hidden.has(section);
   const m = report.metrics;
   const results = [...report.results].sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
   const number = new Map(results.map((item, index) => [item.assessment_id, index + 1]));
@@ -77,19 +79,28 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
 
   const children: Array<Paragraph | Table> = [
     new Paragraph({ spacing: { after: 60 }, children: [text(S.eyebrow, { color: MUTED, size: 18, bold: true })] }),
-    new Paragraph({ heading: HeadingLevel.TITLE, spacing: { after: 120 }, children: [text(report.system.name, { bold: true, size: 44 })] }),
-    ...(report.system.purpose ? [para(report.system.purpose, { color: MUTED })] : []),
-    para(`${plain(report.system.execution_mode)} · ${dates} · ${plain(report.scope.review_status)}${m.headline_status === "incomplete" ? ` · ${plain("incomplete")}` : ""}`, { color: MUTED, size: 20, after: 240 }),
-
-    heading(S.resultsAtAGlance),
-    table([S.measure, S.value], [
-      [S.strictPassRate, `${pct(m.strict_pass_rate)} (${m.n_pass} ${S.of} ${m.n_scorable} ${S.scoredWord})`],
-      ...(m.wilson_interval ? [[S.interval95, `${pct(m.wilson_interval.low)} – ${pct(m.wilson_interval.high)}`]] : []),
-      [S.outcomes, `${counts.pass} ${S.pass} · ${counts.partial} ${S.partial} · ${counts.fail} ${S.fail} · ${counts.unscorable} ${S.notScoredLower}`],
-      [S.testsPlannedExecuted, `${m.n_planned} / ${m.n_executed}`],
-      ...(m.critical_unassessed ? [[S.criticalNotAssessedLong, String(m.critical_unassessed)]] : []),
-    ], [40, 60]),
+    new Paragraph({ heading: HeadingLevel.TITLE, spacing: { after: 120 }, children: [text(show("system") ? report.system.name : S.evaluationReport, { bold: true, size: 44 })] }),
+    ...(show("system") && report.system.purpose ? [para(report.system.purpose, { color: MUTED })] : []),
   ];
+  const subtitle = [
+    ...(show("system") ? [plain(report.system.execution_mode)] : []),
+    ...(show("scope") ? [dates, plain(report.scope.review_status)] : []),
+    ...(m.headline_status === "incomplete" ? [plain("incomplete")] : []),
+  ];
+  if (subtitle.length) children.push(para(subtitle.join(" · "), { color: MUTED, size: 20, after: 240 }));
+  if (m.headline_status === "incomplete" && report.methodology.limitations.length && !show("methodology"))
+    for (const limitation of report.methodology.limitations) children.push(new Paragraph({ bullet: { level: 0 }, children: [text(tx(limitation), { color: MUTED })] }));
+  if (show("metrics"))
+    children.push(
+      heading(S.resultsAtAGlance),
+      table([S.measure, S.value], [
+        [S.strictPassRate, `${pct(m.strict_pass_rate)} (${m.n_pass} ${S.of} ${m.n_scorable} ${S.scoredWord})`],
+        ...(m.wilson_interval ? [[S.interval95, `${pct(m.wilson_interval.low)} – ${pct(m.wilson_interval.high)}`]] : []),
+        [S.outcomes, `${counts.pass} ${S.pass} · ${counts.partial} ${S.partial} · ${counts.fail} ${S.fail} · ${counts.unscorable} ${S.notScoredLower}`],
+        [S.testsPlannedExecuted, `${m.n_planned} / ${m.n_executed}`],
+        ...(m.critical_unassessed ? [[S.criticalNotAssessedLong, String(m.critical_unassessed)]] : []),
+      ], [40, 60]),
+    );
 
   if (report.takeaways.length) {
     children.push(heading(S.keyTakeaways));
@@ -99,8 +110,8 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     });
   }
 
-  children.push(heading(S.findings));
-  if (!findings.length) children.push(para(S.noFindingsShort, { color: MUTED }));
+  if (show("findings")) children.push(heading(S.findings));
+  if (show("findings") && !findings.length) children.push(para(S.noFindingsShort, { color: MUTED }));
   for (const finding of findings) {
     children.push(heading(`${plain(finding.severity)} · ${tx(finding.title)}`, HeadingLevel.HEADING_2));
     children.push(para(`${S.seenIn} ${finding.frequency_n} ${S.of} ${finding.frequency_denominator} ${S.relevantResults} · ${S.evidence}: ${plain(finding.evidence_strength)}${finding.assessment_ids.length ? ` · ${refs(finding.assessment_ids)}` : ""}`, { color: MUTED, size: 18 }));
@@ -114,10 +125,10 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     children.push(table(["#", S.improvement, S.status, S.howValidated], improvements.map((item) => [String(item.priority), item.title, plain(item.status), item.validation_plan]), [6, 38, 14, 42]));
   }
 
-  children.push(heading(S.testResults));
-  children.push(table([S.test, S.title, S.topic, S.severity, S.outcome], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.label ?? item.outcome)]), [8, 44, 20, 14, 14]));
+  if (show("results")) children.push(heading(S.testResults));
+  if (show("results")) children.push(table([S.test, S.title, S.topic, S.severity, S.outcome], results.map((item) => [`T${number.get(item.assessment_id)}`, item.title, plain(item.topic), plain(item.severity), plain(item.label ?? item.outcome)]), [8, 44, 20, 14, 14]));
 
-  children.push(heading(S.interactionEvidence));
+  if (show("results")) children.push(heading(S.interactionEvidence));
   for (const item of results) {
     children.push(heading(`T${number.get(item.assessment_id)} · ${item.title} — ${plain(item.label ?? item.outcome)}`, HeadingLevel.HEADING_3));
     children.push(para(S.question, { bold: true, size: 20, after: 40 }));
@@ -136,26 +147,27 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
   }
 
   const method = report.methodology;
-  children.push(heading(S.methodologyLimitations));
-  children.push(table([S.item, S.detail], [
+  const identifiers = [[S.reportRevision, report.report_revision_id], [S.contentHash, report.content_hash]];
+  children.push(heading(show("methodology") ? S.methodologyLimitations : S.identifiers));
+  children.push(table([S.item, S.detail], show("methodology") ? [
     [S.evaluationFormat, `CEF ${method.cef_version} · ${S.scorerWord} ${method.scorer_version}`],
-    [S.evidencePolicy, plain(report.scope.evidence_policy)],
+    ...(show("scope") ? [[S.evidencePolicy, plain(report.scope.evidence_policy)]] : []),
     [S.sampling, tx(method.sampling)],
     [S.reviewCoverage, tx(method.review_coverage)],
     ...(method.exclusions.length ? [[S.excludedFromScoring, method.exclusions.map(tx).join(", ")]] : []),
     ...(method.cost ? [[S.modelCost, `${method.cost.settled} ${method.cost.currency} ${S.settled}`]] : []),
-    [S.reportRevision, report.report_revision_id],
-    [S.contentHash, report.content_hash],
-  ], [30, 70]));
-  if (method.limitations.length) {
+    ...identifiers,
+  ] : identifiers, [30, 70]));
+  if (show("methodology") && method.limitations.length) {
     children.push(heading(S.limitations, HeadingLevel.HEADING_2));
     for (const limitation of method.limitations) children.push(new Paragraph({ bullet: { level: 0 }, children: [text(tx(limitation))] }));
   }
+  if (hidden.size) children.push(para(S.sharedCopy, { color: MUTED, size: 18 }));
   children.push(para(S.notCertification, { color: MUTED, size: 18 }));
 
   const document = new Document({
     creator: "Caudals",
-    title: `${clean(report.system.name)} — ${S.evaluationReport}`,
+    title: show("system") ? `${clean(report.system.name)} — ${S.evaluationReport}` : S.evaluationReport,
     styles: { default: { document: { run: { font: FONT, size: 22 } } } },
     sections: [{
       properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
@@ -163,7 +175,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
         default: new Footer({
           children: [new Paragraph({
             alignment: AlignmentType.RIGHT,
-            children: [text(`Caudals · ${clean(report.system.name)} · ${S.revision} ${report.report_revision_id.slice(0, 8)} · ${S.page} `, { color: MUTED, size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 })],
+            children: [text(`Caudals · ${show("system") ? `${clean(report.system.name)} · ` : ""}${S.revision} ${report.report_revision_id.slice(0, 8)} · ${S.page} `, { color: MUTED, size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, color: MUTED, size: 16 })],
           })],
         }),
       },

@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, FileSearch, Inbox, Lightbulb, ListChecks, MinusCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDashed, Download, FileSearch, FileText, Inbox, Lightbulb, ListChecks, MinusCircle, XCircle } from "lucide-react";
 import type { ReportSnapshot } from "@/lib/evals/reports/contracts";
 import { evalRequest } from "./api";
 import {
@@ -32,10 +32,11 @@ import {
   humanize,
 } from "./primitives";
 import { BarList, OutcomeBar, percent } from "./charts";
-import { SidePanel } from "./overlays";
+import { ActionMenu, SidePanel } from "./overlays";
 import { ReportActions, type ReportRevision } from "./report-actions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t, tv } from "@/lib/evals/messages/en";
+import { shareExportKinds } from "@/lib/evals/reports/share-sections";
 import { tr } from "@/lib/evals/messages/phrases";
 import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, failureBreakdown, labelOf } from "./result-labels";
 import { getLocale } from "@/lib/evals/messages/en";
@@ -908,13 +909,99 @@ export function AuthenticatedReport({ reportId }: { reportId: string }) {
 
 /**
  * The share token arrives in the URL fragment and is removed from the address
- * bar as soon as it is read, so it is kept here for the life of the page.
+ * bar as soon as it is read. It is kept for this tab only (sessionStorage), so
+ * changing the language, which reloads the page, keeps the report open.
  */
+const SHARE_TOKEN_KEY = "caudals:share-token";
 let shareToken: string | null = null;
 function readShareToken() {
   const fresh = new URLSearchParams(location.hash.slice(1)).get("token");
-  if (fresh) shareToken = fresh;
+  if (fresh && fresh !== shareToken) {
+    shareToken = fresh;
+    try {
+      sessionStorage.setItem(SHARE_TOKEN_KEY, fresh);
+    } catch {
+      // Storage blocked: the link still works until the page reloads.
+    }
+  }
+  if (!shareToken) {
+    try {
+      shareToken = sessionStorage.getItem(SHARE_TOKEN_KEY);
+    } catch {
+      shareToken = null;
+    }
+  }
   return shareToken;
+}
+
+type SharedKind = "pdf" | "docx" | "csv" | "cef";
+
+/** Saves a file from the share export endpoint; the token goes in the body, never the URL. */
+async function downloadShared(token: string, kind: SharedKind) {
+  const deadline = Date.now() + 180_000;
+  for (;;) {
+    const response = await fetch("/api/evals/v1/share/export", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token, kind, locale: getLocale() }) });
+    // The PDF renders in the background; ask again until it is ready.
+    if (response.status === 202 && Date.now() < deadline) {
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      continue;
+    }
+    if (!response.ok || response.status === 202) throw new Error("download_failed");
+    const name = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? `caudals-report.${kind}`;
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return;
+  }
+}
+
+/** Downloads offered on a shared report: the same formats as the workspace, limited to the shared sections. */
+function SharedDownloads({ token, report }: { token: string; report: Partial<ReportSnapshot> }) {
+  const [pending, setPending] = useState<SharedKind | null>(null);
+  const [error, setError] = useState("");
+  const kinds = shareExportKinds(Object.keys(report));
+  async function start(kind: SharedKind) {
+    setPending(kind);
+    setError("");
+    try {
+      await downloadShared(token, kind);
+    } catch {
+      setError(kind === "pdf" ? t("pdfFailed") : t("shareDownloadFailed"));
+    } finally {
+      setPending(null);
+    }
+  }
+  const label: Record<SharedKind, string> = { pdf: t("downloadPdfDocument"), docx: t("downloadWordDocument"), csv: t("downloadCsv"), cef: t("downloadCef") };
+  return (
+    <>
+      {error && (
+        <span className="p-inline-error" role="alert">
+          {error}
+        </span>
+      )}
+      <ActionMenu
+        label={t("download")}
+        trigger={
+          <button type="button" className="p-btn" data-variant="secondary" disabled={!!pending} aria-busy={!!pending}>
+            <Download aria-hidden="true" />
+            {pending === "pdf" ? t("pdfPreparing") : pending ? t("working") : t("download")}
+            <ChevronDown aria-hidden="true" />
+          </button>
+        }
+        items={[
+          { heading: t("downloadWarning") },
+          ...kinds.filter((kind) => kind === "pdf" || kind === "docx").map((kind) => ({ label: label[kind], icon: <FileText />, onSelect: () => void start(kind) })),
+          ...(kinds.includes("csv") ? [{ separator: true as const }] : []),
+          ...kinds.filter((kind) => kind === "csv" || kind === "cef").map((kind) => ({ label: label[kind], onSelect: () => void start(kind) })),
+        ]}
+      />
+    </>
+  );
 }
 
 export function SharedReport() {
@@ -949,5 +1036,5 @@ export function SharedReport() {
         {t("loadingReport")}
       </p>
     );
-  return <ReportView report={report} />;
+  return <ReportView report={report} actions={<SharedDownloads token={token} report={report} />} />;
 }

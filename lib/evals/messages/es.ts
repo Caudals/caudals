@@ -221,6 +221,7 @@ export const es: Partial<Record<MessageKey, string>> = {
   input: "Entrada",
   output: "Respuesta del sistema",
   shareUnavailable: "Este enlace privado al informe no es válido, ha caducado o se ha revocado.",
+  shareDownloadFailed: "No se ha podido preparar este archivo. Inténtalo de nuevo en unos minutos.",
   loadingReport: "Cargando informe privado…",
   newEvaluationAction: "Nueva evaluación",
   systems: "Sistemas",
