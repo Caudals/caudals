@@ -285,13 +285,13 @@ export function approvePreparedSuite(scope: EvidenceScope, evaluationId: string,
     if (evaluation.preparation_status !== "needs_review") {
       throw new EvalError("INPUT_INVALID", 409, "The test set is not ready for approval.");
     }
+    // Any frozen version of the generated test set counts, so edits made during review can be approved.
     const suite = (await db.query(
       `SELECT sv.id FROM evals.suite_version sv
        JOIN evals.suite s ON (s.org_id,s.id)=(sv.org_id,sv.suite_id)
        JOIN evals.generation_batch b ON b.org_id=sv.org_id
          AND b.evaluation_id=$2 AND b.status='completed'
          AND b.output->>'suiteId'=s.id::text
-         AND b.output->>'suiteVersionId'=sv.id::text
          AND b.id=(SELECT x.id FROM evals.generation_batch x
            WHERE x.org_id=$1 AND x.evaluation_id=$2 AND x.status='completed'
            ORDER BY x.created_at DESC,x.id DESC LIMIT 1)
