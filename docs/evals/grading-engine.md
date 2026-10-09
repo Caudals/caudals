@@ -244,6 +244,17 @@ Judge calls are budgeted like any other; when they finish, a new preliminary
 report revision is published and the workspace is notified ("Results
 updated").
 
+## Test sets written by people
+
+`POST /evaluations/{id}/generate` without `mode: "automatic"` builds the
+evaluation's test set from hand-written questions, exactly as generation
+freezes its own (rubric, cases, manifest, completed batch, `needs_review`).
+Each question gives `question`, `expected`, optional `keyFacts`, `title` and
+`severity`, and either a source `anchor` or a verbatim `quote` (optionally
+with the page `url`). Quotes are located in the newest revision of every live
+source of the evaluation's project; one missing quote rejects the request.
+The set is then reviewed and approved like a generated one.
+
 ## Complete results sheets
 
 When the answers are collected and graded by people (for example while a
