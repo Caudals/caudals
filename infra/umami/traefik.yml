@@ -1,0 +1,48 @@
+# Public tracking stays on analytics.caudals.com. Dashboard bookmarks redirect
+# to the Tailscale-only listener; no admin content is served publicly.
+http:
+  routers:
+    umami-ingest-web:
+      rule: Host(`analytics.caudals.com`) && (Path(`/script.js`) || PathPrefix(`/api/send`))
+      service: umami
+      middlewares:
+        - redirect-to-https
+      entryPoints:
+        - web
+    umami-ingest-websecure:
+      rule: Host(`analytics.caudals.com`) && (Path(`/script.js`) || PathPrefix(`/api/send`))
+      service: umami
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+    umami-dashboard-web:
+      rule: Host(`analytics.caudals.com`)
+      service: noop@internal
+      priority: 1
+      middlewares:
+        - umami-private-dashboard
+      entryPoints:
+        - web
+    umami-dashboard-websecure:
+      rule: Host(`analytics.caudals.com`)
+      service: noop@internal
+      priority: 1
+      middlewares:
+        - umami-private-dashboard
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  middlewares:
+    umami-private-dashboard:
+      redirectRegex:
+        regex: '^https?://analytics\.caudals\.com(?::[0-9]+)?/(.*)'
+        replacement: 'http://arctic:7444/${1}'
+        permanent: false
+  services:
+    umami:
+      loadBalancer:
+        servers:
+          - url: http://caudals-umami:3000
+        passHostHeader: true

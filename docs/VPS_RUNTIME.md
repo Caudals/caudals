@@ -42,7 +42,11 @@ Lightsail browser SSH does not work by design.
 Also on `arctic` since 2026-10-06: **Umami** (`analytics.caudals.com`), a
 Docker Compose project in `/opt/umami` (images pinned by digest, its own
 PostgreSQL 15 volume `umami_db-data`). Public routes are only `/script.js` and
-`/api/send`; the admin panel is Tailscale-only at `http://arctic:7444`. On
+`/api/send`; the admin panel is Tailscale-only at `http://arctic:7444`. Since
+2026-10-09, dashboard URLs on `analytics.caudals.com` temporarily redirect to
+that private listener, preserving the path and query. The proxy config is
+versioned in [`infra/umami/traefik.yml`](../infra/umami/traefik.yml) and deployed
+to `/etc/dokploy/traefik/dynamic/umami.yml` on arctic. On
 atlantic the old containers are stopped with restart disabled and their
 volume kept as rollback; the old Traefik route is in
 `/root/.caudals/backups/umami-moved-to-arctic-20261006/`.

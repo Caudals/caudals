@@ -292,7 +292,6 @@ no public listener); a UFW rule additionally allows `7443:7453` only on
 | Port | Dashboard | Upstream service |
 | --- | --- | --- |
 | 7443 | Dokploy | `dokploy:3000` |
-| 7444 | Umami (internal only) | `caudals-umami-znhrpr-umami-1:3000` |
 | 7445 | Grafana | `caudals-observability_grafana:3000` |
 | 7446 | Prometheus | `caudals-observability_prometheus:9090` |
 | 7447 | Alertmanager | `caudals-observability_alertmanager:9093` |
@@ -303,7 +302,13 @@ no public listener); a UFW rule additionally allows `7443:7453` only on
 | 7452 | Qdrant (`/dashboard`, legacy) | `caudals-vector_qdrant:6333` |
 | 7453 | MinIO console | `caudals-object-storage_minio:9001` |
 
-As of 2026-09-28 Umami, Temporal UI and MinIO upstream containers are running.
+Umami moved to arctic on 2026-10-06. With Tailscale connected, browse to
+`http://arctic:7444` or open `https://analytics.caudals.com`: dashboard URLs
+redirect to the private listener, preserving paths and query parameters.
+The arctic listener binds only `100.93.226.39:7444`; login remains enforced
+by Umami. Atlantic port 7444 is a historical route, not the current dashboard.
+
+As of 2026-09-28 Temporal UI and MinIO upstream containers were running.
 The dedicated observability stack and other legacy tools were not observed.
 This table is a retained route map, not an HTTP health check of each dashboard;
 verify proxy configuration and upstream health before using a port. Current
@@ -316,14 +321,22 @@ and run `sudo bash /root/.caudals/dashboards/redeploy.sh`.
 CVAT (legacy) is not proxied: its split UI/API/OPA runtime needs host-based
 routing, so reach it through an ad-hoc tunnel if ever needed.
 
-Umami moved to `arctic` on 2026-10-06 (`VPS_RUNTIME.md`): `analytics.caudals.com`
-publishes only `/script.js` and `/api/send`, and its admin panel is
-Tailscale-only at `http://arctic:7444`; the old `atlantic` containers are
-stopped. The marketing site loads the script after cookie consent
+Umami moved to `arctic` on 2026-10-06 (`VPS_RUNTIME.md`). The public
+`analytics.caudals.com` endpoint serves only the tracking script (`/script.js`)
+and event ingestion (`/api/send`). Dashboard requests temporarily redirect to
+`http://arctic:7444`, which requires Tailscale; the public proxy never serves
+dashboard content. The marketing site loads the script after cookie consent
 (`components/legal/site-analytics.tsx`, allowlisted in the `next.config.js`
 CSP); first-party funnel events also go to the app's own
 `/api/analytics/track`. Verified on 2026-10-11: after consent, `/script.js` and
 `/api/send` answer 200 with no console errors.
+
+The versioned route config is `infra/umami/traefik.yml`. To update it, back up
+`/etc/dokploy/traefik/dynamic/umami.yml` on arctic and atomically replace it
+with the reviewed file. Traefik watches this directory; no service restart is
+needed. Verify the dashboard redirect and private page, public script, and
+unauthenticated private API denial after deployment. Do not print or replace
+Umami's protected Compose environment or database credentials.
 
 Public routing is otherwise unaffected: only `80/443` (web) and `41641/udp`
 (Tailscale) are open on the public interface.
