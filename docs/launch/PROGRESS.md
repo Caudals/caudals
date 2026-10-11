@@ -15,11 +15,11 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 
 | Phase | ID | Title | Depends on | Migration | Status | Commit | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | todo | | |
+| 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | in progress | | |
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | todo | | |
-| 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | todo | | |
+| 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | in progress | | |
 | 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
-| 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | todo | | |
+| 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | in progress | | |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | todo | | |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
@@ -60,7 +60,7 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 
 | Phase | Packages | Status |
 | --- | --- | --- |
-| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 | todo |
+| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 | in progress |
 | 2 · Open the funnel (Gate A) | L-04, L-05, L-06, L-07, L-10, L-33 | todo |
 | 3 · Billing build | L-11, L-21, L-12, L-13, L-14 | todo |
 | 4 · Take money (Gate B) | L-15, L-16, L-17 | todo |
@@ -96,3 +96,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | Date | Event |
 | --- | --- |
 | 2026-10-11 | Spec approved for implementation. Brief, tracker and launch scripts (`scripts/launch/*`) added. Phase 1 started |
+| 2026-10-11 | Resume mechanism: an hourly session cron (:17) re-enters this file while the orchestrating session is idle; it expires after 7 days (renew by 2026-10-18). Agents started for L-09, L-01 and L-03 |
