@@ -646,6 +646,7 @@
   "call": {
     "title": "Book a meeting",
     "subtitle": "Pick a time that works for you. We'll look at what your AI system answers, how you test it today and what an evaluation would cover.",
+    "details": "30 minutes · Video call · Times are shown in your time zone",
     "scheduler": "Meeting scheduler",
     "preferWrite": "Prefer to write first?",
     "describeSystem": "Describe your system",
@@ -915,5 +916,20 @@
       "signup_unavailable": "We couldn't send the email. Try again in a minute.",
       "website_unavailable": "Testing website chats is paused right now. Try an API, or book a call."
     }
+  },
+  "contactEmail": {
+    "subject": "We have received your request — Caudals",
+    "preview": "We will reply within 24 hours with the right starting point for your AI system.",
+    "greeting": "Hello {name},",
+    "received": "Thank you for telling us about {organization}'s AI system. Your request has reached the Caudals team.",
+    "nextTitle": "What happens next",
+    "next1": "We review what your system answers and which documents it should follow.",
+    "next2": "Within 24 hours we reply with the right starting point: usually the free diagnostic, or a short call if the scope needs it.",
+    "next3": "Nothing is tested until you have agreed the scope with us.",
+    "callLead": "Prefer to talk it through now?",
+    "callAction": "Book a 30-minute call",
+    "replyHint": "To add context, simply reply to this email.",
+    "signature": "The Caudals team",
+    "footer": "You are receiving this message because this address was used on the request form at caudals.com. If it was not you, you can ignore it."
   }
 }

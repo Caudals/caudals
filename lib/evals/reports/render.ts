@@ -13,7 +13,7 @@ function csvCell(value:string):string {const safe=spreadsheetSafe(value);return 
 export function renderResultsCsv(raw:ReportSnapshot):string {
  const report=reportSnapshotSchema.parse(raw);
  // Original columns first (stable for existing spreadsheets), then the v2 grading detail.
- const header=["case_revision_id","title","topic","severity","outcome","assessment_id","observation_id","input","output","rationale","review_status","source_refs","result","expected_answer","key_facts","failure_category","offered_buttons","contradictions","unverified_details"];
+ const header=["case_revision_id","title","topic","severity","outcome","assessment_id","observation_id","input","output","rationale","review_status","source_refs","result","expected_answer","key_facts","failure_category","offered_buttons","contradictions","unverified_details","likely_cause"];
  const value=(item:ReportSnapshot["results"][number],key:string):string=>{
   if(key==="source_refs")return item.source_refs.map(ref=>`${ref.source_revision_id}#${ref.anchor}`).join(";");
   if(key==="result")return item.label??"";

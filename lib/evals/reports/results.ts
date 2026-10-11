@@ -70,6 +70,7 @@ export function buildResultDetail(row: ResultRow, excerpt: ExcerptLookup) {
     key_facts: keyFacts(item, verdict),
     source_excerpts: excerpts,
     failure_category: verdict?.failure_category ?? null,
+    likely_cause: verdict?.likely_cause ?? null,
     contradictions: (verdict?.contradictions ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
     unsupported_claims: (verdict?.unsupported_claims ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
     confirmed_claims: (verdict?.confirmed_claims ?? []).slice(0, 10).map((value) => value.slice(0, 400)),
@@ -118,7 +119,28 @@ export const FINDING_COPY: Record<FailureCategory | "other", { title: string; ob
   },
 };
 
-export function groupFindings(rows: Array<{ assessment_id: string; outcome: string; severity: Severity; failure_category: string | null }>) {
+const CAUSE_NAMES: Record<string, string> = {
+  invented_answer: "invented answer",
+  outdated_document: "outdated document",
+  wrong_source: "wrong source",
+  knowledge_gap: "knowledge gap",
+  out_of_scope: "out of scope",
+};
+
+/**
+ * The finding's hypothesis about why its answers failed, from the likely
+ * cause recorded with each result (most frequent first). Null when no result
+ * has one, for example grades made before judge v2.3.
+ */
+export function causeHypothesis(causes: Array<string | null | undefined>): string | null {
+  const counts = new Map<string, number>();
+  for (const cause of causes) if (cause && CAUSE_NAMES[cause]) counts.set(cause, (counts.get(cause) ?? 0) + 1);
+  if (!counts.size) return null;
+  const parts = [...counts].sort((a, b) => b[1] - a[1]).map(([cause, n]) => `${CAUSE_NAMES[cause]} (${n})`);
+  return `Likely cause: ${parts.join(", ")}.`;
+}
+
+export function groupFindings(rows: Array<{ assessment_id: string; outcome: string; severity: Severity; failure_category: string | null; likely_cause?: string | null }>) {
   const scored = rows.filter((row) => ["pass", "partial", "fail"].includes(row.outcome));
   const groups = new Map<keyof typeof FINDING_COPY, typeof rows>();
   for (const row of scored) {
@@ -132,7 +154,8 @@ export function groupFindings(rows: Array<{ assessment_id: string; outcome: stri
     const copy = FINDING_COPY[category];
     return {
       category, severity, title: copy.title, frequency_n: members.length, frequency_denominator: scored.length,
-      observation: copy.observation(members.length, scored.length), recommendation: copy.recommendation,
+      observation: copy.observation(members.length, scored.length), cause_hypothesis: causeHypothesis(members.map((member) => member.likely_cause)),
+      recommendation: copy.recommendation,
       assessment_ids: members.map((member) => member.assessment_id),
     };
   }).sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || b.frequency_n - a.frequency_n);

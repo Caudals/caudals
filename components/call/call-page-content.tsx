@@ -17,7 +17,7 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
   const t = useTranslations("call");
 
   return (
-    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-mk-sans selection:bg-black selection:text-white">
       <Header />
       <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-20">
         <header className="mb-12 text-center">
@@ -27,6 +27,8 @@ export function CallPageContent({ calLink }: CallPageContentProps) {
           <p className="mt-6 text-base text-gray-600 max-w-xl mx-auto leading-relaxed">
             {t("subtitle")}
           </p>
+          {/* Cal's own event panel is hidden (its title is not localized), so the page states the format. */}
+          <p className="mt-3 text-sm text-gray-500">{t("details")}</p>
         </header>
 
         <section className="w-full" aria-label={t("scheduler")}>

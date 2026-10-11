@@ -5,6 +5,7 @@ import {
   prefersMarkdown,
 } from "@/lib/markdown/negotiation";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
+import { isRetiredBlogPath } from "@/lib/blog/retired";
 import {
   getCountryFromHeaders,
   negotiateLocale,
@@ -159,8 +160,18 @@ export async function proxy(request: NextRequest) {
   }
 
   // Blog and Newsletter are temporarily hidden: redirect requests to home (307 Temporary Redirect).
+  // Retired posts are gone for good, whether or not the blog is hidden.
   if (!isAppHost) {
     const { locale: hiddenPathLocale, pathname: hiddenBarePathname } = splitLocale(pathname);
+    if (isRetiredBlogPath(hiddenBarePathname)) {
+      return new NextResponse("Gone", {
+        status: 410,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Robots-Tag": "noindex",
+        },
+      });
+    }
     if (
       hiddenBarePathname === "/blog" ||
       hiddenBarePathname.startsWith("/blog/") ||

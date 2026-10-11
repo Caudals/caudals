@@ -51,9 +51,10 @@ import { evaluationRecoveryPath, evaluationSignInPath } from "./auth-path";
 import { ActionLink, Status, humanize } from "./primitives";
 import { Toaster } from "./overlays";
 import { CommandPalette, type PaletteLink } from "./command-palette";
+import { HelpPanel } from "./help-panel";
 import { NotificationCenter } from "./notification-center";
 import { setInterfaceLocale } from "./locale";
-import { Check as CheckIcon, Languages } from "lucide-react";
+import { Check as CheckIcon, CircleHelp, Languages } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
 import { getLocale, t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
@@ -339,7 +340,7 @@ function WorkspaceSwitcher({ collapsed = false }: { collapsed?: boolean }) {
 
 /* -------------------------------------------------------------- account --- */
 
-function AccountMenu({ identity, signingOut, onSignOut }: { identity: EvalIdentity; signingOut: boolean; onSignOut: () => void }) {
+function AccountMenu({ identity, signingOut, onSignOut, onHelp }: { identity: EvalIdentity; signingOut: boolean; onSignOut: () => void; onHelp: () => void }) {
   const operator = identity.platformRole === "operator" || identity.platformRole === "platform_admin";
   /* Modal is the Radix default and is kept deliberately: selecting an item
      closes the menu, which lifts the aria-hidden it puts on the shell, so a
@@ -365,6 +366,10 @@ function AccountMenu({ identity, signingOut, onSignOut }: { identity: EvalIdenti
               <Mail aria-hidden="true" />
               {t("invitations")}
             </Link>
+          </MenuPrimitive.Item>
+          <MenuPrimitive.Item className="p-menu-item" onSelect={() => onHelp()}>
+            <CircleHelp aria-hidden="true" />
+            {t("help")}
           </MenuPrimitive.Item>
           <MenuPrimitive.Item asChild className="p-menu-item">
             <a href="mailto:hello@caudals.com?subject=Caudals%20platform">
@@ -400,6 +405,7 @@ function SidebarBody({
   signingOut,
   signOutError,
   onSignOut,
+  onHelp,
   onNavigate,
 }: {
   identity: EvalIdentity;
@@ -408,6 +414,7 @@ function SidebarBody({
   signingOut: boolean;
   signOutError: boolean;
   onSignOut: () => void;
+  onHelp: () => void;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -435,7 +442,7 @@ function SidebarBody({
             <span>{t("signOutError")}</span>
           </p>
         )}
-        <AccountMenu identity={identity} signingOut={signingOut} onSignOut={onSignOut} />
+        <AccountMenu identity={identity} signingOut={signingOut} onSignOut={onSignOut} onHelp={onHelp} />
       </div>
     </>
   );
@@ -448,6 +455,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   const { orgId, withOrg } = useWorkspace();
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [help, setHelp] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(false);
@@ -528,7 +536,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
   );
   if (identity.workspaces.length) paletteLinks.push({ href: withOrg("/workspace/settings"), label: t("settings"), icon: <Settings />, group: t("goTo") });
 
-  const sidebarProps = { identity, groups, signingOut, signOutError, onSignOut: signOut };
+  const sidebarProps = { identity, groups, signingOut, signOutError, onSignOut: signOut, onHelp: () => setHelp(true) };
 
   return (
     <div className="p-root">
@@ -572,7 +580,7 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
                       <Brand />
                     </div>
                   </DialogPrimitive.Title>
-                  <SidebarBody {...sidebarProps} collapsed={false} onNavigate={() => setDrawer(false)} />
+                  <SidebarBody {...sidebarProps} collapsed={false} onNavigate={() => setDrawer(false)} onHelp={() => { setDrawer(false); setHelp(true); }} />
                 </DialogPrimitive.Content>
               </DialogPrimitive.Portal>
             </DialogPrimitive.Root>
@@ -596,7 +604,8 @@ function Frame({ identity, expert, features, children }: { identity: EvalIdentit
           </main>
         </div>
       </div>
-      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} />
+      <CommandPalette open={palette} onOpenChange={setPalette} links={paletteLinks} onHelp={() => setHelp(true)} />
+      <HelpPanel open={help} onOpenChange={setHelp} />
       <Toaster />
     </div>
   );

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResendClient } from "@/lib/resend/client";
 import { evaluationRequestFormSchema } from "@/lib/validators/evaluation-request";
 import { ContactInquiryEmail } from "@/emails/contact-inquiry";
+import { ContactAcknowledgementEmail } from "@/emails/contact-acknowledgement";
+import { createTranslator, scopeTranslator } from "@/lib/i18n/messages";
+import { localizePathname } from "@/lib/i18n/routing";
+import { buildMarketingUrl } from "@/lib/seo";
 import { getSecretEnvValue } from "@/lib/env/secrets";
 import { routePublicEvaluationRequestIntake } from "@/lib/public/evaluation-request-intake";
 import {
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
 
   const baseEmailPayload = {
     to: notificationEmail,
-    reply_to: normalizedWorkEmail,
+    replyTo: normalizedWorkEmail,
     subject: `New evaluation request: ${data.organization}`,
     react: ContactInquiryEmail({
       ...data,
@@ -264,6 +268,33 @@ export async function POST(request: NextRequest) {
         ipRateHeaders
       );
     }
+  }
+
+  // Confirm receipt to the requester in the language of the page they used.
+  // Best effort: the request is already recorded and the team notified.
+  const locale = payload.locale === "es" ? "es" : "en";
+  const t = scopeTranslator(createTranslator(locale), "contactEmail");
+  const acknowledgement = await resend.emails
+    .send({
+      from: resendFrom,
+      to: normalizedWorkEmail,
+      replyTo: notificationEmail,
+      subject: t("subject"),
+      react: ContactAcknowledgementEmail({
+        t,
+        fullName: data.fullName,
+        organization: data.organization,
+        callUrl: buildMarketingUrl(localizePathname("/call", locale)),
+      }),
+      tags: [{ name: "source", value: "contact-acknowledgement" }],
+    })
+    .catch((error: unknown) => ({ error }));
+
+  if (acknowledgement.error) {
+    logWarn("contact.acknowledgement_send_failed", {
+      error: acknowledgement.error,
+      email: normalizedWorkEmail,
+    });
   }
 
   return withHeaders(

@@ -52,7 +52,10 @@ export function BookingEmbed({ calLink }: BookingEmbedProps) {
         return;
       }
 
-      // Light-mode only, brand-aligned, with event details visible to the client.
+      // Light-mode only and brand-aligned. Cal's event panel is hidden because
+      // its title comes from the Cal account in one language; the page states
+      // the duration and format in the visitor's language instead. Cal still
+      // detects the visitor's time zone for the slots.
       // cssVarsPerTheme requires both themes; we force light but keep the brand
       // accent consistent if a client's OS ever forces dark.
       cal("ui", {
@@ -61,7 +64,7 @@ export function BookingEmbed({ calLink }: BookingEmbedProps) {
           light: { "cal-brand": CAL_BRAND_COLOR },
           dark: { "cal-brand": CAL_BRAND_COLOR },
         },
-        hideEventTypeDetails: false,
+        hideEventTypeDetails: true,
         layout: "month_view",
       });
     })();

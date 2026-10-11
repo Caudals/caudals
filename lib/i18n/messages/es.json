@@ -646,6 +646,7 @@
   "call": {
     "title": "Reserva una reunión",
     "subtitle": "Elige el momento que mejor te venga. Veremos qué responde tu sistema de IA, cómo lo pruebas hoy y qué cubriría una evaluación.",
+    "details": "30 minutos · Videollamada · Los horarios se muestran en tu zona horaria",
     "scheduler": "Programador de reuniones",
     "preferWrite": "¿Prefieres escribirnos primero?",
     "describeSystem": "Descríbenos tu sistema",
@@ -915,5 +916,20 @@
       "signup_unavailable": "No hemos podido enviar el email. Inténtalo en un minuto.",
       "website_unavailable": "Las pruebas de chats web están en pausa. Prueba con una API o reserva una llamada."
     }
+  },
+  "contactEmail": {
+    "subject": "Hemos recibido tu solicitud — Caudals",
+    "preview": "Te responderemos en 24 horas con el punto de partida adecuado para tu sistema de IA.",
+    "greeting": "Hola, {name}:",
+    "received": "Gracias por contarnos cómo es el sistema de IA de {organization}. Tu solicitud ya ha llegado al equipo de Caudals.",
+    "nextTitle": "Qué pasa ahora",
+    "next1": "Revisamos qué responde tu sistema y qué documentos debería seguir.",
+    "next2": "En menos de 24 horas te respondemos con el punto de partida adecuado: normalmente el diagnóstico gratuito, o una llamada breve si el alcance lo necesita.",
+    "next3": "No probamos nada hasta que hayamos acordado el alcance contigo.",
+    "callLead": "¿Prefieres hablarlo ya?",
+    "callAction": "Reserva una llamada de 30 minutos",
+    "replyHint": "Si quieres añadir contexto, responde a este correo.",
+    "signature": "El equipo de Caudals",
+    "footer": "Recibes este mensaje porque esta dirección se usó en el formulario de solicitud de caudals.com. Si no has sido tú, puedes ignorarlo."
   }
 }

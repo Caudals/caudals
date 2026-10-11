@@ -16,6 +16,7 @@ const resultDetailShape={
   key_facts:z.array(z.strictObject({fact:z.string().max(500),status:z.enum(["present","missing","contradicted"]).nullable()})).max(20).optional(),
   source_excerpts:z.array(z.strictObject({source_revision_id:z.string(),anchor:z.string(),title:z.string().max(300).nullable(),excerpt:z.string().max(2000)})).max(3).optional(),
   failure_category:z.string().max(60).nullable().optional(),
+  likely_cause:z.string().max(60).nullable().optional(),
   contradictions:z.array(z.string().max(400)).max(10).optional(),
   unsupported_claims:z.array(z.string().max(400)).max(10).optional(),
   confirmed_claims:z.array(z.string().max(400)).max(10).optional(),

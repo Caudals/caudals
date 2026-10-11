@@ -79,8 +79,8 @@ export default async function LocaleLayout({
   return (
     <RootDocument lang={localeHtmlLang[locale]}>
       <LocaleProvider locale={locale}>
-        {/* `contents` keeps the wrapper out of layout; it only carries the font variables. */}
-        <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} contents`}>
+        {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}
+        <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-mk-sans contents`}>
           {children}
           <CookieConsentBanner />
         </div>

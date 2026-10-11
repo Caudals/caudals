@@ -9,7 +9,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
-import { Building2, FileText, FlaskConical, Plug, Plus, Search } from "lucide-react";
+import { Building2, CircleHelp, FileText, FlaskConical, Plug, Plus, Search } from "lucide-react";
 import { evalRequest } from "./api";
 import { useWorkspace } from "./workspace-context";
 import { t } from "@/lib/evals/messages/en";
@@ -25,10 +25,13 @@ export function CommandPalette({
   open,
   onOpenChange,
   links,
+  onHelp,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   links: PaletteLink[];
+  /** Opens the help panel; the palette closes first. */
+  onHelp?: () => void;
 }) {
   const router = useRouter();
   const { orgId, workspaces, workspace, canWrite, setOrgId, withOrg } = useWorkspace();
@@ -66,12 +69,26 @@ export function CommandPalette({
             </div>
             <Command.List className="p-palette-list">
               <Command.Empty className="p-palette-empty">{t("noMatches")}</Command.Empty>
-              {canWrite && (
+              {(canWrite || onHelp) && (
                 <Command.Group heading={t("actions")}>
-                  <Command.Item value="new evaluation create" onSelect={() => go(withOrg("/workspace/evaluations/new"))}>
-                    <Plus aria-hidden="true" />
-                    {t("newEvaluationAction")}
-                  </Command.Item>
+                  {canWrite && (
+                    <Command.Item value="new evaluation create" onSelect={() => go(withOrg("/workspace/evaluations/new"))}>
+                      <Plus aria-hidden="true" />
+                      {t("newEvaluationAction")}
+                    </Command.Item>
+                  )}
+                  {onHelp && (
+                    <Command.Item
+                      value={`help ${t("help")} glossary support`}
+                      onSelect={() => {
+                        onOpenChange(false);
+                        onHelp();
+                      }}
+                    >
+                      <CircleHelp aria-hidden="true" />
+                      {t("help")}
+                    </Command.Item>
+                  )}
                 </Command.Group>
               )}
               {summary?.evaluations.length ? (

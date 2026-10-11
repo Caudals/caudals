@@ -316,17 +316,14 @@ and run `sudo bash /root/.caudals/dashboards/redeploy.sh`.
 CVAT (legacy) is not proxied: its split UI/API/OPA runtime needs host-based
 routing, so reach it through an ad-hoc tunnel if ever needed.
 
-The public `analytics.caudals.com` route was removed for security: the Umami
-container's Traefik labels were stripped in
-`/etc/dokploy/compose/caudals-umami-znhrpr/code/docker-compose.yml`, the
-generated `compose-caudals-umami-znhrpr.yml` was deleted, and the container was
-recreated (APP_SECRET preserved). Umami is now reachable only via the internal
-`7444` dashboard. Consequence: the marketing site's client-side Umami tracking
-(`components/legal/site-analytics.tsx` loads
-`https://analytics.caudals.com/script.js`, allowlisted in `next.config.js` CSP)
-no longer resolves; remove those references and redeploy to stop the dead-script
-console errors, or repoint tracking. Custom funnel events fall back to the app's
-own `/api/analytics/track`.
+Umami moved to `arctic` on 2026-10-06 (`VPS_RUNTIME.md`): `analytics.caudals.com`
+publishes only `/script.js` and `/api/send`, and its admin panel is
+Tailscale-only at `http://arctic:7444`; the old `atlantic` containers are
+stopped. The marketing site loads the script after cookie consent
+(`components/legal/site-analytics.tsx`, allowlisted in the `next.config.js`
+CSP); first-party funnel events also go to the app's own
+`/api/analytics/track`. Verified on 2026-10-11: after consent, `/script.js` and
+`/api/send` answer 200 with no console errors.
 
 Public routing is otherwise unaffected: only `80/443` (web) and `41641/udp`
 (Tailscale) are open on the public interface.

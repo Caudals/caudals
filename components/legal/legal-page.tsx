@@ -16,7 +16,7 @@ export function LegalPage({ document, locale }: LegalPageProps) {
   const { title, description, sections } = getLegalDocument(document, locale);
 
   return (
-    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-mk-sans selection:bg-black selection:text-white">
       <Header />
       <main className="mx-auto flex w-full max-w-3xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:px-12 lg:pt-24">
         <header className="mb-12 border-b border-gray-200 pb-10">

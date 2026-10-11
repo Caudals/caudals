@@ -38,7 +38,7 @@ import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { t, tv } from "@/lib/evals/messages/en";
 import { shareExportKinds } from "@/lib/evals/reports/share-sections";
 import { tr } from "@/lib/evals/messages/phrases";
-import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, failureBreakdown, labelOf } from "./result-labels";
+import { LABEL_META, ResultBadge, categoryLabel as categoryLabelText, causeBreakdown, causeLabel, failureBreakdown, labelOf } from "./result-labels";
 import { getLocale } from "@/lib/evals/messages/en";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
 /** Sentences Caudals generated from templates, shown in the interface language. */
@@ -175,6 +175,7 @@ function Overview({
   );
   const criticalFailed = results.filter((item) => item.severity === "critical" && (item.outcome === "fail" || item.outcome === "partial"));
   const reasons = useMemo(() => failureBreakdown(results), [results]);
+  const causes = useMemo(() => causeBreakdown(results), [results]);
   const setAside = results.some((item) => ["test_issue", "capture_issue", "not_run"].includes(labelOf(item)));
 
   if (!m) return <Status>{t("reportMetricsHidden")}</Status>;
@@ -252,6 +253,13 @@ function Overview({
             {t("whyAnswersFailedHelp")}
           </SectionHeading>
           <BarList items={reasons.map((item) => ({ label: item.label, value: item.count, total: m.n_scorable, tone: item.category === "missing_information" ? "warn" as const : "fail" as const }))} label={t("whyAnswersFailed")} format="count" />
+        </section>
+      )}
+
+      {causes.length > 0 && (
+        <section>
+          <SectionHeading title={t("likelyCauses")}>{t("likelyCausesHelp")}</SectionHeading>
+          <BarList items={causes.map((item) => ({ label: item.label, value: item.count, total: m.n_scorable, tone: "fail" as const }))} label={t("likelyCauses")} format="count" />
         </section>
       )}
 
@@ -340,7 +348,7 @@ function Findings({ findings, onResults }: { findings: Finding[]; onResults: (id
             {finding.cause_hypothesis && (
               <div>
                 <dt>{t("hypothesis")}</dt>
-                <dd>{finding.cause_hypothesis}</dd>
+                <dd>{gen(finding.cause_hypothesis)}</dd>
               </div>
             )}
             <div>
@@ -550,6 +558,7 @@ function ResultReview({
 
   const graded = result.graded_by === "human" ? t("gradedByPerson") : result.graded_by === "lexical" ? t("gradedLexically") : t("gradedAutomatically");
   const category = result.failure_category && (label === "incorrect" || label === "partially_correct") ? categoryLabelText(result.failure_category) : null;
+  const cause = label === "incorrect" || label === "partially_correct" || label === "not_answered" ? causeLabel(result.likely_cause) : null;
   const facts = result.key_facts ?? [];
   const extras = [
     ...(result.confirmed_claims ?? []).map((text) => ({ text, confirmed: true })),
@@ -580,6 +589,7 @@ function ResultReview({
           <div className="p-verdict-head">
             <ResultBadge result={result} />
             {category && <span>{category}</span>}
+            {cause && <span>{t("likelyCause")}: {cause} ({t("hypothesisTag")})</span>}
             <span>{graded}</span>
           </div>
           <p>{result.rationale || t("noExplanation")}</p>

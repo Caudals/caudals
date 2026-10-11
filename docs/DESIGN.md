@@ -235,7 +235,7 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 - `notify()` for outcomes that need no decision. Toasts use the `platform` toaster id so the document's global toaster never duplicates them.
 - `CopyField` for a value shown once (invitation links, share links, pairing codes, tokens).
 
-**Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab), and `⌘K` for the command palette. There are no in-page back links: breadcrumbs carry the hierarchy.
+**Navigation** — sidebar groups (the workspace group, then Operations for platform roles, then Expert work), a workspace switcher that remembers the last workspace, breadcrumbs in the top bar (their last label also names the browser tab), and `⌘K` for the command palette. Help (how an evaluation works, what each result label means, data handling, contact) is a `SidePanel` opened from the account menu and `⌘K`; the top bar carries no help button. There are no in-page back links: breadcrumbs carry the hierarchy.
 
 **Notification centre** — the topbar bell opens a `SidePanel` with Notifications and Activity tabs. Both show the latest changes first. Quiet filter chips narrow notices to unread or activity to work in progress, attention and completed work. Notices use `.p-notice-*` from the platform kit: semantic icon plus a written outcome, evaluation name, exact timestamp on hover, and an independent mark-as-read action. The badge counts all unread notices; older history loads in place. Refresh and write errors render inside the panel. Closing returns focus to its bell or work-in-progress trigger.
 

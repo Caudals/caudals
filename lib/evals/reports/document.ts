@@ -136,7 +136,7 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   <p class="facts">${finding.frequency_n} of ${finding.frequency_denominator} ${S.relevantResults} · ${S.evidence}: ${escapeHtml(finding.evidence_strength.replaceAll("_", " "))}${finding.assessment_ids.length ? ` · ${S.tests} ${refs(finding.assessment_ids)}` : ""}</p>
   <dl>
     <div><dt>${S.observed}</dt><dd>${escapeHtml(tx(finding.observation))}</dd></div>
-    ${finding.cause_hypothesis ? `<div><dt>${S.hypothesis}</dt><dd>${escapeHtml(finding.cause_hypothesis)} <span class="muted">(${S.notVerifiedCause})</span></dd></div>` : ""}
+    ${finding.cause_hypothesis ? `<div><dt>${S.hypothesis}</dt><dd>${escapeHtml(tx(finding.cause_hypothesis))} <span class="muted">(${S.notVerifiedCause})</span></dd></div>` : ""}
     <div><dt>${S.recommendedAction}</dt><dd>${escapeHtml(tx(finding.recommendation))}</dd></div>
   </dl>
 </article>`,

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import path from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   getAllBlogSlugs,
   getAdjacentBlogPosts,
@@ -6,13 +7,19 @@ import {
   getBlogPosts,
 } from "@/lib/blog/posts";
 
+// The repository ships no bundled posts (the archive lives in Caudals Ops), so
+// the loader is exercised against fixtures that keep the real MDX contract.
+beforeAll(() => {
+  process.env.BLOG_CONTENT_ROOT = path.join(process.cwd(), "tests", "fixtures", "blog");
+});
+
 describe("blog content loader", () => {
   it("returns localized posts ordered by publish date", async () => {
     const posts = await getBlogPosts("en");
     const publishedTimes = posts.map((post) => +new Date(post.publishedAt));
 
-    expect(posts).toHaveLength(10);
-    expect(posts[0]?.slug).toBe("el-impacto-de-los-modelos-open-weights-chinos-en-el-mercado-de-dataset");
+    expect(posts).toHaveLength(3);
+    expect(posts[0]?.slug).toBe("active-learning-guided-data-collection");
     expect(publishedTimes).toEqual([...publishedTimes].sort((a, b) => b - a));
     expect(posts.some((post) => post.slug === "launching-caudals-clearer-dataset-operations" && post.featured)).toBe(true);
     expect(posts.every((post) => post.locale === "en")).toBe(true);
@@ -34,25 +41,18 @@ describe("blog content loader", () => {
   it("exposes stable slugs and adjacent navigation", async () => {
     const slugs = await getAllBlogSlugs();
     const adjacent = await getAdjacentBlogPosts(
-      "active-learning-guided-data-collection",
+      "operational-playbooks-for-multimodal-datasets",
       "en",
     );
 
     expect(slugs).toEqual([
       "active-learning-guided-data-collection",
-      "budgeting-a-dataset-collection-program",
-      "el-impacto-de-los-modelos-open-weights-chinos-en-el-mercado-de-dataset",
-      "how-much-data-to-fine-tune-a-model",
-      "how-we-review-contributor-quality-signals",
       "launching-caudals-clearer-dataset-operations",
       "operational-playbooks-for-multimodal-datasets",
-      "preference-data-rlhf",
-      "proprietary-datasets-ml",
-      "synthetic-vs-human-data",
     ]);
-    expect(adjacent.next?.slug).toBe("preference-data-rlhf");
+    expect(adjacent.next?.slug).toBe("active-learning-guided-data-collection");
     expect(adjacent.previous?.slug).toBe(
-      "how-much-data-to-fine-tune-a-model",
+      "launching-caudals-clearer-dataset-operations",
     );
   });
 });

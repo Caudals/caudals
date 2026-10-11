@@ -15,7 +15,7 @@ import { LEXICAL_FACT_THRESHOLD, factCoverage, foldText, guessLanguage, isEchoOf
 
 export const GRADER_V2 = "caudals-grader-v2";
 /** Bumped whenever the prompt text changes; every v2.x revision shares the output contract. */
-export const ANSWER_JUDGE_REVISION = "caudals-answer-judge-v2.2";
+export const ANSWER_JUDGE_REVISION = "caudals-answer-judge-v2.3";
 export const isAnswerJudgeRevision = (revision: string) => revision.startsWith("caudals-answer-judge-v2");
 /** Stable ID naming ANSWER_JUDGE_REVISION inside CEF grader records. */
 export const ANSWER_JUDGE_REVISION_ID = "8c1f4a52-3b7d-4e90-a6c2-5d9e1f0b7a64";
@@ -26,12 +26,21 @@ export const VERDICTS = ["correct", "partially_correct", "incorrect", "not_answe
 export const FAILURE_CATEGORIES = ["no_answer", "wrong_information", "missing_information", "contradicts_source", "off_topic"] as const;
 export const REFERENCE_ISSUES = ["question_unclear", "expected_answer_wrong", "expected_answer_incomplete", "not_answerable_from_source"] as const;
 export type FailureCategory = typeof FAILURE_CATEGORIES[number];
+/**
+ * Why an answer probably failed, in the five terms the public site uses. A
+ * hypothesis, never a verified root cause: without the system's retrieval
+ * traces Caudals sees the answer, the reference and the cited excerpts only.
+ */
+export const LIKELY_CAUSES = ["invented_answer", "outdated_document", "wrong_source", "knowledge_gap", "out_of_scope"] as const;
+export type LikelyCause = typeof LIKELY_CAUSES[number];
 
 /** What a customer reads for one result. */
 export type VerdictRecord = {
   engine: string;
   verdict: typeof VERDICTS[number] | null;
   failure_category: FailureCategory | null;
+  /** Hypothesis about why it failed; absent on grades made before judge v2.3. */
+  likely_cause?: LikelyCause | null;
   reference_issue: typeof REFERENCE_ISSUES[number] | null;
   capture_issue: "capture_suspect" | null;
   key_facts: Array<{ fact: string; status: "present" | "missing" | "contradicted" }>;
@@ -192,6 +201,7 @@ export function gradeV2(args: { caseRevision: CefCase; observation: Observation;
   const record = verdict({
     verdict: outcome === "pass" ? "correct" : outcome === "partial" ? "partially_correct" : outcome === "fail" ? "incorrect" : null,
     failure_category: outcome === "fail" ? "wrong_information" : outcome === "partial" ? "missing_information" : null,
+    likely_cause: likelyCauseOf(item, outcome, null),
     key_facts: statuses, contradictions: prohibited, explanation, confidence: outcome === "pass" ? "high" : "low", method: "lexical",
   });
   return assessmentSchema.parse(withContentHash({ ...base,
@@ -214,13 +224,14 @@ export function answerJudgeSystemPrompt(options: { web?: boolean } = {}): string
     "key_facts: for each listed key fact say present, missing or contradicted, judged by meaning (numbers and conditions must match).",
     "reference_issue: set it only when the test itself is defective, so the system is not blamed for it: question_unclear (garbled or ambiguous, mixes languages, or names a product or term that appears nowhere in the excerpts); expected_answer_wrong (the expected answer does not read as an answer to the question, for example a list of menu labels, a table header, a page title or a marketing slogan, or it conflicts with the excerpts); expected_answer_incomplete (a fully correct answer would need facts the reference lacks); not_answerable_from_source. Otherwise null. A system that answers differently from a sound reference is not a reference issue.",
     "failure_category for incorrect, partially_correct or not_answered answers: no_answer, wrong_information, missing_information, contradicts_source or off_topic; null when correct.",
+    "likely_cause for incorrect, partially_correct or not_answered answers: your best hypothesis about why, judged only from the reference, the excerpts and the answer. invented_answer = states something that neither the reference nor any excerpt supports; outdated_document = gives a value, price, date or rule that the excerpts show was replaced or belongs to an earlier version; wrong_source = gives a fact that belongs to another product, plan, model, region or section than the one asked about; knowledge_gap = the question needs information the documentation does not contain, and the assistant guessed or could not answer; out_of_scope = answers something that should have been declined or referred to a person. Use null when the answer is correct or none of these fits.",
     "criteria: grade each listed criterion pass, partial or fail with a short rationale, applying the same open-world rule.",
     "explanation: one or two plain sentences for a non-expert business reader saying why, written in the language given as explanation_language. Write contradictions and unsupported_claims in that language too.",
     ...(options.web ? [
       "Public web search results may be attached. Use them only to check details the excerpts do not cover: put extra details the web confirms in confirmed_claims (still not errors) and details the web contradicts in contradictions. The expected answer and excerpts written from the company's documentation stay the ground truth; never fail an answer because a web page disagrees with the reference, and never pass an answer that contradicts the reference. Prefer the company's own website over other sources.",
     ] : []),
     "confidence: high, medium or low.",
-    `Return exactly one JSON object and nothing else: {"verdict":string,"key_facts":[{"fact":string,"status":string}],"contradictions":[string],"unsupported_claims":[string],${options.web ? '"confirmed_claims":[string],' : ""}"reference_issue":string|null,"failure_category":string|null,"criteria":[{"criterion_id":string,"verdict":string,"rationale":string}],"explanation":string,"confidence":string}.`,
+    `Return exactly one JSON object and nothing else: {"verdict":string,"key_facts":[{"fact":string,"status":string}],"contradictions":[string],"unsupported_claims":[string],${options.web ? '"confirmed_claims":[string],' : ""}"reference_issue":string|null,"failure_category":string|null,"likely_cause":string|null,"criteria":[{"criterion_id":string,"verdict":string,"rationale":string}],"explanation":string,"confidence":string}.`,
   ].join(" ");
 }
 
@@ -271,6 +282,7 @@ const answerJudgeOutputSchema = z.object({
   confirmed_claims: z.array(shortText(400)).max(10).catch([]),
   reference_issue: nullableLoose(REFERENCE_ISSUES),
   failure_category: nullableLoose(FAILURE_CATEGORIES),
+  likely_cause: nullableLoose(LIKELY_CAUSES),
   criteria: z.array(z.object({ criterion_id: z.string().min(1).max(200), verdict: loose(["pass", "partial", "fail"] as const), rationale: shortText(400).catch("") })).max(50).catch([]),
   explanation: shortText(600),
   confidence: loose(["high", "medium", "low"] as const).catch("medium"),
@@ -296,6 +308,19 @@ export function parseAnswerJudgeOutput(output: unknown, criterionIds: string[]):
 /* ---------------------------------------------------------- combine --- */
 
 const criterionScore = { pass: 1, partial: 0.5, fail: 0 } as const;
+
+/**
+ * The likely cause recorded with a failed or partly correct answer. The test's
+ * own expected behaviour settles two causes without the judge: an answer that
+ * should have been declined or referred is out of scope, and one the
+ * documentation cannot answer is a knowledge gap.
+ */
+export function likelyCauseOf(item: Pick<CefCase, "reference">, outcome: Assessment["outcome"], judged: LikelyCause | null): LikelyCause | null {
+  if (outcome !== "fail" && outcome !== "partial") return null;
+  if (item.reference.answerability === "must_abstain") return "out_of_scope";
+  if (item.reference.answerability === "unanswerable") return "knowledge_gap";
+  return judged;
+}
 
 /** Outcome from the judge's holistic verdict (first matching rule wins). */
 export function verdictOutcome(output: Pick<AnswerJudgeOutput, "verdict" | "contradictions" | "reference_issue" | "key_facts">, deterministicFailed: boolean): Assessment["outcome"] {
@@ -330,7 +355,8 @@ export function combineAnswerJudgeAssessment(args: {
   const failureCategory = outcome === "pass" ? null
     : args.output.failure_category ?? (args.output.verdict === "not_answered" ? "no_answer" : outcome === "partial" ? "missing_information" : outcome === "fail" ? "wrong_information" : null);
   const record: VerdictRecord = {
-    engine: GRADER_V2, verdict: args.output.verdict, failure_category: failureCategory, reference_issue: args.output.reference_issue, capture_issue: null,
+    engine: GRADER_V2, verdict: args.output.verdict, failure_category: failureCategory,
+    likely_cause: likelyCauseOf(args.item, outcome, args.output.likely_cause), reference_issue: args.output.reference_issue, capture_issue: null,
     key_facts: args.output.key_facts, contradictions: args.output.contradictions, unsupported_claims: args.output.unsupported_claims,
     ...(args.output.confirmed_claims.length ? { confirmed_claims: args.output.confirmed_claims } : {}),
     ...(args.webSources?.length ? { web_sources: args.webSources.slice(0, 8).map(({ url, title }) => ({ url: url.slice(0, 2000), ...(title ? { title: title.slice(0, 300) } : {}) })) } : {}),

@@ -50,7 +50,7 @@ function gradingV2Fixture() {
       { ...base, case_revision_id: "c3", title: "Comisión de gestión", severity: "critical" as const, outcome: "fail" as const, label: "incorrect" as const, assessment_id: "a3", observation_id: "o3",
         input: "¿Qué comisión de gestión se aplica a carteras de menos de 10.000 €?", output: "La comisión de gestión es del 0,60 % anual para todas las carteras.",
         rationale: "La respuesta da una comisión distinta de la documentada (0,40 %) para ese tramo.", expected: "Para carteras de menos de 10.000 € la comisión de gestión es del 0,40 % anual.",
-        key_facts: [{ fact: "0,40 %", status: "contradicted" as const }], contradictions: ["Indica un 0,60 % en lugar del 0,40 % documentado."], unsupported_claims: [], failure_category: "wrong_information", confidence: "high" as const, review_status: "needs_review",
+        key_facts: [{ fact: "0,40 %", status: "contradicted" as const }], contradictions: ["Indica un 0,60 % en lugar del 0,40 % documentado."], unsupported_claims: [], failure_category: "wrong_information", likely_cause: "outdated_document", confidence: "high" as const, review_status: "needs_review",
         source_excerpts: excerpt("Comisión de gestión: 0,40 % anual para carteras de hasta 10.000 €.") },
       { ...base, case_revision_id: "c4", title: "Seguro a terceros", severity: "medium" as const, outcome: "fail" as const, label: "not_answered" as const, assessment_id: "a4", observation_id: "o4",
         input: "¿En cuántas cuotas se puede dividir el recibo de un seguro a terceros?", output: "Perdóname 🙏. Como aún estoy aprendiendo, hay frases que me cuesta entender. ¿Lo puedes intentar con otras palabras?",

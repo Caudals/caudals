@@ -116,7 +116,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
     children.push(heading(`${plain(finding.severity)} · ${tx(finding.title)}`, HeadingLevel.HEADING_2));
     children.push(para(`${S.seenIn} ${finding.frequency_n} ${S.of} ${finding.frequency_denominator} ${S.relevantResults} · ${S.evidence}: ${plain(finding.evidence_strength)}${finding.assessment_ids.length ? ` · ${refs(finding.assessment_ids)}` : ""}`, { color: MUTED, size: 18 }));
     children.push(para(tx(finding.observation)));
-    if (finding.cause_hypothesis) children.push(new Paragraph({ spacing: { after: 100 }, children: [text(`${S.likelyCause}: `, { bold: true }), text(finding.cause_hypothesis)] }));
+    if (finding.cause_hypothesis) children.push(new Paragraph({ spacing: { after: 100 }, children: [text(`${S.likelyCause}: `, { bold: true }), text(tx(finding.cause_hypothesis))] }));
     children.push(new Paragraph({ spacing: { after: 160 }, children: [text(`${S.recommendation}: `, { bold: true }), text(tx(finding.recommendation))] }));
   }
 

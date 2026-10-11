@@ -497,10 +497,13 @@
   min-width: 0;
   margin-top: clamp(36px, 4.5vw, 60px);
 }
-@media (prefers-reduced-motion: no-preference) {
+/* Fill forwards only: before a block enters the viewport it keeps its normal
+   style, so print, full-page captures and link previews show every step. On
+   screen the block is still off view until its entry range starts. */
+@media screen and (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
     .lp-rv {
-      animation: lp-rv linear both;
+      animation: lp-rv linear forwards;
       animation-timeline: view();
       animation-range: entry 0% entry 36%;
     }
@@ -1025,6 +1028,8 @@
   background: var(--ink);
 }
 
+/* `data-in` is only set once the page runs JavaScript, so without it (and in
+   the server HTML) every bar is drawn. */
 @media (prefers-reduced-motion: no-preference) {
   .gr[data-in="false"] .gr-stack i {
     opacity: 0;

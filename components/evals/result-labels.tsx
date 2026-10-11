@@ -58,3 +58,27 @@ export function failureBreakdown(results: Array<Pick<Result, "outcome"> & { fail
   }
   return [...counts].map(([category, count]) => ({ category, label: categoryLabel(category), count })).sort((a, b) => b.count - a.count);
 }
+
+const CAUSE: Record<string, MessageKey> = {
+  invented_answer: "causeInventedAnswer",
+  outdated_document: "causeOutdatedDocument",
+  wrong_source: "causeWrongSource",
+  knowledge_gap: "causeKnowledgeGap",
+  out_of_scope: "causeOutOfScope",
+};
+/** Label of a likely cause (a hypothesis), or null for none or an unknown value. */
+export function causeLabel(cause: string | null | undefined) {
+  const key = CAUSE[cause ?? ""];
+  return key ? t(key) : null;
+}
+
+/** Failed and partly correct results counted by likely cause; results without one are left out. */
+export function causeBreakdown(results: Array<Pick<Result, "outcome"> & { likely_cause?: string | null }>) {
+  const counts = new Map<string, number>();
+  for (const result of results) {
+    if (result.outcome !== "fail" && result.outcome !== "partial") continue;
+    if (!result.likely_cause || !CAUSE[result.likely_cause]) continue;
+    counts.set(result.likely_cause, (counts.get(result.likely_cause) ?? 0) + 1);
+  }
+  return [...counts].map(([cause, count]) => ({ cause, label: t(CAUSE[cause]), count })).sort((a, b) => b.count - a.count);
+}

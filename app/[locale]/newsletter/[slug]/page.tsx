@@ -121,7 +121,7 @@ export default async function NewsletterIssuePage({
   };
 
   return (
-    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-mk-sans selection:bg-black selection:text-white">
       <Header />
 
       <main className="mx-auto flex w-full max-w-2xl flex-col px-6 pb-24 pt-16 sm:px-8 lg:pt-20">

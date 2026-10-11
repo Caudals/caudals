@@ -101,7 +101,7 @@ export default async function BlogPostPage({
   };
 
   return (
-    <div className="min-h-screen bg-background text-black font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background text-black font-mk-sans selection:bg-black selection:text-white">
       <Header />
       <main className="mx-auto flex w-full max-w-5xl flex-col px-6 pb-24 pt-24 sm:px-8 lg:px-12 lg:pt-32">
         <Link

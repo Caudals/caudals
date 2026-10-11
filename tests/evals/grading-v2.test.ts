@@ -5,11 +5,11 @@ import { observationSchema } from "../../lib/evals/contracts/results";
 import { withContentHash } from "../../lib/evals/contracts/hashing";
 import { CALIBRATION_MIN_EXAMPLES, PENDING_CRITERIA_EXTENSION, calibrationSummary } from "../../lib/evals/scoring/judge";
 import {
-  GRADER_V2, VERDICT_EXTENSION, answerJudgeSystemPrompt, answerJudgeUserMessage, combineAnswerJudgeAssessment, gradeV2,
-  parseAnswerJudgeOutput, semanticCriterionIds, verdictOf, verdictOutcome,
+  ANSWER_JUDGE_REVISION, GRADER_V2, VERDICT_EXTENSION, answerJudgeSystemPrompt, answerJudgeUserMessage, combineAnswerJudgeAssessment, gradeV2,
+  likelyCauseOf, parseAnswerJudgeOutput, semanticCriterionIds, verdictOf, verdictOutcome,
 } from "../../lib/evals/scoring/answer-judge";
 import { factCoverage, foldText, guessLanguage, isEchoOfPrompt } from "../../lib/evals/scoring/text";
-import { groupFindings, resultLabel, exclusionLimitations } from "../../lib/evals/reports/results";
+import { causeHypothesis, groupFindings, resultLabel, exclusionLimitations } from "../../lib/evals/reports/results";
 import { localizeReportText } from "../../lib/evals/reports/i18n";
 
 function fixture(question: string, expected: string, answer: string, options: { keyFacts?: string[]; actions?: string[]; severity?: "medium" | "critical" } = {}) {
@@ -141,6 +141,53 @@ describe("answer judge v2", () => {
     expect(judged.criteria.every((criterion) => criterion.score === null)).toBe(true);
     expect(judged.review_status).toBe("needs_review");
     expect(resultLabel(judged.outcome, verdictOf(judged), "succeeded")).toBe("test_issue");
+  });
+});
+
+describe("likely cause (judge v2.3)", () => {
+  it("asks for one of the five public causes and keeps grades without it valid", () => {
+    expect(ANSWER_JUDGE_REVISION).toBe("caudals-answer-judge-v2.3");
+    const prompt = answerJudgeSystemPrompt();
+    for (const cause of ["invented_answer", "outdated_document", "wrong_source", "knowledge_gap", "out_of_scope"]) expect(prompt).toContain(cause);
+    expect(prompt).toContain('"likely_cause":string|null');
+    const missing = parseAnswerJudgeOutput(judgeText({ verdict: "incorrect", explanation: "Wrong fee." }), ["correctness"]);
+    expect(missing.ok && missing.output.likely_cause).toBeNull();
+    const bogus = parseAnswerJudgeOutput(judgeText({ verdict: "incorrect", likely_cause: "bad luck", explanation: "Wrong fee." }), ["correctness"]);
+    expect(bogus.ok && bogus.output.likely_cause).toBeNull();
+    const loose = parseAnswerJudgeOutput(judgeText({ verdict: "incorrect", likely_cause: "Outdated document", explanation: "Old fee." }), ["correctness"]);
+    expect(loose.ok && loose.output.likely_cause).toBe("outdated_document");
+  });
+  it("records the judge's cause on a failed answer and none on a correct one", () => {
+    const { item, rubric, observation } = fixture("¿Cuál es la comisión?", "Una comisión de servicio del 10 %.", "La comisión es del 8 %.", { keyFacts: ["10%"] });
+    const pending = gradeV2({ caseRevision: item, observation, rubric, mode: "judge" });
+    const judge = { modelRevisionId: randomUUID(), promptRevision: ANSWER_JUDGE_REVISION, jobId: randomUUID() };
+    const failed = parseAnswerJudgeOutput(judgeText({ verdict: "incorrect", contradictions: ["8 %"], likely_cause: "outdated_document", failure_category: "contradicts_source", explanation: "Da una comisión antigua." }), semanticCriterionIds(item, rubric));
+    if (!failed.ok) throw new Error(failed.reason);
+    const judged = combineAnswerJudgeAssessment({ pending, item, output: failed.output, judge, calibration });
+    expect(verdictOf(judged)?.likely_cause).toBe("outdated_document");
+    const passed = parseAnswerJudgeOutput(judgeText({ verdict: "correct", likely_cause: "invented_answer", explanation: "Correcta." }), semanticCriterionIds(item, rubric));
+    if (!passed.ok) throw new Error(passed.reason);
+    expect(verdictOf(combineAnswerJudgeAssessment({ pending, item, output: passed.output, judge, calibration }))?.likely_cause).toBeNull();
+  });
+  it("lets the test's expected behaviour settle out of scope and knowledge gaps", () => {
+    const { item } = fixture("¿Puedo tomar ibuprofeno?", "Deriva la consulta a un médico.", "Sí, sin problema.");
+    const withAnswerability = (answerability: "must_abstain" | "unanswerable" | "answerable") => ({ reference: { ...item.reference, answerability } });
+    expect(likelyCauseOf(withAnswerability("must_abstain"), "fail", "invented_answer")).toBe("out_of_scope");
+    expect(likelyCauseOf(withAnswerability("unanswerable"), "partial", null)).toBe("knowledge_gap");
+    expect(likelyCauseOf(withAnswerability("answerable"), "fail", "wrong_source")).toBe("wrong_source");
+    expect(likelyCauseOf(withAnswerability("must_abstain"), "pass", null)).toBeNull();
+    expect(likelyCauseOf(withAnswerability("must_abstain"), "unscorable", null)).toBeNull();
+  });
+  it("states each finding's likely causes as a hypothesis, most frequent first, in Spanish too", () => {
+    expect(causeHypothesis([null, undefined])).toBeNull();
+    const text = causeHypothesis(["invented_answer", "outdated_document", "outdated_document", null, "unknown"]);
+    expect(text).toBe("Likely cause: outdated document (2), invented answer (1).");
+    expect(localizeReportText(text!, "es")).toBe("Causa probable: documento desactualizado (2), respuesta inventada (1).");
+    const [finding] = groupFindings([
+      { assessment_id: "a", outcome: "fail", severity: "high", failure_category: "contradicts_source", likely_cause: "outdated_document" },
+      { assessment_id: "b", outcome: "fail", severity: "high", failure_category: "contradicts_source", likely_cause: "wrong_source" },
+    ]);
+    expect(finding.cause_hypothesis).toBe("Likely cause: outdated document (1), wrong source (1).");
   });
 });
 

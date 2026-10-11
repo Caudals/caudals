@@ -93,6 +93,7 @@ and the criteria to grade. Output, strict JSON:
   "unsupported_claims": ["…"],
   "reference_issue": null,
   "failure_category": "no_answer | wrong_information | missing_information | contradicts_source | off_topic | null",
+  "likely_cause": "invented_answer | outdated_document | wrong_source | knowledge_gap | out_of_scope | null",
   "criteria": [{ "criterion_id": "…", "verdict": "pass | partial | fail", "rationale": "…" }],
   "explanation": "≤ 400 characters, in the test's language",
   "confidence": "high | medium | low"
@@ -100,7 +101,18 @@ and the criteria to grade. Output, strict JSON:
 ```
 
 `reference_issue` is one of `question_unclear`, `expected_answer_wrong`,
-`expected_answer_incomplete`, `not_answerable_from_source` or null. For
+`expected_answer_incomplete`, `not_answerable_from_source` or null.
+
+`likely_cause` (since `caudals-answer-judge-v2.3`) names why a failed or partly
+correct answer probably failed, in the five terms the public site uses
+(invented answer, outdated document, wrong source, knowledge gap, out of
+scope). It is always a **hypothesis**: Caudals sees the answer, the reference
+and the cited excerpts, not the system's retrieval traces. The test's own
+expected behaviour settles two causes without the judge
+(`likelyCauseOf`): a failed `must_abstain` test is out of scope and a failed
+`unanswerable` test is a knowledge gap. Correct answers and not-scored results
+carry none; grades made before v2.3 have no `likely_cause` and are left out of
+the cause counts. For
 `must_abstain`/`unanswerable` cases, declining or escalating is correct and
 inventing an answer is incorrect.
 
@@ -138,7 +150,11 @@ methodology, but it no longer marks every result as experimental.
 
 Failed and partly correct results are grouped by failure category (no answer,
 wrong information, incomplete, contradicts your documentation, off topic),
-each with a plain-language observation and recommendation. Tests needing
+each with a plain-language observation and recommendation. Each finding's
+`cause_hypothesis` lists its results' likely causes, most frequent first
+("Likely cause: outdated document (2), invented answer (1).", localized for
+Spanish exports), and the report overview adds a **Likely causes** chart next to
+**Why answers failed**. Every surface labels it a hypothesis. Tests needing
 review and capture problems become limitations, not findings.
 
 ## Results presentation
@@ -154,6 +170,7 @@ the cited source excerpt, pages checked on the web and collapsed technical
 identifiers.
 
 Results download as CSV, PDF and Word with the expected answer and verdict.
+The CSV's last column is `likely_cause`.
 
 ## Web research
 
@@ -264,12 +281,14 @@ test set accepts a complete results sheet instead of a run:
 - **Download grading sheet** (`GET /evaluations/{id}/graded-results`) lists every
   question with its ids, expected answer, key facts, expected behaviour and the
   cited source excerpt, plus empty `system_answer`, `veredicto`, `motivo`,
-  `datos_clave_estado`, `categoria_fallo` and `contradicciones` columns.
+  `datos_clave_estado`, `categoria_fallo`, `contradicciones` and `causa_probable` columns.
 - **Upload complete results** (`POST`, CSV with comma or semicolon, or XLSX)
   requires every question exactly once. `veredicto` is `correcta`, `parcial`,
   `incorrecta` or `no responde` (English values work too); `motivo` is required;
   `datos_clave_estado` lists `presente`, `falta` or `contradice` per key fact,
-  separated by `|`.
+  separated by `|`. The optional `causa_probable` is `respuesta inventada`,
+  `documento desactualizado`, `fuente equivocada`, `laguna de conocimiento` or
+  `fuera de alcance` (English ids work too); it is ignored on correct answers.
 - One transaction creates an `imported_responses` run, each answer as an
   observation, the lexical v2 grade as baseline and the person's verdict as a
   human override of it with a review decision, the same trail as reviewing in

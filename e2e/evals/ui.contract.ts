@@ -783,6 +783,39 @@ test("operator completes the improvement dataset release and held-out validation
   await expect(page.getByText(/does not prove causality/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+test("a failed answer shows its likely cause as a hypothesis, in the overview and on its page", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/workspace/reports/fixture-v2");
+  const causes = page.getByRole("list", { name: "Likely causes" });
+  await expect(causes).toBeVisible();
+  await expect(causes.getByText("Outdated document")).toBeVisible();
+  await page.getByRole("tab", { name: /Test results/ }).click();
+  await page.getByRole("button", { name: /Qué comisión de gestión/ }).click();
+  await expect(page.getByText("Likely cause: Outdated document (hypothesis)")).toBeVisible();
+  // A correct answer never carries a cause.
+  await page.getByRole("button", { name: "All results" }).click();
+  await page.getByRole("button", { name: /importe mínimo/ }).click();
+  await expect(page.getByText(/Likely cause:/)).toHaveCount(0);
+});
+
+test("help opens from the account menu and the command palette and explains every result label", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/workspace/evaluations");
+  await page.getByRole("button", { name: /Test operator/ }).click();
+  await page.getByRole("menuitem", { name: "Help" }).click();
+  const help = page.getByRole("dialog", { name: "Help" });
+  await expect(help.getByRole("heading", { name: "How an evaluation works" })).toBeVisible();
+  for (const label of ["Correct", "Partly correct", "Incorrect", "No answer"]) await expect(help.getByText(label, { exact: true })).toBeVisible();
+  await expect(help.getByRole("link", { name: "Book a 30-minute call" })).toHaveAttribute("href", "https://caudals.com/en/call");
+  await page.keyboard.press("Escape");
+  await expect(help).toHaveCount(0);
+  await page.keyboard.press("Control+k");
+  await page.getByRole("option", { name: "Help" }).click();
+  await expect(page.getByRole("dialog", { name: "Help" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("each result opens as its own full-width page and returns focus to the list", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/workspace/reports/fixture");

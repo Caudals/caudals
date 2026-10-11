@@ -19,6 +19,7 @@ function personVerdict(row: GradedRow, facts: string[], language: string): Verdi
     engine: "human-review",
     verdict: row.verdict,
     failure_category: row.failureCategory,
+    likely_cause: row.likelyCause,
     reference_issue: null,
     capture_issue: null,
     key_facts: facts.slice(0, statuses.length).map((fact, index) => ({ fact, status: statuses[index] })),
@@ -146,7 +147,7 @@ export async function importGradedResults(scope: EvidenceScope, evaluationId: st
 const BEHAVIOUR: Record<string, string> = { answerable: "responder", must_abstain: "abstenerse", missing_information: "pedir información", unanswerable: "decir que no lo sabe" };
 export const GRADED_SHEET_HEADERS = [
   "n", "suite_version_id", "case_id", "case_revision_id", "input", "respuesta_esperada", "datos_clave", "comportamiento_esperado", "extracto_fuente",
-  "system_answer", "veredicto", "motivo", "datos_clave_estado", "categoria_fallo", "contradicciones",
+  "system_answer", "veredicto", "motivo", "datos_clave_estado", "categoria_fallo", "contradicciones", "causa_probable",
 ] as const;
 
 /** The team's grading sheet for an approved test set: everything needed to collect and grade each answer. */
@@ -170,7 +171,7 @@ export function gradedSheet(scope: EvidenceScope, evaluationId: string) {
         input: item.document.scenario.messages.filter((message: { role: string }) => message.role === "user").at(-1)?.content ?? "",
         respuesta_esperada: typeof reference.expected === "string" ? reference.expected : JSON.stringify(reference.expected),
         datos_clave: (reference.required_claims ?? []).join(" | "), comportamiento_esperado: BEHAVIOUR[reference.answerability] ?? reference.answerability ?? "",
-        extracto_fuente: excerpt.slice(0, 4000), system_answer: "", veredicto: "", motivo: "", datos_clave_estado: "", categoria_fallo: "", contradicciones: "",
+        extracto_fuente: excerpt.slice(0, 4000), system_answer: "", veredicto: "", motivo: "", datos_clave_estado: "", categoria_fallo: "", contradicciones: "", causa_probable: "",
       };
     });
   });

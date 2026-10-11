@@ -1,4 +1,4 @@
-import { FAILURE_CATEGORIES, type FailureCategory } from "../scoring/answer-judge";
+import { FAILURE_CATEGORIES, LIKELY_CAUSES, type FailureCategory, type LikelyCause } from "../scoring/answer-judge";
 
 /**
  * A complete results sheet: for every question of an approved test set, the
@@ -14,6 +14,8 @@ export type GradedRow = {
   rationale: string;
   keyFactStatuses: Array<"present" | "missing" | "contradicted"> | null;
   failureCategory: FailureCategory | null;
+  /** Optional `causa_probable`: the person's hypothesis about why it failed. */
+  likelyCause: LikelyCause | null;
   contradictions: string[];
 };
 
@@ -33,6 +35,12 @@ const CATEGORY: Record<string, FailureCategory> = {
   sin_respuesta: "no_answer", no_responde: "no_answer", informacion_erronea: "wrong_information", "información_errónea": "wrong_information",
   falta_informacion: "missing_information", "falta_información": "missing_information", contradice_fuente: "contradicts_source",
   fuera_de_tema: "off_topic", ...Object.fromEntries(FAILURE_CATEGORIES.map((value) => [value, value])),
+};
+
+const CAUSE: Record<string, LikelyCause> = {
+  respuesta_inventada: "invented_answer", inventada: "invented_answer", documento_desactualizado: "outdated_document", desactualizado: "outdated_document",
+  fuente_equivocada: "wrong_source", laguna_de_conocimiento: "knowledge_gap", laguna: "knowledge_gap", fuera_de_alcance: "out_of_scope",
+  ...Object.fromEntries(LIKELY_CAUSES.map((value) => [value, value])),
 };
 
 const key = (value: string) => value.trim().toLowerCase().replace(/\s+/g, "_");
@@ -62,11 +70,15 @@ export function parseGradedRows(records: Record<string, string>[]) {
     const categoryValue = cell(record.categoria_fallo ?? record.failure_category);
     const failureCategory = categoryValue ? CATEGORY[key(categoryValue)] ?? null : null;
     if (categoryValue && !failureCategory) problems.push("categoria_fallo_invalid");
+    const causeValue = cell(record.causa_probable ?? record.likely_cause);
+    const likelyCause = causeValue ? CAUSE[key(causeValue)] ?? null : null;
+    if (causeValue && !likelyCause) problems.push("causa_probable_invalid");
     if (problems.length) { errors.push({ rowNumber, errors: problems }); return; }
     rows.push({
       rowNumber, caseRevisionId: caseRevisionId.toLowerCase(), answer, verdict: verdict!, outcome: OUTCOME[verdict!], rationale,
       keyFactStatuses: statuses.length ? statuses as GradedRow["keyFactStatuses"] : null,
       failureCategory: verdict === "not_answered" ? failureCategory ?? "no_answer" : verdict === "correct" ? null : failureCategory,
+      likelyCause: verdict === "correct" ? null : likelyCause,
       contradictions: list(record.contradicciones ?? record.contradictions),
     });
   });

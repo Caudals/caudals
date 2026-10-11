@@ -583,6 +583,28 @@ export const messages = {
   contactCaudals: "Contact Caudals",
   goTo: "Go to",
   help: "Help",
+  helpDescription: "How Caudals evaluates your assistant and how to read the results.",
+  helpHowTitle: "How an evaluation works",
+  helpHowConnect: "Connect. Tell Caudals how to reach your assistant: its website chat, an API, or answers you upload.",
+  helpHowPrepare: "Prepare tests. Caudals writes questions from your reference material, each with the expected answer and the passage it comes from. You review and approve them before anything runs.",
+  helpHowRun: "Run. The questions are asked one by one, the way a customer would ask them. You can close the page: the evaluation continues and you are notified when it ends.",
+  helpHowResults: "Results. Every answer is graded against its expected answer and source, and the report explains what failed and what to fix first.",
+  helpResultsTitle: "Reading the results",
+  helpTermCorrect: "conveys every key fact and contradicts nothing.",
+  helpTermPartly: "includes some key facts and contradicts nothing. It counts half in the quality score.",
+  helpTermIncorrect: "gives wrong or contradicting information, or leaves out key facts.",
+  helpTermNoAnswer: "the assistant deflected, asked to rephrase or replied off topic.",
+  helpTermNotScored: "Not scored: tests set aside for review, answers that could not be captured and questions that did not run. They never lower the score.",
+  helpTermScore: "“N of M answers correct” counts correct answers over scored tests. The quality score also gives half a point to each partly correct answer.",
+  helpTermPreliminary: "Automated grades are preliminary until a person has reviewed them. The report always says which applies.",
+  helpDataTitle: "Your data",
+  helpData1: "Credentials are write-only: Caudals encrypts them, uses them only to call your system and never shows them again.",
+  helpData2: "Caudals asks only the ordinary questions in your test set. It never runs adversarial tests without your written authorization.",
+  helpData3: "You can revoke a shared report at any time. A downloaded copy cannot be recalled.",
+  helpContactTitle: "Talk to us",
+  helpContactBody: "A question about a result or the next step? Write to us or book a call.",
+  helpEmail: "Email hello@caudals.com",
+  helpBookCall: "Book a 30-minute call",
   // Lists, filters and shared words
   all: "All",
   needsAction: "Needs action",
@@ -1547,6 +1569,15 @@ export const messages = {
   categoryContradictsSource: "Contradicts documentation",
   categoryOffTopic: "Different question",
   categoryOther: "Other",
+  likelyCauses: "Likely causes",
+  likelyCausesHelp: "Our hypothesis for each failed answer, from the answer, the expected answer and your documents. Your system's retrieval logs can confirm it.",
+  likelyCause: "Likely cause",
+  hypothesisTag: "hypothesis",
+  causeInventedAnswer: "Invented answer",
+  causeOutdatedDocument: "Outdated document",
+  causeWrongSource: "Wrong source",
+  causeKnowledgeGap: "Knowledge gap",
+  causeOutOfScope: "Out of scope",
   regradeAnswers: "Re-grade answers",
   regradeStarted: "Re-grading started. Updated results appear in a minute or two; you will get a notification.",
   regradeNothing: "Every answer already has a current grade or a reviewer's decision.",
@@ -1658,7 +1689,8 @@ export const LOCALES: readonly Locale[] = ["en", "es"];
 export const LOCALE_COOKIE = "caudals_locale";
 
 /**
- * The interface language is chosen per person (cookie) and fixed for the page
+ * The interface language is chosen per person (cookie, else the browser's
+ * Accept-Language; see interface-locale.ts) and fixed for the page
  * load: the evaluation layout puts it on window.__CAUDALS_LOCALE before any
  * bundle runs, and switching language reloads the page. Server code renders
  * English unless it passes a locale explicitly.

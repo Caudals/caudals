@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { useInView } from "@/components/landing/marks";
 import { useTranslations } from "@/lib/i18n/context";
+
+const subscribe = () => () => undefined;
 
 const PILOT_ROWS = 6; // 150 questions, five to a square, five squares to a row
 const MONTHS = 6;
@@ -12,6 +14,8 @@ export function GrowthChart() {
   const t = useTranslations("steps.improve");
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, threshold: 0.4 });
+  // Server HTML carries no `data-in`, so the bars are drawn until the page can animate them.
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
 
   const columns = Array.from({ length: MONTHS + 1 }, (_, c) => {
     const rows = PILOT_ROWS + c;
@@ -25,7 +29,7 @@ export function GrowthChart() {
   });
 
   return (
-    <div ref={ref} className="gr" data-in={inView} role="img" aria-label={t("figure")}>
+    <div ref={ref} className="gr" data-in={mounted ? inView : undefined} role="img" aria-label={t("figure")}>
       <div className="gr-cols" aria-hidden="true">
         {columns.map(({ c, total, cells }) => (
           <div key={c} className="gr-col">

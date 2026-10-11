@@ -27,7 +27,13 @@ import {
   type PublishedBlogRecord,
 } from "@/lib/blog/client";
 
-const BLOG_CONTENT_ROOT = path.join(process.cwd(), "content", "blog");
+/**
+ * Repository MDX fallback. `BLOG_CONTENT_ROOT` points the loader at another
+ * directory; the loader tests use it to read fixtures instead of live content.
+ */
+function blogContentRoot() {
+  return process.env.BLOG_CONTENT_ROOT ?? path.join(process.cwd(), "content", "blog");
+}
 const BLOG_FILE_EXTENSION = ".mdx";
 const COVER_VARIANTS: BlogCoverVariant[] = ["signal", "grid", "ledger"];
 
@@ -95,13 +101,13 @@ async function pathExists(targetPath: string) {
 }
 
 async function getLocaleDirectory(locale: Locale) {
-  const targetDirectory = path.join(BLOG_CONTENT_ROOT, locale);
+  const targetDirectory = path.join(blogContentRoot(), locale);
   const exists = await pathExists(targetDirectory);
   if (exists) {
     return targetDirectory;
   }
 
-  const fallbackDirectory = path.join(BLOG_CONTENT_ROOT, defaultLocale);
+  const fallbackDirectory = path.join(blogContentRoot(), defaultLocale);
   return (await pathExists(fallbackDirectory)) ? fallbackDirectory : null;
 }
 
@@ -119,12 +125,12 @@ async function getSlugsForLocale(locale: Locale) {
 }
 
 async function getFilePathForSlug(locale: Locale, slug: string) {
-  const preferredPath = path.join(BLOG_CONTENT_ROOT, locale, `${slug}${BLOG_FILE_EXTENSION}`);
+  const preferredPath = path.join(blogContentRoot(), locale, `${slug}${BLOG_FILE_EXTENSION}`);
   if (await pathExists(preferredPath)) {
     return preferredPath;
   }
 
-  const fallbackPath = path.join(BLOG_CONTENT_ROOT, defaultLocale, `${slug}${BLOG_FILE_EXTENSION}`);
+  const fallbackPath = path.join(blogContentRoot(), defaultLocale, `${slug}${BLOG_FILE_EXTENSION}`);
   if (await pathExists(fallbackPath)) {
     return fallbackPath;
   }

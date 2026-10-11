@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import { LocaleRoot } from "@/components/evals/locale";
+import { resolveInterfaceLocale } from "@/lib/evals/interface-locale";
 import { LOCALE_COOKIE, type Locale } from "@/lib/evals/messages/en";
 import "./evaluation.css";
 /**
@@ -25,8 +26,12 @@ export default async function EvaluationLayout({
   children: React.ReactNode;
 }) {
   // The app is available in American English and Castilian Spanish, chosen per
-  // person. The choice is published to the page before any bundle runs.
-  const locale: Locale = (await cookies()).get(LOCALE_COOKIE)?.value === "es" ? "es" : "en";
+  // person (the browser's language until they pick one). The choice is
+  // published to the page before any bundle runs.
+  const locale: Locale = resolveInterfaceLocale(
+    (await cookies()).get(LOCALE_COOKIE)?.value,
+    (await headers()).get("accept-language"),
+  );
   return (
     <RootDocument lang={locale === "es" ? "es-ES" : "en-US"} head={<script dangerouslySetInnerHTML={{ __html: `window.__CAUDALS_LOCALE=${JSON.stringify(locale)};` }} />}>
       <LocaleRoot locale={locale}>{children}</LocaleRoot>

@@ -13,7 +13,7 @@ provenance. Bundled MDX is a resilience and hand-authored-content fallback.
 
 - Content API: `GET https://ops.caudals.com/api/blog?locale={locale}` and
   `GET https://ops.caudals.com/api/blog/{slug}?locale={locale}`
-- Static fallback: `content/blog/{locale}/{slug}.mdx`
+- Static fallback: `content/blog/{locale}/{slug}.mdx`. It is empty since the pre-evaluation posts were retired on 2026-10-11; their slugs answer `410 Gone` (`lib/blog/retired.ts`).
 - Locales: `en`, `es`
 - Public URL: `/{locale}/blog/{slug}` (`/en/blog/...`, `/es/blog/...`)
 - Locale selection: canonical URL prefix; unprefixed requests negotiate and redirect via `proxy.ts`

@@ -143,6 +143,14 @@ const FIXED_ES: Record<string, string> = {
   canceled: "canceladas", unknown_external_outcome: "resultado externo desconocido", disputed: "disputadas", invalid_case: "caso no válido",
 };
 
+const CAUSE_ES: Record<string, string> = {
+  "invented answer": "respuesta inventada",
+  "outdated document": "documento desactualizado",
+  "wrong source": "fuente equivocada",
+  "knowledge gap": "laguna de conocimiento",
+  "out of scope": "fuera de alcance",
+};
+
 /**
  * Translate sentences Caudals generates from templates. Anything else
  * (customer or model text) is returned unchanged.
@@ -174,6 +182,14 @@ export function localizeReportText(text: string, locale: ReportLocale): string {
   if (match) {
     const agreement = match[2] === "not yet measured" ? "aún sin medir" : match[2].replace(/ over (\d+) reviewed results?/, (_m, n: string) => ` en ${n} ${n === "1" ? "resultado revisado" : "resultados revisados"}`);
     return `${match[1]} ${match[1] === "1" ? "respuesta se calificó" : "respuestas se calificaron"} automáticamente con un juez de respuestas de IA que compara el significado, no la redacción, con la respuesta esperada y tu documentación. Concordancia con la revisión humana: ${agreement}.`;
+  }
+  match = text.match(/^Likely cause: (.+)\.$/);
+  if (match) {
+    const parts = match[1].split(", ").map((part) => {
+      const item = part.match(/^(.+) \((\d+)\)$/);
+      return item ? `${CAUSE_ES[item[1]] ?? item[1]} (${item[2]})` : part;
+    });
+    return `Causa probable: ${parts.join(", ")}.`;
   }
   match = text.match(/^(.+) failures$/);
   if (match) return `Fallos en ${match[1].replaceAll("_", " ")}`;

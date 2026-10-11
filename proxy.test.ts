@@ -92,6 +92,22 @@ describe("proxy locale routing", () => {
     ).toBe("/es");
   });
 
+  it("answers retired pre-evaluation posts with 410 Gone", async () => {
+    for (const path of [
+      "/es/blog/launching-caudals-clearer-dataset-operations",
+      "/en/blog/operational-playbooks-for-multimodal-datasets/",
+      "/blog/preference-data-rlhf",
+    ]) {
+      const response = await proxy(marketingRequest(path));
+      expect(response.status).toBe(410);
+      expect(response.headers.get("x-robots-tag")).toBe("noindex");
+    }
+
+    // A post the Ops archive still publishes keeps the hidden-blog redirect.
+    const archived = await proxy(marketingRequest("/es/blog/proprietary-datasets-ml"));
+    expect(archived.status).toBe(307);
+  });
+
   it("varies the redirect so shared caches do not mix visitors", async () => {
     const response = await proxy(marketingRequest("/"));
     expect(response.headers.get("vary")).toContain("accept-language");

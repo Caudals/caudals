@@ -19,6 +19,19 @@ describe("parseGradedRows", () => {
     expect(rows[1].contradictions).toEqual(["Dice que no pasa nada"]);
   });
 
+  it("reads an optional likely cause in Spanish or English and ignores it on correct answers", () => {
+    const { rows, errors } = parseGradedRows([
+      { case_revision_id: id(1), system_answer: "39,90 €", veredicto: "incorrecta", motivo: "Tarifa antigua.", causa_probable: "Documento desactualizado" },
+      { case_revision_id: id(2), system_answer: "Sí.", veredicto: "incorrecta", motivo: "Debía derivar.", likely_cause: "out_of_scope" },
+      { case_revision_id: id(3), system_answer: "1.000 €", veredicto: "correcta", motivo: "Da el mínimo.", causa_probable: "laguna de conocimiento" },
+      { case_revision_id: id(4), system_answer: "x", veredicto: "parcial", motivo: "m" },
+    ]);
+    expect(errors).toEqual([]);
+    expect(rows.map((row) => row.likelyCause)).toEqual(["outdated_document", "out_of_scope", null, null]);
+    expect(parseGradedRows([{ case_revision_id: id(5), system_answer: "x", veredicto: "incorrecta", motivo: "m", causa_probable: "mala suerte" }]).errors)
+      .toEqual([{ rowNumber: 2, errors: ["causa_probable_invalid"] }]);
+  });
+
   it("names every problem by row", () => {
     const { errors } = parseGradedRows([{ case_revision_id: "x", system_answer: "", veredicto: "regular", motivo: "", datos_clave_estado: "quizá" }]);
     expect(errors).toEqual([{ rowNumber: 2, errors: ["case_revision_id_invalid", "veredicto_invalid", "system_answer_required", "motivo_required", "datos_clave_estado_invalid"] }]);

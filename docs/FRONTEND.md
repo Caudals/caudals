@@ -39,7 +39,9 @@ Implementation rules for the public funnel (including the `/demo` free test), th
 Supported locales are `en` and `es`. The public marketing surface is
 translated by URL (below). The evaluation app (`app.caudals.com`) is available
 in American English and Castilian Spanish, chosen per person: the
-`caudals_locale` cookie is read by `app/(evaluation)/layout.tsx`, published as
+`caudals_locale` cookie (or, until the person picks one, the browser's
+`Accept-Language`, so a Spanish browser opens the app in Spanish; no country
+hint) is resolved by `lib/evals/interface-locale.ts` in `app/(evaluation)/layout.tsx`, published as
 `window.__CAUDALS_LOCALE` before any bundle runs, and switching language
 reloads the page. Strings live in `lib/evals/messages/en.ts` and `es.ts`
 (missing Spanish keys fall back to English); fixed labels in data tables go

@@ -33,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useTranslations } from "@/lib/i18n/context";
+import { useLocale, useTranslations } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 const defaultValues: Partial<EvaluationRequestFormValues> = {
@@ -109,6 +109,7 @@ type ContactFormProps = {
 export function ContactForm({ requestedOffer, requestedSector }: ContactFormProps) {
   const [isComplete, setIsComplete] = useState(false);
   const t = useTranslations("contact");
+  const locale = useLocale();
   const formDefaults = useMemo<Partial<EvaluationRequestFormValues>>(
     () => ({ ...defaultValues, requestedOffer, sector: requestedSector }),
     [requestedOffer, requestedSector],
@@ -171,7 +172,8 @@ export function ContactForm({ requestedOffer, requestedSector }: ContactFormProp
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        // The locale picks the language of the acknowledgement email.
+        body: JSON.stringify({ ...values, locale }),
       });
 
       const payload = await response.json().catch(() => null);
