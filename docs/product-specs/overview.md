@@ -121,7 +121,7 @@ We hire freelance domain experts to build custom datasets — the model AfterQue
 
 ## Out of Scope
 
-- Two-sided marketplace, catalogue browsing and purchase, supplier revenue share, Stripe Connect payouts.
+- Two-sided marketplace, catalogue browsing and purchase, supplier revenue share.
 - Sourcing or reselling third-party data.
 - Image, video, audio, geospatial and sensor data; deals needing more than a few gigabytes of processing.
 - Commodity labelling at volume, generic AI consulting or integration, and a self-serve evaluation SaaS for developers. We build expert-authored, domain-specific data, not generic annotation.

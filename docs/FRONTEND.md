@@ -17,7 +17,7 @@ Implementation rules for the public funnel (including the `/demo` free test), th
   `docs/DESIGN.md` is the authority for both and states which applies where.
 - The public site is the landing page and its funnel: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, and `/legal/*`. Primary marketing navigation surfaces Sectors and Contact, plus the rounded "Get started" / "Comenzar" CTA; the footer adds "How it works" (the landing's `#how-it-works` anchor) and one link per sector. Blog and Newsletter are temporarily hidden. `/call` is a public funnel page reachable by direct link and cross-linked from `/contact` and the landing.
 - Deployed private surfaces include retained internal-account auth (`/auth/*`) and the invite-only evaluation product (`/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share`). Features remain governed by workspace permissions, entitlements and readiness gates; see the latest evals work-package records.
-- The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`, and Stripe checkout. They return `404`; do not reintroduce them.
+- The pre-pivot marketplace surfaces were removed: `/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`. They return `404`; do not reintroduce them.
 
 ## Routing and IA Contract
 

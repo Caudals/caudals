@@ -24,7 +24,7 @@ Current deployment includes the public funnel and the invite-only evaluation pro
 
 Evaluation stages A–E are implemented and deployed with feature, entitlement and per-target readiness controls. Read `docs/evals/AGENTS.md` and the latest work-package records for remaining customer release gates; deployment does not imply unrestricted signup or universal connector support.
 
-There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; do not reintroduce them.
+There is no landing-mode flag. The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) were deleted; do not reintroduce them.
 
 ## Frozen Scope
 
@@ -108,21 +108,20 @@ connected to Ops through private Tailscale relays.
 - Tailscale, SSH and Docker/Swarm: private access to `atlantic` and `arctic`, service inspection and repository deployment scripts. `cf` on `atlantic` may require `~/.local/bin/cf`; do not assume local CLI installations or credentials exist on either VPS.
 - PostgreSQL (`psql`, disposable containers) and the `caudals-evals` private runner: schema/RLS checks, migrations and approved customer-side evaluation execution. The retained `caudals` dataset-build CLI remains frozen.
 - GitHub MCP and `gh`: issue/PR/review workflows and CI/deploy diagnostics. Browser tooling includes Chrome DevTools MCP, Playwright, unified computer use and Node REPL when exposed by the active session.
-- Hermes: host/service diagnostics and strategic-prospecting operations owned by `../leads`; read its prospecting and operations docs before changing schedules. Installed agent CLIs do not authorize child sessions or delegation; the no-subagent rule below still applies.
+- Hermes: host/service diagnostics and strategic-prospecting operations owned by `../leads`; read its prospecting and operations docs before changing schedules.
 - Artifact tooling: document/PDF/spreadsheet/presentation skills, connected Google Drive skills, image generation, Remotion, FFmpeg/ImageMagick, live Word MCP, Blender MCP and the installed Notion CLI (`ntn`) when the task needs them. Confirm session availability, credentials and scope before using external services.
 - Terminal tooling: Node/npm, Python/`uv`, `rg`, `jq`, Git, `curl`, `dig` and OpenSSL for build, file, API, DNS and repository diagnostics. Keep credential values out of output.
-- Stripe CLI/MCP: only for explicitly scoped historical billing work; Stripe checkout and marketplace billing are not current product surfaces. Disabled or retained MCP configurations do not establish live access.
+- Stripe CLI/MCP: billing, payment and webhook work. Disabled or retained MCP configurations do not establish live access.
 - UI work must follow `docs/DESIGN.md` and the local `frontend-design` skill.
 
 ## Non-Negotiables
 
 - Preserve strict separation between public pages, internal admin operations and authenticated direct-route surfaces.
-- Preserve webhook consistency and idempotency; do not reintroduce removed payment flows as part of evaluation work.
+- Preserve webhook consistency and idempotency.
 - Preserve provenance, consent, PII redaction and auditability for every case, run, report and dataset item.
 - Freelance experts see only the redacted material their task needs and work under confidentiality, data-processing and IP-assignment terms.
 - Never build or run adversarial tests (prompt injection, jailbreaks, prompt extraction) against a system without its owner's written authorisation.
 - Never describe Caudals as certifying AI systems or making anyone AI Act compliant; we produce evidence, not conformity assessments.
-- Never use subagents: perform all research, inspection, file edits, and tool calls directly in your primary session; do not invoke subagent tools or spawn child sessions.
 - Never leak secrets in code, command output, documentation or captured media.
 - Avoid destructive operations unless explicitly required and documented in the user-facing response.
 

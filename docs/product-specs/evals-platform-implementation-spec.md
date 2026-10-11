@@ -5,10 +5,6 @@
 > Repository: `Caudals/caudals` · Audience: founders, implementation agents, reviewers.
 > This document specifies the new evaluations product from first principles. Earlier offers, sector priorities, manual-pilot prerequisites, route restrictions and proposed evaluation architectures are not requirements for this product. Existing production services must continue working.
 
-> [!IMPORTANT]
-> **CRITICAL DIRECTIVE FOR ALL AI AGENTS: DO NOT USE SUBAGENTS**
-> Any AI agent (Antigravity, Claude Code, Codex, etc.) reading or implementing this specification **MUST NOT** spawn subagents, invoke subagent tools (e.g. `invoke_subagent`), or delegate tasks to child/background agents. Execute all analysis, code changes, testing, and tool executions directly within your own primary session context.
-
 Reading map: [product and UX](#2-product-definition-and-success-criteria) · [architecture](#7-architecture-and-repository-integration) · [connections](#8-connection-framework) · [generation](#9-context-ingestion-and-dataset-generation) · [CEF standard](#10-caudals-evaluation-format--cef-10) · [execution and scoring](#11-evaluation-engine-grading-and-statistics) · [costs](#14-model-infrastructure-and-budget-control) · [operations](#17-vps-development-deployment-and-operations) · [work packages](#20-implementation-stages-and-work-packages) · [agent handoff](#21-agent-execution-protocol-and-handoff-template).
 
 ## 1. How agents must use this document
@@ -21,7 +17,6 @@ Reading map: [product and UX](#2-product-definition-and-success-criteria) · [ar
 6. Never mark a package complete from a screenshot, successful build or mocked happy path alone. Supply the package's functional evidence and relevant failure tests.
 7. Record decisions, migrations, commands actually executed, verification results and remaining limitations in a package handoff. Do not put secrets or customer material in these records.
 8. Update affected repository contracts as their packages ship. This draft does not silently rewrite the existing `AGENTS.md`, product overview, design system or deployment rules.
-9. **Never use subagents.** AI agents working on this project must execute all exploration, code changes, testing, and verification directly within their own single session context. Do not invoke subagent tools (e.g., `invoke_subagent`), spawn child agents, or delegate sub-tasks to nested agents. Subagents fragment working memory, lose context across boundaries, complicate verification, and risk unconstrained tool invocation.
 
 
 
@@ -1176,7 +1171,6 @@ Existing docs describe a private PostgreSQL service, Swarm/Dokploy and S3-compat
 ### 17.2 Development on the production VPS
 
 - Work in a dedicated branch/worktree (`codex/<package>` by default), separate from deployed releases and other agents' checkouts.
-- Execute tasks directly within the assigned agent session; do not spawn subagents or delegate work to background child agents.
 - Development DB/schema, test object prefix/bucket, worker queues and provider budgets are separate. No copied production customer data; use deterministic fixtures.
 - Private preview uses authenticated/Tailscale-only ingress. Do not bind a development server publicly or expose debugger ports.
 - Development workers cannot claim production jobs. Production secret mounts are not copied into development shells.
@@ -1294,7 +1288,7 @@ Deliverables:
 - Workspace/membership/invite foundation; founder operator roles; create a client without creating an account.
 - Role-aware navigation, table/form/status primitives and responsive empty states.
 - Authentication recovery, invitation acceptance/revocation and session expiry behavior.
-- Small visual reference artifact for the shell, connection flow, progress and report layout; delegate UI design to dedicated Claude CLI/Antigravity sessions using the installed frontend skills and real references (without spawning subagents).
+- Small visual reference artifact for the shell, connection flow, progress and report layout; delegate UI design to dedicated Claude CLI/Antigravity sessions using the installed frontend skills and real references.
 
 Acceptance:
 
@@ -1607,11 +1601,10 @@ Acceptance:
 
 
 
-### 21.1 Execution discipline and subagent prohibition
+### 21.1 Execution discipline
 
-- **Strict prohibition on subagents:** AI implementation agents MUST NOT spawn or delegate work to subagents or child agent tools (such as `invoke_subagent` or background subagent sessions). All inspection, code editing, test running, and verification must occur directly in the primary agent thread. Subagents degrade context quality, discard vital working memory, risk duplicated or unbudgeted operations, and obscure failure modes.
 - Root implementation agent owns contracts, integration, migrations and release acceptance.
-- Dedicated standalone agent sessions (e.g. human operator launching Claude CLI or Antigravity) may own bounded UI/UX proposals and implementation against fixed schemas, but each agent session must work directly without child subagents. Output is reviewed for unsupported infrastructure, security and product assumptions.
+- Dedicated standalone agent sessions (e.g. human operator launching Claude CLI or Antigravity) may own bounded UI/UX proposals and implementation against fixed schemas. Output is reviewed for unsupported infrastructure, security and product assumptions.
 - Independent adapter/worker/UI tasks can run concurrently in separate operator sessions after their contract dependency is frozen. Shared migration/routing/auth edits stay serialized.
 - Do not confuse CLI success with product acceptance. Inspect actual resulting screens and functional state, especially loading, error, empty, partial and permission-denied behavior.
 - Use the installed frontend skills for UI work; inspect current official ElevenLabs references. Do not adopt invented brand tokens or unsupported third-party design-system files.
@@ -1627,9 +1620,6 @@ Read the current AGENTS.md, the spec invariants and this package's dependencies.
 Inspect the repo and existing package handoffs before editing. Preserve unrelated
 working-tree changes and existing marketing, admin and Leads behavior.
 
-Do not use subagents or delegate to child agents. Execute all work directly in your
-primary session context.
-
 Implement only this package and necessary dependency fixes. Use the shared CEF,
 authorization, immutable versioning, queue and budget contracts. Do not replace
 them with local shortcuts. If a contract needs to change, record why and update
@@ -1640,7 +1630,7 @@ bounded resources. Never expose or log secrets. Use fixture providers for routin
 tests and only tiny explicitly budgeted live probes for integration evidence.
 
 Assign UI/UX to a dedicated Claude CLI/Antigravity session with the installed
-frontend skills when this package changes UI (without spawning subagents). Keep
+frontend skills when this package changes UI. Keep
 shared-file ownership clear.
 
 Complete the package acceptance criteria. Report actual tests, screenshots where

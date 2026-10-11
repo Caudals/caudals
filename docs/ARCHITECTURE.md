@@ -12,7 +12,7 @@ Current production scope:
 - Private operator access: `/auth/*`, `/api/auth/*` (retained internal-account auth)
 - Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 
-The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) and Stripe billing were deleted; they return `404`. There is no landing-mode flag: the routes above define the public and private product boundaries.
+The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`, `/pricing`, `/docs`, `/about`, `/careers`, `/catalogue`) were deleted; they return `404`. There is no landing-mode flag: the routes above define the public and private product boundaries.
 
 ## Application Stack
 
@@ -21,7 +21,7 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - Data/Auth: self-hosted PostgreSQL + Better Auth + Postgres RLS
 - Storage: S3-compatible object storage — private MinIO on the VPS, with DigitalOcean Spaces as the external managed target (`DO_SPACES_*` variable names serve both)
 - Email: Resend
-- Payments: marketplace Stripe checkout/billing was removed; historical tooling references do not expose a current payment product
+- Payments: Stripe is available for billing; the marketplace checkout was removed
 - Observability: Sentry/OTLP instrumentation is configurable; the retained Tempo/Loki/Prometheus/Grafana stack is not observed running on 2026-09-28. Evals host health/backup timers and DGX telemetry are installed; see `VPS_RUNTIME.md`
 - CI/CD: GitHub Actions → Docker Hub → repository Swarm deploy scripts over Tailscale/SSH; retained Dokploy Traefik handles ingress
 - Legacy dataset-build scope is frozen; runtime differs by stack. Temporal and social Redis are running; see "Legacy Private Stacks" and `VPS_RUNTIME.md`.

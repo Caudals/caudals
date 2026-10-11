@@ -25,7 +25,7 @@ When interacting with production-like resources, use read-first diagnostics and 
 - Hermes: strategic-prospecting host/service diagnostics; behaviour belongs to `../leads`
 - `caudals-evals`: private customer-side evaluation runner; the older `caudals` CLI remains frozen
 - Artifact skills, document/media utilities and connected app tools: see the inventory below
-- Stripe CLI/MCP: historical billing support only; the MCP is disabled in the inspected local configuration
+- Stripe CLI/MCP: billing, payment and webhook work; the MCP is disabled in the inspected local configuration
 - GitHub MCP: issue/PR/review workflows
 - GitHub CLI (`gh`): CI run and failed-job triage
 - Browser/devtools tooling: Chrome DevTools MCP, Playwright, unified computer use and Node REPL when available in the active session
@@ -46,11 +46,11 @@ Checked **2026-10-09** against local executable/package metadata, installed skil
 | `psql` | `atlantic`; also available in database containers | SQL inspection. Not on the inspected local default `PATH`; use a configured client or container |
 | `gh`, Git, Node/npm, Python, `uv`/`uvx`, `rg`, `jq` | Local developer tools; host availability varies | CI, build, scripts, search and JSON. Use the repo lockfile/runtime requirements |
 | `hermes` | Local and `atlantic` `~/.local/bin/hermes` | Existing prospecting agent/service diagnostics; `hermes --help` |
-| `codex`, `claude`, `cursor-agent`, `agy` | Local agent/editor launchers; Codex/Claude also observed on `atlantic` | Existing tooling only; do not invoke child sessions under this repo's no-subagent rule |
+| `codex`, `claude`, `cursor-agent`, `agy` | Local agent/editor launchers; Codex/Claude also observed on `atlantic` | Agent/editor sessions |
 | `ntn` | Local `~/.local/bin/ntn` | Notion CLI (beta): `ntn --help`, `ntn doctor`; authentication/resource access is separate |
 | `ffmpeg`, `ffprobe`, `magick`, `pdftoppm` | Local Homebrew tools | Media encoding/inspection, ImageMagick and PDF page rendering; inspect command help |
 | `nano-pdf`, `blender-mcp` | Local `~/.local/bin/` | Optional AI PDF editing / Blender bridge. `nano-pdf --help`; model/API access may be paid |
-| `stripe` | Local Homebrew CLI | Historical billing tooling only; no current checkout or payment product |
+| `stripe` | Local Homebrew CLI | Billing, payment and webhook tooling |
 
 Local installed skills are discovered under `~/.agents/skills` and `~/.codex/skills`; bundled plugin skills have versioned locations supplied by the session. Read the exact `SKILL.md` advertised by that session before applying a skill. These local paths are not assumed to exist on the VPS.
 
@@ -227,7 +227,7 @@ Apply migrations with `tsx scripts/evals/migrate.ts`; the migrator holds the `ca
 - Private customer execution: `caudals-evals` runner
 - Existing Hermes prospecting operations: host/service diagnostics + Leads runbooks
 - Artifact creation/connected editing: corresponding artifact/Drive skill and available connector
-- Historical local webhook simulation/object support: Stripe CLI; MCP only when enabled for that task
+- Billing, webhook simulation and object support: Stripe CLI; MCP when enabled
 - PR/issues/review actions: GitHub MCP
 - CI/CD run diagnostics: `gh`
 - Frontend runtime inspection: browser/devtools tooling
@@ -605,10 +605,6 @@ more afterwards, because what remains is in use and needs a person.
   `/etc/default/caudals-docker-cleanup` (see the script header).
 
 ## Stripe CLI Usage Pattern
-
-Historical billing-tool reference only: marketplace checkout and its public
-Stripe flow were removed. Do not use the endpoints below as a current smoke
-suite or restore them as part of evaluation work.
 
 1. Use only for local/test webhook simulation.
 2. Forward webhooks:
