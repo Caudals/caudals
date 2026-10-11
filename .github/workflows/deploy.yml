@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - ".github/workflows/**"
       - "docs/**"
+      - "**/*.md"
       - "infra/evals/**"
       - "scripts/deploy-evals-production.sh"
       - "services/evals-*/**"
@@ -36,6 +37,11 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'build-and-deploy' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # A newer push to main supersedes an image still building; only the newest
+    # one is deployed anyway.
+    concurrency:
+      group: app-image-build
+      cancel-in-progress: true
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_REPOSITORY }}
       NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
