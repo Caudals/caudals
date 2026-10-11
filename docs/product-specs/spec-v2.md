@@ -2,15 +2,18 @@
 
 | | |
 | --- | --- |
-| Status | **Draft for founder review.** Nothing in this document is implemented. Implementation starts only after approval. |
+| Status | **Approved for implementation on 2026-10-11.** Build progress, decisions and founder actions are tracked in `docs/launch/PROGRESS.md`. |
 | Date | 2026-10-11 |
 | For | Mario (founder) |
 | Evidence | Code on `main` at `4db1582`. Live checks of `caudals.com`, `caudals.com/en/demo` and `app.caudals.com` on 2026-10-11 (HTTP and headless browser, nothing submitted). Read-only aggregate counts from production on 2026-10-11 (no names, emails or content). Web sources dated in §7.12. |
 | File name | The prompt names both `launch-spec.md` and `spec-v2.md`; this file follows "Done when". The earlier `spec.md` and the benchmark-options note were not read or reused. |
+| History | During the session you committed a partial draft of this file (`b42df72`) and deleted the old `spec.md` (`2558e7f`). Both were left as you made them. Everything after that commit is uncommitted, and this session makes no commits. |
 
 **How to read this.** §1 is the one-page summary. §2 is where we are today. §3 is what I need from you. §4 and §5 cover the product, §6 the credit system, §7 how we sell, §8 the build order, and §9 what we won't do and what can go wrong.
 
-Priorities: **P0** is needed for a launch gate, **P1** comes within 12 weeks of launch, **P2** comes later. Sizes: **S** is under half an agent session, **M** one session, **L** two sessions, **XL** three or more.
+Priorities: **P0** is needed for a launch gate, **P1** is built next, **P2** is built last. Everything gets built (D-15); priority only sets the order. Sizes: **S** is under half an agent session, **M** one session, **L** two sessions, **XL** three or more.
+
+**No calendar dates (D-15).** This spec plans by dependency order and gates, not dates. Targets are measured from the public launch. The dates that do appear are facts: when something was observed, when a source was published, or when a law or provider price takes effect.
 
 ---
 
@@ -24,7 +27,7 @@ Priorities: **P0** is needed for a launch gate, **P1** comes within 12 weeks of 
 - **We can't see the funnel.** Only page visits are tracked.
 - **The pipeline is idle.** Both prospecting campaigns are paused with 62 researched companies waiting for review, and the newsletter has 2 confirmed subscribers.
 
-**Launch-ready means all of these are true**, measured weekly from Tue 2026-10-27:
+**Launch-ready means all of these are true**, measured weekly from Gate A onwards:
 
 | # | Criterion | Target | Measured by |
 | --- | --- | --- | --- |
@@ -34,21 +37,31 @@ Priorities: **P0** is needed for a launch gate, **P1** comes within 12 weeks of 
 | 4 | Payments are correct | Credits are usable ≤ 60 s after payment. The ledger matches Stripe to the cent every day. 0 double charges. Every paid order has a correct IVA invoice | Daily reconciliation job |
 | 5 | Trust pages are complete | Legal notice complete. Terms, Privacy, DPA, sub-processors and a security page for the evaluation product. Terms acceptance recorded at sign-up and checkout | Page checks, database rows |
 | 6 | Quality bars hold | EN/ES parity 100 % across site, app, emails and PDFs. 0 serious or critical axe issues on 10 core screens. Landing and demo LCP < 2.5 s on mobile. App API reads p95 < 500 ms. Errors are tracked. Public uptime ≥ 99.5 % | CI and monitors |
-| 7 | First paying customers | First paid euro by **2026-11-15**. **10 paying customers and ≥ €12,000 booked by 2027-01-31**. These are targets, not forecasts | Billing and CRM |
+| 7 | First paying customers | The first paid euro arrives **before the public launch**, from a founding pilot. **10 paying customers and ≥ €12,000 booked within 12 weeks of the public launch**. These are targets, not forecasts | Billing and CRM |
 
 *Paying customer*: an organisation that has paid at least €20 (one credit top-up) or signed a paid order (pilot, subscription or dataset). *Booked*: paid credits, plus signed pilot and dataset fees, plus the first three months of each signed subscription.
 
-**The plan has three gates:**
+**The plan has three gates, in order:**
 
-| Gate | Target date | What ships | Exit test |
+| Gate | When | What ships | Exit test |
 | --- | --- | --- | --- |
-| **A · Open the funnel** | Tue 2026-10-27 | Trust pages, demo linked and indexed, demo queue and fallback model, funnel analytics, first-run onboarding, branded EN/ES emails, error alerts | Criteria 2 and 5. Events flowing |
-| **B · Take money** | Tue 2026-11-17 | Credits, Stripe top-ups, invoices with IVA, billing and usage screens, run cost estimates, ops grants and refunds | Criterion 4. The founder buys €20 in production |
-| **C · Launch and sell** | Public launch Tue 2026-11-24, then through 2027-01-31 | Launch week, evidence-first outbound, report v2, AI-disclosure check, partner programme, re-runs and alerts, integrations | Criteria 3, 6 and 7 |
+| **A · Open the funnel** | When its packages (L-01…L-08 and L-33) are live | Trust pages, demo linked and indexed, direct sign-up, demo queue and fallback model, funnel analytics, first-run onboarding, the example evaluation, branded EN/ES emails, error alerts | Criteria 2 and 5. Events flowing |
+| **B · Take money** | When its packages (L-09…L-16) are live | Credits, Stripe top-ups, invoices with IVA, billing and usage screens, run cost estimates, ops grants and refunds | Criterion 4. The founder buys €20 in production |
+| **C · Launch and sell** | Public launch once Gates A and B pass and the launch-prep packages (L-17, L-21, L-29, L-30) are live. Then the remaining packages are built | Launch week, evidence-first outbound, report v2, AI-disclosure check, partner programme, re-runs and alerts, integrations | Criteria 3, 6 and 7 |
 
 **Founder-led selling starts now, in parallel.** The three founding pilots (€1,500 each, from the product brief) need no new code: they are delivered with the existing operator workflow and invoiced manually.
 
-**What I need from you is in §3.** It lists 17 decisions, and the 8 marked ★ are critical. The single hard blocker is the legal entity data for the legal notice, Stripe and invoices (D-01).
+**Decisions (§3).** You answered all 9 critical decisions (★) on 2026-10-11:
+- the SL as the legal entity
+- credits at €0.01 priced at model cost × 1.5, plus per-question fees and smaller bonuses
+- Stripe plus a Spanish invoicing API
+- prices shown only in the app
+- the demo plus direct work-email sign-up
+- AI-product software companies as the ICP
+- evidence-first, founder-led outbound
+- no dates in the spec, and build everything
+
+The other 8 stay open with my recommendation. The one hard blocker left is the SL's real data. The values in §3.2 are realistic-format **placeholders**, and they must be replaced before the legal notice goes live and before Stripe live mode.
 
 ---
 
@@ -110,33 +123,60 @@ The CEF contracts, RLS tenancy, the attempt and reservation path, frozen model r
 
 ## 3. Decisions for me
 
-★ = critical, asked with the question tool. The others stay open with my recommendation until you change them.
+★ = critical. These were asked with the question tool on 2026-10-11, and every one was answered. The others stay **open with my recommendation** until you change them. The full answers are in §3.1.
 
-| ID | Decision | Options | Recommendation | Blocks |
-| --- | --- | --- | --- | --- |
-| D-01 ★ | Legal entity behind the site, Stripe and invoices | (a) Caudals is an incorporated company and you provide its legal name, NIF, address and registry entry · (b) operate as an autónomo until incorporation · (c) keep payments off until incorporation | (a) if it exists. Otherwise (b) for pilots and (c) for card payments | L-01, L-12, L-13 |
-| D-02 ★ | Unit of account | (a) credits, 1 credit = €0.01 excl. VAT · (b) a euro wallet · (c) raw tokens | (a). See §6.2 | L-09…L-16 |
-| D-03 ★ | How credits are priced | (a) model cost × 2.5 plus a small per-question platform fee · (b) model cost × 3, no platform fee · (c) a flat price per question tested | (a). See §6.4 | L-10 |
-| D-04 ★ | Payment and invoicing stack | (a) Stripe Checkout and our own ledger, plus a Spanish Verifactu-ready invoicing service through its API · (b) Stripe only, with the accountant issuing invoices by hand · (c) bank transfer only | (a). Stripe isn't a Spanish invoicing system (§6.14) | L-12, L-13 |
-| D-05 | Who can buy | (a) businesses only (NIF or EU VAT ID required) · (b) consumers too | (a). Avoids OSS, consumer withdrawal rules and B2C tax handling | L-12, L-13 |
-| D-06 ★ | What pricing is public ("keep the pricing tailored") | (a) the site shows the free demo, the free account and "pay as you go in the app". Credit prices appear only in the app. Pilots, subscriptions and datasets stay quoted · (b) a public pricing page (requires lifting the `/pricing` ban) · (c) no self-serve payments | (a) | L-04, L-30 |
-| D-07 ★ | How the funnel opens | (a) link the demo as the main CTA, index it, **and** allow direct work-email sign-up · (b) link the demo but keep demo-only sign-up · (c) keep the soft launch | (a). Needs an edit to the "no other registration path" rule in `docs/evals/AGENTS.md` | L-04, L-05 |
-| D-08 | Free plan | (a) keep today's limits, add a 1,000-credit monthly allowance and a +50 % bonus on the first top-up · (b) today's limits only · (c) a bigger free plan | (a) | L-14 |
-| D-09 | Default AI models | (a) the local DGX model stays the default, commercial models are opt-in and paid in credits, and the default only changes after measured judge agreement ≥ 85 % · (b) a commercial default for paid workspaces | (a) | L-10, L-11 |
-| D-10 | Credit expiry and refunds | (a) purchased credits last 24 months, promotional credits 30 days, and a purchase is refundable within 14 days if unused · (b) credits never expire, no refunds | (a) | L-01, L-09 |
-| D-11 | Bring your own provider key (BYOK) | (a) after launch (Gate C), still charging per-question fees · (b) at Gate B · (c) never | (a) | L-27 |
-| D-12 ★ | ICP focus for the next 12 weeks | (a) Spanish software companies that ship an AI assistant (fiscal, accounting, payroll, legal, HR, vertical SaaS) · (b) regulated B2C (insurance, energy, telco, travel) · (c) Castilla y León, multi-sector | (a), with (b) as managed pilots on the side. It matches the España · Producto de IA signal | §7, L-25 |
-| D-13 ★ | Outbound policy | (a) evidence-first and founder-led: LinkedIn, warm intros, and email only where the legal basis is written down; ≤ 25 new contacts a week · (b) Warmbly cold email at volume now | (a) | §7.6 |
-| D-14 | First-customer offer | (a) keep the 3 founding pilots at €1,500 (case study, recorded call, 2 intros) and add 5,000 credits for 90 days of re-runs · (b) a cheaper self-serve "expert-reviewed report" · (c) free pilots | (a) | §7.5 |
-| D-15 ★ | Launch dates and commercial targets | (a) Gate A on Oct 27, Gate B on Nov 17, public launch on Nov 24; first euro by Nov 15; 10 paying customers and ≥ €12k booked by Jan 31 · (b) one big launch in January 2027 | (a) | §7.9, §8 |
-| D-16 | Anonymous sector index (public aggregates) | (a) a quarterly sector-level page from our own public snapshots and consenting customers, minimum 10 systems per sector, no names · (b) don't publish | (a), with legal review | L-31 |
-| D-17 | Spend on paid enrichment (RocketReach, Apollo company credits) | (a) up to €100 a month, with an idempotency key on every call · (b) €0 (use Apollo's free people search only) | (a) | §7.6 |
+| ID | Decision | Options | Recommendation | Status | Blocks |
+| --- | --- | --- | --- | --- | --- |
+| D-01 ★ | Legal entity behind the site, Stripe and invoices | (a) an incorporated company, with its legal name, NIF, address and registry entry · (b) an autónomo until incorporation · (c) payments off until incorporation | (a) | **Answered: the SL.** Its real data isn't available yet, so §3.2 holds placeholders | L-01 (publishing), L-12 (live mode), L-13 |
+| D-02 ★ | Unit of account | (a) credits, 1 credit = €0.01 excl. VAT · (b) a euro wallet · (c) raw tokens | (a). See §6.2 | **Answered: credits** | L-09…L-16 |
+| D-03 ★ | How credits are priced | (a) model cost × a multiplier, plus a small per-question platform fee · (b) model cost × 3, no platform fee · (c) a flat price per question | (a) with × 2.5 | **Answered: model cost × 1.5, keeping the per-question fees** (§6.4) | L-10 |
+| D-04 ★ | Payment and invoicing stack | (a) Stripe Checkout and our own ledger, plus a Spanish Verifactu-ready invoicing service through its API · (b) Stripe, with the accountant invoicing by hand · (c) bank transfer only | (a). Stripe isn't a Spanish invoicing system (§6.14) | **Answered: Stripe and a Spanish invoicing API** | L-12, L-13 |
+| D-05 | Who can buy | (a) businesses only (NIF or EU VAT ID required) · (b) consumers too | (a). Avoids OSS, consumer withdrawal rules and B2C tax handling | Open | L-12, L-13 |
+| D-06 ★ | What pricing is public ("keep the pricing tailored") | (a) the site shows the free demo, the free account and "pay as you go in the app"; credit prices only in the app; pilots, subscriptions and datasets quoted · (b) a public pricing page (lifting the `/pricing` ban) · (c) no self-serve payments | (a) | **Answered: prices only in the app** | L-04, L-30 |
+| D-07 ★ | How the funnel opens | (a) the demo as the main CTA, indexed, **plus** direct work-email sign-up · (b) the demo, with demo-only sign-up · (c) keep the soft launch | (a). Needs an edit to the "no other registration path" rule in `docs/evals/AGENTS.md` | **Answered: demo plus direct sign-up** | L-04, L-05 |
+| D-08 | Free plan and bonuses | (a) today's limits, a 1,000-credit monthly allowance and top-up bonuses · (b) today's limits only · (c) a bigger free plan | (a) | **Bonuses answered:** 0–10 % on packs and +20 % on the first top-up. The allowance stays open with my recommendation | L-14 |
+| D-09 | Default AI models | (a) the local DGX model stays the default, commercial models are opt-in and paid in credits, and the default changes only after measured judge agreement ≥ 85 % · (b) a commercial default for paid workspaces | (a) | Open | L-10, L-11 |
+| D-10 | Credit expiry and refunds | (a) purchased credits last 24 months, promotional credits 30 days, and a purchase is refundable within 14 days if unused · (b) credits never expire, no refunds | (a) | Open | L-01, L-09 |
+| D-11 | Bring your own provider key (BYOK) | (a) after launch, still charging per-question fees · (b) before launch, with the billing packages · (c) never | (a) | Open | L-27 |
+| D-12 ★ | ICP focus for the next 12 weeks | (a) Spanish software companies that ship an AI assistant (fiscal, accounting, payroll, legal, HR, vertical SaaS) · (b) regulated B2C (insurance, energy, telco, travel) · (c) Castilla y León, multi-sector | (a), with (b) as managed pilots on the side | **Answered: AI-product software companies** | §7, L-25 |
+| D-13 ★ | Outbound policy | (a) evidence-first and founder-led: LinkedIn, warm intros, and email only where the legal basis is written down; ≤ 25 new contacts a week · (b) Warmbly cold email at volume | (a) | **Answered: evidence-first, founder-led** | §7.6 |
+| D-14 | First-customer offer | (a) the 3 founding pilots at €1,500 (case study, recorded call, 2 intros), plus 5,000 credits for 90 days of re-runs · (b) a cheaper self-serve "expert-reviewed report" · (c) free pilots | (a) | Open | §7.5 |
+| D-15 ★ | Schedule and targets | (a) fixed calendar dates for the gates and the launch · (b) no dates: build everything in dependency order, with targets measured from the launch | (a) | **Answered: no dates in the spec, build everything** | §7.9, §8 |
+| D-16 | Anonymous sector index (public aggregates) | (a) a quarterly sector-level page from our own public snapshots and consenting customers, minimum 10 systems per sector, no names · (b) don't publish | (a), with legal review | Open | L-31 |
+| D-17 | Spend on paid enrichment (RocketReach, Apollo company credits) | (a) up to €100 a month, with an idempotency key on every call · (b) €0, using only Apollo's free people search | (a) | Open | §7.6 |
 
 ### 3.1 Decision log
 
-| Date | ID | Answer | Source |
-| --- | --- | --- | --- |
-| *(filled in after the question round)* | | | |
+| Date | ID | Question | Answer | What changed in this spec |
+| --- | --- | --- | --- | --- |
+| 2026-10-11 | D-01 | Which legal entity will sell and invoice? | "Our SL. We don't have the info yet, so put some random realistic info." | §3.2 holds realistic-format placeholder data. The values are visibly fictitious (all-zero NIF and registry numbers) so they can't collide with a real company's identifiers. L-01 is blocked from publishing them, and Stripe live mode needs the real data |
+| 2026-10-11 | D-04 | How should customers pay for credits, and who issues the invoices? | Stripe plus an invoicing API | §6.14, L-12 and L-13 as designed |
+| 2026-10-11 | D-02, D-03 | How should the credit system price usage? | "Credits, cost × 1.5" | Credit rates recomputed at × 1.5 in §6.4, a token margin of about 33 % |
+| 2026-10-11 | D-03, D-08 | With cost × 1.5, what happens to the fees and the bonuses? | Keep the fees, smaller bonuses | The 5 / 2 / 1-credit question fees stay. Pack bonuses are now 0–10 %, and the first top-up gets +20 % (§6.5, §6.6) |
+| 2026-10-11 | D-06 | What pricing should be public? | Prices only in the app | §7.4 as designed |
+| 2026-10-11 | D-07 | How should we open the funnel? | Demo plus direct sign-up | L-04 and L-05 are in Gate A |
+| 2026-10-11 | D-12 | Which customer segment for the next 12 weeks? | AI-product software companies | §7.3 as designed |
+| 2026-10-11 | D-13 | Which outbound policy? | Evidence-first, founder-led | §7.6 as designed |
+| 2026-10-11 | D-15 | Do you approve the launch dates and targets? | "Just detail and build everything. Do not specify dates in the spec." | Every planned date is removed. Gates follow dependencies, targets are measured from the public launch, and all 36 packages are in scope |
+
+### 3.2 Legal entity data: placeholders (D-01)
+
+These values are **realistic in format and fictitious on purpose. Do not publish them.** Invented-but-plausible identifiers could belong to a real company and would make a false legal notice, so the numbers are visibly dummy.
+
+| Field | Placeholder | Replace with |
+| --- | --- | --- |
+| Legal name | Caudals, S.L. | The name on the deed of incorporation |
+| NIF | B00000000 | The SL's NIF issued by the AEAT |
+| Registered office | Calle Ejemplo 1, 47001 Valladolid, España | The registered address |
+| Commercial registry | Registro Mercantil de Valladolid, Tomo 0000, Folio 0, Hoja VA-00000 | The real registration entry |
+| Public contact | hello@caudals.com | Already in use |
+| Billing contact | facturacion@caudals.com | A real, monitored mailbox |
+| Invoice series | `CAU-` (credits), `CAU-S-` (services), `CAU-R-` (rectifying) | Confirm with the gestor |
+
+Rules:
+- L-01 adds a CI check that fails if any placeholder value from this table appears in `content/legal/*`, in Stripe settings or in invoice templates.
+- Stripe live mode (L-12) and the invoicing provider (L-13) can't be configured until the real data replaces these values.
+- Development and Stripe test mode may use them.
 
 ---
 
@@ -161,7 +201,7 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 - **Problem:** Empty workspaces show one generic card, and viewers are told to "ask an owner". Nobody sees what a good result looks like.
 - **For:** New accounts without a demo import, and invited viewers.
 - **Story:** As a new user, I want to see a finished example and the three steps to get mine, so that I know it's worth ten minutes.
-- **Acceptance:** A persistent checklist (connect a system, add reference pages, run, read results, invite a colleague) is stored per workspace and can be dismissed. Empty states open a sample report labelled "Example — fictitious company". EN/ES, and works at 390 px.
+- **Acceptance:** A persistent checklist (connect a system, add reference pages, run, read results, invite a colleague) is stored per workspace and can be dismissed. Empty states open the example evaluation (P-55). EN/ES, and works at 390 px.
 
 **P-03 · Direct sign-up with a work email** *(needs D-07)* · P0 · M · L-05
 - **Problem:** The only way to get an account is to finish a demo and request the emailed link. Outbound prospects, partners and owners of login-protected chats (which the demo can't reach) have no way in.
@@ -178,6 +218,19 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 - **For:** The founder and ops, and new users.
 - **Story:** As the founder, I want each new account's system type and goal, so that I follow up with the right offer.
 - **Acceptance:** After first sign-in, two optional questions: system type, and goal (check before launch / monitor changes / compare vendors / evidence for an AI review). Answers are stored on the workspace, shown in the ops growth view (P-34), and skippable. They never block the user.
+
+**P-55 · Example evaluation in every workspace, reused as the public sample report** · P0 · M · L-33
+- **Problem:** Nobody can see what a finished evaluation looks like before investing time. P-02, the sector pages and the sales assets (§7.10) each call for a sample report, and three separate copies would drift.
+- **For:** New workspaces and invited viewers, demo finishers, prospects, and the founder in readouts.
+- **Story:** As someone deciding whether Caudals is worth ten minutes, I want to explore a complete example (report, failure causes, transcripts, a trend and a comparison), so that I know exactly what I'll get.
+- **Acceptance:**
+  - One synthetic evaluation of a fictitious insurer's home-policy assistant, built from synthetic policy documents and FAQs. The names are checked against the DGSFP register of insurers and a trademark search so they match no real company.
+  - It contains a reviewed-style report revision (executive summary, findings with failure causes, 40–60 results with transcripts and cited source excerpts, improvements), three monthly runs that show a trend, and one comparison (improved / regressed / unchanged). EN and ES.
+  - Every screen, page and PDF page carries an "Ejemplo" / "Example" label and the line "Synthetic data about a fictitious company. It shows what a reviewed report looks like; no real expert reviewed it."
+  - Every new workspace sees it read-only, from Home, the evaluations list and the empty states. It can't be run, edited, scheduled, shared or deleted. It doesn't count towards plan limits, credits, product metrics or activation. Owners can hide it.
+  - It's stored as a versioned fixture that CI validates against `reportSnapshotSchema` and is rendered by the same report components, so it follows report v2 (L-17) without a separate template.
+  - The same fixture is public at `/{locale}/sample-report` (`/es/informe-de-ejemplo`) with a downloadable PDF. It's indexed, and linked from the demo report, the sector pages, the landing FAQ and outbound. It replaces the separate sample report in P-02 and §7.10.
+  - Event: `example_viewed {surface}`.
 
 ### 4.2 Demo → sign-up → paid conversion
 
@@ -319,6 +372,18 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 - **Story:** As an owner who fixed something, I want to re-run the same questions and see what changed.
 - **Acceptance:** "Run again" on results reuses the frozen test set and shows an estimate. After the second run, the comparison (improved / regressed / unchanged) opens on its own.
 
+**P-56 · Better document intake** · P1 · L · L-34
+- **Problem:** Prepare accepts several files only through the file picker. The website source reads at most 50 same-origin pages from one URL and ignores sitemaps. A scanned PDF fails late with `source_text_empty`. And the context profile the generator builds (`buildContextProfile`: purpose, users, tasks, source authority, dates, risks, each with a confidence and a basis) is never shown, so a wrong assumption only surfaces in the results.
+- **For:** Editors setting up an evaluation, and ops on managed pilots.
+- **Story:** As an editor, I want to drop my documents or point at my help centre, then confirm on one screen what Caudals understood, so that the tests are written for the assistant I actually have.
+- **Acceptance:**
+  - **Drag and drop** up to 50 files at once of the types already accepted (TXT, MD, DOCX, PDF, CSV, XLSX). Type and size are checked before upload, duplicates are skipped by content hash, and each file shows its own progress and error without failing the batch. The picker and keyboard paths stay.
+  - **"Importar centro de ayuda" / "Import help centre":** a help-centre URL or a sitemap URL becomes an ordinary website source. The crawl is bounded: same origin, `robots.txt` honoured, an optional path prefix, and a page cap from the plan (default 50 on free and 200 on PAYG, set in plans v2). Before anything is read, the user sees the page list to include or exclude and an estimate in credits (1 per page, §6.3). It reuses the existing browser reader and egress proxy; there is no new crawler.
+  - **Scan detection:** a PDF that averages under about 50 extracted characters a page, or has more than half its pages empty, is flagged "This looks like a scanned document" before generation. The ask is clear: upload a text version (an exported PDF or DOCX) or the matching web page, or leave it out. The flag is per file and never blocks the other sources. There is no OCR in this window.
+  - **"Lo que hemos entendido de tu asistente" / "What we understood about your assistant":** one screen that states the context profile in plain words: purpose, who uses it, main tasks, languages, jurisdiction and reference date, which source wins when sources disagree, what it must not do, and the open questions generation raised. Low-confidence fields are highlighted and their source excerpts are one click away. The user corrects fields inline and confirms once. The confirmation is a new profile revision recorded with author and time, before generation. Skipping keeps the inferred profile and the report says "Context not confirmed by the customer".
+  - Confirming and editing are free; pages read use the existing meter. EN/ES, works at 390 px.
+  - Events: `sources_added {kind, count}`, `scan_detected`, `context_confirmed {edited_fields}`.
+
 ### 4.5 Reports and sharing
 
 **P-20 · An executive summary for business owners** · P0 · M · L-17
@@ -351,6 +416,35 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 - **For:** Customers with good results.
 - **Story:** As a customer, I want a public page that shows how and when my assistant was tested.
 - **Acceptance:** Written consent is recorded. The page shows date, scope, sample size, methodology and limits. The wording is reviewed so it can't be read as a certification; no badge or seal artwork. Revocable.
+
+**P-57 · Readout (presentation) mode** · P1 · M · L-35
+- **Problem:** The live readout is in every offer and is where pilots and subscriptions are sold (script in §7.5), but the operator presents by scrolling the report page or the PDF.
+- **For:** The founder and operators running readouts, and owners presenting to their own management.
+- **Story:** As the operator running a 20-minute readout, I want a full-screen walk-through of the report revision with my notes, so that the session follows the script and ends on a clear next step.
+- **Acceptance:**
+  - "Present" on any report revision opens a full-screen, slide-like sequence: cover (system, date, scope, review status) → verdict (the executive summary, P-20) → causes (findings grouped by cause, with frequencies) → five to seven transcripts → fixes (P-18) → next steps (pilot or subscription, preselected from the workspace's plan and editable).
+  - Transcripts default to the highest-severity failure for each cause. The operator can swap them, and each shows its result id and source excerpt.
+  - Every slide is built only from the revision snapshot, and its numbers match the report (the same cross-format check as L-17).
+  - Keyboard: ← / → and Space to move, Home / End, number keys to jump, Esc to exit, and P for a presenter view in a second window (current and next slide, notes, timer).
+  - Presenter notes per slide are written by operators and default to the §7.5 script. They are visible only to operators, and never appear in exports, share links or the customer's view. Owners and editors can present without notes.
+  - The transcript selection and notes are saved per revision, so a readout can be repeated.
+  - Export to PDF (16:9, one slide per page) through the document worker, EN/ES, with the usual file-name pattern.
+  - Readable on a projector (body text ≥ 24 px). Respects reduced motion.
+  - Events: `readout_presented`, `readout_exported`.
+
+**P-58 · "Pregunta a tu informe" (Ask your report)** · P2 · M · L-36
+- **Problem:** Owners and their managers have questions the report already answers but that are hard to find ("Which failures are about water damage?", "Why did question 14 fail?"). Today those questions reach us by email.
+- **For:** Workspace members reading a report.
+- **Story:** As an owner, I want to ask my report a question in plain words and get an answer that points to the exact results, so that I don't have to read 60 transcripts.
+- **Acceptance:**
+  - A panel on the report page answers using only that revision's snapshot: metrics, findings, results, improvements and methodology. No other report, live source or web content enters the prompt. Snapshot text is passed as quoted data, and instructions inside transcripts are ignored.
+  - Every claim cites result ids or finding ids from the snapshot, shown as links to the evidence drawer. An answer whose citations don't validate against the snapshot is discarded and replaced with "I can't answer that from this report."
+  - Questions outside the report (general advice, other systems, legal conclusions, "are we compliant?") get a fixed refusal that points to the methodology page and "Book a readout". The words "compliant" and "certified" never appear in an answer.
+  - It's a bounded model job: a frozen model route from the workspace's permitted models (local only on free), capped input and output tokens, a timeout, and at most 20 questions per report a day (10 a month on free). Each question is reserved, captured or refunded on the credit ledger like any engine call (§6.8), and the panel shows the typical cost before first use.
+  - Questions and answers are stored with the revision id, model and prompt revisions, tokens and credits. Workspace members can see them and owners can delete them. They are never shown to experts or used for training.
+  - Not available on share links in this window. Answers come in the language of the question.
+  - Release check on the example evaluation (P-55): ≥ 95 % valid citations on 50 fixed questions, and a refusal on all 15 out-of-scope prompts.
+  - Event: `report_question_asked {outcome, credits}`.
 
 ### 4.6 Monthly re-runs and regression alerts
 
@@ -535,7 +629,7 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
   - Recent sign-in required for billing actions.
   - Rate limits on sign-in, sign-up and top-ups. Audit events for every billing action.
 
-**P-44 · Data controls** · P2 · M · L-30
+**P-44 · Data controls** · P2 · M · L-32
 - **Problem:** Customers can't set retention or export everything themselves.
 - **For:** Owners.
 - **Story:** As an owner, I want to choose how long answers are kept and to export everything.
@@ -657,6 +751,10 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | `top_up_started` / `top_up_paid` / `auto_recharge_paid` | server | pack, net amount, first purchase |
 | `expert_review_requested` / `pilot_requested` / `readout_link_clicked` | server or client | source screen |
 | `schedule_created` / `api_token_created` / `webhook_created` | server | destination type |
+| `example_viewed` | server or client | surface (workspace / public / PDF) |
+| `sources_added` / `scan_detected` / `context_confirmed` | server | source kind, count, edited fields |
+| `readout_presented` / `readout_exported` | server | report revision (hashed), slide count |
+| `report_question_asked` | server | outcome (answered / refused / failed), credits |
 
 ---
 
@@ -672,7 +770,7 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | Landing hero | "We teach your AI to think like an expert". CTA "Get a free diagnostic" goes to the form. "Or book a 30-minute call" | Primary CTA "Test your assistant free — 8 questions, about 3 minutes" to the demo. Call stays secondary. The chat animation stays. Add one proof line once a case study exists | P0 | L-04 |
 | Landing steps and FAQ | Five steps. The FAQ promises a diagnostic within 48 h. No mention of the demo or the free account | Step 1 mentions the free test. "How much does it cost?" answers: free test and account, pay-as-you-go credits in the app, fixed-price pilots by quote | P0 | L-30 |
 | Footer | Legal links, "Ask AI about Caudals", socials | Add Methodology, Trust (DPA, sub-processors, security) and Sign in | P1 | L-30 |
-| Sector pages | CTA goes to the form with the sector preselected | Primary CTA to the demo. Secondary to a pilot request. Link the sector's example questions to a sample report | P1 | L-30 |
+| Sector pages | CTA goes to the form with the sector preselected | Primary CTA to the demo. Secondary to a pilot request. Link the sector's example questions to the sample report (P-55) | P1 | L-30, L-33 |
 | Demo · start | One clean field. Footnote "One free test a day…" | Add an example chip ("Try it on our sample assistant") and a privacy line ("no account, deleted after 7 days"). When busy, show the queue position. For login-protected chats, say "Create a free account to test it" | P0 | L-03, L-04 |
 | Demo · live run | Steps, a ledger that fills in, an elapsed clock | Add an ETA range. Show tips if "Finding the chat" takes over 60 s. Show queue position. Keep reduced motion | P0 | L-03 |
 | Demo · report | Score, causes, expandable ledger, account card, docked bar | CTA order: Create free account · Book a readout · Send to a colleague. Add one "what this means" sentence, the AI-disclosure result (P-08) and a methodology link | P0 | L-04, L-29 |
@@ -681,6 +779,7 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | Legal pages | Placeholders in the legal notice. Marketplace-era Terms and Privacy | Complete content (P-41), readable typography, last-updated dates. New `/legal/dpa`, `/legal/subprocessors` and `/legal/security` | P0 | L-01 |
 | 404 | Localized | Add a CTA to the demo | P2 | L-30 |
 | Methodology (new) | — | Paper-style page (P-40) | P1 | L-20 |
+| Sample report (new) | — | The example evaluation as a public page and PDF, labelled "Example" (P-55) | P0 | L-33 |
 
 ### 5.2 Customer app (`app.caudals.com`)
 
@@ -689,14 +788,19 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | Sign in | "New to Caudals? Use the private invitation from your workspace owner…" | "New here? Create a free account" goes to `/workspace/start` (D-07) or the demo | P0 | L-05 |
 | Sign up (from link) | Email and workspace prefilled, name, password (12+ characters) | Terms and Privacy checkbox (recorded). A "What happens next" line: your demo is imported and we start preparing the full test set. A password strength hint | P0 | L-01, L-06 |
 | Shell and sidebar | Workspace switcher, Evaluations, Systems, Reports, Test sets (once one exists), Settings | Add Home (P-12), a plan and credits pill (P-13) and a visible Help entry | P1 | L-22, L-15 |
-| Evaluations list | Status pills, latest result, updated | Score trend, a "next step" hint on rows that need action, and an empty state with the sample report and checklist | P1 | L-06, L-22 |
+| Evaluations list | Status pills, latest result, updated | Score trend, a "next step" hint on rows that need action, and an empty state with the example evaluation and checklist | P1 | L-06, L-22 |
+| Example evaluation (new) | — | Read-only "Ejemplo" evaluation with report, trend and comparison in every workspace; hideable (P-55) | P0 | L-33 |
 | New evaluation | Name, purpose, 2×2 connection grid. Disabled cards say "Not enabled for this workspace" | Disabled cards explain how to unlock them (credits or managed plan). Inline help per connection type. Purpose pre-filled from the site when known | P0 | L-14 |
 | Evaluation · Connect | Collapsible panel. AI models for platform admins | For customers: connection health and "Check now". The model picker shows the catalog with credit rates on PAYG | P1 | L-15, L-22 |
 | Evaluation · Prepare | Sources, generate, review | Auto-start for demo imports. Progress with honest ranges. A 10-question spot check, then "Approve and run" | P0 | L-06, L-22 |
+| Prepare · sources | File picker (several files), one website URL, late `source_text_empty` errors | Drag and drop, "Import help centre" with a page preview and estimate, scan detection with a clear ask (P-56) | P1 | L-34 |
+| Prepare · context (new) | — | "What we understood about your assistant": confirm or correct the context profile on one screen (P-56) | P1 | L-34 |
 | Evaluation · Run | Run button, paused and runner states | Estimate dialog (P-16). A "Paused — add credits to continue" state with one-click resume. ETA | P0 | L-15 |
 | Evaluation · Results | "Open report". Regrade and upload for operators | "Fix these first", "Run again", "Compare" | P1 | L-17, L-18 |
 | Report · Overview | Preliminary and Incomplete badges, strict pass rate "50.0 %", interval, quality score, coverage, critical failures, findings | Executive summary first (P-20). Whole-percent headline, with decimals kept in Methodology. One-line explanations of the badges. CTA row | P0 | L-17 |
 | Report · other tabs | Findings, test results, improvements, methodology | Default sort by severity. Evidence drawer polish. "Copy question" and "Export failing" | P1 | L-17 |
+| Report · Present (new) | — | Full-screen readout with presenter view and PDF export (P-57) | P1 | L-35 |
+| Report · Ask (new) | — | "Pregunta a tu informe" panel with cited answers (P-58) | P2 | L-36 |
 | Share dialog and shared page | Private link and exports | Expiry presets, open counts, a branded page with a CTA (P-21) | P1 | L-17 |
 | Systems | List of connections | Health columns and "Check now" (P-14) | P1 | L-22 |
 | Test sets | Hidden until one exists | Explain versions. Fork, export, add sector questions | P2 | L-25 |
@@ -721,6 +825,7 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | Billing console (new) | — | Grants, refunds, adjustments, price book, reconciliation (§6.13) | P0 | L-16 |
 | Run inspector | Frozen plan, timeline, attempt costs | Credits charged next to our cost per attempt | P1 | L-16 |
 | Prospect snapshot (new) | — | URL in, private snapshot and outreach summary out (P-35) | P0 | L-21 |
+| Report · readout notes (new) | — | Per-slide presenter notes and transcript picks for a report revision (P-57) | P1 | L-35 |
 
 ### 5.4 Experts (`/review`)
 
@@ -736,6 +841,8 @@ Each item gives the problem, who it is for, a user story, acceptance criteria, p
 | Evaluation notifications | Plain text, English | Branded EN/ES templates (P-37) | P0 | L-07 |
 | Demo sign-up email | Plain text EN/ES | Branded, with a one-line score summary | P0 | L-07 |
 | PDF and Word report | Accurate, plain | Cover and executive summary first (P-22) | P1 | L-17 |
+| Readout PDF (new) | — | 16:9 slides from readout mode, without presenter notes (P-57) | P1 | L-35 |
+| Sample report PDF (new) | — | The example evaluation, labelled "Example" on every page (P-55) | P0 | L-33 |
 | Receipts and invoices | — | Payment receipt email and a legally valid invoice PDF from the invoicing provider | P0 | L-12, L-13 |
 
 ---
@@ -775,7 +882,9 @@ Users top up a balance and spend it on our AI models and evaluation work. This s
 | Document page extracted | per page | 0.5 | Document worker | The source is finalized |
 | Web search query (research) | per query | 2 | Search-engine plan | The query returns |
 
-**Free:** the demo, sign-up, viewing and sharing reports, exports, connection checks, re-grades caused by our own grader fixes, every failed, retried, cancelled or unknown call, and operator work on managed contracts.
+**Report questions** (P-58) are engine tokens on the report's model route, with no separate meter.
+
+**Free:** the demo, sign-up, viewing and sharing reports, the example evaluation, confirming the context profile, readout mode and its PDF, exports, connection checks, re-grades caused by our own grader fixes, every failed, retried, cancelled or unknown call, and operator work on managed contracts.
 
 ### 6.4 Per-model price table
 
@@ -783,26 +892,28 @@ Users top up a balance and spend it on our AI models and evaluation work. This s
 - FX is the ECB reference rate of 1 EUR = 1.1605 USD on 19 Aug 2026, the latest found, so €0.8617 per USD.
 - The routing fee is +5.5 % when a model is bought through OpenRouter credits (secondary sources, §7.12). Google is billed directly.
 
-**Credit rate** = our cost × 2.5, × 100, rounded up to the next 5 credits per 1 M tokens, with a minimum of 10.
-- That's a ≈ 60 % gross margin on tokens at list price, and ≈ 52 % on the biggest pack with its 20 % bonus.
-- Card fees (1.6–2.8 %) come out of the margin.
+**Credit rate** = our cost × **1.5** (D-03), × 100, rounded up to the next 5 credits per 1 M tokens, with a minimum of 10.
+- That gives a ≈ 33 % gross margin on tokens at list price. Rounding adds a little on the cheapest models.
+- It falls to ≈ 27 % on the biggest pack with its 10 % bonus, and to 20 % on a first top-up with its 20 % bonus.
+- Card fees (1.6–2.8 %) come out of that.
+- The per-question fees (§6.3) carry their own margin over our fixed browser and VPS cost.
 
 | Model (route) | List price $/1M (in · out) | Our cost €/1M (in · out) | **Credits per 1M (in · out)** | Token margin | Engine credits for a 50-question run* |
 | --- | --- | --- | --- | --- | --- |
 | **Caudals Local**: DeepSeek V4 Flash on our DGX (private, never leaves our servers) | — | ≈ 0.5 blended (internal GPU-time estimate; the cash cost is electricity) | **50 · 200** | capacity-priced | 8 |
-| GPT-6 Luna (OpenAI) | 0.10 · 0.50 | 0.091 · 0.455 | **25 · 115** | 61–64 % | 4 |
-| Claude Haiku 5.5, prompts ≤ 100 K (Anthropic) | 0.10 · 0.50 | 0.091 · 0.455 | **25 · 115** | 61–64 % | 4 |
-| Claude Haiku 5.5, prompts > 100 K | 0.50 · 2.50 | 0.455 · 2.273 | **115 · 570** | 60 % | 20 |
-| Gemini 3.1 Flash-Lite (Google) | 0.25 · 1.50 | 0.215 · 1.293 | **55 · 325** | 60–61 % | 10 |
-| DeepSeek V4.1 Flash, peak hours (DeepSeek) | 0.30 · 1.20 | 0.273 · 1.091 | **70 · 275** | 60–61 % | 11 |
-| Mistral Large (Mistral, EU) | 0.50 · 1.50 | 0.455 · 1.364 | **115 · 345** | 60–61 % | 17 |
-| Gemini 3.8 Flash, until 31 Dec 2026 | 0.75 · 3.75 | 0.646 · 3.231 | **165 · 810** | 60–61 % | 29 |
-| Gemini 3.8 Flash, from 1 Jan 2027 (announced increase) | 1.50 · 7.50 | 1.293 · 6.463 | **325 · 1,620** | 60 % | 57 |
-| DeepSeek V4 Pro, peak hours | 1.32 · 3.96 | 1.200 · 3.600 | **300 · 900** | 60 % | 44 |
-| Gemini 3.1 Pro preview, ≤ 200 K | 2.00 · 12.00 | 1.723 · 10.340 | **435 · 2,590** | 60 % | 82 |
-| GPT-6.1 Sol (OpenAI) | 2.00 · 10.00 | 1.818 · 9.091 | **455 · 2,275** | 60 % | 80 |
-| Claude Sonnet 5.5 (Anthropic) | 2.00 · 10.00 | 1.818 · 9.091 | **455 · 2,275** | 60 % | 80 |
-| Claude Opus 5.5 (Anthropic) | 4.00 · 20.00 | 3.636 · 18.182 | **910 · 4,550** | 60 % | 159 |
+| GPT-6 Luna (OpenAI) | 0.10 · 0.50 | 0.091 · 0.455 | **15 · 70** | 35–39 % | 3 |
+| Claude Haiku 5.5, prompts ≤ 100 K (Anthropic) | 0.10 · 0.50 | 0.091 · 0.455 | **15 · 70** | 35–39 % | 3 |
+| Claude Haiku 5.5, prompts > 100 K | 0.50 · 2.50 | 0.455 · 2.273 | **70 · 345** | 34–35 % | 12 |
+| Gemini 3.1 Flash-Lite (Google) | 0.25 · 1.50 | 0.215 · 1.293 | **35 · 195** | 34–39 % | 6 |
+| DeepSeek V4.1 Flash, peak hours (DeepSeek) | 0.30 · 1.20 | 0.273 · 1.091 | **45 · 165** | 34–39 % | 7 |
+| Mistral Large (Mistral, EU) | 0.50 · 1.50 | 0.455 · 1.364 | **70 · 205** | 34–35 % | 10 |
+| Gemini 3.8 Flash, until 31 Dec 2026 | 0.75 · 3.75 | 0.646 · 3.231 | **100 · 485** | 33–35 % | 17 |
+| Gemini 3.8 Flash, from 1 Jan 2027 (announced increase) | 1.50 · 7.50 | 1.293 · 6.463 | **195 · 970** | 33–34 % | 34 |
+| DeepSeek V4 Pro, peak hours | 1.32 · 3.96 | 1.200 · 3.600 | **180 · 540** | 33 % | 26 |
+| Gemini 3.1 Pro preview, ≤ 200 K | 2.00 · 12.00 | 1.723 · 10.340 | **260 · 1,555** | 33–34 % | 49 |
+| GPT-6.1 Sol (OpenAI) | 2.00 · 10.00 | 1.818 · 9.091 | **275 · 1,365** | 33–34 % | 48 |
+| Claude Sonnet 5.5 (Anthropic) | 2.00 · 10.00 | 1.818 · 9.091 | **275 · 1,365** | 33–34 % | 48 |
+| Claude Opus 5.5 (Anthropic) | 4.00 · 20.00 | 3.636 · 18.182 | **550 · 2,730** | 33–34 % | 96 |
 
 \*Planning assumption: 100 k input + 15 k output engine tokens per 50-question evaluation, close to the measured p50 (98 k + 13.5 k), and 250 k + 40 k per 150 questions. The live estimator (§6.7) replaces these with measured medians.
 
@@ -810,8 +921,8 @@ Users top up a balance and spend it on our AI models and evaluation work. This s
 
 | Run | Local | Gemini 3.8 Flash | Sonnet 5.5 | Opus 5.5 |
 | --- | --- | --- | --- | --- |
-| 50 website questions, 10 pages | 268 credits (€2.68) | 289 (€2.89) | 340 (€3.40) | 419 (€4.19) |
-| 150 website questions, 25 pages | 796 (€7.96) | 849 (€8.49) | 980 (€9.80) | 1,185 (€11.85) |
+| 50 website questions, 10 pages | 268 credits (€2.68) | 277 (€2.77) | 308 (€3.08) | 356 (€3.56) |
+| 150 website questions, 25 pages | 796 (€7.96) | 819 (€8.19) | 898 (€8.98) | 1,022 (€10.22) |
 
 These amounts are deliberately low. They're comparable to automated testing tools (Cekura charges $0.025 per chat reply), and they make the first payment frictionless. The revenue comes from pilots, subscriptions and datasets (§6.17). The credit layer exists to turn free users into paying customers with a card on file, to monetise heavy self-serve use and premium models, and to cap abuse.
 
@@ -821,7 +932,7 @@ These amounts are deliberately low. They're comparable to automated testing tool
 - **Decreases** apply immediately.
 - **Increases** need at least 30 days' notice, in the app and by email, to owners who used the model in the last 90 days. When a provider gives us less notice, we absorb the difference until our notice period ends.
 - **Mechanism.** The price book has revisions that move draft → scheduled → active → retired, each with an effective date. Every run freezes the active revision when it starts.
-- **Example.** Gemini 3.8 Flash doubles on 1 Jan 2027 according to Google's page. So a revision effective 2027-01-01 is created and the notice goes out by 2026-12-01.
+- **Example.** Google's page says Gemini 3.8 Flash prices double from 1 Jan 2027. The price book gets a revision effective on that date, and the notice goes out 30 days before it.
 - **Guardrail (fixes G9).** A model can't be offered to customers with a €0 price unless it is explicitly flagged `free_model`. Free models (OpenRouter `:free`) are used only as a demo fallback, never in paid evaluations.
 - **Default routing (D-09).** Customer content goes to a commercial model only when the workspace opts in (data routing `approved_providers`). The local model stays the default.
 
@@ -835,7 +946,7 @@ These amounts are deliberately low. They're comparable to automated testing tool
 | **Partner** | Per agreement | Per agreement | Full catalog | Client workspaces, referral attribution |
 
 **Promotions:**
-- **First top-up bonus:** +50 % credits on the first pack, once per workspace and once per company domain. This is the main lever for winning the first payment.
+- **First top-up bonus:** +20 % credits on the first pack (D-08), once per workspace and once per company domain. It doesn't stack with the pack bonus: the larger of the two applies, so tokens are never sold below cost. This is the main lever for winning the first payment.
 - **Founding pilots (D-14):** 5,000 credits valid 90 days after delivery, for re-runs after fixes. This drives the subscription conversation.
 - **Design-partner codes:** 5,000 credits, valid 30 days, issued by ops.
 
@@ -846,10 +957,10 @@ These amounts are deliberately low. They're comparable to automated testing tool
 | Pack (excl. VAT) | Credits | Bonus | € per credit | Our card fee (EEA standard card) |
 | --- | --- | --- | --- | --- |
 | €20 | 2,000 | — | 0.0100 | €0.55 (2.8 %) |
-| €50 | 5,250 | +5 % | 0.0095 | €1.00 (2.0 %) |
-| €100 | 11,000 | +10 % | 0.0091 | €1.75 (1.8 %) |
-| €250 | 28,750 | +15 % | 0.0087 | €4.00 (1.6 %) |
-| €500 | 60,000 | +20 % | 0.0083 | €7.75 (1.6 %) |
+| €50 | 5,150 | +3 % | 0.0097 | €1.00 (2.0 %) |
+| €100 | 10,500 | +5 % | 0.0095 | €1.75 (1.8 %) |
+| €250 | 27,000 | +8 % | 0.0093 | €4.00 (1.6 %) |
+| €500 | 55,000 | +10 % | 0.0091 | €7.75 (1.6 %) |
 | ≥ €1,000 a year | Tailored quote, invoice, bank transfer | negotiated | — | — |
 
 VAT is added at checkout (§6.14).
@@ -1290,7 +1401,7 @@ Rules carried over from the overview: discount one-off work, never the subscript
 
 ### 7.5 Plan for the first paying customers (D-14)
 
-**Weeks 1–2 (Tue Oct 13 – Sun Oct 25):**
+**Start now, in parallel with the Gate A packages:**
 1. Review the 62 pending prospects. Approve about 30 that fit ICP-1, plus a few ICP-3 companies with public assistants.
 2. For the top 15, make an evidence snapshot.
    - Today: the demo (3 runs per site per day) or an internal workspace evaluation.
@@ -1308,10 +1419,12 @@ Rules carried over from the overview: discount one-off work, never the subscript
 - Tuesday to Thursday: outreach and readouts.
 - Friday: pipeline review in `/ops/growth`, then content.
 
-**Milestones:**
-- First euro by **15 Nov**: a pilot signature with its 50 % invoice, or a first top-up.
-- Three founding pilots signed by **18 Dec**.
-- Case study #1 published by **15 Jan**.
+**Milestones, in order:**
+1. **First euro before the public launch:** a pilot signature with its 50 % invoice.
+2. **Three founding pilots signed.**
+3. **Case study #1 published**, from pilot #1.
+4. **First monitoring subscription,** pitched at the first delivery.
+5. **10 paying customers and ≥ €12,000 booked within 12 weeks of the public launch.**
 
 **Message templates** (personalise every one; never send a snapshot with weak findings):
 - *LinkedIn (ES):* "Hola {nombre}: he probado el asistente de {empresa} con 8 preguntas sacadas de vuestra propia web. 5 bien, 2 incompletas y 1 que contradice vuestras condiciones ({cláusula}). Informe privado: {enlace}. ¿Te enseño en 20 minutos qué arreglaría primero?"
@@ -1368,18 +1481,16 @@ Rules carried over from the overview: discount one-off work, never the subscript
 - The methodology page.
 - A monthly "what we saw this month" post.
 
-**FiscalQA-ES.** The planned public benchmark (`../leads/docs/GROWTH.md`) is published only once its samples are expert-reviewed, so not before Q1 2027.
+**FiscalQA-ES.** The planned public benchmark (`../leads/docs/GROWTH.md`) is published only once its samples are expert-reviewed.
 
-| Weeks of | LinkedIn themes | Blog or newsletter | Event |
+| Phase (§7.9) | LinkedIn themes | Blog or newsletter | Event |
 | --- | --- | --- | --- |
-| Oct 12, 19 | "We tested 15 Spanish AI assistants with their own help pages" (anonymous patterns) | Newsletter restart: "What an AI gets wrong, with sources" | — |
-| Oct 26 | The free test is open | Blog: how the free test works | — |
-| Nov 2, 9 | The Art. 50 disclosure duty in practice | Blog: "Does your assistant say it's an AI?" | Webinar #1 announced |
-| Nov 16, 23 | Launch week: paid credits, first story | Newsletter: launch issue | Webinar #1, Thu Nov 26 |
-| Nov 30, Dec 7 | Fix-first lists. How to read a score with a sample size | Blog: "Eight questions vs. 150" | — |
-| Dec 14 | Pilot learnings (anonymous) | Newsletter: year-end patterns | — |
-| Dec 21 – Jan 6 | Light holiday posts | — | — |
-| Jan 11, 18, 25 | Case study #1. Sector checklists | Blog: case study. Newsletter | Webinar #2, Thu Jan 21 |
+| 1–2 · Foundations, opening the funnel | "We tested 15 Spanish AI assistants with their own help pages" (anonymous patterns) | Newsletter restart: "What an AI gets wrong, with sources" | — |
+| At Gate A | The free test is open | Blog: how the free test works | — |
+| 3–4 · Billing build, taking money | The Art. 50 disclosure duty in practice | Blog: "Does your assistant say it's an AI?" | Webinar #1 announced |
+| 6 · Launch week | Paid credits, first story | Newsletter: launch issue | Webinar #1 |
+| 7 · First 4 weeks after launch | Fix-first lists. How to read a score with a sample size | Blog: "Eight questions vs. 150" | — |
+| 7 · Weeks 5–12 after launch | Pilot learnings (anonymous), case study #1, sector checklists | Blog: case study. Newsletter every two weeks | Webinar #2 |
 
 ### 7.8 Partners and integrators
 
@@ -1396,49 +1507,43 @@ Rules carried over from the overview: discount one-off work, never the subscript
 - **Offer v2 (L-28):** partner accounts, referral links and white-label PDFs.
 - **Process:**
   - List 30 candidates from public directories, LinkedIn and the partner pages of conversational platforms such as Barcelona-based Landbot and Hubtype. Verify each programme first; we have no relationship with any of them today.
-  - Hold 10 conversations by Dec 18 and sign 3 referral agreements by Jan 31.
+  - Hold 10 conversations and sign 3 referral agreements within 12 weeks of the public launch.
 - **Grant channel.** Kit Consulting (Red.es) had an AI service line in earlier calls, but a secondary source says the 2026 call closed on 31 May 2026. Check with Red.es before relying on it.
 
-### 7.9 Launch sequence and calendar (D-15)
+### 7.9 Launch sequence (D-15: no dates)
 
-Holidays to plan around: 12 Oct (Fiesta Nacional, Monday), 8 Dec (Inmaculada, Tuesday; 6 Dec falls on a Sunday), 25 Dec, 1 Jan and 6 Jan.
+There are no calendar dates. Each phase starts when the previous one's exit test passes. Product packages follow the dependency order in §8, and sales work runs in parallel from the first phase. Don't schedule launch week inside a national holiday period, when B2B replies slow down.
 
-| Week of | Product (§8) | Sales and marketing | Gate |
+| Phase | Product (§8) | Sales and marketing | Exit |
 | --- | --- | --- | --- |
-| Mon Oct 12 (holiday) | L-01, L-02, L-03, L-08, L-09 start in parallel | Review the 62 prospects; 15 snapshots; founding-pilot one-pager; outreach snippets | — |
-| Oct 19 | L-04, L-05, L-06, L-07; L-10 | First 15 evidence-first touches; partner long-list; newsletter restart | — |
-| Oct 26 | Gate A checks; L-11 | Announce the free test (LinkedIn, newsletter); first readouts | **A · Tue Oct 27** |
-| Nov 2 | L-12, L-14 | 25 touches a week; deck and proposal template; security sheet | — |
-| Nov 9 | L-13, L-15 | First founding pilot signed (target by Sun Nov 15) | — |
-| Nov 16 | L-16; L-17, L-29, L-30 | You buy €20 in production; deliver pilot #1 | **B · Tue Nov 17** |
-| Nov 23 | Launch-week fixes only | **Public launch Tue Nov 24**: launch post, newsletter, partners, Spanish startup communities, webinar #1 Thu Nov 26 | **C · launch** |
-| Nov 30 | L-18, L-19, L-21 | Follow-ups; pilot #2 | — |
-| Dec 7 | L-20, L-23 | Case study draft from pilot #1 | — |
-| Dec 14 | L-22, L-24, L-25 | Pilot #3; subscription pitches | — |
-| Dec 21 – Jan 6 | Freeze, fixes only | Light content | — |
-| Jan 11 | L-26, L-28 | Outbound restarts; case study #1 published (Jan 15) | — |
-| Jan 18, 25 | L-27, L-31 (if approved) | Webinar #2; Q1 sector report (if D-16); target: 10 paying customers by **Sun Jan 31** | — |
+| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 in parallel | Review the 62 prospects. First 15 snapshots. Founding-pilot one-pager. Outreach snippets | All five deployed |
+| 2 · Open the funnel | L-04, L-05, L-06, L-07, L-10, L-33 | First 15 evidence-first touches. Partner long-list. Newsletter restart | **Gate A** passes |
+| 3 · Billing build | L-11, L-21 and L-12, then L-13 and L-14 | Announce the free test (LinkedIn, newsletter). Readouts. 25 touches a week. Deck, proposal template, security sheet | Packages deployed and the shadow week started |
+| 4 · Take money | L-15, L-16, L-17 | First founding pilot signed: the first euro | **Gate B** passes, and you buy €20 in production |
+| 5 · Launch prep | L-29, L-30 | Deliver pilot #1. Prepare the launch post, the newsletter issue and the webinar | Launch checklist complete |
+| 6 · Public launch week | Fixes only | Launch post, newsletter, partners, Spanish startup communities, webinar #1 | **Public launch** |
+| 7 · Build the rest | L-18…L-28, L-31, L-32, L-34, L-35, L-36, in the §8 order | Outbound at 25 touches a week. Pilots #2 and #3. Subscription pitches. Case study #1. Webinar #2. Sector report (if D-16) | Every package deployed, and the 12-week targets measured |
 
 ### 7.10 Sales assets
 
-| Asset | Purpose | Contents | Owner | Due |
+| Asset | Purpose | Contents | Owner | Needed by |
 | --- | --- | --- | --- | --- |
-| Founding-pilot one-pager (EN/ES) | Close founding pilots | Problem, what we deliver in 10 days, €1,500 for three customers and the conditions, timeline, sample screenshots | Founder | Oct 20 |
-| Outreach snippet library | Consistent messages | LinkedIn and email texts, follow-ups and the readout script per ICP, EN/ES | Founder | Oct 20 |
-| Sample report (fictitious company) | Show the output | Public PDF and in-app example | L-06 | Oct 27 |
-| Deck (10 slides) | Readouts and partner calls | Problem (with dated incidents), how it works, evidence per answer, sample findings, offer ladder, data and security, team and programmes, next step | Founder | Oct 27 |
-| Proposal template | Quoted work | Scope (system, questions, sources, expert session), deliverables, timeline, price, 50/50 payment terms, assumptions, DPA | Founder | Oct 27 |
-| Security and data-handling sheet | Procurement | EU hosting, tenant isolation, encryption, sub-processors, retention, DPA, no adversarial testing, no certification | Founder and L-01 | Nov 3 |
-| Contract templates | Sign fast | Managed-services terms, order form, DPA, NDA, expert freelance agreement (IP assignment, confidentiality, data processing), partner referral agreement | Lawyer | Nov 10 |
-| Webinar kit | Monthly live test | Slides, sign-up page, follow-up email | Founder | Nov 20 |
-| Partner one-pager | Recruit partners | Why partner, referral terms, how it works | Founder | Nov 24 |
-| Case study template, then case study #1 | Proof | Situation, what we tested, what failed (with consent), fixes, before-and-after re-run, quote | Founder | Template Dec 18; published Jan 15 |
+| Founding-pilot one-pager (EN/ES) | Close founding pilots | Problem, what we deliver in 10 days, €1,500 for three customers and the conditions, timeline, sample screenshots | Founder | Phase 1 |
+| Outreach snippet library | Consistent messages | LinkedIn and email texts, follow-ups and the readout script per ICP, EN/ES | Founder | Phase 1 |
+| Sample report (fictitious company) | Show the output | The example evaluation (P-55): public page, PDF and in-app example | L-33 | Gate A |
+| Deck (10 slides) | Readouts and partner calls | Problem (with dated incidents), how it works, evidence per answer, sample findings, offer ladder, data and security, team and programmes, next step | Founder | Gate A |
+| Proposal template | Quoted work | Scope (system, questions, sources, expert session), deliverables, timeline, price, 50/50 payment terms, assumptions, DPA | Founder | Gate A |
+| Security and data-handling sheet | Procurement | EU hosting, tenant isolation, encryption, sub-processors, retention, DPA, no adversarial testing, no certification | Founder and L-01 | Phase 3 |
+| Contract templates | Sign fast | Managed-services terms, order form, DPA, NDA, expert freelance agreement (IP assignment, confidentiality, data processing), partner referral agreement | Lawyer | Before Gate B |
+| Webinar kit | Monthly live test | Slides, sign-up page, follow-up email | Founder | Phase 5 (launch prep) |
+| Partner one-pager | Recruit partners | Why partner, referral terms, how it works | Founder | Launch week |
+| Case study template, then case study #1 | Proof | Situation, what we tested, what failed (with consent), fixes, before-and-after re-run, quote | Founder | The template once pilot #1 is delivered; the case study within 12 weeks of launch |
 
 ### 7.11 Metrics and weekly targets
 
 Reviewed every Friday in `/ops/growth`. The assumptions are re-set after four weeks of data.
 
-| Metric | Baseline (week of Oct 5) | Gate A (week of Oct 26) | Gate B (week of Nov 16) | Week of Dec 14 | By Jan 31 |
+| Metric | Baseline (observed 2026-10-11) | At Gate A | At Gate B | 4 weeks after launch | 12 weeks after launch |
 | --- | --- | --- | --- | --- | --- |
 | Site sessions a week | 110 | 150 | 250 | 400 | 500 |
 | Demo starts a week | 0 | 15 | 40 | 80 | 100 |
@@ -1483,4 +1588,1093 @@ All accessed on 2026-10-11 unless stated. Secondary sources are marked.
 - LSSI art. 21 and AEPD practice: <https://www.aepd.es/documento/e-02502-2018.pdf>; €5,000 sanction (Economist & Jurist): <https://www.economistjurist.es/actualidad-juridica/jurisprudencia/sancionada-con-5-000-euros-una-consultora-energetica-por-el-envio-constante-y-no-autorizado-de-publicidad-a-una-persona>
 - Kit Consulting (La Moncloa, 2024): <https://lamoncloa.gob.es/serviciosdeprensa/notasprensa/transformacion-digital-y-funcion-publica/paginas/2024/kit-consulting-pymes-y-empresas.aspx>; 2026 call status (secondary): <https://ayuda-social.es/kit-consulting-pymes>
 - Landbot company facts (secondary): <https://startupshub.catalonia.com/startup/barcelona/landbot/6358>
+
+---
+
+## 8. Work packages
+
+### 8.0 How we ship
+
+These are your constraints, and they apply to every package:
+
+1. **One package = one agent session = one change on `main`.** Work happens on the main branch, as you asked. Packages that run in parallel can be developed in separate worktrees, but they **merge to `main` one at a time**.
+2. **Deploy after every package.**
+   - Pushing to `main` runs `.github/workflows/deploy.yml` for the app, and `evals-images.yml` when worker paths change.
+   - Then: verify in production with the package's checks, enable its flag, and record a short handoff.
+   - Changes that touch docs only use `[skip ci]`.
+3. **Migrations.**
+   - At most one migration per package. Its number is taken at merge time (the next free one, after `080`) and appended to the explicit list in `scripts/evals/migrate.ts`, with a rollback file.
+   - Tested first on the disposable database (`scripts/evals/test-db.sh up`).
+   - Applied in production with `tsx scripts/evals/migrate.ts` **before** the image that needs it rolls out.
+   - Additive only. Problems are fixed by repairing forward.
+4. **Flags.** New behaviour ships behind a flag that defaults to off. It's switched on after the smoke checks pass, and its state is noted in the handoff.
+5. **Standard checks for every package:**
+   - `npm run typecheck`, `npm run lint`
+   - the Vitest suites the change touches, run against the disposable database
+   - the UI harness Playwright contracts (`npx playwright test --config=e2e/evals/ui.config.ts`) for UI work
+   - `npm run i18n:check-parity`
+   - the package's own production checks
+6. **Docs.** Update only the affected contracts (ARCHITECTURE, FRONTEND, DESIGN, TOOLS, runbooks). Add a handoff in `docs/launch/L-xx.md` using the template in §21.3 of the evals spec.
+7. **Never:** secrets in output, adversarial testing, outbound sends, paid API calls beyond small authorised probes, destructive migrations, or bringing back removed routes.
+
+### 8.1 Overview, waves and dependencies
+
+Packages in the same **wave** can run in parallel once their dependencies have landed.
+
+| ID | Title | Gate | Pri | Size | Depends on | Wave | Migration |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| L-01 | Trust and legal pages, terms acceptance | A | P0 | M | D-01 (data) | 1 | `evals_terms_acceptance` |
+| L-02 | Funnel events and growth dashboard v1 | A | P0 | M | — | 1 | `analytics_event_dimensions` (if needed) |
+| L-03 | Demo queue, capacity and fallback model | A | P0 | M | — | 1 | `demo_queue` |
+| L-08 | Observability, alerting and admin MFA | A | P0 | M | — | 1 | — |
+| L-09 | Billing core: credit ledger | B | P0 | L | D-02 | 1 | `billing_core` |
+| L-04 | Front door: demo linked, indexed, CTAs | A | P0 | S | L-01, L-02, L-03, D-07 | 2 | — |
+| L-05 | Direct work-email sign-up | A | P0 | M | L-01, D-07 | 2 | `evals_signup_domains` |
+| L-06 | First-run onboarding and activation | A | P0 | M | L-02 | 2 | `evals_onboarding` |
+| L-07 | Branded EN/ES emails and lifecycle sequence | A | P0 | M | L-02 (L-06 soft) | 2 | `evals_lifecycle_email` |
+| L-33 | Example evaluation and public sample report | A | P0 | M | L-02 (L-17 soft) | 2 | — |
+| L-10 | Price book, model guard and estimator | B | P0 | M | L-09, D-03 | 2 | `billing_price_book` |
+| L-11 | Engine integration: holds, captures, refunds | B | P0 | L | L-09, L-10 | 3 | `billing_engine_hooks` |
+| L-21 | Prospect snapshot and ops growth v2 | A+ | P0 | M | L-02 | 3 | `evals_prospect_snapshots` |
+| L-12 | Stripe top-ups, auto-recharge and webhooks | B | P0 | L | L-09, L-01, D-01, D-04, D-05 | 3 | `billing_payments` |
+| L-13 | Invoicing and IVA | B | P0 | M | L-12, D-04 | 4 | `billing_invoices` |
+| L-14 | Plans and limits v2, upgrade moments | B | P0 | M | L-09, L-12, D-08 | 4 | `evals_plans_v2` |
+| L-15 | Billing and usage screens, run estimate dialog | B | P0 | L | L-10, L-11, L-12, L-14 | 5 | — |
+| L-16 | Ops billing console and reconciliation | B | P0 | M | L-09, L-10, L-12, L-13 | 5 | `billing_approvals` (small) |
+| L-17 | Report v2 and share page | C (pre-launch) | P0 | L | L-02, L-04 | 5 | — |
+| L-29 | AI-disclosure check (Art. 50 evidence) | C (pre-launch) | P1 | S | L-03 (L-17 soft) | 5 | — |
+| L-30 | Public site refresh, DPA acceptance UI | C (pre-launch) | P1 | M | L-01, L-04 (L-20 soft) | 5 | — |
+| L-18 | Schedules, re-run and compare, regression alerts | C | P1 | M | L-11, L-14, L-15, L-07 | 6 | `evals_schedule_credits` (small) |
+| L-19 | Integrations: CI trigger, Slack/Teams/email | C | P1 | M | L-11, L-18 | 6 | `evals_integrations_v2` |
+| L-20 | Help centre, API reference, methodology page | C | P1 | M | — (L-15, L-19 soft) | 6 | — |
+| L-22 | Workspace home, systems health, faster review | C | P1 | L | L-06 | 6 | — |
+| L-23 | EN/ES parity guard and sweep | C | P0 | S | L-07, L-17 | 6 | — |
+| L-24 | Accessibility and performance budgets | C | P1 | M | L-04, L-15, L-17 | 6 | `perf_indexes` (if needed) |
+| L-34 | Better document intake | C | P1 | L | L-06, L-14 (L-11 soft) | 6 | `evals_intake_v2` |
+| L-35 | Readout (presentation) mode | C | P1 | M | L-17 (L-33 soft) | 6 | `evals_readout_decks` |
+| L-25 | Sector packs v1 and monthly new questions | C | P1 | L | L-22, expert capacity | 7 | `evals_sector_packs` |
+| L-26 | Expert review: request to reviewed report | C | P1 | L | L-17, Stage E release check | 7 | `evals_review_orders` |
+| L-27 | Bring your own provider key | C | P1 | M | L-11, L-15, D-11 | 7 | `billing_byok` |
+| L-28 | Partner workspaces and referral codes | C | P1 | L | L-02, L-14, L-17 | 7 | `evals_partners` |
+| L-31 | Opt-in public results page, anonymous index | later | P2 | M | L-17, L-21, D-16 | 8 | `evals_publication_consent` |
+| L-32 | Data controls: retention and export | later | P2 | M | — | 8 | `evals_retention_setting` |
+| L-36 | "Pregunta a tu informe" (Ask your report) | later | P2 | M | L-11, L-17, L-33 | 8 | `evals_report_questions` |
+
+### 8.2 Critical path to launch
+
+The longest chain runs through billing: **L-09 → L-10 → L-11 → L-15 → Gate B**. It is joined by **L-12 → L-14 → L-15** and **L-12 → L-13 → L-16 → Gate B**. Gate A's chain is short: **L-01 → L-04**, fed by L-02 and L-03. Everything in waves 6–8 comes after launch.
+
+```mermaid
+flowchart LR
+  L01[L-01 Trust] --> L04[L-04 Front door]
+  L02[L-02 Events] --> L04
+  L03[L-03 Demo capacity] --> L04
+  L01 --> L05[L-05 Direct sign-up]
+  L02 --> L06[L-06 Onboarding] --> L07[L-07 Emails]
+  L04 --> GA((Gate A))
+  L05 --> GA
+  L07 --> GA
+  L08[L-08 Observability] --> GA
+  L33[L-33 Example evaluation] --> GA
+  L09[L-09 Ledger] --> L10[L-10 Price book] --> L11[L-11 Engine hooks] --> L15[L-15 Billing UI]
+  L09 --> L12[L-12 Stripe]
+  L01 --> L12
+  L12 --> L14[L-14 Plans v2] --> L15
+  L12 --> L13[L-13 Invoices] --> L16[L-16 Ops billing]
+  L15 --> GB((Gate B))
+  L16 --> GB
+  L04 --> L17[L-17 Report v2]
+  L17 --> LA((Public launch))
+  L29[L-29 AI disclosure] --> LA
+  L30[L-30 Site refresh] --> LA
+  GB --> LA
+  L02 --> L21[L-21 Prospect snapshot] --> LA
+```
+
+**Build order (D-15: no dates, build everything).** Each phase begins when its dependencies are deployed. With 2–3 sessions in parallel, the phases overlap as the waves in §8.1 allow.
+
+| Phase (§7.9) | Packages |
+| --- | --- |
+| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 |
+| 2 · Open the funnel | L-04, L-05, L-06, L-07, L-10, L-33 → **Gate A** |
+| 3 · Billing build | L-11, L-21, L-12, then L-13, L-14 |
+| 4 · Take money | L-15, L-16, L-17 → **Gate B** |
+| 5 · Launch prep | L-29, L-30 → **public launch** |
+| 7 · Build the rest | L-18…L-28, L-31, L-32, L-34, L-35, L-36, in wave order |
+
+**When parallel capacity is short.** Everything still gets built, but these items move later within their phase:
+- auto-recharge (L-12)
+- the price-book UI (L-16; its API comes first)
+- L-29
+- L-30's contact-form changes
+
+The ledger, holds, Stripe, invoices and the estimate dialog never move later.
+
+### 8.3 Package details
+
+#### L-01 · Trust and legal pages, terms acceptance
+- **Goal:** Make the public site and sign-up legally complete for the evaluation product (G4; P-41; P-42 records).
+- **Scope:**
+  - Complete the legal notice with the entity data (D-01).
+  - Rewrite Terms of Service and Privacy in EN and ES, for the evaluation SaaS, the free plan and credits (D-05, D-10).
+  - New pages `/legal/dpa` (summary plus a downloadable template), `/legal/subprocessors` and `/legal/security`, with Spanish slugs (`/es/legal/encargo-de-tratamiento`, `/es/legal/subencargados`, `/es/legal/seguridad`). Add them to the footer, the sitemap and `llms.txt`.
+  - A Terms and Privacy checkbox at sign-up, recorded with the document version.
+  - Version constants in code, and a CI check that no `[placeholder]` remains.
+- **Out of scope:** the lawyer's review (you arrange it), cookie banner changes, checkout acceptance (L-12 reuses the table), the DPA click-through UI (L-30).
+- **Dependencies:** D-01 for the entity data. Drafting can start without it; publishing needs it.
+- **Files and areas:**
+  - `content/legal/{en,es}.json`, `app/[locale]/legal/*` (three new pages)
+  - `lib/i18n/routing.ts` (`TRANSLATED_PATHS`), `lib/sitemap-xml.ts`, the `llms.txt` handler, the landing footer under `components/landing/*`
+  - `components/evals/self-serve-signup.tsx`, `app/api/evals/v1/signup/route.ts`, `lib/evals/messages/{en,es}.ts`
+- **Migrations:** `evals_terms_acceptance`: an append-only table (user, workspace, document, version, accepted at, context, request id) and a `SECURITY DEFINER` function for recording.
+- **Acceptance criteria:**
+  - No placeholder text is left in `content/legal`, and CI fails on `[`-style placeholders.
+  - All legal pages exist in EN and ES with hreflang.
+  - Sign-up can't finish without the checkbox, and an acceptance row stores the version.
+  - The new pages are linked from the footer and the sitemap.
+  - `/security`, `/docs` and `/pricing` still return 404 (route gate unchanged).
+  - No "certify" or "compliant" claims anywhere.
+- **Tests and verification:**
+  - A legal-content unit test (completeness, parity) and route tests in `e2e/public-routes.spec.ts`.
+  - A sign-up API test (acceptance required) and a migration test on the disposable DB.
+  - A visual check at 390 and 1440 px, and a production `curl` of each page in both locales.
+- **Risks:** Text that hasn't been reviewed by a lawyer goes live. Mitigation: mark the version "pending review" internally, and Gate B can't pass without the review.
+- **Rollout / flag:** The content ships without a flag, because the current pages are already wrong. Enforced acceptance is behind `SIGNUP_TERMS_REQUIRED` (on after deploy).
+
+#### L-02 · Funnel events and growth dashboard v1
+- **Goal:** Measure the funnel end to end (G5; P-34 v1, P-50, P-51).
+- **Scope:**
+  - The event taxonomy in §4.20, minus billing events. State changes are emitted server-side. Views and clicks are emitted client-side after consent through `trackProductEvent`, with Umami mirroring them.
+  - Remove the legacy event names.
+  - Carry UTM, ref and partner attribution from the first visit through the demo run, sign-up and the first payment (the field is reserved for L-12).
+  - `/ops/growth` v1: weekly funnel, demo outcomes by reason (no personal data), new accounts with source and activation stage, an 8-week cohort table.
+- **Out of scope:** the CRM draft and snapshots (L-21), billing events (L-12), external BI.
+- **Dependencies:** none.
+- **Files and areas:**
+  - `lib/analytics/funnel-events.ts`, `lib/analytics/funnel-events-server.ts`, `app/(app)/api/analytics/track/route.ts`, `components/analytics/*`
+  - Emitters: `lib/demo/runner.ts`, `lib/demo/signup.ts`, `app/api/evals/v1/signup/route.ts`, `lib/evals/repositories/managed.ts`, `lib/evals/repositories/automatic-generation.ts`, `lib/evals/queue/run-status.ts`, the report and export routes
+  - New `app/(evaluation)/(authenticated)/ops/growth/page.tsx` and `components/evals/ops-growth.tsx`, plus the shell nav
+- **Migrations:** `analytics_event_dimensions` (only if needed): `org_id`, `run_id`, `source` columns and indexes on `product_analytics_event`.
+- **Acceptance criteria:**
+  - A scripted funnel run produces every non-billing event in §4.20.
+  - No email or raw IP is stored. No client event fires before consent.
+  - `/ops/growth` loads 8 weeks of data in under 2 s.
+  - The event list is documented in ARCHITECTURE.
+- **Tests and verification:**
+  - Payload sanitisation unit tests.
+  - A fixture-DB integration (demo → sign-up → evaluation) asserting the events.
+  - A consent test.
+  - Harness Playwright for `/ops/growth`.
+  - A production check that events arrive after a real demo.
+- **Risks:** Double counting between server and client. Mitigation: each event has exactly one source.
+- **Rollout / flag:** `ANALYTICS_EVENTS_V2`. The growth page is operator-only.
+
+#### L-03 · Demo queue, capacity and fallback model
+- **Goal:** No demo is lost to "busy" or to rate limits (G6; P-06).
+- **Scope:**
+  - A FIFO queue replaces the `busy` and `capacity` refusals, showing position and an ETA from recent durations.
+  - "Email me the report", with consent. The email is stored encrypted until it's sent, then deleted.
+  - A fallback chain from the DGX to one commercial model (default Gemini 3.1 Flash-Lite), under a daily cap `DEMO_FALLBACK_DAILY_EUR` (default €5), recording which model answered.
+  - Per-phase timeouts, failure events, a degraded-service notice, and a load-test script.
+- **Out of scope:** changing the 8-question format, new target kinds, the AI-disclosure check (L-29).
+- **Dependencies:** none. The event names are coordinated with L-02.
+- **Files and areas:**
+  - `lib/demo/{limits,runner,llm,model-settings,store,view}.ts`
+  - `app/(app)/api/demo/runs/route.ts`, `app/(app)/api/demo/challenge/route.ts`
+  - `components/demo/demo-page.tsx`, `components/demo/demo.css`, the `demo` messages in `lib/i18n/messages/{en,es}.json`
+  - `services/evals-browser/demo-worker.ts`
+  - `docs/ARCHITECTURE.md` (Public demo), `docs/TOOLS.md`
+- **Migrations:** `demo_queue`: on `demo.run`, add `queued_at`, `notify_email_ciphertext`, `notify_requested_at`, `model_used` and `fallback_cost_eur`; plus a new `demo.fallback_usage(day, eur)` table.
+- **Acceptance criteria:**
+  - With the DGX disabled, demos finish on the fallback until the cap, then queue with an honest message.
+  - A 30-demos-in-an-hour load test finishes at ≥ 90 %.
+  - Fallback spend never exceeds the cap, including under concurrency.
+  - No plaintext email remains after sending.
+  - EN/ES messages.
+- **Tests and verification:**
+  - Unit tests for queue ordering and cap accounting.
+  - Integration with a fake provider that simulates rate limits.
+  - Demo page states in Playwright.
+  - The load script run locally and against production at low volume.
+  - A production check that a real website demo succeeds through the fallback when it's forced.
+- **Risks:** The fallback sends public page text to a third-party model. Mitigation: disclose it in the demo privacy line and the Privacy policy (L-01), and keep the cap.
+- **Rollout / flag:** `DEMO_QUEUE_ENABLED`, `DEMO_FALLBACK_ENABLED`. Deploy the app and the browser image together.
+
+#### L-04 · Front door: demo linked, indexed, CTAs
+- **Goal:** The demo becomes the main way in (G1; P-05, P-07).
+- **Scope:**
+  - The header pill and hero CTA go to the demo; sector CTAs go to the demo; a "Sign in" link to the app.
+  - The demo page is indexed (`noIndex` removed), with metadata and an OG image, in the sitemap and `llms.txt`.
+  - The demo report's CTA order and "Send to a colleague" (one email, rate-limited, consent recorded).
+  - The app sign-in page links to `/workspace/start` (or the demo, if D-07 is (b)).
+  - Docs remove the "soft launch" wording.
+- **Out of scope:** the wider site refresh (L-30), new sector content.
+- **Dependencies:** L-01, L-02, L-03, D-07.
+- **Files and areas:**
+  - `lib/navigation/public-links.ts`, `components/landing/*`, `app/[locale]/demo/page.tsx`, new `app/[locale]/demo/opengraph-image.tsx`
+  - `lib/sitemap-xml.ts`, `llms.txt`
+  - `components/demo/demo-page.tsx`, new `app/(app)/api/demo/runs/[id]/share/route.ts`
+  - `components/evals/sign-in.tsx`, messages
+  - `docs/FRONTEND.md`, `docs/ARCHITECTURE.md`, and the relevant `AGENTS.md` line
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - The demo is one click from any public page in EN and ES.
+  - The crawler view (`curl -A "GPTBot/1.2"`) shows title, canonical and hreflang in `<head>`.
+  - The demo is listed in the sitemap and `llms.txt`.
+  - Share-to-colleague sends exactly one email and enforces its limit.
+  - Lighthouse budgets hold, and the funnel events fire.
+- **Tests and verification:**
+  - Public-route Playwright, SEO metadata tests, demo page contracts.
+  - `npm run seo:indexnow` after deploy.
+  - A production click-through in both locales.
+- **Risks:** A traffic spike before capacity is ready. Mitigation: L-03 lands first, and the alert from L-08 is in place.
+- **Rollout / flag:** `NEXT_PUBLIC_DEMO_PUBLIC` switches the CTAs and indexing together, so it can be reverted in one deploy.
+
+#### L-05 · Direct work-email sign-up
+- **Goal:** Anyone with a work email can open a free workspace (G2; P-03; D-07).
+- **Scope:**
+  - `/workspace/start` (EN/ES) and `POST /api/evals/v1/signup/request`, which reuse `evals.request_self_serve_signup` with no demo run, so the same link and enrolment apply.
+  - A blocklist of disposable and free-mail domains, held in config.
+  - One free workspace per registrable email domain. A second request is told to ask the existing owner for an invitation.
+  - Rate limits per hashed IP and per domain.
+  - Terms acceptance (L-01).
+  - Update the registration rule in `docs/evals/AGENTS.md` and `AGENTS.md`.
+- **Out of scope:** SSO or OAuth, changes to invitations.
+- **Dependencies:** L-01, D-07.
+- **Files and areas:**
+  - New `app/(evaluation)/workspace/start/page.tsx`, `components/evals/signup-start.tsx` and `app/api/evals/v1/signup/request/route.ts`
+  - `lib/demo/signup.ts` (generalised into `lib/evals/signup.ts`), `lib/security/rate-limit.ts`
+  - `proxy.ts` (path allowed on the app host), messages, docs
+- **Migrations:** `evals_signup_domains`: a `signup_source` column, a domain index, and a function-level check for one free workspace per domain.
+- **Acceptance criteria:**
+  - Free-mail addresses are refused with a helpful message.
+  - The domain rule holds.
+  - Links are single-use and expire after 2 days.
+  - Responses never reveal whether an account exists.
+  - The existing demo path is unchanged.
+- **Tests and verification:**
+  - API tests (blocklist, domain rule, limits, enumeration safety), DB tests, the harness flow.
+  - A production sign-up with a test domain, afterwards removed through the audited workspace deletion workflow.
+- **Risks:** Legitimate small businesses on Gmail are blocked. Mitigation: an ops exception list, plus the demo path stays open.
+- **Rollout / flag:** `SELF_SERVE_DIRECT_SIGNUP`.
+
+#### L-06 · First-run onboarding and activation
+- **Goal:** New accounts reach their first own report quickly (P-01, P-02, P-04).
+- **Scope:**
+  - After enrolment and the demo import, start the website source and generation automatically, up to the plan limit. It's idempotent and runs the connection check first.
+  - An onboarding checklist, persisted per workspace.
+  - Links to the example evaluation (L-33) from the checklist and empty states.
+  - The two-question welcome.
+  - "Get help" notifies the operators.
+  - A "what happens next" panel on the evaluation page.
+  - Harness fixtures.
+- **Out of scope:** emails (L-07), billing (L-15).
+- **Dependencies:** L-02.
+- **Files and areas:**
+  - `lib/demo/import.ts`, `lib/evals/repositories/automatic-generation.ts`, `app/api/evals/v1/signup/route.ts`
+  - `components/evals/{evaluation-detail,workspace-preparation,workspace-evaluations}.tsx`, new `components/evals/onboarding-checklist.tsx`
+  - `app/api/evals/v1/workspace/preferences/route.ts`, messages
+  - `e2e/evals/ui-harness.tsx`, `e2e/evals/ui.contract.ts`
+- **Migrations:** `evals_onboarding`: a workspace onboarding state (checklist and welcome answers).
+- **Acceptance criteria:**
+  - A new demo sign-up has a generation job within 60 s, and exactly one, even if retried.
+  - The checklist reflects real state.
+  - The example evaluation (L-33) is reachable from every empty state.
+  - Welcome answers appear in `/ops/growth`.
+  - After launch, ≥ 60 % reach "test set ready" within 30 minutes.
+- **Tests and verification:**
+  - A fixture-DB integration (sign-up → import → one job) with idempotency.
+  - Harness Playwright at 390, 768 and 1440 px.
+  - A production sign-up drill using a test domain.
+- **Risks:** Auto-starting on a broken site wastes DGX time. Mitigation: run the connection check first and cap the pages.
+- **Rollout / flag:** `ONBOARDING_AUTOSTART`.
+
+#### L-07 · Branded EN/ES emails and lifecycle sequence
+- **Goal:** Clear, branded, bilingual emails, and nudges that recover stalled accounts (P-37, P-38).
+- **Scope:**
+  - React-email templates in EN and ES for every transactional email, chosen by user locale, with render tests.
+  - A lifecycle job in the evals scheduler (D0, D1, D3, D7, first report, D21, D30) with deduplication and stop-on-conversion.
+  - Email preference categories and an unsubscribe link on non-essential mail.
+  - The transactional domain's SPF, DKIM and DMARC checked and documented.
+  - Billing email templates prepared here; L-12 triggers them.
+- **Out of scope:** the newsletter (Leads) and cold outreach (Warmbly).
+- **Dependencies:** L-02 (L-06 for states).
+- **Files and areas:**
+  - `emails/*.tsx`, `lib/evals/operations/notifications.ts`, `lib/demo/signup.ts`, `lib/auth/better-auth-options.ts` (reset email)
+  - The scheduler service job, alongside `lib/evals/monitoring/*`
+  - The notifications tab in `components/evals/workspace-settings.tsx`, messages
+- **Migrations:** `evals_lifecycle_email`: one row per (user, step), plus preference columns.
+- **Acceptance criteria:**
+  - Every template renders in both languages.
+  - Each lifecycle step sends at most once and stops after conversion.
+  - Unsubscribe works.
+  - DMARC alignment passes on the transactional domain.
+- **Tests and verification:**
+  - Template snapshot tests.
+  - Scheduler tests (DST, deduplication) with a fake sender.
+  - A production send to an internal address in each language.
+- **Risks:** Spam complaints hurt the transactional domain. Mitigation: low volume, a clear unsubscribe, and essential and lifecycle mail kept apart.
+- **Rollout / flag:** `LIFECYCLE_EMAILS_ENABLED`. D0–D7 first.
+
+#### L-08 · Observability, alerting and admin MFA
+- **Goal:** See and fix problems before customers do, and secure admin accounts (P-43, P-48).
+- **Scope:**
+  - Sentry DSN mounted for web and workers (`npm run observability:configure-sentry`), with release tags and no personal data.
+  - External uptime checks on the landing page, the demo API, app sign-in and a webhook health endpoint (provider to choose: a hosted uptime service or Cloudflare health checks).
+  - App alerts through the existing host alert timer: demo failure rate, queue age, DGX down, disk, and holds older than 24 h once L-11 lands.
+  - TOTP required for platform admin and operator roles, and recent sign-in for sensitive actions.
+  - Runbooks.
+- **Out of scope:** reviving the full Grafana/Loki stack (optional), MFA for customers.
+- **Dependencies:** none.
+- **Files and areas:**
+  - `sentry.*.config.ts`, `lib/observability/*`, `infra/app-stack.yml`, `infra/evals/production-stack.yml`
+  - `scripts/{configure-sentry-runtime,host-health-alerts,install-evals-host-jobs}.sh`
+  - `lib/auth/better-auth-options.ts`, `lib/evals/domain/identity.ts`, `components/evals/reauth.tsx`
+  - `docs/evals/runbooks.md`, `docs/TOOLS.md`, `docs/VPS_RUNTIME.md`
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - A test error appears in Sentry within a minute, with no personal data.
+  - A simulated outage alerts within 2 minutes.
+  - Each new alert fires once in a drill and links to its runbook.
+  - Operators without TOTP must enrol at their next sign-in.
+- **Tests and verification:**
+  - `npm run observability:sentry-status -- --fail-on-disabled`.
+  - Documented drills.
+  - MFA enforcement auth tests.
+- **Risks:** Locking out operators. Mitigation: recovery codes, and enforcement switched on only after everyone has enrolled.
+- **Rollout / flag:** Sentry on immediately. `EVALS_ADMIN_MFA_REQUIRED` after enrolment.
+
+#### L-09 · Billing core: credit ledger
+- **Goal:** An append-only, idempotent credit ledger for every other billing package to build on (§6.9).
+- **Scope:**
+  - The `billing` schema: accounts, lots, entries, holds.
+  - Functions: grant, hold, capture, release, charge_action, adjust, expire_due, verify_account.
+  - RLS, and grants to the runtime and worker roles.
+  - Account backfill (`billing_mode` from plan).
+  - Typed wrappers in `lib/billing/ledger.ts`.
+  - A nightly verifier job, and the flag plumbing.
+- **Out of scope:** prices (L-10), engine hooks (L-11), Stripe (L-12), UI (L-15, L-16).
+- **Dependencies:** D-02. The expiry defaults (D-10) are configurable.
+- **Files and areas:**
+  - `db/migrations/<n>_billing_core.sql`, `db/rollbacks/<n>_billing_core_down.sql`, `scripts/evals/migrate.ts`, `scripts/evals/test-db.sh` (grants)
+  - `lib/billing/{ledger,units}.ts`, `tests/billing/ledger-db.test.ts`
+  - The verifier job in the worker or scheduler service, and `docs/ARCHITECTURE.md` (a billing section)
+- **Migrations:** `billing_core` (§6.16).
+- **Acceptance criteria:**
+  - The invariants hold under concurrency: 20 parallel holds and captures per account, property tests.
+  - Replays are idempotent, and mismatched replays raise `IDEMPOTENCY_CONFLICT`.
+  - UPDATE and DELETE on entries are rejected.
+  - Runtime roles can't write tables directly.
+  - The verifier reports zero drift.
+  - The rollback refuses to run when rows exist.
+- **Tests and verification:**
+  - DB tests on the disposable Postgres (lock order with the existing budget locks, cross-tenant RLS attempts).
+  - Unit tests for µcr maths.
+  - A production migration followed by the verifier.
+- **Risks:** Deadlocks with the existing budget locks. Mitigation: the documented lock order plus concurrency tests.
+- **Rollout / flag:** Deployed dark with `BILLING_CREDITS_ENABLED=false`. Accounts start at zero.
+
+#### L-10 · Price book, model guard and estimator
+- **Goal:** Versioned credit prices and honest run estimates (§6.4, §6.7; P-16 backend; G9).
+- **Scope:**
+  - Price-book tables and the revision workflow, with revision 1 seeded from §6.4, plus action rates.
+  - A weekly provider-price check script that produces a diff report.
+  - A monthly FX update.
+  - A guard: a €0-priced model can't be activated for customer routes unless it's flagged `free_model`.
+  - The estimator (60-day medians with seeded defaults) behind `POST /api/evals/v1/billing/estimates`.
+  - Admin price-book API endpoints.
+  - A €0-price warning in Providers & models.
+- **Out of scope:** enforcement (L-11), customer UI (L-15), the price-book UI (L-16).
+- **Dependencies:** L-09, D-03.
+- **Files and areas:**
+  - `db/migrations/<n>_billing_price_book.sql`, `lib/billing/{price-book,estimate}.ts`
+  - `app/api/evals/v1/billing/estimates/route.ts`, `app/api/evals/v1/billing/admin/price-book/*`
+  - `scripts/billing/check-provider-prices.ts`
+  - `lib/evals/repositories/engine-settings.ts`, `components/evals/engine-settings.tsx`
+- **Migrations:** `billing_price_book`.
+- **Acceptance criteria:**
+  - A backtest on read-only production aggregates puts estimates within ±25 % on ≥ 80 % of historical runs.
+  - The €0 guard blocks activating a paid model.
+  - Active revisions are immutable.
+  - Scheduled revisions activate on time.
+- **Tests and verification:** Unit tests for rounding and multipliers, the backtest script, role tests for the API, DB immutability tests.
+- **Risks:** Stale provider prices. Mitigation: the weekly check with alerts.
+- **Rollout / flag:** `BILLING_ESTIMATES_ENABLED`, operators first.
+
+#### L-11 · Engine integration: holds, captures, refunds
+- **Goal:** Credits are held, captured and released on the real execution path (§6.8; G8; P-49).
+- **Scope:**
+  - Freeze `price_book_revision_id` next to `model_routes` on runs and generation jobs.
+  - Hold in `InvocationWorker.claim()` after `reserve()`.
+  - Capture on success.
+  - Release in `finishFailure`, on cancel and in `recover()`.
+  - Platform action charges when an observation, grade or source is finalized.
+  - Pause with `credits_exhausted` and resume.
+  - The run-refund reconciler, and release of unknown holds after 24 h.
+  - The monthly window for the workspace euro budget.
+  - Shadow mode and metrics.
+- **Out of scope:** payments, and UI beyond the new status labels.
+- **Dependencies:** L-09, L-10.
+- **Files and areas:**
+  - `lib/evals/queue/{worker,target-worker,browser-worker,target-ledger,run-status}.ts`, `lib/evals/budget/ledger.ts`
+  - `lib/evals/repositories/{model-routes,run-capacity,automatic-generation,stage-c}.ts`
+  - The `STATUS` table in `components/evals/primitives.tsx`, `components/evals/evaluation-stage.ts`, messages
+  - `services/evals-worker/*`, `tests/evals/billing-engine-*.test.ts`
+- **Migrations:** `billing_engine_hooks`.
+- **Acceptance criteria:**
+  - On fixture runs, captured credits equal rate × actual usage plus actions, exactly.
+  - Failed, cancelled and unknown calls are charged 0.
+  - Killing the worker before or after dispatch never double-charges; every hold ends captured or released exactly once.
+  - Concurrent runs can't push `available` below 0.
+  - The shadow-mode report matches enforce-mode maths.
+  - The euro budget doesn't accumulate across months (frozen-clock test).
+- **Tests and verification:**
+  - DB integration with fake providers (success, failure, timeout, unknown).
+  - Crash tests that kill the worker between steps.
+  - Concurrency tests.
+  - The existing Stage A–E suites stay green.
+  - A production shadow week with a daily diff report.
+- **Risks:** **Highest-risk package**, because it touches the hot path. Mitigations: a week in shadow mode, the flag, workers and web deployed as one release unit, and turning the flag off as the rollback.
+- **Rollout / flag:** `BILLING_CREDITS_ENABLED=true` with `BILLING_ENFORCE=shadow` for one week, then `enforce` for internal workspaces. Rebuild the evals images.
+
+#### L-12 · Stripe top-ups, auto-recharge and webhooks
+- **Goal:** Customers can buy credits safely (§6.6, §6.14).
+- **Scope:**
+  - A billing profile with VIES checks.
+  - A Checkout session per pack with VAT treatment, tax ID collection and terms acceptance; success and cancel pages.
+  - A signed webhook endpoint, idempotent through `billing.stripe_event`. A purchase becomes lots and ledger entries.
+  - The first-top-up bonus.
+  - A receipt email (template from L-07).
+  - A Customer Portal session.
+  - Auto-recharge (off-session charge with failure handling).
+  - Refunds within policy, dispute freezes, purchase limits.
+  - The `test` / `live` mode switch.
+- **Out of scope:** invoices (L-13), full billing screens (L-15), the ops console (L-16).
+- **Dependencies:** L-09, L-01. D-01 for live mode, D-04, D-05.
+- **Files and areas:**
+  - `lib/billing/{stripe,tax}.ts`
+  - `app/api/evals/v1/billing/{packs,top-ups,top-ups/[id],profile,portal,auto-recharge}/route.ts`, `app/api/evals/v1/billing/stripe/webhook/route.ts`
+  - `proxy.ts` (webhook path on the app host, no session), the CSP in `next.config.js`
+  - The auto-recharge job, emails, `docs/TOOLS.md`, `docs/ARCHITECTURE.md`
+- **Migrations:** `billing_payments`.
+- **Acceptance criteria:**
+  - A test-mode purchase makes credits available within 60 s.
+  - Replaying one event 5× produces one purchase. Out-of-order events are handled.
+  - A failed payment adds no credits.
+  - An untouched lot refunded within 14 days produces a ledger refund and a Stripe refund.
+  - A dispute freezes the account.
+  - VAT treatment is right for the ES, EU-with-VIES and non-EU cases.
+  - Auto-recharge fires once per threshold crossing and respects its monthly cap.
+  - Card data never touches our servers.
+- **Tests and verification:**
+  - Stripe CLI (`stripe listen` / `stripe trigger`) against a local server.
+  - Unit tests for the tax cases, DB idempotency tests.
+  - Playwright for the Checkout redirect in test mode.
+  - At Gate B, you make one live €20 purchase.
+- **Risks:**
+  - Webhook secret misconfiguration. Mitigation: a health check and an alert.
+  - VIES downtime. Mitigation: retry, then manual review.
+  - The entity isn't ready. Mitigation: stay in `test` mode.
+- **Rollout / flag:** `BILLING_STRIPE_MODE=test`, then `live` at Gate B.
+
+#### L-13 · Invoicing and IVA
+- **Goal:** Every paid order gets a valid Spanish invoice, and every refund a rectifying invoice (§6.14).
+- **Scope:**
+  - An invoicing-service adapter chosen under D-04: customer sync, an invoice on `top_up_paid`, a rectifying invoice on refund, PDF retrieval.
+  - A "manual" fallback adapter.
+  - A retry queue.
+  - A monthly accountant export.
+- **Out of scope:** exchanging e-invoices under the B2B mandate beyond what the provider handles, and automating subscription invoices.
+- **Dependencies:** L-12, D-04, with the vendor chosen together with your gestor.
+- **Files and areas:**
+  - `lib/billing/invoicing/{index,<provider>,manual}.ts`, `app/api/evals/v1/billing/invoices/*`
+  - The invoice job, `scripts/billing/monthly-export.ts`, `docs/TOOLS.md`
+- **Migrations:** `billing_invoices`.
+- **Acceptance criteria:**
+  - Each paid order gets exactly one invoice, with the right series, NIFs and VAT lines or mention.
+  - A refund produces a rectifying invoice that references the original.
+  - Owners can download PDFs.
+  - A provider outage queues and retries, and alerts after an hour.
+  - The monthly export reconciles to Stripe payouts.
+- **Tests and verification:** Adapter contract tests against the provider sandbox, idempotency tests, the three tax cases, and one production invoice for the founder's €20 purchase.
+- **Risks:** The vendor doesn't fit Verifactu. Mitigation: the selection criteria and the manual fallback.
+- **Rollout / flag:** `BILLING_INVOICING_PROVIDER=<name>|manual`.
+
+#### L-14 · Plans and limits v2, upgrade moments
+- **Goal:** A clear progression from free to pay-as-you-go to managed (§6.5; P-09).
+- **Scope:**
+  - `plan` gains `payg` and `partner`, with the PAYG limits.
+  - Free switches to PAYG atomically on the first purchase.
+  - The monthly allowance job (idempotent, expiring at month end).
+  - The first-top-up bonus rule.
+  - Typed `PLAN_LIMIT_*` errors with localized upgrade dialogs.
+  - New copy on the disabled connection cards.
+  - A plan-summary API.
+- **Out of scope:** billing screens (L-15), partner features (L-28).
+- **Dependencies:** L-09, L-12, D-08.
+- **Files and areas:**
+  - `db/migrations/<n>_evals_plans_v2.sql`, `lib/evals/repositories/stage-c.ts`, `lib/evals/domain/errors.ts`
+  - `components/evals/workspace-evaluations.tsx`, new `components/evals/limit-dialog.tsx`
+  - `lib/billing/allowance.ts`, the scheduler job, messages
+- **Migrations:** `evals_plans_v2`.
+- **Acceptance criteria:**
+  - Every limit shows the right dialog in EN and ES.
+  - The first purchase raises limits atomically.
+  - The allowance is granted once per month per workspace.
+  - Managed workspaces are unchanged.
+- **Tests and verification:** Trigger tests per plan, job idempotency tests, dialogs in harness Playwright, and a production check on an internal free workspace.
+- **Risks:** Trigger changes block managed flows. Mitigation: managed fixtures stay in the test suite.
+- **Rollout / flag:** `PLANS_V2_ENABLED`, switched on at Gate B.
+
+#### L-15 · Billing and usage screens, run estimate dialog
+- **Goal:** Customers understand and control their spend (§6.12; P-13, P-16).
+- **Scope:**
+  - The Settings → Billing and usage tabs.
+  - The sidebar plan and balance pill.
+  - The run estimate dialog with gating.
+  - The paused-for-credits state, with top-up and resume.
+  - The low-balance banner.
+  - Credit rates in the model picker.
+  - Billing notices in the notification centre.
+  - Harness fixtures and contracts, in EN and ES.
+- **Out of scope:** the ops console (L-16).
+- **Dependencies:** L-10, L-11, L-12, L-14. The Invoices tab stays hidden until L-13 lands.
+- **Files and areas:**
+  - New `components/evals/workspace-billing.tsx` and `components/evals/run-estimate-dialog.tsx`
+  - `components/evals/{workspace-settings,shell-frame,evaluation-detail,evaluation-models,notification-center,primitives}.tsx`
+  - `app/api/evals/v1/billing/{summary,usage,ledger,caps}/route.ts`
+  - `e2e/evals/ui-harness.tsx`, `e2e/evals/ui.contract.ts`, `docs/DESIGN.md`, `docs/FRONTEND.md`
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - An owner can top up from Settings and from a paused run.
+  - The estimate dialog shows p50–p90 and blocks when credits are short.
+  - The balance updates after purchase without a reload.
+  - Viewers see no billing.
+  - axe reports 0 serious issues, and layouts hold at 390, 768 and 1440 px.
+  - Every number matches the ledger.
+- **Tests and verification:** Harness Playwright, API role tests, and a production walk-through with an internal workspace on live mode at Gate B.
+- **Risks:** Confusing numbers. Mitigation: a copy review and examples in the help article.
+- **Rollout / flag:** `BILLING_CREDITS_ENABLED`, design partners first.
+
+#### L-16 · Ops billing console and reconciliation
+- **Goal:** Ops can grant, refund and adjust, and prove the books balance (§6.13; P-49).
+- **Scope:**
+  - `/ops/platform/billing`: account search, account view, and grant / adjust / refund / freeze / extend actions, each with a reason and a two-person approval above the threshold.
+  - The price-book UI (draft, schedule, activate, with a margin preview).
+  - The daily reconciliation job and report.
+  - The monthly export.
+  - The fraud queue.
+  - Credits added to the usage page.
+- **Out of scope:** automated accounting integration.
+- **Dependencies:** L-09, L-10, L-12, L-13.
+- **Files and areas:**
+  - `app/(evaluation)/(authenticated)/ops/platform/billing/page.tsx`, new `components/evals/ops-billing.tsx`, `components/evals/platform-console.tsx`
+  - `app/api/evals/v1/billing/admin/*`, `lib/billing/reconcile.ts`
+  - The scheduler job, and a billing runbook in `docs/evals/runbooks.md`
+- **Migrations:** `billing_approvals` (pending two-person approvals).
+- **Acceptance criteria:**
+  - Every action writes the correct ledger entry and an audit event.
+  - Large actions need a second admin.
+  - Reconciliation flags injected discrepancies and shows zero drift on clean data.
+  - The notice rules are enforced.
+- **Tests and verification:** API tests with recent-auth checks, reconciliation fixtures, harness contracts. **Gate B needs three consecutive clean reconciliation days.**
+- **Risks:** Misuse of privileged actions. Mitigation: the two-person rule, audit, recent sign-in.
+- **Rollout / flag:** Operator-only.
+
+#### L-17 · Report v2 and share page
+- **Goal:** Reports convince business owners and the people they share them with (P-11, P-18, P-20, P-21, P-22, P-54).
+- **Scope:**
+  - The executive summary block, built from structured metrics only.
+  - A CTA row: share, download, book a readout, and "request expert review" (a link until L-26).
+  - "Fix these first", with CSV and Markdown export.
+  - A share page with a "what this is" header and a demo CTA carrying a referral code.
+  - Open counts and expiry presets.
+  - PDF and Word: a cover, with the summary first.
+  - The vendor fix-list share (P2, optional).
+  - EN/ES throughout.
+- **Out of scope:** grading logic, comparisons (L-18).
+- **Dependencies:** L-02, L-04.
+- **Files and areas:**
+  - `components/evals/{report-view,report-actions}.tsx`, `app/(evaluation)/share/page.tsx`, `app/api/evals/v1/share/*`
+  - `lib/evals/reports/*` (snapshot fields, `docx.ts`, PDF template, `i18n.ts`)
+  - Messages and harness fixtures
+- **Migrations:** none. Open counts come from `share_access_event`.
+- **Acceptance criteria:**
+  - The summary's numbers equal the metrics in web, PDF and Word (automated check).
+  - No sentence lacks result ids behind it.
+  - The referral from the share page is tracked.
+  - The owner sees open counts.
+  - Three fixture PDFs pass a visual check with no clipping.
+- **Tests and verification:** Report snapshot tests, a cross-format consistency test, harness and share-page Playwright, PDF render checks, and a production check on an internal report.
+- **Risks:** Overclaiming in the summary. Mitigation: templates fed only by metrics, and labelled hypotheses.
+- **Rollout / flag:** Additive, no flag. Deploy the app and the documents worker image.
+
+#### L-18 · Schedules, re-run and compare, regression alerts
+- **Goal:** Monthly monitoring for PAYG and managed customers (P-19, P-24, P-25).
+- **Scope:**
+  - Schedules allowed on PAYG, with an estimate and caps; a scheduled run is skipped with an alert when credits are short.
+  - One-click "Run again".
+  - The comparison opens on its own after the second run.
+  - A regression summary by email and in the app, with Slack and Teams through L-19.
+  - EN/ES.
+- **Out of scope:** monthly new questions (L-25), the CI API (L-19).
+- **Dependencies:** L-11, L-14, L-15, L-07.
+- **Files and areas:**
+  - `lib/evals/monitoring/{schedules,alerts}.ts`, `components/evals/{workspace-monitoring,evaluation-detail,report-view}.tsx`
+  - `app/api/evals/v1/{schedules,comparisons}/*`, emails
+- **Migrations:** `evals_schedule_credits` (small): a per-schedule credit cap.
+- **Acceptance criteria:**
+  - A PAYG owner can create a monthly schedule, and its runs charge credits correctly.
+  - When credits are short, the run is skipped and an alert goes out.
+  - The comparison opens after the second run.
+  - The regression email lists newly broken questions.
+  - No regression alert is sent when the runs aren't comparable.
+- **Tests and verification:** Scheduler tests (DST, catch-up), billing integration tests, Playwright, and one production monthly schedule on an internal workspace.
+- **Risks:** Unexpected spend. Mitigation: the estimate, caps and alerts.
+- **Rollout / flag:** Through PAYG `can_schedule` from plans v2.
+
+#### L-19 · Integrations: CI trigger, Slack/Teams/email destinations
+- **Goal:** Fit Caudals into release pipelines and team chat (P-25, P-27, P-28).
+- **Scope:**
+  - A `runs:write` token scope, an idempotent run-start endpoint and a gate endpoint, with thresholds set on the test set or schedule.
+  - A GitHub Action example.
+  - Destination types (Slack and Teams formatters, email, signed webhook) with test-send.
+  - Egress validation on every destination.
+- **Out of scope:** Zapier and Make apps, inbound integrations.
+- **Dependencies:** L-11, L-18.
+- **Files and areas:**
+  - `lib/evals/monitoring/{tokens,webhooks,webhook-protocol}.ts`, `app/api/evals/v1/integrations/*`
+  - `components/evals/workspace-monitoring.tsx`, the CI example (in-app snippet)
+- **Migrations:** `evals_integrations_v2`: the token scope, destination type and threshold.
+- **Acceptance criteria:**
+  - Each idempotency key starts exactly one run.
+  - The gate returns pass, fail or unknown correctly on fixtures.
+  - Slack and Teams test messages render.
+  - Destinations reject private IP addresses.
+  - Tokens are scoped and expire.
+- **Tests and verification:** API tests (scopes, idempotency, rate limits), formatter snapshots, SSRF tests, and one production Slack test message to an internal channel.
+- **Risks:** Abuse of `runs:write`. Mitigation: caps, rate limits, short-lived tokens.
+- **Rollout / flag:** `INTEGRATIONS_V2_ENABLED`.
+
+#### L-20 · Help centre, API reference, methodology page
+- **Goal:** People can help themselves and trust the method (P-29, P-39, P-40).
+- **Scope:**
+  - 12 EN/ES help articles (Markdown in the repo), with search in the help panel and pages at `/workspace/help/[slug]`.
+  - Contextual help links.
+  - An API reference in the Developers tab.
+  - A public `/{locale}/methodology` page (Spanish slug `/es/metodologia`) in the sitemap and `llms.txt`.
+- **Out of scope:** videos, a public docs portal (`/docs` stays removed).
+- **Dependencies:** none hard. L-15 and L-19 for their articles.
+- **Files and areas:**
+  - `content/help/{en,es}/*.md`, `components/evals/help-panel.tsx`, `app/(evaluation)/(authenticated)/workspace/help/[slug]/page.tsx`
+  - `app/[locale]/methodology/page.tsx`, `lib/i18n/routing.ts`, `lib/sitemap-xml.ts`, `llms.txt`, messages
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - Every article exists in both languages with a review date.
+  - Search finds articles by keyword.
+  - The methodology page is linked from reports, the demo and the footer.
+  - `/docs` still returns 404.
+- **Tests and verification:** A content lint (front matter, parity), route tests, Playwright, and a production crawler-view check of the methodology page.
+- **Risks:** Docs drift. Mitigation: review dates and an owner per article.
+- **Rollout / flag:** No flag.
+
+#### L-21 · Prospect snapshot and ops growth v2
+- **Goal:** Make an evidence-first outreach a two-minute task (P-34 v2, P-35, P-36).
+- **Scope:**
+  - `/ops/prospects/new`: a chat URL and a help-centre URL produce a sandbox evaluation that follows the ordinary-question policy, with the testing basis recorded and a daily cap.
+  - A 30-day "external snapshot" share link.
+  - An EN/ES outreach summary for the operator to edit.
+  - "Create CRM draft", which hands off to Warmbly as a draft only.
+  - A Monday digest email.
+  - Growth view additions.
+- **Out of scope:** sending anything automatically; Hermes behaviour (the Leads repo).
+- **Dependencies:** L-02.
+- **Files and areas:**
+  - New `app/(evaluation)/(authenticated)/ops/prospects/*` and `components/evals/prospect-snapshot.tsx`
+  - `lib/evals/repositories/managed.ts`, `lib/evals/monitoring/crm.ts`, `app/api/evals/v1/crm-handoff-drafts/route.ts`
+  - The digest job, messages
+- **Migrations:** `evals_prospect_snapshots`: target host, basis, creator, share, expiry.
+- **Acceptance criteria:**
+  - A snapshot takes ≤ 2 minutes of operator input.
+  - The policy checks block any adversarial pack.
+  - Traffic limits apply.
+  - The link is labelled and expires after 30 days.
+  - A CRM draft is created only on click.
+  - The digest arrives on Monday at 08:00 Madrid time with correct numbers.
+- **Tests and verification:** Policy tests, cap tests, share-expiry tests, digest content tests, and one production snapshot of our own sample assistant.
+- **Risks:** Reputational or legal risk from testing third parties. Mitigation: policy enforcement, limits, the basis log, and no public naming.
+- **Rollout / flag:** Operator-only.
+
+#### L-22 · Workspace home, systems health, faster review, navigation
+- **Goal:** The workspace tells customers what to do next (P-12, P-14, P-15, P-17).
+- **Scope:**
+  - A Home page and a sidebar entry.
+  - Health columns and "Check now" on Systems.
+  - A spot-check review, bulk actions and shortcuts for test sets.
+  - Wider ⌘K coverage and better breadcrumbs.
+  - Harness fixtures.
+- **Out of scope:** the billing pill (L-15).
+- **Dependencies:** L-06.
+- **Files and areas:**
+  - New `app/(evaluation)/(authenticated)/workspace/home/page.tsx` and `components/evals/workspace-home.tsx`
+  - `components/evals/{shell-frame,workspace-systems,workspace-test-sets,preparation-parts,command-palette}.tsx`
+  - `app/api/evals/v1/workspace/summary/route.ts`, messages, the harness
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - Home loads at p75 < 1 s on fixtures.
+  - Its "needs action" items match the stage projection.
+  - "Check now" runs a bounded probe.
+  - Spot-check approvals are attributed.
+  - Shortcuts are documented.
+  - axe is clean.
+- **Tests and verification:** Harness Playwright, API tests, and a production walk-through.
+- **Risks:** Scope creep. Mitigation: build only the listed items.
+- **Rollout / flag:** `WORKSPACE_HOME_ENABLED` switches the default landing page.
+
+#### L-23 · EN/ES parity guard and sweep
+- **Goal:** No English leaks into Spanish screens, or the other way round (P-45; G10).
+- **Scope:**
+  - A lint rule against string literals in labels under `components/evals` and `components/demo`, with an allowlist.
+  - Fix the offenders (`evaluation-stage.ts` setup labels, the expert tabs, and so on).
+  - Email, PDF and legal parity checks in CI.
+  - A native-speaker review checklist.
+- **Out of scope:** new languages.
+- **Dependencies:** L-07, L-17. Work on the app can start earlier.
+- **Files and areas:** `eslint.config.mjs`, `components/evals/evaluation-stage.ts`, `components/evals/expert-*.tsx`, `lib/evals/messages/*`, `scripts/check-i18n-parity.ts`, `.github/workflows/ci.yml`.
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - Lint passes with only allowlisted exceptions.
+  - Parity CI is green.
+  - The Spanish review of 10 screens is recorded.
+- **Tests and verification:** Lint and parity in CI, then a Spanish production walk-through.
+- **Risks:** False positives. Mitigation: the allowlist.
+- **Rollout / flag:** A CI gate.
+
+#### L-24 · Accessibility and performance budgets
+- **Goal:** Core flows meet WCAG 2.2 AA and stay fast (P-46, P-47).
+- **Scope:**
+  - axe in Playwright for the listed screens, and fixes.
+  - A keyboard-only funnel test.
+  - Lighthouse CI budgets for landing, demo and sign-up.
+  - API p95 measured from logs.
+  - Indexes where needed.
+- **Out of scope:** an audit of every page on the site.
+- **Dependencies:** L-04, L-15, L-17.
+- **Files and areas:** `e2e/**`, `lighthouserc.js`, `.github/workflows/ci.yml`, component fixes, an index migration if needed.
+- **Migrations:** `perf_indexes`, only if needed.
+- **Acceptance criteria:**
+  - 0 serious or critical axe issues.
+  - Mobile LCP < 2.5 s on landing and demo.
+  - TBT < 200 ms.
+  - p95 reads < 500 ms on three endpoints.
+- **Tests and verification:** CI, plus a production Lighthouse run.
+- **Risks:** Flaky performance tests. Mitigation: budgets with margin and a stable runner.
+- **Rollout / flag:** CI gates.
+
+#### L-25 · Sector packs v1 and monthly new questions
+- **Goal:** Start the compounding asset (P-26, P-30, P-31).
+- **Scope:**
+  - A pack model, reusing domain packs where they fit, with an authoring flow (draft, review, publish).
+  - Import and validation for two packs: ICP-1 (fiscal, accounting and payroll) and insurance. Experts write the content.
+  - "Add N sector questions" suggested in the Prepare step.
+  - A monthly job that proposes questions for changed source pages.
+- **Out of scope:** licensing packs to third parties, or reusing customer data.
+- **Dependencies:** L-22, and expert capacity (P-33).
+- **Files and areas:** `app/api/evals/v1/domain-packs/route.ts`, `components/evals/{operator-library,workspace-preparation}.tsx`, `lib/evals/generation/*`, a scheduler job.
+- **Migrations:** `evals_sector_packs`: pack items with sector, rights, reviewer and version.
+- **Acceptance criteria:**
+  - Published packs are immutable.
+  - Adding pack items creates a new test-set version with `sector_generic` provenance.
+  - A constraint stops customer-specific items from entering packs.
+  - The monthly job proposes candidates.
+- **Tests and verification:** DB constraint tests, generation fixtures, and a production pack import in an internal workspace.
+- **Risks:** Content quality and rights. Mitigation: expert review and the rights fields.
+- **Rollout / flag:** `SECTOR_PACKS_ENABLED`.
+
+#### L-26 · Expert review: request to reviewed report
+- **Goal:** Sell and deliver expert review inside the product (P-10, P-32, P-33).
+- **Scope:**
+  - The request button and form, which create an ops task, a CRM draft and an email.
+  - Converting a request into an order.
+  - Assignments with redacted excerpts.
+  - A reviewed report revision with its label, and notifications.
+  - The expert onboarding checklist.
+  - SLA tracking.
+  - Localized expert screens.
+- **Out of scope:** automated payouts, an open marketplace.
+- **Dependencies:** L-17, and the Stage E release check (`npm run evals:release-check-stage-e`) with `EVALS_EXPERT_WORK_ENABLED=true`.
+- **Files and areas:** `components/evals/{report-actions,expert-management,expert-workbench}.tsx`, `app/api/evals/v1/expert-assignments/*`, `lib/evals/experts/*`, `lib/evals/reports/*`.
+- **Migrations:** `evals_review_orders`.
+- **Acceptance criteria:**
+  - A request creates the task, the draft and the email.
+  - An order creates the assignments.
+  - The revision label shows the expert count and scope.
+  - Experts see only their redacted, assigned material (access tests).
+- **Tests and verification:** Stage E suites extended, access tests, and one internal end-to-end order in production.
+- **Risks:** Expert capacity, and access leaks. Mitigation: a manual SLA, and tests.
+- **Rollout / flag:** A flag plus the Stage E release check.
+
+#### L-27 · Bring your own provider key
+- **Goal:** Paid customers can run on their own model keys (§6.11).
+- **Scope:**
+  - Workspace-scoped provider connections (envelope-encrypted) with a validation probe.
+  - Per-workspace routing.
+  - No token charges on BYOK calls; platform fees still apply.
+  - A Settings → AI models UI for PAYG and managed owners.
+  - Audit and revocation.
+- **Out of scope:** Azure, Bedrock and custom gateways (later), the free plan.
+- **Dependencies:** L-11, L-15, D-11.
+- **Files and areas:** `lib/evals/repositories/engine-settings.ts`, `lib/evals/providers/*`, `lib/evals/security/secrets.ts`, `app/api/evals/v1/engine/connections/*`, `components/evals/engine-settings.tsx`.
+- **Migrations:** `billing_byok`.
+- **Acceptance criteria:**
+  - A key is used only by its own workspace and is never returned.
+  - Failures are clear, with no fallback to our keys.
+  - Token charges are 0 and platform fees are charged.
+- **Tests and verification:** Secret isolation tests, routing tests, billing tests, and one production run on a test key with a low limit.
+- **Risks:** Key leakage. Mitigation: worker-only decryption, and keys never in logs.
+- **Rollout / flag:** `BYOK_ENABLED`, design partners first.
+
+#### L-28 · Partner workspaces and referral codes
+- **Goal:** Integrators can sell Caudals and run it for their clients (P-52).
+- **Scope:**
+  - A partner account that manages client workspaces.
+  - Referral codes on demo and sign-up links, attributed through to payment.
+  - A partner dashboard (clients, activity, referred revenue).
+  - A white-label PDF logo.
+  - A partner allowance.
+  - A monthly statement export.
+- **Out of scope:** automated revenue-share payouts.
+- **Dependencies:** L-02, L-14, L-17.
+- **Files and areas:** `lib/evals/domain/identity.ts` (partner scope), new `app/(evaluation)/(authenticated)/partner/*`, `app/api/evals/v1/partners/*`, `lib/evals/reports/*` (logo).
+- **Migrations:** `evals_partners`.
+- **Acceptance criteria:**
+  - A partner sees only its own clients (RLS tests).
+  - Attribution survives through to payment.
+  - The statement export is correct.
+- **Tests and verification:** Tenant isolation tests, attribution tests, and the first partner onboarded by hand in production.
+- **Risks:** Cross-tenant exposure. Mitigation: RLS, audit and tests.
+- **Rollout / flag:** `PARTNERS_ENABLED`, first three partners only.
+
+#### L-29 · AI-disclosure check (Art. 50 evidence)
+- **Goal:** A timely, deterministic check in the demo and the product (P-08).
+- **Scope:**
+  - Inspect the greeting and first reply, and ask "Am I talking to a person?" in the run's language.
+  - Classify the result as Disclosed, Not disclosed or Unclear, using patterns plus the judge.
+  - Show it as evidence in the demo report and the product report. It never counts toward the 8-question score.
+  - Wording reviewed by a lawyer.
+- **Out of scope:** any other AI Act check.
+- **Dependencies:** L-03 (L-17 soft).
+- **Files and areas:** `lib/demo/{judge,runner,view}.ts`, `components/demo/demo-page.tsx`, `lib/evals/scoring/*`, `components/evals/report-view.tsx`, messages, `docs/evals/grading-engine.md`.
+- **Migrations:** none. The result is stored in `demo.run` jsonb and in run metadata.
+- **Acceptance criteria:**
+  - Fixture chats that do and don't disclose are classified correctly.
+  - "Unclear" is used when unsure.
+  - No "compliant" wording anywhere.
+  - EN/ES.
+- **Tests and verification:** Classifier unit tests, browser fixture chats, and one production demo against our own sample assistant.
+- **Risks:** Misclassification, legal wording. Mitigation: "Unclear" as the default and a legal review.
+- **Rollout / flag:** `AI_DISCLOSURE_CHECK`.
+
+#### L-30 · Public site refresh, DPA acceptance UI
+- **Goal:** The public site sells the self-serve path, and trust is one click away (§5.1; P-42 UI).
+- **Scope:**
+  - Landing steps and FAQ copy.
+  - Footer additions (Methodology, Trust, Sign in).
+  - Sector CTAs to the demo.
+  - A five-field contact form.
+  - An agenda on the call page.
+  - A CTA on the 404 page.
+  - Blog and Newsletter back in the navigation once their content is live.
+  - DPA click-through in Settings, recorded through L-01.
+- **Out of scope:** a visual redesign.
+- **Dependencies:** L-01, L-04 (L-20 soft, for the methodology link).
+- **Files and areas:**
+  - `components/landing/*`, `content/sectors/{en,es}.json`, `lib/navigation/public-links.ts`
+  - `app/[locale]/{contact,call}/*`, `lib/validators/evaluation-request.ts`, `app/[locale]/not-found.tsx`
+  - `components/evals/workspace-settings.tsx`, messages
+  - `docs/FRONTEND.md`, `docs/DESIGN.md` §13
+- **Migrations:** none.
+- **Acceptance criteria:**
+  - EN/ES parity.
+  - Lighthouse budgets hold.
+  - The contact form still writes `evaluation_request` and the related rows.
+  - DPA acceptance is recorded.
+  - Canonical and hreflang tests pass.
+- **Tests and verification:** Public-route Playwright, contact API tests, sector content tests, and a production check in both locales.
+- **Risks:** SEO regressions. Mitigation: the metadata tests.
+- **Rollout / flag:** No flag.
+
+#### L-31 · Opt-in public results page, anonymous sector index (P2)
+- **Goal:** Earned visibility without naming anyone negatively (P-23, P-53; D-16).
+- **Scope:**
+  - A consent record and public results pages.
+  - A quarterly index built from anonymised aggregates, with a minimum cohort of 10 per sector.
+- **Out of scope:** named leaderboards.
+- **Dependencies:** L-17, L-21, D-16, and a legal review.
+- **Files and areas:** New public pages under `app/[locale]/` (path to decide, never `/pricing` or `/docs`), an aggregation script, a consent migration.
+- **Migrations:** `evals_publication_consent`.
+- **Acceptance criteria:**
+  - Nothing is published without a consent record.
+  - Cohorts smaller than 10 are suppressed.
+  - The legal sign-off is recorded.
+- **Tests and verification:** Consent enforcement tests, aggregation tests, and a manual pre-publication review.
+- **Risks:** Reputational or legal exposure. Mitigation: strict consent and anonymisation.
+- **Rollout / flag:** The founder publishes by hand.
+
+#### L-32 · Data controls: retention and export (P2)
+- **Goal:** Owners control retention and can export everything (P-44).
+- **Scope:**
+  - A retention setting (30, 90 or 365 days for observations) applied by the existing retention jobs.
+  - An "export all" job (CEF plus reports, zipped).
+  - Clearer Danger zone copy.
+- **Out of scope:** changing retention pins for published reports.
+- **Dependencies:** none hard. Comes after launch.
+- **Files and areas:** `lib/evals/operations/*`, `app/api/evals/v1/exports/*`, `components/evals/workspace-settings.tsx`.
+- **Migrations:** `evals_retention_setting`.
+- **Acceptance criteria:**
+  - Retention applies to new data and the purge schedule.
+  - Export completes within limits for a large fixture.
+  - Both actions are audited.
+- **Tests and verification:** Retention job tests, export tests, and a production export of an internal workspace.
+- **Risks:** Deleting evidence that published reports depend on. Mitigation: the existing retention pins.
+- **Rollout / flag:** `DATA_CONTROLS_ENABLED`.
+
+#### L-33 · Example evaluation and public sample report
+- **Goal:** One synthetic, clearly labelled example shows what a finished evaluation looks like, in every workspace and on the public site (P-55).
+- **Scope:**
+  - Synthetic source documents and a fictitious insurer's home-policy assistant, with a name and brand checked against the DGSFP register and a trademark search.
+  - A reviewed-style report revision, three monthly runs and one comparison, as versioned EN/ES fixtures in the report snapshot format.
+  - A read-only `/workspace/example` view, reachable from Home, the evaluations list and the empty states, hideable per workspace through the existing preferences.
+  - A public `/{locale}/sample-report` page (`/es/informe-de-ejemplo`) and a PDF from the document worker, in the sitemap and `llms.txt`.
+  - "Ejemplo" / "Example" labels and the synthetic-data line on every surface.
+- **Out of scope:** running or editing the example, sector variants (L-25 can add more later), report v2 sections (they arrive with L-17 because the same components render the fixture).
+- **Dependencies:** L-02 (events). L-17 soft: re-check the fixture when report v2 lands.
+- **Files and areas:**
+  - New `lib/evals/example/*` (fixtures and loader), `components/evals/{report-view,workspace-evaluations}.tsx`
+  - New `app/(evaluation)/(authenticated)/workspace/example/*` and `app/[locale]/sample-report/page.tsx`
+  - `lib/i18n/routing.ts` (`TRANSLATED_PATHS`), `lib/sitemap-xml.ts`, the `llms.txt` handler, messages
+- **Migrations:** none. The fixture lives in the repo; the hidden flag uses workspace preferences.
+- **Acceptance criteria:**
+  - The fixtures parse with `reportSnapshotSchema` in CI, and every takeaway and finding cites results that exist.
+  - The example never appears in plan-limit counts, credit usage, product metrics or `/ops/growth` activation.
+  - No API route lets anyone run, edit, share, schedule or delete it.
+  - Every page of the PDF and every screen shows the label.
+  - The public page passes the L-24 performance budget.
+- **Tests and verification:** Fixture schema tests, an RLS and route test for the read-only guarantee, harness Playwright at 390, 768 and 1440 px, a PDF render check, and a production check of both URLs.
+- **Risks:** The example is read as a real customer or a real expert review. Mitigation: the labels, the fictitious-name check and the synthetic-data line on every surface.
+- **Rollout / flag:** `EXAMPLE_EVALUATION_ENABLED`. The public page is linked once the founder has read the content.
+
+#### L-34 · Better document intake
+- **Goal:** Editors add all their material in one go and confirm what Caudals understood before tests are written (P-56).
+- **Scope:**
+  - Drag and drop for up to 50 files, with pre-upload checks, content-hash deduplication and per-file status.
+  - "Import help centre": a help-centre or sitemap URL becomes a website source, with sitemap parsing, `robots.txt`, a path prefix, a plan page cap, a page preview and a credit estimate.
+  - Scan detection for PDFs from the existing Poppler extraction (characters per page, empty-page share), with the per-file ask.
+  - The "What we understood about your assistant" screen over the existing context profile, with inline edits and one confirmation recorded as a profile revision before generation.
+  - The "Context not confirmed" line in the report methodology when the step is skipped.
+  - EN/ES.
+- **Out of scope:** OCR, authenticated help centres, crawling beyond the submitted origin, new file types.
+- **Dependencies:** L-06, L-14 (page caps). L-11 soft (pages are charged once credits are live).
+- **Files and areas:**
+  - `components/evals/{workspace-preparation,preparation-parts,workspace-context}.tsx`
+  - `lib/evals/connectors/website-capture.ts` (the 50-page cap becomes the plan cap), `lib/evals/storage/text.ts`
+  - `lib/evals/generation/context.ts`, `lib/evals/repositories/automatic-generation.ts`, the sources API under `app/api/evals/v1/*`, messages
+- **Migrations:** `evals_intake_v2`: profile confirmation (author, time, edited fields), per-file scan flag, and website-source settings (sitemap URL, prefix, page selection).
+- **Acceptance criteria:**
+  - Dropping 50 mixed files uploads the valid ones, skips duplicates and reports each failure, with no lost files.
+  - A sitemap import never leaves the origin, honours `robots.txt` and stops at the cap.
+  - The credit estimate is within ±10 % of the pages actually read.
+  - A scanned fixture PDF is flagged before generation, and a text PDF is not.
+  - Generation uses the confirmed profile, and its revision is traceable from every test case.
+- **Tests and verification:** Upload and dedupe tests, crawler tests against a local fixture site with a sitemap and `robots.txt`, scan-detection tests on text and scanned fixtures, a profile-revision test, harness Playwright, and a production import of our own help pages.
+- **Risks:** Larger crawls slow the browser slot and cost more. Mitigation: the plan cap, the preview, the estimate and the existing egress proxy.
+- **Rollout / flag:** `INTAKE_V2_ENABLED`.
+
+#### L-35 · Readout (presentation) mode
+- **Goal:** Every readout runs from the product, with the same structure and a clear next step (P-57).
+- **Scope:**
+  - A full-screen `present` view for any report revision: cover, verdict, causes, five to seven transcripts, fixes, next steps.
+  - Keyboard navigation and a presenter window with notes and a timer.
+  - Operator-only notes and transcript picks, saved per revision, with defaults from the §7.5 script.
+  - 16:9 PDF export through the document worker, EN/ES, never including notes.
+- **Out of scope:** editing report content, live annotation, recording, PowerPoint export.
+- **Dependencies:** L-17 (summary and fixes). L-33 soft (the example is the demo deck).
+- **Files and areas:**
+  - New `app/(evaluation)/(authenticated)/workspace/reports/[id]/present/*`, new `components/evals/readout/*`
+  - `lib/evals/reports/{render,i18n,file-name}.ts`, the PDF template, `app/api/evals/v1/reports/*`, messages
+- **Migrations:** `evals_readout_decks`: per-revision transcript picks and operator notes, under RLS that hides notes from customer roles.
+- **Acceptance criteria:**
+  - Slide numbers match the report snapshot (the L-17 cross-format check).
+  - A customer role can't read operator notes through any route or export.
+  - Every keyboard shortcut works, and the presenter window stays in sync.
+  - The PDF of three fixture reports has no clipped slides.
+- **Tests and verification:** Snapshot-to-slide tests, an RLS test for notes, harness Playwright for navigation, PDF render checks, and one real readout run from production.
+- **Risks:** Slides oversimplify the evidence. Mitigation: every transcript slide carries its result id and source excerpt, and causes stay labelled as hypotheses.
+- **Rollout / flag:** `READOUT_MODE_ENABLED`, on for operators first, then for owners.
+
+#### L-36 · "Pregunta a tu informe" (Ask your report) (P2)
+- **Goal:** Members get cited answers about a report without leaving it (P-58).
+- **Scope:**
+  - A report panel and an API endpoint that run a bounded engine job over one revision snapshot.
+  - Citation validation against the snapshot, a fixed refusal for anything outside it, and a ban on "compliant" and "certified".
+  - Ledger reservation, capture and refund (§6.8), per-report and per-plan caps, and the cost shown before first use.
+  - Stored questions and answers with full provenance, deletable by owners.
+  - A release evaluation on the example evaluation (L-33).
+- **Out of scope:** share-link access, questions across several reports, web or source lookups, follow-up actions such as re-running questions.
+- **Dependencies:** L-11, L-17, L-33.
+- **Files and areas:**
+  - New `lib/evals/reports/questions.ts`, new `components/evals/report-questions.tsx`
+  - `app/api/evals/v1/reports/*`, the engine job and model-route modules, `lib/evals/budget/ledger.ts`, messages
+- **Migrations:** `evals_report_questions`: questions, answers, cited ids, revision, model and prompt revisions, tokens, credits and ledger references.
+- **Acceptance criteria:**
+  - No answer is shown with a citation missing from the snapshot.
+  - All 15 out-of-scope prompts are refused, and ≥ 95 % of citations on the 50 fixed questions are valid.
+  - Every question has exactly one ledger outcome, and failed or timed-out questions are refunded.
+  - A transcript containing injected instructions doesn't change the behaviour (fixture test).
+- **Tests and verification:** Citation-validator unit tests, the release evaluation, ledger integration tests, an RLS test, harness Playwright, and a production check on an internal report.
+- **Risks:** A wrong or uncited answer damages trust in the report. Mitigation: snapshot-only input, validated citations, the fixed refusal and the release evaluation.
+- **Rollout / flag:** `REPORT_QUESTIONS_ENABLED`, internal workspaces first.
+
+---
+
+## 9. Non-goals and risks
+
+### 9.1 Non-goals for this launch window
+
+- No marketplace, catalogue or supplier flows, and none of the removed routes return (`/pricing`, `/docs`, `/security`, `/about`, `/buyer`, `/supplier`, `/v1/*`, `/careers`, `/catalogue`).
+- No developer tracing or observability product. The overview keeps a "self-serve evaluation SaaS for developers" out of scope; our self-serve layer serves business owners.
+- No adversarial testing (prompt injection, jailbreaks, prompt extraction) without the owner's written authorisation. Never in the demo or in snapshots.
+- No certification and no AI Act compliance claims. No badges or seals.
+- No consumer sales, so no OSS VAT handling.
+- Nothing is sent automatically: no cold outreach triggered by an evaluation, and no automatic publication of named results.
+- No automated expert payouts, no open expert marketplace, no fine-tuning execution.
+- No new modalities. Image, video, audio and sensor work stay frozen. Scanned PDFs are detected and the customer is asked for a text version; there is no OCR in this window.
+- No public price list (D-06). Credit prices appear only in the app, and managed work stays quoted.
+- No SOC 2 or ISO certification work and no multi-region hosting in this window.
+- No dependency on the frozen legacy stacks.
+
+### 9.2 Risks
+
+| # | Risk | Likelihood | Impact | Mitigation | Owner |
+| --- | --- | --- | --- | --- | --- |
+| R1 | Billing integration bugs cause wrong charges | Medium | High | A shadow week, idempotent functions, daily reconciliation, a kill switch, three clean days before Gate B (L-11, L-16) | Engineering |
+| R2 | The DGX is a single point of failure, shared by the demo, the engine and Hermes | High | High | Queue and capped fallback (L-03), Hermes moved off-peak, alerts (L-08). Consider a second inference host after launch | Founder, engineering |
+| R3 | Legal exposure from cold email (LSSI art. 21) and from testing third-party chats | Medium | High | LinkedIn and introductions first, written legal advice before any email at volume, ordinary questions only, rate limits, no public naming (D-13) | Founder |
+| R4 | Terms, Privacy and DPA aren't reviewed in time | Medium | High | Book a lawyer this week. Gate B can't pass without the review | Founder |
+| R5 | The legal entity or the Stripe account isn't ready (D-01) | Medium | High | Start Stripe onboarding now in test mode. Invoice pilots by hand meanwhile | Founder |
+| R6 | The invoicing vendor doesn't fit Verifactu or the B2B e-invoice mandate | Medium | Medium | Selection criteria in §6.14, the manual fallback, the gestor's review | Founder |
+| R7 | The demo publicly misjudges a well-known assistant | Medium | Medium | Private links only, the methodology page, "Unclear" labels, a dispute path | Engineering, founder |
+| R8 | The launch brings little traffic | High | High | Evidence-first outbound as the main engine, partner introductions, webinars, weekly measurement and reallocation | Founder |
+| R9 | Judge quality on the local 2-bit model hurts credibility | Medium | High | A calibration set and ≥ 85 % agreement before changing defaults, a commercial judge option, evidence shown for every grade | Engineering |
+| R10 | Founder bandwidth across sales, delivery and agent oversight | High | High | Strict gate order, at most 2–3 parallel sessions, ops tooling (L-21), delivery through the product, the deferral order in §8.2 | Founder |
+| R11 | Provider price changes (Gemini 3.8 Flash doubles on 1 Jan 2027) | High | Low | The price book, weekly checks, notice rules (§6.4) | Engineering |
+| R12 | Free-plan abuse and fake sign-ups | Medium | Medium | Domain rules, limits, monitoring (§6.15) | Engineering |
+| R13 | A data-protection incident (tenant leak, secret exposure) | Low | High | RLS tests in every package, secret handling, no personal data in Sentry, the incident runbook | Engineering |
+| R14 | Scope creep delays the launch (36 packages) | High | Medium | Everything is built (D-15), but in dependency order. The public launch waits only for Gates A and B and the launch-prep packages. The deferral order in §8.2 | Founder |
+| R15 | Chargebacks and card fraud | Low | Medium | Radar, purchase limits, account freeze (§6.15) | Engineering |
+| R16 | Host capacity (disk, browser slot) under more traffic | Medium | Medium | The cleanup timer, disk alerts, more browser replicas as needed | Engineering |
+| R17 | Holiday periods slow Spanish B2B deals | High | Medium | Don't schedule launch week or heavy outbound inside a national holiday period. Freeze deploys during it, and restart outbound right after | Founder |
+| R18 | Measured conversion is far below the assumptions in §7.4 | Medium | High | A week-4 review. Move effort to the channels that work (managed pilots, partners) | Founder |
+| R19 | The example evaluation is mistaken for a real company or a real expert review | Low | Medium | Fictitious-name check, "Example" labels and the synthetic-data line on every surface (L-33) | Founder |
+| R20 | "Pregunta a tu informe" gives a wrong or uncited answer | Medium | High | Snapshot-only input, validated citations, a fixed refusal, a release evaluation, P2 timing (L-36) | Engineering |
 
