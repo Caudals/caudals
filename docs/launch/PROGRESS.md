@@ -16,8 +16,8 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | Phase | ID | Title | Depends on | Migration | Status | Commit | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
-| 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | todo | | |
-| 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | in progress | | |
+| 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | in progress | | Serial implementation in `.worktrees/launch-L-02` (`codex/launch-l02`). |
+| 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
 | 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
@@ -85,6 +85,7 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 
 Things only the founder can do. Agents add to this list; they never do these themselves.
 
+- [ ] Fund/configure the existing production OpenRouter key for the €5/day demo fallback budget, then verify fallback before enabling `DEMO_FALLBACK_ENABLED` (L-03). Current key limit and remaining allowance are both zero.
 - [ ] Provide the SL's real legal data and store it with `sudo scripts/set-app-credentials.sh LEGAL_ENTITY_NAME` (and `_NIF`, `_ADDRESS`, `_REGISTRY`) — once L-01 lands.
 - [ ] Book the lawyer review of Terms, Privacy, DPA, sub-processors, security and the AI-disclosure wording (before Gate B).
 - [ ] Choose the invoicing provider with the gestor (D-04) and confirm IVA treatment.
@@ -100,3 +101,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | Codex resumed serially with an active persisted goal after reading spec v2 end to end. L-01 and L-03 drafts are committed in their worktrees; no dirty files. L-09 app and migration are live, but its workers were never built because `evals-images.yml` is manually disabled. All 24 billing tests, typecheck, changed-file lint and i18n parity pass; production read-only verifier: 7 accounts, zero drift. |
 | 2026-10-12 | The prior session cron is historical and has not been verified for this Codex chat. This session exposes no automation or usage-reset scheduling tool. Keep the goal active and checkpoints current; automatic wake-up after a usage reset cannot be configured or guaranteed from these tools. |
 | 2026-10-12 | L-01 engineering deployed with migration 081 and required signup acceptance enabled. Legal documents, downloads and mobile widths passed 14 production browser tests; retired routes remain 404. Real entity data and lawyer review remain explicit gates. L-03 draft rebased serially; budget bounds and notification retry fixes under test. |
+| 2026-10-12 | L-03 deployed with queue enabled. Controlled production demo completed 8/8 cases in 123 s; server lifecycle events verified in the database. Fallback remains off pending funded access. Preserved concurrent contact-card and background-color changes. Continuing L-02 serially. |
