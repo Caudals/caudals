@@ -41,6 +41,16 @@ for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SE
   export "$variable=$secret"
 done
 
+# Credit ledger flags (spec §6.18) come from the same app credentials as the
+# web process, so web and workers switch together. Unset means off / shadow.
+BILLING_CREDITS_ENABLED=$(credential BILLING_CREDITS_ENABLED)
+BILLING_CREDITS_ENABLED=${BILLING_CREDITS_ENABLED:-false}
+[[ $BILLING_CREDITS_ENABLED == true || $BILLING_CREDITS_ENABLED == false ]] || { echo 'BILLING_CREDITS_ENABLED must be true or false' >&2; exit 1; }
+BILLING_ENFORCE=$(credential BILLING_ENFORCE)
+BILLING_ENFORCE=${BILLING_ENFORCE:-shadow}
+[[ $BILLING_ENFORCE == shadow || $BILLING_ENFORCE == enforce ]] || { echo 'BILLING_ENFORCE must be shadow or enforce' >&2; exit 1; }
+export BILLING_CREDITS_ENABLED BILLING_ENFORCE
+
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \
   infra/evals/Dockerfile infra/evals/Dockerfile.playwright \

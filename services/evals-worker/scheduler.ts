@@ -13,6 +13,8 @@ import { advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluati
 import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
+import { billingCreditsEnabled } from "../../lib/billing/config";
+import { billingExpiryDue, billingVerificationDue, runBillingExpiry, runBillingVerification } from "../../lib/billing/jobs";
 
 async function main() {
   if (process.env.EVALS_SCHEDULES_ENABLED !== "true") throw new Error("schedules_disabled");
@@ -29,6 +31,8 @@ async function main() {
   }
   let stopping = false;
   let lastTick = 0;
+  let lastBillingVerify = 0;
+  let lastBillingExpiry = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -77,6 +81,28 @@ async function main() {
             if (email.sent || email.failed) console.info(JSON.stringify({ event: "email_notifications", ...email }));
           } catch {
             console.error(JSON.stringify({ event: "email_notifications_failed" }));
+          }
+        }
+        // Credit ledger (spec §6.9–§6.10). Platform-wide through SECURITY DEFINER
+        // functions. Drift is reported, never a scheduler failure: the verifier
+        // must keep running to say when it is fixed.
+        if (billingVerificationDue(lastBillingVerify)) {
+          lastBillingVerify = Date.now();
+          try {
+            const run = await runBillingVerification(actorId);
+            const line = JSON.stringify({ event: run.driftAccounts ? "billing_drift" : "billing_verified", accounts: run.accounts, driftAccounts: run.driftAccounts, drift: run.drift.slice(0, 20) });
+            if (run.driftAccounts) console.error(line); else console.info(line);
+          } catch {
+            console.error(JSON.stringify({ event: "billing_verify_failed" }));
+          }
+        }
+        if (billingCreditsEnabled() && billingExpiryDue(lastBillingExpiry)) {
+          lastBillingExpiry = Date.now();
+          try {
+            const expiry = await runBillingExpiry(actorId);
+            if (expiry.accounts) console.info(JSON.stringify({ event: "billing_expiry", accounts: expiry.accounts, holds: expiry.holds, lots: expiry.lots, expiredUcr: expiry.expiredUcr.toString() }));
+          } catch {
+            console.error(JSON.stringify({ event: "billing_expiry_failed" }));
           }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));

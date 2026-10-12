@@ -61,3 +61,16 @@ DO $$ BEGIN
   GRANT SELECT ON evals.workspace_entitlement,evals.runner_job TO evals_worker;
  END IF;
 END $$;
+
+-- Credit ledger (migration 084): read this workspace's rows under RLS and move
+-- credits only through the billing functions; no direct writes.
+DO $$ BEGIN
+ IF to_regnamespace('billing') IS NOT NULL THEN
+  GRANT USAGE ON SCHEMA billing TO evals_worker;
+  GRANT SELECT ON billing.credit_account,billing.credit_lot,billing.credit_hold,billing.ledger_entry TO evals_worker;
+  GRANT EXECUTE ON FUNCTION billing.hold(uuid,text,bigint,timestamptz,uuid,uuid,uuid,uuid,text),
+   billing.capture(uuid,text,bigint,text,jsonb),billing.release(uuid,text,text,text),
+   billing.charge_action(uuid,text,text,bigint,numeric,uuid,uuid,uuid,boolean,text),
+   billing.verify_account(uuid) TO evals_worker;
+ END IF;
+END $$;

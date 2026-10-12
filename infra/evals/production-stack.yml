@@ -21,6 +21,10 @@ services:
       EVALS_DGX_ENDPOINT_FILE: /run/secrets/evals_dgx_endpoint
       EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_WORKER_ACTOR_ID: service:evals-worker
+      # Credit ledger flags (spec §6.18), from the app credentials via
+      # scripts/deploy-evals-production.sh so web and workers always agree.
+      BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
+      BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
     secrets: [evals_database_url,evals_queue_database_url,evals_master_keyring,evals_dgx_endpoint]
     deploy:
       replicas: 1
@@ -53,6 +57,10 @@ services:
       EVALS_WEBHOOK_KEYRING_FILE: /run/secrets/evals_webhook_keyring
       EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_SCHEDULER_ACTOR_ID: service:evals-scheduler
+      # Credit ledger flags (spec §6.18), from the app credentials via
+      # scripts/deploy-evals-production.sh so web and workers always agree.
+      BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
+      BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1
@@ -167,6 +175,10 @@ services:
       EVALS_BROWSER_SESSION_KEYRING_FILE: /run/secrets/evals_browser_session_keyring
       EVALS_BROWSER_ORG_IDS: ${EVALS_BROWSER_ORG_IDS:?Explicit browser workspace allowlist is required}
       EVALS_BROWSER_ACTOR_ID: service:evals-browser
+      # Credit ledger flags (spec §6.18), from the app credentials via
+      # scripts/deploy-evals-production.sh so web and workers always agree.
+      BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
+      BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
       EVALS_BROWSER_EGRESS_HOST: evals-browser-egress
       EVALS_BROWSER_EGRESS_PORT: "3128"
       EVALS_BROWSER_INTERACTIVE_SESSIONS: "2"
@@ -211,6 +223,10 @@ services:
       EVALS_DATABASE_URL_FILE: /run/secrets/evals_document_database_url
       EVALS_DOCUMENT_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_DOCUMENT_ACTOR_ID: service:evals-documents
+      # Credit ledger flags (spec §6.18), from the app credentials via
+      # scripts/deploy-evals-production.sh so web and workers always agree.
+      BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
+      BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1
       DO_SPACES_BUCKET: caudals-storage

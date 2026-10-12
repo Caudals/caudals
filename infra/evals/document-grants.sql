@@ -17,3 +17,16 @@ GRANT UPDATE(status,attempt_count,reason_code,source_revision_id,sealed_object_k
 
 -- Website captures finish through this bounded document and object-store service.
 GRANT UPDATE(status,artifact_attempt_count,artifact_id,captured_text,source_revision_id,reason_code,updated_at) ON evals.website_source_job TO evals_document;
+
+-- Credit ledger (migration 084): read this workspace's rows under RLS and move
+-- credits only through the billing functions; no direct writes.
+DO $$ BEGIN
+ IF to_regnamespace('billing') IS NOT NULL THEN
+  GRANT USAGE ON SCHEMA billing TO evals_document;
+  GRANT SELECT ON billing.credit_account,billing.credit_lot,billing.credit_hold,billing.ledger_entry TO evals_document;
+  GRANT EXECUTE ON FUNCTION billing.hold(uuid,text,bigint,timestamptz,uuid,uuid,uuid,uuid,text),
+   billing.capture(uuid,text,bigint,text,jsonb),billing.release(uuid,text,text,text),
+   billing.charge_action(uuid,text,text,bigint,numeric,uuid,uuid,uuid,boolean,text),
+   billing.verify_account(uuid) TO evals_document;
+ END IF;
+END $$;

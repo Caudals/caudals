@@ -58,6 +58,9 @@ for grants in worker admin document browser; do
   psql_owner < "$root/infra/evals/$grants-grants.sql" >&2
 done
 psql_owner >&2 <<'SQL'
+-- As in production (scripts/provision-evals-production.sh), the scheduler
+-- runs the app's tenant-checked repository paths and the billing jobs.
+GRANT evals_runtime TO evals_scheduler;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='evals_test_runtime') THEN
     CREATE ROLE evals_test_runtime LOGIN PASSWORD 'runtime' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE IN ROLE evals_runtime;
