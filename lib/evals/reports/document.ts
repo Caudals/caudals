@@ -68,14 +68,22 @@ function outcomeBar(counts: Record<"pass" | "partial" | "fail" | "unscorable", n
   return `<div class="bar" role="img" aria-label="${order.map((key) => `${counts[key]} ${plain(key).toLowerCase()}`).join(", ")}">${segments}</div><ul class="legend">${legend}</ul>`;
 }
 
-function rateRows(rows: Array<{ label: string; pass: number; total: number }>) {
+/** One row per group: a bar stacked by outcome, the pass rate and how many answers were not right. */
+function stackRows(rows: Array<{ label: string; pass: number; partial: number; fail: number }>) {
+  const max = Math.max(1, ...rows.map((row) => row.pass + row.partial + row.fail));
   return `<table class="rates">${rows
-    .map(
-      (row) =>
-        `<tr><th>${escapeHtml(row.label)}</th><td class="track"><span style="width:${row.total ? ((row.pass / row.total) * 100).toFixed(2) : 0}%"></span></td><td class="num">${row.total ? pct(row.pass / row.total) : "—"}</td><td class="den">${row.pass}/${row.total}</td></tr>`,
-    )
+    .map((row) => {
+      const total = row.pass + row.partial + row.fail;
+      const wrong = row.partial + row.fail;
+      const segments = (["pass", "partial", "fail"] as const)
+        .filter((key) => row[key] > 0)
+        .map((key) => `<span data-tone="${key === "pass" ? "pass" : key === "partial" ? "warn" : "fail"}" style="flex-grow:${row[key]}"></span>`)
+        .join("");
+      return `<tr><th>${escapeHtml(row.label)}</th><td class="track stack"><div class="bar" style="width:${((total / max) * 100).toFixed(2)}%">${segments}</div></td><td class="num">${total ? pct(row.pass / total) : "—"}</td><td class="den wrong">${wrong ? `${wrong}/${total} ${S.notRight}` : `${total}/${total}`}</td></tr>`;
+    })
     .join("")}</table>`;
 }
+
 
 function bySeverity<T extends { severity: string }>(items: T[]) {
   return [...items].sort((a, b) => SEVERITY.indexOf(a.severity as never) - SEVERITY.indexOf(b.severity as never));
@@ -104,19 +112,19 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
   const findings = bySeverity(report.findings);
   const improvements = [...report.improvements].sort((a, b) => a.priority - b.priority);
   const scored = results.filter((item) => item.outcome !== "unscorable");
-  const topicMap = new Map<string, { pass: number; total: number }>();
-  for (const item of scored) {
-    const entry = topicMap.get(item.topic) ?? { pass: 0, total: 0 };
-    entry.total += 1;
-    if (item.outcome === "pass") entry.pass += 1;
-    topicMap.set(item.topic, entry);
-  }
-  const topics = [...topicMap.entries()].map(([topic, value]) => ({ label: plain(topic), pass: value.pass, total: value.total })).sort((a, b) => a.pass / a.total - b.pass / b.total);
-  const severities = SEVERITY.map((level) => {
-    const scope = scored.filter((item) => item.severity === level);
-    return { label: plain(level), pass: scope.filter((item) => item.outcome === "pass").length, total: scope.length };
-  }).filter((row) => row.total);
-  const matrix = SEVERITY.map((level) => ({ level, counts: OUTCOME_ORDER.map((outcome) => results.filter((item) => item.severity === level && item.outcome === outcome).length) })).filter((row) => row.counts.some(Boolean));
+  // The same scored answers grouped by topic and by severity, each row a
+  // stack of pass / partial / fail, so the reader sees where failures sit.
+  const stack = (scope: typeof scored) => ({
+    pass: scope.filter((item) => item.outcome === "pass").length,
+    partial: scope.filter((item) => item.outcome === "partial").length,
+    fail: scope.filter((item) => item.outcome === "fail").length,
+  });
+  const topicMap = new Map<string, typeof scored>();
+  for (const item of scored) topicMap.set(item.topic, [...(topicMap.get(item.topic) ?? []), item]);
+  const topics = [...topicMap.entries()]
+    .map(([topic, scope]) => ({ label: plain(topic), ...stack(scope) }))
+    .sort((a, b) => a.pass / (a.pass + a.partial + a.fail) - b.pass / (b.pass + b.partial + b.fail));
+  const severities = SEVERITY.map((level) => ({ label: plain(level), ...stack(scored.filter((item) => item.severity === level)) })).filter((row) => row.pass + row.partial + row.fail);
   const criticalFailed = results.filter((item) => item.severity === "critical" && (item.outcome === "fail" || item.outcome === "partial")).length;
   const incomplete = m.headline_status === "incomplete";
   const ordered = [...results].sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome) || SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity));
@@ -194,10 +202,10 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
     ? `<h2>${num()}${S.resultsAtAGlance}</h2>
   <p class="lead">${S.ratesLead}</p>
   <div class="two">
-    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.byTopic}</h3>${topics.length ? rateRows(topics) : `<p class="muted">${S.noAssessedTopics}</p>`}</div>
-    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.bySeverity}</h3>${severities.length ? rateRows(severities) : `<p class="muted">${S.noAssessedTests}</p>`}</div>
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.byTopic}</h3>${topics.length ? stackRows(topics) : `<p class="muted">${S.noAssessedTopics}</p>`}</div>
+    <div><h3 style="font-size:10pt;margin-bottom:6px">${S.bySeverity}</h3>${severities.length ? stackRows(severities) : `<p class="muted">${S.noAssessedTests}</p>`}</div>
   </div>
-  ${matrix.length ? `<div class="block keep"><h3 style="font-size:10pt;margin-bottom:6px">${S.outcomesBySeverity}</h3><table class="grid"><thead><tr><th>${S.severity}</th>${OUTCOME_ORDER.map((o) => `<th class="c">${label(o)}</th>`).join("")}</tr></thead><tbody>${matrix.map((row) => `<tr><td>${chip(row.level)}</td>${row.counts.map((count) => `<td class="c">${count || '<span class="muted">·</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : ""}`
+`
     : "";
   const findingsPart = show("findings") ? `<div class="block"><h2>${num()}${S.findings}</h2><p class="lead">${S.findingsLead}</p>${findingBlocks}</div>` : "";
   const improvementsPart = show("improvements") ? `<h2>${num()}${S.improvements}</h2>
@@ -317,6 +325,7 @@ h2 .num{color:var(--faint);font-weight:500;margin-right:6px}
 .rates .track{background:linear-gradient(var(--soft),var(--soft)) no-repeat left center/100% 6px}
 .rates .num{text-align:right;font-weight:600;padding-left:8px;width:11%}
 .rates .den{text-align:right;color:var(--faint);width:11%}
+.rates .stack{background:none}.rates .stack .bar{height:7px;min-width:6px}.rates .stack .bar span{height:100%;display:block;border-radius:0}.rates .stack .bar span[data-tone="pass"]{background:var(--pass)}.rates .stack .bar span[data-tone="warn"]{background:var(--warn)}.rates .stack .bar span[data-tone="fail"]{background:var(--fail)}.rates .wrong{white-space:nowrap;width:auto;padding-left:6px}
 table.grid{width:100%;border-collapse:collapse;font-size:9pt}
 table.grid thead{display:table-header-group}
 table.grid th{text-align:left;font-weight:500;color:var(--muted);font-size:8pt;padding:6px 8px;border-bottom:1px solid var(--ink)}

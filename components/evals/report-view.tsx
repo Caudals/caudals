@@ -31,7 +31,7 @@ import {
   formatMoney,
   humanize,
 } from "./primitives";
-import { BarList, OutcomeBar, percent } from "./charts";
+import { BarList, OutcomeBar, StackedBars, percent } from "./charts";
 import { ActionMenu, SidePanel } from "./overlays";
 import { ReportActions, type ReportRevision } from "./report-actions";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
@@ -147,6 +147,16 @@ export function ReportView({
 
 /* ------------------------------------------------------------- overview --- */
 
+/** Outcome counts of one group of scored answers (a topic, a severity). */
+function stack(scoped: ReadonlyArray<{ outcome: string }>) {
+  return {
+    pass: scoped.filter((item) => item.outcome === "pass").length,
+    partial: scoped.filter((item) => item.outcome === "partial").length,
+    fail: scoped.filter((item) => item.outcome === "fail").length,
+    unscorable: 0,
+  };
+}
+
 function Overview({
   report,
   findings,
@@ -163,22 +173,19 @@ function Overview({
   const m = report.metrics;
   const results = useMemo(() => report.results ?? [], [report.results]);
   const topics = useMemo(() => {
-    const map = new Map<string, { pass: number; scored: number }>();
+    const map = new Map<string, typeof results>();
     for (const item of results) {
       if (item.outcome === "unscorable") continue;
-      const entry = map.get(item.topic) ?? { pass: 0, scored: 0 };
-      entry.scored += 1;
-      if (item.outcome === "pass") entry.pass += 1;
-      map.set(item.topic, entry);
+      map.set(item.topic, [...(map.get(item.topic) ?? []), item]);
     }
-    return [...map.entries()].map(([topic, value]) => ({ label: humanize(topic), value: value.pass, total: value.scored })).sort((a, b) => a.value / a.total - b.value / b.total);
+    return [...map.entries()]
+      .map(([topic, scoped]) => ({ label: humanize(topic), counts: stack(scoped) }))
+      .sort((a, b) => (a.counts.pass / (a.counts.pass + a.counts.partial + a.counts.fail)) - (b.counts.pass / (b.counts.pass + b.counts.partial + b.counts.fail)));
   }, [results]);
   const severity = useMemo(
     () =>
-      SEVERITY.map((level) => {
-        const scoped = results.filter((item) => item.severity === level && item.outcome !== "unscorable");
-        return { label: humanize(level), value: scoped.filter((item) => item.outcome === "pass").length, total: scoped.length };
-      }).filter((item) => item.total > 0),
+      SEVERITY.map((level) => ({ label: humanize(level), counts: stack(results.filter((item) => item.severity === level && item.outcome !== "unscorable")) }))
+        .filter((item) => item.counts.pass + item.counts.partial + item.counts.fail > 0),
     [results],
   );
   const criticalFailed = results.filter((item) => item.severity === "critical" && (item.outcome === "fail" || item.outcome === "partial"));
@@ -276,13 +283,13 @@ function Overview({
           {topics.length > 1 && (
             <section>
               <SectionHeading title={t("passRateByTopic")}>{t("passRateByTopicHelp")}</SectionHeading>
-              <BarList items={topics} label={t("passRateByTopic")} />
+              <StackedBars rows={topics} label={t("passRateByTopic")} />
             </section>
           )}
           {severity.length > 0 && (
             <section>
               <SectionHeading title={t("passRateBySeverity")}>{t("passRateBySeverityHelp")}</SectionHeading>
-              <BarList items={severity} label={t("passRateBySeverity")} />
+              <StackedBars rows={severity} label={t("passRateBySeverity")} />
             </section>
           )}
         </div>

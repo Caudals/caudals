@@ -3,16 +3,16 @@
     "file": "caudals-sample-report-en.pdf",
     "version": "2026-10-12.1",
     "content_hash": "1033a5883b5bd4fb481113e11a4df764ea37a6f7eff4b9be13d9206d17443ee0",
-    "sha256": "45981c5410c4fd7499b98707988e85cd9a43fe7edd3da37cb711db1a679faebd",
-    "bytes": 481981,
-    "pages": 33
+    "sha256": "38adbcb793a7189606161a242e11f081ad332152e605acab7e8be7c0cde418b4",
+    "bytes": 637530,
+    "pages": 27
   },
   "es": {
     "file": "caudals-informe-de-ejemplo-es.pdf",
     "version": "2026-10-12.1",
     "content_hash": "40eb7e22a5a7e048d5d379cfff8a27921f8b4fa722b6efc6b929ae6bc854e916",
-    "sha256": "cd38c4431dca1e697c3932e4912cd371ee35f8fb6ff4a2c11773f8a7835e8ae4",
-    "bytes": 667080,
-    "pages": 30
+    "sha256": "0e1698d7727c81cd3479e7d0811f8b6f3d428c06be072d8a4be5dffda8a7d70c",
+    "bytes": 654315,
+    "pages": 29
   }
 }
