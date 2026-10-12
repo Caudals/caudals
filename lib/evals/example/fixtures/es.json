@@ -34,7 +34,7 @@
       "report_revision_id": "example-report-2026-08",
       "run_id": "example-run-2026-08",
       "created_at": "2026-08-05T10:05:00.000Z",
-      "content_hash": "0b66ccb03e40e9f0e6ddabed3df1b08ef03872b6a4984eec818b8257cdfc378e",
+      "content_hash": "4e62b902922e7064dd3b54bfc88522f72313fe1100aa5b4855bfc1a9593f31e6",
       "system": {
         "name": "Asistente de pólizas de hogar de Hogarel",
         "target_revision_id": "example-target-website-v1",
@@ -2552,7 +2552,7 @@
         ],
         "sampling": "Un conjunto de pruebas congelado de 48 preguntas escritas a partir de los cinco documentos fuente sintéticos y usado sin cambios en las tres ejecuciones mensuales; no se añadió ni retiró ninguna pregunta después de ver los resultados.",
         "exclusions": [],
-        "review_coverage": "Automated preliminary assessment; critical and disputed results require review.",
+        "review_coverage": "Valoración preliminar automática; los resultados críticos y los disputados requieren revisión.",
         "cost": null,
         "limitations": [
           "Ejemplo sintético: la empresa, sus documentos, las respuestas del asistente y la revisión son inventados para mostrar qué contiene un informe.",
@@ -2622,7 +2622,7 @@
       "report_revision_id": "example-report-2026-09",
       "run_id": "example-run-2026-09",
       "created_at": "2026-09-04T10:02:00.000Z",
-      "content_hash": "e67e8533c43646a0e2d5144e563942504ee63a36a066ed819f96277e90003d25",
+      "content_hash": "f2d0315c24a7a614d8d8b6f284f67889cf79367419caf9931362733b2db6c70f",
       "system": {
         "name": "Asistente de pólizas de hogar de Hogarel",
         "target_revision_id": "example-target-website-v1",
@@ -5126,7 +5126,7 @@
         ],
         "sampling": "Un conjunto de pruebas congelado de 48 preguntas escritas a partir de los cinco documentos fuente sintéticos y usado sin cambios en las tres ejecuciones mensuales; no se añadió ni retiró ninguna pregunta después de ver los resultados.",
         "exclusions": [],
-        "review_coverage": "Automated preliminary assessment; critical and disputed results require review.",
+        "review_coverage": "Valoración preliminar automática; los resultados críticos y los disputados requieren revisión.",
         "cost": null,
         "limitations": [
           "Ejemplo sintético: la empresa, sus documentos, las respuestas del asistente y la revisión son inventados para mostrar qué contiene un informe.",
