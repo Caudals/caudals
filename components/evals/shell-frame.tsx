@@ -25,6 +25,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   ClipboardCheck,
+  Camera,
   Cpu,
   FileText,
   FlaskConical,
@@ -62,7 +63,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -85,6 +86,7 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
       items: [
         { href: "/ops", label: t("overview"), icon: <LayoutGrid />, match: (path) => path === "/ops" || path.startsWith("/ops/runs") || path === "/ops/evaluations" || path === "/ops/reports" },
         ...(features.growth ? [{ href: "/ops/growth", label: t("growth"), icon: <LayoutGrid /> }] : []),
+        ...(features.prospects ? [{ href: "/ops/prospects", label: t("psNav"), icon: <Camera /> }] : []),
         { href: "/ops/clients", label: t("clients"), icon: <Building2 /> },
         { href: "/ops/review", label: t("reviewQueue"), icon: <ClipboardCheck /> },
         { href: "/ops/library/test-sets", label: t("library"), icon: <LibraryBig />, match: (path) => path.startsWith("/ops/library") || path.startsWith("/ops/improvements") },
@@ -118,6 +120,7 @@ const SECTION: Record<string, string> = {
   invitations: t("invitations"),
   clients: t("clients"),
   growth: t("growth"),
+  prospects: t("psNav"),
   review: t("reviewQueue"),
   experts: t("expertWork"),
   sources: t("sources"),
@@ -155,6 +158,7 @@ function crumbsFor(pathname: string, detail: string | null): Crumb[] {
     if (s[1] === "library" || s[1] === "improvements")
       return [{ label: t("library"), href: "/ops/library/test-sets" }, { label: name(s[1] === "improvements" ? "improvements" : s[2] ?? "test-sets") }];
     if (s[1] === "platform") return [{ label: t("platform"), href: "/ops/platform" }, { label: s[2] ? name(s[2]) : t("providersModels") }];
+    if (s[1] === "prospects" && s[2]) return [{ label: name("prospects"), href: "/ops/prospects" }, { label: s[2] === "new" ? t("psNew") : detail ?? t("psSnapshot") }];
     return [{ label: name(s[1]) }];
   }
   if (s[0] === "review") {

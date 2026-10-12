@@ -2701,3 +2701,224 @@ test("an emailed invitation says so and still shows the private link", async ({ 
   await expect(page.getByText("We emailed the invitation to colleague@example.test. You can also send this private link yourself.")).toBeVisible();
   await expect(page.getByLabel("Private invitation link")).toHaveValue(`http://127.0.0.1:4187/workspace/invitations#token=${token}`);
 });
+
+/* ------------------------------------------------ launch L-21 contracts --- */
+
+const snapshotId = "00000000-0000-4000-8000-0000000000aa";
+const sandboxOrg = "00000000-0000-4000-8000-0000000000ab";
+const noOverflow = (page: import("@playwright/test").Page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+function snapshotDetail(state: { shared?: boolean; crm?: boolean } = {}) {
+  return {
+    id: snapshotId, orgId: sandboxOrg, company: "Acme Seguros", targetUrl: "https://chat.acme-seguros.es/ayuda", targetHost: "chat.acme-seguros.es",
+    helpUrl: "https://ayuda.acme-seguros.es/", helpHost: "ayuda.acme-seguros.es", locale: "en", testingBasis: "public_information", basisNote: null,
+    scope: { questions: "ordinary", adversarial: false }, trafficLimit: { requests_per_minute: 4, concurrent_sessions: 1, max_questions: 10, runs_per_month: 3 },
+    createdAt: "2026-10-12T08:00:00Z", mine: true, projectId: "p", evaluationId: "00000000-0000-4000-8000-0000000000ac", setupComplete: true,
+    evaluation: { id: "e", title: "Acme Seguros · external snapshot", preparationStatus: "ready", updatedAt: "2026-10-12T08:10:00Z" },
+    connection: { status: "succeeded", checkedAt: "2026-10-12T08:01:00Z" }, source: { status: "completed", pageLimit: 10 },
+    run: { id: "00000000-0000-4000-8000-0000000000ad", status: "completed", phase: "done", updatedAt: "2026-10-12T08:20:00Z" },
+    report: { id: "00000000-0000-4000-8000-0000000000ae", revisionId: "r", reviewStatus: "preliminary", publishedAt: "2026-10-12T08:21:00Z", metrics: { scored: 8, pass: 5, partial: 2, fail: 1 }, finding: "Refund window stated as 14 days" },
+    share: state.shared ? { id: "s", expiresAt: "2026-11-11T08:30:00Z", revokedAt: null, label: "external_snapshot", views: 0, active: true, current: true } : null,
+    crmDraft: state.crm ? { id: "d", createdAt: "2026-10-12T08:40:00Z", summary: { tags: ["caudals-snapshot", "lang-es"], outreach: { linkedin: "Hola {nombre}: editado {link}", email_subject: "Asunto", email_body: "Cuerpo" } } } : null,
+    weak: false,
+    outreach: {
+      en: { linkedin: "Hi {name}, I tested Acme Seguros's assistant with 8 questions taken from your own help centre. 5 right, 2 incomplete and 1 wrong. Private report, valid for 30 days: {link}.", emailSubject: "Acme Seguros: one of your assistant's answers contradicts your own site", emailBody: "Hi {name},\nPrivate report, valid for 30 days: {link}" },
+      es: { linkedin: "Hola {nombre}: he probado el asistente de Acme Seguros con 8 preguntas. Informe privado, válido 30 días: {link}.", emailSubject: "Acme Seguros: una respuesta de vuestro asistente contradice vuestra web", emailBody: "Hola {nombre}:\nInforme privado, válido 30 días: {link}" },
+    },
+  };
+}
+
+test("prospect snapshot form records the policy in under two minutes of input, at 1440, 768 and 390 px", async ({ page }) => {
+  const posts: Array<{ url: string; body: Record<string, unknown>; key: string | null }> = [];
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "POST") posts.push({ url: request.url(), body: request.postDataJSON(), key: request.headers()["idempotency-key"] ?? null });
+    await route.fulfill({ json: { data: request.url().includes("/prospects") ? { id: snapshotId, orgId: sandboxOrg, evaluationId: "e" } : [], meta: {} } });
+  });
+  await page.goto("/ops/prospects/new");
+  await expect(page.getByRole("heading", { name: "New snapshot" })).toBeVisible();
+  const policy = page.getByTestId("snapshot-policy");
+  await expect(policy).toContainText("no adversarial tests (prompt injection, jailbreaks, prompt extraction)");
+  await expect(policy).toContainText("At most 10 questions, 4 requests a minute, one session at a time and 3 runs a month.");
+  await expect(policy).toContainText("labelled “external snapshot”, for 30 days");
+  await expect(policy).toContainText("Nothing is sent automatically.");
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await noOverflow(page)).toBe(true);
+    await page.screenshot({ path: `/tmp/caudals-l21-snapshot-new-${width}.png`, fullPage: true });
+  }
+  const create = page.getByRole("button", { name: "Create snapshot" });
+  await page.getByLabel("Company").fill("Acme Seguros");
+  await page.getByLabel("Public chat").fill("https://chat.acme-seguros.es/ayuda");
+  await page.getByLabel("Help centre").fill("https://ayuda.acme-seguros.es/");
+  await expect(create).toBeDisabled();
+  await page.getByLabel("Testing basis").selectOption("owner_permission");
+  await page.getByLabel("I confirm this snapshot follows the third-party policy.").check();
+  await expect(create).toBeDisabled();
+  await page.getByLabel("Who gave permission, and when").fill("Head of product, email of 10 Oct");
+  await page.getByLabel("Testing basis").selectOption("public_information");
+  await page.getByLabel("Note on the basis (optional)").fill("");
+  await expect(create).toBeEnabled();
+  await create.click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0].url).toMatch(/\/api\/evals\/v1\/prospects$/);
+  expect(posts[0].body).toEqual({ company: "Acme Seguros", chatUrl: "https://chat.acme-seguros.es/ayuda", helpUrl: "https://ayuda.acme-seguros.es/", locale: "en", basis: "public_information", confirmPolicy: true });
+  expect(posts[0].key).toMatch(/^[0-9a-f-]{36}$/);
+  await expect.poll(() => new URL(page.url()).pathname).toBe(`/ops/prospects/${snapshotId}`);
+});
+
+test("snapshot detail makes a labelled link, fills the EN/ES outreach and drafts the CRM handoff only on click", async ({ page }) => {
+  let shared = false, crm = false;
+  const posts: Array<{ url: string; body: Record<string, unknown> }> = [];
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const request = route.request(), url = request.url();
+    if (request.method() === "POST") posts.push({ url, body: request.postDataJSON() });
+    if (url.endsWith("/share") && request.method() === "POST") { shared = true; await route.fulfill({ json: { data: { shareId: "s", token: "b".repeat(43), expiresAt: "2026-11-11T08:30:00Z", label: "external_snapshot" }, meta: {} } }); return; }
+    if (url.includes("/crm-handoff-drafts")) { crm = true; await route.fulfill({ json: { data: { id: "d", created: true }, meta: {} } }); return; }
+    if (url.includes(`/prospects/${snapshotId}`)) { await route.fulfill({ json: { data: snapshotDetail({ shared, crm }), meta: {} } }); return; }
+    await route.fulfill({ json: { data: [], meta: {} } });
+  });
+  await page.goto(`/ops/prospects/${snapshotId}`);
+  await expect(page.getByRole("heading", { name: "Acme Seguros" })).toBeVisible();
+  await expect(page.getByText("External snapshot").first()).toBeVisible();
+  await expect(page.getByTestId("snapshot-counts")).toContainText("5 right · 2 incomplete · 1 wrong, of 8 scored.");
+  await expect(page.getByLabel("LinkedIn message")).toHaveValue(/\{link\}/);
+  await expect(page.getByRole("button", { name: "Create CRM draft" })).toBeDisabled();
+  await page.getByRole("button", { name: "Create private link" }).click();
+  const link = `http://127.0.0.1:4187/share#token=${"b".repeat(43)}`;
+  await expect(page.getByLabel("Private link", { exact: true })).toHaveValue(link);
+  await expect(page.getByText("expires 11 Nov 2026")).toBeVisible();
+  await expect(page.getByLabel("LinkedIn message")).toHaveValue(new RegExp(`valid for 30 days: ${link.replace(/[.?]/g, "\\$&")}`));
+  await page.getByRole("tab", { name: "Español" }).click();
+  await expect(page.getByLabel("LinkedIn message")).toHaveValue(/^Hola \{nombre\}: he probado el asistente de Acme Seguros/);
+  await page.getByLabel("LinkedIn message").fill("Hola {nombre}: editado");
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await noOverflow(page)).toBe(true);
+    await page.screenshot({ path: `/tmp/caudals-l21-snapshot-detail-${width}.png`, fullPage: true });
+  }
+  expect(posts.filter((post) => post.url.includes("/crm-handoff-drafts"))).toHaveLength(0);
+  await page.getByRole("button", { name: "Create CRM draft" }).click();
+  await expect(page.getByText("CRM draft created", { exact: false }).first()).toBeVisible();
+  const draft = posts.find((post) => post.url.includes("/crm-handoff-drafts"))!;
+  expect(draft.body).toEqual({ prospectSnapshotId: snapshotId, outreach: { locale: "es", linkedin: "Hola {nombre}: editado", emailSubject: "Acme Seguros: una respuesta de vuestro asistente contradice vuestra web", emailBody: `Hola {nombre}:\nInforme privado, válido 30 días: ${link}` } });
+  // Exactly two writes: the link and the draft. Nothing is sent.
+  expect(posts.map((post) => new URL(post.url).pathname)).toEqual([`/api/evals/v1/prospects/${snapshotId}/share`, "/api/evals/v1/crm-handoff-drafts"]);
+  await expect(page.getByLabel("Copy into Warmbly")).toHaveValue(/Tags: caudals-snapshot, lang-es/);
+});
+
+test("snapshot list shows today's cap and link states, in English and Spanish", async ({ page }) => {
+  const list = { today: { created: 3, cap: 25 }, limits: {}, snapshots: [
+    { id: snapshotId, orgId: sandboxOrg, company: "Acme Seguros", targetHost: "chat.acme-seguros.es", helpHost: "ayuda.acme-seguros.es", testingBasis: "public_information", locale: "es", evaluationId: "e", shared: true, shareActive: true, shareExpiresAt: "2026-11-11T08:30:00Z", crmDraft: true, createdAt: "2026-10-12T08:00:00Z", mine: true },
+    { id: "00000000-0000-4000-8000-0000000000af", orgId: sandboxOrg, company: "Beta Viajes", targetHost: "beta.es", helpHost: "beta.es", testingBasis: "owner_permission", locale: "es", evaluationId: "e", shared: false, shareActive: false, shareExpiresAt: null, crmDraft: false, createdAt: "2026-10-12T09:00:00Z", mine: false },
+  ] };
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: route.request().url().includes("/prospects") ? list : [], meta: {} } }));
+  await page.goto("/ops/prospects");
+  await expect(page.getByTestId("snapshot-cap")).toHaveText("Today: 3 of 25 snapshots (Madrid time).");
+  const table = page.getByRole("table", { name: "Prospect snapshots" });
+  await expect(table.getByRole("row", { name: /Acme Seguros/ })).toContainText("Shared until 11 Nov 2026");
+  await expect(table.getByRole("row", { name: /Beta Viajes/ })).toContainText("Permission from the owner");
+  await expect(page.getByRole("link", { name: "Prospect snapshots" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await noOverflow(page)).toBe(true);
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.goto("/ops/prospects");
+  await expect(page.getByRole("heading", { name: "Pruebas externas" })).toBeVisible();
+  await expect(page.getByTestId("snapshot-cap")).toHaveText("Hoy: 3 de 25 pruebas (hora de Madrid).");
+  await expect(page.getByRole("link", { name: "Nueva prueba" })).toBeVisible();
+});
+
+test("overview shows growth KPIs against targets and demo health", async ({ page }) => {
+  // Workspace summaries come from the harness server.
+  await page.goto("/ops?kpis");
+  const kpis = page.getByTestId("ops-kpis");
+  await expect(kpis.getByRole("heading", { name: "Growth · last 7 days" })).toBeVisible();
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Sign-ups" })).toContainText("2target 3");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Activation" })).toContainText("50 %1 of 2 · target 30 %");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Paying customers" })).toContainText("—No purchases recorded yet");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "Demo success" })).toContainText("78 %7 of 9 · target ≥ 85 %");
+  await expect(kpis.locator(".p-stat").filter({ hasText: "In the queue now" })).toContainText("1Model routes up");
+  await expect(kpis).toContainText("1 stuck runs");
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await noOverflow(page)).toBe(true);
+  }
+  await page.screenshot({ path: "/tmp/caudals-l21-overview-390.png", fullPage: true });
+});
+
+test("growth accounts show company, system, activity, score and credits, and draft CRM handoffs on click", async ({ page }) => {
+  const drafts: unknown[] = [];
+  await page.route("**/api/evals/v1/**", async (route) => {
+    if (route.request().url().includes("/crm-handoff-drafts")) { drafts.push(route.request().postDataJSON()); await route.fulfill({ json: { data: { id: "d", created: true }, meta: {} } }); return; }
+    await route.fulfill({ json: { data: [], meta: {} } });
+  });
+  await page.goto("/ops/growth");
+  const accounts = page.getByRole("table", { name: "New accounts · latest 200" });
+  const row = accounts.getByRole("row", { name: /Gestoría Ejemplo SL/ });
+  await expect(row).toContainText("gestoria-ejemplo.es");
+  await expect(row).toContainText("Website chatbot");
+  await expect(row).toContainText("63 % · 8");
+  await expect(row.locator("td").nth(6)).toHaveText("—");
+  expect(drafts).toHaveLength(0);
+  await row.getByRole("button", { name: "Create CRM draft" }).click();
+  await expect(row).toContainText("CRM draft created");
+  expect(drafts).toEqual([{ orgId: "00000000-0000-4000-8000-000000000001", source: "growth" }]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await noOverflow(page)).toBe(true);
+});
+
+test("clients show plan, credits and email domain, with kind filters", async ({ page }) => {
+  await page.route("**/api/evals/v1/client-details", (route) => route.fulfill({ json: { data: [
+    { orgId: "00000000-0000-4000-8000-000000000001", kind: "free", plan: "free", billingMode: "credits", credits: 120.5, creditsBought: null, lastActivity: "2026-10-11T10:00:00Z", emailDomain: "acme.es", latestScore: null },
+    { orgId: "00000000-0000-4000-8000-000000000002", kind: "snapshot", plan: "managed", billingMode: "contract", credits: 0, creditsBought: null, lastActivity: null, emailDomain: null, latestScore: null },
+  ], meta: {} } }));
+  await page.goto("/ops/clients?two-workspaces");
+  const table = page.getByRole("table", { name: "Clients" });
+  const first = table.getByRole("row", { name: /Example client/ });
+  await expect(first).toContainText("acme.es");
+  await expect(first).toContainText("Free");
+  await expect(first).toContainText("120.5");
+  await expect(table.getByRole("row", { name: /Second client/ })).toContainText("Snapshot");
+  await page.getByRole("group", { name: "Filter clients" }).getByRole("button", { name: /Snapshot/ }).click();
+  await expect(table.getByRole("row", { name: /Example client/ })).toHaveCount(0);
+  await expect(table.getByRole("row", { name: /Second client/ })).toHaveCount(1);
+  await page.getByRole("group", { name: "Filter clients" }).getByRole("button", { name: /All/ }).click();
+  await page.getByRole("search").getByRole("searchbox").fill("acme.es");
+  await expect(table.getByRole("row", { name: /Second client/ })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await noOverflow(page)).toBe(true);
+});
+
+test("review queue shows SLA timers and approves selected results in bulk", async ({ page }) => {
+  const decisions: Array<Record<string, unknown>> = [];
+  const item = (assessment_id: string, hours: number) => ({ assessment_id, created_at: new Date(Date.now() - hours * 3_600_000).toISOString(), outcome: "fail", review_status: "needs_review", rationale: "r", criteria: [],
+    case_title: `Case ${assessment_id.slice(-1)}`, severity: "high", question: `Question ${assessment_id.slice(-1)}`, answer: "a", expected: "e", source_refs: [], evaluation_title: "Eval", judge_reason: null, judge_calibration: null });
+  await page.route("**/api/evals/v1/reviews**", async (route) => {
+    if (route.request().method() === "POST") { decisions.push(route.request().postDataJSON()); await route.fulfill({ json: { data: {}, meta: {} } }); return; }
+    await route.fulfill({ json: { data: decisions.length ? [] : [item("00000000-0000-4000-8000-0000000000c1", 30), item("00000000-0000-4000-8000-0000000000c2", 2)], meta: {} } });
+  });
+  await page.goto("/ops/review");
+  const table = page.getByRole("table", { name: "Results needing review" });
+  await expect(table.getByRole("row", { name: /Question 1/ })).toContainText("30 h");
+  await expect(table.getByRole("row", { name: /Question 2/ })).toContainText("2 h");
+  await page.getByLabel("Select all").check();
+  await page.getByLabel("Reason for approving 2").fill("Checked against the help centre");
+  await page.getByRole("button", { name: "Approve 2" }).click();
+  await expect.poll(() => decisions.length).toBe(2);
+  expect(decisions.map((decision) => [decision.decision, decision.reason])).toEqual([["approve", "Checked against the help centre"], ["approve", "Checked against the help centre"]]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await noOverflow(page)).toBe(true);
+});
+
+test("a shared external snapshot says what it is and when the link ends", async ({ page }) => {
+  await page.route("**/api/evals/v1/share/exchange", (route) => route.fulfill({ json: { data: {
+    report_revision_id: "report-v1", run_id: "run-v1", created_at: "2026-10-12T08:21:00Z",
+    system: { name: "chat.acme-seguros.es", target_revision_id: "target-v1", purpose: "Support", execution_mode: "deployed_system" },
+    scope: { suite_version_id: "suite-v1", evidence_policy: "source_grounded", started_at: "2026-10-12T08:10:00Z", finished_at: "2026-10-12T08:20:00Z", languages: ["es"], review_status: "preliminary" },
+    results: [],
+  }, meta: { request_id: "x", share: { label: "external_snapshot", expiresAt: "2026-11-11T08:30:00Z" } } } }));
+  await page.goto(`/share#token=${"c".repeat(43)}`);
+  await expect(page.getByRole("status").filter({ hasText: "External snapshot." })).toContainText("ordinary questions using public information only; we don't know how the system is configured. This private link expires on 11 Nov 2026.");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await noOverflow(page)).toBe(true);
+  await page.screenshot({ path: "/tmp/caudals-l21-share-390.png", fullPage: true });
+});

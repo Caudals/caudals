@@ -5,11 +5,12 @@
  * login, then invite its people. Each client row opens its access panel; the
  * workspace itself is one click away through the workspace switcher.
  */
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import { t } from "@/lib/evals/messages/en";
-import { Action, ActionLink, DataTable, DefinitionList, EmptyState, Field, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
+import { Action, ActionLink, Badge, DataTable, DefinitionList, EmptyState, Field, FilterChips, PageHeading, formatMoney, SearchInput, Status, TableSkeleton, Time, Toolbar } from "./primitives";
+import type { ClientDetail } from "@/lib/analytics/ops-kpis";
 import { ActionMenu, Modal, SidePanel, notify } from "./overlays";
 import { RenameDialog } from "./item-actions";
 import { InvitationManager } from "./invitation-manager";
@@ -17,6 +18,8 @@ import { useClientSummaries } from "./operator-overview";
 import { evalRequest } from "./api";
 
 type Workspace = { id: string; name: string };
+type KindFilter = "all" | "client" | "free" | "snapshot";
+const credits = (value: number | null | undefined) => (value === null || value === undefined ? "—" : value.toLocaleString("en-GB", { maximumFractionDigits: 2 }));
 
 export function ClientManagement() {
   const router = useRouter();
@@ -38,6 +41,12 @@ export function ClientManagement() {
     return key;
   };
   const open = clients?.find((client) => client.id === openId) ?? null;
+  // Plan, credits, activity and email domain (launch L-21); the table works without them.
+  const [details, setDetails] = useState<Map<string, ClientDetail>>(new Map());
+  const [kind, setKind] = useState<KindFilter>("all");
+  useEffect(() => {
+    evalRequest<ClientDetail[]>("/client-details").then((rows) => setDetails(new Map(rows.map((row) => [row.orgId, row])))).catch(() => undefined);
+  }, [clients?.length]);
 
   async function create(event: FormEvent) {
     event.preventDefault();
@@ -62,10 +71,20 @@ export function ClientManagement() {
   }
 
   const needle = query.trim().toLowerCase();
-  const visible = (clients ?? []).filter((client) => !needle || client.name.toLowerCase().includes(needle));
+  const kindOf = (id: string) => details.get(id)?.kind ?? "client";
+  const counts = { all: clients?.length ?? 0, client: 0, free: 0, snapshot: 0 } as Record<KindFilter, number>;
+  for (const client of clients ?? []) counts[kindOf(client.id)]++;
+  const visible = (clients ?? [])
+    .filter((client) => kind === "all" || kindOf(client.id) === kind)
+    .filter((client) => !needle || `${client.name} ${details.get(client.id)?.emailDomain ?? ""}`.toLowerCase().includes(needle));
   const lastActivity = (id: string) => {
     const summary = clients?.find((client) => client.id === id)?.summary;
-    return summary?.evaluations.map((item) => item.updated_at ?? "").sort().at(-1) || null;
+    return details.get(id)?.lastActivity ?? (summary?.evaluations.map((item) => item.updated_at ?? "").sort().at(-1) || null);
+  };
+  const planLabel = (id: string) => {
+    const row = details.get(id);
+    if (!row) return "—";
+    return row.kind === "snapshot" ? t("clientKindSnapshot") : row.plan === "free" ? t("clientPlanFree") : t("clientPlanManaged");
   };
 
   return (
@@ -100,12 +119,18 @@ export function ClientManagement() {
         </EmptyState>
       ) : (
         <>
-          {clients.length > 6 && (
-            <Toolbar>
-              <SearchInput value={query} onChange={setQuery} label={t("searchClients")} />
-            </Toolbar>
-          )}
-          <DataTable caption={t("clients")} headers={[t("client"), { label: t("product"), align: "end" }, { label: t("reports"), align: "end" }, { label: t("lastActivity"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
+          <Toolbar>
+            <SearchInput value={query} onChange={setQuery} label={t("searchClientsDomains")} />
+          </Toolbar>
+          <div className="p-toolbar">
+            <FilterChips value={kind} onChange={setKind} label={t("filterClients")} options={[
+              { value: "all", label: t("all"), count: counts.all },
+              { value: "client", label: t("clientPlanManaged"), count: counts.client },
+              { value: "free", label: t("clientPlanFree"), count: counts.free },
+              { value: "snapshot", label: t("clientKindSnapshot"), count: counts.snapshot },
+            ]} />
+          </div>
+          <DataTable caption={t("clients")} headers={[t("client"), t("clientPlan"), { label: t("clientCredits"), align: "end" }, { label: t("product"), align: "end" }, { label: t("reports"), align: "end" }, { label: t("lastActivity"), align: "end" }, { label: t("actions"), align: "end", hidden: true }]}>
             {visible.map((client) => (
               <tr key={client.id}>
                 <th scope="row">
@@ -113,9 +138,12 @@ export function ClientManagement() {
                     <button type="button" className="p-row-link p-row-button" onClick={() => setOpenId(client.id)}>
                       {client.name}
                     </button>
+                    {details.get(client.id)?.emailDomain && <span className="p-cell-meta">{details.get(client.id)?.emailDomain}</span>}
                     {client.error && <span className="p-cell-meta">{t("summaryUnavailable")}</span>}
                   </span>
                 </th>
+                <td>{details.get(client.id)?.kind === "snapshot" ? <Badge tone="info">{planLabel(client.id)}</Badge> : planLabel(client.id)}</td>
+                <td className="p-num">{credits(details.get(client.id)?.credits)}{details.get(client.id)?.creditsBought != null && <span className="p-cell-meta"> · {credits(details.get(client.id)?.creditsBought)} {t("clientBought")}</span>}</td>
                 <td className="p-num">{client.summary?.evaluations.length ?? "—"}</td>
                 <td className="p-num">{client.summary?.reports.length ?? "—"}</td>
                 <td className="p-table-action p-cell-meta">

@@ -88,13 +88,20 @@ services:
       LIFECYCLE_EMAILS_ENABLED: "${LIFECYCLE_EMAILS_ENABLED:-false}"
       LIFECYCLE_EMAIL_STEPS: "${LIFECYCLE_EMAIL_STEPS:-}"
       CALCOM_LINK: "${CALCOM_LINK:-}"
+      # Weekly ops digest (launch L-21), switched with the app credentials via
+      # scripts/deploy-evals-production.sh. The internal recipient is a
+      # versioned secret, never an environment value.
+      OPS_DIGEST_ENABLED: "${OPS_DIGEST_ENABLED:-false}"
+      OPS_DIGEST_LOCALE: "${OPS_DIGEST_LOCALE:-en}"
+      GROWTH_TARGET_STAGE: "${GROWTH_TARGET_STAGE:-gate_a}"
+      COLLABORATION_NOTIFICATION_EMAIL_FILE: /run/secrets/evals_digest_to
       # Error reporting (launch L-08): DSN from a versioned secret, release =
       # the deployed image commit; scrubbed of personal data in the process.
       SENTRY_DSN_FILE: /run/secrets/sentry_dsn
       SENTRY_ENVIRONMENT: production
       SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
       SENTRY_SERVICE: evals-scheduler
-    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email,sentry_dsn]
+    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email,evals_digest_to,sentry_dsn]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-scheduler-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
       interval: 30s
@@ -290,6 +297,7 @@ secrets:
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
   evals_resend_api_key: {external: true, name: "${EVALS_RESEND_API_KEY_SECRET:?Versioned Resend key secret is required}"}
   evals_resend_from_email: {external: true, name: "${EVALS_RESEND_FROM_EMAIL_SECRET:?Versioned Resend sender secret is required}"}
+  evals_digest_to: {external: true, name: "${EVALS_DIGEST_TO_SECRET:?Versioned digest recipient secret is required}"}
   # The browser executor has no direct egress by design, so it does not report to Sentry.
   sentry_dsn: {external: true, name: "${EVALS_SENTRY_DSN_SECRET:?Versioned Sentry DSN secret is required}"}
   evals_document_database_url: {external: true, name: caudals_evals_document_database_url}

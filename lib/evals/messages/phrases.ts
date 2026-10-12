@@ -75,6 +75,17 @@ const SERVER_ES: Record<string, string> = {
   "Idempotency-Key required.": "Falta la cabecera Idempotency-Key.",
   "Add a first question by generating or importing a test set.": "Añade una primera pregunta generando o importando un conjunto de pruebas.",
   "Question not found in this draft.": "La pregunta no está en este borrador.",
+  // Prospect snapshots (launch L-21).
+  "Today's snapshot limit is reached. Try again tomorrow (Madrid time).": "Se ha alcanzado el límite diario de pruebas externas. Vuelve a intentarlo mañana (hora de Madrid).",
+  "This chat already has a snapshot from the last 24 hours.": "Este chat ya tiene una prueba externa de las últimas 24 horas.",
+  "Snapshots use ordinary questions only. Adversarial or unlisted question packs are blocked.": "Las pruebas externas solo usan preguntas normales. Los paquetes adversarios o no incluidos en la lista están bloqueados.",
+  "Use public https pages, without a login, port or private address.": "Usa páginas https públicas, sin inicio de sesión, puerto ni dirección privada.",
+  "Say who gave permission and when.": "Indica quién dio el permiso y cuándo.",
+  "Publish the snapshot's report before making its link.": "Publica el informe de la prueba antes de crear su enlace.",
+  "Create the private link before the CRM draft.": "Crea el enlace privado antes del borrador para el CRM.",
+  "This account has no published report yet.": "Esta cuenta aún no tiene un informe publicado.",
+  "A prospect snapshot runs only ordinary questions on a website chat, within its traffic limits and question count.": "Una prueba externa solo hace preguntas normales a un chat web, dentro de sus límites de tráfico y de número de preguntas.",
+  "The link could not be labelled as an external snapshot.": "No se ha podido etiquetar el enlace como prueba externa.",
 };
 
 /** Translate a curated server sentence; evaluation- or model-specific details keep their wording. */

@@ -10,16 +10,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClipboardCheck } from "lucide-react";
 import { evalRequest } from "./api";
-import { Action, DataTable, DefinitionList, EmptyState, PageHeading, RowTitle, SectionHeading, SelectField, Status, StatusBadge, TableSkeleton, TextArea, humanize } from "./primitives";
+import { Action, Badge, Check, DataTable, DefinitionList, EmptyState, Field, PageHeading, RowTitle, SectionHeading, SelectField, Status, StatusBadge, TableSkeleton, TextArea, humanize, type Tone } from "./primitives";
 import { SidePanel, notify } from "./overlays";
 import { useClientSummaries } from "./operator-overview";
 import { useWorkspace } from "./workspace-context";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 import type { ResultLabel } from "@/lib/evals/reports/contracts";
 import { ResultBadge, labelOf } from "./result-labels";
 
 type Item = {
   assessment_id: string;
+  created_at?: string;
   outcome: string;
   review_status: string;
   rationale: string;
@@ -51,6 +52,21 @@ function reviewReason(item: Item) {
   return item.judge_reason ? humanize(item.judge_reason) : humanize(item.review_status);
 }
 type Queued = Item & { orgId: string; client: string };
+/**
+ * Review SLA (launch L-21, spec v2 §5.3): how long an item has waited. Within
+ * a working day it is fine, after 24 hours it is due, after 48 hours overdue.
+ */
+export function slaFor(since: string | null | undefined, now = Date.now()): { label: string; tone: Tone } | null {
+  if (!since) return null;
+  const hours = Math.max(0, (now - new Date(since).getTime()) / 3_600_000);
+  if (!Number.isFinite(hours)) return null;
+  const label = hours < 1 ? tv("slaMinutes", { n: Math.max(1, Math.round(hours * 60)) }) : hours < 48 ? tv("slaHours", { n: Math.floor(hours) }) : tv("slaDays", { n: Math.floor(hours / 24) });
+  return { label, tone: hours >= 48 ? "fail" : hours >= 24 ? "warn" : "neutral" };
+}
+function Sla({ since }: { since: string | null | undefined }) {
+  const sla = slaFor(since);
+  return sla ? <Badge tone={sla.tone} dot={sla.tone !== "neutral"}>{sla.label}</Badge> : <span className="p-cell-meta">—</span>;
+}
 const scoreFor = { pass: 1, partial: 0.5, fail: 0, unscorable: null } as const;
 const SEVERITY = ["critical", "high", "medium", "low"];
 
@@ -64,6 +80,9 @@ export function ReviewQueue() {
   const [outcome, setOutcome] = useState<keyof typeof scoreFor>("pass");
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkPending, setBulkPending] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -123,6 +142,34 @@ export function ReviewQueue() {
     }
   }
 
+  /** Bulk approve (launch L-21): one attributed decision per result, with the same reason. */
+  async function approveSelected(event: React.FormEvent) {
+    event.preventDefault();
+    const reasonText = bulkReason.trim();
+    if (!reasonText || !selected.length || !items) return;
+    setBulkPending(true);
+    setError("");
+    let done = 0;
+    try {
+      for (const item of items.filter((row) => selected.includes(`${row.orgId}:${row.assessment_id}`))) {
+        await evalRequest("/reviews", "POST", { orgId: item.orgId, assessmentId: item.assessment_id, decision: "approve", reason: reasonText });
+        done++;
+      }
+      notify(tv("bulkApproved", { count: done }));
+      setSelected([]);
+      setBulkReason("");
+    } catch (value) {
+      setError(value instanceof Error ? value.message : t("error"));
+      if (done) notify(tv("bulkApproved", { count: done }));
+    } finally {
+      setBulkPending(false);
+      await load();
+    }
+  }
+  const keyOf = (item: Queued) => `${item.orgId}:${item.assessment_id}`;
+  const toggle = (key: string) => setSelected((current) => (current.includes(key) ? current.filter((value) => value !== key) : [...current, key]));
+  const allSelected = !!items?.length && items.every((item) => selected.includes(keyOf(item)));
+
   return (
     <>
       <PageHeading title={t("reviewQueue")}>{t("reviewQueueHelp")}</PageHeading>
@@ -133,13 +180,14 @@ export function ReviewQueue() {
         {clients === null ? (
           <TableSkeleton rows={2} columns={3} />
         ) : approvals.length ? (
-          <DataTable caption={t("testSetsAwaitingApproval")} headers={[t("evaluation"), t("client"), { label: t("statusLabel"), align: "end" }]}>
+          <DataTable caption={t("testSetsAwaitingApproval")} headers={[t("evaluation"), t("client"), t("slaWaiting"), { label: t("statusLabel"), align: "end" }]}>
             {approvals.map(({ client, evaluation }) => (
               <tr key={`${client.id}-${evaluation.id}`}>
                 <RowTitle href={`/workspace/evaluations/${evaluation.id}?orgId=${client.id}`} meta={evaluation.project_title}>
                   {evaluation.title}
                 </RowTitle>
                 <td>{client.name}</td>
+                <td><Sla since={evaluation.updated_at} /></td>
                 <td className="p-table-action">
                   <StatusBadge value={evaluation.preparation_status} />
                 </td>
@@ -156,9 +204,19 @@ export function ReviewQueue() {
         {items === null ? (
           <TableSkeleton columns={4} />
         ) : items.length ? (
-          <DataTable caption={t("resultReview")} headers={[t("test"), t("severity"), t("outcome"), { label: t("reason"), align: "end" }]}>
+          <>
+          {selected.length > 0 && (
+            <form className="p-row" onSubmit={approveSelected} aria-label={t("bulkApprove")}>
+              <Field id="bulk-reason" label={tv("bulkReason", { count: selected.length })} value={bulkReason} onChange={(event) => setBulkReason(event.target.value)} maxLength={4000} required />
+              <Action type="submit" disabled={bulkPending || !bulkReason.trim()}>{bulkPending ? t("working") : tv("bulkApproveCount", { count: selected.length })}</Action>
+              <Action variant="ghost" onClick={() => setSelected([])}>{t("cancel")}</Action>
+            </form>
+          )}
+          <div className="p-toolbar"><Check label={t("bulkSelectAll")} checked={allSelected} onChange={() => setSelected(allSelected ? [] : items.map(keyOf))} /></div>
+          <DataTable caption={t("resultReview")} headers={[{ label: t("bulkSelect"), hidden: true }, t("test"), t("severity"), t("outcome"), t("slaWaiting"), { label: t("reason"), align: "end" }]}>
             {items.map((item) => (
               <tr key={`${item.orgId}-${item.assessment_id}`}>
+                <td><input type="checkbox" aria-label={`${t("bulkSelect")}: ${item.question ?? item.case_title}`} checked={selected.includes(keyOf(item))} onChange={() => toggle(keyOf(item))} /></td>
                 <th scope="row">
                   <span className="p-table-primary">
                     <button type="button" className="p-row-link p-row-button p-clamp-2" onClick={() => open(item)}>
@@ -175,10 +233,12 @@ export function ReviewQueue() {
                 <td>
                   <ResultBadge result={{ outcome: item.outcome as "pass", label: queuedLabel(item) }} />
                 </td>
+                <td><Sla since={item.created_at} /></td>
                 <td className="p-table-action p-cell-meta">{reviewReason(item)}</td>
               </tr>
             ))}
           </DataTable>
+          </>
         ) : (
           <EmptyState title={t("noResultsToReview")} icon={<ClipboardCheck />}>
             <p>{t("noResultsToReviewHelp")}</p>

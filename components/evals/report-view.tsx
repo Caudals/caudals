@@ -1029,6 +1029,7 @@ export function SharedReport() {
     () => null,
   );
   const [report, setReport] = useState<Partial<ReportSnapshot> | null>(null);
+  const [share, setShare] = useState<{ label: string | null; expiresAt: string | null } | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     if (!token) return;
@@ -1036,7 +1037,9 @@ export function SharedReport() {
     void fetch("/api/evals/v1/share/exchange", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
       .then(async (response) => {
         if (!response.ok) throw new Error();
-        return (await response.json()).data;
+        const body = await response.json();
+        setShare(body.meta?.share ?? null);
+        return body.data;
       })
       .then(setReport)
       .catch(() => setError(t("shareUnavailable")));
@@ -1054,5 +1057,15 @@ export function SharedReport() {
         {t("loadingReport")}
       </p>
     );
-  return <ReportView report={report} actions={<SharedDownloads token={token} report={report} />} />;
+  return (
+    <>
+      {/* A prospect snapshot (launch L-21): say what the evidence is and when the link ends. */}
+      {share?.label === "external_snapshot" && (
+        <Status tone="info">
+          <strong>{t("shareExternalSnapshot")}</strong> {share.expiresAt ? tv("shareExternalSnapshotBody", { date: formatDate(share.expiresAt) }) : t("shareExternalSnapshotScope")}
+        </Status>
+      )}
+      <ReportView report={report} actions={<SharedDownloads token={token} report={report} />} />
+    </>
+  );
 }

@@ -16,7 +16,7 @@ export function websiteControlTarget(scope: EvidenceScope, targetId: string) {
     if (!row) throw new EvalError("SCOPE_DENIED", 404);
     const config = targetConfigSchema.parse(row.document);
     if (config.kind !== "website") throw new EvalError("INPUT_INVALID", 422, "Choose a website system.");
-    const authorization = (await db.query(`SELECT scope,expires_at FROM evals.authorization_record WHERE org_id=$1 AND target_id=$2 AND basis='workspace_member_attestation' ORDER BY created_at DESC,id DESC LIMIT 1`, [scope.orgId, targetId])).rows[0] ?? null;
+    const authorization = (await db.query(`SELECT scope,expires_at FROM evals.authorization_record WHERE org_id=$1 AND target_id=$2 AND basis IN ('workspace_member_attestation','external_snapshot') ORDER BY created_at DESC,id DESC LIMIT 1`, [scope.orgId, targetId])).rows[0] ?? null;
     assertWebsiteAuthorization(authorization, config.endpoint);
     const recipeRow = config.recipe_revision_id ? (await db.query("SELECT document FROM evals.website_recipe_revision WHERE org_id=$1 AND id=$2 AND target_id=$3", [scope.orgId, config.recipe_revision_id, targetId])).rows[0] : null;
     const draft = (await db.query("SELECT document FROM evals.website_recipe_candidate WHERE org_id=$1 AND target_id=$2 AND source='operator_authored' AND status='needs_operator' AND created_at>COALESCE((SELECT max(created_at) FROM evals.website_recipe_revision r WHERE r.org_id=$1 AND r.target_id=$2),'epoch'::timestamptz) ORDER BY created_at DESC,id DESC LIMIT 1", [scope.orgId, targetId])).rows[0];

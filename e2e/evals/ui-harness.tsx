@@ -24,6 +24,9 @@ import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/e
 import { ExpertManagement } from "../../components/evals/expert-management";
 import { ImprovementDatasets } from "../../components/evals/improvement-datasets";
 import { OperatorOverview } from "../../components/evals/operator-overview";
+import { NewProspectSnapshot, ProspectSnapshotDetail, ProspectSnapshots } from "../../components/evals/prospect-snapshot";
+import { SharedReport } from "../../components/evals/report-view";
+import { PublicFrame } from "../../components/evals/public-frame";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
@@ -89,7 +92,8 @@ const authPage =
   location.pathname === "/workspace/start" ||
   location.pathname === "/workspace/unsubscribe" ||
   location.pathname === "/workspace/security" ||
-  location.pathname === "/workspace/reset-password";
+  location.pathname === "/workspace/reset-password" ||
+  location.pathname === "/share";
 const viewer = location.search.includes("viewer");
 const anonymous = location.search.includes("anonymous");
 const identity = {
@@ -117,9 +121,18 @@ const demoPage = location.pathname === "/demo";
 const sampleReportPage = location.pathname === "/sample-report";
 const sampleLocale = params.get("locale") === "es" ? "es" as const : "en" as const;
 const growthWeeks = Array.from({length:8},(_,i)=>({week:`2026-09-${String(i+1).padStart(2,"0")}`,events:{page_view:40+i,demo_started:12,account_created:4,report_viewed:2}}));
+/** Launch L-21 fixtures: growth KPIs and demo health on the Overview. */
+const opsKpis = { stage: "gate_a" as const, targets: { sessions: 150, demoStarts: 15, demoSuccess: 0.85, newAccounts: 3, activation: 0.3, snapshotsShared: 15, payingCustomers: 0, demoP50Seconds: 300 },
+  signups: 2, activation: { activated: 1, cohort: 2, rate: 0.5 }, payingCustomers: null, snapshotsShared: 4, stuckRuns: 1,
+  demo: { starts: 9, finished: 9, succeeded: 7, successRate: 7 / 9, p50Seconds: 192, failures: [{ reason: "site_thin", count: 2 }], queue: 1, primaryDown: false, fallbackDown: false } };
 const content =
   location.pathname === "/analytics-fixture" ? <FunnelVisitTracker /> :
-  location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed"}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
+  location.pathname === "/share" ? <PublicFrame contextKey="sharedPrivately"><SharedReport /></PublicFrame> :
+  location.pathname === "/ops/prospects" ? <ProspectSnapshots /> :
+  location.pathname === "/ops/prospects/new" ? <NewProspectSnapshot limits={{ dailyCap: 25, maxQuestions: 10, requestsPerMinute: 4, concurrentSessions: 1, runsPerMonth: 3, helpPages: 10 }} /> :
+  location.pathname.startsWith("/ops/prospects/") ? <ProspectSnapshotDetail id={location.pathname.split("/").at(-1)!} /> :
+  location.pathname === "/ops" && params.has("kpis") ? <OperatorOverview kpis={opsKpis} growth /> :
+  location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed",company:"Gestoría Ejemplo SL",connection:"website",lastActivity:"2026-09-10T10:00:00Z",latestScore:0.625,latestScored:8,creditsBought:null,plan:"free",emailDomain:"gestoria-ejemplo.es",hasReport:true}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
   sampleReportPage ? (
     <LocaleProvider locale={sampleLocale}>
       <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
@@ -213,6 +226,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, example: !params.has("no-example") }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example") }}>{content}</ShellFrame>
   ),
 );

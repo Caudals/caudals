@@ -7,9 +7,23 @@ export type GrowthData = {
   weeks: { week: string; events: Record<string, number> }[];
   outcomes: { outcome: string; reason: string; count: number }[];
   sources: { source: string; visits: number; demos: number; accounts: number; activated: number }[];
-  accounts: { orgId: string; createdAt: string; source: string; stage: string }[];
+  accounts: ({ orgId: string; createdAt: string; source: string; stage: string } & Partial<AccountDetails>)[];
   cohorts: { week: string; accounts: number; active: number[] }[];
 };
+/** Pipeline details per account (launch L-21, P-34 v2); null means unknown or not yet, never an invented zero. */
+export type AccountDetails = {
+  company: string | null;
+  connection: string | null;
+  lastActivity: string | null;
+  latestScore: number | null;
+  latestScored: number | null;
+  creditsBought: number | null;
+  plan: string | null;
+  emailDomain: string | null;
+  hasReport: boolean;
+};
+type WorkspaceDetailRow = { org_id: string; name: string; plan: string | null; connection_kind: string | null; last_activity: Date | string | null; latest_score: string | null; latest_scored: number | null; credits_bought: string | null; owner_domain: string | null; report_at: Date | string | null };
+const num = (value: string | number | null | undefined) => (value === null || value === undefined ? null : Number(value));
 export async function getGrowth(identity: EvalIdentity): Promise<GrowthData> {
   if (!analyticsV2Enabled() || !identity.platformRole) throw new EvalError("SCOPE_DENIED", 404);
   return withTenant({ orgId: "", actorId: identity.user.id }, async db => {
@@ -19,7 +33,8 @@ export async function getGrowth(identity: EvalIdentity): Promise<GrowthData> {
     if (!authorized) throw new EvalError("SCOPE_DENIED", 404);
     const { rows } = await db.query(`WITH recent AS MATERIALIZED (
       SELECT event_name,org_id,metadata,attribution,occurred_at,date_trunc('week',occurred_at) AS week
-      FROM public.product_analytics_event WHERE occurred_at>=date_trunc('week',now())-interval '7 weeks'
+      FROM public.product_analytics_event e WHERE occurred_at>=date_trunc('week',now())-interval '7 weeks'
+        AND (e.org_id IS NULL OR NOT EXISTS(SELECT 1 FROM evals.prospect_snapshot p WHERE p.org_id=e.org_id))
     ), weeks AS (SELECT generate_series(date_trunc('week',now())-interval '7 weeks',date_trunc('week',now()),interval '1 week') AS week),
     counts AS (SELECT week,event_name,count(*)::int AS n FROM recent GROUP BY week,event_name),
     accounts AS (SELECT DISTINCT ON(org_id) org_id,occurred_at,week,
@@ -43,6 +58,14 @@ export async function getGrowth(identity: EvalIdentity): Promise<GrowthData> {
         FROM accounts a LEFT JOIN stages s ON s.org_id=a.org_id ORDER BY a.occurred_at DESC LIMIT 200) x) AS accounts,
       (SELECT jsonb_agg(jsonb_build_object('week',to_char(w.week,'YYYY-MM-DD'),'accounts',(SELECT count(*) FROM accounts a WHERE a.week=w.week),
         'active',(SELECT jsonb_agg((SELECT count(DISTINCT a.org_id) FROM accounts a JOIN activity v ON v.org_id=a.org_id WHERE a.week=w.week AND v.week=w.week+g.n*interval '1 week') ORDER BY g.n) FROM generate_series(0,7) g(n))) ORDER BY w.week) FROM weeks w) AS cohorts`);
-    return rows[0] as GrowthData;
+    const growth = rows[0] as GrowthData;
+    // Prospect sandboxes are ours, not accounts: excluded above and from the details.
+    const details = new Map((await db.query<WorkspaceDetailRow>("SELECT * FROM evals.ops_workspace_details()")).rows.map(row => [row.org_id, row]));
+    growth.accounts = growth.accounts.map(account => {
+      const row = details.get(account.orgId);
+      return { ...account, company: row?.name ?? null, connection: row?.connection_kind ?? null, lastActivity: row?.last_activity ? new Date(row.last_activity).toISOString() : null,
+        latestScore: num(row?.latest_score), latestScored: row?.latest_scored ?? null, creditsBought: num(row?.credits_bought), plan: row?.plan ?? null, emailDomain: row?.owner_domain ?? null, hasReport: !!row?.report_at };
+    });
+    return growth;
   });
 }

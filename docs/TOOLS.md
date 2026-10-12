@@ -981,6 +981,13 @@ Operational env controls:
 - Check it: `curl -s -A "GPTBot/1.2" https://caudals.com/en/demo | grep -E '<title>|rel="canonical"|hreflang|name="robots"'` (index, canonical and hreflang in `<head>`), `curl -s https://caudals.com/page-sitemap.xml | grep /demo`, `curl -s https://caudals.com/llms.txt | grep demo`. After switching it on or off, run `npm run seo:indexnow`.
 - Shares by email (aggregates only, as `postgres`): `SELECT date_trunc('day', occurred_at) AS day, metadata->>'channel' AS channel, count(*) FROM public.product_analytics_event WHERE event_name = 'demo_report_shared' GROUP BY 1, 2 ORDER BY 1 DESC LIMIT 14`. An emailed share is the sender's consent record (`consent: true`, hashed run); the recipient's address is never stored. Limits: 5 a day per visitor, 3 per run.
 
+## Prospect Snapshots and Ops Digest (L-21)
+
+- Flags and limits (app credentials, `scripts/launch/set-app-flag.sh`): `PROSPECT_SNAPSHOTS_ENABLED` (`true` shows `/ops/prospects`), `PROSPECT_SNAPSHOT_DAILY_CAP` (default 25 a Madrid day), `PROSPECT_SNAPSHOT_MAX_QUESTIONS` (default 10, at most 20), `GROWTH_TARGET_STAGE` (`gate_a`, `gate_b`, `launch_4w`, `launch_12w`; Overview and digest targets), `OPS_DIGEST_ENABLED` and `OPS_DIGEST_LOCALE` (`en`/`es`). The digest flags reach the scheduler only through `scripts/deploy-evals-production.sh`, which also stores `COLLABORATION_NOTIFICATION_EMAIL` as the versioned secret `caudals_evals_digest_to_<hash>`.
+- Third-party policy: only our own sites or a company's public chat with ordinary questions; never adversarial tests, never a sign-in or CAPTCHA bypass, never a public name. Production checks use Caudals' own hosts only.
+- Manual digest, inside the scheduler container (its database identity and secrets): `sudo docker exec "$(sudo docker ps -q -f name=caudals-evals_scheduler)" node --conditions=react-server --import tsx services/evals-worker/ops-digest.ts --dry-run` prints counts only; `--force` sends this week's digest now to the internal address (it claims the week, so the Monday job will not send it again). Send history: `SELECT week_start,status,attempts,sent_at,summary FROM evals.ops_digest_send ORDER BY week_start DESC`.
+- Snapshot records: `SELECT company,target_host,testing_basis,created_at,share_expires_at,crm_draft_id IS NOT NULL FROM evals.prospect_snapshot ORDER BY created_at DESC` (staff only). A snapshot workspace is deleted, like any other, through the audited workspace deletion workflow; its basis record stays.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:

@@ -20,6 +20,7 @@ import {
   PageHeading,
   RowTitle,
   SearchInput,
+  SectionHeading,
   Stat,
   StatGrid,
   Status,
@@ -30,7 +31,8 @@ import {
 import { useWorkspace } from "./workspace-context";
 import type { WorkspaceSummary } from "./workspace-data";
 import { evaluationStage, type StageKey } from "./evaluation-stage";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
+import type { OpsKpis } from "@/lib/analytics/ops-kpis";
 
 const NEXT_STEP: Record<StageKey, string> = {
   setup: "Waiting for reference material",
@@ -80,7 +82,42 @@ export function useClientSummaries() {
 
 type Filter = "action" | "live" | "all";
 
-export function OperatorOverview() {
+const pct = (value: number | null) => (value === null ? "—" : `${Math.round(value * 100)} %`);
+const seconds = (value: number | null) => (value === null ? "—" : value >= 60 ? `${Math.floor(value / 60)} min ${Math.round(value % 60)} s` : `${Math.round(value)} s`);
+
+/** Last seven days against the §7.11 targets, and demo health now (launch L-21). */
+function GrowthKpis({ kpis, growth }: { kpis: OpsKpis; growth: boolean }) {
+  const demo = kpis.demo;
+  const routes = demo.primaryDown ? (demo.fallbackDown ? t("kpiRoutesDown") : t("kpiPrimaryDown")) : t("kpiRoutesOk");
+  return (
+    <div className="p-section" data-testid="ops-kpis">
+      <SectionHeading title={t("kpiTitle")} actions={growth ? <ActionLink variant="secondary" size="sm" href="/ops/growth">{t("growth")}</ActionLink> : undefined}>
+        {t("kpiHelp")}
+      </SectionHeading>
+      <StatGrid>
+        <Stat label={t("kpiSignups")} value={kpis.signups} meta={tv("kpiTarget", { target: kpis.targets.newAccounts })} />
+        <Stat label={t("kpiActivation")} value={pct(kpis.activation.rate)} meta={`${tv("kpiOf", { part: kpis.activation.activated, whole: kpis.activation.cohort })} · ${tv("kpiTarget", { target: pct(kpis.targets.activation) })}`} />
+        <Stat label={t("kpiPaying")} value={kpis.payingCustomers ?? "—"} meta={kpis.payingCustomers === null ? t("kpiNoPurchases") : tv("kpiTarget", { target: kpis.targets.payingCustomers })} />
+        <Stat label={t("kpiSnapshots")} value={kpis.snapshotsShared} meta={tv("kpiTarget", { target: kpis.targets.snapshotsShared })} />
+      </StatGrid>
+      <SectionHeading title={t("kpiDemoTitle")} />
+      <StatGrid>
+        <Stat label={t("kpiDemoStarts")} value={demo.starts} meta={tv("kpiTarget", { target: kpis.targets.demoStarts })} />
+        <Stat label={t("kpiDemoSuccess")} value={pct(demo.successRate)} meta={`${tv("kpiOf", { part: demo.succeeded, whole: demo.finished })} · ${tv("kpiTarget", { target: `≥ ${pct(kpis.targets.demoSuccess)}` })}`} />
+        <Stat label={t("kpiDemoP50")} value={seconds(demo.p50Seconds)} meta={tv("kpiTarget", { target: `≤ ${seconds(kpis.targets.demoP50Seconds)}` })} />
+        <Stat label={t("kpiDemoQueue")} value={demo.queue} meta={routes} />
+      </StatGrid>
+      {(demo.failures.length > 0 || kpis.stuckRuns > 0) && (
+        <p className="p-cell-meta">
+          {demo.failures.length > 0 && <>{t("kpiFailures")}: {demo.failures.map((item) => `${item.reason} ${item.count}`).join(", ")}. </>}
+          {kpis.stuckRuns > 0 && <Badge tone="warn" dot>{tv("kpiStuck", { count: kpis.stuckRuns })}</Badge>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function OperatorOverview({ kpis = null, growth = false }: { kpis?: OpsKpis | null; growth?: boolean } = {}) {
   const { clients, reload } = useClientSummaries();
   const requested = useSearchParams().get("filter");
   const [filter, setFilter] = useState<Filter>(requested === "all" || requested === "live" ? requested : "action");
@@ -123,6 +160,7 @@ export function OperatorOverview() {
           ) : undefined
         }
       />
+      {kpis && <GrowthKpis kpis={kpis} growth={growth} />}
       {failedClients.length > 0 && (
         <Status error action={<Action variant="secondary" size="sm" onClick={() => void reload()}>{t("retry")}</Action>}>
           {t("clientsFailedToLoad")} {failedClients.map((client) => `${client.name}${client.message ? ` (${client.message})` : ""}`).join(", ")}

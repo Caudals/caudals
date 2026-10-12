@@ -22,8 +22,14 @@ const PLAN_LIMITS: Record<string, string> = {
   PLAN_LIMIT_RUNS: "The free plan includes three runs a month. Talk to us about a pilot for more.",
 };
 
+/** Prospect snapshot policy raised by the database triggers of migration 090 (launch L-21). */
+const SNAPSHOT_POLICY: Record<string, string> = {
+  SNAPSHOT_POLICY_BLOCKED: "A prospect snapshot runs only ordinary questions on a website chat, within its traffic limits and question count.",
+};
+
 export function inputError(error: unknown): EvalError | null {
   if (error instanceof EvalError || !(error instanceof Error)) return null;
+  if (SNAPSHOT_POLICY[error.message]) return new EvalError("SNAPSHOT_POLICY_BLOCKED", 422, SNAPSHOT_POLICY[error.message]);
   if (PLAN_LIMITS[error.message]) return new EvalError("PLAN_LIMIT", 403, PLAN_LIMITS[error.message]);
   const message = INPUT_ERRORS[error.message];
   return message ? new EvalError("INPUT_INVALID", 422, message) : null;

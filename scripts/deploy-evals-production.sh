@@ -31,7 +31,8 @@ for line in open(sys.argv[2]):
         print(" ".join(shlex.split(raw)),end=""); break' "$1" "$app_credentials" 2>/dev/null; }
 # Secrets are immutable, so each is named by a hash of its value; a changed
 # credential gets a new secret and the stack switches to it on deploy.
-for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SECRET" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email:EVALS_RESEND_FROM_EMAIL_SECRET"; do
+# The weekly ops digest (launch L-21) goes only to the internal collaboration address.
+for pair in "RESEND_API_KEY:caudals_evals_resend_api_key:EVALS_RESEND_API_KEY_SECRET" "RESEND_FROM_EMAIL:caudals_evals_resend_from_email:EVALS_RESEND_FROM_EMAIL_SECRET" "COLLABORATION_NOTIFICATION_EMAIL:caudals_evals_digest_to:EVALS_DIGEST_TO_SECRET"; do
   IFS=: read -r key base variable <<<"$pair"
   value=$(credential "$key")
   [[ -n $value ]] || { echo "Missing $key in $app_credentials" >&2; exit 1; }
@@ -53,6 +54,17 @@ ANALYTICS_EVENTS_V2=$(credential ANALYTICS_EVENTS_V2)
 ANALYTICS_EVENTS_V2=${ANALYTICS_EVENTS_V2:-false}
 [[ $ANALYTICS_EVENTS_V2 == true || $ANALYTICS_EVENTS_V2 == false ]] || { echo 'ANALYTICS_EVENTS_V2 must be true or false' >&2; exit 1; }
 export BILLING_CREDITS_ENABLED BILLING_ENFORCE ANALYTICS_EVENTS_V2
+# Weekly ops digest (launch L-21): off unless the app credentials say true.
+OPS_DIGEST_ENABLED=$(credential OPS_DIGEST_ENABLED)
+OPS_DIGEST_ENABLED=${OPS_DIGEST_ENABLED:-false}
+[[ $OPS_DIGEST_ENABLED == true || $OPS_DIGEST_ENABLED == false ]] || { echo 'OPS_DIGEST_ENABLED must be true or false' >&2; exit 1; }
+OPS_DIGEST_LOCALE=$(credential OPS_DIGEST_LOCALE)
+OPS_DIGEST_LOCALE=${OPS_DIGEST_LOCALE:-en}
+[[ $OPS_DIGEST_LOCALE == en || $OPS_DIGEST_LOCALE == es ]] || { echo 'OPS_DIGEST_LOCALE must be en or es' >&2; exit 1; }
+GROWTH_TARGET_STAGE=$(credential GROWTH_TARGET_STAGE)
+GROWTH_TARGET_STAGE=${GROWTH_TARGET_STAGE:-gate_a}
+[[ $GROWTH_TARGET_STAGE =~ ^(gate_a|gate_b|launch_4w|launch_12w)$ ]] || { echo 'GROWTH_TARGET_STAGE must be gate_a, gate_b, launch_4w or launch_12w' >&2; exit 1; }
+export OPS_DIGEST_ENABLED OPS_DIGEST_LOCALE GROWTH_TARGET_STAGE
 
 # Email flags (launch L-07) from the same app credentials, so web and scheduler
 # send the same templates. Lifecycle mail stays off until the founder switches it.

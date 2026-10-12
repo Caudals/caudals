@@ -119,7 +119,7 @@ export async function queueWebsiteConnectionCheck(
         const authorization = (await db.query(
           `SELECT scope,expires_at FROM evals.authorization_record
            WHERE org_id=$1 AND project_id=$2 AND target_id=$3
-             AND basis='workspace_member_attestation'
+             AND basis IN ('workspace_member_attestation','external_snapshot')
            ORDER BY created_at DESC,id DESC LIMIT 1`,
           [scope.orgId, row.project_id, row.target_id],
         )).rows[0] ?? null;
@@ -615,7 +615,7 @@ export function createSelfServiceRunInTransaction(db: PoolClient, scope: Evidenc
         const authorization = (await db.query(
           `SELECT scope,expires_at FROM evals.authorization_record
            WHERE org_id=$1 AND project_id=$2 AND target_id=$3
-             AND basis='workspace_member_attestation'
+             AND basis IN ('workspace_member_attestation','external_snapshot')
            ORDER BY created_at DESC,id DESC LIMIT 1`,
           [scope.orgId, target.project_id, target.target_id],
         )).rows[0] ?? null;

@@ -20,6 +20,7 @@ import {
   billingExpiryDue, billingVerificationDue, previousUtcDay, priceBookUpkeepDue, runBillingExpiry, runBillingReconciler, runBillingVerification, runFxUpdate,
   runPriceBookActivation, runPriceCheck, runShadowAdmissions, runShadowReport, shadowReportDue,
 } from "../../lib/billing/jobs";
+import { digestLocale, digestRecipient, digestSender, digestWeek, opsDigestEnabled, runOpsDigest } from "../../lib/evals/operations/ops-digest";
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 
@@ -44,6 +45,7 @@ async function main() {
   let lastPriceBook = 0;
   let lastLifecycleEmail = 0;
   let lastShadowReport = 0;
+  let lastDigest = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -190,6 +192,19 @@ async function main() {
           } catch (error) {
             console.error(JSON.stringify({ event: "billing_price_check_failed" }));
             captureServerError(error, { service: "evals-scheduler", event: "billing_price_check_failed" });
+          }
+        }
+        // Weekly ops digest (launch L-21, P-36): Monday 08:00 Madrid, to the
+        // internal address only, claimed once per week in the database.
+        if (opsDigestEnabled() && Date.now() - lastDigest >= 5 * 60_000 && digestWeek(new Date()).due) {
+          lastDigest = Date.now();
+          try {
+            const outcome = await runOpsDigest({ actorId, send: await digestSender(), to: await digestRecipient(), locale: digestLocale(), appUrl: process.env.EVALS_APP_URL });
+            if (outcome.status === "sent") console.info(JSON.stringify({ event: "ops_digest_sent", week: outcome.week, ...outcome.summary }));
+            if (outcome.status === "failed") console.error(JSON.stringify({ event: "ops_digest_failed", week: outcome.week, reason: outcome.reason }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "ops_digest_failed", reason: error instanceof Error && /^[a-z_]{1,40}$/.test(error.message) ? error.message : "unknown" }));
+            captureServerError(error, { service: "evals-scheduler", event: "ops_digest_failed" });
           }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));
