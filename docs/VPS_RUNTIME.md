@@ -169,6 +169,19 @@ failed GPU. Preserve private connection material outside documentation.
 Observed host jobs: DGX telemetry collector, daily evals backup timer,
 ten-minute evals health timer and hourly Docker cleanup timer. Current
 configuration and last execution must be checked before claiming job success.
+On 2026-10-12 the `caudals-evals-health` units were found missing (the script
+was still installed; its last alert state dated from 2026-10-03). L-08
+reinstalled them with `scripts/install-evals-host-jobs.sh` and verified a
+delivered alert. The same day the one-minute `caudals-uptime.timer` was
+installed on atlantic as an interim. Its home is arctic (decision I-5), but
+the tailnet policy refuses SSH from atlantic to arctic, so the arctic install
+is a founder action; disable the atlantic timer afterwards (runbook 19 in
+`docs/evals/runbooks.md`).
+
+Sentry DSN (since 2026-10-12, L-08): `/root/.caudals/secrets/sentry-dsn`
+(root, mode 600) becomes the versioned secret `caudals_sentry_dsn_<hash>`,
+mounted on the app, worker, scheduler and document services by the deploy
+scripts.
 
 ## Capacity and recovery
 

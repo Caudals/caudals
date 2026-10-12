@@ -18,7 +18,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | done | `144510e`, `cf8252b` | [L-02](L-02.md); flag on, events persisting, growth query 3.8 ms in production. |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
-| 1 | L-08 | Observability, alerting and admin MFA | — | 107 `auth_two_factor_lockout` | in progress | | |
+| 1 | L-08 | Observability, alerting and admin MFA | — | 107 `auth_two_factor_lockout` | done | `5244bc1` | [L-08](L-08.md); Sentry on (web, worker, scheduler, documents; test events accepted, scrubbed). Alert timer reinstalled, drills fired and resolved. Uptime checks interim on atlantic (arctic install is a founder action). `EVALS_ADMIN_MFA_REQUIRED` off (I-6). |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | in progress | | |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | done | `464e55e` | [L-05](L-05.md); `SELF_SERVE_DIRECT_SIGNUP=true`. Production sign-up (internal address, ops exception) verified end to end, then removed through the audited deletion workflow; exception reset to `none`. Workers unaffected. |
@@ -90,7 +90,10 @@ Things only the founder can do. Agents add to this list; they never do these the
 - [ ] Book the lawyer review of Terms, Privacy, DPA, sub-processors, security and the AI-disclosure wording (before Gate B).
 - [ ] Choose the invoicing provider with the gestor (D-04) and confirm IVA treatment.
 - [ ] Complete Stripe account activation for the SL; switch `BILLING_STRIPE_MODE=live` at Gate B and make the €20 purchase.
-- [ ] Enrol TOTP on every operator and platform-admin account, then switch `EVALS_ADMIN_MFA_REQUIRED=true`.
+- [ ] Enrol TOTP on every operator and platform-admin account at `app.caudals.com/workspace/security` (account menu → Account security; save the recovery codes), then switch `scripts/launch/set-app-flag.sh EVALS_ADMIN_MFA_REQUIRED true` (L-08, runbook 21). On 2026-10-12: 2 platform admins and 1 workspace operator, none enrolled.
+- [ ] Install the one-minute uptime checks on `arctic` (decision I-5): atlantic cannot SSH there (tailnet policy refuses atlantic → arctic). From a device with access, copy `scripts/uptime-checks.sh`, `scripts/install-uptime-checks.sh` and `infra/host/caudals-uptime.{service,timer}` to arctic and run `sudo bash install-uptime-checks.sh` (uses `/root/.caudals/alerts.env`), then `sudo systemctl disable --now caudals-uptime.timer` on atlantic. Or allow atlantic → arctic SSH in the tailnet policy and ask an agent (L-08.md).
+- [ ] Open Sentry and confirm the three L-08 test events (web, evals-worker, evals-scheduler; release `5244bc1`) arrived with personal data redacted. No Sentry API token is on the host, so agents could confirm only that Sentry accepted them (HTTP 200).
+- [ ] Reconcile the 28 unknown-outcome engine attempts behind the `unresolved_attempts` alert, open since 2026-10-03 (runbook 4); the reinstalled alert timer reminds daily.
 
 ## 6. Session log
 
@@ -106,3 +109,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | Orchestrator started package agents for L-08, L-10, L-05 and L-33 (worktrees `.worktrees/launch-L-xx`). Worker images are now built with `scripts/launch/build-worker-images.sh` while `evals-images.yml` stays disabled. Hourly resume check at :23 in the orchestrator session (expires 2026-10-19). |
 | 2026-10-12 | L-05 deployed (`464e55e`, migration 085) and verified: flag-off 404s, free-mail/disposable refusals, one real direct sign-up through the emailed link (free plan, terms, `account_created` direct), test workspace deleted through the audited workflow. `SELF_SERVE_DIRECT_SIGNUP=true`; no founder actions added. |
 | 2026-10-12 | L-05 done (`464e55e`). Agents started for L-04 and L-12 (five running: L-08, L-10, L-33, L-04, L-12). |
+| 2026-10-12 | L-08 done (`5244bc1`, migration 107). Sentry live for web and workers; alert timer reinstalled (it had been missing since about 2026-10-03); interim uptime timer on atlantic because atlantic cannot SSH to arctic. MFA enforcement off pending enrolment. |
