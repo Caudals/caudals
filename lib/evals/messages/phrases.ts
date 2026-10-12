@@ -16,6 +16,8 @@ const ES: Record<string, string> = {
   "Generate the test set": "Generar el conjunto de pruebas",
   // The four steps of an evaluation's progress bar.
   Connect: "Conectar", "Prepare tests": "Preparar pruebas", Run: "Ejecutar", Results: "Resultados",
+  // Screen-reader state of a progress step.
+  done: "completado", "in progress": "en curso", "needs attention": "requiere atención",
   // The operator console's "next step" column.
   "Waiting for reference material": "Esperando material de referencia", "Answer context questions": "Responder las preguntas de contexto",
   "Approve the test set": "Aprobar el conjunto de pruebas", "Start the run": "Iniciar la ejecución", "Resume or reduce scope": "Reanudar o reducir el alcance",
