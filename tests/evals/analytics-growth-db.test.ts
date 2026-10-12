@@ -90,6 +90,15 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("analytics real-schema journey and ope
     expect(rows.find(row=>row.event_name==="run_finished")?.metadata).toMatchObject({questions:2,models:1,credits_charged:null});
     expect(rows.find(row=>row.event_name==="test_set_ready")?.metadata).toMatchObject({question_count:2,duration_s:expect.any(Number)});
   });
+  it("records a fully drained cancellation without waiting for a report", async () => {
+    const fixture=await importedJudgeRunFixture(owner,runtimeUrl!);
+    await withTenant(fixture.scope,async db=>{
+      await db.query("UPDATE evals.run SET status='canceled',phase='target_execution',updated_at=now() WHERE org_id=$1 AND id=$2",[fixture.orgId,fixture.run.id]);
+      await recordRunFinished(db,fixture.orgId,fixture.run.id);
+    });
+    const rows=(await owner.query("SELECT metadata FROM public.product_analytics_event WHERE org_id=$1 AND event_name='run_finished'",[fixture.orgId])).rows;
+    expect(rows).toHaveLength(1);expect(rows[0].metadata).toMatchObject({outcome:"canceled",questions:2});
+  });
   it("loads indexed eight-week cohorts under two seconds with 20,000 fixture views", async () => {
     await owner.query(`INSERT INTO public.product_analytics_event(id,event_name,event_category,source,metadata,occurred_at)
       SELECT 'pa_'||lpad(n::text,26,'0'),'page_view','product','client','{}'::jsonb,now()-(n%55)*interval '1 day' FROM generate_series(1,20000) n`);

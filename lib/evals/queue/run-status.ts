@@ -1,3 +1,4 @@
+import { recordRunFinished } from "@/lib/analytics/domain-events";
 import type { PoolClient } from "pg";
 
 /** Project control intent together with case outcomes, including draining claims. */
@@ -15,4 +16,5 @@ export async function projectExecutionRun(db: PoolClient, orgId: string, runId: 
   await db.query(`UPDATE evals.run SET status=$3,
     phase=CASE WHEN $3 IN ('completed','partial','failed') THEN 'grading' ELSE 'target_execution' END,
     updated_at=now() WHERE org_id=$1 AND id=$2`, [orgId, runId, status]);
+  if (status === "canceled") await recordRunFinished(db, orgId, runId);
 }

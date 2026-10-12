@@ -45,7 +45,7 @@ export async function recordRunFinished(db: PoolClient, orgId: string, runId: st
       (SELECT count(*)::int FROM evals.case_unit WHERE org_id=$1 AND run_id=$2) AS questions,
       (SELECT count(DISTINCT route->>'model_id')::int FROM jsonb_each(COALESCE(r.model_routes,'{}'::jsonb)) AS models(role,route)) AS models
       FROM evals.run r WHERE org_id=$1 AND id=$2`, [orgId, runId])).rows[0];
-    if (row?.phase === "done") await recordProductEvent({ eventName: "run_finished", source: "server", orgId, runId, eventKey: runId, payload: { outcome: row.status, questions: row.questions, duration_s: Math.max(0, row.duration), models: row.models, estimate: null, credits_charged: null } }, db);
+    if (row && (row.phase === "done" || row.status === "canceled")) await recordProductEvent({ eventName: "run_finished", source: "server", orgId, runId, eventKey: runId, payload: { outcome: row.status, questions: row.questions, duration_s: Math.max(0, row.duration), models: row.models, estimate: null, credits_charged: null } }, db);
     await db.query("RELEASE SAVEPOINT analytics_run_outcome");
   } catch { await db.query("ROLLBACK TO SAVEPOINT analytics_run_outcome"); await db.query("RELEASE SAVEPOINT analytics_run_outcome"); console.error("analytics_run_outcome_failed"); }
 }
