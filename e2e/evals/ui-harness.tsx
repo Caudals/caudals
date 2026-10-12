@@ -16,6 +16,7 @@ import { OperatorLibrary } from "../../components/evals/operator-library";
 import { InvitationAcceptance } from "../../components/evals/invitation-acceptance";
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { SelfServeSignup } from "../../components/evals/self-serve-signup";
+import { SignupStart } from "../../components/evals/signup-start";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
@@ -77,6 +78,7 @@ function gradingV2Fixture() {
 const authPage =
   location.pathname === "/workspace/sign-in" ||
   location.pathname === "/workspace/signup" ||
+  location.pathname === "/workspace/start" ||
   location.pathname === "/workspace/reset-password";
 const viewer = location.search.includes("viewer");
 const anonymous = location.search.includes("anonymous");
@@ -114,9 +116,11 @@ const content =
     <WebAppConnector orgId="00000000-0000-4000-8000-000000000001" targetId="00000000-0000-4000-8000-000000000201" />
   ) :
   location.pathname === "/workspace/sign-in" ? (
-    <EvaluationSignIn next={params.get("next") ?? undefined} />
+    <EvaluationSignIn next={params.get("next") ?? undefined} directSignup={params.has("direct")} />
   ) : location.pathname === "/workspace/signup" ? (
-    <SelfServeSignup termsRequired={!params.has("no-terms")} marketingOrigin="https://caudals.com" />
+    <SelfServeSignup termsRequired={!params.has("no-terms")} directSignup={params.has("direct")} marketingOrigin="https://caudals.com" />
+  ) : location.pathname === "/workspace/start" ? (
+    <SignupStart marketingOrigin="https://caudals.com" />
   ) : location.pathname === "/workspace/reset-password" ? (
     <EvaluationResetPassword
       next={params.get("next") ?? undefined}

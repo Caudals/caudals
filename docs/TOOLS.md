@@ -914,6 +914,13 @@ Operational env controls:
 - `SIGNUP_TERMS_REQUIRED=true` shows the Terms and Privacy checkbox on `/workspace/signup` and makes `/api/evals/v1/signup` refuse to create an account without it. Acceptances: `SELECT document, version, context, locale, count(*) FROM evals.terms_acceptance GROUP BY 1,2,3,4` (as `postgres`; rows are append-only, migration 081).
 - DPA template: `/legal/caudals-dpa-en.docx` and `/legal/caudals-dpa-es.docx`, generated per request from the same content.
 
+## Direct Sign-up Operations
+
+- `SELF_SERVE_DIRECT_SIGNUP=true` opens `app.caudals.com/workspace/start` and the sign-in page's "Create a free account" link (launch L-05). Switch with `scripts/launch/set-app-flag.sh SELF_SERVE_DIRECT_SIGNUP true|false`.
+- Ops lists, read per request from the app's `credentials.env` (store with `sudo scripts/set-app-credentials.sh KEY`, value on stdin so it stays out of shell history, then redeploy the running image): `SELF_SERVE_SIGNUP_EXCEPTIONS` (comma-separated addresses or domains that may sign up on a free-mail domain and skip the one-workspace-per-domain rule; for a small business on Gmail add the exact address) and `SELF_SERVE_SIGNUP_BLOCKED_DOMAINS` (extra disposable domains). The script refuses empty values, so store `none` to clear a list. The built-in lists are in `lib/evals/signup-domains.ts`.
+- Who signed up and how (as `postgres`, aggregates only): `SELECT signup_source, domain_rule, count(*), count(org_id) AS enrolled FROM evals.self_serve_signup GROUP BY 1,2`. Domains holding a workspace: `SELECT s.email_domain, w.deleted_at IS NULL AS live FROM evals.self_serve_signup s JOIN evals.workspace w ON w.id=s.org_id`. To free a company's domain, its owner (or ops on their request) deletes the workspace through Settings → Delete workspace data; the audited deletion workflow tombstones it.
+- Refusals and limits are recorded as `limit_hit` events (`metadata.kind`: `signup_free_mail`, `signup_disposable`, `signup_rate`, `signup_domain_taken`); `/ops/growth` counts them weekly.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:

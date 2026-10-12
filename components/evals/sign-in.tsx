@@ -8,7 +8,12 @@ import { evaluationRecoveryPath } from "./auth-path";
 import { AuthFrame } from "./auth-frame";
 import { Action, Field, Status } from "./primitives";
 import { t } from "@/lib/evals/messages/en";
-export function EvaluationSignIn({ next }: { next?: string }) {
+/**
+ * With `directSignup` (SELF_SERVE_DIRECT_SIGNUP, read on the server; launch
+ * L-05) the footer offers "New here? Create a free account"; otherwise it
+ * explains that accounts start from an invitation.
+ */
+export function EvaluationSignIn({ next, directSignup = false }: { next?: string; directSignup?: boolean }) {
   const router = useRouter();
   const destination = useAuthDestination(next);
   const [email, setEmail] = useState("");
@@ -79,7 +84,15 @@ export function EvaluationSignIn({ next }: { next?: string }) {
       footer={
         <>
           {destination.includes("#") && <p>{t("recoveryInvitationHelp")}</p>}
-          <p>{t(challenge ? "totpRecoveryHelp" : "invitationOnly")}</p>
+          {challenge ? (
+            <p>{t("totpRecoveryHelp")}</p>
+          ) : directSignup ? (
+            <p>
+              {t("signInNewHere")} <Link href="/workspace/start">{t("signInCreateAccount")}</Link>
+            </p>
+          ) : (
+            <p>{t("invitationOnly")}</p>
+          )}
         </>
       }
     >

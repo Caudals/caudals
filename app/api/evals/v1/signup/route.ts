@@ -32,13 +32,18 @@ function denied(requestId: string, status = 400) {
   return Response.json({ error: { code: "SIGNUP_UNAVAILABLE", message: "This link has expired or was already used.", request_id: requestId, retryable: false } }, { status, headers: privateHeaders });
 }
 
+function domainTaken(requestId: string) {
+  return Response.json({ error: { code: "SIGNUP_DOMAIN_TAKEN", message: "Someone at your company already created a Caudals workspace. Ask its owner to invite you.", request_id: requestId, retryable: false } }, { status: 409, headers: privateHeaders });
+}
+
 function termsMissing(requestId: string) {
   return Response.json({ error: { code: "TERMS_REQUIRED", message: "Accept the Terms of Service and the Privacy Policy to create your account.", request_id: requestId, retryable: false } }, { status: 400, headers: privateHeaders });
 }
 
 /**
- * Self-serve sign-up from the public demo (docs/ARCHITECTURE.md, Public demo).
- * `{token}` returns the address and workspace name the link was issued for;
+ * Self-serve sign-up from the public demo or from direct work-email sign-up
+ * (`/workspace/start`, launch L-05; docs/ARCHITECTURE.md, Public demo).
+ * `{token}` returns the address, workspace name and source the link was issued for;
  * `{token, name, password, acceptTerms, locale}` creates the account and a
  * free-plan workspace, records the Terms and Privacy versions accepted
  * (required when `SIGNUP_TERMS_REQUIRED=true`), imports the demo, and returns
@@ -57,9 +62,9 @@ export async function POST(request: Request) {
 
     if (body && typeof body === "object" && !("password" in body)) {
       const { token } = lookup.parse(body);
-      const row = await withTenant({ orgId: "", actorId: "" }, async (db) => (await db.query("SELECT email, workspace_name, locale FROM evals.self_serve_signup_lookup($1)", [digest(token)])).rows[0]);
+      const row = await withTenant({ orgId: "", actorId: "" }, async (db) => (await db.query("SELECT email, workspace_name, locale, signup_source FROM evals.self_serve_signup_lookup($1)", [digest(token)])).rows[0]);
       if (!row) return denied(requestId, 404);
-      return Response.json({ data: { email: row.email, workspaceName: row.workspace_name, locale: row.locale }, meta: { request_id: requestId } }, { headers: privateHeaders });
+      return Response.json({ data: { email: row.email, workspaceName: row.workspace_name, locale: row.locale, source: row.signup_source === "direct" ? "direct" : "demo" }, meta: { request_id: requestId } }, { headers: privateHeaders });
     }
 
     const { token, name, password, acceptTerms, locale } = complete.parse(body);
@@ -67,7 +72,7 @@ export async function POST(request: Request) {
     const live = await withTenant({ orgId: "", actorId: "" }, async (db) => (await db.query("SELECT 1 FROM evals.self_serve_signup_lookup($1)", [digest(token)])).rows[0]);
     if (!live || enrolling >= 2) return denied(requestId, live ? 503 : 404);
     enrolling++;
-    let created: { org_id: string; demo_run_id: string | null; email: string };
+    let created: { org_id: string; demo_run_id: string | null; email: string; signup_source?: string; attribution?: unknown };
     const userId = String(createBetterAuthId({ model: "user" }));
     try {
       const passwordHash = await hashPassword(password);
@@ -75,17 +80,19 @@ export async function POST(request: Request) {
       // the same transaction that creates the account: no account without it.
       created = await withTenant({ orgId: "", actorId: userId }, async (db) => {
         const row = (await db.query(
-          "SELECT org_id, demo_run_id, email FROM evals.enroll_self_serve($1, $2, $3, $4, $5)",
+          "SELECT org_id, demo_run_id, email, signup_source, attribution FROM evals.enroll_self_serve($1, $2, $3, $4, $5)",
           [digest(token), name, passwordHash, userId, createBetterAuthId({ model: "account" })],
         )).rows[0];
         if (acceptTerms === true) {
           await recordTermsAcceptance(db, { orgId: row.org_id, documents: signupAcceptance(), context: "signup", locale: locale ?? null, requestId });
         }
         if (analyticsV2Enabled()) {
-          const demo = row.demo_run_id ? await getRun(row.demo_run_id) : null;
-          const attribution = sanitizeAttribution(demo?.attribution);
+          // A direct link carries the first touch its request saw; a demo link, the demo's.
+          const direct = row.signup_source ? row.signup_source === "direct" : !row.demo_run_id;
+          const demo = !direct && row.demo_run_id ? await getRun(row.demo_run_id) : null;
+          const attribution = sanitizeAttribution(direct ? row.attribution : demo?.attribution);
           await db.query("SELECT evals.set_acquisition_attribution($1,$2::jsonb)", [row.org_id, JSON.stringify(attribution)]);
-          await recordProductEvent({ eventName: "account_created", source: "server", orgId: row.org_id, runId: row.demo_run_id, eventKey: row.org_id, attribution, payload: { acquisition: row.demo_run_id ? "demo" : "direct", plan: "free" } }, db);
+          await recordProductEvent({ eventName: "account_created", source: "server", orgId: row.org_id, runId: row.demo_run_id, eventKey: row.org_id, attribution, payload: { acquisition: direct ? "direct" : "demo", plan: "free" } }, db);
         }
         return row;
       });
@@ -106,6 +113,8 @@ export async function POST(request: Request) {
     return Response.json({ data: { email: created.email, orgId: created.org_id, evaluationId }, meta: { request_id: requestId } }, { headers: privateHeaders });
   } catch (error) {
     if (error instanceof z.ZodError) return Response.json({ error: { code: "INPUT_INVALID", message: "Check the supplied fields.", request_id: requestId, retryable: false } }, { status: 400, headers: privateHeaders });
+    // Only the holder of a direct link reaches this: the company got a workspace after the link was sent.
+    if (error instanceof Error && error.message.includes("SIGNUP_DOMAIN_TAKEN")) return domainTaken(requestId);
     return denied(requestId);
   }
 }

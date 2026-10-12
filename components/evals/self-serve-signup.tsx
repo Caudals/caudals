@@ -8,7 +8,7 @@ import { AuthFrame } from "./auth-frame";
 import { betterAuthClient } from "./auth-client";
 import { Action, Check, Field, Status } from "./primitives";
 
-type SignupLink = { token: string; email: string; workspaceName: string };
+type SignupLink = { token: string; email: string; workspaceName: string; source?: "demo" | "direct" };
 type Result<T> = { data: T } | { error: string | null };
 
 async function post<T>(body: unknown): Promise<Result<T>> {
@@ -45,10 +45,13 @@ function TermsLabel({ marketingOrigin }: { marketingOrigin: string }) {
  *
  * With `termsRequired` (SIGNUP_TERMS_REQUIRED, read on the server), the person
  * must accept the Terms and the Privacy Policy; the API records the versions.
+ * Links from direct sign-up (launch L-05) carry `source: "direct"` and read
+ * without the demo; with `directSignup` (SELF_SERVE_DIRECT_SIGNUP) an
+ * expired link offers a new one from `/workspace/start`.
  */
-export function SelfServeSignup({ termsRequired = false, marketingOrigin }: { termsRequired?: boolean; marketingOrigin: string }) {
+export function SelfServeSignup({ termsRequired = false, directSignup = false, marketingOrigin }: { termsRequired?: boolean; directSignup?: boolean; marketingOrigin: string }) {
   const [link, setLink] = useState<SignupLink | null>(null);
-  const [state, setState] = useState<"checking" | "ready" | "invalid" | "creating">("checking");
+  const [state, setState] = useState<"checking" | "ready" | "invalid" | "taken" | "creating">("checking");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
@@ -57,7 +60,7 @@ export function SelfServeSignup({ termsRequired = false, marketingOrigin }: { te
   useEffect(() => {
     const token = /^#([A-Za-z0-9_-]{43})$/.exec(window.location.hash)?.[1];
     window.history.replaceState(window.history.state, "", "/workspace/signup");
-    const lookup = token ? post<{ email: string; workspaceName: string }>({ token }) : Promise.resolve(null);
+    const lookup = token ? post<{ email: string; workspaceName: string; source?: "demo" | "direct" }>({ token }) : Promise.resolve(null);
     void lookup.then((result) => {
       if (!token || !result || !("data" in result)) { setState("invalid"); return; }
       setLink({ token, ...result.data });
@@ -80,7 +83,7 @@ export function SelfServeSignup({ termsRequired = false, marketingOrigin }: { te
       });
       if (!("data" in result)) {
         if (result.error === "TERMS_REQUIRED") { setError(t("signupTermsRequired")); setState("ready"); return; }
-        setState("invalid");
+        setState(result.error === "SIGNUP_DOMAIN_TAKEN" ? "taken" : "invalid");
         return;
       }
       const created = result.data;
@@ -99,11 +102,17 @@ export function SelfServeSignup({ termsRequired = false, marketingOrigin }: { te
   return (
     <AuthFrame
       title={t("signupTitle")}
-      description={t("signupHelp")}
+      description={t(link?.source === "direct" ? "signupHelpDirect" : "signupHelp")}
       footer={<Link href="/workspace/sign-in">{t("signupExisting")}</Link>}
     >
       {state === "checking" ? (
         <Status tone="info">{t("signupChecking")}</Status>
+      ) : state === "taken" ? (
+        <Status tone="warn">{t("signupDomainTaken")}</Status>
+      ) : (state === "invalid" || !link) && directSignup ? (
+        <Status tone="warn" action={<Link className="p-link" href="/workspace/start">{t("signupRequestNew")}</Link>}>
+          {t("signupInvalidDirect")}
+        </Status>
       ) : state === "invalid" || !link ? (
         <Status tone="warn">{t("signupInvalid")}</Status>
       ) : (

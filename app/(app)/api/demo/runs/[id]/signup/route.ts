@@ -2,7 +2,7 @@ import { z } from "zod";
 import { clientHash, sha256 } from "@/lib/demo/client";
 import { failure, json, sameOrigin, tokenFor, UUID } from "@/lib/demo/http";
 import { getRun, markClaimed } from "@/lib/demo/store";
-import { requestSignup } from "@/lib/demo/signup";
+import { requestSignup } from "@/lib/evals/signup";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";

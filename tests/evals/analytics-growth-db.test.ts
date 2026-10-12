@@ -7,7 +7,7 @@ import { createPrefixedId } from "@/lib/operator/ids";
 import { getEvalsPool, withTenant } from "@/lib/evals/repositories/db";
 import { getPostgresPool } from "@/lib/db/client";
 import { insertRun, getRun } from "@/lib/demo/store";
-import { requestSignup } from "@/lib/demo/signup";
+import { requestSignup } from "@/lib/evals/signup";
 import { demoStarted, demoFinished } from "@/lib/demo/events";
 import { createProject } from "@/lib/evals/repositories/evidence";
 import { createEvaluation } from "@/lib/evals/repositories/managed";

@@ -2086,6 +2086,113 @@ test("self-serve sign-up without the terms flag keeps the earlier form", async (
   await expect(page.getByRole("checkbox")).toHaveCount(0);
 });
 
+/* ------------------------------------- direct work-email sign-up (L-05) --- */
+
+test("direct sign-up asks for a work email and company, and confirms without saying what exists", async ({ page }) => {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/evals/v1/signup/request", async (r) => {
+    bodies.push(r.request().postDataJSON());
+    await r.fulfill({ json: { data: { sent: true }, meta: { request_id: "r" } } });
+  });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/workspace/start");
+    await expect(page.getByRole("heading", { name: "Create your free workspace" })).toBeVisible();
+    await expect(page.getByLabel("Work email")).toBeVisible();
+    await expect(page.getByLabel("Company")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width === 390) await page.screenshot({ path: "/tmp/evals-ui-test-results/l05-start-390.png", fullPage: true });
+  }
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "https://caudals.com/en/legal/privacy");
+  await expect(page.getByRole("link", { name: "Already have an account? Sign in" })).toHaveAttribute("href", "/workspace/sign-in");
+  const submit = page.getByRole("button", { name: "Email me a link" });
+  await expect(submit).toBeDisabled();
+  await page.getByLabel("Work email").fill("ana@acme-seguros.es");
+  await page.getByLabel("Company").fill("Acme Seguros");
+  await submit.click();
+  await expect(page.getByRole("status").filter({ hasText: "We’ve emailed the next step" })).toContainText("ana@acme-seguros.es");
+  expect(bodies).toEqual([{ email: "ana@acme-seguros.es", company: "Acme Seguros", locale: "en" }]);
+  await page.getByRole("button", { name: "Use another address" }).click();
+  await expect(page.getByLabel("Work email")).toBeVisible();
+});
+
+test("direct sign-up refuses personal email and points to the public demo", async ({ page }) => {
+  await page.route("**/api/evals/v1/signup/request", (r) =>
+    r.fulfill({ status: 422, json: { error: { code: "WORK_EMAIL_REQUIRED", details: { reason: "free_mail" }, message: "x", request_id: "r", retryable: false } } }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/workspace/start");
+  await page.getByLabel("Work email").fill("ana@gmail.com");
+  await page.getByLabel("Company").fill("Acme");
+  await page.getByRole("button", { name: "Email me a link" }).click();
+  const notice = page.getByRole("status").filter({ hasText: "Personal addresses such as Gmail or Outlook" });
+  await expect(notice).toBeVisible();
+  await expect(notice.getByRole("link", { name: "Run the free test" })).toHaveAttribute("href", "https://caudals.com/en/demo");
+  await expect(page.getByLabel("Work email")).toHaveAttribute("aria-invalid", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/evals-ui-test-results/l05-start-free-mail-390.png", fullPage: true });
+  // Editing the address clears the refusal.
+  await page.getByLabel("Work email").fill("ana@acme.es");
+  await expect(notice).toHaveCount(0);
+});
+
+test("direct sign-up reads in Spanish and links the Spanish demo", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/evals/v1/signup/request", async (r) => {
+    bodies.push(r.request().postDataJSON());
+    await r.fulfill({ status: 429, json: { error: { code: "RATE_LIMITED", message: "x", request_id: "r", retryable: true } } });
+  });
+  await page.goto("/workspace/start");
+  await expect(page.getByRole("heading", { name: "Crea tu espacio de trabajo gratuito" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Haz la prueba gratuita" })).toHaveAttribute("href", "https://caudals.com/es/demo");
+  await page.getByLabel("Email de trabajo").fill("ana@acme.es");
+  await page.getByLabel("Empresa").fill("Acme");
+  await page.getByRole("button", { name: "Enviarme el enlace" }).click();
+  await expect(page.getByRole("alert")).toContainText("Demasiadas solicitudes");
+  expect(bodies[0]).toMatchObject({ locale: "es" });
+});
+
+test("sign-in offers a free account when direct sign-up is on, and the invitation note otherwise", async ({ page }) => {
+  await page.goto("/workspace/sign-in?direct");
+  await expect(page.getByText("New here?")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create a free account" })).toHaveAttribute("href", "/workspace/start");
+  await page.goto("/workspace/sign-in");
+  await expect(page.getByRole("link", { name: "Create a free account" })).toHaveCount(0);
+  await expect(page.getByText("Use the private invitation from your workspace owner", { exact: false })).toBeVisible();
+});
+
+test("a direct sign-up link reads without the demo and explains a company that already has a workspace", async ({ page }) => {
+  await page.route("**/api/evals/v1/signup", async (r) => {
+    const body = r.request().postDataJSON();
+    if (!("password" in body)) {
+      await r.fulfill({ json: { data: { email: "ana@acme.es", workspaceName: "Acme", locale: "en", source: "direct" } } });
+      return;
+    }
+    await r.fulfill({ status: 409, json: { error: { code: "SIGNUP_DOMAIN_TAKEN", message: "x", request_id: "r", retryable: false } } });
+  });
+  await page.goto(`/workspace/signup?direct#${token}`);
+  await expect(page.getByText("Choose a name and a password to open your free workspace.")).toBeVisible();
+  await page.getByLabel("Full name").fill("Ana Pérez");
+  await page.getByLabel("Password", { exact: true }).fill("a-long-password-1");
+  await page.getByRole("checkbox", { name: /I accept/ }).check();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Someone at your company" })).toContainText("Ask its owner to invite you");
+});
+
+test("an expired link offers a new one when direct sign-up is on, and keeps the demo wording otherwise", async ({ page }) => {
+  await page.route("**/api/evals/v1/signup", (r) =>
+    r.fulfill({ status: 404, json: { error: { code: "SIGNUP_UNAVAILABLE", message: "x", request_id: "r", retryable: false } } }),
+  );
+  await page.goto(`/workspace/signup?direct#${token}`);
+  await expect(page.getByRole("link", { name: "Request a new link" })).toHaveAttribute("href", "/workspace/start");
+  // The page strips the address to /workspace/signup, so load another document first.
+  await page.goto("about:blank");
+  await page.goto(`/workspace/signup#${token}`);
+  await expect(page.getByText("Run the demo again to get a new one.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Request a new link" })).toHaveCount(0);
+});
+
 /* ------------------------------------------------- public demo (L-03) --- */
 
 const demoRunId = "00000000-0000-4000-8000-00000000d001";
