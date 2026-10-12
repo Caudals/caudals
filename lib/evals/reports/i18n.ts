@@ -123,6 +123,15 @@ const FIXED_ES: Record<string, string> = {
   "Coverage is incomplete; the headline score does not describe unassessed eligible tests.": "La cobertura es incompleta; la puntuación principal no describe las pruebas elegibles sin evaluar.",
   "Frozen suite membership; no post-result selection.": "Composición del conjunto congelada; sin selección posterior a los resultados.",
   "Evaluation of the agreed system behavior.": "Evaluación del comportamiento acordado del sistema.",
+  // Methodology sentences the report builder writes (lib/evals/repositories/managed.ts).
+  "All scored results were individually approved or disputed by the assigned reviewer.":
+    "El revisor asignado aprobó o disputó cada resultado puntuado, uno por uno.",
+  "Automated preliminary assessment; critical and disputed results require review.":
+    "Valoración preliminar automática; los resultados críticos y los disputados requieren revisión.",
+  "Responses were imported; execution identity, latency and usage may be unavailable.":
+    "Las respuestas se importaron; la identidad de ejecución, la latencia y el consumo pueden no estar disponibles.",
+  "Customer-owned target API usage is externally billed. Its tariff and total charge are unknown to Caudals; configured invocation and token bounds do not guarantee a cash ceiling.":
+    "El uso de la API del sistema, propiedad del cliente, se factura fuera de Caudals. Su tarifa y su importe total no los conoce Caudals; los límites de llamadas y de tokens configurados no garantizan un tope de gasto.",
   "Execution and measurements were reported by a customer-controlled private runner. Its signature binds submitted bytes to the paired runner key, not to proof that the system produced them.":
     "La ejecución y las mediciones las informó un ejecutor privado controlado por el cliente. Su firma vincula los datos enviados a la clave del ejecutor emparejado, no demuestra que el sistema los produjera.",
   "Follow-up user turns and tool results were scripted from the frozen tests, not written by a person or taken from live systems. Per-turn usage is estimated where the system did not report it.":

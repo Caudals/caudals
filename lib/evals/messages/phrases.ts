@@ -13,6 +13,9 @@ const ES: Record<string, string> = {
   "Ready to run": "Lista para ejecutar", "Draft needs another try": "El borrador necesita otro intento", "Review test set": "Revisar conjunto de pruebas",
   "Needs your input": "Necesita tu respuesta", "Preparing tests": "Preparando pruebas", "Preparation failed": "La preparación ha fallado",
   "Add reference material": "Añadir material de referencia", "Connect a system": "Conectar un sistema", "Draft": "Borrador",
+  "Generate the test set": "Generar el conjunto de pruebas",
+  // The four steps of an evaluation's progress bar.
+  Connect: "Conectar", "Prepare tests": "Preparar pruebas", Run: "Ejecutar", Results: "Resultados",
   Ready: "Lista", "Needs review": "Requiere revisión", "Needs input": "Requiere respuesta", Validating: "Validando",
   "Checking connection": "Comprobando conexión", "Reading sources": "Leyendo fuentes", "Understanding system": "Analizando el sistema",
   "Waiting for answers": "Esperando respuestas", Queued: "En cola", Pausing: "Pausando", Cancelling: "Cancelando", Completed: "Completada",

@@ -728,7 +728,7 @@ function Improvements({ improvements, findings }: { improvements: ReportSnapshot
         <li key={item.id} className="p-finding">
           <div className="p-finding-head">
             <span className="p-finding-index">{item.priority}</span>
-            <h3>{item.title}</h3>
+            <h3>{gen(item.title)}</h3>
           </div>
           <div className="p-finding-meta">
             <StatusBadge value={item.status} />
@@ -741,12 +741,12 @@ function Improvements({ improvements, findings }: { improvements: ReportSnapshot
           <dl className="p-finding-body">
             <div>
               <dt>{t("validationPlan")}</dt>
-              <dd>{item.validation_plan}</dd>
+              <dd>{gen(item.validation_plan)}</dd>
             </div>
             {item.finding_ids.length > 0 && (
               <div>
                 <dt>{t("addresses")}</dt>
-                <dd>{item.finding_ids.map((id) => findingTitle(id) ?? id).join("; ")}</dd>
+                <dd>{item.finding_ids.map((id) => { const title = findingTitle(id); return title ? gen(title) : id; }).join("; ")}</dd>
               </div>
             )}
           </dl>
