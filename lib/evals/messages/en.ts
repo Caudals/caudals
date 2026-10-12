@@ -2009,6 +2009,7 @@ export const messages = {
   onbFirstConnectUnchecked: "Add the API key in Systems so Caudals can check the connection.",
   onbFirstConnectAttention: "{host} opens, but the chat needs a hand to connect before the run.",
   onbFirstConnectUnreachable: "Caudals could not reach {host}.",
+  onbFirstConnectNone: "No system is connected yet. Add it in Systems before the run; the test set is prepared meanwhile.",
   onbFirstSite: "Read your pages",
   onbFirstSiteReading: "Reading up to {pages} pages from {host}. Usually 1–3 minutes.",
   onbFirstSiteReady: "Pages from {host} are read.",

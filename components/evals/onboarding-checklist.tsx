@@ -324,7 +324,9 @@ export function FirstEvaluationPanel({
           ? { state: "blocked", detail: tv("onbFirstConnectUnreachable", { host }) }
           : state.connection.state === "attention"
             ? { state: "blocked", detail: tv("onbFirstConnectAttention", { host }) }
-            : { state: "blocked", detail: t("onbFirstConnectUnchecked") }),
+            : state.connection.state === "none"
+              ? { state: "blocked", detail: t("onbFirstConnectNone") }
+              : { state: "blocked", detail: t("onbFirstConnectUnchecked") }),
   };
   const site: StepView = {
     key: "site",

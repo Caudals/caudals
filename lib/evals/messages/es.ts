@@ -1974,6 +1974,7 @@ export const es: Partial<Record<MessageKey, string>> = {
   onbFirstConnectUnchecked: "Añade la clave de la API en Sistemas para que Caudals compruebe la conexión.",
   onbFirstConnectAttention: "{host} se abre, pero el chat necesita ayuda para conectarse antes de ejecutar.",
   onbFirstConnectUnreachable: "Caudals no ha podido llegar a {host}.",
+  onbFirstConnectNone: "Todavía no hay ningún sistema conectado. Añádelo en Sistemas antes de ejecutar; mientras tanto se prepara el conjunto de pruebas.",
   onbFirstSite: "Leer tus páginas",
   onbFirstSiteReading: "Leyendo hasta {pages} páginas de {host}. Suele tardar de 1 a 3 minutos.",
   onbFirstSiteReady: "Las páginas de {host} están leídas.",

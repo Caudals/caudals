@@ -3094,6 +3094,22 @@ test("onboarding: the first evaluation reads in Spanish", async ({ page }) => {
   expect(await noOverflow(page)).toBe(true);
 });
 
+test("onboarding: a demo imported without a system says so instead of asking for a key", async ({ page }) => {
+  const evaluationId = "00000000-0000-4000-8000-000000000a21";
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture({ evaluations: [{ ...evaluationFixture, id: evaluationId, preparation_status: "profiling", selected_suite_version_id: null }] }), meta: {} } }));
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/onboarding**`, (route) => route.fulfill({ json: { data: {
+    enabled: true, autostart: { status: "started", reasonCode: null, pageLimit: 25, maxCases: 50, createdAt: new Date().toISOString(), startedAt: new Date().toISOString(), generationJobId: "00000000-0000-4000-8000-000000000a22" },
+    connection: { state: "none", code: null, kind: null, host: null }, site: { state: "ready", code: null, host: "caudals.com" }, generation: { status: "profiling", written: 0, target: 50, reasonCode: null }, help: null,
+  }, meta: {} } }));
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&owner&onboarding`);
+  const panel = page.getByTestId("first-evaluation");
+  await expect(panel.getByText("No system is connected yet. Add it in Systems before the run; the test set is prepared meanwhile.")).toBeVisible();
+  await expect(panel.getByText("Add the API key in Systems", { exact: false })).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Get help" })).toHaveCount(0);
+});
+
 test("onboarding: sign-up says what happens next and rates the password", async ({ page }) => {
   await page.route("**/api/evals/v1/signup", (r) => r.fulfill({ json: { data: { email: "ana@acme.example", workspaceName: "Acme", locale: "en", source: "demo" } } }));
   for (const width of [390, 768, 1440]) {
