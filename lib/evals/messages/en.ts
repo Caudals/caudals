@@ -1817,7 +1817,7 @@ export type MessageKey = keyof typeof messages;
 
 export type Locale = "en" | "es";
 export const LOCALES: readonly Locale[] = ["en", "es"];
-export const LOCALE_COOKIE = "caudals_locale";
+export { LOCALE_COOKIE } from "./locale-cookie";
 
 /**
  * The interface language is chosen per person (cookie, else the browser's

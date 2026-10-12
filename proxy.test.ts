@@ -163,3 +163,50 @@ describe("proxy locale routing", () => {
     }
   });
 });
+
+describe("proxy app language links", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("opens a shared report link in the language it names", async () => {
+    for (const lang of ["es", "en"]) {
+      const response = await proxy(request(`/share?lang=${lang}`));
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe("https://app.caudals.com/share");
+      expect(response.cookies.get("caudals_locale")).toMatchObject({
+        value: lang,
+        path: "/",
+        maxAge: 31536000,
+        sameSite: "lax",
+        secure: true,
+      });
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+    }
+  });
+
+  it("keeps the other parameters and overrides an earlier choice", async () => {
+    const response = await proxy(
+      request("/workspace/evaluations?orgId=org_1&lang=es", "caudals_locale=en"),
+    );
+    expect(response.headers.get("location")).toBe(
+      "https://app.caudals.com/workspace/evaluations?orgId=org_1",
+    );
+    expect(response.cookies.get("caudals_locale")?.value).toBe("es");
+  });
+
+  it("ignores unsupported languages, APIs and the public host", async () => {
+    for (const response of [
+      await proxy(request("/share?lang=fr")),
+      await proxy(request("/api/evals/v1/share/exchange?lang=es")),
+      await proxy(marketingRequest("/es/demo?lang=en")),
+    ]) {
+      expect(response.headers.get("location")).toBeNull();
+      expect(response.cookies.get("caudals_locale")).toBeUndefined();
+    }
+  });
+});
