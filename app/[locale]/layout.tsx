@@ -48,7 +48,8 @@ export function generateStaticParams() {
  * The prerendered pages regenerate in the background at most every five
  * minutes, so server-read runtime flags (`DEMO_PUBLIC`, launch L-04) reach
  * them after the app restarts with new credentials, without a rebuild. Pages
- * that read the request (`/call`, the legal notice) stay dynamic.
+ * that read the request (`/call`, the legal notice) and `/demo`, whose robots
+ * tag must never lag the flag, stay dynamic.
  */
 export const revalidate = 300;
 

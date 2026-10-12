@@ -141,8 +141,10 @@ routes remain English-only; `/admin` is removed and returns 404.
 - The public tree is prerendered per locale via `generateStaticParams` and
   revalidates every 300 s (`app/[locale]/layout.tsx`), so server-read runtime
   flags such as `DEMO_PUBLIC` reach prerendered pages a few minutes after the
-  app restarts. Read such flags in the layout and pass them down
-  (`FrontDoorProvider`), never with `NEXT_PUBLIC_*`. Nothing
+  app restarts (and up to five minutes after each image build, pages still
+  show the build's flag-off state). Read such flags in the layout and pass
+  them down (`FrontDoorProvider`), never with `NEXT_PUBLIC_*`. `/demo` renders
+  per request so its robots tag never lags the flag. Nothing
   in `app/layout.tsx` may read the request — `cookies()` or `headers()` there
   opts *every* route out of static rendering, including the marketing pages.
 - There is no `app/layout.tsx`. `app/[locale]/layout.tsx` is a root layout that

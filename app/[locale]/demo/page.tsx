@@ -4,6 +4,11 @@ import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
 import { demoPublicEnabled } from "@/lib/public/front-door";
 import { buildPublicMetadata } from "@/lib/seo";
 
+// Rendered per request, so its robots tag always follows the runtime flag. A
+// prerendered copy would carry the image build's flag-off `noindex` for up to
+// one revalidation window after every deploy, and a crawler could drop the page.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {
@@ -24,7 +29,7 @@ export async function generateMetadata({
   });
 }
 
-/** The free test. A run's private link carries its token in the fragment, so this page stays static. */
+/** The free test. A run's private link carries its token in the fragment, never in the request. */
 export default function DemoRoute() {
   return <DemoShell />;
 }
