@@ -36,6 +36,7 @@ import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace, usePageCrumb } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { WebAppConnector } from "./web-app-connector";
+import { FirstEvaluationPanel, OnboardingWelcome, useFirstEvaluation, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { evaluationStage, stepStates } from "./evaluation-stage";
 import { getLocale, t, tv } from "@/lib/evals/messages/en";
 import { localizeReportText } from "@/lib/evals/reports/i18n";
@@ -95,6 +96,10 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
   const run = useMemo(() => scopedRun && controlledRun ? { ...scopedRun, run: { ...scopedRun.run, status: controlledRun.status, phase: controlledRun.phase ?? scopedRun.run.phase } } : scopedRun, [scopedRun, controlledRun]);
   const reportRow = summary?.reports.find((item) => item.evaluation_id === evaluationId && (!item.run_id || item.run_id === latestRunId));
   usePageCrumb(evaluation?.title);
+  // First-run onboarding (launch L-06): the welcome and, for an imported demo, the automatic start.
+  const onboarding = useWorkspaceOnboarding(orgId);
+  const firstRun = useFirstEvaluation(orgId, evaluationId, reload);
+  const autoStarting = firstRun.state?.autostart?.status === "waiting" && !firstRun.state.generation;
 
   // Live run progress. Polling is bounded to this page and stops on leave.
   useEffect(() => {
@@ -354,12 +359,26 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
         </Status>
       )}
 
+      <OnboardingWelcome onboarding={onboarding} />
+      {!connectOpen && (
+        <FirstEvaluationPanel
+          orgId={orgId}
+          evaluation={evaluation}
+          state={firstRun.state}
+          hasReport={!!reportRow}
+          reportHref={reportRow ? withOrg(`/workspace/reports/${reportRow.id}`) : null}
+          runStatus={runStatus}
+          onConnect={() => setConnectOpen(true)}
+          onHelp={firstRun.refresh}
+        />
+      )}
+
       {!connectOpen && system?.document.kind === "website" && canManage && <WebAppConnector orgId={orgId} targetId={system.id} status={system.connection_status} errorCode={system.error_code} paused={run?.run.status === "paused" && ["capture_incomplete", "website_selector_failed", "browser_session_unavailable", "website_usage_limit"].includes(run.run.reason_code ?? "")} onChanged={reload} />}
 
       <div hidden={connectOpen}>
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
-          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} />
+          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} />
         ) : (
           <Panel title={stage.label} live={stage.live}>
             <p>{t("viewerPreparationHelp")}</p>

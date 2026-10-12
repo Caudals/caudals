@@ -2872,6 +2872,92 @@
   box-shadow: inset 0 0 0 1px var(--p-warn-border);
 }
 
+/* --- Checklists: onboarding steps from real state (launch L-06) ------------- */
+.p-checklist {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.p-checklist > li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--p-border);
+}
+.p-checklist > li:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+.p-checklist .p-step-mark {
+  margin-top: 1px;
+  color: var(--p-text-tertiary);
+}
+.p-checklist-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.p-checklist-title {
+  font-weight: 500;
+  color: var(--p-text);
+}
+.p-checklist-meta {
+  font-size: var(--p-text-label);
+  color: var(--p-text-secondary);
+  overflow-wrap: anywhere;
+}
+.p-checklist-action {
+  align-self: center;
+}
+.p-checklist > li[data-state="done"] .p-step-mark {
+  background: var(--p-text);
+  color: var(--p-text-inverse);
+  box-shadow: none;
+}
+.p-checklist > li[data-state="done"] .p-checklist-title {
+  color: var(--p-text-secondary);
+}
+.p-checklist > li[data-state="current"] .p-step-mark {
+  color: var(--p-text);
+  box-shadow: inset 0 0 0 1.5px var(--p-text);
+}
+.p-checklist > li[data-state="blocked"] .p-step-mark {
+  color: var(--p-warn);
+  background: var(--p-warn-soft);
+  box-shadow: inset 0 0 0 1px var(--p-warn-border);
+}
+.p-choice-group {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.p-first-eval-next {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-border);
+}
+.p-first-eval-next h3 {
+  margin: 0;
+  font-size: var(--p-text-label);
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .p-checklist > li {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .p-checklist-action {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
 /* --- Charts ----------------------------------------------------------------- */
 .p-outcomes {
   display: grid;

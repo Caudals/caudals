@@ -11,6 +11,7 @@ import { advanceReportNarratives } from "../../lib/evals/repositories/narratives
 import { finalizeRuns, refreshJudgedReports } from "../../lib/evals/repositories/finalize";
 import { advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluation-controls";
 import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
+import { advanceOnboardingAutostarts, onboardingDueWorkspaces } from "../../lib/evals/repositories/onboarding";
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 import { tickLifecycleEmails } from "../../lib/evals/operations/lifecycle-email";
@@ -40,6 +41,7 @@ async function main() {
   }
   let stopping = false;
   let lastTick = 0;
+  let lastOnboardingTick = 0;
   let lastBillingVerify = 0;
   let lastBillingExpiry = 0;
   let lastPriceBook = 0;
@@ -52,6 +54,25 @@ async function main() {
   console.info(JSON.stringify({ event: "scheduler_ready", workspaces: orgs.current().length }));
   try {
     while (!stopping) {
+      // First-run automatic starts (launch L-06, ONBOARDING_AUTOSTART) on a short
+      // tick, so a new demo sign-up gets its test set started within a minute
+      // even with no page open. Only workspaces with a pending start are read.
+      if (Date.now() - lastOnboardingTick >= 10_000) {
+        lastOnboardingTick = Date.now();
+        try {
+          for (const orgId of await onboardingDueWorkspaces(actorId)) {
+            try {
+              await advanceOnboardingAutostarts({ orgId, actorId });
+            } catch (error) {
+              console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId, task: "onboarding" }));
+              captureServerError(error, { service: "evals-scheduler", event: "scheduler_tick_failed", task: "onboarding", workspace: orgId });
+            }
+          }
+        } catch (error) {
+          console.error(JSON.stringify({ event: "onboarding_tick_failed" }));
+          captureServerError(error, { service: "evals-scheduler", event: "onboarding_tick_failed" });
+        }
+      }
       if (Date.now() - lastTick >= 60_000) {
         lastTick = Date.now();
         let healthy = true;

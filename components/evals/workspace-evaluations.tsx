@@ -29,6 +29,7 @@ import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { evaluationStage } from "./evaluation-stage";
 import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
+import { OnboardingChecklist, OnboardingWelcome, useOnboardingEnabled, useWorkspaceOnboarding } from "./onboarding-checklist";
 import { t, tv } from "@/lib/evals/messages/en";
 
 /* ------------------------------------------------------------- listing --- */
@@ -41,6 +42,9 @@ export function WorkspaceEvaluations() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const items = useItemActions(orgId, reload);
+  // First-run checklist and welcome (launch L-06); refreshed with the list.
+  const onboardingEnabled = useOnboardingEnabled();
+  const onboarding = useWorkspaceOnboarding(orgId, summary);
 
   const rows = useMemo(() => {
     if (!summary) return [];
@@ -87,13 +91,19 @@ export function WorkspaceEvaluations() {
       {!summary ? (
         loading ? <TableSkeleton columns={4} /> : null
       ) : !rows.length ? (
-        <EmptyState title={t("firstEvaluationTitle")} icon={<FlaskConical />} action={newAction || <ExampleEvaluationLink variant="button" />}>
-          <p>{t("firstEvaluationBody")}</p>
-          {!canWrite && <p>{t("viewerNoEvaluations")}</p>}
-          {newAction && <p><ExampleEvaluationLink /></p>}
-        </EmptyState>
+        <>
+          <OnboardingWelcome onboarding={onboarding} />
+          <EmptyState title={t("firstEvaluationTitle")} icon={<FlaskConical />} action={newAction || <ExampleEvaluationLink variant="button" />}>
+            <p>{t("firstEvaluationBody")}</p>
+            {!canWrite && !onboardingEnabled && <p>{t("viewerNoEvaluations")}</p>}
+            {newAction && <p><ExampleEvaluationLink /></p>}
+          </EmptyState>
+          <OnboardingChecklist onboarding={onboarding} variant="empty" />
+        </>
       ) : (
         <>
+          <OnboardingWelcome onboarding={onboarding} />
+          <OnboardingChecklist onboarding={onboarding} />
           <Toolbar>
             <SearchInput value={query} onChange={setQuery} label={t("searchEvaluations")} />
           </Toolbar>

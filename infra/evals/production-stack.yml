@@ -65,6 +65,9 @@ services:
       EVALS_WEBHOOK_KEYRING_FILE: /run/secrets/evals_webhook_keyring
       EVALS_WORKER_ORG_IDS: ${EVALS_WORKER_ORG_IDS:?Explicit workspace allowlist is required}
       EVALS_SCHEDULER_ACTOR_ID: service:evals-scheduler
+      # First-run automatic test-set start (launch L-06), from the app
+      # credentials via scripts/deploy-evals-production.sh, like the web app.
+      ONBOARDING_AUTOSTART: "${ONBOARDING_AUTOSTART:-false}"
       # Credit ledger flags (spec §6.18), from the app credentials via
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"

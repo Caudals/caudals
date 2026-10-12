@@ -47,9 +47,26 @@ function TermsLabel({ marketingOrigin }: { marketingOrigin: string }) {
  * must accept the Terms and the Privacy Policy; the API records the versions.
  * Links from direct sign-up (launch L-05) carry `source: "direct"` and read
  * without the demo; with `directSignup` (SELF_SERVE_DIRECT_SIGNUP) an
- * expired link offers a new one from `/workspace/start`.
+ * expired link offers a new one from `/workspace/start`. With `onboarding`
+ * (ONBOARDING_AUTOSTART, launch L-06) the form says what happens next: a demo
+ * is imported and its full test set starts preparing by itself.
  */
-export function SelfServeSignup({ termsRequired = false, directSignup = false, marketingOrigin }: { termsRequired?: boolean; directSignup?: boolean; marketingOrigin: string }) {
+/**
+ * A plain strength reading for the password hint (launch L-06): length first,
+ * then variety. The server still enforces only the 12-character minimum.
+ */
+export function passwordStrength(password: string): "weak" | "fair" | "strong" {
+  if (password.length < 12) return "weak";
+  const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((pattern) => pattern.test(password)).length;
+  const unique = new Set(password.toLowerCase()).size;
+  if (unique < 6) return "weak";
+  if (password.length >= 16 || (password.length >= 12 && classes >= 3)) return "strong";
+  return "fair";
+}
+
+const STRENGTH_COPY = { weak: "passwordStrengthWeak", fair: "passwordStrengthFair", strong: "passwordStrengthStrong" } as const;
+
+export function SelfServeSignup({ termsRequired = false, directSignup = false, onboarding = false, marketingOrigin }: { termsRequired?: boolean; directSignup?: boolean; onboarding?: boolean; marketingOrigin: string }) {
   const [link, setLink] = useState<SignupLink | null>(null);
   const [state, setState] = useState<"checking" | "ready" | "invalid" | "taken" | "creating">("checking");
   const [name, setName] = useState("");
@@ -131,8 +148,13 @@ export function SelfServeSignup({ termsRequired = false, directSignup = false, m
             maxLength={128}
             required
             disabled={state === "creating"}
-            hint={t("passwordHelp")}
+            hint={`${t("passwordHelp")} ${t("passwordStrengthHelp")}`}
           />
+          {password ? (
+            <p className="p-field-hint" id="signup-password-strength" data-strength={passwordStrength(password)} aria-live="polite">
+              {t(STRENGTH_COPY[passwordStrength(password)])}
+            </p>
+          ) : null}
           {termsRequired ? (
             <Check
               id="signup-terms"
@@ -145,6 +167,11 @@ export function SelfServeSignup({ termsRequired = false, directSignup = false, m
             />
           ) : null}
           {error ? <Status error>{error}</Status> : null}
+          {onboarding ? (
+            <p className="p-field-hint" data-testid="signup-next">
+              <strong>{t("signupNextTitle")}:</strong> {t(link.source === "direct" ? "signupNextDirect" : "signupNextDemo")}
+            </p>
+          ) : null}
           <Action block type="submit" disabled={state === "creating" || !name.trim() || password.length < 12 || (termsRequired && !accepted)}>
             {state === "creating" ? t("signupCreating") : t("signupCreate")}
           </Action>

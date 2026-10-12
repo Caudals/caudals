@@ -988,6 +988,13 @@ Operational env controls:
 - Manual digest, inside the scheduler container (its database identity and secrets): `sudo docker exec "$(sudo docker ps -q -f name=caudals-evals_scheduler)" node --conditions=react-server --import tsx services/evals-worker/ops-digest.ts --dry-run` prints counts only; `--force` sends this week's digest now to the internal address (it claims the week, so the Monday job will not send it again). Send history: `SELECT week_start,status,attempts,sent_at,summary FROM evals.ops_digest_send ORDER BY week_start DESC`.
 - Snapshot records: `SELECT company,target_host,testing_basis,created_at,share_expires_at,crm_draft_id IS NOT NULL FROM evals.prospect_snapshot ORDER BY created_at DESC` (staff only). A snapshot workspace is deleted, like any other, through the audited workspace deletion workflow; its basis record stays.
 
+## First-run Onboarding Operations
+
+- `ONBOARDING_AUTOSTART=true` (launch L-06) turns on the automatic test-set start for demo sign-ups, the activation checklist, the welcome questions and "Get help". The web app and the scheduler both read it: set it with `scripts/launch/set-app-flag.sh ONBOARDING_AUTOSTART true|false`, then redeploy the workers so the scheduler follows (`sudo env EVALS_IMAGE_COMMIT=<running sha> scripts/deploy-evals-production.sh` reads it from the app credentials).
+- Pending and recent automatic starts (as `postgres`, aggregates only): `SELECT status, reason_code, count(*) FROM evals.onboarding_autostart GROUP BY 1,2`. Time from sign-up to the generation job: `SELECT a.org_id, extract(epoch FROM g.created_at - a.created_at)::int AS seconds FROM evals.onboarding_autostart a JOIN evals.generation_job g ON (g.org_id, g.id) = (a.org_id, a.generation_job_id) ORDER BY a.created_at DESC LIMIT 20`. `blocked` rows show why (`chat_unreachable`, `site_unreadable`, `no_reference_pages`, `generation_unavailable`, `budget_unavailable`) and are re-checked every 10 seconds for two days.
+- "Get help" requests reach the ops inbox (`COLLABORATION_NOTIFICATION_EMAIL`) and Ops → Growth → Help requests; resolve them there once the customer is unblocked. Open requests: `SELECT reason_code, count(*) FROM evals.onboarding_help_request WHERE status='open' GROUP BY 1`.
+- Welcome answers per new account and the weekly share of demo sign-ups reaching "test set ready" within 30 minutes (target 60 %) are in Ops → Growth.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:

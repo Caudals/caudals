@@ -132,7 +132,9 @@ const content =
   location.pathname === "/ops/prospects/new" ? <NewProspectSnapshot limits={{ dailyCap: 25, maxQuestions: 10, requestsPerMinute: 4, concurrentSessions: 1, runsPerMonth: 3, helpPages: 10 }} /> :
   location.pathname.startsWith("/ops/prospects/") ? <ProspectSnapshotDetail id={location.pathname.split("/").at(-1)!} /> :
   location.pathname === "/ops" && params.has("kpis") ? <OperatorOverview kpis={opsKpis} growth /> :
-  location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed",company:"Gestoría Ejemplo SL",connection:"website",lastActivity:"2026-09-10T10:00:00Z",latestScore:0.625,latestScored:8,creditsBought:null,plan:"free",emailDomain:"gestoria-ejemplo.es",hasReport:true}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
+  location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed",company:"Gestoría Ejemplo SL",connection:"website",lastActivity:"2026-09-10T10:00:00Z",latestScore:0.625,latestScored:8,creditsBought:null,plan:"free",emailDomain:"gestoria-ejemplo.es",hasReport:true,systemType:"website_chat",goal:"pre_launch"},{orgId:"00000000-0000-4000-8000-000000000002",createdAt:"2026-09-09T10:00:00Z",source:"demo",stage:"test_set_ready",systemType:null,goal:null}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]})),
+    activation:growthWeeks.map(row=>({week:row.week,demoSignups:5,testSetIn30:3})),
+    help:[{id:"00000000-0000-4000-8000-000000000901",orgId:"00000000-0000-4000-8000-000000000002",evaluationId:"00000000-0000-4000-8000-000000000501",reason:"chat_unreachable",status:"open",createdAt:"2026-09-09T11:00:00Z",notified:true}]}} /> :
   sampleReportPage ? (
     <LocaleProvider locale={sampleLocale}>
       <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
@@ -155,7 +157,7 @@ const content =
   location.pathname === "/workspace/sign-in" ? (
     <EvaluationSignIn next={params.get("next") ?? undefined} directSignup={params.has("direct")} />
   ) : location.pathname === "/workspace/signup" ? (
-    <SelfServeSignup termsRequired={!params.has("no-terms")} directSignup={params.has("direct")} marketingOrigin="https://caudals.com" />
+    <SelfServeSignup termsRequired={!params.has("no-terms")} directSignup={params.has("direct")} onboarding={params.has("onboarding")} marketingOrigin="https://caudals.com" />
   ) : location.pathname === "/workspace/security" ? (
     <TwoFactorSettings email="operator@example.test" enabled={params.has("enabled")} required={params.has("required")} staff={!params.has("customer")} next={params.get("next") ?? "/evaluation-entry"} />
   ) : location.pathname === "/workspace/unsubscribe" ? (
@@ -226,6 +228,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example") }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, prospects: true, example: !params.has("no-example"), onboarding: params.has("onboarding") }}>{content}</ShellFrame>
   ),
 );

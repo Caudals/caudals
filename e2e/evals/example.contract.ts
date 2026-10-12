@@ -88,9 +88,20 @@ test("a changed question in the comparison opens that result", async ({ page }) 
   await expect(page.getByRole("status").filter({ hasText: LINE_EN })).toBeVisible();
 });
 
-test("owners hide the example from the lists on this device and show it again", async ({ page }) => {
+test("owners hide the example for the whole workspace and show it again", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await routeApi(page, [evaluation]);
+  // The choice lives in the workspace's onboarding state (launch L-06), not on the device.
+  let exampleHidden = false;
+  const changes: unknown[] = [];
+  await page.route("**/api/evals/v1/workspace/onboarding**", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const body = route.request().postDataJSON();
+      changes.push(body);
+      exampleHidden = body.action === "hide_example";
+    }
+    await route.fulfill({ json: { data: { enabled: false, tracked: false, dismissed: false, complete: false, firstEvaluationId: null, steps: { connect: false, sources: false, run: false, results: false, invite: false }, welcome: { pending: false, systemType: null, goal: null }, exampleHidden }, meta: {} } });
+  });
   await page.goto("/workspace/evaluations?owner");
   const card = page.locator(".p-card").filter({ hasText: "Example evaluation" });
   await expect(card.getByRole("link", { name: "See an example evaluation" })).toBeVisible();
@@ -105,6 +116,9 @@ test("owners hide the example from the lists on this device and show it again", 
   await expect(row.getByText("Shown", { exact: true })).toBeVisible();
   await page.goto("/workspace/evaluations?owner");
   await expect(page.locator(".p-card").filter({ hasText: "Example evaluation" })).toBeVisible();
+  const orgId = "00000000-0000-4000-8000-000000000001";
+  expect(changes).toEqual([{ orgId, action: "hide_example" }, { orgId, action: "show_example" }]);
+  expect(await page.evaluate(() => window.localStorage.getItem("caudals.example-hidden"))).toBeNull();
 });
 
 test("viewers reach the example from the empty state and cannot hide it", async ({ page }) => {

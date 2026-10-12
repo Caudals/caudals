@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Globe, Plus, Search, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
+import { AUTOMATIC_PROMPT_REVISION } from "@/lib/evals/onboarding/config";
 import { evalRequest } from "./api";
 import { Action, Badge, Field, Progress, SectionHeading, SelectField, Status, TextArea } from "./primitives";
 import { notify } from "./overlays";
@@ -93,12 +94,15 @@ export function PrepareEvaluation({
   executionMode = "deployed_system",
   controlUpdatedAt,
   onReady,
+  autoStartCases = null,
 }: {
   orgId: string;
   evaluation: Evaluation;
   executionMode?: "deployed_system" | "imported_responses";
   controlUpdatedAt?: string;
   onReady: () => Promise<void>;
+  /** An imported demo waiting for its automatic start (launch L-06): the number of questions it will ask for. */
+  autoStartCases?: number | null;
 }) {
   const [sources, setSources] = useState<PreparedSource[]>([]);
   const [pendingSources, setPendingSources] = useState<PendingSource[]>([]);
@@ -420,7 +424,7 @@ export function PrepareEvaluation({
     setError("");
     try {
       const sourceRevisionIds = sources.map((item) => item.revisionId);
-      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: "dgx-context-cases-v5", maxCases: scopeSize, complexity, locale: getLocale() };
+      const input = { mode: "automatic", orgId, sourceRevisionIds, title: `${evaluation.title} test set`, executionMode, promptRevision: AUTOMATIC_PROMPT_REVISION, maxCases: scopeSize, complexity, locale: getLocale() };
       const previous = await evalRequest<{ status: GenerationStatus; job: { id: string; reasonCode?: string | null } | null }>(`/evaluations/${evaluation.id}/generate?orgId=${orgId}`);
       if (previous.job && ["profiling", "profile_ready", "drafting", "draft_ready", "needs_input"].includes(previous.status)) {
         setPending("");
@@ -673,6 +677,8 @@ export function PrepareEvaluation({
               <p className="p-cell-meta">{t("closePageHelp")}</p>
             </div>
           </div>
+        ) : autoStartCases && !autoJobId && !stopped ? (
+          <Status tone="info">{tv("onbAutoStarting", { cases: autoStartCases })}</Status>
         ) : (
           <div className="p-generate-block">
             {stopped && <Status tone="warn">{generationStopMessage(stopReason)}</Status>}

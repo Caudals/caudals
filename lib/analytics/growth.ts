@@ -7,8 +7,12 @@ export type GrowthData = {
   weeks: { week: string; events: Record<string, number> }[];
   outcomes: { outcome: string; reason: string; count: number }[];
   sources: { source: string; visits: number; demos: number; accounts: number; activated: number }[];
-  accounts: ({ orgId: string; createdAt: string; source: string; stage: string } & Partial<AccountDetails>)[];
+  accounts: ({ orgId: string; createdAt: string; source: string; stage: string; systemType?: string | null; goal?: string | null } & Partial<AccountDetails>)[];
   cohorts: { week: string; accounts: number; active: number[] }[];
+  /** Demo sign-ups per week and how many reached "test set ready" within 30 minutes (P-01, launch L-06). */
+  activation?: { week: string; demoSignups: number; testSetIn30: number }[];
+  /** "Get help" requests from first evaluations (launch L-06): open ones first, then the last 14 days. */
+  help?: { id: string; orgId: string; evaluationId: string | null; reason: string; status: "open" | "resolved"; createdAt: string; notified: boolean }[];
 };
 /** Pipeline details per account (launch L-21, P-34 v2); null means unknown or not yet, never an invented zero. */
 export type AccountDetails = {
@@ -37,7 +41,7 @@ export async function getGrowth(identity: EvalIdentity): Promise<GrowthData> {
         AND (e.org_id IS NULL OR NOT EXISTS(SELECT 1 FROM evals.prospect_snapshot p WHERE p.org_id=e.org_id))
     ), weeks AS (SELECT generate_series(date_trunc('week',now())-interval '7 weeks',date_trunc('week',now()),interval '1 week') AS week),
     counts AS (SELECT week,event_name,count(*)::int AS n FROM recent GROUP BY week,event_name),
-    accounts AS (SELECT DISTINCT ON(org_id) org_id,occurred_at,week,
+    accounts AS (SELECT DISTINCT ON(org_id) org_id,occurred_at,week,metadata->>'acquisition' AS acquisition,
        COALESCE(NULLIF(attribution->>'utm_source',''),NULLIF(attribution->>'partner',''),NULLIF(attribution->>'ref',''),metadata->>'acquisition','unknown') AS source
        FROM recent WHERE event_name='account_created' AND org_id IS NOT NULL ORDER BY org_id,occurred_at),
     activation AS (SELECT org_id,min(occurred_at) AS at FROM recent WHERE event_name='report_viewed' GROUP BY org_id),
@@ -54,8 +58,16 @@ export async function getGrowth(identity: EvalIdentity): Promise<GrowthData> {
       (SELECT COALESCE(jsonb_agg(x),'[]'::jsonb) FROM (SELECT COALESCE(metadata->>'outcome','unknown') AS outcome,COALESCE(metadata->>'error_code','none') AS reason,count(*)::int AS count FROM recent WHERE event_name='demo_finished' GROUP BY 1,2 ORDER BY 3 DESC) x) AS outcomes,
       (SELECT COALESCE(jsonb_agg(s),'[]'::jsonb) FROM (SELECT * FROM by_source ORDER BY accounts DESC,demos DESC,visits DESC LIMIT 100) s) AS sources,
       (SELECT COALESCE(jsonb_agg(x),'[]'::jsonb) FROM (SELECT a.org_id AS "orgId",a.occurred_at AS "createdAt",a.source,
-        CASE s.stage WHEN 5 THEN 'report_viewed' WHEN 4 THEN 'run_finished' WHEN 3 THEN 'run_started' WHEN 2 THEN 'test_set_ready' WHEN 1 THEN 'evaluation_created' ELSE 'account_created' END AS stage
-        FROM accounts a LEFT JOIN stages s ON s.org_id=a.org_id ORDER BY a.occurred_at DESC LIMIT 200) x) AS accounts,
+        CASE s.stage WHEN 5 THEN 'report_viewed' WHEN 4 THEN 'run_finished' WHEN 3 THEN 'run_started' WHEN 2 THEN 'test_set_ready' WHEN 1 THEN 'evaluation_created' ELSE 'account_created' END AS stage,
+        o.system_type AS "systemType",o.goal
+        FROM accounts a LEFT JOIN stages s ON s.org_id=a.org_id LEFT JOIN evals.workspace_onboarding o ON o.org_id=a.org_id ORDER BY a.occurred_at DESC LIMIT 200) x) AS accounts,
+      (SELECT jsonb_agg(jsonb_build_object('week',to_char(w.week,'YYYY-MM-DD'),
+        'demoSignups',(SELECT count(*) FROM accounts a WHERE a.week=w.week AND a.acquisition='demo'),
+        'testSetIn30',(SELECT count(*) FROM accounts a WHERE a.week=w.week AND a.acquisition='demo' AND EXISTS(
+          SELECT 1 FROM recent t WHERE t.event_name='test_set_ready' AND t.org_id=a.org_id AND t.occurred_at<=a.occurred_at+interval '30 minutes'))) ORDER BY w.week) FROM weeks w) AS activation,
+      (SELECT COALESCE(jsonb_agg(x),'[]'::jsonb) FROM (SELECT h.id,h.org_id AS "orgId",h.evaluation_id AS "evaluationId",h.reason_code AS reason,h.status,h.created_at AS "createdAt",h.notified_at IS NOT NULL AS notified
+        FROM evals.onboarding_help_request h WHERE h.status='open' OR h.created_at>now()-interval '14 days'
+        ORDER BY (h.status='open') DESC,h.created_at DESC LIMIT 50) x) AS help,
       (SELECT jsonb_agg(jsonb_build_object('week',to_char(w.week,'YYYY-MM-DD'),'accounts',(SELECT count(*) FROM accounts a WHERE a.week=w.week),
         'active',(SELECT jsonb_agg((SELECT count(DISTINCT a.org_id) FROM accounts a JOIN activity v ON v.org_id=a.org_id WHERE a.week=w.week AND v.week=w.week+g.n*interval '1 week') ORDER BY g.n) FROM generate_series(0,7) g(n))) ORDER BY w.week) FROM weeks w) AS cohorts`);
     const growth = rows[0] as GrowthData;

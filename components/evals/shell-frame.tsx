@@ -55,6 +55,7 @@ import { CommandPalette, type PaletteLink } from "./command-palette";
 import { HelpPanel } from "./help-panel";
 import { NotificationCenter } from "./notification-center";
 import { ExampleAvailability } from "./example-evaluation-links";
+import { OnboardingAvailability } from "./onboarding-checklist";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
@@ -63,7 +64,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean; prospects?: boolean; onboarding?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -641,9 +642,11 @@ export function ShellFrame({
       <WorkspaceProvider identity={identity}>
         <CrumbProvider>
           <ExampleAvailability enabled={!!features.example}>
-            <Frame identity={identity} expert={expert} features={features}>
-              {children}
-            </Frame>
+            <OnboardingAvailability enabled={!!features.onboarding}>
+              <Frame identity={identity} expert={expert} features={features}>
+                {children}
+              </Frame>
+            </OnboardingAvailability>
           </ExampleAvailability>
         </CrumbProvider>
       </WorkspaceProvider>

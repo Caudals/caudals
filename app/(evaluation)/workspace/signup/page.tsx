@@ -3,6 +3,7 @@ import { SelfServeSignup } from "@/components/evals/self-serve-signup";
 import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
 import { directSignupEnabled } from "@/lib/evals/signup";
+import { onboardingEnabled } from "@/lib/evals/onboarding/flags";
 import { signupTermsRequired } from "@/lib/legal/acceptance";
 import { getMarketingSiteOrigin } from "@/lib/seo";
 
@@ -14,7 +15,7 @@ export default async function SignupPage() {
   } catch (error) {
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED") throw error;
     // Flags are read here, at request time, and passed down (never NEXT_PUBLIC_*).
-    return <SelfServeSignup termsRequired={signupTermsRequired()} directSignup={directSignupEnabled()} marketingOrigin={getMarketingSiteOrigin()} />;
+    return <SelfServeSignup termsRequired={signupTermsRequired()} directSignup={directSignupEnabled()} onboarding={onboardingEnabled()} marketingOrigin={getMarketingSiteOrigin()} />;
   }
   redirect("/evaluation-entry");
 }

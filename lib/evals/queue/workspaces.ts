@@ -4,12 +4,13 @@ import { getEvalsPool } from "../repositories/db";
 /**
  * The workspaces a background worker serves: the deploy-time list plus every
  * live workspace (evals.worker_workspace_ids(), migration 063), refreshed
- * every 30 s. A new client's uploads, websites, generation and exports are
+ * every 10 s (launch L-06: a new demo sign-up's site is read within a
+ * minute). A new client's uploads, websites, generation and exports are
  * therefore picked up without a redeploy. Tenant isolation is unchanged:
  * every job still runs inside its own workspace scope under RLS. If discovery
  * is unavailable the explicit list keeps working.
  */
-export function workerWorkspaces(envValue: string | undefined, refreshMs = 30_000) {
+export function workerWorkspaces(envValue: string | undefined, refreshMs = 10_000) {
   const configured = z.array(z.uuid()).parse(JSON.parse(envValue ?? "[]"));
   let discovered: string[] = [];
   let checkedAt = 0;

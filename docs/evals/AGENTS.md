@@ -6,7 +6,7 @@ Use `app/(evaluation)`, `/api/evals/v1`, `lib/evals`, the `evals` schema and sep
 
 Persist tenant identity server-side. `withTenant` checks a non-owner NOBYPASSRLS runtime role and uses transaction-local context. Identity grants are explicit, not inherited from legacy operators. Admin support reads are audited; workers use persisted job scope. Never make provider calls outside the reservation/attempt path.
 
-The browser worker is a separate service and queue with a dedicated database role, tenant scope resolved from configured IDs plus live workspaces (`worker_workspace_ids()`, refreshed every 30 seconds), browser-session-only keyring and policy-enforced public HTTPS egress. Recipes are declarative and require two successful reset probes before freezing. CAPTCHA, selector drift, expired login state and incomplete capture enter assistance; never bypass them.
+The browser worker is a separate service and queue with a dedicated database role, tenant scope resolved from configured IDs plus live workspaces (`worker_workspace_ids()`, refreshed every 10 seconds), browser-session-only keyring and policy-enforced public HTTPS egress. Recipes are declarative and require two successful reset probes before freezing. CAPTCHA, selector drift, expired login state and incomplete capture enter assistance; never bypass them.
 
 Multi-turn and tool cases use frozen scenario graphs and simulated deterministic fixtures. Model output never grants network, filesystem, secret, publication or spend authority. Customer run creation is bounded by server-side workspace entitlements; runtime users cannot raise them.
 

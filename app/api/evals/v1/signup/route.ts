@@ -10,6 +10,7 @@ import { getRun } from "@/lib/demo/store";
 import { isEvaluationHost } from "@/lib/evals/domain/routing";
 import { jsonBody, privateHeaders } from "@/lib/evals/domain/http";
 import { withTenant } from "@/lib/evals/repositories/db";
+import { advanceOnboardingAutostarts, onboardingEnabled, queueOnboardingAutostart, startWorkspaceOnboarding } from "@/lib/evals/repositories/onboarding";
 import { recordTermsAcceptance, signupTermsRequired } from "@/lib/legal/acceptance";
 import { signupAcceptance } from "@/lib/legal/versions";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
@@ -47,7 +48,9 @@ function termsMissing(requestId: string) {
  * `{token, name, password, acceptTerms, locale}` creates the account and a
  * free-plan workspace, records the Terms and Privacy versions accepted
  * (required when `SIGNUP_TERMS_REQUIRED=true`), imports the demo, and returns
- * where to go after signing in.
+ * where to go after signing in. With `ONBOARDING_AUTOSTART=true` (launch
+ * L-06) it also starts the workspace's onboarding checklist and welcome and,
+ * for an imported demo, records the automatic start of the full test set.
  */
 export async function POST(request: Request) {
   const requestId = randomUUID();
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
           await db.query("SELECT evals.set_acquisition_attribution($1,$2::jsonb)", [row.org_id, JSON.stringify(attribution)]);
           await recordProductEvent({ eventName: "account_created", source: "server", orgId: row.org_id, runId: row.demo_run_id, eventKey: row.org_id, attribution, payload: { acquisition: direct ? "direct" : "demo", plan: "free" } }, db);
         }
+        await startWorkspaceOnboarding(db, row.org_id);
         return row;
       });
     } finally {
@@ -103,9 +107,20 @@ export async function POST(request: Request) {
     // The account exists now; a failed import only means an empty workspace.
     let evaluationId: string | null = null;
     if (created.demo_run_id) {
+      const scope = { orgId: created.org_id, actorId: userId };
       try {
         const run = await getRun(created.demo_run_id);
-        if (run?.phase === "done") evaluationId = (await importDemo({ orgId: created.org_id, actorId: userId }, run)).evaluationId;
+        if (run?.phase === "done") {
+          evaluationId = (await importDemo(scope, run)).evaluationId;
+          // The import queued the connection check and the site reading; the
+          // test set starts once both allow it (lib/evals/repositories/onboarding.ts).
+          if (onboardingEnabled()) {
+            await queueOnboardingAutostart(scope, evaluationId, { demoRunId: run.id, locale: locale ?? run.locale });
+            await advanceOnboardingAutostarts(scope, evaluationId).catch(() => {
+              console.error("onboarding_autostart_deferred", { request_id: requestId, org_id: created.org_id });
+            });
+          }
+        }
       } catch {
         console.error("demo_import_failed", { request_id: requestId, org_id: created.org_id });
       }

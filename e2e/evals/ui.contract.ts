@@ -2924,3 +2924,213 @@ test("a shared external snapshot says what it is and when the link ends", async 
   expect(await noOverflow(page)).toBe(true);
   await page.screenshot({ path: "/tmp/caudals-l21-share-390.png", fullPage: true });
 });
+
+/* ------------------------------------- first-run onboarding (L-06) --- */
+
+const onboardingState = (extra: Record<string, unknown> = {}) => ({
+  enabled: true, tracked: true, dismissed: false, complete: false, exampleHidden: false, firstEvaluationId: null,
+  steps: { connect: false, sources: false, run: false, results: false, invite: false },
+  welcome: { pending: true, systemType: null, goal: null }, ...extra,
+});
+
+test("onboarding: an empty workspace shows the activation checklist and the optional welcome at 390, 768 and 1440 px", async ({ page }) => {
+  let state = onboardingState();
+  const patches: Record<string, unknown>[] = [];
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture(), meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/onboarding**", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const body = route.request().postDataJSON();
+      patches.push(body);
+      if (body.action === "answer") state = { ...state, welcome: { pending: false, systemType: body.systemType, goal: body.goal } };
+      if (body.action === "skip") state = { ...state, welcome: { pending: false, systemType: null, goal: null } };
+    }
+    await route.fulfill({ json: { data: state, meta: {} } });
+  });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/workspace/evaluations?orgId=${id}&owner&onboarding`);
+    const checklist = page.getByTestId("onboarding-checklist");
+    await expect(checklist).toBeVisible();
+    await expect(checklist.getByRole("listitem")).toHaveCount(5);
+    for (const step of ["Connect your AI system", "Add reference pages", "Run the evaluation", "Read the results", "Invite a colleague"]) await expect(checklist.getByText(step, { exact: true })).toBeVisible();
+    await expect(checklist.getByText("0 of 5 done", { exact: false })).toBeVisible();
+    await expect(checklist.getByRole("link", { name: "Start an evaluation" })).toHaveAttribute("href", `/workspace/evaluations/new?orgId=${id}`);
+    await expect(checklist.getByRole("link", { name: "Invite" })).toHaveAttribute("href", `/workspace/settings?tab=members&orgId=${id}`);
+    // The empty state's checklist is guidance, so it has no "Hide checklist".
+    await expect(page.getByRole("button", { name: "Hide checklist" })).toHaveCount(0);
+    await expect(page.getByTestId("onboarding-welcome")).toBeVisible();
+    // The empty state opens the example evaluation (L-33).
+    await expect(page.getByRole("link", { name: "See an example evaluation" })).toHaveAttribute("href", `/workspace/example?orgId=${id}`);
+    expect(await noOverflow(page)).toBe(true);
+    if (width === 390) await page.screenshot({ path: "/tmp/caudals-l06-empty-390.png", fullPage: true });
+  }
+  const welcome = page.getByTestId("onboarding-welcome");
+  await expect(welcome.getByRole("button", { name: "Save answers" })).toBeDisabled();
+  await welcome.getByRole("button", { name: "A chat on our website" }).click();
+  await welcome.getByRole("button", { name: "Check it before launch" }).click();
+  await expect(welcome.getByRole("button", { name: "A chat on our website" })).toHaveAttribute("aria-pressed", "true");
+  await welcome.getByRole("button", { name: "Save answers" }).click();
+  await expect(page.getByTestId("onboarding-welcome")).toHaveCount(0);
+  expect(patches).toEqual([{ orgId: id, action: "answer", systemType: "website_chat", goal: "pre_launch" }]);
+});
+
+test("onboarding: a list with evaluations shows the dismissable checklist; viewers see it without actions; off without the flag", async ({ page }) => {
+  let state = onboardingState({ welcome: { pending: false, systemType: "agent", goal: null }, firstEvaluationId: evaluationFixture.id, steps: { connect: true, sources: true, run: false, results: false, invite: false } });
+  let onboardingReads = 0;
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture({ evaluations: [evaluationFixture] }), meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/onboarding**", async (route) => {
+    onboardingReads++;
+    if (route.request().method() === "PATCH") state = { ...state, dismissed: true };
+    await route.fulfill({ json: { data: state, meta: {} } });
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto(`/workspace/evaluations?orgId=${id}&owner&onboarding`);
+  const checklist = page.getByTestId("onboarding-checklist");
+  await expect(checklist.getByText("2 of 5 done", { exact: false })).toBeVisible();
+  await expect(checklist.getByRole("listitem").filter({ hasText: "Run the evaluation" })).toHaveAttribute("data-state", "current");
+  await expect(checklist.getByRole("link", { name: "Open evaluation" })).toHaveAttribute("href", `/workspace/evaluations/${evaluationFixture.id}?orgId=${id}`);
+  await expect(checklist.getByRole("link", { name: "See an example evaluation" })).toHaveAttribute("href", `/workspace/example?orgId=${id}`);
+  expect(await noOverflow(page)).toBe(true);
+  await page.getByRole("button", { name: "Hide checklist" }).click();
+  await expect(page.getByTestId("onboarding-checklist")).toHaveCount(0);
+
+  state = { ...state, dismissed: false };
+  await page.goto(`/workspace/evaluations?orgId=${id}&viewer&onboarding`);
+  await expect(page.getByTestId("onboarding-checklist")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hide checklist" })).toHaveCount(0);
+  await expect(page.getByTestId("onboarding-checklist").getByRole("link", { name: "Open evaluation" })).toHaveCount(0);
+
+  // Flag off: no checklist. The example's hide choice (L-33) still reads the shared state;
+  // with the example off too, nothing reads it.
+  await page.goto(`/workspace/evaluations?orgId=${id}&owner`);
+  await expect(page.getByRole("link", { name: "Claims assistant review" })).toBeVisible();
+  await expect(page.getByTestId("onboarding-checklist")).toHaveCount(0);
+  onboardingReads = 0;
+  await page.goto(`/workspace/evaluations?orgId=${id}&owner&no-example`);
+  await expect(page.getByRole("link", { name: "Claims assistant review" })).toBeVisible();
+  await expect(page.getByTestId("onboarding-checklist")).toHaveCount(0);
+  expect(onboardingReads).toBe(0);
+});
+
+test("onboarding: the first evaluation shows live steps, honest ranges, the demo's recovery guidance and Get help at 390, 768 and 1440 px", async ({ page }) => {
+  const evaluationId = "00000000-0000-4000-8000-000000000a01", projectId = "00000000-0000-4000-8000-000000000a02", sourceId = "00000000-0000-4000-8000-000000000a03";
+  let phase: "reading" | "writing" = "reading";
+  const helps: unknown[] = [];
+  const first = () => phase === "reading"
+    ? { enabled: true, autostart: { status: "waiting", reasonCode: "reading_site", pageLimit: 25, maxCases: 50, createdAt: new Date().toISOString(), startedAt: null, generationJobId: null },
+        connection: { state: "checking", code: null, kind: "website", host: "shop.example" }, site: { state: "reading", code: null, host: "shop.example" }, generation: null, help: null }
+    : { enabled: true, autostart: { status: "started", reasonCode: null, pageLimit: 25, maxCases: 50, createdAt: new Date().toISOString(), startedAt: new Date().toISOString(), generationJobId: "00000000-0000-4000-8000-000000000a04" },
+        connection: { state: "attention", code: "recipe_not_found", kind: "website", host: "shop.example" }, site: { state: "ready", code: null, host: "shop.example" },
+        generation: { status: "drafting", written: 12, target: 50, reasonCode: null }, help: helps.length ? { id: "00000000-0000-4000-8000-000000000a05", status: "open", createdAt: new Date().toISOString() } : null };
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture({
+    evaluations: [{ ...evaluationFixture, id: evaluationId, project_id: projectId, title: "shop.example assistant", project_title: "shop.example assistant", preparation_status: "draft", selected_suite_version_id: null, source_ids: [sourceId] }],
+    systems: [{ id: "00000000-0000-4000-8000-000000000a06", project_id: projectId, title: "shop.example", target_revision_id: "00000000-0000-4000-8000-000000000a07", document: { kind: "website" }, connection_status: "queued", error_code: null, runner_status: null, runner_id: null }],
+  }), meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/onboarding**", (route) => route.fulfill({ json: { data: onboardingState({ welcome: { pending: false, systemType: null, goal: null } }), meta: {} } }));
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/control?**`, (route) => route.fulfill({ json: { data: { subject: null, restart: null, actions: [] }, meta: {} } }));
+  await page.route(`**/api/evals/v1/sources/${sourceId}?**`, (route) => route.fulfill({ json: { data: { title: "shop.example", chunks: [], websiteCapture: { id: "w", start_url: "https://shop.example/ayuda", status: "running", reason_code: null, source_revision_id: null }, ingestion: null }, meta: {} } }));
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/onboarding**`, async (route) => {
+    if (route.request().method() === "POST") {
+      helps.push(route.request().postDataJSON());
+      return route.fulfill({ json: { data: { id: "00000000-0000-4000-8000-000000000a05", status: "open", created: true, reason: "chat_needs_setup" }, meta: {} } });
+    }
+    return route.fulfill({ json: { data: first(), meta: {} } });
+  });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&owner&onboarding`);
+    const panel = page.getByTestId("first-evaluation");
+    await expect(panel.getByRole("heading", { name: "Your first evaluation" })).toBeVisible();
+    await expect(panel.getByRole("listitem")).toHaveCount(4);
+    await expect(panel.getByText("Checking that Caudals can reach shop.example. Usually under a minute.")).toBeVisible();
+    await expect(panel.getByText("Reading up to 25 pages from shop.example. Usually 1–3 minutes.")).toBeVisible();
+    await expect(panel.getByText("Starts by itself once your pages are read: up to 50 questions. Usually 5–35 minutes.")).toBeVisible();
+    await expect(panel.getByText("After you approve the tests. A run usually takes 30–90 minutes.")).toBeVisible();
+    await expect(panel.getByRole("heading", { name: "What happens next" })).toBeVisible();
+    await expect(panel.getByText("Times are typical ranges from recent evaluations, not promises.")).toBeVisible();
+    // The manual Generate button gives way to the automatic start.
+    await expect(page.getByText("Caudals starts writing up to 50 questions by itself as soon as your pages are read.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Generate test set" })).toHaveCount(0);
+    expect(await noOverflow(page)).toBe(true);
+    if (width === 390) await page.screenshot({ path: "/tmp/caudals-l06-first-reading-390.png", fullPage: true });
+  }
+  phase = "writing";
+  const panel = page.getByTestId("first-evaluation");
+  await expect(panel.getByText("Writing questions: 12 of 50. Usually 5–35 minutes in all.")).toBeVisible({ timeout: 10_000 });
+  await expect(panel.getByRole("listitem").filter({ hasText: "Read your pages" })).toHaveAttribute("data-state", "done");
+  await expect(panel.getByRole("listitem").filter({ hasText: "Check the connection" })).toHaveAttribute("data-state", "blocked");
+  await expect(panel.getByText("We couldn't find a chat on that page. Open Connect and show Caudals where the chat opens.")).toBeVisible();
+  await expect(panel.getByText("Fix the problem above, or ask us: an operator will look at it with you.")).toBeVisible();
+  await panel.getByRole("button", { name: "Get help" }).click();
+  await expect(panel.getByText("We've told the Caudals team. An operator will look at it and email you.")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Get help" })).toHaveCount(0);
+  expect(helps).toEqual([{ orgId: id, action: "help" }]);
+  await page.setViewportSize({ width: 390, height: 1000 });
+  expect(await noOverflow(page)).toBe(true);
+  await page.screenshot({ path: "/tmp/caudals-l06-first-help-390.png", fullPage: true });
+});
+
+test("onboarding: the first evaluation reads in Spanish", async ({ page }) => {
+  const evaluationId = "00000000-0000-4000-8000-000000000a11";
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.route("**/api/evals/v1/**", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/summary?**", (route) => route.fulfill({ json: { data: summaryFixture({ evaluations: [{ ...evaluationFixture, id: evaluationId, preparation_status: "draft", selected_suite_version_id: null }] }), meta: {} } }));
+  await page.route("**/api/evals/v1/workspace/onboarding**", (route) => route.fulfill({ json: { data: onboardingState(), meta: {} } }));
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/control?**`, (route) => route.fulfill({ json: { data: { subject: null, restart: null, actions: [] }, meta: {} } }));
+  await page.route(`**/api/evals/v1/evaluations/${evaluationId}/onboarding**`, (route) => route.fulfill({ json: { data: {
+    enabled: true, autostart: { status: "blocked", reasonCode: "site_unreadable", pageLimit: 25, maxCases: 50, createdAt: new Date().toISOString(), startedAt: null, generationJobId: null },
+    connection: { state: "ready", code: null, kind: "website", host: "tienda.example" }, site: { state: "failed", code: "website_capture_unavailable", host: "tienda.example" }, generation: null, help: null,
+  }, meta: {} } }));
+  await page.setViewportSize({ width: 390, height: 1000 });
+  await page.goto(`/workspace/evaluations/${evaluationId}?orgId=${id}&owner&onboarding`);
+  const panel = page.getByTestId("first-evaluation");
+  await expect(panel.getByRole("heading", { name: "Tu primera evaluación" })).toBeVisible();
+  await expect(panel.getByText("No hemos podido leer tienda.example. Prueba con tu centro de ayuda o tu página de preguntas frecuentes: añádela o sube documentos más abajo.")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Pedir ayuda" })).toBeVisible();
+  await expect(page.getByTestId("onboarding-welcome").getByText("¿Qué quieres probar?")).toBeVisible();
+  expect(await noOverflow(page)).toBe(true);
+});
+
+test("onboarding: sign-up says what happens next and rates the password", async ({ page }) => {
+  await page.route("**/api/evals/v1/signup", (r) => r.fulfill({ json: { data: { email: "ana@acme.example", workspaceName: "Acme", locale: "en", source: "demo" } } }));
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/workspace/signup?onboarding#${token}`);
+    await expect(page.getByTestId("signup-next")).toHaveText("What happens next: We import your demo and start preparing the full test set from your site. You can follow it on the next page.");
+    expect(await noOverflow(page)).toBe(true);
+  }
+  const password = page.getByLabel("Password", { exact: true });
+  await password.fill("short");
+  await expect(page.getByText("Weak: use at least 12 characters.")).toBeVisible();
+  await password.fill("abcdefghijkl");
+  await expect(page.getByText("Fair: a longer passphrase is stronger.")).toBeVisible();
+  await password.fill("copper lantern orbit tide");
+  await expect(page.getByText("Strong.", { exact: true })).toBeVisible();
+  // The page strips the address to /workspace/signup, so load another document first.
+  await page.goto("about:blank");
+  await page.goto(`/workspace/signup#${token}`);
+  await expect(page.getByLabel("Full name")).toBeVisible();
+  await expect(page.getByTestId("signup-next")).toHaveCount(0);
+});
+
+test("onboarding: ops growth shows the welcome answers, the 30-minute activation and help requests", async ({ page }) => {
+  const resolved: string[] = [];
+  await page.route("**/api/evals/v1/onboarding/help/**", (route) => { resolved.push(route.request().url()); return route.fulfill({ json: { data: { resolved: true }, meta: {} } }); });
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/ops/growth?admin");
+    await expect(page.getByRole("cell", { name: "A chat on our website" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Check it before launch" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Demo sign-ups reaching a test set within 30 minutes" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "3 (60 %)" }).first()).toBeVisible();
+    expect(await noOverflow(page)).toBe(true);
+  }
+  const help = page.getByRole("region", { name: "Help requests" });
+  await expect(help.getByRole("cell", { name: "Chat unreachable" })).toBeVisible();
+  await help.getByRole("button", { name: "Resolve" }).click();
+  await expect(help.getByText("Resolved", { exact: true })).toBeVisible();
+  expect(resolved).toEqual([expect.stringContaining("/api/evals/v1/onboarding/help/00000000-0000-4000-8000-000000000901")]);
+});

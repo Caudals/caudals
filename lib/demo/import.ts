@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { addTarget, createProject, createWebsiteSource } from "@/lib/evals/repositories/evidence";
 import { createEvaluation, queueConnectionCheck } from "@/lib/evals/repositories/managed";
 import { queueWebsiteConnectionCheck, recordWebsiteAuthorization } from "@/lib/evals/repositories/stage-c";
+import { ONBOARDING_PAGE_CAP } from "@/lib/evals/onboarding/config";
 import type { RunRow } from "./store";
 
 /**
@@ -11,6 +12,10 @@ import type { RunRow } from "./store";
  * OpenAI-compatible API, without its key), and the same site as reference
  * material. The full test set is then prepared in the product, from every
  * page, by the normal engine; the demo's eight questions stay in the demo.
+ * The connection check and the site reading (capped at ONBOARDING_PAGE_CAP
+ * pages, no model calls) are queued here; with ONBOARDING_AUTOSTART the
+ * sign-up then records the automatic start of generation, which waits for
+ * both (launch L-06, lib/evals/repositories/onboarding.ts).
  */
 export async function importDemo(scope: { orgId: string; actorId: string }, run: RunRow) {
   const key = (part: string) => `demo-${run.id}-${part}`;
@@ -38,7 +43,7 @@ export async function importDemo(scope: { orgId: string; actorId: string }, run:
 
   const docs = new URL(run.docs_url);
   if (!docs.search && !docs.port) {
-    await createWebsiteSource(scope, { evaluationId: evaluation.id, projectId: project.id, url: `${docs.origin}${docs.pathname}`, title: host, rights: "customer_owned", pageLimit: 25 }, key("source"));
+    await createWebsiteSource(scope, { evaluationId: evaluation.id, projectId: project.id, url: `${docs.origin}${docs.pathname}`, title: host, rights: "customer_owned", pageLimit: ONBOARDING_PAGE_CAP }, key("source"));
   }
   return { projectId: project.id, evaluationId: evaluation.id };
 }

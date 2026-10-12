@@ -7,12 +7,13 @@
  * Kept apart from the page (./example-evaluation.tsx) so the shell does not
  * load the report view.
  *
- * Owners can hide the example from the workspace's lists. There is no
- * per-workspace preference store without a migration, so the choice is kept
- * on this device (localStorage, like the sidebar state); the onboarding state
- * of launch L-06 is the place to persist it per workspace.
+ * Owners (and operators) can hide the example from the workspace's lists.
+ * The choice is stored per workspace in its onboarding state (launch L-06,
+ * migration 086, `PATCH /api/evals/v1/workspace/onboarding` with
+ * `hide_example`/`show_example`), shared with the checklist through
+ * ./workspace-onboarding-store.
  */
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import Link from "next/link";
 import { EyeOff, FlaskConical } from "lucide-react";
 import { EXAMPLE_EVALUATION_PATH } from "@/lib/evals/example/public";
@@ -20,6 +21,7 @@ import { t } from "@/lib/evals/messages/en";
 import { Action, ActionLink, Badge, Card, SettingsRow } from "./primitives";
 import { notify } from "./overlays";
 import { useWorkspace } from "./workspace-context";
+import { updateWorkspaceOnboarding, useOnboardingState } from "./workspace-onboarding-store";
 
 /* ----------------------------------------------------------- availability --- */
 
@@ -30,66 +32,32 @@ export function ExampleAvailability({ enabled, children }: { enabled: boolean; c
   return <Availability.Provider value={enabled}>{children}</Availability.Provider>;
 }
 
-const STORAGE_KEY = "caudals.example-hidden";
-const CHANGE_EVENT = "caudals:example-visibility";
-
-function readHidden(): string {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) ?? "[]";
-  } catch {
-    return "[]";
-  }
-}
-function parseHidden(raw: string): string[] {
-  try {
-    const value: unknown = JSON.parse(raw);
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(-50) : [];
-  } catch {
-    return [];
-  }
-}
-function writeHidden(ids: string[]) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids.slice(-50)));
-  } catch {
-    // Storage blocked (private mode): the choice lasts until the page reloads.
-  }
-  window.dispatchEvent(new Event(CHANGE_EVENT));
-}
-function subscribe(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener(CHANGE_EVENT, callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener(CHANGE_EVENT, callback);
-  };
-}
-
 /** Whether the example is offered in the current workspace, and the owner's hide/show. */
 export function useExampleEvaluation() {
   const enabled = useContext(Availability);
   const { orgId, canManage, withOrg } = useWorkspace();
-  const raw = useSyncExternalStore(subscribe, readHidden, () => "[]");
-  const hidden = !!orgId && parseHidden(raw).includes(orgId);
+  const state = useOnboardingState(orgId, enabled);
+  const hidden = !!state?.exampleHidden;
+  const change = async (action: "hide_example" | "show_example") => {
+    if (!orgId) return;
+    try {
+      await updateWorkspaceOnboarding(orgId, { action });
+      notify(t(action === "hide_example" ? "exampleHiddenToast" : "exampleShownToast"));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : t("error"));
+    }
+  };
   return {
     /** The feature is on (EXAMPLE_EVALUATION_ENABLED). */
     available: enabled,
-    /** Hidden from this workspace's lists on this device. */
+    /** Hidden from this workspace's lists (per workspace, for every member). */
     hidden,
     /** Show it in lists and empty states. */
     visible: enabled && !hidden,
     canHide: enabled && !!orgId && canManage,
     href: withOrg(EXAMPLE_EVALUATION_PATH),
-    hide: () => {
-      if (!orgId) return;
-      writeHidden([...parseHidden(readHidden()).filter((id) => id !== orgId), orgId]);
-      notify(t("exampleHiddenToast"));
-    },
-    show: () => {
-      if (!orgId) return;
-      writeHidden(parseHidden(readHidden()).filter((id) => id !== orgId));
-      notify(t("exampleShownToast"));
-    },
+    hide: () => void change("hide_example"),
+    show: () => void change("show_example"),
   };
 }
 
