@@ -24,7 +24,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | done | `464e55e` | [L-05](L-05.md); `SELF_SERVE_DIRECT_SIGNUP=true`. Production sign-up (internal address, ops exception) verified end to end, then removed through the audited deletion workflow; exception reset to `none`. Workers unaffected. |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
 | 2 | L-07 | Branded EN/ES emails and lifecycle sequence | L-02 (L-06 soft) | 087 `evals_lifecycle_email` | todo | | |
-| 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | in progress | | |
+| 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | done | `be3a0dc`, `d9edc3c` | [L-10](L-10.md); app and workers at `d9edc3c`; `BILLING_ESTIMATES_ENABLED=operators`. Backtest 35/38 runs within ±25 % (92.1 %). €0 guard live (five €0 commercial revisions blocked; all live routes on Local). |
 | 2 | L-33 | Example evaluation and public sample report | L-02 | — | in progress | | |
 | 3 | L-11 | Engine integration: holds, captures, refunds | L-09, L-10 | 089 `billing_engine_hooks` | todo | | |
 | 3 | L-21 | Prospect snapshot and ops growth v2 | L-02 | 090 `evals_prospect_snapshots` | todo | | |
@@ -94,6 +94,8 @@ Things only the founder can do. Agents add to this list; they never do these the
 - [ ] Install the one-minute uptime checks on `arctic` (decision I-5): atlantic cannot SSH there (tailnet policy refuses atlantic → arctic). From a device with access, copy `scripts/uptime-checks.sh`, `scripts/install-uptime-checks.sh` and `infra/host/caudals-uptime.{service,timer}` to arctic and run `sudo bash install-uptime-checks.sh` (uses `/root/.caudals/alerts.env`), then `sudo systemctl disable --now caudals-uptime.timer` on atlantic. Or allow atlantic → arctic SSH in the tailnet policy and ask an agent (L-08.md).
 - [ ] Open Sentry and confirm the three L-08 test events (web, evals-worker, evals-scheduler; release `5244bc1`) arrived with personal data redacted. No Sentry API token is on the host, so agents could confirm only that Sentry accepted them (HTTP 200).
 - [ ] Reconcile the 28 unknown-outcome engine attempts behind the `unresolved_attempts` alert, open since 2026-10-03 (runbook 4); the reinstalled alert timer reminds daily.
+- [ ] Decide on the October FX move (L-10): the ECB rate recorded by the scheduler (1.1206 USD/EUR, 2026-10-09) is 3.4 % below the price book's 1.1605, so list-priced credit rates should rise about 3.6 % (§6.4 trigger: 3 %; e.g. GPT-6 Luna 15 · 75, Opus 5.5 565 · 2,825). An increase needs 30 days' notice; draft and schedule it through the price-book API (L-10.md) or wait for L-16's UI.
+- [ ] Decide the DeepSeek price basis (L-10): the book uses DeepSeek's peak-hour list prices; OpenRouter lists V4.1 Flash at $0.15 · $0.60 and V4 Pro at $0.955 · $1.911 (decreases apply immediately).
 
 ## 6. Session log
 
@@ -110,3 +112,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-05 deployed (`464e55e`, migration 085) and verified: flag-off 404s, free-mail/disposable refusals, one real direct sign-up through the emailed link (free plan, terms, `account_created` direct), test workspace deleted through the audited workflow. `SELF_SERVE_DIRECT_SIGNUP=true`; no founder actions added. |
 | 2026-10-12 | L-05 done (`464e55e`). Agents started for L-04 and L-12 (five running: L-08, L-10, L-33, L-04, L-12). |
 | 2026-10-12 | L-08 done (`5244bc1`, migration 107). Sentry live for web and workers; alert timer reinstalled (it had been missing since about 2026-10-03); interim uptime timer on atlantic because atlantic cannot SSH to arctic. MFA enforcement off pending enrolment. |
+| 2026-10-12 | L-10 done (`be3a0dc` + fix `d9edc3c`, migration 088). Price book live (revision 1 in effect, revision 2 scheduled 2027-01-01 for Gemini 3.8 Flash), €0 guard on all model routes, estimator API for operators, weekly price check and monthly ECB FX in the scheduler. Revision 2's 30-day notice is due by 2026-12-02 (L-16). |
