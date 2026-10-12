@@ -76,7 +76,7 @@ type Pending = {
 };
 
 /** Where the public demo lives (the report link). */
-export function publicOrigin() {
+function publicOrigin() {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) { try { return new URL(configured).origin; } catch { /* fall through */ } }
   return process.env.NODE_ENV === "production" ? "https://caudals.com" : "http://localhost:3000";

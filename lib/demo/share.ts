@@ -2,7 +2,7 @@ import "server-only";
 import { getSecretEnvValue } from "@/lib/env/secrets";
 import { createTranslator, scopeTranslator, type NamespaceKeys } from "@/lib/i18n/messages";
 import { getResendClient } from "@/lib/resend/client";
-import { publicOrigin } from "./notify";
+import { getMarketingSiteOrigin } from "@/lib/seo";
 import type { RunRow } from "./store";
 
 /**
@@ -40,7 +40,8 @@ export function composeShareEmail(run: ShareRun, token: string) {
     ...(summary && summary.scored ? ["", e("score", { correct: summary.correct, scored: summary.scored })] : []),
     "",
     e("link"),
-    `${publicOrigin()}/${run.locale}/demo#r=${run.id}.${token}`,
+    // The public site, not NEXT_PUBLIC_APP_URL: the image bakes that as app.caudals.com.
+    `${getMarketingSiteOrigin()}/${run.locale}/demo#r=${run.id}.${token}`,
     "",
     e("expiry", { date }),
     "",

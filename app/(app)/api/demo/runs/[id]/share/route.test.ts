@@ -83,7 +83,8 @@ describe("POST /api/demo/runs/:id/share (launch L-04)", () => {
     process.env.DEMO_PUBLIC = "true";
     process.env.RESEND_API_KEY = "re_test";
     process.env.RESEND_FROM_EMAIL = "Caudals <hello@caudals.test>";
-    process.env.NEXT_PUBLIC_APP_URL = "https://caudals.com";
+    // Production bakes the app host here; the shared link must still be the public site.
+    process.env.NEXT_PUBLIC_APP_URL = "https://app.caudals.com";
     Object.assign(state, { run: run(), sent: [], sendError: null, limits: [], refuse: null, events: [], eventResult: { ok: true }, order: [] });
   });
   afterEach(() => { for (const key of ENV) delete process.env[key]; });
