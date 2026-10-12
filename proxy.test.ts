@@ -189,6 +189,15 @@ describe("proxy app language links", () => {
     }
   });
 
+  it("redirects to the public host when served behind the reverse proxy", async () => {
+    const response = await proxy(
+      new NextRequest("http://localhost:3000/share?lang=es", {
+        headers: { host: "app.caudals.com" },
+      }),
+    );
+    expect(response.headers.get("location")).toBe("https://app.caudals.com/share");
+  });
+
   it("keeps the other parameters and overrides an earlier choice", async () => {
     const response = await proxy(
       request("/workspace/evaluations?orgId=org_1&lang=es", "caudals_locale=en"),
