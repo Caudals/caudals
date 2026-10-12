@@ -18,6 +18,8 @@ type Invitation = {
   expires_at?: string;
   revoked_at?: string | null;
   accepted_at?: string | null;
+  /** True when the server also emailed the invitation (branded email on). */
+  emailed?: boolean;
 };
 
 function invitationState(item: Invitation) {
@@ -40,7 +42,7 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("viewer");
   const [pending, setPending] = useState("");
-  const [created, setCreated] = useState<{ email: string; link: string } | null>(null);
+  const [created, setCreated] = useState<{ email: string; link: string; emailed?: boolean } | null>(null);
   const keys = useRef(new Map<string, string>());
   const keyFor = (input: unknown) => {
     const fingerprint = JSON.stringify(input);
@@ -75,7 +77,7 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
     try {
       const invitation = await evalRequest<Invitation>(`/workspaces/${encodeURIComponent(orgId)}/invitations`, "POST", { email: address, role }, keyFor([orgId, address, role]));
       keys.current.delete(JSON.stringify([orgId, address, role]));
-      setCreated(invitation.token ? { email: address, link: `${window.location.origin}${invitationPath(invitation.token)}` } : null);
+      setCreated(invitation.token ? { email: address, link: `${window.location.origin}${invitationPath(invitation.token)}`, emailed: invitation.emailed === true } : null);
       if (!invitation.token) notify(t("invitationSaved"));
       setEmail("");
       await load();
@@ -152,7 +154,7 @@ export function InvitationManager({ orgId, workspaceName }: { orgId: string; wor
         open={open}
         onOpenChange={setOpen}
         title={created ? t("invitationReady") : `${t("inviteTo")} ${workspaceName}`}
-        description={created ? `${t("invitationReadyHelp")} ${created.email}.` : t("inviteHelp")}
+        description={created ? (created.emailed ? `${t("invitationEmailedHelp")} ${created.email}. ${t("invitationEmailedLink")}` : `${t("invitationReadyHelp")} ${created.email}.`) : t("inviteHelp")}
         footer={
           created ? (
             <Action onClick={() => setOpen(false)}>{t("done")}</Action>

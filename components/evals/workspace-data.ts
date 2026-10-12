@@ -74,7 +74,21 @@ export type WorkspaceSummary = {
     can_schedule: boolean;
   };
   usage: { settled: string; outstanding: string };
-  preferences: { completion: boolean; required_input: boolean; failure: boolean; email: boolean };
+  preferences: {
+    completion: boolean;
+    required_input: boolean;
+    failure: boolean;
+    /** Legacy single email switch, kept in step with the categories below. */
+    email: boolean;
+    // Email categories (launch L-07). Optional: older servers send only `email`.
+    email_completion?: boolean;
+    email_required_input?: boolean;
+    email_failure?: boolean;
+    email_billing?: boolean;
+    email_regressions?: boolean;
+    /** Per person, all workspaces: "getting started" email. */
+    lifecycle?: boolean;
+  };
 };
 
 const IN_FLIGHT = new Set([

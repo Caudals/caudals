@@ -835,6 +835,9 @@ Operational env controls:
 - `SENTRY_RELEASE` (the deployed commit; set by the deploy scripts)
 - `SENTRY_SERVICE` (`web`, `evals-worker`, `evals-scheduler`, `evals-documents`; tags each event)
 - `EVALS_ADMIN_MFA_REQUIRED` (default off; `true` requires TOTP for platform admins, platform operators and workspace operators; switch on only after every staff account has enrolled, runbook 21)
+- `BRANDED_EMAILS_ENABLED` (default off; `true` sends the branded EN/ES templates instead of the plain-text emails, emails new invitations, and adds the "Caudals" display name to a bare sender; app and evals scheduler)
+- `LIFECYCLE_EMAILS_ENABLED` (default off; `true` runs the lifecycle sequence in the evals scheduler. It emails real users: founder switch, `docs/launch/PROGRESS.md` §5)
+- `LIFECYCLE_EMAIL_STEPS` (default `d0_welcome,d1_test_set,d3_run,d7_report`; `all`, or a comma list adding `first_report`, `d21_rerun`, `d30_winback`)
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
 - `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
 - `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)
@@ -954,6 +957,22 @@ Operational env controls:
 - Ops lists, read per request from the app's `credentials.env` (store with `sudo scripts/set-app-credentials.sh KEY`, value on stdin so it stays out of shell history, then redeploy the running image): `SELF_SERVE_SIGNUP_EXCEPTIONS` (comma-separated addresses or domains that may sign up on a free-mail domain and skip the one-workspace-per-domain rule; for a small business on Gmail add the exact address) and `SELF_SERVE_SIGNUP_BLOCKED_DOMAINS` (extra disposable domains). The script refuses empty values, so store `none` to clear a list. The built-in lists are in `lib/evals/signup-domains.ts`.
 - Who signed up and how (as `postgres`, aggregates only): `SELECT signup_source, domain_rule, count(*), count(org_id) AS enrolled FROM evals.self_serve_signup GROUP BY 1,2`. Domains holding a workspace: `SELECT s.email_domain, w.deleted_at IS NULL AS live FROM evals.self_serve_signup s JOIN evals.workspace w ON w.id=s.org_id`. To free a company's domain, its owner (or ops on their request) deletes the workspace through Settings → Delete workspace data; the audited deletion workflow tombstones it.
 - Refusals and limits are recorded as `limit_hit` events (`metadata.kind`: `signup_free_mail`, `signup_disposable`, `signup_rate`, `signup_domain_taken`); `/ops/growth` counts them weekly.
+
+## Email Operations (launch L-07)
+
+- **Switches**: `scripts/launch/set-app-flag.sh BRANDED_EMAILS_ENABLED true|false` and `… LIFECYCLE_EMAILS_ENABLED true|false` (optionally `LIFECYCLE_EMAIL_STEPS`) store the key and redeploy the app. The scheduler reads the same keys, so after changing one also redeploy the workers at the running commit: `sudo env EVALS_IMAGE_COMMIT=<running sha> scripts/deploy-evals-production.sh` (the script validates the values).
+- **Sample sends** go only to the internal inbox in `COLLABORATION_NOTIFICATION_EMAIL` (never printed): `sudo bash -c 'set -a; . /root/.caudals/app/credentials.env; set +a; node --conditions=react-server --import tsx scripts/evals/send-sample-email.ts welcome es'` (templates: `welcome`, `d7_report`, `signup_link`, `report_published`, `password_reset`; subject prefixed `[Sample]`). It prints the subject and the Resend id only.
+- **Lifecycle log** (as `postgres`, aggregates only): `SELECT step, status, reason, count(*) FROM evals.lifecycle_email GROUP BY 1,2,3 ORDER BY 1`. Opt-outs: `SELECT count(*) FILTER (WHERE NOT lifecycle) FROM evals.email_preference`. Scheduler log lines: `lifecycle_email {candidates, sent, skipped, failed}` and `lifecycle_email_failed`.
+- **Previews**: the HTML and text of every template in both languages are the snapshots in `tests/email/__snapshots__/templates.test.ts.snap`; `npx vitest run tests/email -u` refreshes them after a copy change (review the diff).
+- **Deliverability** (checked 2026-10-12 with `dig` against Cloudflare's authoritative servers; `cf` on atlantic has no API token, so no dashboard read). Transactional mail is sent by Resend from `mail.caudals.com` (outreach uses separate domains through Warmbly; the newsletter is sent by Caudals Ops):
+
+  | Check | Record | Result |
+  | --- | --- | --- |
+  | DKIM | `resend._domainkey.mail.caudals.com` TXT, RSA key (`d=mail.caudals.com`) | Present; aligned with the From domain |
+  | SPF | Return path `send.mail.caudals.com`: `v=spf1 include:amazonses.com ~all`, MX `feedback-smtp.eu-west-1.amazonses.com` | Present; relaxed-aligned with `caudals.com` |
+  | DMARC | No `_dmarc.mail.caudals.com`, so the organisational `_dmarc.caudals.com` applies: `v=DMARC1; p=none; rua=mailto:postmaster@caudals.com; adkim=r; aspf=r` | Alignment passes on DKIM and SPF; policy is monitor-only |
+
+  Resend's domain API (read-only) reports `mail.caudals.com` verified in `eu-west-1`, with DKIM, SPF (TXT and MX) and receiving MX verified. The founder action in `docs/launch/PROGRESS.md` §5 moves DMARC to `p=quarantine` once the aggregate reports show only Resend, Zoho and Private Email as senders. Do not change DNS without that authorisation.
 
 ## Public Front Door (Demo)
 

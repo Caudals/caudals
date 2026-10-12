@@ -2,6 +2,8 @@ import "server-only";
 import { getSecretEnvValue } from "@/lib/env/secrets";
 import { createTranslator, scopeTranslator, type NamespaceKeys } from "@/lib/i18n/messages";
 import { getResendClient } from "@/lib/resend/client";
+import { brandedEmailsEnabled, senderAddress } from "@/lib/email/links";
+import { renderEmail } from "@/lib/email/templates";
 import { getMarketingSiteOrigin } from "@/lib/seo";
 import type { RunRow } from "./store";
 
@@ -24,7 +26,7 @@ export const SHARE_LIMITS = {
 
 type ShareRun = Pick<RunRow, "id" | "locale" | "target_host" | "summary" | "expires_at">;
 
-export function composeShareEmail(run: ShareRun, token: string) {
+export function composeShareEmail(run: ShareRun, token: string): { subject: string; text: string; html?: string } {
   const t = scopeTranslator(createTranslator(run.locale), "demo");
   const e = (key: string, values?: Record<string, string | number>) => t(`shareEmail.${key}` as NamespaceKeys<"demo">, values);
   const host = run.target_host;
@@ -35,13 +37,23 @@ export function composeShareEmail(run: ShareRun, token: string) {
     timeZone: "Europe/Madrid",
   }).format(new Date(run.expires_at));
   const summary = run.summary;
+  const url = `${getMarketingSiteOrigin()}/${run.locale}/demo#r=${run.id}.${token}`;
+  if (brandedEmailsEnabled()) {
+    // Branded (launch L-07): the same fixed sentences in the Caudals email frame.
+    const email = renderEmail("demo_report", run.locale, {
+      subject: e("subject", { host }), heading: e("subject", { host }),
+      lines: [e("intro", { host }), ...(summary && summary.scored ? [e("score", { correct: summary.correct, scored: summary.scored })] : []), e("expiry", { date })],
+      url, failed: false, footer: e("footer"),
+    });
+    return { subject: email.subject, text: email.text, html: email.html };
+  }
   const lines = [
     e("intro", { host }),
     ...(summary && summary.scored ? ["", e("score", { correct: summary.correct, scored: summary.scored })] : []),
     "",
     e("link"),
     // The public site, not NEXT_PUBLIC_APP_URL: the image bakes that as app.caudals.com.
-    `${getMarketingSiteOrigin()}/${run.locale}/demo#r=${run.id}.${token}`,
+    url,
     "",
     e("expiry", { date }),
     "",
@@ -59,7 +71,7 @@ export async function sendShareEmail(run: ShareRun, token: string, to: string, k
   if (!from) throw new Error("email_unconfigured");
   const message = composeShareEmail(run, token);
   const { error } = await getResendClient().emails.send(
-    { from, to, subject: message.subject, text: message.text },
+    { from: senderAddress(from), to, subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) },
     { idempotencyKey: `demo-share-${run.id}-${key}` },
   );
   if (error) throw new Error("email_rejected");

@@ -401,45 +401,109 @@ export function getWorkspaceSummary(scope: EvidenceScope) {
         [scope.orgId],
       )
     ).rows;
-    const preferences = (
-      await db.query(
-        `SELECT completion,required_input,failure,email
-         FROM evals.notification_preference WHERE org_id=$1 AND user_id=$2`,
-        [scope.orgId, scope.actorId],
-      )
-    ).rows[0] ?? { completion: true, required_input: true, failure: true, email: false };
+    const preferences = {
+      ...((
+        await db.query(
+          `SELECT completion,required_input,failure,email,
+                  email_completion,email_required_input,email_failure,email_billing,email_regressions
+           FROM evals.notification_preference WHERE org_id=$1 AND user_id=$2`,
+          [scope.orgId, scope.actorId],
+        )
+      ).rows[0] ?? DEFAULT_PREFERENCES),
+      // Per person across workspaces (launch L-07): "getting started" email.
+      lifecycle: (await db.query("SELECT lifecycle FROM evals.email_preference WHERE user_id=$1", [scope.actorId])).rows[0]?.lifecycle ?? true,
+    };
     return { evaluations, systems, reports, entitlement: limits, usage, preferences };
   });
 }
 
-export function setNotificationPreferences(
-  scope: EvidenceScope,
-  input: { completion: boolean; requiredInput: boolean; failure: boolean; email: boolean },
-) {
-  return withTenant(scope, async (db) =>
-    (
+const DEFAULT_PREFERENCES = {
+  completion: true, required_input: true, failure: true, email: false,
+  email_completion: false, email_required_input: false, email_failure: false, email_billing: true, email_regressions: true,
+};
+
+export type NotificationPreferencesInput = {
+  completion: boolean;
+  requiredInput: boolean;
+  failure: boolean;
+  /** Legacy single email switch (clients before launch L-07). */
+  email?: boolean;
+  emailCompletion?: boolean;
+  emailRequiredInput?: boolean;
+  emailFailure?: boolean;
+  emailBilling?: boolean;
+  emailRegressions?: boolean;
+  /** Per person, all workspaces: lifecycle ("getting started") email. */
+  lifecycle?: boolean;
+  /** Per person: the language for email. */
+  locale?: "en" | "es";
+};
+
+/**
+ * Saves one person's notification choices for a workspace. Email has a
+ * switch per category (launch L-07); a client that still sends only the
+ * legacy `email` switch keeps its old meaning (email for the in-app
+ * categories that are on). The legacy column stays in step, so a rollback of
+ * migration 087 keeps everyone's last choice.
+ */
+export function setNotificationPreferences(scope: EvidenceScope, input: NotificationPreferencesInput) {
+  const legacy = input.emailCompletion === undefined && input.emailRequiredInput === undefined && input.emailFailure === undefined;
+  const emailCompletion = legacy ? Boolean(input.email) && input.completion : Boolean(input.emailCompletion);
+  const emailRequiredInput = legacy ? Boolean(input.email) && input.requiredInput : Boolean(input.emailRequiredInput);
+  const emailFailure = legacy ? Boolean(input.email) && input.failure : Boolean(input.emailFailure);
+  return withTenant(scope, async (db) => {
+    const saved = (
       await db.query(
         `INSERT INTO evals.notification_preference(
-           org_id,user_id,completion,required_input,failure,email
-         ) VALUES($1,$2,$3,$4,$5,$6)
+           org_id,user_id,completion,required_input,failure,email,
+           email_completion,email_required_input,email_failure,email_billing,email_regressions
+         ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,COALESCE($10,true),COALESCE($11,true))
          ON CONFLICT(org_id,user_id) DO UPDATE SET
            completion=EXCLUDED.completion,
            required_input=EXCLUDED.required_input,
            failure=EXCLUDED.failure,
            email=EXCLUDED.email,
+           email_completion=EXCLUDED.email_completion,
+           email_required_input=EXCLUDED.email_required_input,
+           email_failure=EXCLUDED.email_failure,
+           email_billing=COALESCE($10,evals.notification_preference.email_billing),
+           email_regressions=COALESCE($11,evals.notification_preference.email_regressions),
            updated_at=now()
-         RETURNING completion,required_input AS "requiredInput",failure,email,updated_at`,
+         RETURNING completion,required_input AS "requiredInput",failure,email,
+           email_completion AS "emailCompletion",email_required_input AS "emailRequiredInput",email_failure AS "emailFailure",
+           email_billing AS "emailBilling",email_regressions AS "emailRegressions",updated_at`,
         [
           scope.orgId,
           scope.actorId,
           input.completion,
           input.requiredInput,
           input.failure,
-          input.email,
+          emailCompletion || emailRequiredInput || emailFailure,
+          emailCompletion,
+          emailRequiredInput,
+          emailFailure,
+          input.emailBilling ?? null,
+          input.emailRegressions ?? null,
         ],
       )
-    ).rows[0],
-  );
+    ).rows[0];
+    if (input.lifecycle === undefined && input.locale === undefined) return saved;
+    const person = (
+      await db.query(
+        `INSERT INTO evals.email_preference(user_id,locale,lifecycle,lifecycle_unsubscribed_at)
+         VALUES($1,$2,COALESCE($3,true),CASE WHEN $3 IS FALSE THEN now() END)
+         ON CONFLICT(user_id) DO UPDATE SET
+           locale=COALESCE($2,evals.email_preference.locale),
+           lifecycle=COALESCE($3,evals.email_preference.lifecycle),
+           lifecycle_unsubscribed_at=CASE WHEN $3 IS FALSE THEN COALESCE(evals.email_preference.lifecycle_unsubscribed_at,now())
+             WHEN $3 IS TRUE THEN NULL ELSE evals.email_preference.lifecycle_unsubscribed_at END,
+           updated_at=now()
+         RETURNING lifecycle,locale`,
+        [scope.actorId, input.locale ?? null, input.lifecycle ?? null],
+      )
+    ).rows[0];
+    return { ...saved, lifecycle: person.lifecycle, locale: person.locale };
+  });
 }
 
 export function supportsCase(

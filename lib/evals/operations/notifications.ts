@@ -1,12 +1,24 @@
 import "server-only";
 import { withTenant } from "../repositories/db";
+import { brandedEmailsEnabled, senderAddress, workspaceLinks } from "@/lib/email/links";
+import { renderEmail } from "@/lib/email/templates";
 
 // Opt-in email for meaningful evaluation state changes (spec §15.5). In-app
 // notices are written by the workflows themselves; this module mails each
 // notice at most once per opted-in member, with a link and no evaluation
 // content. It never emails companies being evaluated or outreach lists.
+// With BRANDED_EMAILS_ENABLED (launch L-07) the email is the branded EN/ES
+// template in the recipient's email language; otherwise the plain text below.
 
-export type EmailMessage = { to: string; subject: string; text: string };
+export type EmailMessage = {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  headers?: Record<string, string>;
+  /** Resend keeps one email per key for 24 hours, so a retried send is not duplicated. */
+  idempotencyKey?: string;
+};
 export type SendEmail = (message: EmailMessage) => Promise<{ id: string | null }>;
 type Scope = { orgId: string; actorId: string };
 
@@ -19,7 +31,10 @@ export async function resendSender(): Promise<SendEmail> {
   if (!from) throw new Error("RESEND_FROM_EMAIL is not configured");
   const client = getResendClient();
   return async (message) => {
-    const result = await client.emails.send({ from, to: message.to, subject: message.subject, text: message.text });
+    const result = await client.emails.send(
+      { from: senderAddress(from), to: message.to, subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}), ...(message.headers ? { headers: message.headers } : {}) },
+      message.idempotencyKey ? { idempotencyKey: message.idempotencyKey } : undefined,
+    );
     if (result.error) throw new Error("email_provider_rejected");
     return { id: result.data?.id ?? null };
   };
@@ -33,10 +48,26 @@ export function queueRequiredInputNotifications(scope: Scope) {
     ON CONFLICT (org_id,event_id,audience) DO NOTHING`, [scope.orgId])).rowCount ?? 0);
 }
 
-function compose(kind: string, payload: Record<string, string>, orgId: string): { subject: string; text: string } {
-  const link = kind === "report_published" && payload.reportId
+const noticeLink = (kind: string, payload: Record<string, string>, orgId: string) =>
+  kind === "report_published" && payload.reportId
     ? `${appUrl()}/workspace/reports/${payload.reportId}?orgId=${orgId}`
     : payload.evaluationId ? `${appUrl()}/workspace/evaluations/${payload.evaluationId}?orgId=${orgId}` : `${appUrl()}/workspace/evaluations`;
+
+const BRANDED_KINDS = new Set(["report_published", "run_failed", "input_required", "test_set_ready", "generation_failed", "website_failed", "document_failed", "export_failed"] as const);
+type BrandedKind = typeof BRANDED_KINDS extends Set<infer K> ? K : never;
+
+/** The branded template for one notice, in the recipient's language. */
+export function composeBranded(kind: string, payload: Record<string, string>, orgId: string, locale: "en" | "es"): Omit<EmailMessage, "to"> {
+  const name: BrandedKind = BRANDED_KINDS.has(kind as BrandedKind) ? (kind as BrandedKind) : "input_required";
+  const links = { url: noticeLink(kind, payload, orgId), settingsUrl: workspaceLinks(appUrl(), orgId).notificationSettings };
+  const email = name === "report_published"
+    ? renderEmail("report_published", locale, { ...links, updated: Boolean(payload.supersedes) })
+    : renderEmail(name, locale, links);
+  return { subject: email.subject, text: email.text, html: email.html };
+}
+
+function compose(kind: string, payload: Record<string, string>, orgId: string): { subject: string; text: string } {
+  const link = noticeLink(kind, payload, orgId);
   const bodies: Record<string, { subject: string; line: string }> = {
     report_published: { subject: "Your Caudals evaluation results are ready", line: "An evaluation report is ready in your workspace. Its review status is shown with the results." },
     run_failed: { subject: "A Caudals evaluation could not complete", line: "An evaluation stopped without a usable result. Completed work is preserved; open the workspace for next steps." },
@@ -57,7 +88,7 @@ export async function deliverEmailNotifications(scope: Scope, send: SendEmail) {
   const pending = await withTenant(scope, async (db) => {
     const notices = (await db.query(`SELECT id,kind,payload FROM evals.notification WHERE org_id=$1 AND created_at>now()-interval '3 days'
       AND kind IN ('report_published','run_failed','input_required','test_set_ready','generation_failed','website_failed','document_failed','export_failed') ORDER BY created_at LIMIT 50`, [scope.orgId])).rows;
-    const out: Array<{ id: string; notificationId: string; email: string; kind: string; payload: Record<string, string> }> = [];
+    const out: Array<{ id: string; notificationId: string; email: string; locale: "en" | "es"; kind: string; payload: Record<string, string> }> = [];
     for (const notice of notices) {
       const recipients = (await db.query("SELECT * FROM evals.notification_email_recipients($1,$2)", [scope.orgId, notice.kind])).rows;
       for (const recipient of recipients) {
@@ -66,17 +97,21 @@ export async function deliverEmailNotifications(scope: Scope, send: SendEmail) {
           [scope.orgId, notice.id, recipient.user_id])).rows[0];
         if (row) {
           await db.query("UPDATE evals.notification_email SET attempts=attempts+1 WHERE org_id=$1 AND id=$2", [scope.orgId, row.id]);
-          out.push({ id: row.id, notificationId: notice.id, email: recipient.email, kind: notice.kind, payload: notice.payload });
+          out.push({ id: row.id, notificationId: notice.id, email: recipient.email, locale: recipient.locale === "es" ? "es" : "en", kind: notice.kind, payload: notice.payload });
         }
       }
     }
     return out;
   });
   let sent = 0, failed = 0;
+  const branded = brandedEmailsEnabled();
   // Sending happens outside any database transaction; the attempt was counted first.
   for (const item of pending) {
     try {
-      const result = await send({ to: item.email, ...compose(item.kind, item.payload, scope.orgId) });
+      const message = branded
+        ? { ...composeBranded(item.kind, item.payload, scope.orgId, item.locale), idempotencyKey: `notification-${item.id}` }
+        : compose(item.kind, item.payload, scope.orgId);
+      const result = await send({ to: item.email, ...message });
       await withTenant(scope, (db) => db.query("UPDATE evals.notification_email SET status='sent',sent_at=now(),provider_message_id=$3 WHERE org_id=$1 AND id=$2", [scope.orgId, item.id, result.id]));
       sent++;
     } catch {

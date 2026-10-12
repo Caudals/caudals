@@ -4,6 +4,9 @@ import { getSecretEnvValue } from "@/lib/env/secrets";
 import { decryptSecret, encryptSecret, loadKeyring, type Keyring, type SecretScope } from "@/lib/evals/security/envelope";
 import { createTranslator, scopeTranslator, type NamespaceKeys } from "@/lib/i18n/messages";
 import { getResendClient } from "@/lib/resend/client";
+import { brandedEmailsEnabled, senderAddress } from "@/lib/email/links";
+import { renderEmail } from "@/lib/email/templates";
+import { getMarketingSiteOrigin } from "@/lib/seo";
 import type { DemoSummary } from "./judge";
 
 /**
@@ -82,14 +85,22 @@ function publicOrigin() {
   return process.env.NODE_ENV === "production" ? "https://caudals.com" : "http://localhost:3000";
 }
 
-function compose(run: Pending, token: string) {
+function compose(run: Pending, token: string): { subject: string; text: string; html?: string } {
   const t = scopeTranslator(createTranslator(run.locale), "demo");
   const e = (key: string, values?: Record<string, string | number>) => t(`email.${key}` as NamespaceKeys<"demo">, values);
   const report = `${publicOrigin()}/${run.locale}/demo#r=${run.id}.${token}`;
   const host = run.target_host;
   if (run.phase === "done") {
     const summary = run.summary;
-    const lines = [summary && summary.scored ? e("readyScore", { host, correct: summary.correct, scored: summary.scored }) : e("readyNoScore", { host }), "", e("readyLink"), report];
+    const headline = summary && summary.scored ? e("readyScore", { host, correct: summary.correct, scored: summary.scored }) : e("readyNoScore", { host });
+    if (brandedEmailsEnabled()) {
+      // Branded (launch L-07): the same sentences in the Caudals email frame,
+      // linking the public site (the image bakes NEXT_PUBLIC_APP_URL as the app host).
+      const url = `${getMarketingSiteOrigin()}/${run.locale}/demo#r=${run.id}.${token}`;
+      const email = renderEmail("demo_report", run.locale, { subject: e("readySubject", { host }), heading: e("readySubject", { host }), lines: [headline], url, failed: false, footer: e("footer") });
+      return { subject: email.subject, text: email.text, html: email.html };
+    }
+    const lines = [headline, "", e("readyLink"), report];
     lines.push("", e("footer"));
     return { subject: e("readySubject", { host }), text: lines.join("\n") };
   }
@@ -98,6 +109,10 @@ function compose(run: Pending, token: string) {
   const reasonKey = `errors.${normalized}`;
   const reason = t(reasonKey as NamespaceKeys<"demo">, { host });
   const sentence = reason === `demo.${reasonKey}` ? t("errors.generic") : reason;
+  if (brandedEmailsEnabled()) {
+    const email = renderEmail("demo_report", run.locale, { subject: e("failedSubject", { host }), heading: e("failedSubject", { host }), lines: [sentence], url: `${getMarketingSiteOrigin()}/${run.locale}/demo`, failed: true, footer: e("footer") });
+    return { subject: email.subject, text: email.text, html: email.html };
+  }
   const lines = [e("failedIntro", { host }), "", sentence, "", e("failedLink"), `${publicOrigin()}/${run.locale}/demo`, "", e("footer")];
   return { subject: e("failedSubject", { host }), text: lines.join("\n") };
 }
@@ -140,7 +155,7 @@ export async function sendPendingNotification(runId: string): Promise<"sent" | "
     // action from the report, never a side effect of asking for an email.
     const message = compose(run, request.token);
     const { error } = await getResendClient().emails.send(
-      { from, to: request.email, subject: message.subject, text: message.text },
+      { from: senderAddress(from), to: request.email, subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) },
       { idempotencyKey: `demo-notify-${run.id}` },
     );
     if (error) throw new Error("email_rejected");

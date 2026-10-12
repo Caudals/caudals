@@ -13,6 +13,7 @@ import { advanceEvaluationRestarts } from "../../lib/evals/repositories/evaluati
 import { advancePendingGenerations } from "../../lib/evals/repositories/automatic-generation";
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
+import { tickLifecycleEmails } from "../../lib/evals/operations/lifecycle-email";
 import { billingCreditsEnabled } from "../../lib/billing/config";
 import {
   billingExpiryDue, billingVerificationDue, priceBookUpkeepDue, runBillingExpiry, runBillingVerification, runFxUpdate, runPriceBookActivation, runPriceCheck,
@@ -39,6 +40,7 @@ async function main() {
   let lastBillingVerify = 0;
   let lastBillingExpiry = 0;
   let lastPriceBook = 0;
+  let lastLifecycleEmail = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -89,6 +91,18 @@ async function main() {
             if (email.sent || email.failed) console.info(JSON.stringify({ event: "email_notifications", ...email }));
           } catch {
             console.error(JSON.stringify({ event: "email_notifications_failed" }));
+          }
+        }
+        // Lifecycle email (launch L-07): off unless LIFECYCLE_EMAILS_ENABLED=true.
+        // Every five minutes; a failure is logged, never a scheduler failure.
+        if (send && Date.now() - lastLifecycleEmail >= 5 * 60_000) {
+          lastLifecycleEmail = Date.now();
+          try {
+            const lifecycleEmail = await tickLifecycleEmails({ actorId, send });
+            if (lifecycleEmail.sent || lifecycleEmail.failed || lifecycleEmail.skipped) console.info(JSON.stringify({ event: "lifecycle_email", ...lifecycleEmail }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "lifecycle_email_failed", reason: error instanceof Error && /^[a-z_]{1,60}$/.test(error.message) ? error.message : "unknown" }));
+            captureServerError(error, { service: "evals-scheduler", event: "lifecycle_email_failed" });
           }
         }
         // Credit ledger (spec §6.9–§6.10). Platform-wide through SECURITY DEFINER

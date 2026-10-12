@@ -18,7 +18,7 @@ import { RenameDialog } from "./item-actions";
 import { NoWorkspace } from "./workspace-evaluations";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary, type WorkspaceSummary } from "./workspace-data";
-import { t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/en";
 
 type Tab = "general" | "members" | "notifications" | "monitoring" | "developers" | "models" | "danger";
 
@@ -197,16 +197,43 @@ function General({ summary, orgId, workspaceName, role, canRename, platformAdmin
   );
 }
 
+/**
+ * In-app categories, then one email switch per category (launch L-07): the
+ * evaluation categories, billing and regressions for this workspace, and the
+ * "getting started" emails for the person across workspaces. Saving also
+ * records the interface language as the email language.
+ */
 function Notifications({ orgId, summary, onSaved }: { orgId: string; summary: WorkspaceSummary; onSaved: () => Promise<void> }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const p = summary.preferences;
+  const email = {
+    completion: p.email_completion ?? (p.email && p.completion),
+    requiredInput: p.email_required_input ?? (p.email && p.required_input),
+    failure: p.email_failure ?? (p.email && p.failure),
+    billing: p.email_billing ?? true,
+    regressions: p.email_regressions ?? true,
+    lifecycle: p.lifecycle ?? true,
+  };
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setPending(true);
     setError("");
     try {
-      await evalRequest("/workspace/preferences", "PATCH", { orgId, completion: form.has("completion"), requiredInput: form.has("requiredInput"), failure: form.has("failure"), email: form.has("email") });
+      await evalRequest("/workspace/preferences", "PATCH", {
+        orgId,
+        completion: form.has("completion"),
+        requiredInput: form.has("requiredInput"),
+        failure: form.has("failure"),
+        emailCompletion: form.has("emailCompletion"),
+        emailRequiredInput: form.has("emailRequiredInput"),
+        emailFailure: form.has("emailFailure"),
+        emailBilling: form.has("emailBilling"),
+        emailRegressions: form.has("emailRegressions"),
+        lifecycle: form.has("lifecycle"),
+        locale: getLocale(),
+      });
       notify(t("preferencesSaved"));
       await onSaved();
     } catch (value) {
@@ -220,13 +247,22 @@ function Notifications({ orgId, summary, onSaved }: { orgId: string; summary: Wo
       {error && <Status error>{error}</Status>}
       <SettingsRow title={t("inAppNotifications")} description={t("inAppNotificationsHelp")}>
         <span className="p-stack p-stack-tight">
-          <Check name="completion" defaultChecked={summary.preferences.completion} label={t("notifyCompletion")} />
-          <Check name="requiredInput" defaultChecked={summary.preferences.required_input} label={t("notifyRequiredInput")} />
-          <Check name="failure" defaultChecked={summary.preferences.failure} label={t("notifyFailure")} />
+          <Check name="completion" defaultChecked={p.completion} label={t("notifyCompletion")} />
+          <Check name="requiredInput" defaultChecked={p.required_input} label={t("notifyRequiredInput")} />
+          <Check name="failure" defaultChecked={p.failure} label={t("notifyFailure")} />
         </span>
       </SettingsRow>
-      <SettingsRow title={t("emailNotificationsTitle")} description={t("emailNotificationsHelp")}>
-        <Check name="email" defaultChecked={summary.preferences.email} label={t("emailNotifications")} />
+      <SettingsRow title={t("emailNotificationsTitle")} description={t("emailCategoriesHelp")}>
+        <span className="p-stack p-stack-tight">
+          <Check name="emailCompletion" defaultChecked={email.completion} label={t("emailCategoryCompletion")} />
+          <Check name="emailRequiredInput" defaultChecked={email.requiredInput} label={t("notifyRequiredInput")} />
+          <Check name="emailFailure" defaultChecked={email.failure} label={t("notifyFailure")} />
+          <Check name="emailBilling" defaultChecked={email.billing} label={t("emailCategoryBilling")} description={t("emailCategoryBillingHelp")} />
+          <Check name="emailRegressions" defaultChecked={email.regressions} label={t("emailCategoryRegressions")} description={t("emailCategoryRegressionsHelp")} />
+        </span>
+      </SettingsRow>
+      <SettingsRow title={t("emailLifecycleTitle")} description={t("emailLifecycleHelp")}>
+        <Check name="lifecycle" defaultChecked={email.lifecycle} label={t("emailCategoryLifecycle")} />
       </SettingsRow>
       <div className="p-settings-actions">
         <Action type="submit" disabled={pending}>

@@ -69,6 +69,10 @@ DO $$ BEGIN
     -- Drives the real document-worker ingestion step in evidence fixtures.
     CREATE ROLE evals_test_documents LOGIN PASSWORD 'documents' NOSUPERUSER NOBYPASSRLS IN ROLE evals_runtime, evals_document;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='evals_test_scheduler') THEN
+    -- The scheduler service login: lifecycle email functions are granted to it only.
+    CREATE ROLE evals_test_scheduler LOGIN PASSWORD 'scheduler' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE IN ROLE evals_scheduler;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='evals_test_admin') THEN
     CREATE ROLE evals_test_admin LOGIN PASSWORD 'admin' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE IN ROLE evals_execution_admin;
   END IF;
@@ -86,3 +90,4 @@ echo "export EVALS_TEST_RUNTIME_DATABASE_URL=postgres://evals_test_runtime:runti
 echo "export EVALS_TEST_DATABASE_URL=postgres://evals_test_runtime:runtime@127.0.0.1:$port/caudals"
 echo "export EVALS_TEST_DOCUMENTS_DATABASE_URL=postgres://evals_test_documents:documents@127.0.0.1:$port/caudals"
 echo "export EVALS_TEST_ADMIN_URL=postgres://evals_test_admin:admin@127.0.0.1:$port/caudals"
+echo "export EVALS_TEST_SCHEDULER_URL=postgres://evals_test_scheduler:scheduler@127.0.0.1:$port/caudals"

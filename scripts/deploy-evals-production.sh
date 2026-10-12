@@ -54,6 +54,21 @@ ANALYTICS_EVENTS_V2=${ANALYTICS_EVENTS_V2:-false}
 [[ $ANALYTICS_EVENTS_V2 == true || $ANALYTICS_EVENTS_V2 == false ]] || { echo 'ANALYTICS_EVENTS_V2 must be true or false' >&2; exit 1; }
 export BILLING_CREDITS_ENABLED BILLING_ENFORCE ANALYTICS_EVENTS_V2
 
+# Email flags (launch L-07) from the same app credentials, so web and scheduler
+# send the same templates. Lifecycle mail stays off until the founder switches it.
+BRANDED_EMAILS_ENABLED=$(credential BRANDED_EMAILS_ENABLED)
+BRANDED_EMAILS_ENABLED=${BRANDED_EMAILS_ENABLED:-false}
+[[ $BRANDED_EMAILS_ENABLED == true || $BRANDED_EMAILS_ENABLED == false ]] || { echo 'BRANDED_EMAILS_ENABLED must be true or false' >&2; exit 1; }
+LIFECYCLE_EMAILS_ENABLED=$(credential LIFECYCLE_EMAILS_ENABLED)
+LIFECYCLE_EMAILS_ENABLED=${LIFECYCLE_EMAILS_ENABLED:-false}
+[[ $LIFECYCLE_EMAILS_ENABLED == true || $LIFECYCLE_EMAILS_ENABLED == false ]] || { echo 'LIFECYCLE_EMAILS_ENABLED must be true or false' >&2; exit 1; }
+LIFECYCLE_EMAIL_STEPS=$(credential LIFECYCLE_EMAIL_STEPS)
+[[ -z $LIFECYCLE_EMAIL_STEPS || $LIFECYCLE_EMAIL_STEPS == all || $LIFECYCLE_EMAIL_STEPS =~ ^(d0_welcome|d1_test_set|d3_run|d7_report|first_report|d21_rerun|d30_winback)(,(d0_welcome|d1_test_set|d3_run|d7_report|first_report|d21_rerun|d30_winback))*$ ]] || { echo 'LIFECYCLE_EMAIL_STEPS must be empty, all, or a comma list of step names' >&2; exit 1; }
+# The booking link for setup calls in lifecycle mail; not a secret.
+CALCOM_LINK=$(credential CALCOM_LINK)
+[[ -z $CALCOM_LINK || $CALCOM_LINK =~ ^(https://[^[:space:]\"]+|[A-Za-z0-9_./-]+)$ ]] || { echo 'CALCOM_LINK must be a Cal.com slug or an https URL' >&2; exit 1; }
+export BRANDED_EMAILS_ENABLED LIFECYCLE_EMAILS_ENABLED LIFECYCLE_EMAIL_STEPS CALCOM_LINK
+
 # Sentry DSN as a versioned secret shared with the web app (launch L-08).
 EVALS_SENTRY_DSN_SECRET=$("$repo_dir/scripts/sentry-dsn-secret.sh")
 export EVALS_SENTRY_DSN_SECRET

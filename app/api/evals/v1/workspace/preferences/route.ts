@@ -10,7 +10,15 @@ export const PATCH = api(async (request, identity) => {
       completion: z.boolean(),
       requiredInput: z.boolean(),
       failure: z.boolean(),
-      email: z.boolean(),
+      // Legacy single email switch; clients since launch L-07 send the categories.
+      email: z.boolean().optional(),
+      emailCompletion: z.boolean().optional(),
+      emailRequiredInput: z.boolean().optional(),
+      emailFailure: z.boolean().optional(),
+      emailBilling: z.boolean().optional(),
+      emailRegressions: z.boolean().optional(),
+      lifecycle: z.boolean().optional(),
+      locale: z.enum(["en", "es"]).optional(),
     })
     .parse(await jsonBody(request));
   await requireWorkspace(identity, input.orgId, "read");

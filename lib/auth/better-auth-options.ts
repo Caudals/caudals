@@ -5,7 +5,10 @@ import { organization, twoFactor } from "better-auth/plugins";
 
 import { createBetterAuthId } from "@/lib/auth/better-auth-ids";
 import { betterAuthBasePath } from "@/lib/auth/better-auth-shared";
+import { brandedEmailsEnabled, senderAddress } from "@/lib/email/links";
+import { renderEmail } from "@/lib/email/templates";
 import { getSecretEnvValue } from "@/lib/env/secrets";
+import { resolveInterfaceLocale } from "@/lib/evals/interface-locale";
 import { getResendClient } from "@/lib/resend/client";
 
 const APP_NAME = "Caudals";
@@ -101,6 +104,12 @@ export function getResetPasswordTokenExpiresInSeconds() {
   return value;
 }
 
+/** The interface language of the request that asked for a reset (cookie, then Accept-Language). */
+export function resetEmailLocale(request?: Request) {
+  const cookie = request?.headers.get("cookie")?.match(/(?:^|;\s*)caudals_locale=(en|es)(?:;|$)/)?.[1];
+  return resolveInterfaceLocale(cookie, request?.headers.get("accept-language"));
+}
+
 export function createBetterAuthOptions(
   database: BetterAuthDatabase
 ): BetterAuthOptions {
@@ -140,11 +149,21 @@ export function createBetterAuthOptions(
       requireEmailVerification: true,
       resetPasswordTokenExpiresIn: getResetPasswordTokenExpiresInSeconds(),
       revokeSessionsOnPasswordReset: true,
-      async sendResetPassword({ user, url }) {
+      async sendResetPassword({ user, url }, request) {
         const from = process.env.RESEND_FROM_EMAIL;
 
         if (!from) {
           throw new Error("RESEND_FROM_EMAIL is required for password reset");
+        }
+
+        if (brandedEmailsEnabled()) {
+          // Branded (launch L-07), in the language of the page that asked.
+          const email = renderEmail("password_reset", resetEmailLocale(request), {
+            url,
+            minutes: Math.round(getResetPasswordTokenExpiresInSeconds() / 60),
+          });
+          await getResendClient().emails.send({ from: senderAddress(from), to: user.email, subject: email.subject, text: email.text, html: email.html });
+          return;
         }
 
         await getResendClient().emails.send({

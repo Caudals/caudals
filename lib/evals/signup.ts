@@ -7,6 +7,8 @@ import { appOrigin } from "@/lib/evals/app-origin";
 import { sha256 } from "@/lib/demo/client";
 import { getRun } from "@/lib/demo/store";
 import { registrable } from "@/lib/demo/web";
+import { brandedEmailsEnabled, senderAddress } from "@/lib/email/links";
+import { renderEmail, type RenderedEmail } from "@/lib/email/templates";
 import { getSecretEnvValue } from "@/lib/env/secrets";
 import { getResendClient } from "@/lib/resend/client";
 
@@ -57,11 +59,13 @@ const COPY = {
   },
 };
 
-async function send(to: string, message: { subject: string; text: string }) {
+async function send(to: string, message: { subject: string; text: string; html?: string }) {
   const from = getSecretEnvValue("RESEND_FROM_EMAIL");
   if (!from) throw new Error("email_unconfigured");
-  await getResendClient().emails.send({ from, to, subject: message.subject, text: message.text });
+  await getResendClient().emails.send({ from: senderAddress(from), to, subject: message.subject, text: message.text, ...(message.html ? { html: message.html } : {}) });
 }
+
+const branded = (email: RenderedEmail) => ({ subject: email.subject, text: email.text, html: email.html });
 
 /**
  * Records a sign-up link for a finished demo and emails it. The response never
@@ -77,9 +81,17 @@ export async function requestSignup(input: { email: string; company?: string; ru
   await recordProductEvent({ eventName: "demo_signup_requested", source: "server", runId: input.runId, eventKey: input.runId, attribution: run?.attribution });
   const copy = COPY[input.locale];
   const origin = appOrigin();
-  const message = rows[0]?.existing
-    ? { subject: copy.existingSubject, text: copy.existing(`${origin}/workspace/sign-in`) }
-    : { subject: copy.subject, text: copy.body(`${origin}/workspace/signup#${token}`) };
+  // Branded (launch L-07): the link email carries a one-line score summary.
+  const message = brandedEmailsEnabled()
+    ? branded(rows[0]?.existing
+      ? renderEmail("signup_existing", input.locale, { signInUrl: `${origin}/workspace/sign-in` })
+      : renderEmail("signup_link", input.locale, {
+        link: `${origin}/workspace/signup#${token}`, source: "demo",
+        demo: run ? { host: run.target_host, correct: run.summary?.correct, scored: run.summary?.scored } : undefined,
+      }))
+    : rows[0]?.existing
+      ? { subject: copy.existingSubject, text: copy.existing(`${origin}/workspace/sign-in`) }
+      : { subject: copy.subject, text: copy.body(`${origin}/workspace/signup#${token}`) };
   await send(input.email.trim(), message);
 }
 
@@ -111,8 +123,12 @@ export async function requestDirectSignup(input: {
   const outcome = rows[0]?.outcome ?? "link";
   const copy = COPY[input.locale];
   const origin = appOrigin();
-  const message =
-    outcome === "account_exists" ? { subject: copy.existingSubject, text: copy.existing(`${origin}/workspace/sign-in`) }
+  const message = brandedEmailsEnabled()
+    ? branded(
+      outcome === "account_exists" ? renderEmail("signup_existing", input.locale, { signInUrl: `${origin}/workspace/sign-in` })
+      : outcome === "domain_taken" ? renderEmail("signup_domain_taken", input.locale, { domain: input.domain })
+      : renderEmail("signup_link", input.locale, { link: `${origin}/workspace/signup#${token}`, source: "direct" }))
+    : outcome === "account_exists" ? { subject: copy.existingSubject, text: copy.existing(`${origin}/workspace/sign-in`) }
     : outcome === "domain_taken" ? { subject: copy.takenSubject, text: copy.taken(input.domain) }
     : { subject: copy.directSubject, text: copy.direct(`${origin}/workspace/signup#${token}`) };
   await send(email, message);

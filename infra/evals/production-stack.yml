@@ -81,6 +81,13 @@ services:
       RESEND_API_KEY_FILE: /run/secrets/evals_resend_api_key
       RESEND_FROM_EMAIL_FILE: /run/secrets/evals_resend_from_email
       EVALS_APP_URL: https://app.caudals.com
+      # Branded EN/ES email and the lifecycle sequence (launch L-07), from the
+      # app credentials via scripts/deploy-evals-production.sh. Both off by
+      # default; lifecycle mail reaches real users, so the founder switches it.
+      BRANDED_EMAILS_ENABLED: "${BRANDED_EMAILS_ENABLED:-false}"
+      LIFECYCLE_EMAILS_ENABLED: "${LIFECYCLE_EMAILS_ENABLED:-false}"
+      LIFECYCLE_EMAIL_STEPS: "${LIFECYCLE_EMAIL_STEPS:-}"
+      CALCOM_LINK: "${CALCOM_LINK:-}"
       # Error reporting (launch L-08): DSN from a versioned secret, release =
       # the deployed image commit; scrubbed of personal data in the process.
       SENTRY_DSN_FILE: /run/secrets/sentry_dsn

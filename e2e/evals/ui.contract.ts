@@ -2593,3 +2593,111 @@ for (const width of [390, 768, 1440]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 }
+
+/* ------------------------------------------------- launch L-07 · email --- */
+
+const l07Summary = (preferences: Record<string, unknown>) => ({
+  reports: [], evaluations: [], systems: [],
+  entitlement: { max_active_runs: 1, monthly_spend_limit: "500", currency: "EUR", allowed_connection_types: ["website"], can_export: true, can_schedule: false },
+  usage: { settled: "0", outstanding: "0" },
+  preferences,
+});
+
+test("notification settings choose email per category and person, at every width", async ({ page }) => {
+  const saved: Record<string, unknown>[] = [];
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const r = route.request();
+    const path = new URL(r.url()).pathname;
+    if (path.endsWith("/workspace/summary")) return route.fulfill({ json: { data: l07Summary({
+      completion: true, required_input: true, failure: true, email: true,
+      email_completion: true, email_required_input: false, email_failure: true, email_billing: true, email_regressions: true, lifecycle: true,
+    }), meta: {} } });
+    if (path.endsWith("/workspace/preferences")) { saved.push(r.postDataJSON()); return route.fulfill({ json: { data: {}, meta: {} } }); }
+    return route.fulfill({ json: { data: [], meta: {} } });
+  });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/workspace/settings?owner=1&tab=notifications`);
+    await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Getting started" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width === 390) await page.screenshot({ path: "/tmp/evals-ui-test-results/l07-notifications-390.png", fullPage: true });
+  }
+  await expect(page.getByLabel("Test set ready and results ready")).toBeChecked();
+  await expect(page.getByLabel("Regressions")).toBeChecked();
+  await page.getByLabel("Billing and credits").uncheck();
+  await page.getByLabel("Tips for getting started").uncheck();
+  await page.getByRole("button", { name: "Save preferences" }).click();
+  await expect(page.getByText("Notification preferences saved.")).toBeVisible();
+  expect(saved).toEqual([{
+    orgId: id, completion: true, requiredInput: true, failure: true,
+    emailCompletion: true, emailRequiredInput: false, emailFailure: true, emailBilling: false, emailRegressions: true, lifecycle: false, locale: "en",
+  }]);
+});
+
+test("notification settings read a server from before the email categories, in Spanish", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/workspace/summary")) return route.fulfill({ json: { data: l07Summary({ completion: true, required_input: false, failure: true, email: true }), meta: {} } });
+    return route.fulfill({ json: { data: [], meta: {} } });
+  });
+  await page.goto(`/workspace/settings?owner=1&tab=notifications`);
+  await expect(page.getByRole("heading", { name: "Primeros pasos" })).toBeVisible();
+  // The single switch keeps its meaning: email for the in-app categories that were on.
+  await expect(page.getByLabel("Conjunto de pruebas listo y resultados listos")).toBeChecked();
+  await expect(page.getByLabel("Facturación y créditos")).toBeChecked();
+  await expect(page.getByLabel("Consejos para empezar")).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Se necesita tu respuesta" }).nth(1)).not.toBeChecked();
+});
+
+test("unsubscribe page confirms before switching lifecycle email off and clears the token", async ({ page }) => {
+  const unsubscribeToken = "c".repeat(64);
+  const bodies: unknown[] = [];
+  await page.route("**/api/evals/v1/email/unsubscribe", async (route) => {
+    bodies.push(route.request().postDataJSON());
+    await route.fulfill({ json: { data: { unsubscribed: true } } });
+  });
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/workspace/unsubscribe#${unsubscribeToken}`);
+    await expect(page.getByRole("heading", { name: "Stop getting-started emails?" })).toBeVisible();
+    await expect(page).toHaveURL(/\/workspace\/unsubscribe$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  expect(bodies).toEqual([]);
+  await page.getByRole("button", { name: "Unsubscribe" }).click();
+  await expect(page.getByRole("heading", { name: "You are unsubscribed" })).toBeVisible();
+  await expect(page.getByText("Sign-in, invitation and payment emails still arrive.", { exact: false })).toBeVisible();
+  await page.screenshot({ path: "/tmp/evals-ui-test-results/l07-unsubscribed-1440.png", fullPage: true });
+  expect(bodies).toEqual([{ token: unsubscribeToken }]);
+});
+
+test("unsubscribe page refuses an incomplete link and reads in Spanish", async ({ page }) => {
+  await page.addInitScript(() => { (window as unknown as { __CAUDALS_LOCALE: string }).__CAUDALS_LOCALE = "es"; });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/workspace/unsubscribe#abc");
+  await expect(page.getByText("Este enlace para darte de baja no es válido.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Darme de baja" })).toHaveCount(0);
+  await page.goto(`/workspace/unsubscribe#${"d".repeat(64)}`);
+  await expect(page.getByRole("heading", { name: "¿Dejar de recibir correos de primeros pasos?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Darme de baja" })).toBeEnabled();
+});
+
+test("an emailed invitation says so and still shows the private link", async ({ page }) => {
+  await page.route("**/api/evals/v1/**", async (route) => {
+    const r = route.request();
+    const path = new URL(r.url()).pathname;
+    if (path.endsWith("/workspace/summary")) return route.fulfill({ json: { data: l07Summary({ completion: true, required_input: true, failure: true, email: false }), meta: {} } });
+    if (path.endsWith("/invitations") && r.method() === "POST") return route.fulfill({ json: { data: {
+      id: "invite-emailed", email: "colleague@example.test", role: "editor", expires_at: new Date(Date.now() + 86_400_000).toISOString(), token, emailed: true,
+    }, meta: {} } });
+    return route.fulfill({ json: { data: [], meta: {} } });
+  });
+  await page.goto(`/workspace/settings?owner=1&tab=members`);
+  await page.getByRole("button", { name: "Create invitation", exact: true }).first().click();
+  await page.getByLabel("Email address").fill("colleague@example.test");
+  await page.getByRole("dialog", { name: /Invite/ }).getByRole("button", { name: "Create invitation", exact: true }).click();
+  await expect(page.getByText("We emailed the invitation to colleague@example.test. You can also send this private link yourself.")).toBeVisible();
+  await expect(page.getByLabel("Private invitation link")).toHaveValue(`http://127.0.0.1:4187/workspace/invitations#token=${token}`);
+});
