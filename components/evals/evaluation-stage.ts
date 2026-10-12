@@ -79,14 +79,14 @@ export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
   if (prep === "failed") return { key: "failed", label: tr("Preparation failed"), tone: "fail", live: false, step: 1, needsAction: true };
   if (prep === "canceled") return { key: "canceled", label: tr("Cancelled"), tone: "neutral", live: false, step: 1, needsAction: false };
   const hasSources = !!evaluation.source_ids?.length || !!evaluation.latest_source_id;
-  return { key: "setup", label: hasSources ? "Generate the test set" : "Add reference material", tone: "neutral", live: false, step: 1, needsAction: true };
+  return { key: "setup", label: tr(hasSources ? "Generate the test set" : "Add reference material"), tone: "neutral", live: false, step: 1, needsAction: true };
 }
 
 export const STEP_LABELS = ["Connect", "Prepare tests", "Run", "Results"] as const;
 
 export function stepStates(stage: Stage) {
   return STEP_LABELS.map((label, index) => ({
-    label,
+    label: tr(label),
     state:
       index < stage.step || (index === 3 && stage.key === "results")
         ? ("done" as const)

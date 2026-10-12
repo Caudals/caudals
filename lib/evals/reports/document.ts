@@ -154,7 +154,7 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
     ? `<table class="grid"><thead><tr><th class="n">#</th><th>${S.improvement}</th><th>${S.status}</th><th>${S.validationPlan}</th></tr></thead><tbody>${improvements
         .map(
           (item) =>
-            `<tr><td class="n">${item.priority}</td><td><b>${escapeHtml(item.title)}</b>${item.owner ? `<br><span class="muted">${S.owner}: ${escapeHtml(item.owner)}</span>` : ""}${item.finding_ids.length ? `<br><span class="muted">${S.addresses} ${item.finding_ids.map((id) => `F${findings.findIndex((f) => f.id === id) + 1}`).filter((v) => v !== "F0").join(", ")}</span>` : ""}</td><td>${label(item.status)}</td><td>${escapeHtml(item.validation_plan)}</td></tr>`,
+            `<tr><td class="n">${item.priority}</td><td><b>${escapeHtml(tx(item.title))}</b>${item.owner ? `<br><span class="muted">${S.owner}: ${escapeHtml(item.owner)}</span>` : ""}${item.finding_ids.length ? `<br><span class="muted">${S.addresses} ${item.finding_ids.map((id) => `F${findings.findIndex((f) => f.id === id) + 1}`).filter((v) => v !== "F0").join(", ")}</span>` : ""}</td><td>${label(item.status)}</td><td>${escapeHtml(tx(item.validation_plan))}</td></tr>`,
         )
         .join("")}</tbody></table>`
     : `<p class="muted">${S.noImprovements}</p>`;

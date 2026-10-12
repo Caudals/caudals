@@ -122,7 +122,7 @@ export async function renderReportDocx(raw: ReportSnapshot, language: ReportLoca
 
   if (improvements.length) {
     children.push(heading(S.improvements));
-    children.push(table(["#", S.improvement, S.status, S.howValidated], improvements.map((item) => [String(item.priority), item.title, plain(item.status), item.validation_plan]), [6, 38, 14, 42]));
+    children.push(table(["#", S.improvement, S.status, S.howValidated], improvements.map((item) => [String(item.priority), tx(item.title), plain(item.status), tx(item.validation_plan)]), [6, 38, 14, 42]));
   }
 
   if (show("results")) children.push(heading(S.testResults));
