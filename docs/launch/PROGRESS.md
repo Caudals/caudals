@@ -20,7 +20,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
 | 1 | L-08 | Observability, alerting and admin MFA | — | 107 `auth_two_factor_lockout` | done | `5244bc1` | [L-08](L-08.md); Sentry on (web, worker, scheduler, documents; test events accepted, scrubbed). Alert timer reinstalled, drills fired and resolved. Uptime checks interim on atlantic (arctic install is a founder action). `EVALS_ADMIN_MFA_REQUIRED` off (I-6). |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
-| 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | in progress | | |
+| 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | done | `82cf8ee`, `5f52110`, `1302ad6` | [L-04](L-04.md); `DEMO_PUBLIC=true` (decision I-10). Demo linked from header, hero, sectors and footer, indexed, in sitemap/`llms.txt`; share-to-colleague verified with the internal address (2 emails, limit enforced). Workers at `5f52110`. |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | done | `464e55e` | [L-05](L-05.md); `SELF_SERVE_DIRECT_SIGNUP=true`. Production sign-up (internal address, ops exception) verified end to end, then removed through the audited deletion workflow; exception reset to `none`. Workers unaffected. |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
 | 2 | L-07 | Branded EN/ES emails and lifecycle sequence | L-02 (L-06 soft) | 087 `evals_lifecycle_email` | todo | | |
@@ -80,6 +80,7 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 | I-7 | Expert-written content (L-25, L-26) | The tooling ships. Pack questions are drafts until an expert reviews them; nothing is labelled expert-reviewed without a recorded reviewer |
 | I-8 | Time-based rollout steps | Steps that need calendar time or founder action (the billing shadow week, three clean reconciliation days, the €20 live purchase, design partners, lawyer review) are recorded under §5 rather than simulated |
 | I-9 | Flags | Each package switches its flag on after its production checks when the spec says so. Flags that expose money, send lifecycle email to real users, or depend on a founder action stay off and are listed in §5 |
+| I-10 | Front-door flag (L-04) | The spec names `NEXT_PUBLIC_DEMO_PUBLIC`, but the image build only receives `NEXT_PUBLIC_APP_URL`, so L-04 uses the server-read runtime flag `DEMO_PUBLIC` (default off, in the `set-app-credentials.sh` allowlist). It switches the header pill and "Sign in", the hero/sector/closing CTAs, the demo's indexing, its sitemap/`llms.txt`/agent-markdown entries and the report card's readout and share actions together. The public tree revalidates every 300 s and `/demo` renders per request, so a switch needs only `set-app-flag.sh` (no rebuild) |
 
 ## 5. Founder actions
 
@@ -113,3 +114,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-05 done (`464e55e`). Agents started for L-04 and L-12 (five running: L-08, L-10, L-33, L-04, L-12). |
 | 2026-10-12 | L-08 done (`5244bc1`, migration 107). Sentry live for web and workers; alert timer reinstalled (it had been missing since about 2026-10-03); interim uptime timer on atlantic because atlantic cannot SSH to arctic. MFA enforcement off pending enrolment. |
 | 2026-10-12 | L-10 done (`be3a0dc` + fix `d9edc3c`, migration 088). Price book live (revision 1 in effect, revision 2 scheduled 2027-01-01 for Gemini 3.8 Flash), €0 guard on all model routes, estimator API for operators, weekly price check and monthly ECB FX in the scheduler. Revision 2's 30-day notice is due by 2026-12-02 (L-16). |
+| 2026-10-12 | L-04 done (`82cf8ee`, fixes `5f52110`, `1302ad6`; no migration). `DEMO_PUBLIC=true`: the free test is the front door in EN and ES, indexed (crawler view, sitemap, `llms.txt`, IndexNow 40 URLs). Send to a colleague verified to the internal address; Spanish funnel link clicks now counted. No founder actions added. |
