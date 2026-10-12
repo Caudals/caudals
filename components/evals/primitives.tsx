@@ -502,7 +502,7 @@ export function Steps({ steps, label, selected, onSelect }: {
 }) {
   return <ol className="p-steps" aria-label={label}>
     {steps.map((step, index) => {
-      const content = <><span className="p-step-mark" aria-hidden="true">{step.state === "done" ? <CheckIcon /> : step.state === "blocked" ? <TriangleAlert /> : index + 1}</span><span className="p-step-label">{step.label}</span><span className="sr-only">{step.state === "done" ? " — done" : step.state === "current" ? " — in progress" : step.state === "blocked" ? " — needs attention" : ""}</span></>;
+      const content = <><span className="p-step-mark" aria-hidden="true">{step.state === "done" ? <CheckIcon /> : step.state === "blocked" ? <TriangleAlert /> : index + 1}</span><span className="p-step-label">{step.label}</span><span className="sr-only">{step.state === "done" ? ` — ${tr("done")}` : step.state === "current" ? ` — ${tr("in progress")}` : step.state === "blocked" ? ` — ${tr("needs attention")}` : ""}</span></>;
       return <li key={step.label} data-state={step.state} aria-current={step.state === "current" ? "step" : undefined}>
         {onSelect ? <button type="button" className="p-step-button" disabled={index !== 0 && step.state !== "current" && step.state !== "blocked" && !(index === 3 && step.state === "done")} aria-pressed={selected === index} onClick={() => onSelect(index)}>{content}</button> : content}
       </li>;
