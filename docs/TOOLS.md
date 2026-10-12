@@ -438,10 +438,34 @@ Install caveat:
   when neither DSN source is configured. The runtime Docker image copies this
   plain Node probe so the same command can run inside the deployed app
   container.
-- `npm run observability:configure-sentry` creates or mounts a Docker secret for
-  `SENTRY_DSN_FILE` on the app service without printing the DSN. Provide
-  `CAUDALS_SENTRY_DSN_FILE=/path/to/dsn` when the production DSN is available;
-  the script sets `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, and sample-rate envs.
+- Production (launch L-08): the DSN lives in `/root/.caudals/secrets/sentry-dsn`
+  (root, mode 600). `scripts/sentry-dsn-secret.sh` turns it into a versioned
+  Docker secret (`caudals_sentry_dsn_<hash>`); `scripts/deploy-app-stack.sh`
+  and `scripts/deploy-evals-production.sh` mount it as `SENTRY_DSN_FILE` on the
+  web app and the worker, scheduler and document services, with
+  `SENTRY_RELEASE` set to the deployed commit and `SENTRY_SERVICE` naming the
+  process. The browser executor has no direct egress and does not report.
+- Every event, transaction and breadcrumb passes
+  `lib/observability/sentry-scrub.mjs` (users, IPs, cookies, headers, query
+  strings, bodies, local variables, emails, phone numbers and tokens are
+  removed). Unexpected API failures (503) are captured with their `request_id`
+  (`lib/observability/capture.ts`); workers report fatal and per-task failures.
+- `sudo scripts/configure-sentry-runtime.sh` (also `npm run
+  observability:configure-sentry`) mounts or rotates the DSN on the running app
+  and workers without a redeploy; `CAUDALS_SENTRY_DSN_FILE` overrides the file.
+- `npm run observability:sentry-status -- --send-test-event` (inside the app
+  container) and `node --conditions=react-server --import tsx
+  services/evals-worker/sentry-test.ts` (inside a worker) send one synthetic
+  error with fake personal data and print the event id, Sentry's HTTP status
+  and the scrubbed message.
+- Alerting without the observability stack (L-08): platform alerts from
+  `caudals-evals-health.timer` (atlantic, ten minutes,
+  `scripts/evals/health-alerts.sh`, installed by
+  `scripts/install-evals-host-jobs.sh`) and one-minute external uptime checks
+  from `caudals-uptime.timer` (`scripts/uptime-checks.sh`, installed by
+  `scripts/install-uptime-checks.sh`; decision I-5 places it on arctic). Both
+  email the collaboration inbox through Resend with a runbook link per alert;
+  drills and procedures are in `docs/evals/runbooks.md`.
 - OpenTelemetry traces are registered from
   `lib/observability/opentelemetry.ts`. Set
   `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://caudals-observability-tempo:4318/v1/traces`
@@ -800,7 +824,9 @@ Operational env controls:
 - `SENTRY_DSN` (enables Sentry when non-empty)
 - `SENTRY_DSN_FILE` (server-only Docker secret-file fallback for `SENTRY_DSN`; `SENTRY_DSN` wins when both are set)
 - `SENTRY_ENVIRONMENT`
-- `SENTRY_RELEASE`
+- `SENTRY_RELEASE` (the deployed commit; set by the deploy scripts)
+- `SENTRY_SERVICE` (`web`, `evals-worker`, `evals-scheduler`, `evals-documents`; tags each event)
+- `EVALS_ADMIN_MFA_REQUIRED` (default off; `true` requires TOTP for platform admins, platform operators and workspace operators; switch on only after every staff account has enrolled, runbook 21)
 - `SENTRY_TRACES_SAMPLE_RATE` (default `0`)
 - `SENTRY_PROFILES_SAMPLE_RATE` (default `0`)
 - `SENTRY_SOURCE_MAP_UPLOAD` (set `true` only when a valid rotated `SENTRY_AUTH_TOKEN` is available for build-time upload)

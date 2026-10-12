@@ -2349,3 +2349,104 @@ test("analytics waits for consent, keeps first touch and stops on withdrawal", a
   await page.waitForTimeout(100);
   expect(events).toHaveLength(2);
 });
+
+/* ------------------------------------------- two-factor setup (launch L-08) --- */
+
+const totpURI = "otpauth://totp/Caudals:operator%40example.test?secret=JBSWY3DPEHPK3PXP&issuer=Caudals";
+const recoveryCodes = Array.from({ length: 10 }, (_, index) => `code${index}-abcde`);
+
+test("two-factor setup shows the key and recovery codes and turns on only after a verified code", async ({ page }) => {
+  let verifications = 0;
+  await page.route("**/api/auth/two-factor/enable", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ password: "existing-password", issuer: "Caudals" });
+    await route.fulfill({ json: { totpURI, backupCodes: recoveryCodes } });
+  });
+  await page.route("**/api/auth/two-factor/verify-totp", async (route) => {
+    verifications += 1;
+    expect(route.request().postDataJSON()).toEqual({ code: verifications === 1 ? "111111" : "222222", trustDevice: false });
+    await route.fulfill(verifications === 1 ? { status: 401, json: { code: "INVALID_CODE", message: "Invalid code" } } : { json: { token: "t", user: { id: "u" } } });
+  });
+  await page.goto("/workspace/security?required&next=%2Fops");
+  await expect(page.getByText("Caudals staff accounts need two-factor authentication")).toBeVisible();
+  await page.getByLabel("Password", { exact: true }).fill("existing-password");
+  await page.getByRole("button", { name: "Set up two-factor authentication" }).click();
+  await expect(page.getByText("JBSW Y3DP EHPK 3PXP")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open in authenticator app" })).toHaveAttribute("href", totpURI);
+  await expect(page.getByRole("list", { name: "Recovery codes" }).getByRole("listitem")).toHaveCount(10);
+  const confirm = page.getByRole("button", { name: "Turn on two-factor authentication" });
+  await page.getByLabel("Authenticator code").fill("111111");
+  await expect(confirm).toBeDisabled();
+  await page.getByText("I have saved my recovery codes").click();
+  await confirm.click();
+  await expect(page.getByRole("alert")).toContainText("not accepted");
+  await page.getByLabel("Authenticator code").fill("222222");
+  await confirm.click();
+  await expect(page.getByText("Two-factor authentication is on. Use your app's code")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continue" })).toHaveAttribute("href", "/ops");
+});
+
+test("staff with two-factor on can replace recovery codes but not turn it off while required", async ({ page }) => {
+  await page.route("**/api/auth/two-factor/generate-backup-codes", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ password: "existing-password" });
+    await route.fulfill({ json: { status: true, backupCodes: recoveryCodes } });
+  });
+  await page.goto("/workspace/security?enabled&required");
+  await expect(page.getByText("Two-factor authentication is on.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn off two-factor authentication" })).toHaveCount(0);
+  await expect(page.getByText("Staff accounts keep two-factor authentication on.")).toBeVisible();
+  await page.getByRole("button", { name: "Create new recovery codes" }).click();
+  await page.getByLabel("Password", { exact: true }).fill("existing-password");
+  await page.getByRole("button", { name: "Create new recovery codes" }).click();
+  await expect(page.getByRole("list", { name: "Recovery codes" }).getByRole("listitem")).toHaveCount(10);
+});
+
+test("a customer may turn two-factor off with their password", async ({ page }) => {
+  await page.route("**/api/auth/two-factor/disable", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ password: "existing-password" });
+    await route.fulfill({ json: { status: true } });
+  });
+  await page.goto("/workspace/security?enabled&customer");
+  await page.getByRole("button", { name: "Turn off two-factor authentication" }).click();
+  await page.getByLabel("Password", { exact: true }).fill("existing-password");
+  await page.getByRole("button", { name: "Turn off two-factor authentication" }).click();
+  await expect(page.getByText("Two-factor authentication is off.").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Set up two-factor authentication" })).toBeVisible();
+});
+
+test("sign-in accepts a single-use recovery code instead of the authenticator", async ({ page }) => {
+  await page.route("**/api/auth/sign-in/email", (route) => route.fulfill({ json: { twoFactorRedirect: true } }));
+  await page.route("**/api/auth/two-factor/verify-backup-code", async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ code: "abcde-12345", trustDevice: false });
+    await route.fulfill({ json: { token: "t", user: { id: "u" } } });
+  });
+  await page.goto("/workspace/sign-in?next=%2Fworkspace%2Fevaluations");
+  await page.getByLabel("Email address").fill("operator@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("existing-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("button", { name: "Use a recovery code instead" }).click();
+  await expect(page.getByLabel("Recovery code")).toBeFocused();
+  await page.getByLabel("Recovery code").fill("abcde-12345");
+  await page.getByRole("button", { name: "Verify code" }).click();
+  await expect(page).toHaveURL(/\/workspace\/evaluations$/);
+});
+
+test("a rate-limited sign-in says to wait instead of blaming the password", async ({ page }) => {
+  await page.route("**/api/auth/sign-in/email", (route) => route.fulfill({ status: 429, headers: { "Retry-After": "600" }, json: { code: "TOO_MANY_REQUESTS", message: "Too many attempts." } }));
+  await page.goto("/workspace/sign-in");
+  await page.getByLabel("Email address").fill("operator@example.test");
+  await page.getByLabel("Password", { exact: true }).fill("existing-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Too many attempts. Wait a few minutes");
+});
+
+for (const width of [390, 768, 1440]) {
+  test(`two-factor setup fits ${width}px without horizontal scrolling`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route("**/api/auth/two-factor/enable", (route) => route.fulfill({ json: { totpURI, backupCodes: recoveryCodes } }));
+    await page.goto("/workspace/security?required");
+    await page.getByLabel("Password", { exact: true }).fill("existing-password");
+    await page.getByRole("button", { name: "Set up two-factor authentication" }).click();
+    await expect(page.getByText("JBSW Y3DP EHPK 3PXP")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}

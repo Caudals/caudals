@@ -37,6 +37,13 @@ services:
       NEXT_PUBLIC_DO_SPACES_CDN_URL: ${CAUDALS_OBJECT_STORAGE_CDN_URL:-http://caudals-object-storage-minio:9000/caudals-storage}
       DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/object_storage_access_key
       DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/object_storage_secret_key
+      # Error reporting (launch L-08). The DSN is a versioned secret created by
+      # scripts/sentry-dsn-secret.sh; the release is the image's commit. Events
+      # are scrubbed of personal data (lib/observability/sentry-scrub.mjs).
+      SENTRY_DSN_FILE: /run/secrets/sentry_dsn
+      SENTRY_ENVIRONMENT: production
+      SENTRY_RELEASE: ${CAUDALS_SENTRY_RELEASE:-}
+      SENTRY_SERVICE: web
     secrets:
       - app_runtime_env
       - evals_dataset_signing_key
@@ -49,6 +56,7 @@ services:
       - evals_browser_session_keyring
       - object_storage_access_key
       - object_storage_secret_key
+      - sentry_dsn
     # Nothing in the image reads the runtime secret, so the start command
     # exports it before starting Next.js. A missing file makes `.` exit the
     # shell, so the task fails and the update rolls back instead of serving
@@ -129,3 +137,6 @@ secrets:
   object_storage_secret_key:
     external: true
     name: ${CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET:-caudals_object_storage_secret_access_key}
+  sentry_dsn:
+    external: true
+    name: ${CAUDALS_SENTRY_DSN_SECRET:?CAUDALS_SENTRY_DSN_SECRET is required}

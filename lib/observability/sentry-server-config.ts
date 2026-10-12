@@ -32,8 +32,8 @@ function getServerSentryDsn(env: EnvMap = process.env) {
   );
 }
 
-export function getSentryServerOptions(env: EnvMap = process.env) {
-  return getSentryOptions(env, getServerSentryDsn(env));
+export function getSentryServerOptions(env: EnvMap = process.env, service?: string) {
+  return getSentryOptions(env, getServerSentryDsn(env), service);
 }
 
 export { getSentryDsnSource };

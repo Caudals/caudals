@@ -1,0 +1,11 @@
+[Unit]
+Description=Caudals external uptime checks (landing, demo API, app sign-in, webhook health)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/caudals-uptime
+ExecStart=/usr/local/sbin/caudals-uptime
+TimeoutStartSec=55s
+Nice=10

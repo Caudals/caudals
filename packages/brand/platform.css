@@ -2225,6 +2225,45 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Two-factor setup (launch L-08): setup key and one-time recovery codes. */
+.p-auth-subhead {
+  font-size: var(--p-text-label);
+  font-weight: 600;
+}
+.p-setup-key {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.p-setup-key code,
+.p-recovery-codes code {
+  font-family: var(--p-font-mono);
+  font-size: var(--p-text-label);
+  letter-spacing: 0.02em;
+}
+.p-setup-key code {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--p-radius-md, 8px);
+  background: var(--p-surface-2);
+  overflow-wrap: anywhere;
+}
+.p-two-factor a.p-field-hint {
+  justify-self: start;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.p-recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border-radius: var(--p-radius-md, 8px);
+  background: var(--p-surface-2);
+  list-style: none;
+}
 
 
 /* -----------------------------------------------------------------------------

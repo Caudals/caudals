@@ -54,7 +54,7 @@ import { CommandPalette, type PaletteLink } from "./command-palette";
 import { HelpPanel } from "./help-panel";
 import { NotificationCenter } from "./notification-center";
 import { setInterfaceLocale } from "./locale";
-import { Check as CheckIcon, CircleHelp, Languages } from "lucide-react";
+import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
 import { getLocale, t } from "@/lib/evals/messages/en";
 import type { EvalIdentity } from "@/lib/evals/domain/identity";
@@ -367,6 +367,12 @@ function AccountMenu({ identity, signingOut, onSignOut, onHelp }: { identity: Ev
             <Link href="/workspace/invitations">
               <Mail aria-hidden="true" />
               {t("invitations")}
+            </Link>
+          </MenuPrimitive.Item>
+          <MenuPrimitive.Item asChild className="p-menu-item">
+            <Link href="/workspace/security">
+              <ShieldCheck aria-hidden="true" />
+              {t("accountSecurity")}
             </Link>
           </MenuPrimitive.Item>
           <MenuPrimitive.Item className="p-menu-item" onSelect={() => onHelp()}>

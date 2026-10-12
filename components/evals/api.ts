@@ -20,6 +20,7 @@ export class EvalRequestError extends Error {
  */
 function getSafeErrorMessage(status: number, code: string, serverMessage?: string): string {
   if (code === "REAUTHENTICATION_REQUIRED") return t("reauthRequired");
+  if (code === "MFA_ENROLMENT_REQUIRED") return t("securityRequired");
   if (status === 401) return t("expired");
   if (status === 403) return t("forbidden");
   if (status === 404) return t("notFound");
@@ -62,6 +63,9 @@ export async function evalRequest<T>(
   const result = await response.json().catch(() => null);
   // A request for a fresh confirmation is not an expired session.
   if (response.status === 401 && result?.error?.code !== "REAUTHENTICATION_REQUIRED" && typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  // Staff without two-factor authentication while it is required set it up first (launch L-08).
+  if (response.status === 403 && result?.error?.code === "MFA_ENROLMENT_REQUIRED" && typeof window !== "undefined")
+    window.location.assign(`/workspace/security?next=${encodeURIComponent(window.location.pathname)}`);
   if (!response.ok)
     throw new EvalRequestError(
       response.status,

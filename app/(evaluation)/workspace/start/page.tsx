@@ -13,7 +13,8 @@ import { getMarketingSiteOrigin } from "@/lib/seo";
 export default async function StartPage() {
   if (!directSignupEnabled()) notFound();
   try {
-    await requireIdentity();
+    // Only "is someone signed in" matters here; the entry page enforces two-factor setup (L-08).
+    await requireIdentity(undefined, { allowMfaEnrolment: true });
   } catch (error) {
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED") throw error;
     return <SignupStart marketingOrigin={getMarketingSiteOrigin()} />;

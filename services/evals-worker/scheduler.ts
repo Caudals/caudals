@@ -15,8 +15,11 @@ import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 import { billingCreditsEnabled } from "../../lib/billing/config";
 import { billingExpiryDue, billingVerificationDue, runBillingExpiry, runBillingVerification } from "../../lib/billing/jobs";
+import { captureServerError, flushErrors } from "../../lib/observability/capture";
+import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 
 async function main() {
+  initWorkerSentry("evals-scheduler");
   if (process.env.EVALS_SCHEDULES_ENABLED !== "true") throw new Error("schedules_disabled");
   z.enum(["production", "development"]).parse(process.env.EVALS_ENV);
   const orgs = workerWorkspaces(process.env.EVALS_WORKER_ORG_IDS);
@@ -64,6 +67,7 @@ async function main() {
             } catch (error) {
               healthy = false;
               console.error(JSON.stringify({ event: "scheduler_tick_failed", orgId, task, reason: error instanceof Error && /^[a-z0-9_]{1,80}$/i.test(error.message) ? error.message : error instanceof Error ? error.name : "unknown" }));
+              captureServerError(error, { service: "evals-scheduler", event: "scheduler_tick_failed", task, workspace: orgId });
             }
           }
         }
@@ -71,9 +75,10 @@ async function main() {
         try {
           const lifecycle = await tickLifecycle(actorId);
           if (lifecycle.workspaces) console.info(JSON.stringify({ event: "lifecycle_tick", ...lifecycle }));
-        } catch {
+        } catch (error) {
           healthy = false;
           console.error(JSON.stringify({ event: "lifecycle_tick_failed" }));
+          captureServerError(error, { service: "evals-scheduler", event: "lifecycle_tick_failed" });
         }
         if (send) {
           try {
@@ -92,8 +97,9 @@ async function main() {
             const run = await runBillingVerification(actorId);
             const line = JSON.stringify({ event: run.driftAccounts ? "billing_drift" : "billing_verified", accounts: run.accounts, driftAccounts: run.driftAccounts, drift: run.drift.slice(0, 20) });
             if (run.driftAccounts) console.error(line); else console.info(line);
-          } catch {
+          } catch (error) {
             console.error(JSON.stringify({ event: "billing_verify_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_verify_failed" });
           }
         }
         if (billingCreditsEnabled() && billingExpiryDue(lastBillingExpiry)) {
@@ -101,8 +107,9 @@ async function main() {
           try {
             const expiry = await runBillingExpiry(actorId);
             if (expiry.accounts) console.info(JSON.stringify({ event: "billing_expiry", accounts: expiry.accounts, holds: expiry.holds, lots: expiry.lots, expiredUcr: expiry.expiredUcr.toString() }));
-          } catch {
+          } catch (error) {
             console.error(JSON.stringify({ event: "billing_expiry_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_expiry_failed" });
           }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));
@@ -114,7 +121,9 @@ async function main() {
   }
 }
 
-main().catch(() => {
+main().catch(async (error: unknown) => {
   console.error(JSON.stringify({ event: "scheduler_stopped", reason: "configuration_or_runtime_failure" }));
+  captureServerError(error, { service: "evals-scheduler", event: "scheduler_stopped" });
+  await flushErrors();
   process.exitCode = 1;
 });

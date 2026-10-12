@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { InvitationAcceptance } from "@/components/evals/invitation-acceptance";
 import { requireIdentity } from "@/lib/evals/domain/identity";
 import { EvalError } from "@/lib/evals/domain/errors";
@@ -8,6 +9,9 @@ export default async function InvitationPage() {
   try {
     identity = await requireIdentity();
   } catch (error) {
+    // Platform staff without TOTP while enforcement is on set it up first (launch L-08).
+    if (error instanceof EvalError && error.code === "MFA_ENROLMENT_REQUIRED")
+      redirect("/workspace/security");
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED")
       throw error;
   }

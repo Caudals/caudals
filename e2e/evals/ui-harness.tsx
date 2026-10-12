@@ -17,6 +17,7 @@ import { InvitationAcceptance } from "../../components/evals/invitation-acceptan
 import { EvaluationSignIn } from "../../components/evals/sign-in";
 import { SelfServeSignup } from "../../components/evals/self-serve-signup";
 import { SignupStart } from "../../components/evals/signup-start";
+import { TwoFactorSettings } from "../../components/evals/two-factor-settings";
 import { EvaluationResetPassword } from "../../components/evals/reset-password";
 import { ExpertAssignmentQueue, ExpertWorkbench } from "../../components/evals/expert-workbench";
 import { ExpertManagement } from "../../components/evals/expert-management";
@@ -79,6 +80,7 @@ const authPage =
   location.pathname === "/workspace/sign-in" ||
   location.pathname === "/workspace/signup" ||
   location.pathname === "/workspace/start" ||
+  location.pathname === "/workspace/security" ||
   location.pathname === "/workspace/reset-password";
 const viewer = location.search.includes("viewer");
 const anonymous = location.search.includes("anonymous");
@@ -119,6 +121,8 @@ const content =
     <EvaluationSignIn next={params.get("next") ?? undefined} directSignup={params.has("direct")} />
   ) : location.pathname === "/workspace/signup" ? (
     <SelfServeSignup termsRequired={!params.has("no-terms")} directSignup={params.has("direct")} marketingOrigin="https://caudals.com" />
+  ) : location.pathname === "/workspace/security" ? (
+    <TwoFactorSettings email="operator@example.test" enabled={params.has("enabled")} required={params.has("required")} staff={!params.has("customer")} next={params.get("next") ?? "/evaluation-entry"} />
   ) : location.pathname === "/workspace/start" ? (
     <SignupStart marketingOrigin="https://caudals.com" />
   ) : location.pathname === "/workspace/reset-password" ? (

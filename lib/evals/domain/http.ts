@@ -1,4 +1,5 @@
 import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
+import { captureServerError } from "@/lib/observability/capture";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
@@ -38,6 +39,8 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
       // Correlate failures without putting exception text, SQL, credentials or
       // customer data in application logs.
       console.error("eval_api_request_failed",{request_id:requestId,code,status,error_type:error instanceof Error?error.name:typeof error,database_code:databaseCode});
+      // Unexpected failures (503) go to Sentry, scrubbed; expected codes do not.
+      if(!known&&!validation)captureServerError(error,{request_id:requestId,route:new URL(request.url).pathname,method:request.method,code,database_code:databaseCode});
       return Response.json({error:{code,message:known?error.message:validation?'Check the supplied fields.':'The service is temporarily unavailable.',field_errors:error instanceof ZodError?error.issues.map(x=>({path:x.path,message:x.message})):[],request_id:requestId,retryable:!known&&!validation}},{status,headers:privateHeaders});
     }
   };

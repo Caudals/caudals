@@ -20,6 +20,8 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [challenge, setChallenge] = useState(false);
+  // Recovery codes stand in for the authenticator when it is lost (launch L-08).
+  const [recovery, setRecovery] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const codeInput = useRef<HTMLInputElement>(null);
@@ -33,12 +35,11 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
     setError("");
     try {
       if (challenge) {
-        const result = await betterAuthClient.twoFactor.verifyTotp({
-          code,
-          trustDevice: false,
-        });
+        const result = recovery
+          ? await betterAuthClient.twoFactor.verifyBackupCode({ code: code.trim(), trustDevice: false })
+          : await betterAuthClient.twoFactor.verifyTotp({ code, trustDevice: false });
         if (result.error || !result.data) {
-          setError(t("totpError"));
+          setError(t(result.error?.status === 429 ? "authRateLimited" : recovery ? "recoveryCodeError" : "totpError"));
           return;
         }
       } else {
@@ -49,7 +50,7 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
           rememberMe: true,
         });
         if (result.error) {
-          setError(t("signInError"));
+          setError(t(result.error.status === 429 ? "authRateLimited" : "signInError"));
           return;
         }
         const data = result.data as {
@@ -80,7 +81,7 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
   return (
     <AuthFrame
       title={t(challenge ? "totpTitle" : "signInTitle")}
-      description={t(challenge ? "totpHelp" : "signInHelp")}
+      description={t(challenge ? (recovery ? "recoveryCodeHelp" : "totpHelp") : "signInHelp")}
       footer={
         <>
           {destination.includes("#") && <p>{t("recoveryInvitationHelp")}</p>}
@@ -97,7 +98,22 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
       }
     >
       <form className="p-auth-form" onSubmit={submit} aria-busy={pending}>
-        {challenge ? (
+        {challenge && recovery ? (
+          <Field
+            ref={codeInput}
+            id="recovery-code"
+            label={t("recoveryCode")}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            autoComplete="one-time-code"
+            autoCapitalize="off"
+            spellCheck={false}
+            minLength={11}
+            maxLength={11}
+            required
+            disabled={pending}
+          />
+        ) : challenge ? (
           <Field
             ref={codeInput}
             id="totp-code"
@@ -155,7 +171,23 @@ export function EvaluationSignIn({ next, directSignup = false }: { next?: string
             block
             disabled={pending}
             onClick={() => {
+              setRecovery(!recovery);
+              setCode("");
+              setError("");
+              codeInput.current?.focus();
+            }}
+          >
+            {t(recovery ? "useAuthenticatorCode" : "useRecoveryCode")}
+          </Action>
+        )}
+        {challenge && (
+          <Action
+            variant="secondary"
+            block
+            disabled={pending}
+            onClick={() => {
               setChallenge(false);
+              setRecovery(false);
               setCode("");
               setError("");
             }}

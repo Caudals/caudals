@@ -9,7 +9,8 @@ import { getMarketingSiteOrigin } from "@/lib/seo";
 /** Self-serve sign-up from an emailed link (public demo or direct sign-up). A signed-in person goes to their workspace. */
 export default async function SignupPage() {
   try {
-    await requireIdentity();
+    // Only "is someone signed in" matters here; the entry page enforces two-factor setup.
+    await requireIdentity(undefined, { allowMfaEnrolment: true });
   } catch (error) {
     if (!(error instanceof EvalError) || error.code !== "SESSION_REQUIRED") throw error;
     // Flags are read here, at request time, and passed down (never NEXT_PUBLIC_*).

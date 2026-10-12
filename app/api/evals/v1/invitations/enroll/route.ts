@@ -6,6 +6,8 @@ import { withTenant } from '@/lib/evals/repositories/db';
 import { isEvaluationHost } from '@/lib/evals/domain/routing';
 import { jsonBody,privateHeaders } from '@/lib/evals/domain/http';
 import { createBetterAuthId } from '@/lib/auth/better-auth-ids';
+import { clientHash } from '@/lib/demo/client';
+import { consumeRateLimit } from '@/lib/security/rate-limit';
 // Bound expensive password hashing in the web process; invalid tokens never hash.
 let enrolling=0;
 export async function POST(request:Request) {
@@ -13,6 +15,8 @@ export async function POST(request:Request) {
  try {
   const host=request.headers.get('host');const origin=new URL(request.headers.get('origin')??'invalid');
   if(!isEvaluationHost(host)||origin.host!==host||(process.env.NODE_ENV==='production'&&origin.protocol!=='https:')) throw new Error('denied');
+  // Durable per-visitor limit on account creation (launch L-08, spec P-43).
+  if(!(await consumeRateLimit({key:`invite-enroll:${clientHash(request.headers)}`,limit:20,windowMs:3600_000})).allowed) throw new Error('denied');
   const {token,name,password}=z.object({token:z.string().regex(/^[A-Za-z0-9_-]{43}$/),name:z.string().trim().min(1).max(120),password:z.string().min(12).max(128)}).strict().parse(await jsonBody(request,2048));
   const hash=createHash('sha256').update(token).digest('hex');
   const permitted=await withTenant({orgId:'',actorId:''},async c=>(await c.query('SELECT evals.enrollment_allowed($1) AS permitted',[hash])).rows[0].permitted);

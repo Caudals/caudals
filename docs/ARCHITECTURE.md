@@ -23,7 +23,7 @@ The pre-pivot marketplace surfaces (`/buyer`, `/supplier`, `/v1/*`, `/security`,
 - Storage: S3-compatible object storage — private MinIO on the VPS, with DigitalOcean Spaces as the external managed target (`DO_SPACES_*` variable names serve both)
 - Email: Resend
 - Payments: Stripe is available for billing; the marketplace checkout was removed
-- Observability: Sentry/OTLP instrumentation is configurable; the retained Tempo/Loki/Prometheus/Grafana stack is not observed running on 2026-09-28. Evals host health/backup timers and DGX telemetry are installed; see `VPS_RUNTIME.md`
+- Observability: Sentry on the web app and the worker, scheduler and document services, scrubbed of personal data, with the deployed commit as release (launch L-08); platform alerts from the atlantic health timer and one-minute external uptime checks, both emailed with runbook links (`docs/evals/runbooks.md`). The retained Tempo/Loki/Prometheus/Grafana stack is not running. See `VPS_RUNTIME.md`
 - CI/CD: GitHub Actions → Docker Hub → repository Swarm deploy scripts over Tailscale/SSH; retained Dokploy Traefik handles ingress
 - Legacy dataset-build scope is frozen; runtime differs by stack. Temporal and social Redis are running; see "Legacy Private Stacks" and `VPS_RUNTIME.md`.
 
@@ -236,9 +236,22 @@ Expert work: freelance domain experts get restricted accounts to author and revi
 - Migration files: `db/migrations/*`
 - Rollback files: `db/rollbacks/*`
 - Better Auth identity tables use `auth_*` names so they do not collide with operator-domain tables.
-- Production operator login allows password-only Better Auth sessions by
-  policy. TOTP and passkeys remain available as optional hardening, while JIT
-  elevation and Postgres RLS remain the load-bearing admin controls.
+- Admin two-factor authentication (launch L-08, spec P-43): platform admins,
+  platform operators and workspace operators must use TOTP when
+  `EVALS_ADMIN_MFA_REQUIRED=true` (off until every staff account has
+  enrolled). `requireIdentity` then refuses staff sessions without TOTP
+  (`MFA_ENROLMENT_REQUIRED`; pages redirect to `/workspace/security`, where
+  anyone can set up TOTP with single-use recovery codes). Staff cannot turn it
+  off while it is required. Better-auth's account lockout uses the columns
+  added by migration 107. Sensitive actions require a sign-in from the last 15
+  minutes (`requireRecentSignIn`; platform changes today, billing actions from
+  L-12/L-16), confirmed in place by `components/evals/reauth.tsx`.
+- Auth requests pass `lib/auth/request-guard.ts` first: the request is
+  labelled with the visitor's proven address (Cloudflare's header only from a
+  Cloudflare peer), so better-auth's limits are per visitor, and durable
+  PostgreSQL limits apply to sign-in (20 per visitor, 10 per account per 15
+  minutes), two-factor checks and password resets. JIT elevation and Postgres
+  RLS remain the load-bearing admin controls.
 - Vulnerability management runs through weekly Dependabot checks for npm,
   GitHub Actions, and Dockerfile base images plus Docker Scout image scans in
   the Docker publish workflow. A quarterly scheduled GitHub workflow opens or
@@ -262,6 +275,16 @@ Use `docs/TOOLS.md` for approved tunnel/CLI/MCP workflows.
 - Sentry is disabled until `SENTRY_DSN` or the server-only
   `SENTRY_DSN_FILE` Docker secret fallback is configured. Default sampling is
   `0` for traces/profiles unless environment variables raise it.
+- Production mounts the DSN as a versioned Docker secret on the web app and
+  the worker, scheduler and document services (the browser executor has no
+  direct egress and does not report). `lib/observability/sentry-scrub.mjs`
+  removes personal data from every event; `SENTRY_RELEASE` is the deployed
+  commit and `SENTRY_SERVICE` names the process. Unexpected API failures are
+  captured with the request id that also appears in the logs.
+- `GET /api/evals/v1/health/webhooks` (app host, unauthenticated) answers 200
+  or 503 with the state of each webhook dependency and no details; checks are
+  registered in `lib/observability/webhook-health.ts`, which L-12 extends with
+  the Stripe webhook. The external uptime check polls it every minute.
 - The private Docker Swarm observability stack is defined in
   `infra/observability/docker-stack.yml`; if reactivated, it runs on `dokploy-network` without
   public ingress. It was not present in the 2026-09-28 live service inventory.

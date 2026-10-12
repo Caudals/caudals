@@ -90,6 +90,9 @@ if ! openssl pkey -in "$runner_signing_key" -noout -text 2>/dev/null | grep -q '
   exit 1
 fi
 
+# Sentry DSN as a versioned secret (launch L-08); never printed.
+sentry_secret="$("$root/scripts/sentry-dsn-secret.sh")"
+
 digest="$(sha256sum "$credentials" | cut -c1-12)"
 secret="${secret_base}_${digest}"
 if ! docker secret inspect "$secret" >/dev/null 2>&1; then
@@ -138,6 +141,8 @@ CAUDALS_EVALS_DATASET_SIGNING_KEY_SECRET="$dataset_signing_secret" \
 CAUDALS_EVALS_RUNNER_SIGNING_KEY_SECRET="$runner_signing_secret" \
 CAUDALS_OBJECT_STORAGE_ACCESS_KEY_SECRET="$object_storage_access_secret" \
 CAUDALS_OBJECT_STORAGE_SECRET_KEY_SECRET="$object_storage_secret_secret" \
+CAUDALS_SENTRY_DSN_SECRET="$sentry_secret" \
+CAUDALS_SENTRY_RELEASE="$build_tag" \
   docker stack deploy --detach=true -c "$root/infra/app-stack.yml" "$stack"
 
 service="${stack}_app"

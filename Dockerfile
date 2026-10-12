@@ -49,6 +49,7 @@ COPY --from=build /app/content ./content
 COPY --from=build /app/assets ./assets
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/scripts/check-sentry-config.mjs ./scripts/check-sentry-config.mjs
+COPY --from=build /app/lib/observability/sentry-scrub.mjs ./lib/observability/sentry-scrub.mjs
 
 EXPOSE 3000
 

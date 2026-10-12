@@ -54,11 +54,17 @@ ANALYTICS_EVENTS_V2=${ANALYTICS_EVENTS_V2:-false}
 [[ $ANALYTICS_EVENTS_V2 == true || $ANALYTICS_EVENTS_V2 == false ]] || { echo 'ANALYTICS_EVENTS_V2 must be true or false' >&2; exit 1; }
 export BILLING_CREDITS_ENABLED BILLING_ENFORCE ANALYTICS_EVENTS_V2
 
+# Sentry DSN as a versioned secret shared with the web app (launch L-08).
+EVALS_SENTRY_DSN_SECRET=$("$repo_dir/scripts/sentry-dsn-secret.sh")
+export EVALS_SENTRY_DSN_SECRET
+
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \
   infra/evals/Dockerfile infra/evals/Dockerfile.playwright \
   lib services/evals-worker services/evals-documents services/evals-browser \
   package.json package-lock.json tsconfig.json)}
+# Worker events carry the image commit as their release.
+export SENTRY_RELEASE=$commit
 worker_tag="mariomedpar/caudals:evals-worker-$commit"
 # Browser and document services share one Playwright image. Commits built
 # before that change published separate tags; keep them deployable.

@@ -26,7 +26,13 @@ services:
       # scripts/deploy-evals-production.sh so web and workers always agree.
       BILLING_CREDITS_ENABLED: "${BILLING_CREDITS_ENABLED:-false}"
       BILLING_ENFORCE: "${BILLING_ENFORCE:-shadow}"
-    secrets: [evals_database_url,evals_queue_database_url,evals_master_keyring,evals_dgx_endpoint]
+      # Error reporting (launch L-08): DSN from a versioned secret, release =
+      # the deployed image commit; scrubbed of personal data in the process.
+      SENTRY_DSN_FILE: /run/secrets/sentry_dsn
+      SENTRY_ENVIRONMENT: production
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
+      SENTRY_SERVICE: evals-worker
+    secrets: [evals_database_url,evals_queue_database_url,evals_master_keyring,evals_dgx_endpoint,sentry_dsn]
     deploy:
       replicas: 1
       restart_policy: {condition: on-failure, delay: 10s}
@@ -75,7 +81,13 @@ services:
       RESEND_API_KEY_FILE: /run/secrets/evals_resend_api_key
       RESEND_FROM_EMAIL_FILE: /run/secrets/evals_resend_from_email
       EVALS_APP_URL: https://app.caudals.com
-    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email]
+      # Error reporting (launch L-08): DSN from a versioned secret, release =
+      # the deployed image commit; scrubbed of personal data in the process.
+      SENTRY_DSN_FILE: /run/secrets/sentry_dsn
+      SENTRY_ENVIRONMENT: production
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
+      SENTRY_SERVICE: evals-scheduler
+    secrets: [evals_scheduler_database_url,evals_webhook_keyring,object_storage_access_key,object_storage_secret_key,evals_resend_api_key,evals_resend_from_email,sentry_dsn]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-scheduler-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]
       interval: 30s
@@ -241,7 +253,13 @@ services:
       DO_SPACES_ACCESS_KEY_ID_FILE: /run/secrets/object_storage_access_key
       DO_SPACES_SECRET_ACCESS_KEY_FILE: /run/secrets/object_storage_secret_key
       NEXT_PUBLIC_DO_SPACES_CDN_URL: disabled-private-evals
-    secrets: [evals_document_database_url,object_storage_access_key,object_storage_secret_key]
+      # Error reporting (launch L-08): DSN from a versioned secret, release =
+      # the deployed image commit; scrubbed of personal data in the process.
+      SENTRY_DSN_FILE: /run/secrets/sentry_dsn
+      SENTRY_ENVIRONMENT: production
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
+      SENTRY_SERVICE: evals-documents
+    secrets: [evals_document_database_url,object_storage_access_key,object_storage_secret_key,sentry_dsn]
     deploy:
       replicas: 1
       restart_policy: {condition: on-failure, delay: 10s}
@@ -265,6 +283,8 @@ secrets:
   evals_dgx_endpoint: {external: true, name: caudals_evals_dgx_endpoint}
   evals_resend_api_key: {external: true, name: "${EVALS_RESEND_API_KEY_SECRET:?Versioned Resend key secret is required}"}
   evals_resend_from_email: {external: true, name: "${EVALS_RESEND_FROM_EMAIL_SECRET:?Versioned Resend sender secret is required}"}
+  # The browser executor has no direct egress by design, so it does not report to Sentry.
+  sentry_dsn: {external: true, name: "${EVALS_SENTRY_DSN_SECRET:?Versioned Sentry DSN secret is required}"}
   evals_document_database_url: {external: true, name: caudals_evals_document_database_url}
   evals_browser_database_url: {external: true, name: caudals_evals_browser_database_url}
   evals_browser_queue_database_url: {external: true, name: caudals_evals_browser_queue_database_url}

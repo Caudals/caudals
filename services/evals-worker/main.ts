@@ -7,8 +7,11 @@ import { InvocationWorker } from '../../lib/evals/queue/worker';
 import { loadKeyring } from '../../lib/evals/security/envelope';
 import { TargetExecutionWorker } from '../../lib/evals/queue/target-worker';
 import { workerWorkspaces } from '../../lib/evals/queue/workspaces';
+import { captureServerError, flushErrors } from '../../lib/observability/capture';
+import { initWorkerSentry } from '../../lib/observability/worker-sentry';
 
 async function main() {
+ initWorkerSentry('evals-worker');
  if(process.env.EVALS_DISPATCH_ENABLED!=='true')throw new Error('dispatch_disabled');
  // Operator-assigned workspaces plus every live workspace; each job still runs in its own tenant scope.
  const orgs=workerWorkspaces(process.env.EVALS_WORKER_ORG_IDS);await orgs.refresh();
@@ -16,7 +19,7 @@ async function main() {
  const keyFile=z.string().min(1).parse(process.env.EVALS_MASTER_KEYRING_FILE);
  const endpointFile=process.env.EVALS_DGX_ENDPOINT_FILE;
  const dgxEndpoint=endpointFile?readFileSync(endpointFile,'utf8').trim():undefined;
- const boss=createBoss();boss.on('error',()=>console.error(JSON.stringify({event:'queue_error'})));
+ const boss=createBoss();boss.on('error',(error:unknown)=>{console.error(JSON.stringify({event:'queue_error'}));captureServerError(error,{service:'evals-worker',event:'queue_error'});});
  const keys=loadKeyring(keyFile),
    worker=new InvocationWorker({tx:withTenant,keys,actorId,workerId:randomUUID(),dgxEndpoint}),targetWorker=new TargetExecutionWorker({tx:withTenant,keys,actorId,workerId:randomUUID()});
  try {
@@ -35,4 +38,4 @@ async function main() {
   }
  }finally{await boss.stop({graceful:true,timeout:150000});await getEvalsPool().end();}
 }
-main().catch(()=>{console.error(JSON.stringify({event:'worker_stopped',reason:'configuration_or_runtime_failure'}));process.exitCode=1;});
+main().catch(async(error:unknown)=>{console.error(JSON.stringify({event:'worker_stopped',reason:'configuration_or_runtime_failure'}));captureServerError(error,{service:'evals-worker',event:'worker_stopped'});await flushErrors();process.exitCode=1;});

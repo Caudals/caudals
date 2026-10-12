@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { Pool, type PoolClient } from "pg";
 import { z } from "zod";
 import { EvalError } from "../domain/errors";
-import type { EvalIdentity } from "../domain/identity";
+import { requireRecentSignIn, type EvalIdentity } from "../domain/identity";
 import {
   enqueueProbe, registerAccount, registerPrice, registerProvider, revokeSecret, setBudget, setGenerationProviderRoute, writeSecret,
 } from "../providers/admin";
@@ -38,8 +38,9 @@ export function requirePlatformAdmin(identity: EvalIdentity) {
 /** Sensitive admin changes need a sign-in from the last 15 minutes (spec §16.1). */
 export function requireRecentAuthentication(identity: EvalIdentity, maxMinutes = 15) {
   requirePlatformAdmin(identity);
-  const at = identity.sessionCreatedAt ? Date.parse(identity.sessionCreatedAt) : NaN;
-  if (!Number.isFinite(at) || Date.now() - at > maxMinutes * 60_000) {
+  try {
+    requireRecentSignIn(identity, maxMinutes);
+  } catch {
     // 403, not 401: the session is valid; the person only needs to confirm it is them.
     throw new EvalError("REAUTHENTICATION_REQUIRED", 403, "Confirm it is you to make this platform change.");
   }

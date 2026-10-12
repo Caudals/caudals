@@ -1,13 +1,21 @@
 # Evaluation platform runbooks
 
-Operational procedures required by spec §17.6. Every procedure runs on `atlantic` as a founder with approved Tailscale access. Never paste secrets, customer content or private endpoints into tickets, chat or commits. Alerts arrive from `caudals-evals-health.timer` (every ten minutes) at the collaboration notification inbox; each names the condition, not the data.
+Operational procedures required by spec §17.6 and launch package L-08 (spec P-43, P-48). Every procedure runs on `atlantic` as a founder with approved Tailscale access. Never paste secrets, customer content or private endpoints into tickets, chat or commits.
+
+Three signals reach the collaboration notification inbox, and each names the condition, not the data:
+
+- **Platform alerts** from `caudals-evals-health.timer` on atlantic (every ten minutes, `scripts/evals/health-alerts.sh`). Every alert line links to its section below.
+- **Uptime alerts** from `caudals-uptime.timer` (every minute, `scripts/uptime-checks.sh`), outside the host that serves the site: see runbook 19.
+- **Errors in Sentry** from the web app and the worker, scheduler and document services, scrubbed of personal data: see runbook 20.
 
 Common commands:
 
 ```sh
 sudo docker service ls                                   # all services 1/1?
 sudo docker service logs --since 30m caudals-evals_worker # redacted JSON events only
-sudo CAUDALS_ALERT_DRY_RUN=true /usr/local/sbin/caudals-evals-health
+sudo CAUDALS_ALERT_DRY_RUN=true /usr/local/sbin/caudals-evals-health          # what would alert now (sends nothing)
+sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health   # alert drill
+sudo systemctl list-timers 'caudals-*' --no-pager
 sudo systemctl start caudals-evals-backup.service        # take a backup now
 ```
 
@@ -103,3 +111,111 @@ Signals: `budget_pauses`, a customer reports "paused at the agreed limit", or se
 4. Run the public, app and Leads health checks and a synthetic evaluation before re-enabling customer workspaces.
 
 Recovery objectives (RPO 24 h, RTO 8 h) are targets validated only by a restore rehearsal; record each rehearsal in `work-packages/WP-08.md`.
+
+## 11. Disk or memory pressure
+
+Signals: `disk_pressure` (root disk at 85 % or more), `memory_pressure` (less than 400 MiB available).
+
+1. `df -h /`, `sudo docker system df` and `free -m`. The hourly `caudals-docker-cleanup.timer` removes only images no service runs or would roll back to; run it now with `sudo systemctl start caudals-docker-cleanup.service`.
+2. Never prune volumes, secrets or the images a running service could roll back to. Old `/root/.caudals/backups` archives follow the backup retention in `scripts/evals/backup.sh`; do not delete the newest.
+3. For memory, check `sudo docker stats --no-stream` for a service above its limit; reduce `EVALS_BROWSER_REPLICAS` or demo concurrency before touching anything else.
+
+## 12. Service not converged
+
+Signals: `service_<name>` ("Service X is at 0/1").
+
+1. `sudo docker service ps --no-trunc <name>` shows why the task stopped; `sudo docker service logs --since 30m <name>` has redacted events only.
+2. A failed update rolls back on its own. If the service stays down, redeploy the last verified image (app: `docs/launch/AGENT-BRIEF.md` §7; workers: `scripts/deploy-evals-production.sh` with the previous `EVALS_IMAGE_COMMIT`).
+
+## 13. Queue age
+
+Signals: `queue_stuck` (outbox deliveries older than 15 minutes), `lease_expired`, `engine_queue_stale` (pg-boss jobs waiting more than 15 minutes to start).
+
+1. Is the worker running (`caudals-evals_worker` 1/1) and is the DGX up (runbook 1)? Most stale queues are a stopped worker or an open DGX circuit.
+2. Waiting jobs are durable: restarting the worker (`sudo docker service update --force caudals-evals_worker`) loses nothing.
+3. If one workspace's jobs keep failing, pause that evaluation from Ops rather than scaling the worker to 0.
+
+## 14. Report rendering failed
+
+Signals: `report_render_failed`. The document worker also sends the exception to Sentry (runbook 20).
+
+1. Check `caudals-evals_documents` health and its last log lines; Chromium needs its `/tmp` tmpfs.
+2. Retry by requesting the export again from the report; a failed job never blocks the report itself.
+
+## 15. Demo failures or queue
+
+Signals: `demo_failure_rate` (more than 20 % of demos finished in the last hour failed for service reasons, with at least three finished), `demo_queue_stale` (a demo waiting more than 15 minutes).
+
+Visitor-side failures (a site that is unreachable, blocked, thin or has no chat) do not count. Service causes are model errors and timeouts, phase timeouts, browser failures and queue time-outs.
+
+1. Read the reasons: `/ops/growth` → Demo outcomes, or as the database owner `SELECT error_code, count(*) FROM demo.run WHERE finished_at > now()-interval '1 hour' GROUP BY 1`.
+2. `model_*` and `timeout_*`: the DGX is down or saturated (runbook 1). The demo page already tells visitors (service notice "degraded" or "at capacity") and the queue holds new runs. Enable the paid fallback only if the founder funded it (`DEMO_FALLBACK_ENABLED`, L-03 handoff).
+3. Browser failures: check `caudals-evals_browser` and its egress proxy (runbook 12).
+4. A stale queue with healthy models means admission stopped: restart the app (`sudo docker service update --force caudals-app_app`); queued runs keep their place.
+
+## 16. Webhook failures
+
+Signals: `webhook_failures` (outbound customer webhooks that ended failed in the last hour, and failed payment events once L-12's `billing.stripe_event` exists); the uptime check `webhook_health` (runbook 19).
+
+1. Outbound failures are usually the customer's endpoint (HTTP errors, redirects refused). Check the endpoint's recent deliveries in the workspace's integrations screen; tell the customer if their receiver is down. Deliveries retry five times with backoff.
+2. Many endpoints failing at once means our side: check `caudals-evals_scheduler` and outbound network from atlantic.
+3. `GET https://app.caudals.com/api/evals/v1/health/webhooks` names failing checks (`database`, `outbound_signing`, and from L-12 the Stripe check) without details. `outbound_signing` failing means the webhook keyring secret is missing or unreadable in the app service.
+4. Payment webhooks (from L-12): a signing-secret mismatch fails every event; fix the secret, then replay the failed events from the Stripe dashboard (test mode until Gate B). Event handling is idempotent, so replays never double-credit.
+
+## 17. Billing incident
+
+Signals: `holds_stale` (credit holds unresolved after 24 hours; a no-op until L-11 creates holds), a `billing_drift` line from the scheduler's daily verification, a customer charged for failed work, or any doubt about a balance.
+
+1. Contain: set `BILLING_ENFORCE=shadow` (`scripts/launch/set-app-flag.sh BILLING_ENFORCE shadow`, then redeploy the workers) so no run is refused while you investigate. Never switch `BILLING_CREDITS_ENABLED` off mid-incident without reading L-09.md: it stops ledger writes.
+2. Never edit ledger rows: entries are append-only and every correction goes through `billing.adjust`, `billing.release` or `billing.refund_run` with a reason and an idempotency key.
+3. Stale holds: find them with `SELECT org_id, run_id, attempt_id, created_at FROM billing.credit_hold WHERE state='held' AND created_at < now()-interval '24 hours'`. Reconcile the attempt first (runbook 4), then release or capture through the engine path; the daily expiry releases holds past `expires_at`.
+4. Drift: run the verifier (L-09.md) and compare account balances with the ledger sum; record the explanation before any adjustment.
+5. Recent sign-in is required for every billing action (`requireRecentSignIn`); admins confirm with password and TOTP.
+6. Tell affected customers what happened and what was refunded; record the incident in the package handoff or `docs/launch/PROGRESS.md`.
+
+## 18. Database unreachable
+
+Signals: `database_down`, `database_unreadable`.
+
+1. `sudo docker service ps caudals-postgres_db`; the service restarts on failure. Check disk (runbook 11) first: a full disk stops PostgreSQL.
+2. Do not restart workers until the database answers; their jobs resume from durable state.
+
+## 19. Uptime check failed
+
+Signals: "Caudals uptime alert" emails for `landing`, `demo_api`, `app_sign_in`, `auth_api` or `webhook_health`, sent by `caudals-uptime.timer` every minute. A check fails only when two attempts five seconds apart both fail, so a real outage alerts within about 90 seconds; reminders follow every six hours while it stays down, and a RESOLVED email when it answers again.
+
+1. Open the URL in the alert from your phone. Landing and demo API down together usually means the app or Traefik; only `webhook_health` means a webhook dependency (runbook 16).
+2. `sudo docker service ps caudals-app_app` and `curl -sI https://caudals.com/en`. A failed deploy rolls back by itself; otherwise redeploy the previous image (`docs/launch/AGENT-BRIEF.md` §7).
+3. If atlantic itself is unreachable, check Hetzner's console; Cloudflare keeps serving errors meanwhile.
+
+Where it runs: the decision is arctic (I-5), a different host and provider, installed with `sudo scripts/install-uptime-checks.sh` (alert routing from `/root/.caudals/alerts.env`). Until that is done, an interim copy runs on atlantic, which cannot report atlantic's own outage. After the arctic install, disable the interim one with `sudo systemctl disable --now caudals-uptime.timer` on atlantic.
+
+Drill: `echo landing | sudo tee /root/.caudals/uptime-drill`, wait for the alert, then `sudo rm /root/.caudals/uptime-drill` and wait for the RESOLVED email. The drilled check requests a path that does not exist, so the failure travels the real network path.
+
+## 20. Errors in Sentry
+
+The web app (`service:web`) and the worker, scheduler and document services (`service:evals-*`) report unexpected errors to Sentry with the deployed commit as the release. The browser executor has no direct egress by design and does not report. Every event passes `lib/observability/sentry-scrub.mjs`: no users, IP addresses, cookies, headers, query strings, bodies, local variables, emails, phone numbers or tokens.
+
+1. Each web event has a `request_id` tag that matches the `eval_api_request_failed` log line: `sudo docker service logs --since 1h caudals-app_app | grep <request_id>`.
+2. Status: `sudo docker exec <app container> npm run observability:sentry-status -- --fail-on-disabled`. Test event (fake personal data that must arrive redacted): add `--send-test-event`; from a worker container, `node --conditions=react-server --import tsx services/evals-worker/sentry-test.ts`.
+3. Rotate the DSN: write the new one to `/root/.caudals/secrets/sentry-dsn` (root, mode 600), then `sudo scripts/configure-sentry-runtime.sh`; the next deploys keep it.
+
+## 21. Admin two-factor authentication
+
+Platform admins, platform operators and workspace operators must use TOTP once `EVALS_ADMIN_MFA_REQUIRED=true`; customers may turn it on from Account security (`/workspace/security`). Enforcement stays off until every staff account has enrolled (PROGRESS.md I-6).
+
+1. Enrolment status, as the database owner: `SELECT p.role, u.email, u."twoFactorEnabled" FROM evals.platform_role p JOIN auth_user u ON u.id=p.user_id UNION ALL SELECT 'workspace operator', u.email, u."twoFactorEnabled" FROM evals.membership m JOIN auth_user u ON u.id=m.user_id WHERE m.role='operator'`.
+2. Turn enforcement on only when every row is `t`: `scripts/launch/set-app-flag.sh EVALS_ADMIN_MFA_REQUIRED true`. Staff without TOTP are then sent to the setup page at their next page load and APIs answer `MFA_ENROLMENT_REQUIRED`; staff cannot turn TOTP off while it is required. To undo, set it to `false`.
+3. Lost authenticator: sign in with a recovery code (each works once), then create new codes or set TOTP up again from Account security.
+4. Lost authenticator and recovery codes: after confirming the person's identity out of band, a founder on atlantic resets them as the database owner, in one transaction: `DELETE FROM auth_two_factor WHERE "userId"=$1; UPDATE auth_user SET "twoFactorEnabled"=false WHERE id=$1; DELETE FROM auth_session WHERE "userId"=$1;` and `INSERT INTO evals.audit_event(actor_id,action,subject_id) VALUES(<founder user id>,'security.two_factor_reset',$1)`. With enforcement on, the person must enrol again at their next sign-in.
+5. Ten wrong codes in a row lock verification for 15 minutes (`auth_two_factor."lockedUntil"`, migration 107). Sign-in is also limited to 20 attempts per visitor and 10 per account every 15 minutes, and two-factor checks to 20 per visitor.
+
+## Alert drills
+
+Each alert must fire once in a drill and link to its runbook (L-08 acceptance).
+
+- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds), each with its runbook link. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
+- Uptime: runbook 19.
+- Sentry: runbook 20, step 2.
+- The production drills are recorded in `docs/launch/L-08.md`.
+

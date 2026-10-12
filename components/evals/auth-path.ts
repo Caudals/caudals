@@ -36,6 +36,13 @@ export function evaluationReturnPath(value: string | null | undefined) {
   }
   return "/evaluation-entry";
 }
+/** Two-factor setup, returning to `next` once it is on (launch L-08). */
+export function evaluationSecurityPath(next?: string) {
+  const destination = evaluationReturnPath(next);
+  return destination.includes("#") || destination === "/evaluation-entry"
+    ? "/workspace/security"
+    : `/workspace/security?next=${encodeURIComponent(destination)}`;
+}
 export function evaluationSignInPath(next?: string) {
   const destination = evaluationReturnPath(next);
   return destination.includes("#")
