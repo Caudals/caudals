@@ -70,6 +70,8 @@ inspect.json
 *.inspect.json
 
 *.pdf
+# The sample report PDFs are release artifacts (launch L-33; scripts/evals/render-example-pdfs.ts).
+!/content/sample-report/*.pdf
 # LinkedIn post images kept locally; not published with the site.
 /public/linkedin/
 
