@@ -166,7 +166,10 @@ export async function proxy(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.searchParams.delete("lang");
     if (!hostname.endsWith("localhost")) {
+      // Behind the reverse proxy `nextUrl` names the internal server; the
+      // public address is the Host header.
       redirectUrl.protocol = "https:";
+      redirectUrl.hostname = hostname;
       redirectUrl.port = "";
     }
     const redirect = NextResponse.redirect(redirectUrl, 307);
