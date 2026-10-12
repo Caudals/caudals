@@ -1,0 +1,16 @@
+{
+  "name": "@caudals/connect",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test.mjs",
+    "dev": "node serve.mjs"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "jsqr": "1.4.0"
+  }
+}

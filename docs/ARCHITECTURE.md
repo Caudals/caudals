@@ -9,6 +9,7 @@ Current production scope:
 - Public marketing, authority and demand capture: `/`, `/sectors`, `/sectors/*`, `/contact`, `/call`, `/blog`, `/blog/*`, `/newsletter`, `/newsletter/*`, `/legal/*`
 - Public APIs for that funnel: `/api/contact`, `/api/newsletter`, `/api/analytics/track`, `/api/demo/*`
 - Public demo: `/demo` (soft launch); self-serve sign-up from it at `/workspace/signup`
+- Event contact cards: `connect.caudals.com`, a separate static service in `services/connect` on atlantic; permanent `/mario` and `/alonso` links, bilingual pages, vCard/QR sharing and offline cache. No database or evaluation-app dependency. See `services/connect/README.md`.
 - Private operator access: `/auth/*`, `/api/auth/*` (retained internal-account auth)
 - Evaluation: `/ops`, `/workspace`, `/review`, `/evaluation-entry`, `/share` and scoped `/api/evals/v1` APIs
 

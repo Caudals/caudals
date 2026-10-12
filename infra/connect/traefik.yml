@@ -1,0 +1,18 @@
+http:
+  routers:
+    caudals-connect-http:
+      rule: Host(`connect.caudals.com`)
+      service: caudals-connect
+      middlewares: [redirect-to-https]
+      entryPoints: [web]
+    caudals-connect-https:
+      rule: Host(`connect.caudals.com`)
+      service: caudals-connect
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+  services:
+    caudals-connect:
+      loadBalancer:
+        servers:
+          - url: http://caudals-connect:8080

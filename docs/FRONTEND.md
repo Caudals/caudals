@@ -6,6 +6,14 @@ Implementation rules for the public funnel (including the `/demo` free test), th
 
 ## Stack and Constraints
 
+The event contact microsite at `connect.caudals.com` is an intentionally static
+exception to the application stack below: build-time HTML/SVG generation with
+small progressive-enhancement JavaScript, using the public Paper fonts/palette.
+Its independent `/{es,en}/{mario,alonso}` pages, contact downloads, QR sheet,
+native sharing and offline cache live in `services/connect`; deployment and
+device acceptance are documented in its README. It does not import either
+application root layout or add routes to the main site's sitemap/navigation.
+
 - Next.js App Router + React 19 + TypeScript
 - Tailwind v4 + Radix + shared app primitives
 - Light mode only in current scope. The platform token layer is dark-ready
