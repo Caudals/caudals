@@ -1,9 +1,9 @@
 /* Marketing tokens: warm paper canvas, near-black ink, no colour accent.
    The accent names are kept for existing consumers; they resolve to ink. */
 :root {
-  --ds-canvas: #f5f4f0;
-  --ds-sidebar-bg: #f5f4f0;
-  --ds-surface: #f5f4f0;
+  --ds-canvas: #fafaf8;
+  --ds-sidebar-bg: #fafaf8;
+  --ds-surface: #fafaf8;
   --ds-surface-muted: #ecebe6;
   --ds-border-soft: rgba(0, 0, 0, 0.06);
   --ds-border-strong: rgba(0, 0, 0, 0.12);

@@ -33,7 +33,7 @@ export function ContactAcknowledgementEmail({
     <div
       style={{
         fontFamily: "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-        backgroundColor: "#f5f4f0",
+        backgroundColor: "#fafaf8",
         padding: "32px 12px",
         color: INK,
       }}

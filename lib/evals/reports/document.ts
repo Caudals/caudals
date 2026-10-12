@@ -252,7 +252,7 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @page{size:A4;margin:18mm 16mm 20mm}
-:root{--ink:#141413;--ink-2:#3b3a36;--muted:#6b6a63;--faint:#9a9a94;--line:#e6e4de;--soft:#f5f4f0;--pass:#15803d;--pass-soft:#e9f6ee;--warn:#b45309;--warn-soft:#fdf3e4;--fail:#b91c1c;--fail-soft:#fcebea;--neutral:#a8a49c}
+:root{--ink:#141413;--ink-2:#3b3a36;--muted:#6b6a63;--faint:#9a9a94;--line:#e6e4de;--soft:#fafaf8;--pass:#15803d;--pass-soft:#e9f6ee;--warn:#b45309;--warn-soft:#fdf3e4;--fail:#b91c1c;--fail-soft:#fcebea;--neutral:#a8a49c}
 *{box-sizing:border-box}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{margin:0;font-family:"Geist",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:10pt;line-height:1.5;color:var(--ink);font-variant-numeric:tabular-nums}

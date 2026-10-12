@@ -5,7 +5,7 @@
  */
 
 .lp {
-  --bg: #f5f4f0;
+  --bg: #fafaf8;
   --paper: #ffffff;
   --paper2: #faf9f6;
   --ink: #141413;
@@ -1058,7 +1058,7 @@
   padding: clamp(44px, 5.5vw, 76px) clamp(20px, 5vw, 64px);
   border-radius: 18px;
   background: #121211;
-  color: #f5f4f0;
+  color: #fafaf8;
   text-align: center;
 }
 .lp-cta-card::before {
@@ -1099,7 +1099,7 @@
   max-width: 46ch;
   font-size: clamp(16px, 1.3vw, 18px);
   line-height: 1.6;
-  color: rgba(245, 244, 240, 0.92);
+  color: rgba(250, 250, 248, 0.92);
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
 }
 .lp-cta-act {
@@ -1110,22 +1110,22 @@
   margin-top: 10px;
 }
 .lp-cta .lp-btn {
-  border-color: #f5f4f0;
-  background: #f5f4f0;
+  border-color: #fafaf8;
+  background: #fafaf8;
   color: var(--ink);
 }
 .lp-cta .lp-btn-ghost {
-  border-color: rgba(245, 244, 240, 0.4);
+  border-color: rgba(250, 250, 248, 0.4);
   background: transparent;
-  color: #f5f4f0;
+  color: #fafaf8;
 }
 .lp-cta .lp-btn-ghost:hover {
-  border-color: #f5f4f0;
-  background: rgba(245, 244, 240, 0.08);
+  border-color: #fafaf8;
+  background: rgba(250, 250, 248, 0.08);
   opacity: 1;
 }
 .lp-cta :focus-visible {
-  outline-color: #f5f4f0;
+  outline-color: #fafaf8;
 }
 
 /* ── sector pages and the sectors hub ── */

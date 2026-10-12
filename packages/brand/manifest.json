@@ -6,7 +6,7 @@
     "avoid": ["AI hype", "fake urgency", "absolute compliance claims", "invented proof", "hashtag walls", "emoji bullets"]
   },
   "tokens": {
-    "canvas": "#f5f4f0",
+    "canvas": "#fafaf8",
     "surface": "#ffffff",
     "textPrimary": "#141413",
     "textSecondary": "#6b6a63",

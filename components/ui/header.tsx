@@ -30,7 +30,7 @@ interface HeaderProps {
 const DIAGNOSTIC_CTA = "/contact?offer=reality-check";
 
 const pillClass =
-  "rounded-full bg-[#141413] px-4 text-[13px] font-medium text-[#f5f4f0] transition-[opacity,transform] duration-200 hover:bg-[#141413] hover:opacity-85 active:scale-[0.97]";
+  "rounded-full bg-[#141413] px-4 text-[13px] font-medium text-[#fafaf8] transition-[opacity,transform] duration-200 hover:bg-[#141413] hover:opacity-85 active:scale-[0.97]";
 
 export function Header({ links }: HeaderProps) {
   const t = useTranslations("nav");

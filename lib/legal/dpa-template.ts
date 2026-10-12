@@ -54,7 +54,7 @@ const bullet = (text: string) =>
 
 function cell(text: string, header = false) {
   return new TableCell({
-    shading: header ? { type: ShadingType.CLEAR, color: "auto", fill: "F5F4F0" } : undefined,
+    shading: header ? { type: ShadingType.CLEAR, color: "auto", fill: "FAFAF8" } : undefined,
     margins: { top: 60, bottom: 60, left: 100, right: 100 },
     children: [new Paragraph({ children: [run(text, { bold: header, size: 18 })] })],
   });

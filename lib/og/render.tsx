@@ -10,7 +10,7 @@ export const OG_CONTENT_TYPE = "image/png";
 const INK = "#141413";
 const INK2 = "#3b3a36";
 const MUTE = "#6b6a63";
-const PAPER = "#f5f4f0";
+const PAPER = "#fafaf8";
 const LINE = "#dcdad3";
 
 /**
