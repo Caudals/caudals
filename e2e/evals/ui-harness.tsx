@@ -27,6 +27,7 @@ import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/eval
 import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
 import { LocaleProvider } from "../../lib/i18n/context";
+import { FrontDoorProvider } from "../../components/public/front-door";
 import "../../components/landing/landing.css";
 const params = new URLSearchParams(location.search);
 /** A synthetic grading-v2 report: every label, ground truth, key facts, buttons and excerpts. */
@@ -111,8 +112,11 @@ const content =
   location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed"}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
   demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
+    // `?public` renders it as the public front door (DEMO_PUBLIC, launch L-04).
     <LocaleProvider locale={params.get("locale") === "es" ? "es" : "en"}>
-      <div className="lp min-h-screen"><main><DemoPage /></main></div>
+      <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
+        <div className="lp min-h-screen"><main><DemoPage /></main></div>
+      </FrontDoorProvider>
     </LocaleProvider>
   ) : location.pathname === "/workspace/web-app-fixture" ? (
     <WebAppConnector orgId="00000000-0000-4000-8000-000000000001" targetId="00000000-0000-4000-8000-000000000201" />

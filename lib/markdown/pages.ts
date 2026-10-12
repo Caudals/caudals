@@ -5,6 +5,7 @@ import type { MessageKey } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/config";
 import { localizePathname } from "@/lib/i18n/routing";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 import { homeFaqItems } from "@/lib/public/home-faq";
 import {
   SECTOR_IDS,
@@ -38,7 +39,11 @@ const STATIC_PAGES: Record<string, StaticPageCopy> = {
   "/call": { title: "call.title", description: "call.subtitle" },
   "/contact": { title: "contact.title", description: "contact.subtitle" },
   "/legal/cookies": { title: "cookies.title", description: "cookies.body" },
+  "/demo": { title: "demo.metaTitle", description: "demo.metaDescription" },
 };
+
+/** The free test has a markdown page only while it is the public front door (launch L-04). */
+const DEMO_PATH = "/demo";
 
 /** Legal documents render from their own content files rather than messages. */
 const LEGAL_DOCUMENTS = new Map<string, LegalDocumentId>(
@@ -51,6 +56,7 @@ const SECTOR_PAGES = new Map<string, SectorId>(
 );
 
 export function isStaticMarkdownPage(pathname: string) {
+  if (pathname === DEMO_PATH) return demoPublicEnabled();
   return (
     Object.hasOwn(STATIC_PAGES, pathname) ||
     LEGAL_DOCUMENTS.has(pathname) ||
@@ -106,6 +112,14 @@ function renderSectorBody(id: SectorId, locale: Locale) {
     `## ${t("sectors.faqTitle")}`,
     copy.faq.map((item) => `### ${item.q}\n\n${item.a}`).join("\n\n"),
   ].join("\n\n");
+}
+
+/** The free test as prose: its four steps and its privacy line. */
+function renderDemoBody(t: ReturnType<typeof getTranslator>) {
+  const steps = (["read", "write", "ask", "check"] as const).map(
+    (step, index) => `${index + 1}. **${t(`demo.steps.${step}`)}.** ${t(`demo.steps.${step}Idle`)}`,
+  );
+  return [steps.join("\n"), t("demo.footnote")].join("\n\n");
 }
 
 function renderSectorsHubBody(locale: Locale) {
@@ -169,7 +183,9 @@ export async function renderStaticPageMarkdown(
             `## ${t("faq.title")}`,
             ...homeFaqItems(t).map(({ q, a }) => `### ${q}\n\n${a}`),
           ].join("\n\n")
-        : undefined;
+        : pathname === DEMO_PATH
+          ? renderDemoBody(t)
+          : undefined;
   }
 
   const canonical = buildMarketingUrl(localizePathname(pathname, locale));

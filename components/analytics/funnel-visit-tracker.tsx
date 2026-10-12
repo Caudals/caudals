@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { trackProductEvent, flushAnalyticsMirror } from "@/lib/analytics/funnel-events";
 import { COOKIE_CONSENT_EVENT, getCookieConsent } from "@/lib/legal/cookie-consent";
 import { clearFirstTouch } from "@/lib/analytics/first-touch";
+import { funnelLinkEvent } from "@/lib/analytics/funnel-links";
 export function FunnelVisitTracker() {
   const pathname = usePathname();
   useEffect(() => {
@@ -25,8 +26,8 @@ export function FunnelVisitTracker() {
       try { destination = new URL(href, location.origin); } catch { return; }
       if (![location.hostname, "caudals.com", "app.caudals.com"].includes(destination.hostname)) return;
       const surface = pathname.startsWith("/workspace") || pathname.startsWith("/ops") ? "workspace" : pathname.includes("/demo") ? "demo" : "public";
-      if (/^\/(en|es)\/call\/?$/.test(destination.pathname)) void trackProductEvent("readout_link_clicked", { surface });
-      if (/^\/(en|es)\/contact\/?$/.test(destination.pathname)) void trackProductEvent("pilot_requested", { surface });
+      const funnelEvent = funnelLinkEvent(destination.pathname);
+      if (funnelEvent) void trackProductEvent(funnelEvent, { surface });
     };
     document.addEventListener("click", click);
     sync(); window.addEventListener(COOKIE_CONSENT_EVENT, sync);

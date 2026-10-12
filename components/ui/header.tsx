@@ -21,6 +21,7 @@ import {
 import { useTranslations } from "@/lib/i18n/context";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { useFrontDoor } from "@/components/public/front-door";
 
 interface HeaderProps {
   links?: readonly PublicNavigationLink[];
@@ -28,12 +29,15 @@ interface HeaderProps {
 
 /** The free diagnostic, preselected on the contact form. */
 const DIAGNOSTIC_CTA = "/contact?offer=reality-check";
+/** The free test (launch L-04), once `DEMO_PUBLIC` makes it the front door. */
+const DEMO_CTA = "/demo";
 
 const pillClass =
   "rounded-full bg-[#141413] px-4 text-[13px] font-medium text-[#fafaf8] transition-[opacity,transform] duration-200 hover:bg-[#141413] hover:opacity-85 active:scale-[0.97]";
 
 export function Header({ links }: HeaderProps) {
   const t = useTranslations("nav");
+  const { demoPublic, signInUrl } = useFrontDoor();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -46,6 +50,7 @@ export function Header({ links }: HeaderProps) {
   }, []);
 
   const navLinks = links && links.length > 0 ? links : publicNavigationLinks;
+  const cta = demoPublic ? { href: DEMO_CTA, label: t("tryFree") } : { href: DIAGNOSTIC_CTA, label: t("diagnostic") };
 
   return (
     <header
@@ -79,13 +84,24 @@ export function Header({ links }: HeaderProps) {
             </Link>
           ))}
           <LanguageSwitcher />
+          {demoPublic ? (
+            <a href={signInUrl} className="text-[14px] text-[#3b3a36] transition-colors hover:text-[#141413]">
+              {t("signIn")}
+            </a>
+          ) : null}
           <Button size="sm" asChild className={cn("h-9", pillClass)}>
-            <Link href={DIAGNOSTIC_CTA}>{t("diagnostic")}</Link>
+            <Link href={cta.href}>{cta.label}</Link>
           </Button>
         </nav>
+        {/* On a phone the free test stays one tap away, outside the menu. */}
+        {demoPublic ? (
+          <Button size="sm" asChild className={cn("ml-auto h-8 px-3.5 md:hidden", pillClass)}>
+            <Link href={DEMO_CTA}>{t("tryFree")}</Link>
+          </Button>
+        ) : null}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-auto text-[#141413] hover:bg-black/5 md:hidden">
+            <Button variant="ghost" size="icon" className={cn("text-[#141413] hover:bg-black/5 md:hidden", demoPublic ? "-ml-5" : "ml-auto")}>
               <Menu className="h-5 w-5" />
               <span className="sr-only">{t("toggleMenu")}</span>
             </Button>
@@ -119,9 +135,16 @@ export function Header({ links }: HeaderProps) {
                       </Link>
                     </SheetClose>
                   ))}
+                  {demoPublic ? (
+                    <SheetClose asChild>
+                      <a href={signInUrl} className="text-lg text-[#3b3a36] hover:text-[#141413]">
+                        {t("signIn")}
+                      </a>
+                    </SheetClose>
+                  ) : null}
                   <SheetClose asChild>
                     <Button size="sm" asChild className={cn("h-10 w-full", pillClass)}>
-                      <Link href={DIAGNOSTIC_CTA}>{t("diagnostic")}</Link>
+                      <Link href={cta.href}>{cta.label}</Link>
                     </Button>
                   </SheetClose>
                   <LanguageSwitcher className="pt-2 text-base" />

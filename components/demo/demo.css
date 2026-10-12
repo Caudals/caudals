@@ -644,6 +644,48 @@ summary.dm-row-head::-webkit-details-marker {
   font: 400 19px/1.45 var(--serif);
   color: var(--ink);
 }
+.dm-label-gap {
+  margin-top: 14px;
+}
+/* After the account: book a readout, then send to a colleague (launch L-04). */
+.dm-next {
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line2);
+}
+.lp-btn.dm-ghost {
+  width: 100%;
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.lp-btn.dm-ghost:hover {
+  border-color: var(--ink);
+  opacity: 1;
+}
+.dm-share-open {
+  font-size: 14.5px;
+  text-align: center;
+}
+.dm-share {
+  display: grid;
+  gap: 4px;
+}
+.dm-share .dm-hint {
+  margin-top: 8px;
+}
+.dm-share .dm-error {
+  margin-top: 12px;
+}
+.dm-share-go {
+  margin-top: 14px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dm-share {
+    animation: dm-fade 0.5s var(--ease) both;
+  }
+}
 
 /* The account offer stays within reach once the report is ready. */
 .dm-dock {

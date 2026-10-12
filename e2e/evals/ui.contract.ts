@@ -2354,6 +2354,103 @@ test("a running website demo shows its ETA, a degraded notice and tips after a m
 });
 
 
+/* ------------------------------------ demo report as the front door (L-04) --- */
+
+function finishedDemo(overrides: Record<string, unknown> = {}) {
+  const finished = new Date(Date.now() - 60_000).toISOString();
+  const cases = Array.from({ length: 8 }, (_, index) => ({
+    id: `c${index + 1}`, question: `Question ${index + 1} about the cover?`, expected: "The answer the site gives.", facts: ["fact"],
+    quote: "The sentence from the page.", page: 0, severity: "medium",
+    answer: { text: "An answer.", ms: 900, error: null },
+    verdict: { verdict: index < 5 ? "correct" : "incorrect", cause: index < 5 ? null : "wrong_information", note: "Why.", facts: [], method: "judge" },
+  }));
+  return demoView({
+    phase: "done", queue: null, startedAt: finished, finishedAt: finished, notify: { available: false, requested: false, sent: false },
+    pages: [{ title: "Help", url: "https://example.test/help" }], cases, browser: { chat: "done", docs: null, chatFound: true },
+    summary: { total: 8, scored: 8, correct: 5, partial: 0, incorrect: 3, no_answer: 0, unscored: 0, causes: { wrong_information: 3 } },
+    ...overrides,
+  });
+}
+
+test("the public demo report offers a free account with a company, then a readout, then sending to a colleague with consent", async ({ page }) => {
+  const signups: unknown[] = [];
+  const shares: Array<{ body: Record<string, unknown>; token: string | null; type: string | null }> = [];
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: finishedDemo() }));
+  await page.route(`**/api/demo/runs/${demoRunId}/signup`, route => { signups.push(route.request().postDataJSON()); return route.fulfill({ json: { sent: true } }); });
+  await page.route(`**/api/demo/runs/${demoRunId}/share`, route => {
+    const request = route.request();
+    shares.push({ body: request.postDataJSON(), token: request.headers()["x-demo-token"] ?? null, type: request.headers()["content-type"] ?? null });
+    return route.fulfill({ json: { sent: true } });
+  });
+  await page.goto(`/demo?public#r=${demoRunId}.${demoToken}`);
+  const card = page.locator("#account");
+  await expect(card).toContainText("Your 8 questions, plus up to 50 more from all your pages");
+  // Create free account, then Book a readout, then Send to a colleague.
+  const actions = card.locator("button[type=submit], a.lp-btn, .dm-share-open button");
+  await expect(actions).toHaveText(["Create free account→", "Book a readout", "Send to a colleague"]);
+  await expect(card.getByRole("link", { name: "Book a readout" })).toHaveAttribute("href", "/en/call");
+  await noHorizontalScroll(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/caudals-l04-demo-card-390.png", fullPage: false });
+
+  await card.getByLabel("Work email").fill("ana@acme-seguros.es");
+  await card.getByLabel(/Company/).fill("Acme Seguros");
+  await card.getByRole("button", { name: /Create free account/ }).click();
+  await expect(card.getByRole("status")).toContainText("We sent a link to ana@acme-seguros.es");
+  expect(signups).toEqual([{ email: "ana@acme-seguros.es", company: "Acme Seguros" }]);
+
+  await card.getByRole("button", { name: "Send to a colleague" }).click();
+  await card.getByLabel("Your colleague's email").fill("luis@acme-seguros.es");
+  await expect(card.getByText("Anyone with the link can see this report until it's deleted")).toBeVisible();
+  await card.getByRole("button", { name: "Send the report" }).click();
+  await expect(card.getByRole("alert")).toHaveText("Tick the box to send it.");
+  expect(shares).toHaveLength(0);
+  await card.getByLabel(/I'm sending my own report to a colleague who expects it/).check();
+  await card.getByRole("button", { name: "Send the report" }).click();
+  await expect(card.getByRole("status").filter({ hasText: "luis@" })).toHaveText("Sent. luis@acme-seguros.es will get one email with the private link.");
+  expect(shares).toHaveLength(1);
+  expect(shares[0]).toMatchObject({ body: { email: "luis@acme-seguros.es", consent: true }, token: demoToken, type: "application/json" });
+  expect(String(shares[0].body.key)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  await card.getByRole("button", { name: "Send to someone else" }).click();
+  await expect(card.getByLabel("Your colleague's email")).toHaveValue("");
+  await expect(card.getByLabel(/I'm sending my own report/)).not.toBeChecked();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "/tmp/caudals-l04-demo-card-1440.png", fullPage: false });
+  await noHorizontalScroll(page);
+});
+
+test("the public demo report reads in Spanish and explains a share limit", async ({ page }) => {
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: finishedDemo({ locale: "es" }) }));
+  await page.route(`**/api/demo/runs/${demoRunId}/share`, route => route.fulfill({ status: 429, json: { error: { code: "share_limit" } } }));
+  await page.goto(`/demo?public&locale=es#r=${demoRunId}.${demoToken}`);
+  const card = page.locator("#account");
+  await expect(card).toContainText("Tus 8 preguntas, más hasta 50 nuevas de todas tus páginas");
+  await expect(card.getByLabel(/Empresa/)).toBeVisible();
+  await expect(card.getByRole("link", { name: "Reserva una presentación de resultados" })).toHaveAttribute("href", "/es/llamada");
+  await card.getByRole("button", { name: "Enviar a un colega" }).click();
+  await card.getByLabel("Email de tu colega").fill("luis@acme-seguros.es");
+  await card.getByLabel(/Envío mi propio informe a un colega que lo espera/).check();
+  await card.getByRole("button", { name: "Enviar el informe" }).click();
+  await expect(card.getByRole("alert")).toHaveText("Has llegado al límite de envíos de este informe. Copia el enlace privado.");
+  await noHorizontalScroll(page);
+});
+
+test("until the demo is public its report keeps the email-only account card", async ({ page }) => {
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: finishedDemo() }));
+  await page.goto(`/demo#r=${demoRunId}.${demoToken}`);
+  const card = page.locator("#account");
+  await expect(card.getByLabel("Work email")).toBeVisible();
+  await expect(card.getByText("Prefer to talk it through?")).toBeVisible();
+  await expect(card.getByLabel(/Company/)).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Send to a colleague" })).toHaveCount(0);
+  await expect(card.getByRole("link", { name: "Book a readout" })).toHaveCount(0);
+});
+
 test("growth dashboard shows weekly counts, sources and cohorts at desktop and mobile widths", async ({page}) => {
   await page.route("**/api/evals/v1/**", route => route.fulfill({json:{data:[],meta:{}}}));
   await page.goto("/ops/growth");

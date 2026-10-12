@@ -10,7 +10,7 @@ const properties: Record<ProductEventName, readonly string[]> = {
   page_view: ["locale", "referrer"], demo_viewed: ["locale"],
   demo_started: ["target_kind", "docs_given", "locale", "queue_wait_s"],
   demo_finished: ["outcome", "error_code", "duration_s", "scored", "correct", "model_used", "target_kind", "locale", "fallback_cost_eur"],
-  demo_signup_requested: [], demo_report_shared: [], account_created: ["acquisition", "plan"],
+  demo_signup_requested: [], demo_report_shared: ["channel", "consent"], account_created: ["acquisition", "plan"],
   evaluation_created: ["connection_kind"], test_set_ready: ["question_count", "duration_s"],
   run_started: ["questions", "models", "estimate"], run_finished: ["questions", "models", "estimate", "credits_charged", "outcome", "duration_s"],
   report_viewed: ["first_view"], report_shared: [], export_downloaded: ["format"], limit_hit: ["kind"],

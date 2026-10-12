@@ -6,6 +6,8 @@
     "howItWorks": "How it works",
     "sectors": "Sectors",
     "diagnostic": "Get started",
+    "tryFree": "Try it free",
+    "signIn": "Sign in",
     "contact": "Contact",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -16,7 +18,9 @@
     "headline": "We teach your AI to think like an expert",
     "subtitle": "We find where your AI fails and work with professionals from your sector to create the data that fixes it.",
     "primaryCta": "Get a free diagnostic",
-    "secondaryCta": "Or book a 30-minute call."
+    "secondaryCta": "Or book a 30-minute call.",
+    "demoCta": "Test your assistant free",
+    "demoCtaDetail": "8 questions, about 3 minutes"
   },
   "heroChat": {
     "label": "Example conversations, checked by Caudals",
@@ -461,7 +465,10 @@
     "title": "Turn every mistake your AI makes into an improvement",
     "subtitle": "Start with a free diagnostic: we put forty questions to your assistant and, within 48 hours, tell you what fails and what data it needs to improve.",
     "primaryCta": "Get a free diagnostic",
-    "secondaryCta": "Book a 30-minute call"
+    "secondaryCta": "Book a 30-minute call",
+    "demoSubtitle": "Start with the free test: eight questions written from your own website, each answer checked against the page it comes from. About three minutes, no account.",
+    "diagnosticPrompt": "Rather we run a forty-question diagnostic for you?",
+    "diagnosticLink": "Request it"
   },
   "footer": {
     "tagline": "Independent evaluation for AI assistants, with answers validated by experts in each sector.",
@@ -469,6 +476,7 @@
     "askAiPrompt": "What is Caudals? Explain how it evaluates companies' AI assistants against test sets built from their documentation and domain experts, and how each evaluation grows into domain-specific data. Base the summary on its website: https://caudals.com.",
     "explore": "Explore",
     "bookMeeting": "Book a meeting",
+    "freeTest": "Free test",
     "rights": "© {year} Caudals. All rights reserved.",
     "x": "X",
     "github": "GitHub",
@@ -802,6 +810,7 @@
     "starting": "Starting…",
     "footnote": "One free test a day. Results are private to you and deleted after seven days.",
     "footnoteFallback": "When our own model is busy, the public pages we read may be processed by a backup model from Google, through OpenRouter.",
+    "ogNote": "Free test in 3 minutes. No account.",
     "lastRun": "Your last test, {host}.",
     "lastRunOpen": "Open it",
     "steps": {
@@ -873,13 +882,15 @@
       "title": "This was *eight* questions.",
       "body": "A free account turns them into a working evaluation of your assistant.",
       "dock": "This was eight questions. Turn them into a full evaluation of your assistant.",
-      "item1": "Up to 50 questions from all your pages",
+      "item1": "Your 8 questions, plus up to 50 more from all your pages",
       "item2": "The question set, to review, edit and export",
       "item3": "Re-run after every change and compare",
       "item4": "The full report, with PDF and Word export",
       "emailLabel": "Work email",
       "emailPlaceholder": "you@company.com",
       "submit": "Create free account",
+      "companyLabel": "Company",
+      "readout": "Book a readout",
       "sending": "Sending…",
       "sent": "Check your inbox. We sent a link to {email} to finish your account.",
       "call": "Prefer to talk it through?",
@@ -942,7 +953,9 @@
       "phase_timeout": "One step of the test took too long. Run it again.",
       "notify_limit": "Too many email requests today. Keep this page open instead.",
       "notify_unavailable": "We can't take email requests right now. Keep this page open instead.",
-      "already_finished": "Your report is ready."
+      "already_finished": "Your report is ready.",
+      "share_limit": "That's the limit of emails for this report. Copy the private link instead.",
+      "share_unavailable": "We couldn't send the email. Try again in a minute."
     },
     "service": {
       "capacity": "We're at capacity right now. You can still start a test: it keeps its place in line and starts as soon as we can run it.",
@@ -975,6 +988,18 @@
       "already": "We'll email you when the report is ready.",
       "consentRequired": "Tick the box so we can email you."
     },
+    "share": {
+      "open": "Send to a colleague",
+      "label": "Your colleague's email",
+      "placeholder": "colleague@company.com",
+      "consent": "I'm sending my own report to a colleague who expects it. Caudals emails them the private link once and doesn't keep their address.",
+      "consentRequired": "Tick the box to send it.",
+      "note": "Anyone with the link can see this report until it's deleted, seven days after the test.",
+      "submit": "Send the report",
+      "sending": "Sending…",
+      "sent": "Sent. {email} will get one email with the private link.",
+      "another": "Send to someone else"
+    },
     "email": {
       "readySubject": "Your test of {host} is ready",
       "readyScore": "Your eight-question test of {host} has finished: {correct} of {scored} answers match your website.",
@@ -987,6 +1012,14 @@
       "failedIntro": "We couldn't finish your test of {host}.",
       "failedLink": "You can run it again here:",
       "footer": "You asked for this email on caudals.com. We have removed your address from the test, and the report is deleted seven days after it was created."
+    },
+    "shareEmail": {
+      "subject": "A colleague shared a Caudals test of {host}",
+      "intro": "A colleague ran Caudals' free eight-question test on {host} and wanted you to see the report.",
+      "score": "{correct} of {scored} answers matched the website.",
+      "link": "See the report:",
+      "expiry": "The link is private and works until {date}, when the report is deleted.",
+      "footer": "You're getting this email because they entered your address on caudals.com. We sent it once and didn't keep your address."
     }
   },
   "contactEmail": {

@@ -953,6 +953,12 @@ Operational env controls:
 - Who signed up and how (as `postgres`, aggregates only): `SELECT signup_source, domain_rule, count(*), count(org_id) AS enrolled FROM evals.self_serve_signup GROUP BY 1,2`. Domains holding a workspace: `SELECT s.email_domain, w.deleted_at IS NULL AS live FROM evals.self_serve_signup s JOIN evals.workspace w ON w.id=s.org_id`. To free a company's domain, its owner (or ops on their request) deletes the workspace through Settings → Delete workspace data; the audited deletion workflow tombstones it.
 - Refusals and limits are recorded as `limit_hit` events (`metadata.kind`: `signup_free_mail`, `signup_disposable`, `signup_rate`, `signup_domain_taken`); `/ops/growth` counts them weekly.
 
+## Public Front Door (Demo)
+
+- `DEMO_PUBLIC=true` makes the free test the front door (launch L-04): header pill and "Sign in", hero, sector and closing CTAs, indexing of `/{en,es}/demo`, its sitemap, `llms.txt` and agent-markdown entries, and "Send to a colleague" on the report. Switch with `scripts/launch/set-app-flag.sh DEMO_PUBLIC true|false` (stores it and redeploys the running image). Prerendered pages and `llms.txt` revalidate every 300 s, so a page can show the previous state once after the restart; request it again.
+- Check it: `curl -s -A "GPTBot/1.2" https://caudals.com/en/demo | grep -E '<title>|rel="canonical"|hreflang|name="robots"'` (index, canonical and hreflang in `<head>`), `curl -s https://caudals.com/page-sitemap.xml | grep /demo`, `curl -s https://caudals.com/llms.txt | grep demo`. After switching it on or off, run `npm run seo:indexnow`.
+- Shares by email (aggregates only, as `postgres`): `SELECT date_trunc('day', occurred_at) AS day, metadata->>'channel' AS channel, count(*) FROM public.product_analytics_event WHERE event_name = 'demo_report_shared' GROUP BY 1, 2 ORDER BY 1 DESC LIMIT 14`. An emailed share is the sender's consent record (`consent: true`, hashed run); the recipient's address is never stored. Limits: 5 a day per visitor, 3 per run.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:

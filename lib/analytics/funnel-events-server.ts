@@ -15,7 +15,10 @@ export type RecordProductEventInput = {
 /** Append inside a domain transaction when supplied. Analytics cannot abort that transaction. */
 export async function recordProductEvent(input: RecordProductEventInput, db?: PoolClient) {
   // L-03 lifecycle collection predates this rollout flag and remains available.
-  if (!analyticsV2Enabled() && !["demo_started", "demo_finished"].includes(input.eventName)) return { skipped: true };
+  // An emailed share is also the sender's consent record (launch L-04), so it never depends on the flag.
+  const alwaysOn = ["demo_started", "demo_finished"].includes(input.eventName)
+    || (input.eventName === "demo_report_shared" && input.payload?.channel === "email");
+  if (!analyticsV2Enabled() && !alwaysOn) return { skipped: true };
   const names: readonly string[] = input.source === "client" ? CLIENT_EVENT_NAMES : SERVER_EVENT_NAMES;
   if (!names.includes(input.eventName)) return { skipped: true };
   const uuid = (value?: string | null) => value && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) ? value : null;

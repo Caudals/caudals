@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { FrontDoorProvider } from "@/components/public/front-door";
 import { localeHtmlLang, locales, type Locale } from "@/lib/i18n/config";
 import { LocaleProvider } from "@/lib/i18n/context";
 import { RootDocument, rootMetadata } from "@/components/document/root-document";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { resolveLocale } from "@/lib/i18n/server";
+import { frontDoor } from "@/lib/public/front-door";
 import {
   buildMarketingUrl,
   getSiteDescription,
@@ -41,6 +43,14 @@ const newsreader = Newsreader({
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+/**
+ * The prerendered pages regenerate in the background at most every five
+ * minutes, so server-read runtime flags (`DEMO_PUBLIC`, launch L-04) reach
+ * them after the app restarts with new credentials, without a rebuild. Pages
+ * that read the request (`/call`, the legal notice) stay dynamic.
+ */
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
@@ -79,11 +89,13 @@ export default async function LocaleLayout({
   return (
     <RootDocument lang={localeHtmlLang[locale]}>
       <LocaleProvider locale={locale}>
-        {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}
-        <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-mk-sans contents`}>
-          {children}
-          <CookieConsentBanner />
-        </div>
+        <FrontDoorProvider value={frontDoor()}>
+          {/* `contents` keeps the wrapper out of layout; it carries the font variables and makes Geist the default for every public page. */}
+          <div className={`${geist.variable} ${geistMono.variable} ${newsreader.variable} font-mk-sans contents`}>
+            {children}
+            <CookieConsentBanner />
+          </div>
+        </FrontDoorProvider>
       </LocaleProvider>
     </RootDocument>
   );

@@ -6,6 +6,8 @@
     "howItWorks": "Cómo funciona",
     "sectors": "Sectores",
     "diagnostic": "Comenzar",
+    "tryFree": "Pruébalo gratis",
+    "signIn": "Iniciar sesión",
     "contact": "Contacto",
     "blog": "Blog",
     "newsletter": "Newsletter",
@@ -16,7 +18,9 @@
     "headline": "Enseñamos a tu IA a pensar como un experto",
     "subtitle": "Detectamos los fallos de tu IA y trabajamos con profesionales de tu sector para crear los datos que los resuelven.",
     "primaryCta": "Diagnóstico inicial gratuito",
-    "secondaryCta": "O reserva una llamada de 30 minutos."
+    "secondaryCta": "O reserva una llamada de 30 minutos.",
+    "demoCta": "Prueba gratis tu asistente",
+    "demoCtaDetail": "8 preguntas, unos 3 minutos"
   },
   "heroChat": {
     "label": "Conversaciones de ejemplo, revisadas por Caudals",
@@ -461,7 +465,10 @@
     "title": "Convierte cada error de tu IA en una mejora",
     "subtitle": "Empieza con un diagnóstico gratuito: le hacemos cuarenta preguntas a tu asistente y en 48 horas te decimos qué falla y qué datos necesita para mejorar.",
     "primaryCta": "Diagnóstico inicial gratuito",
-    "secondaryCta": "Reserva una llamada de 30 minutos"
+    "secondaryCta": "Reserva una llamada de 30 minutos",
+    "demoSubtitle": "Empieza con la prueba gratuita: ocho preguntas escritas a partir de tu propia web y cada respuesta comprobada con la página de la que sale. Unos tres minutos, sin cuenta.",
+    "diagnosticPrompt": "¿Prefieres que hagamos nosotros un diagnóstico de cuarenta preguntas?",
+    "diagnosticLink": "Solicítalo"
   },
   "footer": {
     "tagline": "Evaluación independiente de asistentes de IA, con respuestas validadas por expertos de cada sector.",
@@ -469,6 +476,7 @@
     "askAiPrompt": "¿Qué es Caudals? Explica cómo evalúa asistentes de IA a partir de baterías de prueba creadas con la documentación de cada empresa y expertos de dominio, y cómo cada evaluación evoluciona hacia datasets específicos. Basa el resumen en su web: https://caudals.com.",
     "explore": "Explorar",
     "bookMeeting": "Reserva una reunión",
+    "freeTest": "Prueba gratuita",
     "rights": "© {year} Caudals. Todos los derechos reservados.",
     "x": "X",
     "github": "GitHub",
@@ -802,6 +810,7 @@
     "starting": "Empezando…",
     "footnote": "Una prueba gratis al día. Los resultados solo los ves tú y se borran a los siete días.",
     "footnoteFallback": "Cuando nuestro modelo está ocupado, las páginas públicas que leemos pueden pasar por un modelo de respaldo de Google, a través de OpenRouter.",
+    "ogNote": "Prueba gratis en 3 minutos. Sin cuenta.",
     "lastRun": "Tu última prueba, {host}.",
     "lastRunOpen": "Ábrela",
     "steps": {
@@ -873,13 +882,15 @@
       "title": "Esto han sido *ocho* preguntas.",
       "body": "Con una cuenta gratis se convierten en una evaluación de verdad de tu asistente.",
       "dock": "Esto han sido ocho preguntas. Conviértelas en una evaluación completa de tu asistente.",
-      "item1": "Hasta 50 preguntas de todas tus páginas",
+      "item1": "Tus 8 preguntas, más hasta 50 nuevas de todas tus páginas",
       "item2": "El conjunto de preguntas, para revisarlo, editarlo y exportarlo",
       "item3": "Volver a probar tras cada cambio y comparar",
       "item4": "El informe completo, en PDF y Word",
       "emailLabel": "Email de trabajo",
       "emailPlaceholder": "tu@empresa.com",
       "submit": "Crear cuenta gratis",
+      "companyLabel": "Empresa",
+      "readout": "Reserva una presentación de resultados",
       "sending": "Enviando…",
       "sent": "Revisa tu correo. Hemos enviado a {email} un enlace para terminar tu cuenta.",
       "call": "¿Prefieres hablarlo?",
@@ -942,7 +953,9 @@
       "phase_timeout": "Un paso de la prueba tardó demasiado. Vuelve a lanzarla.",
       "notify_limit": "Demasiadas solicitudes de correo hoy. Mantén esta página abierta.",
       "notify_unavailable": "Ahora no podemos enviar el informe por correo. Mantén esta página abierta.",
-      "already_finished": "Tu informe ya está listo."
+      "already_finished": "Tu informe ya está listo.",
+      "share_limit": "Has llegado al límite de envíos de este informe. Copia el enlace privado.",
+      "share_unavailable": "No hemos podido enviar el correo. Inténtalo dentro de un minuto."
     },
     "service": {
       "capacity": "Ahora mismo estamos al límite. Puedes empezar igualmente: tu prueba guarda su turno en la fila y empieza en cuanto podamos ejecutarla.",
@@ -975,6 +988,18 @@
       "already": "Te escribiremos cuando el informe esté listo.",
       "consentRequired": "Marca la casilla para que podamos escribirte."
     },
+    "share": {
+      "open": "Enviar a un colega",
+      "label": "Email de tu colega",
+      "placeholder": "colega@empresa.com",
+      "consent": "Envío mi propio informe a un colega que lo espera. Caudals le manda el enlace privado una sola vez y no guarda su dirección.",
+      "consentRequired": "Marca la casilla para enviarlo.",
+      "note": "Cualquiera con el enlace puede ver este informe hasta que se borre, siete días después de la prueba.",
+      "submit": "Enviar el informe",
+      "sending": "Enviando…",
+      "sent": "Enviado. {email} recibirá un único correo con el enlace privado.",
+      "another": "Enviar a otra persona"
+    },
     "email": {
       "readySubject": "Tu prueba de {host} está lista",
       "readyScore": "Tu prueba de ocho preguntas de {host} ha terminado: {correct} de {scored} respuestas coinciden con tu web.",
@@ -987,6 +1012,14 @@
       "failedIntro": "No hemos podido terminar tu prueba de {host}.",
       "failedLink": "Puedes repetirla aquí:",
       "footer": "Pediste este correo en caudals.com. Hemos borrado tu dirección de la prueba, y el informe se elimina siete días después de crearse."
+    },
+    "shareEmail": {
+      "subject": "Un colega te ha enviado una prueba de Caudals de {host}",
+      "intro": "Un colega ha hecho la prueba gratuita de ocho preguntas de Caudals a {host} y quiere que veas el informe.",
+      "score": "{correct} de {scored} respuestas coinciden con la web.",
+      "link": "Ver el informe:",
+      "expiry": "El enlace es privado y funciona hasta el {date}, cuando se borra el informe.",
+      "footer": "Recibes este correo porque esa persona escribió tu dirección en caudals.com. Lo enviamos una sola vez y no guardamos tu dirección."
     }
   },
   "contactEmail": {

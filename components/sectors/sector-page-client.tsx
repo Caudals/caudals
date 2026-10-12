@@ -2,6 +2,7 @@
 
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { CTASection } from "@/components/landing/cta";
+import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { ExpertNetwork } from "@/components/landing/diagrams/expert-network";
 import { FailureModes } from "@/components/landing/diagrams/failure-modes";
 import { HeroChat } from "@/components/landing/hero-chat";
@@ -9,6 +10,7 @@ import { LandingShell } from "@/components/landing/landing-shell";
 import { splitMarked } from "@/components/landing/marks";
 import { Breadcrumbs } from "@/components/sectors/breadcrumbs";
 import { EXPERT_ROLE_ICONS } from "@/components/sectors/expert-icons";
+import { useFrontDoor } from "@/components/public/front-door";
 import { useTranslations } from "@/lib/i18n/context";
 import { SECTORS_HUB_PATH, type SectorId } from "@/lib/public/sectors";
 import type { SectorCopy } from "@/lib/sectors/content";
@@ -24,12 +26,14 @@ type SectorPageClientProps = {
 /**
  * One sector's page, in the landing's Paper language: the sector's own
  * conversation in the hero, what we test, where assistants in the sector go
- * wrong, who writes the answer key, questions buyers ask, and the way out to
- * the free diagnostic with the sector already chosen on the form.
+ * wrong, who writes the answer key, questions buyers ask, and the way out:
+ * the free test once the demo is public (launch L-04), otherwise the free
+ * diagnostic with the sector already chosen on the form.
  */
 export function SectorPageClient({ sectorId, copy, related }: SectorPageClientProps) {
   const t = useTranslations("sectors");
   const tHero = useTranslations("hero");
+  const { demoPublic } = useFrontDoor();
   const headline = splitMarked(copy.headline);
   const diagnosticHref = `/contact?offer=reality-check&sector=${sectorId}`;
 
@@ -103,12 +107,16 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
             {copy.subtitle}
           </p>
           <div className="lp-hero-act lp-rise" style={{ ["--d" as string]: 0.16 }}>
-            <Link href={diagnosticHref} className="lp-btn">
-              {tHero("primaryCta")}
-              <span className="lp-arr" aria-hidden="true">
-                →
-              </span>
-            </Link>
+            {demoPublic ? (
+              <DemoCtaButton />
+            ) : (
+              <Link href={diagnosticHref} className="lp-btn">
+                {tHero("primaryCta")}
+                <span className="lp-arr" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            )}
             <Link href="/call" className="lp-hero-call">
               {tHero("secondaryCta")}
             </Link>
@@ -176,7 +184,7 @@ export function SectorPageClient({ sectorId, copy, related }: SectorPageClientPr
         </ul>
       </section>
 
-      <CTASection title={t("ctaTitle")} subtitle={t("ctaSubtitle")} primaryHref={diagnosticHref} />
+      <CTASection title={t("ctaTitle")} subtitle={t("ctaSubtitle")} diagnosticHref={diagnosticHref} />
     </LandingShell>
   );
 }

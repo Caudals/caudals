@@ -34,7 +34,7 @@ function keyring(): { keys: Keyring; version: string } | null {
   }
 }
 
-function emailConfigured() {
+export function emailConfigured() {
   try { return Boolean(getSecretEnvValue("RESEND_API_KEY") && getSecretEnvValue("RESEND_FROM_EMAIL")); } catch { return false; }
 }
 
@@ -76,7 +76,7 @@ type Pending = {
 };
 
 /** Where the public demo lives (the report link). */
-function publicOrigin() {
+export function publicOrigin() {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) { try { return new URL(configured).origin; } catch { /* fall through */ } }
   return process.env.NODE_ENV === "production" ? "https://caudals.com" : "http://localhost:3000";

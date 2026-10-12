@@ -12,6 +12,7 @@ import {
   LEGAL_DOCUMENT_PATHS,
   legalDocumentVersion,
 } from "@/lib/legal/versions";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 
 export const SITE_NAME = "Caudals";
@@ -117,6 +118,14 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   // Temporarily hidden:
   // { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
 ];
+
+/** The free test, listed once `DEMO_PUBLIC` makes it the front door (launch L-04). */
+const DEMO_ROUTE: IndexableMarketingRoute = {
+  pathname: "/demo",
+  changeFrequency: "monthly",
+  priority: 0.9,
+  lastModified: "2026-10-12",
+};
 
 type PublicMetadataOptions = {
   title?: string;
@@ -235,8 +244,11 @@ export function getDefaultSocialImageUrl() {
   return buildMarketingUrl(DEFAULT_SOCIAL_IMAGE_PATH);
 }
 
+/** Read per call: the demo's entry follows the runtime `DEMO_PUBLIC` flag. */
 export function getIndexableMarketingRoutes() {
-  return MARKETING_ROUTES.map((route) => ({ ...route }));
+  const [home, ...rest] = MARKETING_ROUTES;
+  const routes = demoPublicEnabled() ? [home, DEMO_ROUTE, ...rest] : MARKETING_ROUTES;
+  return routes.map((route) => ({ ...route }));
 }
 
 export function buildPublicMetadata({

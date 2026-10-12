@@ -21,4 +21,12 @@ describe("v2 server ingestion", () => {
     await recordProductEvent({eventName:"demo_started",source:"server"});
     expect(queryRows).toHaveBeenCalledOnce();
   });
+  it("keeps the emailed-share consent record when the rollout flag is off, but not a copied link (launch L-04)", async () => {
+    vi.stubEnv("ANALYTICS_EVENTS_V2","false");
+    expect(await recordProductEvent({eventName:"demo_report_shared",source:"server",runId:"run-1",eventKey:"run-1"})).toEqual({skipped:true});
+    expect(await recordProductEvent({eventName:"demo_report_shared",source:"server",runId:"run-1",eventKey:"run-1:email:k",payload:{channel:"email",consent:true,email:"colleague@example.com"}})).toEqual({ok:true});
+    const values = queryRows.mock.calls[0][1];
+    expect(values[5]).toBe(JSON.stringify({channel:"email",consent:true}));
+    expect(JSON.stringify(values)).not.toMatch(/colleague@|run-1/);
+  });
 });

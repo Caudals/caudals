@@ -4,6 +4,7 @@ import Image from "next/image";
 import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/context";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { useFrontDoor } from "@/components/public/front-door";
 import { SECTOR_IDS, sectorPath } from "@/lib/public/sectors";
 import { LEGAL_DOCUMENT_IDS, LEGAL_DOCUMENT_PATHS } from "@/lib/legal/versions";
 
@@ -65,6 +66,7 @@ export function MarketingFooter() {
   const t = useTranslations("footer");
   const tNav = useTranslations("nav");
   const tSectors = useTranslations("sectors");
+  const { demoPublic, signInUrl } = useFrontDoor();
 
   const aiPrompt = t("askAiPrompt");
   const aiLinks = getAskAiLinks(aiPrompt);
@@ -90,6 +92,13 @@ export function MarketingFooter() {
               {t("explore")}
             </p>
             <ul className="space-y-2.5 text-sm text-[#3b3a36]">
+              {demoPublic ? (
+                <li>
+                  <Link href="/demo" className="transition-colors hover:text-[#141413]">
+                    {t("freeTest")}
+                  </Link>
+                </li>
+              ) : null}
               {[{ href: "/#how-it-works", labelKey: "howItWorks" } as const, ...publicNavigationLinks].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="transition-colors hover:text-[#141413]">
@@ -102,6 +111,13 @@ export function MarketingFooter() {
                   {t("bookMeeting")}
                 </Link>
               </li>
+              {demoPublic ? (
+                <li>
+                  <a href={signInUrl} className="transition-colors hover:text-[#141413]">
+                    {tNav("signIn")}
+                  </a>
+                </li>
+              ) : null}
             </ul>
           </div>
           <div>

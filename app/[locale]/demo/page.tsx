@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DemoShell } from "@/components/demo/demo-shell";
 import { getScopedTranslator, resolveLocale } from "@/lib/i18n/server";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 import { buildPublicMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -11,13 +12,15 @@ export async function generateMetadata({
   const locale = resolveLocale((await params).locale);
   const t = getScopedTranslator(locale, "demo");
 
-  // Soft launch: reachable by direct link, not yet linked or indexed.
+  // Indexed once DEMO_PUBLIC makes the free test the front door (launch L-04);
+  // until then it is reachable by direct link only. The share card is the
+  // sibling opengraph-image.tsx.
   return buildPublicMetadata({
     title: t("metaTitle"),
     description: t("metaDescription"),
     pathname: "/demo",
     locale,
-    noIndex: true,
+    noIndex: !demoPublicEnabled(),
   });
 }
 

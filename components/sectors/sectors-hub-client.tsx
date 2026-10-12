@@ -2,10 +2,12 @@
 
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { CTASection } from "@/components/landing/cta";
+import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { HeroChat } from "@/components/landing/hero-chat";
 import { LandingShell } from "@/components/landing/landing-shell";
 import { splitMarked } from "@/components/landing/marks";
 import { Breadcrumbs } from "@/components/sectors/breadcrumbs";
+import { useFrontDoor } from "@/components/public/front-door";
 import type { RelatedSector } from "@/components/sectors/sector-page-client";
 import { useTranslations } from "@/lib/i18n/context";
 
@@ -15,6 +17,7 @@ type HubSector = RelatedSector & { audience: string };
 export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] }) {
   const t = useTranslations("sectors");
   const tHero = useTranslations("hero");
+  const { demoPublic } = useFrontDoor();
   const headline = splitMarked(t("hubHeadline"));
 
   return (
@@ -32,12 +35,16 @@ export function SectorsHubClient({ sectors }: { sectors: readonly HubSector[] })
             {t("hubSubtitle")}
           </p>
           <div className="lp-hero-act lp-rise" style={{ ["--d" as string]: 0.16 }}>
-            <Link href="/contact?offer=reality-check" className="lp-btn">
-              {tHero("primaryCta")}
-              <span className="lp-arr" aria-hidden="true">
-                →
-              </span>
-            </Link>
+            {demoPublic ? (
+              <DemoCtaButton />
+            ) : (
+              <Link href="/contact?offer=reality-check" className="lp-btn">
+                {tHero("primaryCta")}
+                <span className="lp-arr" aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            )}
           </div>
         </div>
         <div className="lp-rise" style={{ ["--d" as string]: 0.24 }}>

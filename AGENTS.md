@@ -20,7 +20,7 @@ Current deployment includes the public funnel and the invite-only evaluation pro
 - public landing page, sector pages, contact form, meeting booking, blog, newsletter, and legal pages,
 - legacy internal-account auth (`/auth/*`); the `/admin` dashboard is removed and returns `404`,
 - evaluation operations (`/ops`), customer workspaces (`/workspace`), expert assignments (`/review`), private report sharing and scoped `/api/evals/v1` APIs on `app.caudals.com`,
-- the public no-signup demo `caudals.com/{en,es}/demo` (soft launch: not linked from the landing, `noindex`) and self-serve free-plan sign-up from its report (`/workspace/signup`), plus direct work-email sign-up at `app.caudals.com/workspace/start` (launch L-05, behind `SELF_SERVE_DIRECT_SIGNUP`; one self-serve workspace per company domain, free-mail and disposable addresses refused). See `docs/ARCHITECTURE.md` → Public demo.
+- the public no-signup demo `caudals.com/{en,es}/demo`, the front door while `DEMO_PUBLIC=true` (launch L-04: header, hero and sector CTAs, indexed, in the sitemap and `llms.txt`; with it off, reachable by direct link and `noindex`), and self-serve free-plan sign-up from its report (`/workspace/signup`), plus direct work-email sign-up at `app.caudals.com/workspace/start` (launch L-05, behind `SELF_SERVE_DIRECT_SIGNUP`; one self-serve workspace per company domain, free-mail and disposable addresses refused). See `docs/ARCHITECTURE.md` → Public demo.
 
 Evaluation stages A–E are implemented and deployed with feature, entitlement and per-target readiness controls. Read `docs/evals/AGENTS.md` and the latest work-package records for remaining customer release gates; deployment does not imply unrestricted signup or universal connector support.
 

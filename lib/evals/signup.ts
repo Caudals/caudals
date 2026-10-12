@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import { sanitizeAttribution, type Attribution } from "@/lib/analytics/events";
 import { getPostgresPool } from "@/lib/db/client";
+import { appOrigin } from "@/lib/evals/app-origin";
 import { sha256 } from "@/lib/demo/client";
 import { getRun } from "@/lib/demo/store";
 import { registrable } from "@/lib/demo/web";
@@ -24,12 +25,7 @@ export function directSignupEnabled(env: Record<string, string | undefined> = pr
   return env.SELF_SERVE_DIRECT_SIGNUP === "true";
 }
 
-/** Where accounts live. The marketing host's NEXT_PUBLIC_APP_URL points at caudals.com, so it is not used here. */
-export function appOrigin() {
-  const configured = process.env.DEMO_APP_ORIGIN?.trim() || process.env.BETTER_AUTH_URL?.trim();
-  if (configured) return new URL(configured).origin;
-  return process.env.NODE_ENV === "production" ? "https://app.caudals.com" : "http://localhost:3000";
-}
+export { appOrigin };
 
 export function workspaceNameFor(host: string, company?: string) {
   const name = company?.trim();

@@ -3,11 +3,14 @@ import { getTranslator } from "@/lib/i18n/server";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
 import { renderEvaluationOverviewMarkdown } from "@/lib/public/evaluation-offers";
+import { demoPublicEnabled } from "@/lib/public/front-door";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 import { getSectorCopy } from "@/lib/sectors/content";
 import { buildMarketingUrl } from "@/lib/seo";
 
-export const revalidate = 3600;
+// Five minutes, so the free test's entry follows the runtime DEMO_PUBLIC flag
+// soon after a restart (launch L-04).
+export const revalidate = 300;
 
 function cleanMarkdownLabel(value: string) {
   return value.replaceAll("[", "\\[").replaceAll("]", "\\]").replace(/\s+/g, " ").trim();
@@ -42,6 +45,11 @@ export async function GET() {
     )
     .join("\n");
 
+  // Launch L-04: the free test leads "Empezar" once it is the front door.
+  const demoLink = demoPublicEnabled()
+    ? `- [Prueba gratuita](${url("/demo")}): pega la dirección de tu asistente, chatbot o API; escribimos ocho preguntas a partir de tu propia web, se las hacemos y comprobamos cada respuesta con la página de la que sale. Gratis, sin cuenta, unos 3 minutos.\n`
+    : "";
+
   const body = `# Caudals
 
 > Caudals evalúa los asistentes, chatbots y agentes de IA de las empresas con un conjunto de pruebas construido a partir de su propia documentación y validado por expertos de dominio de Caudals. Entrega un informe con puntuación y evidencias, repite la evaluación cada mes y convierte los fallos que encuentra en los datos que los corrigen.
@@ -60,7 +68,7 @@ ${sectorLinks}
 
 ## Empezar
 
-- [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
+${demoLink}- [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
 - [Reservar una llamada](${url("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
 
 

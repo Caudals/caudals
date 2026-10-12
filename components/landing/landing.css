@@ -87,6 +87,22 @@
 .lp-btn:hover .lp-arr {
   transform: translateX(3px);
 }
+/* The free test as the primary CTA: a taller pill that carries its small print (launch L-04). */
+.lp-btn-demo {
+  height: auto;
+  min-height: 52px;
+  padding: 9px 22px 10px 24px;
+  gap: 16px;
+  text-align: left;
+}
+.lp-btn-lines {
+  display: grid;
+  gap: 3px;
+}
+.lp-btn-note {
+  font: 400 12.5px/1.2 var(--sans);
+  opacity: 0.7;
+}
 
 /* ── hero ── */
 .lp-hero {
@@ -1126,6 +1142,23 @@
 }
 .lp-cta :focus-visible {
   outline-color: #fafaf8;
+}
+/* The manual diagnostic, one quiet line under the free test. */
+.lp-cta-alt {
+  margin-top: 2px;
+  font-size: 14px;
+  color: rgba(250, 250, 248, 0.82);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+.lp-cta-alt a {
+  color: #fafaf8;
+  text-decoration: underline;
+  text-decoration-color: rgba(250, 250, 248, 0.45);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s;
+}
+.lp-cta-alt a:hover {
+  text-decoration-color: #fafaf8;
 }
 
 /* ── sector pages and the sectors hub ── */

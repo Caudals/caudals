@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { useFrontDoor } from "@/components/public/front-door";
 import { useLocale, useTranslations } from "@/lib/i18n/context";
 import type { NamespaceKeys } from "@/lib/i18n/messages";
 import { splitMarked } from "@/lib/marked-text";
@@ -658,8 +659,14 @@ function Ledger({ run }: { run: DemoView }) {
   );
 }
 
+/**
+ * The account card. Once the demo is the public front door (launch L-04,
+ * `DEMO_PUBLIC`), it also takes an optional company name and offers, in
+ * order: create a free account, book a readout, send to a colleague.
+ */
 function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
   const t = useTranslations("demo");
+  const { demoPublic } = useFrontDoor();
   const ids = useId();
   const card = useRef<HTMLElement>(null);
   const emailField = useRef<HTMLInputElement>(null);
@@ -678,6 +685,7 @@ function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
     window.setTimeout(() => emailField.current?.focus({ preventScroll: true }), reduce ? 0 : 450);
   };
   const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const title = splitMarked(t("upsell.title"));
@@ -691,7 +699,7 @@ function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
       const response = await fetch(`/api/demo/runs/${run.id}/signup`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-demo-token": handle.token },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), ...(demoPublic && company.trim() ? { company: company.trim() } : {}) }),
       });
       if (response.ok) { setState("sent"); return; }
       const data = await response.json().catch(() => ({}));
@@ -725,6 +733,12 @@ function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
           <form onSubmit={submit} noValidate>
             <label htmlFor={`${ids}-email`} className="dm-label">{t("upsell.emailLabel")}</label>
             <input ref={emailField} id={`${ids}-email`} className="dm-line" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("upsell.emailPlaceholder")} />
+            {demoPublic ? (
+              <>
+                <label htmlFor={`${ids}-company`} className="dm-label dm-label-gap">{t("upsell.companyLabel")} <span className="dm-quiet">· {t("keyOptional")}</span></label>
+                <input id={`${ids}-company`} className="dm-line" autoComplete="organization" maxLength={160} value={company} onChange={(event) => setCompany(event.target.value)} />
+              </>
+            ) : null}
             {error ? <p className="dm-error" role="alert">{errorText(t, error)}</p> : null}
             <button type="submit" className="lp-btn dm-block" disabled={state === "sending" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())}>
               {state === "sending" ? t("upsell.sending") : t("upsell.submit")}
@@ -732,7 +746,14 @@ function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
             </button>
           </form>
         )}
-        <p className="dm-hint">{t("upsell.call")} <Link href="/call" className="dm-link">{t("upsell.callLink")}</Link></p>
+        {demoPublic ? (
+          <div className="dm-next">
+            <Link href="/call" className="lp-btn dm-ghost">{t("upsell.readout")}</Link>
+            <Share run={run} handle={handle} />
+          </div>
+        ) : (
+          <p className="dm-hint">{t("upsell.call")} <Link href="/call" className="dm-link">{t("upsell.callLink")}</Link></p>
+        )}
       </div>
     </section>
     {state !== "sent" ? (
@@ -747,5 +768,81 @@ function Upsell({ run, handle }: { run: DemoView; handle: Handle }) {
       </div>
     ) : null}
     </>
+  );
+}
+
+/**
+ * "Send to a colleague": one email with this report's private link, after the
+ * sender ticks the consent box. The address is not kept (lib/demo/share.ts).
+ */
+function Share({ run, handle }: { run: DemoView; handle: Handle }) {
+  const t = useTranslations("demo");
+  const ids = useId();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [sentTo, setSentTo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  // One key per send: a request whose response was lost is retried with it and delivered once.
+  const key = useRef<string | null>(null);
+
+  if (!open) {
+    return (
+      <p className="dm-share-open">
+        <button type="button" className="dm-link" aria-expanded="false" onClick={() => setOpen(true)}>{t("share.open")}</button>
+      </p>
+    );
+  }
+  if (state === "sent") {
+    return (
+      <div className="dm-share">
+        <p className="dm-notify-note" role="status">{t("share.sent", { email: sentTo })}</p>
+        <p className="dm-share-open">
+          <button type="button" className="dm-link" onClick={() => { setEmail(""); setConsent(false); setState("idle"); }}>{t("share.another")}</button>
+        </p>
+      </div>
+    );
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (state === "sending") return;
+    if (!consent) { setError("consent"); return; }
+    key.current ??= crypto.randomUUID();
+    setState("sending");
+    setError(null);
+    try {
+      const response = await fetch(`/api/demo/runs/${run.id}/share`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-demo-token": handle.token },
+        body: JSON.stringify({ email: email.trim(), consent: true, key: key.current }),
+      });
+      key.current = null;
+      if (response.ok) { setSentTo(email.trim()); setState("sent"); return; }
+      const data = await response.json().catch(() => ({}));
+      setError(data?.error?.code ?? "share_unavailable");
+      setState("idle");
+    } catch {
+      setError("share_unavailable");
+      setState("idle");
+    }
+  }
+
+  const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  return (
+    <form className="dm-share" onSubmit={submit} noValidate>
+      <label htmlFor={`${ids}-share`} className="dm-label">{t("share.label")}</label>
+      <input id={`${ids}-share`} className="dm-line" type="email" autoComplete="off" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("share.placeholder")} aria-describedby={`${ids}-share-note`} />
+      <p id={`${ids}-share-note`} className="dm-hint">{t("share.note")}</p>
+      <label className="dm-check">
+        <input type="checkbox" checked={consent} onChange={(event) => { setConsent(event.target.checked); setError(null); }} />
+        <span>{t("share.consent")}</span>
+      </label>
+      {error ? <p className="dm-error" role="alert">{error === "consent" || error === "consent_required" ? t("share.consentRequired") : errorText(t, error)}</p> : null}
+      <button type="submit" className="lp-btn dm-ghost dm-share-go" disabled={state === "sending" || !valid}>
+        {state === "sending" ? t("share.sending") : t("share.submit")}
+      </button>
+    </form>
   );
 }

@@ -1,12 +1,15 @@
 "use client";
 
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
+import { DemoCtaButton } from "@/components/landing/demo-cta";
 import { HeroChat } from "@/components/landing/hero-chat";
 import { splitMarked } from "@/components/landing/marks";
+import { useFrontDoor } from "@/components/public/front-door";
 import { useTranslations } from "@/lib/i18n/context";
 
 export function HeroSection() {
   const t = useTranslations("hero");
+  const { demoPublic } = useFrontDoor();
   // Each locale marks its own serif-italic word with asterisks.
   const headline = splitMarked(t("headline"));
 
@@ -22,12 +25,16 @@ export function HeroSection() {
           {t("subtitle")}
         </p>
         <div className="lp-hero-act lp-rise" style={{ ["--d" as string]: 0.16 }}>
-          <Link href="/contact?offer=reality-check" className="lp-btn">
-            {t("primaryCta")}
-            <span className="lp-arr" aria-hidden="true">
-              →
-            </span>
-          </Link>
+          {demoPublic ? (
+            <DemoCtaButton />
+          ) : (
+            <Link href="/contact?offer=reality-check" className="lp-btn">
+              {t("primaryCta")}
+              <span className="lp-arr" aria-hidden="true">
+                →
+              </span>
+            </Link>
+          )}
           <Link href="/call" className="lp-hero-call">
             {t("secondaryCta")}
           </Link>
