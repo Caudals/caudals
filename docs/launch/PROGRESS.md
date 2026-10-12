@@ -15,7 +15,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 
 | Phase | ID | Title | Depends on | Migration | Status | Commit | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | in progress | | |
+| 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | todo | | |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | in progress | | |
 | 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
@@ -99,3 +99,5 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-11 | Resume mechanism: an hourly session cron (:17) re-enters this file while the orchestrating session is idle; it expires after 7 days (renew by 2026-10-18). Agents started for L-09, L-01 and L-03 |
 | 2026-10-12 | Codex resumed serially with an active persisted goal after reading spec v2 end to end. L-01 and L-03 drafts are committed in their worktrees; no dirty files. L-09 app and migration are live, but its workers were never built because `evals-images.yml` is manually disabled. All 24 billing tests, typecheck, changed-file lint and i18n parity pass; production read-only verifier: 7 accounts, zero drift. |
 | 2026-10-12 | The prior session cron is historical and has not been verified for this Codex chat. This session exposes no automation or usage-reset scheduling tool. Keep the goal active and checkpoints current; automatic wake-up after a usage reset cannot be configured or guaranteed from these tools. |
+
+| 2026-10-12 | L-01 engineering deployed with migration 081 and required signup acceptance enabled. Legal documents, downloads and mobile widths passed 14 production browser tests; retired routes remain 404. Real entity data and lawyer review remain explicit gates. L-03 draft rebased serially; budget bounds and notification retry fixes under test. |
