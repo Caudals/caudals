@@ -6,6 +6,7 @@ import {
 } from "@/lib/markdown/negotiation";
 import { LOCALE_COOKIE } from "@/lib/i18n/config";
 import { isRetiredBlogPath } from "@/lib/blog/retired";
+import { LOCALE_COOKIE as EVALS_LOCALE_COOKIE } from "@/lib/evals/messages/locale-cookie";
 import {
   getCountryFromHeaders,
   negotiateLocale,
@@ -148,6 +149,35 @@ export async function proxy(request: NextRequest) {
 
   if (isMarketingHost && isEvalsPath(pathname)) {
     return new NextResponse("Not Found", { status: 404 });
+  }
+
+  // A link can choose the reader's language, e.g. a shared report sent by
+  // email as `/share?lang=es#token=…`. The choice is saved exactly like the
+  // language menu saves it and the parameter is dropped, so the page renders
+  // in that language from the first paint and the menu keeps working. Browsers
+  // carry the `#token` fragment over to the redirect target.
+  const requestedLocale = request.nextUrl.searchParams.get("lang");
+  if (
+    isAppHost &&
+    isEvalsPath(pathname) &&
+    !pathname.startsWith("/api/") &&
+    (requestedLocale === "es" || requestedLocale === "en")
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.searchParams.delete("lang");
+    if (!hostname.endsWith("localhost")) {
+      redirectUrl.protocol = "https:";
+      redirectUrl.port = "";
+    }
+    const redirect = NextResponse.redirect(redirectUrl, 307);
+    redirect.cookies.set(EVALS_LOCALE_COOKIE, requestedLocale, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+      secure: redirectUrl.protocol === "https:",
+    });
+    redirect.headers.set("cache-control", "private, no-store");
+    return redirect;
   }
 
   if (shouldBlockPhaseOneHiddenSurface(pathname)) {

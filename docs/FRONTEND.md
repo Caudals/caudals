@@ -57,7 +57,11 @@ in American English and Castilian Spanish, chosen per person: the
 `Accept-Language`, so a Spanish browser opens the app in Spanish; no country
 hint) is resolved by `lib/evals/interface-locale.ts` in `app/(evaluation)/layout.tsx`, published as
 `window.__CAUDALS_LOCALE` before any bundle runs, and switching language
-reloads the page. Strings live in `lib/evals/messages/en.ts` and `es.ts`
+reloads the page. A link can choose the language for its reader: an app-host
+evaluation page requested with `?lang=es` or `?lang=en` (for example a shared
+report sent in outreach, `/share?lang=es#token=…`) has the cookie set by
+`proxy.ts` and is redirected to the same URL without the parameter; the
+browser keeps the `#token` fragment. Strings live in `lib/evals/messages/en.ts` and `es.ts`
 (missing Spanish keys fall back to English); fixed labels in data tables go
 through `tr()` in `lib/evals/messages/phrases.ts`, and curated server messages
 through `trServer()`. Spanish pages render on the client only, so the server
