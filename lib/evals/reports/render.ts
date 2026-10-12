@@ -3,11 +3,11 @@ import { spreadsheetSafe } from "../imports/structured";
 import { caseSchema } from "../contracts/cases";
 import { assessmentSchema,observationSchema } from "../contracts/results";
 import { canonicalJson,sha256 } from "../contracts/hashing";
-import { renderReportDocument, reportFooterTemplate } from "./document";
+import { renderReportDocument, reportFooterTemplate, reportHeaderTemplate, type ReportDocumentOptions } from "./document";
 import type { ReportLocale } from "./i18n";
 
 /** The client report document; see ./document.ts. */
-export function renderReportHtml(raw:ReportSnapshot,locale:ReportLocale="en",hidden:ReadonlySet<string>=new Set()):string{return renderReportDocument(reportSnapshotSchema.parse(raw),locale,hidden);}
+export function renderReportHtml(raw:ReportSnapshot,locale:ReportLocale="en",hidden:ReadonlySet<string>=new Set(),options:ReportDocumentOptions={}):string{return renderReportDocument(reportSnapshotSchema.parse(raw),locale,hidden,options);}
 
 function csvCell(value:string):string {const safe=spreadsheetSafe(value);return /[",\r\n]/.test(safe)?`"${safe.replaceAll('"','""')}"`:safe;}
 export function renderResultsCsv(raw:ReportSnapshot):string {
@@ -38,12 +38,12 @@ export function renderCefJsonl(raw:{report:ReportSnapshot;cases:unknown[];observ
 }
 
 export interface PdfPage {setContent(html:string,options:{waitUntil:"load"}):Promise<void>;pdf(options:{format:"A4";printBackground:true;displayHeaderFooter:boolean;headerTemplate:string;footerTemplate:string;preferCSSPageSize:true}):Promise<Uint8Array>}
-/** `hidden` lists sections a private share did not allow (./share-sections.ts). */
-export async function renderReportPdf(raw:ReportSnapshot,createPage:()=>Promise<{page:PdfPage;close:()=>Promise<void>}>,locale:ReportLocale="en",hidden:ReadonlySet<string>=new Set()):Promise<Uint8Array>{
+/** `hidden` lists sections a private share did not allow (./share-sections.ts); `options.sample` labels the example evaluation on every page. */
+export async function renderReportPdf(raw:ReportSnapshot,createPage:()=>Promise<{page:PdfPage;close:()=>Promise<void>}>,locale:ReportLocale="en",hidden:ReadonlySet<string>=new Set(),options:ReportDocumentOptions={}):Promise<Uint8Array>{
  const report=reportSnapshotSchema.parse(raw),owned=await createPage();
  try{
-  await owned.page.setContent(renderReportDocument(report,locale,hidden),{waitUntil:"load"});
+  await owned.page.setContent(renderReportDocument(report,locale,hidden,options),{waitUntil:"load"});
   // Footer on every page: document identity and page numbers (spec §15.3).
-  return await owned.page.pdf({format:"A4",printBackground:true,displayHeaderFooter:true,headerTemplate:"<span></span>",footerTemplate:reportFooterTemplate(report,locale,hidden),preferCSSPageSize:true});
+  return await owned.page.pdf({format:"A4",printBackground:true,displayHeaderFooter:true,headerTemplate:reportHeaderTemplate(locale,options),footerTemplate:reportFooterTemplate(report,locale,hidden,options),preferCSSPageSize:true});
  }finally{await owned.close();}
 }

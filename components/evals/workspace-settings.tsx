@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { evalRequest } from "./api";
 import { Action, Badge, Check, PageHeading, SettingsRow, Status, Tabs, formatMoney } from "./primitives";
+import { ExampleEvaluationSetting } from "./example-evaluation-links";
 import { Meter } from "./charts";
 import { Modal, notify } from "./overlays";
 import { EntitlementForm, type WorkspaceEntitlement } from "./entitlement-form";
@@ -141,6 +142,7 @@ function General({ summary, orgId, workspaceName, role, canRename, platformAdmin
       <SettingsRow title={t("language")} description={t("languageHelp")}>
         <LocaleSwitch compact />
       </SettingsRow>
+      <ExampleEvaluationSetting />
       <SettingsRow title={t("yourRole")} description={t("yourRoleHelp")}>
         <span className="p-row">
           <Badge>{t((role || "viewer") as "owner" | "editor" | "viewer" | "operator")}</Badge>

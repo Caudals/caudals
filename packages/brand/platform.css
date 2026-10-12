@@ -744,7 +744,8 @@
 }
 .p-head-text {
   min-width: 0;
-  flex: 1;
+  /* At least 10rem for the title: actions that leave less drop below it (narrow screens). */
+  flex: 1 1 10rem;
 }
 .p-head h1 {
   font-size: var(--p-text-display);
@@ -3384,6 +3385,19 @@
   flex: 1;
   min-width: 0;
   text-align: left;
+}
+/* Content above a report's overview (the example evaluation's trend and comparison). */
+.p-report-intro {
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--p-border-hairline);
+}
+/* A compact list whose rows carry more than one badge (the example's changed questions): wrap on narrow screens. */
+.p-findings-compact[data-wrap="true"] li {
+  flex-wrap: wrap;
+}
+.p-findings-compact[data-wrap="true"] .p-findings-title {
+  flex-basis: 12rem;
 }
 
 /* --- Preparation ------------------------------------------------------------ */

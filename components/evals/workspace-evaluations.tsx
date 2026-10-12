@@ -28,6 +28,7 @@ import { useItemActions } from "./item-actions";
 import { useWorkspace } from "./workspace-context";
 import { connectionLabel, useWorkspaceSummary } from "./workspace-data";
 import { evaluationStage } from "./evaluation-stage";
+import { ExampleEvaluationCard, ExampleEvaluationLink } from "./example-evaluation-links";
 import { t, tv } from "@/lib/evals/messages/en";
 
 /* ------------------------------------------------------------- listing --- */
@@ -86,9 +87,10 @@ export function WorkspaceEvaluations() {
       {!summary ? (
         loading ? <TableSkeleton columns={4} /> : null
       ) : !rows.length ? (
-        <EmptyState title={t("firstEvaluationTitle")} icon={<FlaskConical />} action={newAction}>
+        <EmptyState title={t("firstEvaluationTitle")} icon={<FlaskConical />} action={newAction || <ExampleEvaluationLink variant="button" />}>
           <p>{t("firstEvaluationBody")}</p>
           {!canWrite && <p>{t("viewerNoEvaluations")}</p>}
+          {newAction && <p><ExampleEvaluationLink /></p>}
         </EmptyState>
       ) : (
         <>
@@ -159,6 +161,9 @@ export function WorkspaceEvaluations() {
               <p>{t("noMatchingEvaluationsHelp")}</p>
             </EmptyState>
           )}
+          <div className="p-section">
+            <ExampleEvaluationCard />
+          </div>
         </>
       )}
       {items.dialog}
@@ -180,6 +185,7 @@ export function NoWorkspace() {
         }
       >
         <p>{t("noWorkspaceHelp")}</p>
+        <p><ExampleEvaluationLink /></p>
       </EmptyState>
     </>
   );

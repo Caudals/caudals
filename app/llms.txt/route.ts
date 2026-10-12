@@ -1,4 +1,6 @@
 import { getBlogPosts } from "@/lib/blog/posts";
+import { sampleReportIndexed } from "@/lib/evals/example/flags";
+import { SAMPLE_REPORT_PATH } from "@/lib/evals/example/public";
 import { getTranslator } from "@/lib/i18n/server";
 import { localizePathname } from "@/lib/i18n/routing";
 import { getPublishedIssues } from "@/lib/newsletter/client";
@@ -49,6 +51,10 @@ export async function GET() {
   const demoLink = demoPublicEnabled()
     ? `- [Prueba gratuita](${url("/demo")}): pega la dirección de tu asistente, chatbot o API; escribimos ocho preguntas a partir de tu propia web, se las hacemos y comprobamos cada respuesta con la página de la que sale. Gratis, sin cuenta, unos 3 minutos.\n`
     : "";
+  // Listed once the founder has read the example (SAMPLE_REPORT_INDEXED, launch L-33).
+  const sampleReportLink = sampleReportIndexed()
+    ? `- [Informe de ejemplo](${url(SAMPLE_REPORT_PATH)}): un informe de evaluación completo sobre el asistente de una aseguradora ficticia, con datos sintéticos: hallazgos con causas probables, 48 preguntas con sus respuestas y fuentes, la evolución de tres meses y una comparación; descargable en PDF.\n`
+    : "";
 
   const body = `# Caudals
 
@@ -70,7 +76,7 @@ ${sectorLinks}
 
 ${demoLink}- [Solicitar una evaluación](${url("/contact")}): formulario para pedir un Diagnóstico inicial gratuito o una evaluación; recoge el tipo de sistema, el sector, quién es responsable del sistema y qué responde.
 - [Reservar una llamada](${url("/call")}): 30 minutos para revisar qué responde un sistema de IA, cómo se prueba hoy y qué cubriría una evaluación.
-
+${sampleReportLink}
 
 ## Información legal
 

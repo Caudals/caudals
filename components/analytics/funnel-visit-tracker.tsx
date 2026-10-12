@@ -18,6 +18,9 @@ export function FunnelVisitTracker() {
       try { referrer = document.referrer ? new URL(document.referrer).hostname : undefined; } catch { /* malformed */ }
       void trackProductEvent("page_view", { locale, referrer });
       if (/^\/(?:en|es)\/demo\/?$/.test(pathname)) void trackProductEvent("demo_viewed", { locale });
+      // The example evaluation (launch L-33): the public sample report and the in-app example.
+      if (/^\/(?:en|es)\/(?:sample-report|informe-de-ejemplo)\/?$/.test(pathname)) void trackProductEvent("example_viewed", { surface: "public" });
+      if (/^\/workspace\/example\/?$/.test(pathname)) void trackProductEvent("example_viewed", { surface: "workspace" });
     };
     const click = (event: MouseEvent) => {
       const href = (event.target as Element)?.closest?.("a")?.getAttribute("href");
@@ -28,6 +31,7 @@ export function FunnelVisitTracker() {
       const surface = pathname.startsWith("/workspace") || pathname.startsWith("/ops") ? "workspace" : pathname.includes("/demo") ? "demo" : "public";
       const funnelEvent = funnelLinkEvent(destination.pathname);
       if (funnelEvent) void trackProductEvent(funnelEvent, { surface });
+      if (/^\/sample-report\/[\w-]+\.pdf$/.test(destination.pathname)) void trackProductEvent("example_viewed", { surface: "pdf" });
     };
     document.addEventListener("click", click);
     sync(); window.addEventListener(COOKIE_CONSENT_EVENT, sync);

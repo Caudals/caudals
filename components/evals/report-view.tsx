@@ -70,6 +70,8 @@ export function ReportView({
   initialResult,
   initialTab,
   onResultChange,
+  badge,
+  overviewIntro,
 }: {
   report: Partial<ReportSnapshot>;
   actions?: ReactNode;
@@ -77,6 +79,10 @@ export function ReportView({
   initialResult?: string | null;
   initialTab?: string | null;
   onResultChange?: (assessmentId: string | null) => void;
+  /** A label before the status badges, e.g. "Example" on the example evaluation. */
+  badge?: ReactNode;
+  /** Shown at the top of the Overview tab (the example evaluation's trend and comparison). */
+  overviewIntro?: ReactNode;
 }) {
   const [tab, setTab] = useState<Tab>(initialResult ? "results" : (["overview", "findings", "results", "improvements", "methodology"] as const).find((value) => value === initialTab) ?? "overview");
   const [resultFilter, setResultFilter] = useState<{ ids: string[]; label: string } | null>(null);
@@ -103,6 +109,7 @@ export function ReportView({
           title={report.system?.name ?? t("report")}
           meta={
             <>
+              {badge}
               {report.scope && <StatusBadge value={report.scope.review_status} />}
               {report.metrics && <StatusBadge value={report.metrics.headline_status} />}
               {report.system && <span>{MODE[report.system.execution_mode] ?? humanize(report.system.execution_mode)}</span>}
@@ -120,6 +127,7 @@ export function ReportView({
         </PageHeading>
       )}
       <Tabs value={tab} onChange={setTab} label={t("reportSections")} options={tabs} />
+      {tab === "overview" && overviewIntro ? <div className="p-report-intro">{overviewIntro}</div> : null}
       {tab === "overview" && <Overview report={report} findings={findings} onFinding={() => setTab("findings")} onResults={showResults} onAllResults={() => { setResultFilter(null); setTab("results"); }} />}
       {tab === "findings" && <Findings findings={findings} onResults={showResults} />}
       {tab === "results" && (

@@ -51,6 +51,6 @@ export function sanitizePayload(event: ProductEventName, payload?: ProductEventP
 /** Route templates only: remove query strings and any user-controlled slug/token. */
 export function analyticsPath(path?: string | null): string | null {
   if (!path?.startsWith("/") || path.startsWith("//")) return null;
-  const known = new Set("en es demo workspace ops review evaluations systems reports test-sets settings billing usage growth clients library platform sources signup sign-in legal privacy terms cookies dpa subprocessors security notice contact call blog sectors methodology example exports share".split(" "));
+  const known = new Set("en es demo workspace ops review evaluations systems reports test-sets settings billing usage growth clients library platform sources signup sign-in legal privacy terms cookies dpa subprocessors security notice contact call blog sectors methodology example sample-report informe-de-ejemplo exports share".split(" "));
   return path.split(/[?#]/, 1)[0].split("/").slice(0, 8).map(part => !part || known.has(part) ? part : ":id").join("/");
 }

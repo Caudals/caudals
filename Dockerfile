@@ -27,9 +27,11 @@ ENV NODE_ENV=production
 
 COPY . .
 
-# Trust-page checks are a release gate even while the general CI workflow is
-# disabled. Never publish placeholder company data or mismatched documents.
-RUN npx vitest run lib/legal
+# Trust-page and example-evaluation checks are a release gate even while the
+# general CI workflow is disabled. Never publish placeholder company data,
+# mismatched documents, or example fixtures that fail the report schema, cite
+# missing results or no longer match their PDFs.
+RUN npx vitest run lib/legal lib/evals/example
 
 RUN npm run build
 

@@ -243,7 +243,9 @@ The evaluation detail page exposes **AI models** in a compact, keyboard-accessib
 
 **Auth** (`.p-auth`) — one centred `400px` column on the chrome plane. Wordmark, title, description, card, footnote. No split hero, no marketing copy: the person is here to get in.
 
-**Empty states** carry an icon in a 44px rounded mark, a title, one line of copy and at most one action. Never a bare sentence.
+**Empty states** carry an icon in a 44px rounded mark, a title, one line of copy and at most one action. Never a bare sentence. A quiet text link to the example evaluation may sit in the copy; for viewers, who have no create action, it is the action.
+
+**Example evaluation** (`/workspace/example`) — the standard report page with an "Example" pill (`Badge` tone `strong`) first in the heading meta, an info `Status` with the synthetic-data line above the report on every tab, and the three-run trend and comparison at the top of Overview (`.p-report-intro`). Page headings keep at least 10rem for the title; actions that leave less drop below it.
 
 ## 10. Motion
 
@@ -326,6 +328,8 @@ Two selector techniques appear throughout and are deliberate:
 
 - Legal pages (`components/legal/legal-page.tsx`) are reading documents: a quiet list of the legal documents beside one column held to about 70 characters a line (17px Geist, 1.7 line height, secondary ink), a sentence-case "Legal" label, the title in Geist 400, the standfirst, then "Last updated" and the version in muted text. Sections are numbered, anchored and separated by space, not rules; long documents add a two-column contents list under a hairline. Tables (sub-processors) are hairline rows on wide screens and one block per row on a phone. Secondary actions such as the DPA template downloads are ghost pills.
 
+- The sample report (`/sample-report`, `components/sample-report/sample-report.css`, scoped `.sr` with the `.lp` values) is a reading page in a 920px column: an ink-bordered "Example" label with the synthetic-data line at the top and the bottom, the kicker, a Geist 400 title with one Newsreader italic word, the standfirst and a pill to the PDF; then hairline sections for the score (one oversized Geist numeral, a Newsreader sentence), the three-run trend (ink bars on a hairline track), the comparison, the executive summary, numbered findings and improvements, every result as a `<details>` row (verdict mark and word, the answer on a white sheet, the document excerpt in Newsreader), the method, and a dark closing card with inverted pills. Outcome bars are ink, grey and hatched ink, always with a legend that carries the words and counts.
+
 Do not import `platform.css` here, and do not carry Newsreader into the platform.
 
 ---
@@ -334,6 +338,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-12 | Example evaluation and public sample report (L-33): `.p-report-intro`, wrapping compact lists (`data-wrap`), a 10rem minimum for page-heading titles, and the Paper sample report page. |
 | 2026-10-12 | The free test becomes the front door (L-04): the two-line free-test pill, the header's "Try it free" and "Sign in", and the demo account sheet's action order. |
 | 2026-10-12 | Legal pages get a reading layout (document list, version date, numbered sections, contents, responsive tables) for the launch trust pages (L-01). |
 | 2026-10-05 | The public demo joins the Paper language; §13 documents its parts and verdict marks. |

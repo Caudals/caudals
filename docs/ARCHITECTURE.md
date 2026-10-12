@@ -103,12 +103,24 @@ A no-signup, eight-question test of a visitor's AI system (founder decision 2026
 | `api_token_created`, `webhook_created` | Server creation transactions; destination type only |
 | `scan_detected`, `context_confirmed` | Server discovery completion/context answers; count and field names, never content |
 | `limit_hit` | Server demo limits and known product limit errors |
-| `example_viewed`, `expert_review_requested` | Client catalogue reserved for L-33/L-26; their real emitters land with those features |
+| `example_viewed` | Client root tracker after consent: `surface` `workspace` (`/workspace/example`), `public` (the sample report page) or `pdf` (a sample-report PDF link) (L-33) |
+| `expert_review_requested` | Client catalogue reserved for L-26; its real emitter lands with that feature |
 | `readout_presented`, `readout_exported`, `report_question_asked` | Server catalogue reserved for L-35/L-36; their real emitters land with those features |
 
 The first consented touch saves UTM/ref/partner labels and the existing opaque Leads journey identifiers in `caudals_attribution_v2`, a 90-day optional first-party cookie shared by `caudals.com` and `app.caudals.com`. The snapshot travels to `demo.run.attribution`, then `evals.workspace.acquisition_attribution`; L-12 will copy it to the first payment. Cookie Policy version 2026-10-12 documents storage and withdrawal. Attribution never enrolls contacts or bypasses Leads' identity/revenue rules.
 
 `/ops/growth` requires platform operator/admin identity, repeats the role check in SQL, and relies on SELECT RLS. Its indexed eight-week query has a 1.5-second statement timeout. Weekly funnel counts are event counts (views are consented only), source breakdowns count acquisitions/activation, and cohorts count workspaces that start runs or first view reports. Future cohort weeks display a dash. Data begins when enabled; no historical events are synthesized. The full non-billing event acceptance remains a cross-package check as L-26/L-33/L-35/L-36 ship.
+
+## Example evaluation and sample report (launch L-33)
+
+One synthetic evaluation of a fictitious insurer's home-policy assistant ("Hogarel", product "Hogar Completo") shows what a finished evaluation looks like (spec P-55). It exists only as versioned fixtures, never as database rows:
+
+- **Source and fixtures.** `lib/evals/example/source/*` holds the bilingual source (five synthetic documents, 48 questions with one recorded answer per run, reviewed findings, improvements, takeaways). `scripts/evals/build-example-fixtures.ts` builds `lib/evals/example/fixtures/{en,es}.json` with the product's own scoring (`aggregateRun`, `groupFindings`, `pairedComparison`): three monthly runs (August–October 2026) as full `reportSnapshotSchema` snapshots, the October one reviewed-style, plus the trend and the September → October comparison. `lib/evals/example/index.ts` is the browser-safe loader.
+- **Release gate.** `lib/evals/example/example.test.ts` (also run in the image build, `Dockerfile`) checks that the fixtures are the builder's output, parse and keep their content hashes, have 40–60 results with transcripts and excerpts, cite only existing results from every takeaway and finding, name no real company and make no certification claim, and that the committed PDFs match the fixtures.
+- **In the app.** `/workspace/example` renders the reviewed snapshot with `ReportView` (trend and comparison at the top of Overview) in the person's interface language. Entry points (`components/evals/example-evaluation-links.tsx`): a card below the evaluations list, a link in the empty states, a Settings → General row; `ExampleEvaluationLink`/`useExampleEvaluation` are for Home (L-22) and the onboarding checklist (L-06). Owners hide it per workspace on their device (localStorage `caudals.example-hidden`); a per-workspace server setting belongs in L-06's onboarding state.
+- **Public.** `/{locale}/sample-report` (`/es/informe-de-ejemplo`) is a server-rendered Paper page of the same snapshot. The PDFs are rendered by the document worker's renderer (`renderReportPdf` with `{ sample: true }`: an "Example" banner on the cover and a header line on every page) through `scripts/evals/render-example-pdfs.ts`, committed in `content/sample-report` with a manifest, and served by `app/sample-report/[file]/route.ts`.
+- **Read-only by construction.** Every identifier starts with `example-` and is not a UUID, so no API route accepts it and no `uuid` column can store it; no API route, repository, worker, billing or analytics query imports the fixtures (`tests/evals/example-evaluation-guard.test.ts`, `tests/evals/example-evaluation-db.test.ts`). It never counts towards plan limits, credits, product metrics or activation.
+- **Flags.** `EXAMPLE_EVALUATION_ENABLED` (app runtime, default off) gates the in-app example, its entry points, the public page and the PDFs (404 when off). `SAMPLE_REPORT_INDEXED` (default off) is the founder's go-ahead: until then the public page is `noindex` and stays out of `/page-sitemap.xml` and `/llms.txt` (which revalidates hourly).
 
 ## Billing: Credit Ledger
 

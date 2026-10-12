@@ -1,0 +1,18 @@
+{
+  "en": {
+    "file": "caudals-sample-report-en.pdf",
+    "version": "2026-10-12.1",
+    "content_hash": "1033a5883b5bd4fb481113e11a4df764ea37a6f7eff4b9be13d9206d17443ee0",
+    "sha256": "45981c5410c4fd7499b98707988e85cd9a43fe7edd3da37cb711db1a679faebd",
+    "bytes": 481981,
+    "pages": 33
+  },
+  "es": {
+    "file": "caudals-informe-de-ejemplo-es.pdf",
+    "version": "2026-10-12.1",
+    "content_hash": "40eb7e22a5a7e048d5d379cfff8a27921f8b4fa722b6efc6b929ae6bc854e916",
+    "sha256": "87dd2c941ddd0385bddb328b32449a63e7d60817a10116efb0644aa57cb89a26",
+    "bytes": 498296,
+    "pages": 35
+  }
+}

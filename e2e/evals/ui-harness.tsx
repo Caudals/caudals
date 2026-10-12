@@ -28,6 +28,11 @@ import { WebAppConnector } from "../../components/evals/web-app-connector";
 import { DemoPage } from "../../components/demo/demo-page";
 import { LocaleProvider } from "../../lib/i18n/context";
 import { FrontDoorProvider } from "../../components/public/front-door";
+import { ExampleEvaluation } from "../../components/evals/example-evaluation";
+import { SampleReportPage } from "../../components/sample-report/sample-report-page";
+import { exampleView } from "../../lib/evals/example";
+import { samplePdfHref } from "../../lib/evals/example/public";
+import { getLocale } from "../../lib/evals/messages/en";
 import "../../components/landing/landing.css";
 const params = new URLSearchParams(location.search);
 /** A synthetic grading-v2 report: every label, ground truth, key facts, buttons and excerpts. */
@@ -106,11 +111,22 @@ const identity = {
   ],
 };
 const demoPage = location.pathname === "/demo";
+/** The public sample report (launch L-33), in the Paper frame without the platform shell. */
+const sampleReportPage = location.pathname === "/sample-report";
+const sampleLocale = params.get("locale") === "es" ? "es" as const : "en" as const;
 const growthWeeks = Array.from({length:8},(_,i)=>({week:`2026-09-${String(i+1).padStart(2,"0")}`,events:{page_view:40+i,demo_started:12,account_created:4,report_viewed:2}}));
 const content =
   location.pathname === "/analytics-fixture" ? <FunnelVisitTracker /> :
   location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed"}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
-  demoPage ? (
+  sampleReportPage ? (
+    <LocaleProvider locale={sampleLocale}>
+      <FrontDoorProvider value={{ demoPublic: params.has("public"), signInUrl: "https://app.caudals.com/workspace/sign-in" }}>
+        <SampleReportPage locale={sampleLocale} view={exampleView(sampleLocale)} />
+      </FrontDoorProvider>
+    </LocaleProvider>
+  ) : location.pathname === "/workspace/example" ? (
+    <ExampleEvaluation view={exampleView(getLocale())} pdfHref={samplePdfHref(getLocale())} />
+  ) : demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
     // `?public` renders it as the public front door (DEMO_PUBLIC, launch L-04).
     <LocaleProvider locale={params.get("locale") === "es" ? "es" : "en"}>
@@ -186,13 +202,13 @@ const content =
     <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
-  authPage || demoPage ? (
+  authPage || demoPage || sampleReportPage ? (
     content
   ) : anonymous ? (
     <div className="p-root">
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true, example: !params.has("no-example") }}>{content}</ShellFrame>
   ),
 );

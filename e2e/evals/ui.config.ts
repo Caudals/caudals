@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
-  testMatch: "ui.contract.ts",
+  testMatch: ["ui.contract.ts", "example.contract.ts"],
   workers: 1,
   fullyParallel: false,
   outputDir: "/tmp/evals-ui-test-results",

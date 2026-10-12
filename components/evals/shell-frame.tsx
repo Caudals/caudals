@@ -53,6 +53,7 @@ import { Toaster } from "./overlays";
 import { CommandPalette, type PaletteLink } from "./command-palette";
 import { HelpPanel } from "./help-panel";
 import { NotificationCenter } from "./notification-center";
+import { ExampleAvailability } from "./example-evaluation-links";
 import { setInterfaceLocale } from "./locale";
 import { Check as CheckIcon, CircleHelp, Languages, ShieldCheck } from "lucide-react";
 import { CrumbProvider, WorkspaceProvider, useCrumbLabel, useWorkspace } from "./workspace-context";
@@ -61,7 +62,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean; growth?: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean; example?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -71,7 +72,7 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
   if (identity.workspaces.length) {
     groups.push({
       items: [
-        { href: "/workspace/evaluations", label: t("product"), icon: <FlaskConical />, scoped: true },
+        { href: "/workspace/evaluations", label: t("product"), icon: <FlaskConical />, scoped: true, match: (path) => prefix("/workspace/evaluations")(path) || path === "/workspace/example" },
         { href: "/workspace/systems", label: t("systems"), icon: <Plug />, scoped: true },
         { href: "/workspace/reports", label: t("reports"), icon: <FileText />, scoped: true },
         ...(hasTestSets ? [{ href: "/workspace/test-sets", label: t("testSets"), icon: <ListChecks />, scoped: true }] : []),
@@ -142,6 +143,7 @@ function crumbsFor(pathname: string, detail: string | null): Crumb[] {
   const name = (segment: string) => SECTION[segment] ?? humanize(segment.replaceAll("-", "_"));
   if (s[0] === "workspace") {
     const section = s[1] ?? "evaluations";
+    if (section === "example") return [{ label: name("evaluations"), href: "/workspace/evaluations" }, { label: t("exampleEvaluationTitle") }];
     if (s.length <= 2) return [{ label: name(section) }];
     const base = { label: name(section), href: `/workspace/${section}` };
     if (s[2] === "new") return [base, { label: t("newEvaluationAction") }];
@@ -634,9 +636,11 @@ export function ShellFrame({
     <Suspense fallback={null}>
       <WorkspaceProvider identity={identity}>
         <CrumbProvider>
-          <Frame identity={identity} expert={expert} features={features}>
-            {children}
-          </Frame>
+          <ExampleAvailability enabled={!!features.example}>
+            <Frame identity={identity} expert={expert} features={features}>
+              {children}
+            </Frame>
+          </ExampleAvailability>
         </CrumbProvider>
       </WorkspaceProvider>
     </Suspense>

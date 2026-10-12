@@ -86,10 +86,16 @@ function pre(value: string) {
 }
 
 /**
+ * `sample` marks the example evaluation (lib/evals/example): an "Example"
+ * banner on the cover and, through the PDF header, on every page.
+ */
+export type ReportDocumentOptions = { sample?: boolean };
+
+/**
  * `hidden` names report sections a private share did not allow (see
  * ./share-sections.ts); they are left out of the document entirely.
  */
-export function renderReportDocument(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): string {
+export function renderReportDocument(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set(), options: ReportDocumentOptions = {}): string {
   locale = language;
   S = reportStrings(language);
   const show = (section: string) => !hidden.has(section);
@@ -248,7 +254,8 @@ export function renderReportDocument(report: ReportSnapshot, language: ReportLoc
 </section>`,
   ].filter(Boolean).join("\n\n");
 
-  return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${show("system") ? `${escapeHtml(report.system.name)} — ` : ""}${S.evaluationReport}</title><style>
+  const sample = options.sample ? `<p class="sample"><b>${S.sampleLabel}</b> ${S.sampleNote}</p>` : "";
+  return `<!doctype html><html lang="${locale === "es" ? "es" : "en"}"><head><meta charset="utf-8"><title>${options.sample ? `${S.sampleLabel} — ` : ""}${show("system") ? `${escapeHtml(report.system.name)} — ` : ""}${S.evaluationReport}</title><style>
 @font-face{font-family:"Geist";src:url(data:font/woff2;base64,${GEIST_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${GEIST_MONO_WOFF2}) format("woff2");font-weight:100 900;font-style:normal}
 @page{size:A4;margin:18mm 16mm 20mm}
@@ -303,7 +310,7 @@ h2 .num{color:var(--faint);font-weight:500;margin-right:6px}
 .ref{font-size:8pt;color:var(--muted)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 .rates{width:100%;border-collapse:collapse;font-size:9pt}
-.rates th{text-align:left;font-weight:500;padding:5px 8px 5px 0;width:34%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+.rates th{text-align:left;font-weight:500;padding:5px 8px 5px 0;width:34%;overflow-wrap:anywhere}
 .rates td{padding:5px 0}
 .rates .track{width:44%}
 .rates .track span{display:block;height:6px;border-radius:3px;background:var(--ink)}
@@ -348,9 +355,12 @@ ul.plain{margin:0;padding-left:16px}
 ul.plain li{margin:3px 0}
 .disclaimer{margin-top:16px;padding-top:10px;border-top:1px solid var(--line);font-size:8pt;color:var(--muted)}
 .mono{font-family:"Geist Mono",ui-monospace,monospace;font-size:7.5pt;overflow-wrap:anywhere}
+.sample{margin:0 0 12px;padding:8px 12px;border:1px solid var(--ink);border-radius:6px;font-size:9pt;color:var(--ink-2)}
+.sample b{color:var(--ink);margin-right:4px}
 </style></head><body>
 
 <section class="cover">
+  ${sample}
   <div class="brandbar">${LOGO}<span class="name">Caudals</span><span>${S.evaluationReport}</span><span class="spacer"></span>${show("scope") ? chip(report.scope.review_status, report.scope.review_status === "reviewed" ? "pass" : "neutral") : ""}<span>${day(report.created_at)}</span></div>
   ${show("system") ? `<p class="eyebrow">${S.evaluationOf}</p>
   <h1>${escapeHtml(report.system.name)}</h1>
@@ -377,8 +387,15 @@ ${body}
 </body></html>`;
 }
 
-/** Page footer for the PDF: identifies the document on every page. */
-export function reportFooterTemplate(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set()): string {
+/** Page header for the PDF of the example evaluation: the label on every page. Empty otherwise. */
+export function reportHeaderTemplate(language: ReportLocale = "en", options: ReportDocumentOptions = {}): string {
+  if (!options.sample) return "<span></span>";
   const strings = reportStrings(language);
-  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${hidden.has("system") ? "" : `${escapeHtml(report.system.name)} · `}${strings.revision} ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(reportDate(report.created_at, language))}</span><span>${strings.page} <span class="pageNumber"></span> ${strings.pageOf} <span class="totalPages"></span></span></div>`;
+  return `<div style="width:100%;padding:0 16mm;font-family:Helvetica,Arial,sans-serif;font-size:7.5px;color:#3b3a36"><b style="color:#141413">${strings.sampleLabel}</b> · ${strings.sampleNote}</div>`;
+}
+
+/** Page footer for the PDF: identifies the document on every page. */
+export function reportFooterTemplate(report: ReportSnapshot, language: ReportLocale = "en", hidden: ReadonlySet<string> = new Set(), options: ReportDocumentOptions = {}): string {
+  const strings = reportStrings(language);
+  return `<div style="width:100%;padding:0 16mm;display:flex;justify-content:space-between;font-family:Helvetica,Arial,sans-serif;font-size:7px;color:#9a9a94"><span>Caudals · ${options.sample ? `${strings.sampleLabel} · ` : ""}${hidden.has("system") ? "" : `${escapeHtml(report.system.name)} · `}${strings.revision} ${escapeHtml(report.report_revision_id.slice(0, 8))} · ${escapeHtml(reportDate(report.created_at, language))}</span><span>${strings.page} <span class="pageNumber"></span> ${strings.pageOf} <span class="totalPages"></span></span></div>`;
 }

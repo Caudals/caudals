@@ -47,6 +47,8 @@ const EN = {
   eyebrow: "CAUDALS · EVALUATION REPORT",
   expectedAnswer: "Expected answer", offeredOptions: "Buttons offered",
   sharedCopy: "Shared copy: the sender chose which sections of the report to include.", identifiers: "Identifiers",
+  sampleLabel: "Example",
+  sampleNote: "Synthetic data about a fictitious company. It shows what a reviewed report looks like; no real expert reviewed it.",
 };
 type Strings = typeof EN;
 
@@ -90,6 +92,8 @@ const ES: Strings = {
   eyebrow: "CAUDALS · INFORME DE EVALUACIÓN",
   expectedAnswer: "Respuesta esperada", offeredOptions: "Botones ofrecidos",
   sharedCopy: "Copia compartida: quien la envía eligió qué secciones del informe incluir.", identifiers: "Identificadores",
+  sampleLabel: "Ejemplo",
+  sampleNote: "Datos sintéticos sobre una empresa ficticia. Muestra cómo es un informe revisado; ningún experto real lo ha revisado.",
 };
 
 const LABEL_ES: Record<string, string> = {
