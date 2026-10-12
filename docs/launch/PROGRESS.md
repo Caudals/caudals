@@ -1,13 +1,13 @@
 # Launch build progress (spec v2)
 
-The founder approved `docs/product-specs/spec-v2.md` on 2026-10-11. The latest instruction (2026-10-12) is to implement every phase, deploy after each phase, **use no subagents**, and resume after usage-limit resets. Continue packages serially, preserving existing worktrees. Follow `docs/launch/AGENT-BRIEF.md` except its superseded parallel-agent and attribution instructions. This file is the source of truth for resuming.
+The founder approved `docs/product-specs/spec-v2.md` on 2026-10-11. The latest instruction (2026-10-12, Claude orchestrator session) is to implement every phase, deploy after each phase, **spawn subagents**, and resume after usage-limit resets. The orchestrator runs 2–4 package agents in parallel in their own worktrees, merging one at a time under the merge lock, and follows `docs/launch/AGENT-BRIEF.md`. This file is the source of truth for resuming.
 
 ## 1. How to resume
 
 1. Read this file, then `git log --oneline -15` and `git worktree list` in `/home/caudals/caudals`.
 2. `scripts/launch/merge-lock.sh status`. A lock held by a package whose agent is no longer running is released with `release <owner>` after you check that package's state.
-3. For each package marked **in progress**: if `.worktrees/launch-L-xx` exists, inspect and resume it in the current agent; if it merged but the handoff is missing, finish verification and the handoff. Do not spawn agents.
-4. Continue the next package whose dependencies have landed (§2), one at a time.
+3. For each package marked **in progress**: if `.worktrees/launch-L-xx` exists, resume it with a package agent (do not duplicate one that is still running); if it merged but the handoff is missing, finish verification and the handoff.
+4. Start agents for the next packages whose dependencies have landed (§2), at most 4 at a time.
 
 ## 2. Packages
 
@@ -16,7 +16,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | Phase | ID | Title | Depends on | Migration | Status | Commit | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
-| 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | in progress | | Serial implementation in `.worktrees/launch-L-02` (`codex/launch-l02`). |
+| 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | done | `144510e`, `cf8252b` | [L-02](L-02.md); flag on, events persisting, growth query 3.8 ms in production. |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
 | 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
@@ -102,3 +102,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | The prior session cron is historical and has not been verified for this Codex chat. This session exposes no automation or usage-reset scheduling tool. Keep the goal active and checkpoints current; automatic wake-up after a usage reset cannot be configured or guaranteed from these tools. |
 | 2026-10-12 | L-01 engineering deployed with migration 081 and required signup acceptance enabled. Legal documents, downloads and mobile widths passed 14 production browser tests; retired routes remain 404. Real entity data and lawyer review remain explicit gates. L-03 draft rebased serially; budget bounds and notification retry fixes under test. |
 | 2026-10-12 | L-03 deployed with queue enabled. Controlled production demo completed 8/8 cases in 123 s; server lifecycle events verified in the database. Fallback remains off pending funded access. Preserved concurrent contact-card and background-color changes. Continuing L-02 serially. |
+| 2026-10-12 | L-02 deployed and verified (app and workers at `cf8252b`, `ANALYTICS_EVENTS_V2=true`). Claude orchestrator took over from Codex with the instruction to spawn subagents; finished worktrees for L-01, L-02, L-03 and L-09 removed. Next: L-08 (phase 1) and phase 2 packages in parallel. |
