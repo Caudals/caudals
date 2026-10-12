@@ -2714,7 +2714,7 @@ function snapshotDetail(state: { shared?: boolean; crm?: boolean } = {}) {
     scope: { questions: "ordinary", adversarial: false }, trafficLimit: { requests_per_minute: 4, concurrent_sessions: 1, max_questions: 10, runs_per_month: 3 },
     createdAt: "2026-10-12T08:00:00Z", mine: true, projectId: "p", evaluationId: "00000000-0000-4000-8000-0000000000ac", setupComplete: true,
     evaluation: { id: "e", title: "Acme Seguros · external snapshot", preparationStatus: "ready", updatedAt: "2026-10-12T08:10:00Z" },
-    connection: { status: "succeeded", checkedAt: "2026-10-12T08:01:00Z" }, source: { status: "completed", pageLimit: 10 },
+    connection: { status: "ready", checkedAt: "2026-10-12T08:01:00Z" }, source: { status: "completed", pageLimit: 10 },
     run: { id: "00000000-0000-4000-8000-0000000000ad", status: "completed", phase: "done", updatedAt: "2026-10-12T08:20:00Z" },
     report: { id: "00000000-0000-4000-8000-0000000000ae", revisionId: "r", reviewStatus: "preliminary", publishedAt: "2026-10-12T08:21:00Z", metrics: { scored: 8, pass: 5, partial: 2, fail: 1 }, finding: "Refund window stated as 14 days" },
     share: state.shared ? { id: "s", expiresAt: "2026-11-11T08:30:00Z", revokedAt: null, label: "external_snapshot", views: 0, active: true, current: true } : null,
@@ -2780,6 +2780,8 @@ test("snapshot detail makes a labelled link, fills the EN/ES outreach and drafts
   await page.goto(`/ops/prospects/${snapshotId}`);
   await expect(page.getByRole("heading", { name: "Acme Seguros" })).toBeVisible();
   await expect(page.getByText("External snapshot").first()).toBeVisible();
+  // A ready chat and a read help centre count as done in the tracker.
+  await expect(page.getByRole("list", { name: "Snapshot progress" }).locator('li[data-state="done"]')).toHaveCount(6);
   await expect(page.getByTestId("snapshot-counts")).toContainText("5 right · 2 incomplete · 1 wrong, of 8 scored.");
   await expect(page.getByLabel("LinkedIn message")).toHaveValue(/\{link\}/);
   await expect(page.getByRole("button", { name: "Create CRM draft" })).toBeDisabled();

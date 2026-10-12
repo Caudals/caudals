@@ -180,7 +180,7 @@ type StepState = "done" | "current" | "upcoming" | "blocked";
 const FAILED = new Set(["failed", "canceled", "needs_operator", "needs_assistance", "unsupported", "unhealthy"]);
 
 function progress(detail: Detail) {
-  const connectionOk = detail.connection?.status === "succeeded" || detail.connection?.status === "healthy" || detail.connection?.status === "completed";
+  const connectionOk = ["ready", "succeeded", "healthy", "completed"].includes(detail.connection?.status ?? "");
   const sourceOk = detail.source?.status === "completed" || detail.source?.status === "ready";
   const questionsOk = ["ready", "awaiting_answers"].includes(detail.evaluation?.preparationStatus ?? "") || !!detail.run;
   const runOk = ["completed", "partial"].includes(detail.run?.status ?? "");
