@@ -32,6 +32,7 @@ import { useWorkspace } from "./workspace-context";
 import type { WorkspaceSummary } from "./workspace-data";
 import { evaluationStage, type StageKey } from "./evaluation-stage";
 import { t, tv } from "@/lib/evals/messages/en";
+import { tr } from "@/lib/evals/messages/phrases";
 import type { OpsKpis } from "@/lib/analytics/ops-kpis";
 
 const NEXT_STEP: Record<StageKey, string> = {
@@ -218,7 +219,7 @@ export function OperatorOverview({ kpis = null, growth = false }: { kpis?: OpsKp
                       </Badge>
                     </td>
                     <td className="p-cell-meta">
-                      {NEXT_STEP[stage.key]}
+                      {tr(NEXT_STEP[stage.key])}
                       {evaluation.latest_run_id && (
                         <>
                           {" · "}

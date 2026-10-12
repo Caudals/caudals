@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { evaluationSignInPath, evaluationRecoveryPath } from "./auth-path";
-import { t } from "@/lib/evals/messages/en";
+import { getLocale, t } from "@/lib/evals/messages/en";
 import { tr } from "@/lib/evals/messages/phrases";
 
 /* ---------------------------------------------------------------- buttons -- */
@@ -810,9 +810,15 @@ export function TableSkeleton({ rows = 4, columns = 3, label }: { rows?: number;
 
 /* ------------------------------------------------------------------ time -- */
 
-const RELATIVE = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-const ABSOLUTE = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" });
-const DAY = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
+// Formatters follow the interface language: "hace 2 minutos" in a Spanish
+// console, "2 minutes ago" in an English one. Built per locale on first use.
+const FORMATTERS: Record<string, { relative: Intl.RelativeTimeFormat; absolute: Intl.DateTimeFormat; day: Intl.DateTimeFormat; justNow: string }> = {};
+function formatters() {
+  const locale = getLocale();
+  return (FORMATTERS[locale] ??= locale === "es"
+    ? { relative: new Intl.RelativeTimeFormat("es", { numeric: "auto" }), absolute: new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }), day: new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }), justNow: "ahora mismo" }
+    : { relative: new Intl.RelativeTimeFormat("en", { numeric: "auto" }), absolute: new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }), day: new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }), justNow: "just now" });
+}
 
 /** Money as a person reads it: grouped, at most two decimals, with its currency. */
 export function formatMoney(value: string | number | null | undefined, currency?: string) {
@@ -827,7 +833,8 @@ export function formatDate(value: string | Date | null | undefined, withTime = f
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "—";
-  return (withTime ? ABSOLUTE : DAY).format(date);
+  const f = formatters();
+  return (withTime ? f.absolute : f.day).format(date);
 }
 
 export function relativeTime(value: string | Date | null | undefined, now = Date.now()) {
@@ -835,11 +842,12 @@ export function relativeTime(value: string | Date | null | undefined, now = Date
   const date = typeof value === "string" ? new Date(value) : value;
   const seconds = Math.round((date.getTime() - now) / 1000);
   const abs = Math.abs(seconds);
-  if (abs < 45) return "just now";
-  if (abs < 3600) return RELATIVE.format(Math.round(seconds / 60), "minute");
-  if (abs < 86_400) return RELATIVE.format(Math.round(seconds / 3600), "hour");
-  if (abs < 86_400 * 7) return RELATIVE.format(Math.round(seconds / 86_400), "day");
-  return DAY.format(date);
+  const f = formatters();
+  if (abs < 45) return f.justNow;
+  if (abs < 3600) return f.relative.format(Math.round(seconds / 60), "minute");
+  if (abs < 86_400) return f.relative.format(Math.round(seconds / 3600), "hour");
+  if (abs < 86_400 * 7) return f.relative.format(Math.round(seconds / 86_400), "day");
+  return f.day.format(date);
 }
 
 /** A timestamp that reads relatively and exposes the exact time on hover. */
