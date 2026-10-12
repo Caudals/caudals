@@ -224,7 +224,9 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("price book on the production schema",
     expect(estimate).toMatchObject({ code: "INPUT_INVALID" });
     const target = (await owner.query("SELECT target_revision_id FROM evals.run WHERE id=$1", [f.run.id])).rows[0].target_revision_id;
     const result = await tx(runtime, f.scope, db => estimateEvaluationRun(db, f.orgId, { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: target, sources: { webPages: 3 } }));
-    expect(result).toMatchObject({ connection: "imported", questions: { count: 2, executions: 2, judged: 2, generated: 0 }, balance: { availableCredits: "0", coversP90: false } });
+    // A managed (contract) workspace runs on its contract budget: no credit gate.
+    expect(result).toMatchObject({ connection: "imported", questions: { count: 2, executions: 2, judged: 2, generated: 0 },
+      balance: { billingMode: "contract", requiresCredits: false, coversP90: true, addCredits: null } });
     expect(result.lines.filter(line => line.kind === "meter")).toEqual([
       { kind: "meter", key: "graded_answer", quantity: 2, p50Ucr: String(c(2)), p90Ucr: String(c(2)) },
       { kind: "meter", key: "web_page_read", quantity: 3, p50Ucr: String(c(3)), p90Ucr: String(c(3)) },
@@ -232,7 +234,10 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("price book on the production schema",
     expect(result.models.judge).toMatchObject({ modelId: "fixture-judge", priced: true, rate: "Caudals Local (DeepSeek V4 Flash on the DGX)" });
     expect(BigInt(result.ucr.p50)).toBeGreaterThan(c(5));
     expect(BigInt(result.ucr.p90)).toBeGreaterThanOrEqual(BigInt(result.ucr.p50));
-    expect(Number(result.balance!.addCredits)).toBe(Number(result.credits.p90));
+    await owner.query("UPDATE evals.workspace_entitlement SET plan='free' WHERE org_id=$1", [f.orgId]);
+    const free = await tx(runtime, f.scope, db => estimateEvaluationRun(db, f.orgId, { evaluationId: f.evaluationId, suiteVersionId: f.suiteVersionId, targetRevisionId: target, sources: { webPages: 3 } }));
+    expect(free.balance).toMatchObject({ billingMode: "free", requiresCredits: true, availableCredits: "0", coversP90: false });
+    expect(Number(free.balance!.addCredits)).toBe(Number(free.credits.p90));
     expect(BigInt(result.largestHold.ucr)).toBeGreaterThan(BigInt(0));
     const generated = await tx(runtime, { orgId: f.orgId, actorId: "customer-api-token" }, db => estimateEvaluationRun(db, f.orgId, { evaluationId: f.evaluationId, targetRevisionId: target, generation: { questions: 24 } }));
     expect(generated.questions).toEqual({ count: 24, executions: 24, judged: 24, generated: 24 });

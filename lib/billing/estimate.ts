@@ -231,13 +231,18 @@ export function callStatsFor(stats: EstimateStats, role: EngineRole, provider: s
   return { ...seed, samples: exact?.samples ?? any?.samples ?? 0, source: "seeded" };
 }
 
+/** Below this many measured runs the tail is capped: one run left open for a day (a later re-grade, a paused judge) would otherwise set it. */
+export const ROBUST_TAIL_RUNS = 20;
 export function throughputFor(stats: EstimateStats): EstimateInput["throughput"] {
   const result = {} as Record<"website" | "api", { p50: number; p90: number; source: "measured" | "seeded" }>;
   for (const kind of ["website", "api"] as const) {
     const row = stats.rows.find(item => item.kind === "throughput" && item.role === kind);
-    result[kind] = row && row.samples >= MIN_THROUGHPUT_RUNS && row.p50_seconds !== null && row.p90_seconds !== null
-      ? { p50: Number(row.p50_seconds), p90: Math.max(Number(row.p50_seconds), Number(row.p90_seconds)), source: "measured" }
-      : { ...SEEDED_THROUGHPUT[kind], source: "seeded" };
+    if (!row || row.samples < MIN_THROUGHPUT_RUNS || row.p50_seconds === null || row.p90_seconds === null) {
+      result[kind] = { ...SEEDED_THROUGHPUT[kind], source: "seeded" };
+      continue;
+    }
+    const p50 = Number(row.p50_seconds), p90 = Math.max(p50, Number(row.p90_seconds));
+    result[kind] = { p50, p90: row.samples < ROBUST_TAIL_RUNS ? Math.min(p90, 2 * p50) : p90, source: "measured" };
   }
   return result;
 }
@@ -384,11 +389,13 @@ export async function estimateEvaluationRun(db: PoolClient, orgId: string, raw: 
     ucr: { p50: result.p50Ucr.toString(), p90: result.p90Ucr.toString() },
     largestHold: { ucr: result.largestHoldUcr.toString(), credits: wholeCreditsUp(result.largestHoldUcr).toString() },
     eta: { p50Seconds: result.etaSeconds.p50, p90Seconds: result.etaSeconds.p90, basis: estimateInput.throughput[kind === "imported" ? "api" : kind].source },
+    // Contract workspaces run on their contract budget, without credit holds (§6.8 step 7).
     balance: account ? {
       billingMode: account.billingMode,
+      requiresCredits: account.billingMode !== "contract",
       availableCredits: ucrToCredits(account.availableUcr),
-      coversP90: shortfall === BigInt(0),
-      addCredits: shortfall === null ? null : wholeCreditsUp(shortfall).toString(),
+      coversP90: account.billingMode === "contract" || shortfall === BigInt(0),
+      addCredits: account.billingMode === "contract" || shortfall === null ? null : wholeCreditsUp(shortfall).toString(),
     } : null,
     models: Object.fromEntries(Object.entries(roles).map(([role, model]) => [role, {
       modelId: model!.modelId, free: model!.free, priced: model!.free || model!.tiers.length > 0, rate: model!.tiers[0]?.label ?? null,

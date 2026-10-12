@@ -115,6 +115,9 @@ describe("statistics fallbacks", () => {
     const tp = (samples: number): StatsRow => ({ ...row({}), kind: "throughput", role: "website", provider: null, model_id: null, samples, p50_seconds: 40, p90_seconds: 65 });
     expect(throughputFor({ rows: [tp(3)] }).website).toEqual({ p50: 40, p90: 65, source: "measured" });
     expect(throughputFor({ rows: [tp(2)] }).website).toEqual({ p50: 52, p90: 76, source: "seeded" });
+    // A single run left open for a day must not set the tail while there are few runs.
+    expect(throughputFor({ rows: [{ ...tp(6), p50_seconds: 57.5, p90_seconds: 5914 }] }).website).toEqual({ p50: 57.5, p90: 115, source: "measured" });
+    expect(throughputFor({ rows: [{ ...tp(25), p50_seconds: 57.5, p90_seconds: 300 }] }).website).toEqual({ p50: 57.5, p90: 300, source: "measured" });
   });
 });
 
