@@ -21,6 +21,9 @@ import { ImprovementDatasets } from "../../components/evals/improvement-datasets
 import { OperatorOverview } from "../../components/evals/operator-overview";
 import { WorkspaceTestSetEditor, WorkspaceTestSets } from "../../components/evals/workspace-test-sets";
 import { WebAppConnector } from "../../components/evals/web-app-connector";
+import { DemoPage } from "../../components/demo/demo-page";
+import { LocaleProvider } from "../../lib/i18n/context";
+import "../../components/landing/landing.css";
 const params = new URLSearchParams(location.search);
 /** A synthetic grading-v2 report: every label, ground truth, key facts, buttons and excerpts. */
 function gradingV2Fixture() {
@@ -95,8 +98,14 @@ const identity = {
     ...(params.has("two-workspaces") ? [{ id: "00000000-0000-4000-8000-000000000002", name: "Second client", role: "owner" as const }] : []),
   ],
 };
+const demoPage = location.pathname === "/demo";
 const content =
-  location.pathname === "/workspace/web-app-fixture" ? (
+  demoPage ? (
+    // The public demo, in the landing's Paper frame (its API is routed by each test).
+    <LocaleProvider locale={params.get("locale") === "es" ? "es" : "en"}>
+      <div className="lp min-h-screen"><main><DemoPage /></main></div>
+    </LocaleProvider>
+  ) : location.pathname === "/workspace/web-app-fixture" ? (
     <WebAppConnector orgId="00000000-0000-4000-8000-000000000001" targetId="00000000-0000-4000-8000-000000000201" />
   ) :
   location.pathname === "/workspace/sign-in" ? (
@@ -160,7 +169,7 @@ const content =
     <WorkspaceEvaluations />
   );
 createRoot(document.getElementById("root")!).render(
-  authPage ? (
+  authPage || demoPage ? (
     content
   ) : anonymous ? (
     <div className="p-root">

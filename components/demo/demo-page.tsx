@@ -7,6 +7,7 @@ import type { NamespaceKeys } from "@/lib/i18n/messages";
 import { splitMarked } from "@/lib/marked-text";
 import type { DemoView } from "@/lib/demo/view";
 import type { Verdict } from "@/lib/demo/judge";
+import { queueEta, runEta } from "@/lib/demo/eta";
 import { solveChallenge } from "./pow";
 import { VerdictMark } from "./verdict";
 import { plainAnswer, RichAnswer } from "./answer-text";
@@ -19,6 +20,12 @@ type Intro = {
   reason: string | null;
   challenge: Challenge | null;
   last: { id: string; token: string; host: string; phase: string; createdAt: string } | null;
+  /** With the queue: whether models can serve now, how many tests wait, and whether the email option exists. */
+  service?: DemoView["service"];
+  queue?: { waiting: number; active: number; slots: number; durations: DemoView["durations"] } | null;
+  notify?: boolean;
+  /** The third-party backup model may read the pages. */
+  fallback?: boolean;
 };
 type Handle = { id: string; token: string };
 
@@ -29,6 +36,12 @@ function readHandle(): Handle | null {
   if (typeof window === "undefined") return null;
   const match = /^#r=([0-9a-f-]{36})\.([A-Za-z0-9_-]{32})$/.exec(window.location.hash);
   return match ? { id: match[1], token: match[2] } : null;
+}
+
+/** Seconds to a whole-minute range for the page: "about 4–9 min". */
+function minuteRange(range: { min: number; max: number }) {
+  const min = Math.max(1, Math.round(range.min / 60));
+  return { min, max: Math.max(min + 1, Math.ceil(range.max / 60)) };
 }
 
 function hostOf(value: string) {
@@ -182,6 +195,8 @@ function StartForm({ onStarted }: { onStarted: (handle: Handle) => void }) {
         </p>
       ) : null}
 
+      {intro ? <ServiceNotice intro={intro} /> : null}
+
       <label htmlFor={`${ids}-target`} className="dm-label">{t("targetLabel")}</label>
       <div className="dm-bar">
         <textarea
@@ -242,13 +257,30 @@ function StartForm({ onStarted }: { onStarted: (handle: Handle) => void }) {
       ) : null}
 
       <Steps />
-      <p className="dm-foot">{t("footnote")}</p>
+      <p className="dm-foot">{t("footnote")}{intro?.fallback ? <> {t("footnoteFallback")}</> : null}</p>
     </form>
   );
 }
 
+/** How busy the demo is, before a test starts: degraded models, capacity, or a queue with its wait. */
+function ServiceNotice({ intro }: { intro: Intro }) {
+  const t = useTranslations("demo");
+  const parts: string[] = [];
+  if (intro.service === "capacity") parts.push(t("service.capacity"));
+  else {
+    if (intro.service === "degraded") parts.push(t("service.degraded"));
+    const queue = intro.queue;
+    if (queue && queue.waiting > 0) {
+      const eta = minuteRange(queueEta(queue.waiting + 1, queue.slots, queue.durations));
+      parts.push(queue.waiting === 1 ? t("service.busyOne", eta) : t("service.busy", { count: queue.waiting, ...eta }));
+    }
+  }
+  return parts.length ? <p className="dm-notice" role="status">{parts.join(" ")}</p> : null;
+}
+
 function errorText(t: ReturnType<typeof useTranslations<"demo">>, code: string, host = "") {
   const normalized = code.startsWith("target_http_") ? "target_http"
+    : code.startsWith("timeout_") ? "phase_timeout"
     : code.startsWith("model_") || code === "engine_failed" ? "model"
     : code === "capacity" && host === "__run" ? "capacity_run"
     : code;
@@ -316,7 +348,8 @@ function useRun(handle: Handle) {
   return { run, missing };
 }
 
-function useElapsed(run: DemoView | null) {
+/** The elapsed clock, and the current time for ETAs, ticking while the run is unfinished. */
+function useClock(run: DemoView | null) {
   const [now, setNow] = useState(() => Date.now());
   const running = run && !TERMINAL.has(run.phase);
   useEffect(() => {
@@ -324,19 +357,27 @@ function useElapsed(run: DemoView | null) {
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, [running]);
-  if (!run) return "0:00";
+  if (!run) return { elapsed: "0:00", now };
   const end = run.finishedAt ? Date.parse(run.finishedAt) : now;
   const seconds = Math.max(0, Math.round((end - Date.parse(run.createdAt)) / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  return { elapsed: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`, now };
 }
 
 function RunView({ handle, onReset }: { handle: Handle; onReset: () => void }) {
   const t = useTranslations("demo");
   const { run, missing } = useRun(handle);
-  const elapsed = useElapsed(run);
+  const { elapsed, now } = useClock(run);
 
   const steps = useMemo<StepRow[] | null>(() => {
     if (!run) return null;
+    if (run.queue) {
+      return [
+        { key: "read", state: "idle", status: t("queue.waiting") },
+        { key: "write", state: "idle", status: "" },
+        { key: "ask", state: "idle", status: "" },
+        { key: "check", state: "idle", status: "" },
+      ];
+    }
     const order = ["reading", "writing", "asking", "grading", "done"];
     const at = run.phase === "failed" ? -1 : order.indexOf(run.phase);
     const state = (index: number): StepState => (run.phase === "done" || at > index ? "done" : at === index ? "active" : "idle");
@@ -354,6 +395,12 @@ function RunView({ handle, onReset }: { handle: Handle; onReset: () => void }) {
 
   const active = steps?.find((step) => step.state === "active");
   const announcement = active ? t("live.announceStep", { step: t(`steps.${active.key}` as Key), status: active.status }) : "";
+  const running = Boolean(run && !run.queue && !TERMINAL.has(run.phase));
+  const startedAt = run ? Date.parse(run.startedAt ?? run.createdAt) : 0;
+  const runningFor = Math.max(0, (now - startedAt) / 1000);
+  const eta = run && running ? runEta(runningFor, run.durations) : null;
+  // The browser looks for the chat as soon as the run starts; after a minute, say why it can take longer.
+  const findingChat = Boolean(run && running && run.target.kind === "website" && !run.browser.chatFound && run.browser.chat !== "done" && run.browser.chat !== "failed" && !run.cases.some((item) => item.answer));
 
   if (missing) {
     return (
@@ -373,26 +420,128 @@ function RunView({ handle, onReset }: { handle: Handle; onReset: () => void }) {
           <span className="dm-clock" aria-label={t("live.elapsed")}>{elapsed}</span>
         </p>
       ) : (
-        <div className="dm-runhead">
-          <h1 className="dm-h2">{t("live.eyebrow", { host: run.target.host })}</h1>
-          <span className="dm-clock" aria-label={t("live.elapsed")}>{elapsed}</span>
-        </div>
+        <>
+          <div className="dm-runhead">
+            <h1 className="dm-h2">{t("live.eyebrow", { host: run.target.host })}</h1>
+            <span className="dm-clock" aria-label={t("live.elapsed")}>{elapsed}</span>
+          </div>
+          {eta ? <p className="dm-eta">{eta.max <= 60 ? t("live.etaSoon") : t("live.eta", minuteRange(eta))}</p> : null}
+        </>
       )}
+      {running && run.service === "degraded" ? <p className="dm-notice" role="status">{t("service.degraded")}</p> : null}
+      {run.queue ? <QueuePanel run={run} handle={handle} /> : null}
       {run.phase === "done" && run.summary ? <Score run={run} /> : null}
       {run.phase === "failed" ? (
         <div className="dm-failed">
           <p className="dm-error" role="alert">{errorText(t, run.error ?? "generic", run.error === "capacity" ? "__run" : run.error?.startsWith("site") || run.error === "unreachable" || run.error === "timeout" ? run.docs.host : run.target.host)}</p>
           <button type="button" className="lp-btn" onClick={onReset}>
-            {t(run.error === "interrupted" ? "errors.again" : "errors.retry")}
+            {t(run.error === "interrupted" || run.error === "queue_timeout" || run.error?.startsWith("timeout_") ? "errors.again" : "errors.retry")}
             <span className="lp-arr" aria-hidden="true">→</span>
           </button>
         </div>
       ) : null}
       {run.phase !== "done" && run.phase !== "failed" ? <Steps rows={steps} /> : null}
+      {findingChat && runningFor > 60 ? <FindingTips /> : null}
+      {running && run.notify.available ? <Notify run={run} handle={handle} compact /> : null}
       <p className="sr-only" aria-live="polite">{announcement}</p>
       {run.cases.length ? <Ledger run={run} /> : null}
       {run.phase === "done" ? <Upsell run={run} handle={handle} /> : null}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ queue --- */
+
+/** A waiting run: its place in line, when the report should be ready, and the email option. */
+function QueuePanel({ run, handle }: { run: DemoView; handle: Handle }) {
+  const t = useTranslations("demo");
+  const queue = run.queue!;
+  const eta = minuteRange(queueEta(queue.position, queue.slots, run.durations));
+  return (
+    <section className="dm-queue" aria-labelledby="dm-queue-title">
+      <h2 id="dm-queue-title" className="dm-queue-title" aria-live="polite">
+        {queue.position === 1 ? t("queue.next") : t("queue.title", { position: queue.position })}
+      </h2>
+      <p className="dm-queue-text">{run.service === "capacity" ? t("queue.capacity") : t("queue.eta", eta)}</p>
+      <p className="dm-hint">{t("queue.leave")}</p>
+      {run.notify.available || run.notify.requested ? <Notify run={run} handle={handle} /> : null}
+    </section>
+  );
+}
+
+function FindingTips() {
+  const t = useTranslations("demo");
+  return (
+    <aside className="dm-tips" aria-labelledby="dm-tips-title">
+      <h2 id="dm-tips-title" className="dm-label">{t("tips.title")}</h2>
+      <ul>
+        <li>{t("tips.button")}</li>
+        <li>{t("tips.login")}</li>
+        <li>{t("tips.page")}</li>
+      </ul>
+    </aside>
+  );
+}
+
+/** "Email me the report when it's ready", with explicit consent. */
+function Notify({ run, handle, compact = false }: { run: DemoView; handle: Handle; compact?: boolean }) {
+  const t = useTranslations("demo");
+  const ids = useId();
+  const [open, setOpen] = useState(!compact);
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [state, setState] = useState<"idle" | "sending" | "saved">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  if (state === "saved") return <p className="dm-notify-note" role="status">{t("notify.saved", { email: email.trim() })}</p>;
+  if (run.notify.requested) return <p className="dm-notify-note">{t("notify.already")}</p>;
+  if (!run.notify.available) return null;
+  if (!open) {
+    return (
+      <p className="dm-notify-open">
+        <button type="button" className="dm-link" onClick={() => setOpen(true)} aria-expanded="false">{t("notify.open")}</button>
+      </p>
+    );
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (state === "sending") return;
+    if (!consent) { setError("consent"); return; }
+    setState("sending");
+    setError(null);
+    try {
+      const response = await fetch(`/api/demo/runs/${run.id}/notify`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-demo-token": handle.token },
+        body: JSON.stringify({ email: email.trim(), consent: true }),
+      });
+      if (response.ok) { setState("saved"); return; }
+      const data = await response.json().catch(() => ({}));
+      setError(data?.error?.code ?? "notify_unavailable");
+      setState("idle");
+    } catch {
+      setError("notify_unavailable");
+      setState("idle");
+    }
+  }
+
+  const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  return (
+    <form className="dm-notify" onSubmit={submit} noValidate>
+      <label htmlFor={`${ids}-email`} className="dm-label">{t("notify.label")}</label>
+      <input id={`${ids}-email`} className="dm-line" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t("notify.placeholder")} />
+      <label className="dm-check">
+        <input type="checkbox" checked={consent} onChange={(event) => { setConsent(event.target.checked); setError(null); }} />
+        <span>{t("notify.consent")}</span>
+      </label>
+      {error ? <p className="dm-error" role="alert">{error === "consent" ? t("notify.consentRequired") : errorText(t, error)}</p> : null}
+      <div>
+        <button type="submit" className="lp-btn dm-notify-go" disabled={state === "sending" || !valid}>
+          {state === "sending" ? t("notify.sending") : t("notify.submit")}
+        </button>
+      </div>
+    </form>
   );
 }
 

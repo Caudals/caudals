@@ -31,30 +31,43 @@ type Check = (url: string) => Promise<void>;
 
 /** Questions asked at once. One keeps the demo light beside customer browser jobs. */
 const PARALLEL_QUESTIONS = Math.max(1, Math.min(3, Number(process.env.EVALS_BROWSER_DEMO_PARALLEL ?? 1) || 1));
+/** Demos handled at once; the app admits at most DEMO_MAX_ACTIVE_WEBSITE website runs, which should match. */
+const CONCURRENT_DEMOS = Math.max(1, Math.min(3, Number(process.env.EVALS_BROWSER_DEMO_CONCURRENCY ?? 1) || 1));
+
+/** The app sent the run back to its queue (no model could serve it): hand the job back too. */
+class Requeued extends Error {}
 
 /**
  * Runs beside the platform's browser slot rather than inside it, so a demo
- * never holds up a customer's evaluation; it handles one demo at a time.
+ * never holds up a customer's evaluation. It serves runs the app has admitted
+ * from its queue, oldest first, up to EVALS_BROWSER_DEMO_CONCURRENCY at once.
  */
 export function startDemoBrowserWorker(options: { pool: Pool; browser: Browser; destinationCheck: Check }) {
-  let busy = false;
+  let active = 0;
+  let claiming = false;
   const tick = async () => {
-    if (busy) return;
-    busy = true;
+    if (claiming || active >= CONCURRENT_DEMOS) return;
+    claiming = true;
+    let job: DemoJob | null = null;
     try {
-      const job = await claim(options.pool);
-      if (job) await run(options, job);
+      job = await claim(options.pool);
     } catch (error) {
       // Database error codes and names only; never page content or URLs.
       console.error(JSON.stringify({ event: "demo_browser_tick_failed", code: (error as { code?: string })?.code ?? null, type: error instanceof Error ? error.name : typeof error }));
     } finally {
-      busy = false;
+      claiming = false;
     }
+    if (!job) return;
+    active++;
+    void run(options, job)
+      .catch((error) => console.error(JSON.stringify({ event: "demo_browser_job_failed", code: (error as { code?: string })?.code ?? null, type: error instanceof Error ? error.name : typeof error })))
+      .finally(() => { active--; });
   };
   const timer = setInterval(() => void tick(), 2_000);
   return () => clearInterval(timer);
 }
 
+/** Admitted runs only: a run waiting in the app's queue (started_at NULL) is not served yet. */
 async function claim(pool: Pool): Promise<DemoJob | null> {
   const { rows } = await pool.query<DemoJob>(
     `UPDATE demo.run SET browser_lease_until = now() + interval '90 seconds',
@@ -62,7 +75,8 @@ async function claim(pool: Pool): Promise<DemoJob | null> {
        browser_chat = CASE WHEN browser_chat IN ('queued','running') THEN 'running' ELSE browser_chat END,
        version = version + 1, updated_at = now()
      WHERE id = (SELECT id FROM demo.run
-       WHERE expires_at > now() AND phase NOT IN ('done','failed') AND (browser_docs IN ('queued','running') OR browser_chat IN ('queued','running'))
+       WHERE expires_at > now() AND phase NOT IN ('done','failed') AND (started_at IS NOT NULL OR queued_at IS NULL)
+         AND (browser_docs IN ('queued','running') OR browser_chat IN ('queued','running'))
          AND (browser_lease_until IS NULL OR browser_lease_until < now())
        ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
      RETURNING id, phase, locale, language, target_url, docs_url, browser_docs, browser_chat`,
@@ -84,7 +98,12 @@ async function run(options: { pool: Pool; browser: Browser; destinationCheck: Ch
         await askChat(options, job);
         await set("browser_chat", "done");
       } catch (error) {
-        await set("browser_chat", "failed", code(error, "chat_not_found"));
+        if (error instanceof Requeued) {
+          // Picked up again, from detection, once the app admits the run anew.
+          await pool.query("UPDATE demo.run SET browser_chat = 'queued', browser_lease_until = NULL, version = version + 1, updated_at = now() WHERE id = $1 AND browser_chat = 'running'", [job.id]);
+        } else {
+          await set("browser_chat", "failed", code(error, "chat_not_found"));
+        }
       }
     }
   } finally {
@@ -215,9 +234,11 @@ async function askChat(options: { pool: Pool; browser: Browser; destinationCheck
   };
   // Questions arrive while they are written; ask each as soon as it exists.
   while (Date.now() < deadline) {
-    const { rows } = await pool.query<{ phase: string; cases: DemoCase[]; answers: Record<string, unknown>; browser_docs: string | null }>("SELECT phase, cases, answers, browser_docs FROM demo.run WHERE id = $1", [job.id]);
+    const { rows } = await pool.query<{ phase: string; cases: DemoCase[]; answers: Record<string, unknown>; browser_docs: string | null; waiting: boolean }>(
+      "SELECT phase, cases, answers, browser_docs, (started_at IS NULL AND queued_at IS NOT NULL) AS waiting FROM demo.run WHERE id = $1", [job.id]);
     const row = rows[0];
     if (!row || row.phase === "failed" || row.phase === "done") return;
+    if (row.waiting) throw new Requeued("requeued");
     // The engine asked for a browser read of the pages while this job held the run.
     if (row.browser_docs === "queued") { await docs(options, job); continue; }
     const waiting = row.cases.filter((item) => !row.answers[item.id] && !started.has(item.id));

@@ -1,6 +1,19 @@
 import type { DemoCase } from "./generate";
 import type { DemoAnswer, DemoSummary, DemoVerdict } from "./judge";
+import type { Durations } from "./eta";
 import type { BrowserState, Phase, RunRow } from "./store";
+
+/** Whether models can serve now: `ok`, `degraded` (the main model is down; a backup answers) or `capacity` (nothing can, runs wait). */
+export type ServiceLevel = "ok" | "degraded" | "capacity";
+
+/** Live context for a run's view, computed by the API route. */
+export type ViewExtras = {
+  position: number | null;
+  slots: number;
+  durations: Pick<Durations, "p50" | "p90">;
+  service: ServiceLevel;
+  notifyAvailable: boolean;
+};
 
 /** What the visitor's page receives: never the client key, page text or target configuration. */
 export type DemoView = {
@@ -20,6 +33,14 @@ export type DemoView = {
   finishedAt: string | null;
   expiresAt: string;
   claimed: boolean;
+  /** When the run left the queue; null while it waits. */
+  startedAt: string | null;
+  /** Set while the run waits: its place in line (1 = next). */
+  queue: { position: number; slots: number } | null;
+  /** Typical run durations in seconds, for the ETA ranges the page computes. */
+  durations: Pick<Durations, "p50" | "p90">;
+  service: ServiceLevel;
+  notify: { available: boolean; requested: boolean; sent: boolean };
 };
 
 /**
@@ -36,7 +57,9 @@ export function withoutSharedLabel(answers: Record<string, DemoAnswer>): Record<
   return Object.fromEntries(Object.entries(answers).map(([id, answer]) => [id, answer.text ? { ...answer, text: answer.text.split("\n").slice(1).join("\n").trim() } : answer]));
 }
 
-export function viewOf(run: RunRow): DemoView {
+const DEFAULT_EXTRAS: ViewExtras = { position: null, slots: 3, durations: { p50: 240, p90: 480 }, service: "ok", notifyAvailable: false };
+
+export function viewOf(run: RunRow, extras: ViewExtras = DEFAULT_EXTRAS): DemoView {
   const answers = withoutSharedLabel(run.answers);
   return {
     id: run.id,
@@ -55,5 +78,10 @@ export function viewOf(run: RunRow): DemoView {
     finishedAt: run.finished_at ? new Date(run.finished_at).toISOString() : null,
     expiresAt: new Date(run.expires_at).toISOString(),
     claimed: Boolean(run.claimed_at),
+    startedAt: run.started_at ? new Date(run.started_at).toISOString() : run.queued_at ? null : new Date(run.created_at).toISOString(),
+    queue: extras.position !== null && run.phase !== "done" && run.phase !== "failed" ? { position: extras.position, slots: extras.slots } : null,
+    durations: extras.durations,
+    service: extras.service,
+    notify: { available: extras.notifyAvailable, requested: Boolean(run.notify_requested_at), sent: Boolean(run.notified_at) },
   };
 }

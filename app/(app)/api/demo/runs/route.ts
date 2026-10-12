@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { clientHash } from "@/lib/demo/client";
+import { queueEnabled } from "@/lib/demo/config";
 import { failure, json, newToken, sameOrigin, setCookie } from "@/lib/demo/http";
 import { admit, LimitError } from "@/lib/demo/limits";
 import { verifyChallenge } from "@/lib/demo/pow";
-import { demoEnabled, ensureDemoRunner, rememberSecrets } from "@/lib/demo/runner";
-import { insertRun, spendChallenge } from "@/lib/demo/store";
+import { admitQueued, demoEnabled, ensureDemoRunner, recordStart, rememberSecrets } from "@/lib/demo/runner";
+import { getRun, insertRun, spendChallenge } from "@/lib/demo/store";
 import { classifyTarget, normalizeHttpsUrl, TargetInputError } from "@/lib/demo/target";
 import { pinPublic, WebError } from "@/lib/demo/web";
 
@@ -21,7 +22,11 @@ const input = z.strictObject({
   nonce: z.string().max(16),
 });
 
-/** Starts one demo: checks the challenge, the input and the limits, then queues the run. */
+/**
+ * Starts one demo: checks the challenge, the input and the limits, then
+ * queues the run. With DEMO_QUEUE_ENABLED it waits its turn instead of being
+ * refused as busy or over capacity.
+ */
 export async function POST(request: Request) {
   if (!demoEnabled()) return failure("closed", 503);
   if (!sameOrigin(request)) return failure("forbidden", 403);
@@ -53,17 +58,25 @@ export async function POST(request: Request) {
   try {
     await admit(client, targetHost, docsUrl.hostname);
   } catch (error) {
-    if (error instanceof LimitError) return failure(error.message, error.message === "capacity" || error.message === "busy" ? 503 : 429);
+    if (error instanceof LimitError) return failure(error.message, ["capacity", "busy", "queue_full"].includes(error.message) ? 503 : 429);
     throw error;
   }
 
+  const queued = queueEnabled();
   const { token, hash } = newToken();
   const id = await insertRun({
     tokenHash: hash, locale: body.locale, spec: classified.spec, targetHost,
     docsUrl: docsUrl.href, docsHost: docsUrl.hostname, clientHash: client,
-    auth: Object.keys(classified.secrets).length > 0,
+    auth: Object.keys(classified.secrets).length > 0, queued,
   });
   rememberSecrets(id, classified.secrets);
+  if (queued) {
+    // Starts at once when a slot and a model are free; otherwise it waits its turn.
+    await admitQueued().catch((error) => console.error("demo_admit_failed", { error_type: error instanceof Error ? error.name : typeof error }));
+  } else {
+    const run = await getRun(id);
+    if (run) recordStart(run);
+  }
   ensureDemoRunner();
-  return json({ id, token }, { status: 201, headers: { "Set-Cookie": setCookie(id, token) } });
+  return json({ id, token, queued }, { status: 201, headers: { "Set-Cookie": setCookie(id, token) } });
 }

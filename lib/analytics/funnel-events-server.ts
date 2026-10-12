@@ -26,7 +26,8 @@ type RecordFunnelEventInput = {
 };
 
 type RecordProductEventInput = {
-  eventName: ProductEventName;
+  // Server lifecycle events never join the client ingestion allowlist.
+  eventName: ProductEventName | "demo_started" | "demo_finished";
   userId?: string | null;
   userRole?: string | null;
   path?: string | null;
@@ -62,7 +63,7 @@ function sanitizePayload(payload?: ProductEventPayload) {
   );
 }
 
-function resolveEventCategory(eventName: ProductEventName) {
+function resolveEventCategory(eventName: RecordProductEventInput["eventName"]) {
   if (eventName.startsWith("funnel_")) {
     return "funnel";
   }

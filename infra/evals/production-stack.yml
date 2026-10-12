@@ -184,6 +184,8 @@ services:
       EVALS_BROWSER_INTERACTIVE_SESSIONS: "2"
       EVALS_BROWSER_DEMO_ENABLED: "true"
       EVALS_BROWSER_DEMO_PARALLEL: "2"
+      # Demos served at once; matches the app's DEMO_MAX_ACTIVE_WEBSITE (default 2).
+      EVALS_BROWSER_DEMO_CONCURRENCY: "2"
     secrets: [evals_browser_database_url,evals_browser_queue_database_url,evals_browser_session_keyring]
     healthcheck:
       test: ["CMD-SHELL", "node -e \"const t=Number(require('fs').readFileSync('/tmp/evals-browser-heartbeat','utf8'));process.exit(Date.now()-t<180000?0:1)\""]

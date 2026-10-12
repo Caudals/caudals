@@ -801,6 +801,7 @@
     "start": "Empezar la prueba",
     "starting": "Empezando…",
     "footnote": "Una prueba gratis al día. Los resultados solo los ves tú y se borran a los siete días.",
+    "footnoteFallback": "Cuando nuestro modelo está ocupado, las páginas públicas que leemos pueden pasar por un modelo de respaldo de Google, a través de OpenRouter.",
     "lastRun": "Tu última prueba, {host}.",
     "lastRunOpen": "Ábrela",
     "steps": {
@@ -829,7 +830,9 @@
       "asking": "Preguntando",
       "answered": "Respondida",
       "noReply": "Sin respuesta",
-      "announceStep": "{step}: {status}"
+      "announceStep": "{step}: {status}",
+      "eta": "Quedan unos {min}–{max} min",
+      "etaSoon": "Casi listo"
     },
     "verdict": {
       "correct": "Correcta",
@@ -933,7 +936,57 @@
       "email_invalid": "Escribe un email válido.",
       "signup_limit": "Demasiados emails de registro hoy. Inténtalo mañana.",
       "signup_unavailable": "No hemos podido enviar el email. Inténtalo en un minuto.",
-      "website_unavailable": "Las pruebas de chats web están en pausa. Prueba con una API o reserva una llamada."
+      "website_unavailable": "Las pruebas de chats web están en pausa. Prueba con una API o reserva una llamada.",
+      "queue_full": "Hay mucha gente probando ahora mismo. Inténtalo de nuevo en unos minutos.",
+      "queue_timeout": "Tu prueba esperó demasiado un hueco libre. Vuelve a lanzarla.",
+      "phase_timeout": "Un paso de la prueba tardó demasiado. Vuelve a lanzarla.",
+      "notify_limit": "Demasiadas solicitudes de correo hoy. Mantén esta página abierta.",
+      "notify_unavailable": "Ahora no podemos enviar el informe por correo. Mantén esta página abierta.",
+      "already_finished": "Tu informe ya está listo."
+    },
+    "service": {
+      "capacity": "Ahora mismo estamos al límite. Puedes empezar igualmente: tu prueba guarda su turno en la fila y empieza en cuanto podamos ejecutarla.",
+      "degraded": "Nuestro modelo principal tiene problemas, así que las pruebas usan un modelo de respaldo y pueden tardar un poco más.",
+      "busy": "Hay mucha actividad: {count} pruebas esperan. La tuya estaría lista en unos {min}–{max} min.",
+      "busyOne": "Hay mucha actividad: una prueba espera. La tuya estaría lista en unos {min}–{max} min."
+    },
+    "queue": {
+      "title": "Eres el número {position} de la fila",
+      "next": "Eres el siguiente de la fila",
+      "eta": "Tu informe debería estar listo en unos {min}–{max} min.",
+      "capacity": "Ahora mismo estamos al límite, así que tu prueba empezará en cuanto haya un modelo libre. Mantiene su turno en la fila.",
+      "waiting": "Esperando tu turno",
+      "leave": "Puedes cerrar esta página. El enlace privado de la barra de direcciones guarda tu turno."
+    },
+    "tips": {
+      "title": "Encontrar el chat está tardando",
+      "button": "Los chats que se abren desde un botón o aparecen tras el aviso de cookies tardan más en encontrarse.",
+      "login": "Si el chat pide iniciar sesión, la demo no puede llegar a él. Una cuenta gratuita sí.",
+      "page": "Si no aparece, prueba con la página exacta donde se abre el chat."
+    },
+    "notify": {
+      "open": "Envíame el informe por correo cuando esté listo",
+      "label": "Tu correo",
+      "placeholder": "tu@empresa.com",
+      "consent": "Envíame un enlace a este informe cuando esté listo. Caudals usa esta dirección solo para eso y la borra de la prueba en cuanto envía el correo.",
+      "submit": "Enviarme el informe",
+      "sending": "Guardando…",
+      "saved": "Hecho. Escribiremos a {email} cuando el informe esté listo.",
+      "already": "Te escribiremos cuando el informe esté listo.",
+      "consentRequired": "Marca la casilla para que podamos escribirte."
+    },
+    "email": {
+      "readySubject": "Tu prueba de {host} está lista",
+      "readyScore": "Tu prueba de ocho preguntas de {host} ha terminado: {correct} de {scored} respuestas coinciden con tu web.",
+      "readyNoScore": "Tu prueba de ocho preguntas de {host} ha terminado.",
+      "readyLink": "Ver el informe:",
+      "signup": "Guarda estas preguntas y prueba tu asistente completo con una cuenta gratuita:",
+      "signupNote": "El enlace de la cuenta sirve una sola vez y caduca en dos días.",
+      "signin": "Ya tienes una cuenta de Caudals. Entra aquí:",
+      "failedSubject": "No hemos podido terminar tu prueba de {host}",
+      "failedIntro": "No hemos podido terminar tu prueba de {host}.",
+      "failedLink": "Puedes repetirla aquí:",
+      "footer": "Pediste este correo en caudals.com. Hemos borrado tu dirección de la prueba, y el informe se elimina siete días después de crearse."
     }
   },
   "contactEmail": {

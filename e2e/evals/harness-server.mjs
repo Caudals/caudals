@@ -9,6 +9,11 @@ const result = await build({
   entryPoints: [root + "e2e/evals/ui-harness.tsx"],
   bundle: true,
   write: false,
+  // The public demo imports its Paper stylesheets; they come out as a second file.
+  outdir: "/tmp/evals-ui-harness",
+  loader: { ".woff2": "empty", ".woff": "empty" },
+  // Site-absolute images in the landing stylesheet stay URLs (not served here).
+  external: ["/images/*"],
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"development"' },
   plugins: [
@@ -106,10 +111,10 @@ createServer(async (req, res) => {
     }
   } else if (req.url === "/app.js") {
     res.setHeader("Content-Type", "text/javascript");
-    res.end(result.outputFiles[0].text);
+    res.end(result.outputFiles.find((file) => file.path.endsWith(".js")).text);
   } else if (req.url === "/app.css") {
     res.setHeader("Content-Type", "text/css");
-    res.end(css.css + "\n" + scoped);
+    res.end(css.css + "\n" + scoped + "\n" + (result.outputFiles.find((file) => file.path.endsWith(".css"))?.text ?? ""));
   } else {
     res.setHeader("Content-Type", "text/html");
     res.end(

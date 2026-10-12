@@ -801,6 +801,7 @@
     "start": "Run the test",
     "starting": "Starting…",
     "footnote": "One free test a day. Results are private to you and deleted after seven days.",
+    "footnoteFallback": "When our own model is busy, the public pages we read may be processed by a backup model from Google, through OpenRouter.",
     "lastRun": "Your last test, {host}.",
     "lastRunOpen": "Open it",
     "steps": {
@@ -829,7 +830,9 @@
       "asking": "Asking",
       "answered": "Answered",
       "noReply": "No reply",
-      "announceStep": "{step}: {status}"
+      "announceStep": "{step}: {status}",
+      "eta": "About {min}–{max} min left",
+      "etaSoon": "Almost done"
     },
     "verdict": {
       "correct": "Correct",
@@ -933,7 +936,57 @@
       "email_invalid": "Enter a valid email address.",
       "signup_limit": "Too many sign-up emails today. Try tomorrow.",
       "signup_unavailable": "We couldn't send the email. Try again in a minute.",
-      "website_unavailable": "Testing website chats is paused right now. Try an API, or book a call."
+      "website_unavailable": "Testing website chats is paused right now. Try an API, or book a call.",
+      "queue_full": "A lot of people are testing right now. Try again in a few minutes.",
+      "queue_timeout": "Your test waited too long for a free slot. Run it again.",
+      "phase_timeout": "One step of the test took too long. Run it again.",
+      "notify_limit": "Too many email requests today. Keep this page open instead.",
+      "notify_unavailable": "We can't take email requests right now. Keep this page open instead.",
+      "already_finished": "Your report is ready."
+    },
+    "service": {
+      "capacity": "We're at capacity right now. You can still start a test: it keeps its place in line and starts as soon as we can run it.",
+      "degraded": "Our main model is having trouble, so tests run on a backup model and may take a little longer.",
+      "busy": "Busy right now: {count} tests are waiting. Yours would be ready in about {min}–{max} min.",
+      "busyOne": "Busy right now: one test is waiting. Yours would be ready in about {min}–{max} min."
+    },
+    "queue": {
+      "title": "You're number {position} in line",
+      "next": "You're next in line",
+      "eta": "Your report should be ready in about {min}–{max} min.",
+      "capacity": "We're at capacity right now, so your test starts as soon as a model is free. It keeps its place in line.",
+      "waiting": "Waiting for your turn",
+      "leave": "You can close this page. The private link in your address bar keeps your place."
+    },
+    "tips": {
+      "title": "Finding the chat is taking a while",
+      "button": "Chats that open from a button or appear after a cookie banner take longer to find.",
+      "login": "If the chat asks visitors to sign in, the demo can't reach it. A free account can.",
+      "page": "If it doesn't turn up, try the exact page where the chat opens."
+    },
+    "notify": {
+      "open": "Email me the report when it's ready",
+      "label": "Your email",
+      "placeholder": "you@company.com",
+      "consent": "Email me a link to this report when it's ready. Caudals uses this address only for that and removes it from the test once the email is sent.",
+      "submit": "Email me the report",
+      "sending": "Saving…",
+      "saved": "Done. We'll email {email} when the report is ready.",
+      "already": "We'll email you when the report is ready.",
+      "consentRequired": "Tick the box so we can email you."
+    },
+    "email": {
+      "readySubject": "Your test of {host} is ready",
+      "readyScore": "Your eight-question test of {host} has finished: {correct} of {scored} answers match your website.",
+      "readyNoScore": "Your eight-question test of {host} has finished.",
+      "readyLink": "See the report:",
+      "signup": "Keep these questions and test your whole assistant with a free account:",
+      "signupNote": "The account link works once and expires in two days.",
+      "signin": "You already have a Caudals account. Sign in here:",
+      "failedSubject": "We couldn't finish your test of {host}",
+      "failedIntro": "We couldn't finish your test of {host}.",
+      "failedLink": "You can run it again here:",
+      "footer": "You asked for this email on caudals.com. We have removed your address from the test, and the report is deleted seven days after it was created."
     }
   },
   "contactEmail": {

@@ -165,6 +165,23 @@
   margin-top: 28px;
 }
 
+/* ── service notice: degraded models, capacity, a queue ── */
+.dm-notice {
+  margin-top: 24px;
+  margin-bottom: 4px;
+  padding: 12px 16px;
+  max-width: 62ch;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+.dm-form > .dm-notice {
+  margin: 0 0 24px;
+}
+
 /* ── steps: an explanation before the run, the progress during it ── */
 .dm-steps {
   display: grid;
@@ -258,6 +275,105 @@
 .dm-failed .dm-error {
   margin-top: 0;
   max-width: 56ch;
+}
+
+.dm-eta {
+  margin-top: 6px;
+  font: 400 13.5px/1.5 var(--sans);
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── queue: place in line, ETA, report by email ── */
+.dm-queue {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.dm-queue-title {
+  font: 400 clamp(22px, 2.4vw, 28px)/1.2 var(--sans);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.dm-queue-text {
+  max-width: 56ch;
+  font: 400 clamp(17px, 1.6vw, 19px)/1.45 var(--serif);
+  color: var(--ink);
+}
+.dm-tips {
+  margin-top: 24px;
+  max-width: 62ch;
+}
+.dm-tips ul {
+  margin-top: 6px;
+  padding: 0;
+  list-style: none;
+}
+.dm-tips li {
+  padding: 8px 0 8px 22px;
+  border-top: 1px solid var(--line2);
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+  position: relative;
+}
+.dm-tips li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 18px;
+  width: 8px;
+  height: 1px;
+  background: var(--ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dm-tips,
+  .dm-notice,
+  .dm-notify {
+    animation: dm-fade 0.5s var(--ease) both;
+  }
+}
+.dm-notify {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  max-width: 460px;
+  margin-top: 16px;
+}
+.dm-notify-open {
+  margin-top: 20px;
+  font-size: 14.5px;
+}
+.dm-notify-note {
+  margin-top: 16px;
+  font: 400 17px/1.45 var(--serif);
+  color: var(--ink);
+}
+.dm-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-top: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.dm-check input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--ink);
+}
+.dm-notify-go {
+  margin-top: 14px;
+}
+.dm-notify .dm-error {
+  margin-top: 12px;
 }
 
 /* ── ledger ── */
@@ -618,7 +734,8 @@ summary.dm-row-head::-webkit-details-marker {
   .dm-input {
     padding: 12px 14px;
   }
-  .dm-go {
+  .dm-go,
+  .dm-notify-go {
     width: 100%;
   }
   .dm-steps {

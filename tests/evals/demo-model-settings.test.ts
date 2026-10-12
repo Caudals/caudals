@@ -69,7 +69,7 @@ describe("demo model administration", () => {
     expect(db.query).toHaveBeenCalledWith(expect.stringContaining("'engine.demo.model'"), [orgId, "admin", "selected"]);
     expect(await getDemoSettings(admin, orgId)).toMatchObject({ modelId: "selected" });
     expect(await demoModels()).toEqual(["selected", "default-model", "backup-model"]);
-    expect(await chat({ messages: [{ role: "user", content: "Question" }], maxTokens: 20 })).toEqual({ text: "answer", model: "selected" });
+    expect(await chat({ messages: [{ role: "user", content: "Question" }], maxTokens: 20 })).toEqual({ text: "answer", model: "selected", route: "primary", costEur: 0 });
     const body = JSON.parse(fetch.mock.calls.at(-1)![1].body);
     expect(body.model).toBe("selected");
     expect(db.query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO demo.llm_usage"), [200]);

@@ -56,6 +56,7 @@ const migrations=[
  '079_evals_evaluation_controls.sql',
  '080_evals_share_exports.sql',
  '081_evals_terms_acceptance.sql',
+ '083_demo_queue.sql',
  '084_billing_core.sql',
 ];
 async function main(){

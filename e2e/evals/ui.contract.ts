@@ -2085,3 +2085,117 @@ test("self-serve sign-up without the terms flag keeps the earlier form", async (
   await expect(page.getByLabel("Full name")).toBeVisible();
   await expect(page.getByRole("checkbox")).toHaveCount(0);
 });
+
+/* ------------------------------------------------- public demo (L-03) --- */
+
+const demoRunId = "00000000-0000-4000-8000-00000000d001";
+const demoToken = "b".repeat(32);
+function demoIntro(overrides: Record<string, unknown> = {}) {
+  return {
+    open: true, reason: null, last: null, notify: true, fallback: false, service: "ok",
+    challenge: { salt: "harness", bits: 1, expires: Date.now() + 600_000, signature: "harness" },
+    queue: { waiting: 0, active: 0, slots: 3, durations: { p50: 240, p90: 480 } },
+    ...overrides,
+  };
+}
+function demoView(overrides: Record<string, unknown> = {}) {
+  const now = new Date().toISOString();
+  return {
+    id: demoRunId, phase: "reading", error: null, locale: "en", language: null,
+    target: { kind: "website", host: "example.test", url: "https://example.test/" }, docs: { host: "example.test", url: "https://example.test/" },
+    pages: [], cases: [], summary: null, browser: { chat: "queued", docs: null, chatFound: false }, version: 1,
+    createdAt: now, finishedAt: null, expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(), claimed: false,
+    startedAt: null, queue: { position: 3, slots: 3 }, durations: { p50: 240, p90: 480 }, service: "ok",
+    notify: { available: true, requested: false, sent: false },
+    ...overrides,
+  };
+}
+async function noHorizontalScroll(page: import("@playwright/test").Page) {
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal scroll at ${width}px`).toBe(true);
+  }
+}
+
+test("the demo start form shows a busy queue, a degraded model and the backup-model disclosure, and never says busy", async ({ page }) => {
+  let intro = demoIntro({ service: "degraded", fallback: true, queue: { waiting: 4, active: 3, slots: 3, durations: { p50: 240, p90: 480 } } });
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: intro }));
+  await page.goto("/demo");
+  const notice = page.getByRole("status").filter({ hasText: "main model" });
+  await expect(notice).toContainText("Our main model is having trouble, so tests run on a backup model");
+  await expect(notice).toContainText("Busy right now: 4 tests are waiting. Yours would be ready in about 8–24 min.");
+  await expect(page.getByText(/backup model from Google, through OpenRouter/)).toBeVisible();
+  await page.getByLabel("Your assistant").fill("example.test");
+  await expect(page.getByRole("button", { name: /Run the test/ })).toBeEnabled();
+  await noHorizontalScroll(page);
+
+  // At capacity the form still starts a test; the visitor is told it will wait.
+  intro = demoIntro({ service: "capacity" });
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "capacity" })).toContainText("You can still start a test: it keeps its place in line");
+  await page.getByLabel("Your assistant").fill("example.test");
+  await expect(page.getByRole("button", { name: /Run the test/ })).toBeEnabled();
+  await expect(page.getByText("A few tests are running right now")).toHaveCount(0);
+});
+
+test("a queued demo shows its place in line and its ETA, and takes an email only with consent", async ({ page }) => {
+  let view = demoView();
+  const requests: Array<{ body: unknown; token: string | null }> = [];
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: view }));
+  await page.route(`**/api/demo/runs/${demoRunId}/notify`, route => {
+    requests.push({ body: route.request().postDataJSON(), token: route.request().headers()["x-demo-token"] ?? null });
+    view = demoView({ notify: { available: true, requested: true, sent: false }, version: 2 });
+    return route.fulfill({ json: { requested: true } });
+  });
+  await page.goto(`/demo#r=${demoRunId}.${demoToken}`);
+  await expect(page.getByRole("heading", { name: "You're number 3 in line" })).toBeVisible();
+  await expect(page.getByText("Your report should be ready in about 4–16 min.")).toBeVisible();
+  await expect(page.getByText("Waiting for your turn")).toBeVisible();
+  await page.getByLabel("Your email").fill("visitor@example.test");
+  await page.getByRole("button", { name: "Email me the report" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Tick the box so we can email you.");
+  expect(requests).toHaveLength(0);
+  await page.getByLabel(/Email me a link to this report when it's ready/).check();
+  await page.getByRole("button", { name: "Email me the report" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "visitor@example.test" })).toHaveText("Done. We'll email visitor@example.test when the report is ready.");
+  expect(requests).toEqual([{ body: { email: "visitor@example.test", consent: true }, token: demoToken }]);
+  await noHorizontalScroll(page);
+
+  // Next in line while nothing can run it: an honest wait, no ETA.
+  view = demoView({ queue: { position: 1, slots: 3 }, service: "capacity", notify: { available: true, requested: true, sent: false }, version: 3 });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "You're next in line" })).toBeVisible();
+  await expect(page.getByText("We're at capacity right now, so your test starts as soon as a model is free.")).toBeVisible();
+  await expect(page.getByText("We'll email you when the report is ready.")).toBeVisible();
+  await expect(page.getByText(/should be ready in about/)).toHaveCount(0);
+});
+
+test("the queued demo reads in Spanish", async ({ page }) => {
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: demoView({ locale: "es" }) }));
+  await page.goto(`/demo?locale=es#r=${demoRunId}.${demoToken}`);
+  await expect(page.getByRole("heading", { name: "Eres el número 3 de la fila" })).toBeVisible();
+  await expect(page.getByText("Tu informe debería estar listo en unos 4–16 min.")).toBeVisible();
+  await expect(page.getByLabel(/Envíame este informe cuando esté listo/)).toBeVisible();
+});
+
+test("a running website demo shows its ETA, a degraded notice and tips after a minute of finding the chat, with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const started = new Date(Date.now() - 70_000).toISOString();
+  await page.route("**/api/demo/challenge", route => route.fulfill({ json: demoIntro() }));
+  await page.route(`**/api/demo/runs/${demoRunId}`, route => route.fulfill({ json: demoView({
+    queue: null, startedAt: started, createdAt: started, service: "degraded", browser: { chat: "running", docs: null, chatFound: false },
+  }) }));
+  await page.goto(`/demo#r=${demoRunId}.${demoToken}`);
+  await expect(page.getByText("Finding the chat", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^About \d+–\d+ min left$/)).toHaveText("About 3–7 min left");
+  await expect(page.getByRole("status").filter({ hasText: "main model" })).toBeVisible();
+  const tips = page.getByRole("complementary", { name: "Finding the chat is taking a while" });
+  await expect(tips).toContainText("If the chat asks visitors to sign in, the demo can't reach it.");
+  expect(await tips.evaluate(node => getComputedStyle(node).animationName)).toBe("none");
+  // The email option stays one quiet link until asked for.
+  await page.getByRole("button", { name: "Email me the report when it's ready" }).click();
+  await expect(page.getByLabel("Your email")).toBeVisible();
+  await noHorizontalScroll(page);
+});
