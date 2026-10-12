@@ -18,7 +18,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | done | `144510e`, `cf8252b` | [L-02](L-02.md); flag on, events persisting, growth query 3.8 ms in production. |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
-| 1 | L-08 | Observability, alerting and admin MFA | — | — | in progress | | |
+| 1 | L-08 | Observability, alerting and admin MFA | — | 107 `auth_two_factor_lockout` | in progress | | |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | in progress | | |
