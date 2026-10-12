@@ -21,7 +21,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-08 | Observability, alerting and admin MFA | — | 107 `auth_two_factor_lockout` | in progress | | |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
-| 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | in progress | | |
+| 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | done | `464e55e` | [L-05](L-05.md); `SELF_SERVE_DIRECT_SIGNUP=true`. Production sign-up (internal address, ops exception) verified end to end, then removed through the audited deletion workflow; exception reset to `none`. Workers unaffected. |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
 | 2 | L-07 | Branded EN/ES emails and lifecycle sequence | L-02 (L-06 soft) | 087 `evals_lifecycle_email` | todo | | |
 | 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | in progress | | |
@@ -104,3 +104,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-03 deployed with queue enabled. Controlled production demo completed 8/8 cases in 123 s; server lifecycle events verified in the database. Fallback remains off pending funded access. Preserved concurrent contact-card and background-color changes. Continuing L-02 serially. |
 | 2026-10-12 | L-02 deployed and verified (app and workers at `cf8252b`, `ANALYTICS_EVENTS_V2=true`). Claude orchestrator took over from Codex with the instruction to spawn subagents; finished worktrees for L-01, L-02, L-03 and L-09 removed. Next: L-08 (phase 1) and phase 2 packages in parallel. |
 | 2026-10-12 | Orchestrator started package agents for L-08, L-10, L-05 and L-33 (worktrees `.worktrees/launch-L-xx`). Worker images are now built with `scripts/launch/build-worker-images.sh` while `evals-images.yml` stays disabled. Hourly resume check at :23 in the orchestrator session (expires 2026-10-19). |
+| 2026-10-12 | L-05 deployed (`464e55e`, migration 085) and verified: flag-off 404s, free-mail/disposable refusals, one real direct sign-up through the emailed link (free plan, terms, `account_created` direct), test workspace deleted through the audited workflow. `SELF_SERVE_DIRECT_SIGNUP=true`; no founder actions added. |
