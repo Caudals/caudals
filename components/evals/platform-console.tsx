@@ -35,7 +35,7 @@ import { ActionMenu, Modal } from "./overlays";
 import { useWorkspace } from "./workspace-context";
 import { usePlatformAction } from "./platform-action";
 import { EntitlementForm } from "./entitlement-form";
-import { t } from "@/lib/evals/messages/en";
+import { t, tv } from "@/lib/evals/messages/en";
 
 export type PlatformSection = "providers" | "inference" | "usage" | "accounts" | "audit";
 const ROLES = ["target", "generator", "context_analyzer", "judge", "adjudicator", "report_writer", "embedding"] as const;
@@ -90,6 +90,10 @@ type ProviderData = {
     last_probe_at: string | null;
     retired_at: string | null;
     price: { id: string; currency: string; input: string; output: string } | null;
+    /** Price-book status (migration 088): explicit free model, €0 guard issue, credit rate in effect (µcr per 1M). */
+    free_model?: boolean;
+    price_issue?: "MODEL_PRICE_ZERO" | "MODEL_RATE_MISSING" | null;
+    credit_rate?: { input: string; output: string; label: string } | null;
   }>;
   secrets: Array<{ id: string; provider_revision_id: string; created_at: string; revoked_at: string | null; versions: number }>;
 };
@@ -317,6 +321,11 @@ function Providers({ admin }: { admin: boolean }) {
         >
           {t("modelRevisionsHelp")}
         </SectionHeading>
+        {(() => {
+          // €0 guard (spec v2 §6.4, G9): paid models without a price cannot serve customers.
+          const zero = data.revisions.filter((revision) => !revision.retired_at && !revision.free_model && revision.price_issue === "MODEL_PRICE_ZERO");
+          return zero.length ? <Status tone="warn">{tv("zeroPriceModelsWarning", { count: zero.length })}</Status> : null;
+        })()}
         {data.revisions.length ? (
           <DataTable caption={t("modelRevisions")} headers={[t("model"), t("rolesLabel"), { label: t("limitsLabel"), align: "end" }, t("apiKey"), t("health"), { label: t("actions"), align: "end", hidden: true }]}>
             {data.revisions.map((revision) => {
@@ -328,7 +337,18 @@ function Providers({ admin }: { admin: boolean }) {
                   >
                     {revision.model_id}
                   </RowTitle>
-                  <td className="p-cell-meta">{revision.roles.map(humanize).join(", ")}</td>
+                  <td className="p-cell-meta">
+                    {revision.roles.map(humanize).join(", ")}
+                    <span className="p-cell-note">
+                      {revision.free_model ? (
+                        <Badge>{t("engineFreeModel")}</Badge>
+                      ) : revision.price_issue ? (
+                        <Badge tone="warn" dot>{t(revision.price_issue === "MODEL_PRICE_ZERO" ? "enginePriceZero" : "engineRateMissing")}</Badge>
+                      ) : revision.credit_rate ? (
+                        tv("engineCreditRate", { input: String(Number(BigInt(revision.credit_rate.input) / BigInt(1_000_000))), output: String(Number(BigInt(revision.credit_rate.output) / BigInt(1_000_000))) })
+                      ) : null}
+                    </span>
+                  </td>
                   <td className="p-num p-cell-meta">
                     {revision.context_limit.toLocaleString()} / {revision.output_limit.toLocaleString()}
                   </td>

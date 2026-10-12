@@ -60,6 +60,8 @@ function adminError(error: unknown): never {
     probe_not_approved: "Probes run only on DGX revisions with approved zero-price probing.",
     last_workspace_owner: "Assign another owner before changing the last owner’s role.",
     platform_admin_required: "A platform administrator is required.",
+    MODEL_PRICE_ZERO: "This model is priced at €0. Register its price first, or register it as a free model (for example an OpenRouter :free model).",
+    MODEL_RATE_MISSING: "This model has no credit rate in the price book, so customers could use it for free. Add a rate to the price book first.",
   };
   if (known[message]) throw new EvalError("INPUT_INVALID", 422, known[message]);
   throw error;
@@ -75,7 +77,13 @@ export async function listProviders(scope: AdminScope) {
         CASE WHEN p.adapter='dgx' THEN 'private DGX route' ELSE split_part(split_part(p.endpoint,'://',2),'/',1) END AS endpoint_host,
         h.state AS health,h.last_probe_at,h.circuit_until,
         (SELECT json_build_object('id',pr.id,'currency',pr.currency,'input',pr.input_price,'output',pr.output_price,'effective_at',pr.effective_at,'source',pr.source)
-         FROM evals.price_revision pr WHERE pr.provider_revision_id=p.id AND pr.effective_at<=now() ORDER BY pr.effective_at DESC LIMIT 1) AS price
+         FROM evals.price_revision pr WHERE pr.provider_revision_id=p.id AND pr.effective_at<=now() ORDER BY pr.effective_at DESC LIMIT 1) AS price,
+        p.free_model,
+        (SELECT billing.model_price_issue(p.adapter,p.endpoint,p.model_id,p.free_model,pr.input_price,pr.output_price)
+         FROM (SELECT 1) one LEFT JOIN LATERAL (SELECT x.input_price,x.output_price FROM evals.price_revision x WHERE x.provider_revision_id=p.id AND x.effective_at<=now()
+           ORDER BY x.effective_at DESC LIMIT 1) pr ON true) AS price_issue,
+        (SELECT json_build_object('input',cr.input_ucr_per_m::text,'output',cr.output_ucr_per_m::text,'label',cr.label)
+         FROM billing.rate_for((billing.price_book_at(now())).id,billing.model_provider(p.adapter,p.endpoint),p.model_id,0) cr WHERE cr.id IS NOT NULL) AS credit_rate
       FROM evals.provider_revision p LEFT JOIN evals.provider_health h ON h.provider_revision_id=p.id
       ORDER BY p.created_at DESC LIMIT 100`)).rows;
     const secrets = (await c.query(`SELECT r.id,r.scope_id AS provider_revision_id,r.created_at,r.revoked_at,

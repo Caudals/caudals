@@ -1522,6 +1522,52 @@ test("platform console hides endpoints and keys and confirms identity in place o
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test("Providers & models and AI models flag €0 paid models and show credit rates (price book, L-10)", async ({ page }) => {
+  const now = new Date().toISOString();
+  const revision = (id: string, adapter: string, modelId: string, extra: Record<string, unknown>) => ({ id, account_id: "00000000-0000-4000-8000-000000000501", adapter, model_id: modelId, roles: ["judge"], capabilities: { text: true }, context_limit: 8192, output_limit: 1024, data_classes: ["synthetic"], regions: ["external_api"], endpoint_host: adapter === "dgx" ? "private DGX route" : "openrouter.ai", health: "healthy", last_probe_at: null, retired_at: null, price: { id: `p-${id}`, currency: "EUR", input: "0", output: "0" }, ...extra });
+  await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));
+  await page.route("**/api/evals/v1/providers?**", (route) => route.fulfill({ json: { data: {
+    accounts: [{ id: "00000000-0000-4000-8000-000000000501", name: "OpenRouter", currency: "EUR", ceiling: "100", settled: "0", reserved: "0", enabled: true }],
+    revisions: [
+      revision("00000000-0000-4000-8000-000000000511", "dgx", "deepseek-v4-flash", { free_model: false, price_issue: null, credit_rate: { input: "50000000", output: "200000000", label: "Caudals Local" } }),
+      revision("00000000-0000-4000-8000-000000000512", "openai_compatible", "z-ai/glm-5.3-flash", { free_model: false, price_issue: "MODEL_PRICE_ZERO", credit_rate: null }),
+      revision("00000000-0000-4000-8000-000000000513", "openai_compatible", "nvidia/nemotron-3-super-120b-a12b:free", { free_model: true, price_issue: null, credit_rate: null }),
+    ],
+    secrets: [],
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/models/routes", (route) => route.fulfill({ json: { data: [], meta: {} } }));
+  await page.goto("/ops/platform");
+  await expect(page.getByText("Paid models priced at €0 and not marked free: 1.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("row", { name: /glm-5\.3-flash/ }).getByText("€0 price · not for customers")).toBeVisible();
+  await expect(page.getByRole("row", { name: /nemotron/ }).getByText("Free model", { exact: true })).toBeVisible();
+  await expect(page.getByRole("row", { name: /deepseek-v4-flash/ }).getByText("50 · 200 credits per 1M tokens in / out")).toBeVisible();
+
+  const writes: Array<Record<string, unknown>> = [];
+  const route = (role: string) => ({ role, provider_revision_id: `rev-${role}`, model_id: "deepseek-v4-flash", adapter: "dgx", account_id: "dgx", account_name: "DGX Spark", context_limit: 131072, input_price: "0", output_price: "0", currency: "EUR", updated_at: now, usable: true, web_research: false, web_capable: false, free_model: false, price_issue: null, credit_input_ucr: "50000000", credit_output_ucr: "200000000" });
+  await page.route("**/api/evals/v1/engine?**", (request) => request.fulfill({ json: { data: {
+    roles: ["context_analyzer", "generator", "judge", "report_writer"], dgxAvailable: true,
+    connections: [{ id: "dgx", name: "DGX Spark", adapter: "dgx", host: "DGX Spark (private network)", key_hint: null, enabled: true, has_key: false },
+      { id: "00000000-0000-4000-8000-000000000501", name: "OpenRouter", adapter: "openai_compatible", host: "openrouter.ai", key_hint: "…ab12", enabled: true, has_key: true }],
+    platform: [route("context_analyzer"), route("generator"), route("judge"), route("report_writer")], workspace: [], searchEngines: [],
+  }, meta: {} } }));
+  await page.route("**/api/evals/v1/engine/models?**", (request) => request.fulfill({ json: { data: [{ id: "nvidia/nemotron-3-super-120b-a12b:free", label: "nvidia/nemotron-3-super-120b-a12b:free", detail: "262k context" }], meta: {} } }));
+  await page.route("**/api/evals/v1/engine/routes", (request) => { writes.push(request.request().postDataJSON()); return request.fulfill({ json: { data: { ok: true }, meta: {} } }); });
+  await page.goto("/workspace/settings/models");
+  await expect(page.getByRole("row", { name: /Grade answers/ }).getByText("50 · 200 credits per 1M tokens in / out")).toBeVisible();
+  await page.getByRole("row", { name: /Grade answers/ }).getByRole("button", { name: "Change" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Provider", { exact: true }).selectOption("00000000-0000-4000-8000-000000000501");
+  await dialog.getByRole("radio", { name: /nemotron/ }).check();
+  await expect(dialog.getByText(/A paid model priced at €0 can't serve customers/)).toBeVisible();
+  await dialog.getByLabel("This is a free model").check();
+  await expect(dialog.getByText(/A paid model priced at €0 can't serve customers/)).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toMatchObject({ role: "judge", modelId: "nvidia/nemotron-3-super-120b-a12b:free", inputPrice: "0", outputPrice: "0", freeModel: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("usage amendments require a reason and send the entitlement change", async ({ page }) => {
   const posted: Array<Record<string, unknown>> = [];
   await page.route("**/api/evals/v1/workspaces", (route) => route.fulfill({ json: { data: [{ id: actionOrg, name: "Example client" }], meta: {} } }));

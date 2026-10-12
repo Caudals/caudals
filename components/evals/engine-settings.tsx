@@ -18,7 +18,12 @@ import { DemoModelSettings } from "./demo-model-settings";
 
 export type Role = "context_analyzer" | "generator" | "judge" | "report_writer";
 export type Connection = { id: string; name: string; adapter: "dgx" | "openai_compatible"; host: string; key_hint: string | null; enabled: boolean; has_key: boolean };
-export type Route = { role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number; input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean };
+export type Route = {
+  role: Role; provider_revision_id: string; model_id: string; adapter: string; account_id: string; account_name: string; context_limit: number;
+  input_price: string; output_price: string; currency: string; updated_at: string; usable: boolean; web_research: boolean; web_capable: boolean;
+  /** Price-book status (migration 088): free model flag, €0 guard issue and the credit rate in effect (µcr per 1M). */
+  free_model?: boolean; price_issue?: "MODEL_PRICE_ZERO" | "MODEL_RATE_MISSING" | null; credit_input_ucr?: string | null; credit_output_ucr?: string | null;
+};
 type SearchEngineId = "tavily" | "exa";
 type SearchEngineRow = { engine: SearchEngineId; key_hint: string | null; priority: number; enabled: boolean; updated_at: string };
 type Settings = { roles: Role[]; dgxAvailable: boolean; connections: Connection[]; platform: Route[]; workspace: Route[]; searchEngines: SearchEngineRow[] };
@@ -55,6 +60,18 @@ const PRESETS = [
   { name: "DeepSeek", endpoint: "https://api.deepseek.com/v1" },
   { name: "Together", endpoint: "https://api.together.xyz/v1" },
 ];
+
+/** µcr per 1M tokens → whole credits per 1M for display. */
+const creditsPerMillion = (ucr: string) => String(Number(BigInt(ucr) / BigInt(1_000_000)));
+
+/** The price-book status of a route's model: its credit rate, or why customers cannot use it (€0 guard). */
+export function RoutePriceStatus({ route }: { route: Pick<Route, "free_model" | "price_issue" | "credit_input_ucr" | "credit_output_ucr"> }) {
+  if (route.free_model) return <Badge>{t("engineFreeModel")}</Badge>;
+  if (route.price_issue) return <Badge tone="warn" dot>{t(route.price_issue === "MODEL_PRICE_ZERO" ? "enginePriceZero" : "engineRateMissing")}</Badge>;
+  return route.credit_input_ucr && route.credit_output_ucr
+    ? <span className="p-cell-meta">{tv("engineCreditRate", { input: creditsPerMillion(route.credit_input_ucr), output: creditsPerMillion(route.credit_output_ucr) })}</span>
+    : null;
+}
 
 /** Per-token EUR (nine decimals) → EUR per million tokens for display. */
 const perMillion = (value: string) => {
@@ -160,6 +177,7 @@ export function EngineSettings({ orgId, workspaceName }: { orgId: string; worksp
                         {route.account_name} · {Math.round(route.context_limit / 1000)}k {t("engineContext")}
                         {route.adapter !== "dgx" && ` · €${perMillion(route.input_price)} / €${perMillion(route.output_price)} ${t("enginePerMillion")}`}
                       </span>
+                      <RoutePriceStatus route={route} />
                     </span>
                   ) : (
                     <Badge tone="warn" dot>{t("engineNotSet")}</Badge>
@@ -300,11 +318,13 @@ export function RouteDialog({
   const [inputPrice, setInputPrice] = useState(current && current.adapter !== "dgx" ? perMillion(current.input_price) : "0");
   const [outputPrice, setOutputPrice] = useState(current && current.adapter !== "dgx" ? perMillion(current.output_price) : "0");
   const [contextLimit, setContextLimit] = useState("");
+  const [freeModel, setFreeModel] = useState(!!current?.free_model);
   const [test, setTest] = useState<{ ok: boolean; message: string; latencyMs: number } | null>(null);
   const listing = useAction();
   const saving = useAction();
   const connection = connections.find((item) => item.id === connectionId);
   const commercial = connection?.adapter === "openai_compatible";
+  const unpriced = !Number(inputPrice || "0") && !Number(outputPrice || "0");
 
   // Only the latest request may fill the list: a slow answer from the
   // previously selected provider must never replace it or pick a model.
@@ -351,7 +371,7 @@ export function RouteDialog({
     await saving.run(async () => {
       await evalRequest(evaluationId ? `/evaluations/${evaluationId}/models` : `/engine/routes`, "PUT", {
         orgId, ...(evaluationId ? {} : {scope}), role, connectionId, modelId: modelId.trim(), allRoles,
-        ...(commercial ? { inputPrice: inputPrice || "0", outputPrice: outputPrice || "0" } : {}),
+        ...(commercial ? { inputPrice: inputPrice || "0", outputPrice: outputPrice || "0", freeModel: freeModel && unpriced } : {}),
         ...(contextLimit ? { contextLimit: Number(contextLimit) } : {}),
       });
       await onSaved();
@@ -416,6 +436,12 @@ export function RouteDialog({
             <Field id="engine-input-price" label={t("engineInputPrice")} inputMode="decimal" value={inputPrice} onChange={(event) => setInputPrice(event.target.value)} hint={t("enginePriceHelp")} />
             <Field id="engine-output-price" label={t("engineOutputPrice")} inputMode="decimal" value={outputPrice} onChange={(event) => setOutputPrice(event.target.value)} />
           </div>
+        )}
+        {commercial && unpriced && (
+          <>
+            {!freeModel && <Status tone="warn">{t("enginePriceZeroWarning")}</Status>}
+            <Check checked={freeModel} onChange={(event) => setFreeModel(event.target.checked)} label={t("engineFreeModelLabel")} description={t("engineFreeModelHelp")} />
+          </>
         )}
         <Field
           id="engine-context"

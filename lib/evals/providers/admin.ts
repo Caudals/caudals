@@ -16,6 +16,8 @@ export const providerConfigSchema=z.object({
  dataClasses:z.array(z.string()).min(1),regions:z.array(z.string()).min(1),licenseRestrictions:z.string().max(2000).optional(),
  concurrencyLimit:z.number().int().min(1).max(16).default(1),rpm:z.number().int().positive(),tpm:z.number().int().positive(),
  retiredAt:z.iso.datetime().optional(),
+ /** An explicitly free model (OpenRouter :free): may serve routes at €0 (spec v2 §6.4). */
+ freeModel:z.boolean().default(false),
 }).strict();
 export const priceConfigSchema=z.object({providerRevisionId:z.string().uuid(),currency:z.string().regex(/^[A-Z]{3}$/),effectiveAt:z.iso.datetime(),inputPrice:money,outputPrice:money,cachePrice:money,toolPrice:money,uncertaintyBps:z.number().int().min(0).max(10000),source:z.string().min(1).max(1000),fxSource:z.string().optional(),fxDate:z.iso.date().optional()}).strict();
 async function admin(c:PoolClient,tenant:Tenant) {
@@ -35,8 +37,8 @@ export async function registerProvider(c:PoolClient,tenant:Tenant,raw:unknown,ap
  await admin(c,tenant);const v=providerConfigSchema.parse(raw),url=new URL(v.endpoint);
  if(url.username||url.password||url.search||url.hash)throw new Error('invalid_endpoint');
  if(v.adapter==='dgx' ? !approvedDgxEndpoint||url.href!==new URL(approvedDgxEndpoint).href||v.concurrencyLimit!==1 : url.protocol!=='https:')throw new Error('endpoint_not_approved');
- const id=(await c.query(`INSERT INTO evals.provider_revision(account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,license_restrictions,concurrency_limit,rpm,tpm,retired_at)
- VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,[v.accountId,v.adapter,url.href,v.modelId,tenant.actorId,v.roles,v.capabilities,v.contextLimit,v.outputLimit,v.dataClasses,v.regions,v.licenseRestrictions??null,v.concurrencyLimit,v.rpm,v.tpm,v.retiredAt??null])).rows[0].id;
+ const id=(await c.query(`INSERT INTO evals.provider_revision(account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,license_restrictions,concurrency_limit,rpm,tpm,retired_at,free_model)
+ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,[v.accountId,v.adapter,url.href,v.modelId,tenant.actorId,v.roles,v.capabilities,v.contextLimit,v.outputLimit,v.dataClasses,v.regions,v.licenseRestrictions??null,v.concurrencyLimit,v.rpm,v.tpm,v.retiredAt??null,v.adapter==='openai_compatible'&&v.freeModel])).rows[0].id;
  await audit(c,tenant,'provider.revision.created',id);return {id};
 }
 export async function registerPrice(c:PoolClient,tenant:Tenant,raw:unknown) {

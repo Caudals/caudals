@@ -28,8 +28,9 @@ const ownerUrl=process.env.EVALS_TEST_OWNER_URL,runtimeUrl=process.env.EVALS_TES
   for(const model of ['default','chosen']){
    const account=randomUUID(),id=randomUUID(),price=randomUUID();
    await owner.query("INSERT INTO evals.provider_account(id,name,currency,ceiling,enabled) VALUES($1,'Fixture','EUR',100,true)",[account]);
-   await owner.query(`INSERT INTO evals.provider_revision(id,account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,concurrency_limit,rpm,tpm)
-    VALUES($1,$2,'openai_compatible','https://example.test/v1',$3,$4,$5,'{"text":true,"boundedTokens":true,"jsonObject":true}',32000,4096,ARRAY['customer_confidential'],ARRAY['private_wireguard'],1,10,100000)`,[id,account,model,actorId,['context_analyzer','generator','judge','report_writer']]);
+   // Explicit free models: the €0 guard (migration 088) refuses unpriced paid models on customer routes.
+   await owner.query(`INSERT INTO evals.provider_revision(id,account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,concurrency_limit,rpm,tpm,free_model)
+    VALUES($1,$2,'openai_compatible','https://example.test/v1',$3,$4,$5,'{"text":true,"boundedTokens":true,"jsonObject":true}',32000,4096,ARRAY['customer_confidential'],ARRAY['private_wireguard'],1,10,100000,true)`,[id,account,model,actorId,['context_analyzer','generator','judge','report_writer']]);
    await owner.query("INSERT INTO evals.price_revision(id,provider_revision_id,currency,effective_at,billing_unit,input_price,output_price,cache_price,tool_price,uncertainty_bps,source) VALUES($1,$2,'EUR',now(),'token',0,0,0,0,0,'fixture')",[price,id]);
    await owner.query("INSERT INTO evals.provider_connection(account_id,adapter,endpoint,created_by) VALUES($1,'openai_compatible','https://example.test/v1',$2)",[account,actorId]);
    providers.push({id,price,account});

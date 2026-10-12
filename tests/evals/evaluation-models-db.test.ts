@@ -120,7 +120,9 @@ const ownerUrl=process.env.EVALS_TEST_OWNER_URL,runtimeUrl=process.env.EVALS_TES
   const account=f.providers[0].account;
   await owner.query("INSERT INTO evals.provider_connection(account_id,adapter,endpoint,created_by) VALUES($1,'openai_compatible','https://example.test/v1',$2)",[account,f.actorId]);
   const identity:EvalIdentity={user:{id:f.actorId,name:'Fixture',email:'fixture@example.test'},platformRole:'platform_admin',workspaces:[{id:f.orgId,name:'Fixture',role:'owner'}]};
-  const input={scope:'evaluation',evaluationId:f.evaluationId,role:'generator',connectionId:account,modelId:'api-fixture',allRoles:true};
+  // An unpriced API model must be an explicit free model to serve a route (€0 guard, migration 088).
+  await expect(setEngineRoute(identity,f.orgId,{scope:'evaluation',evaluationId:f.evaluationId,role:'generator',connectionId:account,modelId:'api-fixture'})).rejects.toMatchObject({code:'INPUT_INVALID'});
+  const input={scope:'evaluation',evaluationId:f.evaluationId,role:'generator',connectionId:account,modelId:'api-fixture',allRoles:true,freeModel:true};
   await expect(setEngineRoute({...identity,platformRole:null},f.orgId,input)).rejects.toMatchObject({code:'SCOPE_DENIED'});
   await setEngineRoute(identity,f.orgId,input);
   expect((await getEvaluationEngineSettings(identity,f.orgId,f.evaluationId)).evaluation.map(route=>route.model_id)).toEqual(['api-fixture','api-fixture','api-fixture','api-fixture']);

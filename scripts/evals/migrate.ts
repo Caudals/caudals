@@ -60,6 +60,7 @@ const migrations=[
  '084_billing_core.sql',
  '082_analytics_event_dimensions.sql',
  '085_evals_signup_domains.sql',
+ '088_billing_price_book.sql',
  '107_auth_two_factor_lockout.sql',
 ];
 async function main(){

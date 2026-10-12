@@ -14,7 +14,9 @@ import { advancePendingGenerations } from "../../lib/evals/repositories/automati
 import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 import { billingCreditsEnabled } from "../../lib/billing/config";
-import { billingExpiryDue, billingVerificationDue, runBillingExpiry, runBillingVerification } from "../../lib/billing/jobs";
+import {
+  billingExpiryDue, billingVerificationDue, priceBookUpkeepDue, runBillingExpiry, runBillingVerification, runFxUpdate, runPriceBookActivation, runPriceCheck,
+} from "../../lib/billing/jobs";
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 
@@ -36,6 +38,7 @@ async function main() {
   let lastTick = 0;
   let lastBillingVerify = 0;
   let lastBillingExpiry = 0;
+  let lastPriceBook = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -110,6 +113,39 @@ async function main() {
           } catch (error) {
             console.error(JSON.stringify({ event: "billing_expiry_failed" }));
             captureServerError(error, { service: "evals-scheduler", event: "billing_expiry_failed" });
+          }
+        }
+        // Price book (spec §6.4): scheduled revisions take effect by date; the
+        // labels follow hourly. Weekly provider-price check and monthly ECB FX
+        // use free public sources; failures are logged, never fatal.
+        if (priceBookUpkeepDue(lastPriceBook)) {
+          lastPriceBook = Date.now();
+          try {
+            for (const revision of await runPriceBookActivation(actorId)) console.info(JSON.stringify({ event: "price_book_activated", revision: revision.revision }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "price_book_activation_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "price_book_activation_failed" });
+          }
+          try {
+            const rate = await runFxUpdate(actorId);
+            if (rate) console.info(JSON.stringify({ event: "billing_fx_recorded", date: rate.date, usdPerEur: rate.usdPerEur }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_fx_update_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_fx_update_failed" });
+          }
+          try {
+            const report = await runPriceCheck(actorId);
+            if (report) {
+              // A listing change or a cost move above 3 % (price or FX) needs ops: log it as an alert.
+              const recompute = report.changes.filter(change => change.recompute).map(change => change.label);
+              const alert = report.changed > 0 || recompute.length > 0;
+              const line = JSON.stringify({ event: alert ? "billing_price_check_changes" : "billing_price_check", revision: report.revision.revision,
+                checked: report.checked, changed: report.changed, unavailable: report.unavailable, fxChange: report.fx?.change ?? null, recompute: recompute.slice(0, 20) });
+              if (alert) console.error(line); else console.info(line);
+            }
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_price_check_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_price_check_failed" });
           }
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));

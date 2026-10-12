@@ -59,6 +59,13 @@ type RouteRow = {
   /** Public web search for this role: through a connected search engine (any model) or OpenRouter's plugin. */
   web_research: boolean;
   web_capable: boolean;
+  /** Explicit free model (§6.4): no price, demo fallback only. */
+  free_model: boolean;
+  /** Why the €0 guard would refuse this model for a customer route now, or null (migration 088). */
+  price_issue: "MODEL_PRICE_ZERO" | "MODEL_RATE_MISSING" | null;
+  /** Credit rate in the price book in effect, µcr per 1M tokens; null when unpriced. */
+  credit_input_ucr: string | null;
+  credit_output_ucr: string | null;
 };
 
 function dgxEndpoint(): string | null {
@@ -89,10 +96,25 @@ const WEB_CAPABLE = `EXISTS (SELECT 1 FROM evals.web_search_connection w WHERE w
 const ROUTE_SELECT = (table: string, where: string) => `SELECT r.role,r.provider_revision_id,p.model_id,p.adapter,p.account_id,a.name AS account_name,p.context_limit,
     pr.input_price::text AS input_price,pr.output_price::text AS output_price,pr.currency,r.updated_at,
     (a.enabled AND (p.retired_at IS NULL OR p.retired_at>now())) AS usable,
-    r.web_research,(${WEB_CAPABLE}) AS web_capable
+    r.web_research,(${WEB_CAPABLE}) AS web_capable,p.free_model,
+    billing.model_price_issue(p.adapter,p.endpoint,p.model_id,p.free_model,pr.input_price,pr.output_price) AS price_issue,
+    cr.input_ucr_per_m::text AS credit_input_ucr,cr.output_ucr_per_m::text AS credit_output_ucr
   FROM ${table} r JOIN evals.provider_revision p ON p.id=r.provider_revision_id
   JOIN evals.provider_account a ON a.id=p.account_id
-  JOIN evals.price_revision pr ON pr.id=r.price_revision_id ${where} ORDER BY r.role`;
+  JOIN evals.price_revision pr ON pr.id=r.price_revision_id
+  LEFT JOIN LATERAL billing.rate_for((billing.price_book_at(now())).id,billing.model_provider(p.adapter,p.endpoint),p.model_id,0) cr ON cr.id IS NOT NULL
+  ${where} ORDER BY r.role`;
+
+/** The €0 guard (migration 088) explains itself in the settings language. */
+const GUARD_MESSAGES: Record<string, string> = {
+  MODEL_PRICE_ZERO: "This model is priced at €0. Enter its price per million tokens, or mark it as a free model (for example an OpenRouter :free model).",
+  MODEL_RATE_MISSING: "This model has no credit rate in the price book, so customers could use it for free. Add a rate to the price book first.",
+};
+function guardError(error: unknown): never {
+  const message = error instanceof Error ? error.message : "";
+  if (GUARD_MESSAGES[message]) throw new EvalError("INPUT_INVALID", 422, GUARD_MESSAGES[message]);
+  throw error;
+}
 
 // --------------------------------------------------------------------- read
 
@@ -234,6 +256,8 @@ const routeSchema = z.strictObject({
   contextLimit: z.number().int().min(4096).max(2_000_000).optional(),
   /** Also use this model for every other role at the same scope. */
   allRoles: z.boolean().default(false),
+  /** An explicitly free model (OpenRouter :free): no price, allowed despite €0 (§6.4). */
+  freeModel: z.boolean().default(false),
 });
 
 /** Point one role (or all roles) at a model, registering its revision on first use. */
@@ -243,6 +267,9 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
   const input = routeSchema.parse(raw);
   if (input.scope === "evaluation" && !input.evaluationId) throw new EvalError("INPUT_INVALID",422,"Choose an evaluation.");
   const target = await connectionTarget(identity, orgId, input.connectionId, false);
+  if (input.freeModel && (target.adapter === "dgx" || Number(input.inputPrice) !== 0 || Number(input.outputPrice) !== 0)) {
+    throw new EvalError("INPUT_INVALID", 422, "Only a model with no price can be marked free.");
+  }
   const contextLimit = input.contextLimit ?? (target.adapter === "dgx" ? await dgxContextLimit(target.endpoint, input.modelId) : 128_000);
   return asAdmin({ orgId, actorId: identity.user.id }, async (c) => {
     if (input.scope === "evaluation") {
@@ -253,7 +280,7 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
       if (plan === "free" && target.adapter !== "dgx") throw new EvalError("INPUT_INVALID",422,"Free workspaces use models on the private DGX Spark.");
     }
     const accountId = target.accountId ?? await ensureDgxConnection(c, identity.user.id, target.endpoint);
-    const revision = await ensureRevision(c, identity.user.id, { accountId, adapter: target.adapter, endpoint: target.endpoint, modelId: input.modelId, contextLimit });
+    const revision = await ensureRevision(c, identity.user.id, { accountId, adapter: target.adapter, endpoint: target.endpoint, modelId: input.modelId, contextLimit, freeModel: input.freeModel });
     const price = await ensurePrice(c, revision, target.adapter === "dgx" ? "0" : input.inputPrice, target.adapter === "dgx" ? "0" : input.outputPrice);
     const region = target.adapter === "dgx" ? DGX_REGION : API_REGION;
     const cost = target.adapter === "dgx" ? "0.0001" : "0";
@@ -281,7 +308,7 @@ export async function setEngineRoute(identity: EvalIdentity, orgId: string, raw:
     }
     await audit(c, orgId, identity.user.id, `engine.route.${input.scope}`, input.evaluationId ?? revision);
     return { providerRevisionId: revision, roles, scope: input.scope };
-  });
+  }).catch(guardError);
 }
 
 /**
@@ -454,18 +481,18 @@ async function ensureDgxConnection(c: PoolClient, actorId: string, endpoint: str
   return account;
 }
 
-async function ensureRevision(c: PoolClient, actorId: string, input: { accountId: string; adapter: "dgx" | "openai_compatible"; endpoint: string; modelId: string; contextLimit: number }): Promise<string> {
+async function ensureRevision(c: PoolClient, actorId: string, input: { accountId: string; adapter: "dgx" | "openai_compatible"; endpoint: string; modelId: string; contextLimit: number; freeModel: boolean }): Promise<string> {
   const existing = (await c.query(`SELECT id FROM evals.provider_revision WHERE account_id=$1 AND adapter=$2 AND endpoint=$3 AND model_id=$4 AND context_limit=$5
       AND retired_at IS NULL AND roles @> $6::text[] AND data_classes @> $7::text[] AND (capabilities->>'jsonObject')::boolean AND (capabilities->>'boundedTokens')::boolean
-      AND output_limit=$8
-    ORDER BY created_at DESC LIMIT 1`, [input.accountId, input.adapter, input.endpoint, input.modelId, input.contextLimit, [...ENGINE_ROLES], [ROUTE_DATA_CLASS], OUTPUT_LIMIT])).rows[0];
+      AND output_limit=$8 AND free_model=$9
+    ORDER BY created_at DESC LIMIT 1`, [input.accountId, input.adapter, input.endpoint, input.modelId, input.contextLimit, [...ENGINE_ROLES], [ROUTE_DATA_CLASS], OUTPUT_LIMIT, input.freeModel])).rows[0];
   if (existing) return existing.id;
   const dgx = input.adapter === "dgx";
-  const id = (await c.query(`INSERT INTO evals.provider_revision(account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,concurrency_limit,rpm,tpm)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`, [
+  const id = (await c.query(`INSERT INTO evals.provider_revision(account_id,adapter,endpoint,model_id,owner_id,roles,capabilities,context_limit,output_limit,data_classes,regions,concurrency_limit,rpm,tpm,free_model)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`, [
     input.accountId, input.adapter, input.endpoint, input.modelId, actorId, [...ENGINE_ROLES],
     { text: true, boundedTokens: true, jsonObject: true, probeApproved: false },
-    input.contextLimit, OUTPUT_LIMIT, DATA_CLASSES, [dgx ? DGX_REGION : API_REGION], dgx ? 1 : 4, dgx ? 30 : 120, input.contextLimit * (dgx ? 20 : 40),
+    input.contextLimit, OUTPUT_LIMIT, DATA_CLASSES, [dgx ? DGX_REGION : API_REGION], dgx ? 1 : 4, dgx ? 30 : 120, input.contextLimit * (dgx ? 20 : 40), input.freeModel,
   ])).rows[0].id as string;
   await c.query("INSERT INTO evals.provider_health(provider_revision_id,state) VALUES($1,'unprobed') ON CONFLICT DO NOTHING", [id]);
   return id;

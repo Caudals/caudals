@@ -23,6 +23,17 @@ export function billingEnforceMode(env: Env = process.env): BillingEnforceMode {
   return env.BILLING_ENFORCE === "enforce" ? "enforce" : "shadow";
 }
 
+/**
+ * BILLING_ESTIMATES_ENABLED (L-10): run estimates (§6.7) through the API.
+ * "operators" opens them to platform operators and admins only (the first
+ * rollout step), "true" to every editor and CI token; anything else is off.
+ */
+export type BillingEstimatesMode = "off" | "operators" | "all";
+export function billingEstimatesMode(env: Env = process.env): BillingEstimatesMode {
+  const value = env.BILLING_ESTIMATES_ENABLED?.trim();
+  return value === "true" ? "all" : value === "operators" ? "operators" : "off";
+}
+
 export function billingFlags(env: Env = process.env): BillingFlags {
   return { creditsEnabled: billingCreditsEnabled(env), enforce: billingEnforceMode(env) };
 }

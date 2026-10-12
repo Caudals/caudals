@@ -215,6 +215,12 @@ Provision a PKCS#8 Ed25519 key through `EVALS_DATASET_SIGNING_KEY_FILE`. The pro
 
 Apply migrations with `tsx scripts/evals/migrate.ts`; the migrator holds the `caudals-evals-migrations` advisory lock and verifies checksums on rerun. Both Stage E down files intentionally refuse destructive rollback. Disable the feature flag and forward-repair instead. Rotate signing keys by preserving the old public key/fingerprint for historic customer artifacts, replacing only the mounted private-key secret, rerunning the release check and redeploying an immutable image. Details and acceptance evidence are in `docs/evals/work-packages/WP-14.md`–`WP-15.md`.
 
+## Billing price book scripts (L-10)
+
+- `npx tsx scripts/billing/check-provider-prices.ts [--json]` compares the list-priced model rates of the price book with OpenRouter's public models API and the ECB daily reference rate, and prints a Markdown diff (no keys, no paid calls). Without a database it compares the seeded revision 1; with `BILLING_DATABASE_URL(_FILE)` (a non-owner runtime login) it reads the revision in effect, and `--record` / `--record-fx` store the check and the ECB rate as `system:price-check-script`. The evaluation scheduler runs the same check weekly and records the ECB rate monthly on its own.
+- `npx tsx scripts/billing/backtest-estimates.ts --sql | sudo docker exec -i <caudals-postgres container> psql -U postgres -d caudals -X -q -At > backtest.json`, then `npx tsx scripts/billing/backtest-estimates.ts --input backtest.json [--json]`: the §6.7 estimator backtest on read-only production aggregates (the SQL runs in a `READ ONLY` transaction and exports numbers, kinds and hashed run ids only). It reports the share of finished runs whose p50 estimate is within ±25 % of what the credit engine would have charged.
+- Price-book changes go through `POST /api/evals/v1/billing/admin/price-book/revisions` (draft, from provider prices and FX) and `…/revisions/:id/{schedule,activate,cancel}`: platform admins, a recent sign-in and an `Idempotency-Key`. Increases need 30 days' notice; see `docs/ARCHITECTURE.md` → Billing.
+
 ## Tool Selection Matrix
 
 - Schema migrations and rollback checks: `psql` against a disposable PostgreSQL container first, then the target database
