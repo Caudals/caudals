@@ -1,13 +1,13 @@
 # Launch build progress (spec v2)
 
-The founder approved `docs/product-specs/spec-v2.md` on 2026-10-11 and set the goal: implement every phase, deploy after each one, use subagents, and resume after usage-limit resets. Every agent follows `docs/launch/AGENT-BRIEF.md`. This file is the source of truth for resuming.
+The founder approved `docs/product-specs/spec-v2.md` on 2026-10-11. The latest instruction (2026-10-12) is to implement every phase, deploy after each phase, **use no subagents**, and resume after usage-limit resets. Continue packages serially, preserving existing worktrees. Follow `docs/launch/AGENT-BRIEF.md` except its superseded parallel-agent and attribution instructions. This file is the source of truth for resuming.
 
 ## 1. How to resume
 
 1. Read this file, then `git log --oneline -15` and `git worktree list` in `/home/caudals/caudals`.
 2. `scripts/launch/merge-lock.sh status`. A lock held by a package whose agent is no longer running is released with `release <owner>` after you check that package's state.
-3. For each package marked **in progress**: if `.worktrees/launch-L-xx` exists, start a new agent for it with "resume from the existing worktree"; if it merged but the handoff is missing, finish verification and the handoff.
-4. Start the next packages whose dependencies have landed (§2), at most three at a time.
+3. For each package marked **in progress**: if `.worktrees/launch-L-xx` exists, inspect and resume it in the current agent; if it merged but the handoff is missing, finish verification and the handoff. Do not spawn agents.
+4. Continue the next package whose dependencies have landed (§2), one at a time.
 
 ## 2. Packages
 
@@ -19,7 +19,7 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | todo | | |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | in progress | | |
 | 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
-| 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | in progress | | |
+| 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | todo | | |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
@@ -97,3 +97,5 @@ Things only the founder can do. Agents add to this list; they never do these the
 | --- | --- |
 | 2026-10-11 | Spec approved for implementation. Brief, tracker and launch scripts (`scripts/launch/*`) added. Phase 1 started |
 | 2026-10-11 | Resume mechanism: an hourly session cron (:17) re-enters this file while the orchestrating session is idle; it expires after 7 days (renew by 2026-10-18). Agents started for L-09, L-01 and L-03 |
+| 2026-10-12 | Codex resumed serially with an active persisted goal after reading spec v2 end to end. L-01 and L-03 drafts are committed in their worktrees; no dirty files. L-09 app and migration are live, but its workers were never built because `evals-images.yml` is manually disabled. All 24 billing tests, typecheck, changed-file lint and i18n parity pass; production read-only verifier: 7 accounts, zero drift. |
+| 2026-10-12 | The prior session cron is historical and has not been verified for this Codex chat. This session exposes no automation or usage-reset scheduling tool. Keep the goal active and checkpoints current; automatic wake-up after a usage reset cannot be configured or guaranteed from these tools. |
