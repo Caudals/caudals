@@ -22,11 +22,11 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | done | `82cf8ee`, `5f52110`, `1302ad6` | [L-04](L-04.md); `DEMO_PUBLIC=true` (decision I-10). Demo linked from header, hero, sectors and footer, indexed, in sitemap/`llms.txt`; share-to-colleague verified with the internal address (2 emails, limit enforced). Workers at `5f52110`. |
 | 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | done | `464e55e` | [L-05](L-05.md); `SELF_SERVE_DIRECT_SIGNUP=true`. Production sign-up (internal address, ops exception) verified end to end, then removed through the audited deletion workflow; exception reset to `none`. Workers unaffected. |
-| 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
+| 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | in progress | | |
 | 2 | L-07 | Branded EN/ES emails and lifecycle sequence | L-02 (L-06 soft) | 087 `evals_lifecycle_email` | done | `8157a37` | [L-07](L-07.md); `BRANDED_EMAILS_ENABLED=true` after internal sends (ES sample, EN reset through the deployed app). `LIFECYCLE_EMAILS_ENABLED` off (I-9). App, migration and workers (scheduler) verified; DKIM/SPF/DMARC aligned. |
 | 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | done | `be3a0dc`, `d9edc3c` | [L-10](L-10.md); app and workers at `d9edc3c`; `BILLING_ESTIMATES_ENABLED=operators`. Backtest 35/38 runs within ±25 % (92.1 %). €0 guard live (five €0 commercial revisions blocked; all live routes on Local). |
 | 2 | L-33 | Example evaluation and public sample report | L-02 | — | done | `ebc8627`, `518175e` | [L-33](L-33.md); `EXAMPLE_EVALUATION_ENABLED=true`, public page `noindex` until the founder reads it (`SAMPLE_REPORT_INDEXED` off). Hiding is per device: L-06 should store it in its onboarding state. |
-| 3 | L-11 | Engine integration: holds, captures, refunds | L-09, L-10 | 089 `billing_engine_hooks` | todo | | |
+| 3 | L-11 | Engine integration: holds, captures, refunds | L-09, L-10 | 089 `billing_engine_hooks` | in progress | | |
 | 3 | L-21 | Prospect snapshot and ops growth v2 | L-02 | 090 `evals_prospect_snapshots` | todo | | |
 | 3 | L-12 | Stripe top-ups, auto-recharge and webhooks | L-09, L-01 | 091 `billing_payments` | in progress | | |
 | 3 | L-13 | Invoicing and IVA | L-12 | 092 `billing_invoices` | todo | | |
@@ -60,9 +60,9 @@ A phase is deployed when every package in it is `done`. Phase 6 (launch week) ha
 
 | Phase | Packages | Status |
 | --- | --- | --- |
-| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 | in progress |
-| 2 · Open the funnel (Gate A) | L-04, L-05, L-06, L-07, L-10, L-33 | todo |
-| 3 · Billing build | L-11, L-21, L-12, L-13, L-14 | todo |
+| 1 · Foundations | L-01, L-02, L-03, L-08, L-09 | deployed (2026-10-12); founder actions open: entity data, fallback funding, MFA enrolment, arctic uptime |
+| 2 · Open the funnel (Gate A) | L-04, L-05, L-06, L-07, L-10, L-33 | in progress |
+| 3 · Billing build | L-11, L-21, L-12, L-13, L-14 | in progress |
 | 4 · Take money (Gate B) | L-15, L-16, L-17 | todo |
 | 5 · Launch prep | L-29, L-30 | todo |
 | 7 · Build the rest | L-18…L-28, L-31, L-32, L-34, L-35, L-36 | todo |
@@ -121,3 +121,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-04 done (`82cf8ee`, fixes `5f52110`, `1302ad6`; no migration). `DEMO_PUBLIC=true`: the free test is the front door in EN and ES, indexed (crawler view, sitemap, `llms.txt`, IndexNow 40 URLs). Send to a colleague verified to the internal address; Spanish funnel link clicks now counted. No founder actions added. |
 | 2026-10-12 | L-33 done (`ebc8627`, fix `518175e`; no migration). Example evaluation ("Hogarel", synthetic) live in every workspace at `/workspace/example` (`EXAMPLE_EVALUATION_ENABLED=true`) and as a `noindex` sample report with PDFs at `/en/sample-report` and `/es/informe-de-ejemplo`; workers rebuilt for the PDF label. Founder actions added: name check, then read and index. |
 | 2026-10-12 | L-07 done (`8157a37`, migration 087). Branded EN/ES email live (`BRANDED_EMAILS_ENABLED=true`) after one internal send per language; lifecycle sequence deployed in the scheduler and off (`LIFECYCLE_EMAILS_ENABLED=false`, I-9). Deliverability aligned (DKIM, SPF, DMARC `p=none`). Founder actions added: switch on lifecycle email (D0–D7 first); optional DMARC quarantine. |
+| 2026-10-12 | L-08 done (`5244bc1`), phase 1 deployed. L-10 done (`be3a0dc`, `d9edc3c`). Agents started for L-06, L-07 and L-11. Six agents hit the 5-hour session limit at ~12:00 UTC (reset 14:40); all resumed at 15:12 from their worktrees. |
