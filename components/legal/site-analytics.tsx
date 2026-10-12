@@ -1,6 +1,9 @@
 "use client";
 
 import Script from "next/script";
+import { flushAnalyticsMirror } from "@/lib/analytics/funnel-events";
+import { Suspense } from "react";
+import { FunnelVisitTracker } from "@/components/analytics/funnel-visit-tracker";
 import { useEffect, useState } from "react";
 import {
   getCookieConsent,
@@ -23,14 +26,19 @@ export function SiteAnalytics() {
   }, []);
 
   if (process.env.NODE_ENV !== "production" || !allowed) {
-    return null;
+    return <Suspense><FunnelVisitTracker /></Suspense>;
   }
 
   return (
+    <>
+    <Suspense><FunnelVisitTracker /></Suspense>
     <Script
       src={ANALYTICS_SRC}
       data-website-id={ANALYTICS_WEBSITE_ID}
+      data-auto-track="false"
+      onReady={flushAnalyticsMirror}
       strategy="afterInteractive"
     />
+    </>
   );
 }

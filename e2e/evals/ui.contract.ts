@@ -2177,7 +2177,7 @@ test("the queued demo reads in Spanish", async ({ page }) => {
   await page.goto(`/demo?locale=es#r=${demoRunId}.${demoToken}`);
   await expect(page.getByRole("heading", { name: "Eres el número 3 de la fila" })).toBeVisible();
   await expect(page.getByText("Tu informe debería estar listo en unos 4–16 min.")).toBeVisible();
-  await expect(page.getByLabel(/Envíame este informe cuando esté listo/)).toBeVisible();
+  await expect(page.getByLabel(/Envíame un enlace a este informe cuando esté listo/)).toBeVisible();
 });
 
 test("a running website demo shows its ETA, a degraded notice and tips after a minute of finding the chat, with reduced motion", async ({ page }) => {
@@ -2198,4 +2198,47 @@ test("a running website demo shows its ETA, a degraded notice and tips after a m
   await page.getByRole("button", { name: "Email me the report when it's ready" }).click();
   await expect(page.getByLabel("Your email")).toBeVisible();
   await noHorizontalScroll(page);
+});
+
+
+test("growth dashboard shows weekly counts, sources and cohorts at desktop and mobile widths", async ({page}) => {
+  await page.route("**/api/evals/v1/**", route => route.fulfill({json:{data:[],meta:{}}}));
+  await page.goto("/ops/growth");
+  await expect(page.getByRole("heading",{name:"Growth",exact:true})).toBeVisible();
+  await expect(page.getByRole("region",{name:"Eight-week cohorts"}).getByRole("row")).toHaveCount(9);
+  await expect(page.getByRole("table",{name:"Acquisition sources · last eight weeks"})).toContainText("newsletter");
+  await page.getByLabel("Week",{exact:true}).selectOption("2026-09-01");
+  await expect(page.getByRole("table",{name:"Weekly funnel"})).toContainText("40");
+  await page.screenshot({path:"/tmp/caudals-l02-growth-desktop.png",fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await expect(page.getByRole("heading",{name:"Growth",exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:"/tmp/caudals-l02-growth-mobile.png",fullPage:true});
+  await page.getByRole("table",{name:"Eight-week cohorts"}).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("heading",{name:"Eight-week cohorts"})).toBeVisible();
+  await page.screenshot({path:"/tmp/caudals-l02-growth-cohorts-mobile.png"});
+});
+
+test("analytics waits for consent, keeps first touch and stops on withdrawal", async ({page}) => {
+  const events: Array<Record<string,unknown>>=[];
+  let configCalls=0;
+  await page.route("**/api/evals/v1/**", route => route.fulfill({json:{data:[],meta:{}}}));
+  await page.route("**/api/analytics/config", route => {configCalls++;return route.fulfill({json:{enabled:true}});});
+  await page.route("**/api/analytics/track", route => {events.push(route.request().postDataJSON());return route.fulfill({json:{ok:true}});});
+  await page.goto("/analytics-fixture?utm_source=newsletter&partner=agency-one");
+  await page.waitForTimeout(150);
+  expect(events).toHaveLength(0);expect(configCalls).toBe(0);
+  expect(await page.evaluate(()=>sessionStorage.getItem("caudals_analytics_session_id"))).toBeNull();
+  await page.evaluate(()=>{localStorage.setItem("caudals_cookie_consent","accepted");dispatchEvent(new Event("caudals:cookie-consent"));});
+  await expect.poll(()=>events.length).toBe(1);
+  expect(events[0]).toMatchObject({eventName:"page_view",path:"/:id",consent:true,attribution:{utm_source:"newsletter",partner:"agency-one"}});
+  await page.goto("/analytics-fixture?utm_source=second-touch");
+  await expect.poll(()=>events.length).toBe(2);
+  expect(events[1].attribution).toMatchObject({utm_source:"newsletter"});
+  await page.evaluate(()=>{localStorage.setItem("caudals_cookie_consent","rejected");dispatchEvent(new Event("caudals:cookie-consent"));});
+  expect(await page.evaluate(()=>document.cookie.includes("caudals_attribution_v2"))).toBe(false);
+  expect(await page.evaluate(()=>sessionStorage.getItem("caudals_analytics_session_id"))).toBeNull();
+  await page.goto("/analytics-fixture");
+  await page.waitForTimeout(100);
+  expect(events).toHaveLength(2);
 });

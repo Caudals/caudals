@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -165,6 +166,7 @@ export function getWebDiscovery(scope: EvidenceScope, evaluationId: string) {
       const finish = async (status: string, reason: string | null, suggestions: WebSuggestion[] = []) => {
         await db.query("UPDATE evals.web_discovery_job SET status=$3,reason_code=$4,suggestions=$5,updated_at=now() WHERE org_id=$1 AND id=$2",
           [scope.orgId, job.id, status, reason, JSON.stringify(suggestions)]);
+        if (status === "completed") await recordProductEvent({ eventName: "scan_detected", source: "server", orgId: scope.orgId, eventKey: job.id, payload: { source_kind: "website", count: suggestions.length } }, db);
         Object.assign(job, { status, reason_code: reason, suggestions });
       };
       if (job.output) {

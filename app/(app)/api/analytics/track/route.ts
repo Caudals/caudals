@@ -1,102 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentOperatorSession } from "@/lib/auth/operator-session";
-import {
-  PRODUCT_EVENT_NAMES,
-  type ProductEventName,
-} from "@/lib/analytics/funnel-events";
-import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
-import {
-  buildRateLimitHeaders,
-  consumeRateLimit,
-  getClientIpFromHeaders,
-} from "@/lib/security/rate-limit";
-import { recordAttributionConversion } from "@/lib/analytics/attribution-server";
-
-const trackEventSchema = z.object({
-  eventName: z.enum(PRODUCT_EVENT_NAMES),
-  payload: z.record(
-    z.string(),
-    z.union([z.string(), z.number(), z.boolean(), z.null()]).optional()
-  ).optional(),
-  path: z.string().max(500).optional(),
-  sessionId: z.string().max(120).optional(),
+import { CLIENT_EVENT_NAMES } from "@/lib/analytics/events";
+import { analyticsV2Enabled, recordProductEvent } from "@/lib/analytics/funnel-events-server";
+import { clientHash } from "@/lib/demo/client";
+import { jsonBody } from "@/lib/evals/domain/http";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+const schema = z.strictObject({
+  eventName: z.enum(CLIENT_EVENT_NAMES), consent: z.literal(true),
+  payload: z.record(z.string().max(60), z.union([z.string().max(200),z.number(),z.boolean(),z.null()])).optional(),
+  attribution: z.record(z.string().max(60),z.string().max(200)).optional(),
+  path: z.string().max(500).nullable().optional(), sessionId: z.uuid().nullable().optional(),
 });
-
-const TRACK_RATE_LIMIT = {
-  limit: 120,
-  windowMs: 15 * 60 * 1000,
-};
-
-function withHeaders(
-  response: NextResponse,
-  headers: Record<string, string>
-) {
-  Object.entries(headers).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-  return response;
-}
-
-export async function POST(request: NextRequest) {
-  const clientIp = getClientIpFromHeaders(request.headers);
-  const ipRateLimit = await consumeRateLimit({
-    key: `analytics:ip:${clientIp}`,
-    limit: TRACK_RATE_LIMIT.limit,
-    windowMs: TRACK_RATE_LIMIT.windowMs,
-  });
-  const ipRateHeaders = buildRateLimitHeaders(ipRateLimit);
-
-  if (!ipRateLimit.allowed) {
-    return withHeaders(
-      NextResponse.json(
-        { error: "Too many requests. Please try again later." },
-        { status: 429 }
-      ),
-      ipRateHeaders
-    );
-  }
-
-  const body = await request.json().catch(() => null);
-  const parsed = trackEventSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return withHeaders(
-      NextResponse.json({ error: "Invalid analytics payload" }, { status: 400 }),
-      ipRateHeaders
-    );
-  }
-
-  const operatorSession = await getCurrentOperatorSession(request.headers);
-
-  const { eventName, payload, path, sessionId } = parsed.data;
-
-  await recordProductEvent({
-    eventName: eventName as ProductEventName,
-    payload,
-    path,
-    sessionId,
-    userId: operatorSession?.authUser.id ?? null,
-    userRole: operatorSession?.operator.role ?? null,
-    source: "client",
-  });
-
-  const parentEventId = payload?.["attribution_parent_event_id"];
-  const visitorId = payload?.["attribution_visitor_id"];
-  const shortCode = payload?.["attribution_short_code"];
-  if (
-    ["funnel_signup", "funnel_dataset_created", "funnel_fund"].includes(eventName) &&
-    typeof parentEventId === "string" && typeof visitorId === "string" && typeof shortCode === "string"
-  ) {
-    await recordAttributionConversion({
-      parentEventId,
-      visitorId,
-      shortCode,
-      landingUrl: path ?? null,
-      referrerUrl: request.headers.get("referer"),
-      eventName,
-    });
-  }
-
-  return withHeaders(NextResponse.json({ ok: true }), ipRateHeaders);
+export async function POST(request: Request) {
+  if (!analyticsV2Enabled()) return new Response(null, { status: 204 });
+  try {
+    const origin = request.headers.get("origin");
+    if (!origin || (new URL(origin).host !== request.headers.get("host") || (process.env.NODE_ENV === "production" && new URL(origin).protocol !== "https:"))) return Response.json({ error: "Origin denied" }, { status: 403 });
+    const limit = await consumeRateLimit({ key: `analytics:${clientHash(request.headers)}`, limit: 120, windowMs: 15 * 60_000 });
+    if (!limit.allowed) return Response.json({ error: "Rate limited" }, { status: 429 });
+    const { eventName, payload, attribution, path, sessionId } = schema.parse(await jsonBody(request, 8192));
+    await recordProductEvent({ eventName, payload, attribution, path, sessionId, source: "client" });
+    return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch { return Response.json({ error: "Invalid analytics payload" }, { status: 400 }); }
 }

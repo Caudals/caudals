@@ -12,6 +12,7 @@ services:
         tmpfs: {size: 67108864}
     networks: [dokploy-network]
     environment:
+      ANALYTICS_EVENTS_V2: "${ANALYTICS_EVENTS_V2:-false}"
       EVALS_ENV: production
       EVALS_QUEUE_SCHEMA: evals_queue_prod
       EVALS_DISPATCH_ENABLED: "true"
@@ -49,6 +50,7 @@ services:
         tmpfs: {size: 67108864}
     networks: [dokploy-network]
     environment:
+      ANALYTICS_EVENTS_V2: "${ANALYTICS_EVENTS_V2:-false}"
       NODE_ENV: production
       HOME: /tmp
       EVALS_ENV: production
@@ -106,6 +108,7 @@ services:
         aliases: [evals-browser-egress]
       evals_browser_outbound: {}
     environment:
+      ANALYTICS_EVENTS_V2: "${ANALYTICS_EVENTS_V2:-false}"
       NODE_ENV: production
       HOME: /tmp
     healthcheck:
@@ -165,6 +168,7 @@ services:
       evals_browser_internal:
         aliases: [evals-browser-control]
     environment:
+      ANALYTICS_EVENTS_V2: "${ANALYTICS_EVENTS_V2:-false}"
       NODE_ENV: production
       HOME: /tmp
       EVALS_ENV: production
@@ -218,6 +222,7 @@ services:
         tmpfs: {size: 134217728}
     networks: [dokploy-network]
     environment:
+      ANALYTICS_EVENTS_V2: "${ANALYTICS_EVENTS_V2:-false}"
       NODE_ENV: production
       HOME: /tmp
       EVALS_ENV: production

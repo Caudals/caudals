@@ -1,3 +1,4 @@
+import { recordDomainCreation } from "@/lib/analytics/domain-events";
 import 'server-only';
 import { z } from 'zod';
 import { caseSchema, rubricSchema, sourceSchema } from '../contracts/cases';
@@ -27,6 +28,7 @@ export async function idempotent<T>(db: PoolClient, scope: EvidenceScope, route:
   const old = (await db.query('SELECT request_hash,response FROM evals.evidence_request WHERE org_id=$1 AND created_by=$2 AND route=$3 AND request_key=$4', [scope.orgId,scope.actorId,route,key])).rows[0];
   if (old) { if (old.request_hash !== hash) throw new EvidenceError(409,'Idempotency key payload mismatch'); return old.response; }
   const response = await fn();
+  await recordDomainCreation(db, scope, route, payload, response);
   await db.query('INSERT INTO evals.evidence_request(org_id,route,request_key,request_hash,response) VALUES($1,$2,$3,$4,$5)', [scope.orgId,route,key,hash,JSON.stringify(response)]);
   return response;
 }

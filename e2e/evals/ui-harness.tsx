@@ -1,3 +1,5 @@
+import { OpsGrowth } from "../../components/evals/ops-growth";
+import { FunnelVisitTracker } from "../../components/analytics/funnel-visit-tracker";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { ShellFrame } from "../../components/evals/shell-frame";
@@ -99,7 +101,10 @@ const identity = {
   ],
 };
 const demoPage = location.pathname === "/demo";
+const growthWeeks = Array.from({length:8},(_,i)=>({week:`2026-09-${String(i+1).padStart(2,"0")}`,events:{page_view:40+i,demo_started:12,account_created:4,report_viewed:2}}));
 const content =
+  location.pathname === "/analytics-fixture" ? <FunnelVisitTracker /> :
+  location.pathname === "/ops/growth" ? <OpsGrowth data={{weeks:growthWeeks,outcomes:[{outcome:"done",reason:"none",count:9},{outcome:"failed",reason:"site_thin",count:3}],sources:[{source:"newsletter",visits:40,demos:12,accounts:4,activated:2}],accounts:[{orgId:"00000000-0000-4000-8000-000000000001",createdAt:"2026-09-08T10:00:00Z",source:"newsletter",stage:"report_viewed"}],cohorts:growthWeeks.map(row=>({week:row.week,accounts:4,active:[3,2,2,1,1,1,1,1]}))}} /> :
   demoPage ? (
     // The public demo, in the landing's Paper frame (its API is routed by each test).
     <LocaleProvider locale={params.get("locale") === "es" ? "es" : "en"}>
@@ -176,6 +181,6 @@ createRoot(document.getElementById("root")!).render(
       <main className="p-page">{content}</main>
     </div>
   ) : (
-    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true }}>{content}</ShellFrame>
+    <ShellFrame identity={identity} expert={location.pathname.startsWith("/review")} features={{ experts: true, growth: true }}>{content}</ShellFrame>
   ),
 );

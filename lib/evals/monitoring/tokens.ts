@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
@@ -23,6 +24,7 @@ export function createCustomerToken(tenant:EvidenceScope,raw:unknown){
     const row=(await db.query(`INSERT INTO evals.customer_api_token(org_id,name,token_hash,scopes,expires_at)
       VALUES($1,$2,$3,$4,$5) RETURNING id,name,scopes,expires_at,created_at`,
       [tenant.orgId,input.name,sha256(token),[...new Set(input.scopes)],input.expiresAt])).rows[0];
+    await recordProductEvent({ eventName: "api_token_created", source: "server", orgId: tenant.orgId, eventKey: row.id, payload: { destination_type: "api" } }, db);
     return {...row,token};
   });
 }

@@ -1,3 +1,5 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
+import { getRun } from "./store";
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { getPostgresPool } from "@/lib/db/client";
@@ -45,6 +47,8 @@ export async function requestSignup(input: { email: string; company?: string; ru
     "SELECT evals.request_self_serve_signup($1, $2, $3, $4, $5) AS existing",
     [sha256(token), input.email.trim().toLowerCase(), workspaceNameFor(input.host, input.company), input.runId, input.locale],
   );
+  const run = await getRun(input.runId);
+  await recordProductEvent({ eventName: "demo_signup_requested", source: "server", runId: input.runId, eventKey: input.runId, attribution: run?.attribution });
   const from = getSecretEnvValue("RESEND_FROM_EMAIL");
   if (!from) throw new Error("email_unconfigured");
   const copy = COPY[input.locale];

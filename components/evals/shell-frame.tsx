@@ -61,7 +61,7 @@ import type { EvalIdentity } from "@/lib/evals/domain/identity";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (path: string) => boolean; scoped?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
-export type ShellFeatures = { experts: boolean };
+export type ShellFeatures = { experts: boolean; growth?: boolean };
 
 const prefix = (value: string) => (path: string) => path === value || path.startsWith(`${value}/`);
 
@@ -83,6 +83,7 @@ function navFor(identity: EvalIdentity, features: ShellFeatures, expert: boolean
       label: t("operations"),
       items: [
         { href: "/ops", label: t("overview"), icon: <LayoutGrid />, match: (path) => path === "/ops" || path.startsWith("/ops/runs") || path === "/ops/evaluations" || path === "/ops/reports" },
+        ...(features.growth ? [{ href: "/ops/growth", label: t("growth"), icon: <LayoutGrid /> }] : []),
         { href: "/ops/clients", label: t("clients"), icon: <Building2 /> },
         { href: "/ops/review", label: t("reviewQueue"), icon: <ClipboardCheck /> },
         { href: "/ops/library/test-sets", label: t("library"), icon: <LibraryBig />, match: (path) => path.startsWith("/ops/library") || path.startsWith("/ops/improvements") },
@@ -115,6 +116,7 @@ const SECTION: Record<string, string> = {
   settings: t("settings"),
   invitations: t("invitations"),
   clients: t("clients"),
+  growth: t("growth"),
   review: t("reviewQueue"),
   experts: t("expertWork"),
   sources: t("sources"),

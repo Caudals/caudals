@@ -567,6 +567,8 @@ function Score({ run }: { run: DemoView }) {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
+      const handle = readHandle();
+      if (handle) void fetch(`/api/demo/runs/${handle.id}/share`, { method: "POST", headers: { "x-demo-token": handle.token } }).catch(() => {});
       window.setTimeout(() => setCopied(false), 2_000);
     } catch { /* clipboard blocked: the address bar still has the link */ }
   };

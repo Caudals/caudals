@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import { createHash,randomUUID } from 'node:crypto';
 import { hashPassword } from 'better-auth/crypto';
 import { z } from 'zod';
@@ -19,7 +20,12 @@ export async function POST(request:Request) {
   enrolling++;
   try {
    const passwordHash=await hashPassword(password);
-   const result=await withTenant({orgId:'',actorId:''},async c=>(await c.query('SELECT evals.enroll_invitation($1,$2,$3,$4,$5) AS org_id',[hash,name,passwordHash,createBetterAuthId({model:'user'}),createBetterAuthId({model:'account'})])).rows[0]);
+   const userId=createBetterAuthId({model:'user'});
+   const result=await withTenant({orgId:'',actorId:''},async c=>{
+    const row=(await c.query('SELECT evals.enroll_invitation($1,$2,$3,$4,$5) AS org_id',[hash,name,passwordHash,userId,createBetterAuthId({model:'account'})])).rows[0];
+    await recordProductEvent({eventName:'account_created',source:'server',orgId:row.org_id,eventKey:`invite:${userId}`,payload:{acquisition:'invite'}},c);
+    return row;
+   });
    return Response.json({data:result,meta:{request_id:requestId}},{headers:privateHeaders});
   } finally {enrolling--;}
  } catch {

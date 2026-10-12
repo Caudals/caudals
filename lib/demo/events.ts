@@ -14,6 +14,9 @@ function emit(name: DemoEvent, run: RunRow, payload: Record<string, string | num
   void recordProductEvent({
     eventName: name,
     source: "server",
+    runId: run.id,
+    eventKey: run.id,
+    attribution: run.attribution,
     path: `/${run.locale}/demo`,
     payload,
   }).catch(() => {});

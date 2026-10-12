@@ -1,3 +1,4 @@
+import { recordRunFinished } from "@/lib/analytics/domain-events";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { withContentHash } from "../contracts/hashing";
@@ -140,7 +141,7 @@ export async function importGradedResults(scope: EvidenceScope, evaluationId: st
 
   const report = await createReportForRun(scope, { runId: imported.runId, title: imported.title, reviewStatus: "reviewed", scorerVersion: "human-reviewed-sheet-v1" }, `graded-results-report-${imported.runId}`);
   await publishReport(scope, report.reportId, report.revisionId);
-  await withTenant(scope, (db) => db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, imported.runId]));
+  await withTenant(scope, async (db) => { await db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, imported.runId]); await recordRunFinished(db,scope.orgId,imported.runId); });
   return { runId: imported.runId, reportId: report.reportId, revisionId: report.revisionId, cases: imported.cases };
 }
 

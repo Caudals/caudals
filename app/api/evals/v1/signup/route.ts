@@ -1,3 +1,5 @@
+import { recordProductEvent, analyticsV2Enabled } from "@/lib/analytics/funnel-events-server";
+import { sanitizeAttribution } from "@/lib/analytics/events";
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { z } from "zod";
@@ -78,6 +80,12 @@ export async function POST(request: Request) {
         )).rows[0];
         if (acceptTerms === true) {
           await recordTermsAcceptance(db, { orgId: row.org_id, documents: signupAcceptance(), context: "signup", locale: locale ?? null, requestId });
+        }
+        if (analyticsV2Enabled()) {
+          const demo = row.demo_run_id ? await getRun(row.demo_run_id) : null;
+          const attribution = sanitizeAttribution(demo?.attribution);
+          await db.query("SELECT evals.set_acquisition_attribution($1,$2::jsonb)", [row.org_id, JSON.stringify(attribution)]);
+          await recordProductEvent({ eventName: "account_created", source: "server", orgId: row.org_id, runId: row.demo_run_id, eventKey: row.org_id, attribution, payload: { acquisition: row.demo_run_id ? "demo" : "direct", plan: "free" } }, db);
         }
         return row;
       });

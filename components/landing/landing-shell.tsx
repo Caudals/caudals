@@ -4,7 +4,6 @@ import { useEffect, type ReactNode } from "react";
 import Lenis from "lenis";
 import "lenis/dist/lenis.css";
 import "./landing.css";
-import { FunnelVisitTracker } from "@/components/analytics/funnel-visit-tracker";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { Header } from "@/components/ui/header";
 
@@ -47,7 +46,6 @@ export function LandingShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="lp min-h-screen">
-      <FunnelVisitTracker />
       <Header />
       <main>{children}</main>
       <MarketingFooter />

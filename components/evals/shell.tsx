@@ -8,7 +8,7 @@ import { ShellFrame } from "./shell-frame";
  */
 export function EvalShell({ identity, expert = false, children }: { identity: EvalIdentity; expert?: boolean; children: ReactNode }) {
   return (
-    <ShellFrame identity={identity} expert={expert} features={{ experts: process.env.EVALS_EXPERT_WORK_ENABLED === "true" }}>
+    <ShellFrame identity={identity} expert={expert} features={{ growth: process.env.ANALYTICS_EVENTS_V2 === "true", experts: process.env.EVALS_EXPERT_WORK_ENABLED === "true" }}>
       {children}
     </ShellFrame>
   );

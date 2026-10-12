@@ -49,7 +49,10 @@ BILLING_CREDITS_ENABLED=${BILLING_CREDITS_ENABLED:-false}
 BILLING_ENFORCE=$(credential BILLING_ENFORCE)
 BILLING_ENFORCE=${BILLING_ENFORCE:-shadow}
 [[ $BILLING_ENFORCE == shadow || $BILLING_ENFORCE == enforce ]] || { echo 'BILLING_ENFORCE must be shadow or enforce' >&2; exit 1; }
-export BILLING_CREDITS_ENABLED BILLING_ENFORCE
+ANALYTICS_EVENTS_V2=$(credential ANALYTICS_EVENTS_V2)
+ANALYTICS_EVENTS_V2=${ANALYTICS_EVENTS_V2:-false}
+[[ $ANALYTICS_EVENTS_V2 == true || $ANALYTICS_EVENTS_V2 == false ]] || { echo 'ANALYTICS_EVENTS_V2 must be true or false' >&2; exit 1; }
+export BILLING_CREDITS_ENABLED BILLING_ENFORCE ANALYTICS_EVENTS_V2
 
 commit=${EVALS_IMAGE_COMMIT:-$(git -C "$repo_dir" log -1 --format=%H -- \
   .github/workflows/evals-images.yml \

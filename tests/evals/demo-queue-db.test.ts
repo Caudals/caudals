@@ -270,13 +270,15 @@ describe.skipIf(!ownerUrl || !runtimeUrl)("demo queue, fallback cap and report e
 
   it("persists lifecycle events with append-only analytics access", async () => {
     const { recordProductEvent } = await import("@/lib/analytics/funnel-events-server");
+    await owner.query("DELETE FROM public.product_analytics_event WHERE path='/en/demo'");
     const payload = { target_kind: "website", locale: "en", outcome: "done" };
     for (const eventName of ["demo_started", "demo_finished"] as const) {
       expect(await recordProductEvent({ eventName, source: "server", path: "/en/demo", payload })).toEqual({ ok: true });
     }
     const { rows } = await owner.query("SELECT event_name, metadata FROM public.product_analytics_event WHERE path = '/en/demo' ORDER BY occurred_at");
     expect(rows.map(row => row.event_name)).toEqual(["demo_started", "demo_finished"]);
-    expect(rows.every(row => JSON.stringify(row.metadata) === JSON.stringify(rows[0].metadata))).toBe(true);
+    expect(rows[0].metadata).toEqual({ target_kind: "website", locale: "en" });
+    expect(rows[1].metadata).toEqual({ target_kind: "website", locale: "en", outcome: "done" });
     const { rows: [rights] } = await owner.query("SELECT has_table_privilege('evals_runtime','public.product_analytics_event','UPDATE') AS can_update, has_table_privilege('evals_runtime','public.product_analytics_event','DELETE') AS can_delete");
     expect(rights).toEqual({ can_update: false, can_delete: false });
     await owner.query("DELETE FROM public.product_analytics_event WHERE path = '/en/demo'");

@@ -80,6 +80,33 @@ A no-signup, eight-question test of a visitor's AI system (founder decision 2026
 - **Terms acceptance (launch L-01, migration 081):** `evals.terms_acceptance` is an append-only record (user, workspace, document, version, context, locale, request id, time; a trigger refuses UPDATE, DELETE and TRUNCATE). Rows are written only by `evals.record_terms_acceptance()`, which records for the transaction's actor, checks workspace membership and is idempotent per request id. Members read their workspace's rows under RLS. Sign-up uses context `signup`; checkout (L-12) and the DPA click-through (L-30) reuse it with `checkout` and `dpa`. Document versions are in `lib/legal/versions.ts`.
 - **Flags:** `DEMO_ENABLED`, `DEMO_BROWSER_ENABLED` (web) and `EVALS_BROWSER_DEMO_ENABLED` (browser worker); `DEMO_QUEUE_ENABLED`, `DEMO_FALLBACK_ENABLED` and `DEMO_FALLBACK_FORCE` (web, default off); optional `DEMO_SECRET` (otherwise derived from `BETTER_AUTH_SECRET`), `DEMO_RUNS_PER_VISITOR`, `DEMO_RUNS_PER_SITE`, `DEMO_MAX_ACTIVE`, `DEMO_MAX_ACTIVE_WEBSITE`, `DEMO_QUEUE_MAX`, `DEMO_QUEUE_MAX_WAIT_MINUTES`, `DEMO_FALLBACK_*`, `DEMO_APP_ORIGIN`. With the queue and the fallback off the demo behaves as before L-03.
 
+
+## Product analytics and growth (launch L-02)
+
+`ANALYTICS_EVENTS_V2` is a runtime app/worker flag. `/api/analytics/config` exposes only its boolean. `/api/analytics/track` accepts the client catalogue only, after explicit consent, with same-origin and bounded-payload checks. The client waits for consent before accessing optional storage or sending/mirroring events. Withdrawal clears that storage. Umami receives sanitized custom events; its automatic page tracking is disabled.
+
+`lib/analytics/events.ts` owns names, sources and scalar property allowlists. `public.product_analytics_event` stores route templates, workspace UUIDs, hashed run/revision/retry keys, scalar metadata and sanitized attribution. It does not store email, raw IP, customer URLs, question/answer text or user identity. Migration 082 enforces operator-only reads; server roles use a bounded append-only function for retry-safe writes without granting row visibility. Transactional emitters preserve domain rollback, using savepoints so analytics failures cannot break product actions. Existing L-03 demo lifecycle collection remains available with the v2 flag off.
+
+| Events | Sole source / current owner |
+| --- | --- |
+| `page_view`, `demo_viewed` | Client root tracker after consent; route templates, locale, hostname-only referrer |
+| `pilot_requested`, `readout_link_clicked` | Client navigation to contact/call, with source surface |
+| `demo_started`, `demo_finished` | Server demo lifecycle; queue wait, target kind, model, score, duration/outcome |
+| `demo_signup_requested`, `demo_report_shared` | Server signup-link creation and authorized report-copy acknowledgement; hashed run |
+| `account_created` | Server enrollment; acquisition (`demo`, `direct`, `invite`, later `partner`) and known plan |
+| `evaluation_created`, `test_set_ready`, `run_started`, `sources_added`, `schedule_created` | Server idempotent domain creation; known connection/count/duration/type properties |
+| `run_finished` | Server terminal finalization; questions, frozen model count, duration/outcome; unknown estimates/credits remain null until L-10/L-11 |
+| `report_viewed`, `report_shared`, `export_downloaded` | Server authorized report/share/download operations. First view once per revision; downloads once per artifact/revision/format; polling is not counted as repeated activation |
+| `api_token_created`, `webhook_created` | Server creation transactions; destination type only |
+| `scan_detected`, `context_confirmed` | Server discovery completion/context answers; count and field names, never content |
+| `limit_hit` | Server demo limits and known product limit errors |
+| `example_viewed`, `expert_review_requested` | Client catalogue reserved for L-33/L-26; their real emitters land with those features |
+| `readout_presented`, `readout_exported`, `report_question_asked` | Server catalogue reserved for L-35/L-36; their real emitters land with those features |
+
+The first consented touch saves UTM/ref/partner labels and the existing opaque Leads journey identifiers in `caudals_attribution_v2`, a 90-day optional first-party cookie shared by `caudals.com` and `app.caudals.com`. The snapshot travels to `demo.run.attribution`, then `evals.workspace.acquisition_attribution`; L-12 will copy it to the first payment. Cookie Policy version 2026-10-12 documents storage and withdrawal. Attribution never enrolls contacts or bypasses Leads' identity/revenue rules.
+
+`/ops/growth` requires platform operator/admin identity, repeats the role check in SQL, and relies on SELECT RLS. Its indexed eight-week query has a 1.5-second statement timeout. Weekly funnel counts are event counts (views are consented only), source breakdowns count acquisitions/activation, and cohorts count workspaces that start runs or first view reports. Future cohort weeks display a dash. Data begins when enabled; no historical events are synthesized. The full non-billing event acceptance remains a cross-package check as L-26/L-33/L-35/L-36 ship.
+
 ## Billing: Credit Ledger
 
 Self-serve usage is paid in credits (launch spec v2 §6). **1 credit = €0.01 excl. VAT**; the ledger stores micro-credits (1 credit = 1,000,000 µcr) as `bigint` (`*_ucr` columns, `lib/billing/units.ts` for exact maths). Credits sit on top of the euro budgets in `lib/evals/budget/ledger.ts`, which remain Caudals' own cost guardrails. Package status: the ledger core (L-09, migration 084) is deployed dark; engine holds and captures (L-11), the price book (L-10), Stripe (L-12) and the billing screens (L-15, L-16) build on it.

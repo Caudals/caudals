@@ -58,6 +58,7 @@ const migrations=[
  '081_evals_terms_acceptance.sql',
  '083_demo_queue.sql',
  '084_billing_core.sql',
+ '082_analytics_event_dimensions.sql',
 ];
 async function main(){
  const url=getSecretEnvValue('EVALS_MIGRATION_DATABASE_URL');if(!url)throw new Error('Set EVALS_MIGRATION_DATABASE_URL(_FILE) to the migration-owner connection.');

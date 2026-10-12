@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
@@ -26,6 +27,9 @@ export function api(handler:(request:Request,identity:EvalIdentity)=>Promise<unk
       const validation=error instanceof ZodError || error instanceof SyntaxError;
       const code=known?error.code:validation?'INPUT_INVALID':'SERVICE_UNAVAILABLE';
       const status=known?error.status:validation?400:503;
+      if (["BUDGET_PAUSED", "LIMIT_EXCEEDED", "PLAN_LIMIT", "PAYMENT_REQUIRED"].includes(code)) {
+        await recordProductEvent({ eventName: "limit_hit", source: "server", path: new URL(request.url).pathname, payload: { kind: code } });
+      }
       const databaseCode =
         typeof error === "object" && error !== null && "code" in error &&
         typeof error.code === "string" && /^[0-9A-Z]{5}$/.test(error.code)

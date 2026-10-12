@@ -549,7 +549,8 @@
         "id": "analytics",
         "title": "Analytics cookies",
         "body": [
-          "Optional, privacy-friendly analytics that help us understand product usage and improve the experience. They load only after you accept optional cookies in the cookie banner."
+          "Optional, privacy-friendly analytics that help us understand product usage and improve the experience. They load only after you accept optional cookies in the cookie banner.",
+          "After consent, the first-party caudals_attribution_v2 cookie keeps campaign labels and opaque journey identifiers for up to 90 days across caudals.com and app.caudals.com. A random analytics session identifier is kept in session storage until the tab closes. These values let us connect a visit to a demo, signup and first payment; they contain no email address or raw IP. Withdrawing consent removes this optional browser storage and stops new client events."
         ]
       },
       {

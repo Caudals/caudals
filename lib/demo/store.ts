@@ -1,3 +1,4 @@
+import { sanitizeAttribution, type Attribution } from "@/lib/analytics/events";
 import "server-only";
 import { getPostgresPool } from "@/lib/db/client";
 import type { DemoCase } from "./generate";
@@ -48,6 +49,7 @@ export type RunRow = {
   model_used: string | null;
   /** numeric(12,6), as text. */
   fallback_cost_eur: string;
+  attribution?: Attribution;
 };
 
 /** A run counts as started once admitted, or when it predates the queue. */
@@ -73,6 +75,7 @@ export async function insertRun(input: {
   auth: boolean;
   /** Join the queue instead of starting at once (DEMO_QUEUE_ENABLED). */
   queued?: boolean;
+  attribution?: Attribution;
 }) {
   const { spec } = input;
   const config = {
@@ -80,9 +83,9 @@ export async function insertRun(input: {
     ...(input.auth ? { auth: true } : {}),
   };
   const { rows } = await db().query<{ id: string }>(
-    `INSERT INTO demo.run (token_hash, locale, target_kind, target_url, target_host, target_config, docs_url, docs_host, client_hash, browser_chat, queued_at, started_at)
-     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10, now(), CASE WHEN $11::boolean THEN NULL ELSE now() END) RETURNING id`,
-    [input.tokenHash, input.locale, spec.kind, spec.url, input.targetHost, JSON.stringify(config), input.docsUrl, input.docsHost, input.clientHash, spec.kind === "website" ? "queued" : null, Boolean(input.queued)],
+    `INSERT INTO demo.run (token_hash, locale, target_kind, target_url, target_host, target_config, docs_url, docs_host, client_hash, browser_chat, queued_at, started_at, attribution)
+     VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10, now(), CASE WHEN $11::boolean THEN NULL ELSE now() END, $12::jsonb) RETURNING id`,
+    [input.tokenHash, input.locale, spec.kind, spec.url, input.targetHost, JSON.stringify(config), input.docsUrl, input.docsHost, input.clientHash, spec.kind === "website" ? "queued" : null, Boolean(input.queued), JSON.stringify(sanitizeAttribution(input.attribution))],
   );
   return rows[0].id;
 }

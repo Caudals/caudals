@@ -549,7 +549,8 @@
         "id": "analytics",
         "title": "Cookies analíticas",
         "body": [
-          "Analíticas opcionales y respetuosas con la privacidad que nos ayudan a entender el uso del producto y mejorar la experiencia. Solo se cargan después de que aceptes las cookies opcionales en el aviso de cookies."
+          "Analíticas opcionales y respetuosas con la privacidad que nos ayudan a entender el uso del producto y mejorar la experiencia. Solo se cargan después de que aceptes las cookies opcionales en el aviso de cookies.",
+          "Tras tu consentimiento, la cookie propia caudals_attribution_v2 conserva etiquetas de campaña e identificadores opacos del recorrido durante un máximo de 90 días en caudals.com y app.caudals.com. Un identificador aleatorio de sesión analítica permanece en el almacenamiento de sesión hasta que cierras la pestaña. Estos valores permiten relacionar una visita con una demo, el registro y el primer pago; no contienen direcciones de correo ni IP sin procesar. Al retirar el consentimiento se elimina este almacenamiento opcional del navegador y se detienen los nuevos eventos del cliente."
         ]
       },
       {

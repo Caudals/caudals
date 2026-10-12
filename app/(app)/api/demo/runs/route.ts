@@ -1,3 +1,5 @@
+import { requestAttribution } from "@/lib/analytics/attribution-request";
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import { z } from "zod";
 import { clientHash } from "@/lib/demo/client";
 import { queueEnabled } from "@/lib/demo/config";
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
   try {
     await admit(client, targetHost, docsUrl.hostname);
   } catch (error) {
-    if (error instanceof LimitError) return failure(error.message, ["capacity", "busy", "queue_full"].includes(error.message) ? 503 : 429);
+    if (error instanceof LimitError) { await recordProductEvent({ eventName: "limit_hit", source: "server", payload: { kind: error.message } }); return failure(error.message, ["capacity", "busy", "queue_full"].includes(error.message) ? 503 : 429); }
     throw error;
   }
 
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
   const id = await insertRun({
     tokenHash: hash, locale: body.locale, spec: classified.spec, targetHost,
     docsUrl: docsUrl.href, docsHost: docsUrl.hostname, clientHash: client,
-    auth: Object.keys(classified.secrets).length > 0, queued,
+    auth: Object.keys(classified.secrets).length > 0, queued, attribution: requestAttribution(request),
   });
   rememberSecrets(id, classified.secrets);
   if (queued) {

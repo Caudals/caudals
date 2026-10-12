@@ -1,161 +1,36 @@
 import "server-only";
-
+import { createHash } from "node:crypto";
+import type { PoolClient } from "pg";
 import { generatePrefixedUlid } from "@/lib/db/ids";
 import { queryRows } from "@/lib/db/client";
-import type {
-  FunnelEventName,
-  FunnelEventPayload,
-  ProductEventName,
-  ProductEventPayload,
-} from "@/lib/analytics/funnel-events";
-import { logError, logWarn } from "@/lib/security/structured-logger";
-
-declare global {
-  var __caudalsAnalyticsIngestDisabledUntilMs: number | undefined;
-  var __caudalsAnalyticsMissingTableLogged: boolean | undefined;
-}
-
-type RecordFunnelEventInput = {
-  eventName: FunnelEventName;
-  userId?: string | null;
-  userRole?: string | null;
-  path?: string | null;
-  sessionId?: string | null;
-  source: "client" | "server";
-  payload?: FunnelEventPayload;
+import { analyticsPath, CLIENT_EVENT_NAMES, SERVER_EVENT_NAMES, sanitizeAttribution, sanitizePayload, type Attribution, type ProductEventName, type ProductEventPayload } from "./events";
+export const analyticsV2Enabled = () => process.env.ANALYTICS_EVENTS_V2 === "true";
+export const analyticsHash = (id: string) => createHash("sha256").update(`caudals-analytics-v2:${id}`).digest("hex");
+export type RecordProductEventInput = {
+  eventName: ProductEventName; source: "client" | "server";
+  orgId?: string | null; runId?: string | null; eventKey?: string;
+  path?: string | null; sessionId?: string | null;
+  payload?: ProductEventPayload; attribution?: Attribution;
 };
-
-type RecordProductEventInput = {
-  // Server lifecycle events never join the client ingestion allowlist.
-  eventName: ProductEventName | "demo_started" | "demo_finished";
-  userId?: string | null;
-  userRole?: string | null;
-  path?: string | null;
-  sessionId?: string | null;
-  source: "client" | "server";
-  payload?: ProductEventPayload;
-};
-
-function sanitizePayload(payload?: ProductEventPayload) {
-  if (!payload) {
-    return {};
-  }
-
-  return Object.entries(payload).reduce<Record<string, string | number | boolean | null>>(
-    (acc, [key, value]) => {
-      if (value === undefined) {
-        return acc;
-      }
-      if (!key || key.length > 80) {
-        return acc;
-      }
-      if (
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean" ||
-        value === null
-      ) {
-        acc[key] = value;
-      }
-      return acc;
-    },
-    {}
-  );
-}
-
-function resolveEventCategory(eventName: RecordProductEventInput["eventName"]) {
-  if (eventName.startsWith("funnel_")) {
-    return "funnel";
-  }
-  if (eventName.startsWith("dashboard_")) {
-    return "dashboard";
-  }
-  return "product";
-}
-
-function isMissingAnalyticsTableError(error: unknown) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-  const code = String((error as { code?: string }).code ?? "");
-  return code === "42P01";
-}
-
-function isAnalyticsIngestTemporarilyDisabled() {
-  return (
-    typeof globalThis.__caudalsAnalyticsIngestDisabledUntilMs === "number" &&
-    globalThis.__caudalsAnalyticsIngestDisabledUntilMs > Date.now()
-  );
-}
-
-export async function recordProductEvent(input: RecordProductEventInput) {
-  if (isAnalyticsIngestTemporarilyDisabled()) {
-    return { skipped: true };
-  }
-
-  const metadata = sanitizePayload(input.payload);
-
+/** Append inside a domain transaction when supplied. Analytics cannot abort that transaction. */
+export async function recordProductEvent(input: RecordProductEventInput, db?: PoolClient) {
+  // L-03 lifecycle collection predates this rollout flag and remains available.
+  if (!analyticsV2Enabled() && !["demo_started", "demo_finished"].includes(input.eventName)) return { skipped: true };
+  const names: readonly string[] = input.source === "client" ? CLIENT_EVENT_NAMES : SERVER_EVENT_NAMES;
+  if (!names.includes(input.eventName)) return { skipped: true };
+  const uuid = (value?: string | null) => value && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) ? value : null;
+  const values = [generatePrefixedUlid("pa"), input.eventName, input.source, analyticsPath(input.path), uuid(input.sessionId), JSON.stringify(sanitizePayload(input.eventName, input.payload)), uuid(input.orgId), input.runId ? analyticsHash(input.runId) : null, JSON.stringify(sanitizeAttribution(input.attribution)), input.eventKey ? analyticsHash(`${input.eventName}:${input.eventKey}`) : null];
+  // During rolling deploy, only the two existing L-03 names may predate migration 082.
+  const sql = `SELECT evals.append_analytics_event($1,$2,$3,$4,$5,$6::jsonb,$7::uuid,$8,$9::jsonb,$10)`;
+  let savepoint = false;
   try {
-    await queryRows(
-      `
-        INSERT INTO product_analytics_event (
-          id,
-          event_name,
-          event_category,
-          user_id,
-          user_role,
-          session_id,
-          path,
-          source,
-          metadata,
-          occurred_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
-      `,
-      [
-        generatePrefixedUlid("pa"),
-        input.eventName,
-        resolveEventCategory(input.eventName),
-        input.userId ?? null,
-        input.userRole ?? null,
-        input.sessionId ?? null,
-        input.path ?? null,
-        input.source,
-        JSON.stringify(metadata),
-        new Date().toISOString(),
-      ]
-    );
+    if (db) { await db.query("SAVEPOINT analytics_event"); savepoint = true; await db.query(sql, values); await db.query("RELEASE SAVEPOINT analytics_event"); }
+    else await queryRows(sql, values);
+    return { ok: true };
   } catch (error) {
-    if (isMissingAnalyticsTableError(error)) {
-      globalThis.__caudalsAnalyticsIngestDisabledUntilMs =
-        Date.now() + 10 * 60 * 1000;
-      if (!globalThis.__caudalsAnalyticsMissingTableLogged) {
-        globalThis.__caudalsAnalyticsMissingTableLogged = true;
-        logWarn("analytics.product_events_table_missing_ingest_paused", {
-          error,
-        });
-      }
-      return {
-        skipped: true,
-        error: error instanceof Error ? error.message : "analytics table missing",
-      };
-    }
-
-    logError("analytics.record_funnel_event_failed", {
-      event: input.eventName,
-      error,
-    });
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to record analytics event",
-    };
+    if (db && savepoint) { await db.query("ROLLBACK TO SAVEPOINT analytics_event"); await db.query("RELEASE SAVEPOINT analytics_event"); }
+    // Never log exception messages, payloads or query values.
+    console.error("analytics_write_failed", { event: input.eventName, code: typeof error === "object" && error && "code" in error ? String(error.code).slice(0, 5) : "unknown" });
+    return { error: "analytics_write_failed" };
   }
-
-  return { ok: true };
-}
-
-export async function recordFunnelEvent(input: RecordFunnelEventInput) {
-  return recordProductEvent(input);
 }

@@ -1,3 +1,4 @@
+import { recordRunFinished } from "@/lib/analytics/domain-events";
 import "server-only";
 import { withTenant } from "./db";
 import type { EvidenceScope } from "./evidence";
@@ -43,6 +44,7 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
             VALUES($1,$2,'run_failed','workspace',$3,'delivered',now()) ON CONFLICT(org_id,event_id,audience) DO NOTHING`,
           [scope.orgId, `run:${run.id}:failed`, { runId: run.id }]);
           await db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2 AND status='failed'", [scope.orgId, run.id]);
+          await recordRunFinished(db, scope.orgId, run.id);
         });
         result.failed++;
         return;
@@ -53,7 +55,7 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
         return;
       }
       if (run.reported) {
-        await withTenant(scope, (db) => db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]));
+        await withTenant(scope, async (db) => { await db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]); await recordRunFinished(db, scope.orgId, run.id); });
         return;
       }
       if (run.judging) { result.waiting++; return; }
@@ -62,7 +64,7 @@ export function finalizeRuns(scope: EvidenceScope, limit = 5, modes: string[] = 
         runId: run.id, title: run.title, reviewStatus: "preliminary", scorerVersion: AUTO_REPORT_SCORER,
       }, `auto-report:${run.id}`);
       await publishReport(scope, report.reportId, report.revisionId);
-      await withTenant(scope, (db) => db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]));
+      await withTenant(scope, async (db) => { await db.query("UPDATE evals.run SET phase='done',updated_at=now() WHERE org_id=$1 AND id=$2", [scope.orgId, run.id]); await recordRunFinished(db, scope.orgId, run.id); });
       result.reported++;
     }
   });

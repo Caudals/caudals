@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -707,6 +708,7 @@ export function answerGenerationQuestions(scope: EvidenceScope, evaluationId: st
     }
     const open=(await db.query("SELECT count(*)::int AS count FROM evals.context_question WHERE org_id=$1 AND evaluation_id=$2 AND generation_job_id=$3 AND critical AND status='open'",[scope.orgId,evaluationId,jobId])).rows[0].count as number;
     if(!open)await db.query("UPDATE evals.evaluation SET preparation_status='generating',reason_code=NULL,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,evaluationId]);
+    if (checked.length) await recordProductEvent({ eventName: "context_confirmed", source: "server", orgId: scope.orgId, eventKey: `${jobId}:${checked.map(item => item.row.id).sort().join(":")}`, payload: { count: checked.length, edited_fields: checked.map(item => item.row.field).sort().join("/") } }, db);
     return {answered:checked.filter((item)=>item.answer!==null).length,skipped:checked.filter((item)=>item.answer===null).length,criticalOpen:open};
   });
 }

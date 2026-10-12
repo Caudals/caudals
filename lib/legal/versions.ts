@@ -34,7 +34,7 @@ export const LEGAL_DOCUMENT_VERSIONS: Record<
   dpa: { version: "2026-10-11", review: "pending_legal_review" },
   subprocessors: { version: "2026-10-11", review: "pending_legal_review" },
   security: { version: "2026-10-11", review: "pending_legal_review" },
-  cookies: { version: "2026-03-01", review: "pending_legal_review" },
+  cookies: { version: "2026-10-12", review: "pending_legal_review" },
   notice: { version: "2026-10-11", review: "pending_legal_review" },
 };
 

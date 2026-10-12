@@ -1,3 +1,4 @@
+import { getCookieConsent } from "@/lib/legal/cookie-consent";
 export type AttributionJourney = {
   parentEventId: string;
   visitorId: string;
@@ -8,7 +9,7 @@ const STORAGE_KEY = "caudals_first_party_attribution";
 const TOKEN = /^([0-9a-f-]{36})\.([0-9a-f-]{36})\.([a-z0-9_-]{6,32})$/i;
 
 export function readAttributionJourney(): AttributionJourney | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined" || getCookieConsent() !== "accepted") return null;
   try {
     const incoming = new URL(window.location.href).searchParams.get("caudals_attribution");
     const value = incoming ?? window.sessionStorage.getItem(STORAGE_KEY);

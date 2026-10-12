@@ -1,3 +1,4 @@
+import { recordRunFinished } from "@/lib/analytics/domain-events";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -880,6 +881,7 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
         "INSERT INTO evals.audit_event(org_id,actor_id,action,subject_id) VALUES($1,$2,'run.canceled',$3)",
         [scope.orgId, scope.actorId, runId],
       );
+      await recordRunFinished(db, scope.orgId, runId);
       return { runId, action, status };
     }
     await controlWorkflow(db, scope.orgId, workflow.id, action);

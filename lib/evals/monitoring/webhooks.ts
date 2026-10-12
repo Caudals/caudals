@@ -1,3 +1,4 @@
+import { recordProductEvent } from "@/lib/analytics/funnel-events-server";
 import "server-only";
 import { randomBytes, randomUUID } from "node:crypto";
 import https from "node:https";
@@ -33,6 +34,7 @@ export async function createWebhookEndpoint(tenant:EvidenceScope,raw:unknown){
       await db.query("INSERT INTO evals.webhook_secret_version(id,org_id,endpoint_id,envelope) VALUES($1,$2,$3,$4)",
         [versionId,tenant.orgId,endpointId,encryptSecret(secret,scope(tenant.orgId,endpointId,versionId),version,keys)]);
       await db.query("UPDATE evals.webhook_endpoint SET current_secret_version_id=$3 WHERE org_id=$1 AND id=$2",[tenant.orgId,endpointId,versionId]);
+      await recordProductEvent({ eventName: "webhook_created", source: "server", orgId: tenant.orgId, eventKey: endpointId, payload: { destination_type: "https" } }, db);
       return {id:endpointId,label:input.label,url:input.url,events:[...new Set(input.events)],enabled:true};
     });
     return {...result,secret:secret.toString("base64url")};
