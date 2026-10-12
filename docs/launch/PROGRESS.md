@@ -18,14 +18,14 @@ Status: `todo` · `in progress` · `merged` (on `main`, deploy pending or verify
 | 1 | L-01 | Trust and legal pages, terms acceptance | — | 081 `evals_terms_acceptance` | deployed; entity data pending | `d1084f0` | [L-01](L-01.md) |
 | 1 | L-02 | Funnel events and growth dashboard v1 | — | 082 `analytics_event_dimensions` (if needed) | done | `144510e`, `cf8252b` | [L-02](L-02.md); flag on, events persisting, growth query 3.8 ms in production. |
 | 1 | L-03 | Demo queue, capacity and fallback model | — | 083 `demo_queue` | deployed; fallback pending | `12561e5` | [L-03](L-03.md); production demo and lifecycle events verified. |
-| 1 | L-08 | Observability, alerting and admin MFA | — | — | todo | | |
+| 1 | L-08 | Observability, alerting and admin MFA | — | — | in progress | | |
 | 1 | L-09 | Billing core: credit ledger | — | 084 `billing_core` | done | 35b462a | App, migration and workers verified; seven accounts, zero drift. Billing off/shadow. Worker CI disabled; recovery deployment documented in L-09.md. |
 | 2 | L-04 | Front door: demo linked, indexed, CTAs | L-01, L-02, L-03 | — | todo | | |
-| 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | todo | | |
+| 2 | L-05 | Direct work-email sign-up | L-01 | 085 `evals_signup_domains` | in progress | | |
 | 2 | L-06 | First-run onboarding and activation | L-02 | 086 `evals_onboarding` | todo | | |
 | 2 | L-07 | Branded EN/ES emails and lifecycle sequence | L-02 (L-06 soft) | 087 `evals_lifecycle_email` | todo | | |
-| 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | todo | | |
-| 2 | L-33 | Example evaluation and public sample report | L-02 | — | todo | | |
+| 2 | L-10 | Price book, model guard and estimator | L-09 | 088 `billing_price_book` | in progress | | |
+| 2 | L-33 | Example evaluation and public sample report | L-02 | — | in progress | | |
 | 3 | L-11 | Engine integration: holds, captures, refunds | L-09, L-10 | 089 `billing_engine_hooks` | todo | | |
 | 3 | L-21 | Prospect snapshot and ops growth v2 | L-02 | 090 `evals_prospect_snapshots` | todo | | |
 | 3 | L-12 | Stripe top-ups, auto-recharge and webhooks | L-09, L-01 | 091 `billing_payments` | todo | | |
@@ -103,3 +103,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-12 | L-01 engineering deployed with migration 081 and required signup acceptance enabled. Legal documents, downloads and mobile widths passed 14 production browser tests; retired routes remain 404. Real entity data and lawyer review remain explicit gates. L-03 draft rebased serially; budget bounds and notification retry fixes under test. |
 | 2026-10-12 | L-03 deployed with queue enabled. Controlled production demo completed 8/8 cases in 123 s; server lifecycle events verified in the database. Fallback remains off pending funded access. Preserved concurrent contact-card and background-color changes. Continuing L-02 serially. |
 | 2026-10-12 | L-02 deployed and verified (app and workers at `cf8252b`, `ANALYTICS_EVENTS_V2=true`). Claude orchestrator took over from Codex with the instruction to spawn subagents; finished worktrees for L-01, L-02, L-03 and L-09 removed. Next: L-08 (phase 1) and phase 2 packages in parallel. |
+| 2026-10-12 | Orchestrator started package agents for L-08, L-10, L-05 and L-33 (worktrees `.worktrees/launch-L-xx`). Worker images are now built with `scripts/launch/build-worker-images.sh` while `evals-images.yml` stays disabled. Hourly resume check at :23 in the orchestrator session (expires 2026-10-19). |
