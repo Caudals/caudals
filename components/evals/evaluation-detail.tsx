@@ -420,7 +420,11 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
                 ? t("runPausedWebsiteHelp")
                 : run.run.reason_code === "target_unknown_attempt_review"
                   ? t("runPausedReviewHelp")
-                  : t("runPausedHelp")}
+                  : run.run.reason_code === "credits_exhausted"
+                    ? t("runPausedCreditsHelp")
+                    : run.run.reason_code === "cap_reached"
+                      ? t("runPausedCapHelp")
+                      : t("runPausedHelp")}
           </p>
           <RunPipeline counts={counts} grading={run.grading} phase={run.run.phase} running={false} paused />
           {canWrite && (

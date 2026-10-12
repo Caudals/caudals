@@ -55,6 +55,10 @@ export function evaluationStage(evaluation: Input, hasReport: boolean): Stage {
       return { key: "paused", label: tr("Waiting for your answers"), tone: "warn", live: false, step: 2, needsAction: true };
     if (run === "paused" && evaluation.latest_run_reason_code === "runner_wait")
       return { key: "paused", label: tr("Waiting for your runner"), tone: "warn", live: false, step: 2, needsAction: true };
+    if (run === "paused" && evaluation.latest_run_reason_code === "credits_exhausted")
+      return { key: "paused", label: tr("Paused — add credits to continue"), tone: "warn", live: false, step: 2, needsAction: true };
+    if (run === "paused" && evaluation.latest_run_reason_code === "cap_reached")
+      return { key: "paused", label: tr("Paused — spending cap reached"), tone: "warn", live: false, step: 2, needsAction: true };
     if (run === "paused") return { key: "paused", label: tr("Paused"), tone: "warn", live: false, step: 2, needsAction: true };
     if (run === "failed") return { key: "failed", label: tr("Failed"), tone: "fail", live: false, step: 2, needsAction: true };
     if (run === "canceled") return hasReport

@@ -4,7 +4,8 @@
 # reachability, backup age and evaluation signals (stuck queue, expired leases,
 # unresolved paid attempts, unhealthy providers, budget pauses, failed report
 # rendering), plus the launch signals: demo failure rate, demo and engine
-# queue age, webhook failures and credit holds unresolved for 24 hours. Each
+# queue age, webhook failures, credit holds unresolved for 24 hours and a
+# daily shadow credit report with mismatches (L-11). Each
 # alert is emailed once when it opens, repeated at most daily while open, and
 # once when it resolves, with a link to its runbook. Messages carry counts and
 # names only: no prompts, customer content, secrets or private endpoints.
@@ -59,7 +60,7 @@ runbook_for() {
     report_render_failed) echo "$runbooks#14-report-rendering-failed" ;;
     demo_failure_rate|demo_queue_stale) echo "$runbooks#15-demo-failures-or-queue" ;;
     webhook_failures) echo "$runbooks#16-webhook-failures" ;;
-    holds_stale) echo "$runbooks#17-billing-incident" ;;
+    holds_stale|billing_shadow_drift) echo "$runbooks#17-billing-incident" ;;
     database_down|database_unreadable) echo "$runbooks#18-database-unreachable" ;;
     *) echo "$runbooks" ;;
   esac
@@ -129,7 +130,7 @@ if (( ${#psql_cmd[@]} )); then
 
   # Launch signals (L-08). Demo failures count only service-side causes: a
   # visitor's unreachable, blocked or thin site is not our outage.
-  read -r demo_finished demo_failed demo_waiting demo_wait_minutes webhooks_failed stripe_failed holds < <(sql caudals "
+  read -r demo_finished demo_failed demo_waiting demo_wait_minutes webhooks_failed stripe_failed holds shadow_drift < <(sql caudals "
     SELECT
       (SELECT count(*) FROM demo.run WHERE finished_at > now()-interval '1 hour' AND phase IN ('done','failed')),
       (SELECT count(*) FROM demo.run WHERE finished_at > now()-interval '1 hour' AND phase='failed'
@@ -139,7 +140,8 @@ if (( ${#psql_cmd[@]} )); then
         WHERE queued_at IS NOT NULL AND started_at IS NULL AND phase NOT IN ('done','failed')),
       (SELECT count(*) FROM evals.webhook_delivery WHERE status='failed' AND updated_at > now()-interval '1 hour'),
       $(optional_count billing.stripe_event status,received_at "SELECT count(*) AS c FROM billing.stripe_event WHERE status='failed' AND received_at > now()-interval '1 hour'"),
-      $(optional_count billing.credit_hold state,created_at "SELECT count(*) AS c FROM billing.credit_hold WHERE state='held' AND created_at < now()-interval '24 hours'")" 2>/dev/null || echo "x x x x x x x")
+      $(optional_count billing.credit_hold state,created_at "SELECT count(*) AS c FROM billing.credit_hold WHERE state='held' AND created_at < now()-interval '24 hours'"),
+      $(optional_count billing.shadow_report mismatches,generated_at "SELECT coalesce((SELECT mismatches FROM billing.shadow_report WHERE generated_at > now()-interval '26 hours' ORDER BY generated_at DESC LIMIT 1),0) AS c")" 2>/dev/null || echo "x x x x x x x x")
   if [[ $demo_finished == x ]]; then
     flag database_unreadable "Launch health signals could not be read from PostgreSQL."
   else
@@ -149,6 +151,7 @@ if (( ${#psql_cmd[@]} )); then
     (( demo_waiting > 0 && demo_wait_minutes >= queue_minutes )) && flag demo_queue_stale "${demo_waiting} demos are waiting; the oldest for ${demo_wait_minutes} minutes."
     (( webhooks_failed + stripe_failed > 0 )) && flag webhook_failures "Webhooks failed in the last hour: ${webhooks_failed} outbound deliveries, ${stripe_failed} payment events."
     (( holds > 0 )) && flag holds_stale "${holds} credit holds are unresolved after 24 hours."
+    (( shadow_drift > 0 )) && flag billing_shadow_drift "The daily shadow credit report found ${shadow_drift} mismatches (billing.shadow_report)."
   fi
   engine_waiting=$(sql "$queue_database" "SELECT count(*) FROM ${queue_schema}.job WHERE state IN ('created','retry') AND start_after < now()-interval '${queue_minutes} minutes'" 2>/dev/null || echo x)
   if [[ $engine_waiting == x ]]; then
@@ -162,7 +165,7 @@ fi
 
 # Drill: open the named alerts (or all launch alerts) without evaluating them.
 if [[ -n $drill ]]; then
-  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale)
+  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift)
   [[ $drill == all ]] || IFS=, read -r -a drill_keys <<<"$drill"
   for key in "${drill_keys[@]}"; do
     [[ $key =~ ^[a-z0-9_]+$ ]] || { echo "Invalid drill key: $key" >&2; exit 2; }

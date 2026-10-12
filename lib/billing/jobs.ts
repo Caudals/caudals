@@ -5,7 +5,8 @@
  * ECB FX update.
  */
 import { withTenant } from "../evals/repositories/db";
-import { expireDue, recordVerification, type VerificationRun } from "./ledger";
+import { pendingShadowAdmissions, recordShadowAdmission, type EngineBillingMode } from "./engine";
+import { expireDue, recordVerification, refundRun, type VerificationRun } from "./ledger";
 import { activateDuePriceBooks, type PriceBookRevision } from "./price-book";
 import {
   comparePriceBook, fetchEcbUsdRate, fetchOpenRouterListings, fxUpdateDue, loadPriceCheckState, priceCheckDue, recordFxRate, recordPriceCheck, type PriceCheckReport,
@@ -69,4 +70,63 @@ export async function runPriceCheck(actorId: string, now = new Date(), fetchImpl
   const report = comparePriceBook(state.book, await fetchOpenRouterListings(fetchImpl), state.fx);
   await withTenant({ orgId: "", actorId }, db => recordPriceCheck(db, report));
   return report;
+}
+
+/* ------------------------------------------- engine hooks (L-11, §6.8) --- */
+
+/**
+ * The hourly reconciler while the credit layer is on: shadow holds unsettled
+ * after 24 h are released (real holds expire through runBillingExpiry), and
+ * failed runs (no usable result) get every charge back, once, with the key
+ * run-refund:<run_id>. Each workspace refund runs in its own transaction.
+ */
+export async function runBillingReconciler(actorId: string, mode: EngineBillingMode): Promise<{ shadowExpired: number; refunds: number; shadowRefunds: number; failed: number }> {
+  const result = { shadowExpired: 0, refunds: 0, shadowRefunds: 0, failed: 0 };
+  if (mode === "off") return result;
+  if (mode === "shadow") {
+    result.shadowExpired = await withTenant({ orgId: "", actorId }, async db =>
+      Number((await db.query("SELECT billing.shadow_expire_holds(500) AS n")).rows[0].n));
+  }
+  const candidates = await withTenant({ orgId: "", actorId }, async db =>
+    (await db.query("SELECT org_id,run_id,ledger,shadow FROM billing.run_refund_candidates(100)")).rows as Array<{ org_id: string; run_id: string; ledger: boolean; shadow: boolean }>);
+  for (const row of candidates) {
+    try {
+      await withTenant({ orgId: row.org_id, actorId }, async db => {
+        if (row.ledger) { await refundRun(db, { orgId: row.org_id, runId: row.run_id, reason: "run_failed_no_usable_result" }); result.refunds++; }
+        if (row.shadow && (await db.query("SELECT billing.shadow_refund_run($1,$2,'run_failed_no_usable_result') AS ok", [row.org_id, row.run_id])).rows[0].ok) result.shadowRefunds++;
+      });
+    } catch {
+      result.failed++;
+    }
+  }
+  return result;
+}
+
+/** Shadow admissions (§6.8 step 1) for runs started in the last minutes, off the request path. */
+export async function runShadowAdmissions(scope: { orgId: string; actorId: string }): Promise<number> {
+  const runs = await withTenant(scope, db => pendingShadowAdmissions(db, scope.orgId));
+  let recorded = 0;
+  for (const run of runs) if (await withTenant(scope, db => recordShadowAdmission(db, scope.orgId, run))) recorded++;
+  return recorded;
+}
+
+/** The daily shadow diff report runs at scheduler start and in the 04:00 UTC hour, for the previous UTC day. */
+export const SHADOW_REPORT_UTC_HOUR = 4;
+export function shadowReportDue(lastRunAt: number, now = new Date()): boolean {
+  return lastRunAt === 0 || (now.getUTCHours() === SHADOW_REPORT_UTC_HOUR && now.getTime() - lastRunAt > HOUR);
+}
+export function previousUtcDay(now = new Date()): string {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1)).toISOString().slice(0, 10);
+}
+export interface ShadowReport { id: string; day: string; mismatches: number; report: Record<string, unknown> }
+/** Computes and keeps the shadow diff for one UTC day (billing.shadow_report). */
+export function runShadowReport(actorId: string, day: string): Promise<ShadowReport> {
+  return withTenant({ orgId: "", actorId }, async db => {
+    const row = (await db.query("SELECT id,to_char(day,'YYYY-MM-DD') AS day,mismatches,report FROM billing.record_shadow_report($1::date)", [day])).rows[0];
+    return { id: row.id, day: row.day, mismatches: row.mismatches, report: row.report };
+  });
+}
+/** The shadow diff for one UTC day (one workspace, or all), computed without keeping it (scripts/billing/shadow-report.ts). */
+export function shadowDiff(actorId: string, day: string, orgId: string | null = null): Promise<Record<string, unknown>> {
+  return withTenant({ orgId: "", actorId }, async db => (await db.query("SELECT billing.shadow_diff($1::date,$2::uuid) AS d", [day, orgId])).rows[0].d);
 }

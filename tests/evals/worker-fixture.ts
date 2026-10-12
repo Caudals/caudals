@@ -14,6 +14,8 @@ export async function fixture() {
  const pool=new Pool({connectionString:url.href,max:8});
  await pool.query('CREATE SCHEMA evals; CREATE TABLE evals.workspace(id uuid PRIMARY KEY)');
  await pool.query(readFileSync('db/migrations/033_evals_execution.sql','utf8'));
+ // Migration 089: the workspace budget's monthly window (G8).
+ await pool.query("ALTER TABLE evals.execution_budget ADD COLUMN period_start timestamptz, ADD COLUMN period_base numeric(24,9) NOT NULL DEFAULT 0");
  await pool.query(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='evals_worker') THEN CREATE ROLE evals_worker NOLOGIN NOSUPERUSER NOBYPASSRLS; END IF; END $$`);
  // Fixture equivalents of the two identity accessors; full 031 integration is parent-owned.
  await pool.query("CREATE FUNCTION evals.org_id() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('evals.org_id',true),'')::uuid $$; CREATE FUNCTION evals.actor_id() RETURNS text LANGUAGE sql AS $$ SELECT nullif(current_setting('evals.actor_id',true),'') $$");

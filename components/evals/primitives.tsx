@@ -315,6 +315,9 @@ const STATUS: Record<string, { tone: Tone; label: string }> = {
   unknown_external_outcome: { tone: "neutral", label: "Unknown outcome" },
   pairing_required: { tone: "warn", label: "Pairing required" },
   runner_wait: { tone: "warn", label: "Awaiting runner" },
+  // billing pauses (L-11)
+  credits_exhausted: { tone: "warn", label: "Paused — add credits to continue" },
+  cap_reached: { tone: "warn", label: "Paused — spending cap reached" },
   // connection kinds
   website: { tone: "neutral", label: "Website chatbot" },
   openai_compatible: { tone: "neutral", label: "OpenAI-compatible API" },

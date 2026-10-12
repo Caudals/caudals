@@ -767,6 +767,10 @@ export function generationStopMessage(reason: string | null | undefined) {
       return t("genStopNotJson");
     case "budget_exceeded":
       return t("genStopBudget");
+    case "credits_exhausted":
+      return t("genStopCredits");
+    case "cap_reached":
+      return t("genStopCap");
     case "unsupported_feature":
       return t("genStopRejected");
     case "invalid_credentials":

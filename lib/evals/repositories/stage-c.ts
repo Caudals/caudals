@@ -23,6 +23,8 @@ import { idempotent, type EvidenceScope } from "./evidence";
 import { withTenant } from "./db";
 import { createRunnerJob } from "../private-runner/store";
 import { assertRunAllowance, lockRunQueue } from "./run-capacity";
+import { admitRun, engineBillingMode } from "../../billing/engine";
+import { resumeCreditPausedWork } from "../queue/credit-pause";
 
 function required<T>(value: T | undefined): T {
   if (!value) throw new EvalError("SCOPE_DENIED", 404);
@@ -659,6 +661,9 @@ export function createSelfServiceRunInTransaction(db: PoolClient, scope: Evidenc
         )
       ).rows;
       if (!rows.length) throw new EvalError("INPUT_INVALID", 422, "The test set is empty.");
+      // §6.8 step 1 (enforce mode): the p90 estimate must be covered by available credits.
+      // The run's price-book revision is frozen when the row is inserted below.
+      await admitRun(db, engineBillingMode(), scope.orgId, { evaluationId: evaluation.id, suiteVersionId: suite.id, targetRevisionId: target.id });
       if (config.kind === "private_runner") {
         if (suite.manifest.execution_mode === "imported_responses")
           throw new EvalError("INPUT_INVALID",422,"The approved test set is for collected answers.");
@@ -948,6 +953,17 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
       await recordRunFinished(db, scope.orgId, runId);
       return { runId, action, status };
     }
+    const billingMode = engineBillingMode();
+    if (action === "resume" && billingMode === "enforce" && ["paused", "pause_requested"].includes(workflow.status)) {
+      // §6.8 step 1 at resume (enforce mode): the p90 of the questions still to run.
+      const run = (await db.query(`SELECT r.evaluation_id,r.suite_version_id,r.target_revision_id,
+          (SELECT count(*) FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id)::int AS total,
+          (SELECT count(*) FROM evals.case_unit u WHERE u.org_id=r.org_id AND u.run_id=r.id AND u.status IN ('pending','queued'))::int AS remaining
+        FROM evals.run r WHERE r.org_id=$1 AND r.id=$2`, [scope.orgId, runId])).rows[0];
+      if (run) await admitRun(db, billingMode, scope.orgId,
+        { evaluationId: run.evaluation_id, suiteVersionId: run.suite_version_id, targetRevisionId: run.target_revision_id },
+        { units: run.remaining, total: run.total });
+    }
     await controlWorkflow(db, scope.orgId, workflow.id, action);
     if (action === "pause" && !["completed", "partial", "failed", "canceled"].includes(workflow.status)) {
       await db.query(`UPDATE evals.run SET status=CASE WHEN EXISTS (
@@ -956,7 +972,12 @@ export async function controlRunInTransaction(db: PoolClient, scope: EvidenceSco
         THEN 'pause_requested' ELSE 'paused' END,updated_at=now()
         WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed','canceled')`, [scope.orgId, runId, workflow.id]);
     }
-    if (action === "resume") await db.query("UPDATE evals.run SET status='queued',reason_code=NULL,queued_at=clock_timestamp(),updated_at=now() WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed','canceled')", [scope.orgId, runId]);
+    if (action === "resume") {
+      await db.query("UPDATE evals.run SET status='queued',reason_code=NULL,queued_at=clock_timestamp(),updated_at=now() WHERE org_id=$1 AND id=$2 AND status NOT IN ('completed','partial','failed','canceled')", [scope.orgId, runId]);
+      // Resume re-queues everything a billing pause stopped in the workspace (grading and report passes too).
+      await db.query("UPDATE evals.execution_workflow SET reason_code=NULL WHERE org_id=$1 AND id=$2 AND reason_code IN ('credits_exhausted','cap_reached')", [scope.orgId, workflow.id]);
+      await resumeCreditPausedWork(db, scope.orgId);
+    }
     if (action === "cancel" && !["completed", "partial", "failed"].includes(workflow.status)) {
       await db.query(
         "UPDATE evals.case_unit SET status='canceled',reason_code='run_canceled',updated_at=now() WHERE org_id=$1 AND run_id=$2 AND status IN ('pending','queued')",

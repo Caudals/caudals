@@ -22,6 +22,7 @@ import { assessmentSchema } from "../contracts/results";
 import { aggregateRun, compareCompatibility, normalizeComparisonPlan, pairedComparison, type UnitOutcome } from "../scoring/aggregate";
 import { groupFailures } from "../scoring/findings";
 import { queueRunJudgments, type JudgeCandidate } from "./judging";
+import { chargeMeter, engineBillingMode } from "../../billing/engine";
 import { JUDGE_PROMPT_REVISION_ID } from "../scoring/judge";
 import { buildReportSnapshot } from "../reports/contracts";
 import { buildResultDetail, exclusionLimitations, groupFindings, type ExcerptLookup } from "../reports/results";
@@ -260,7 +261,7 @@ export function settleRunStatus(scope:EvidenceScope,runId:string){return withTen
  */
 export function scoreRun(scope:EvidenceScope,runId:string,graderRevisionId:string){return withTenant(scope,async db=>{
  const run=required((await db.query("SELECT * FROM evals.run WHERE org_id=$1 AND id=$2 FOR UPDATE",[scope.orgId,runId])).rows[0]);
- const rows=(await db.query(`SELECT o.id AS observation_id,o.document AS observation,cr.document AS case_document,rr.document AS rubric_document FROM evals.observation o JOIN evals.case_unit cu ON (cu.org_id,cu.id)=(o.org_id,o.case_unit_id) JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(cu.org_id,cu.case_revision_id) JOIN evals.rubric_revision rr ON (rr.org_id,rr.id)=(cr.org_id,cr.rubric_revision_id) WHERE o.org_id=$1 AND o.run_id=$2 ORDER BY cu.created_at,cu.id`,[scope.orgId,runId])).rows;
+ const rows=(await db.query(`SELECT o.id AS observation_id,o.case_unit_id,o.execution_status,o.document AS observation,cr.document AS case_document,rr.document AS rubric_document FROM evals.observation o JOIN evals.case_unit cu ON (cu.org_id,cu.id)=(o.org_id,o.case_unit_id) JOIN evals.case_revision cr ON (cr.org_id,cr.id)=(cu.org_id,cu.case_revision_id) JOIN evals.rubric_revision rr ON (rr.org_id,rr.id)=(cr.org_id,cr.rubric_revision_id) WHERE o.org_id=$1 AND o.run_id=$2 ORDER BY cu.created_at,cu.id`,[scope.orgId,runId])).rows;
  const v2=graderRevisionId===GRADER_V2;
  const mode:V2Mode=v2&&await resolveModelRoute(db,scope.orgId,"judge",run.evaluation_id,{kind:"run",id:runId})?"judge":"lexical";
  let created=0,skipped=0;const judgeCandidates:JudgeCandidate[]=[];
@@ -276,6 +277,9 @@ export function scoreRun(scope:EvidenceScope,runId:string,graderRevisionId:strin
   if(old){assessment={...assessment,supersedes_assessment_id:old.id};assessment=withContentHash(assessment) as typeof assessment;}
   await db.query("INSERT INTO evals.assessment(id,org_id,observation_id,content_hash,document,outcome,review_status,supersedes_assessment_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[assessment.assessment_id,scope.orgId,row.observation_id,assessment.content_hash,assessment,assessment.outcome,assessment.review_status,assessment.supersedes_assessment_id]);
   for(const criterion of assessment.criteria)await db.query("INSERT INTO evals.criterion_score(org_id,assessment_id,criterion_id,score,rationale) VALUES($1,$2,$3,$4,$5)",[scope.orgId,assessment.assessment_id,criterion.criterion_id,criterion.score,criterion.rationale]);
+  // §6.3: an imported answer is charged once, when it is graded (unit:<case_unit_id>; a re-grade replays the same charge).
+  if(run.execution_mode==="imported_responses"&&row.execution_status==="succeeded"&&row.case_unit_id)
+   await chargeMeter(db,engineBillingMode(),{orgId:scope.orgId,key:`unit:${row.case_unit_id}`,meter:"graded_answer",quantity:1,runId,caseUnitId:row.case_unit_id});
   if(assessment.outcome==="unscorable"&&(!v2||assessment.extensions[PENDING_CRITERIA_EXTENSION]))judgeCandidates.push({assessment,observationId:row.observation_id,observation:row.observation,item:row.case_document,rubric:row.rubric_document});
   created++;
  }

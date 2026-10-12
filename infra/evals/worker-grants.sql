@@ -74,3 +74,16 @@ DO $$ BEGIN
    billing.verify_account(uuid) TO evals_worker;
  END IF;
 END $$;
+
+-- Engine hooks (migration 089): pricing context and shadow-mode recording on
+-- the run path; reads of the shadow ledger stay scoped by RLS.
+DO $$ BEGIN
+ IF to_regprocedure('billing.engine_pricing(uuid,uuid,integer,uuid,uuid,uuid,uuid,uuid)') IS NOT NULL THEN
+  GRANT SELECT ON billing.shadow_entry TO evals_worker;
+  GRANT EXECUTE ON FUNCTION billing.engine_pricing(uuid,uuid,integer,uuid,uuid,uuid,uuid,uuid),
+   billing.action_pricing(uuid,text,uuid,uuid),
+   billing.shadow_hold(uuid,text,bigint,uuid,uuid,uuid,uuid,uuid,jsonb),
+   billing.shadow_capture(uuid,text,bigint,jsonb,jsonb),billing.shadow_release(uuid,text,text),
+   billing.shadow_charge(uuid,text,text,text,bigint,numeric,uuid,uuid,uuid,jsonb) TO evals_worker;
+ END IF;
+END $$;

@@ -13,6 +13,7 @@ import { locateQuote, type QuotableSource } from '../contracts/quote-anchors';
 import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
+import { chargeMeter, engineBillingMode, sourcePageCount } from '../../billing/engine';
 import { extractText, MAX_SOURCE_BYTES } from '../storage/text';
 import { objectKey, readVerified, sealObject, writeUpload } from '../storage/private';
 
@@ -415,7 +416,11 @@ export async function completeSourceIngestion(scope:EvidenceScope,jobId:string,s
   await db.query("UPDATE evals.artifact SET state='ready',object_key=$3,expires_at=now()+interval '90 days' WHERE org_id=$1 AND id=$2",[scope.orgId,artifact.id,sealedObjectKey]);
   const revision=await persistSourceRevision(db,scope,job.source_id,{id:artifact.id,sha256:artifact.sha256,byte_size:artifact.byte_size,media_type:artifact.media_type,export_path:artifact.export_path,visibility:artifact.visibility},extraction);
   await db.query("UPDATE evals.source_ingestion_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,revision.revisionId]);
-  await db.query("UPDATE evals.website_source_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=$2",[scope.orgId,artifact.id,revision.revisionId]);
+  const website=(await db.query("UPDATE evals.website_source_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=$2 RETURNING page_limit",[scope.orgId,artifact.id,revision.revisionId])).rows[0];
+  // §6.3: a finalized source is metered once (source:<revision_id>): pages read for a website, pages extracted for a document.
+  const billing=engineBillingMode();
+  if(billing!=="off")await chargeMeter(db,billing,{orgId:scope.orgId,key:`source:${revision.revisionId}`,meter:website?"web_page_read":"document_page",
+    quantity:sourcePageCount(extraction.chunks.map(chunk=>chunk.excerpt).join(""),website?"website":"document",{pageLimit:website?.page_limit??null,extractionVersion:extraction.extractionVersion})});
   return {...revision,status:"ready"};
  });
 }

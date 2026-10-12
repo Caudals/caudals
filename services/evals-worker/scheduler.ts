@@ -15,8 +15,10 @@ import { tickLifecycle } from "../../lib/evals/operations/lifecycle";
 import { queueRequiredInputNotifications, resendSender, tickEmailNotifications, type SendEmail } from "../../lib/evals/operations/notifications";
 import { tickLifecycleEmails } from "../../lib/evals/operations/lifecycle-email";
 import { billingCreditsEnabled } from "../../lib/billing/config";
+import { engineBillingMode } from "../../lib/billing/engine";
 import {
-  billingExpiryDue, billingVerificationDue, priceBookUpkeepDue, runBillingExpiry, runBillingVerification, runFxUpdate, runPriceBookActivation, runPriceCheck,
+  billingExpiryDue, billingVerificationDue, previousUtcDay, priceBookUpkeepDue, runBillingExpiry, runBillingReconciler, runBillingVerification, runFxUpdate,
+  runPriceBookActivation, runPriceCheck, runShadowAdmissions, runShadowReport, shadowReportDue,
 } from "../../lib/billing/jobs";
 import { captureServerError, flushErrors } from "../../lib/observability/capture";
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
@@ -41,6 +43,7 @@ async function main() {
   let lastBillingExpiry = 0;
   let lastPriceBook = 0;
   let lastLifecycleEmail = 0;
+  let lastShadowReport = 0;
   const stop = () => { stopping = true; };
   process.once("SIGTERM", stop);
   process.once("SIGINT", stop);
@@ -65,6 +68,8 @@ async function main() {
             ["finalize", () => finalizeRuns(scope)],
             ["reports", () => refreshJudgedReports(scope)],
             ["notifications", () => queueRequiredInputNotifications(scope)],
+            // Shadow mode (L-11): what admission would require, recorded off the request path.
+            ["billing_admissions", () => engineBillingMode() === "shadow" ? runShadowAdmissions(scope) : Promise.resolve(0)],
           ];
           for (const [task, run] of tasks) {
             try {
@@ -127,6 +132,31 @@ async function main() {
           } catch (error) {
             console.error(JSON.stringify({ event: "billing_expiry_failed" }));
             captureServerError(error, { service: "evals-scheduler", event: "billing_expiry_failed" });
+          }
+          // Engine hooks (§6.8): unknown-outcome shadow holds released after 24 h, failed runs refunded.
+          try {
+            const reconciled = await runBillingReconciler(actorId, engineBillingMode());
+            if (reconciled.shadowExpired || reconciled.refunds || reconciled.shadowRefunds || reconciled.failed) console.info(JSON.stringify({ event: "billing_reconciled", ...reconciled }));
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_reconcile_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_reconcile_failed" });
+          }
+        }
+        // Shadow week (§6.18): the daily diff of shadow credits against budget
+        // reservations and recorded usage. Any mismatch is logged as an error.
+        if (engineBillingMode() === "shadow" && shadowReportDue(lastShadowReport)) {
+          lastShadowReport = Date.now();
+          try {
+            const shadow = await runShadowReport(actorId, previousUtcDay());
+            const totals = (shadow.report.totals ?? {}) as Record<string, unknown>;
+            const line = JSON.stringify({ event: shadow.mismatches ? "billing_shadow_mismatch" : "billing_shadow_report", day: shadow.day, mismatches: shadow.mismatches,
+              checks: shadow.report.checks, holds: totals.holds, captures: totals.captures, releases: totals.releases, actions: totals.actions,
+              admissions: totals.admissions, wouldBlock: Number(totals.holds_blocked ?? 0) + Number(totals.actions_blocked ?? 0) + Number(totals.admissions_blocked ?? 0),
+              chargedUcr: totals.charged_ucr });
+            if (shadow.mismatches) console.error(line); else console.info(line);
+          } catch (error) {
+            console.error(JSON.stringify({ event: "billing_shadow_report_failed" }));
+            captureServerError(error, { service: "evals-scheduler", event: "billing_shadow_report_failed" });
           }
         }
         // Price book (spec §6.4): scheduled revisions take effect by date; the

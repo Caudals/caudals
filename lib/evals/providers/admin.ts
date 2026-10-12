@@ -68,7 +68,7 @@ export async function setBudget(c:PoolClient,tenant:Tenant,raw:unknown) {
  }
  if(v.kind==='workspace'&&v.scopeId!==tenant.orgId)throw new Error('budget_scope_mismatch');
  const r=await c.query(`INSERT INTO evals.execution_budget(org_id,kind,scope_id,currency,ceiling) VALUES($1,$2,$3,$4,$5)
- ON CONFLICT(org_id,kind,scope_id) DO UPDATE SET ceiling=excluded.ceiling WHERE execution_budget.currency=excluded.currency AND execution_budget.settled+execution_budget.reserved<=excluded.ceiling RETURNING id`,[tenant.orgId,v.kind,v.scopeId,v.currency,v.ceiling]);
+ ON CONFLICT(org_id,kind,scope_id) DO UPDATE SET ceiling=excluded.ceiling WHERE execution_budget.currency=excluded.currency AND execution_budget.settled-execution_budget.period_base+execution_budget.reserved<=excluded.ceiling RETURNING id`,[tenant.orgId,v.kind,v.scopeId,v.currency,v.ceiling]);
  if(!r.rowCount)throw new Error('budget_below_liability_or_currency_mismatch');const id=r.rows[0].id;await audit(c,tenant,'budget.updated',id);return {id};
 }
 export async function enqueueProbe(c:PoolClient,tenant:Tenant,raw:unknown) {

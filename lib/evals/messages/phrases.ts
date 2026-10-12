@@ -34,6 +34,7 @@ const ES: Record<string, string> = {
   Profiling: "Analizando", "Profile ready": "Perfil listo", Drafting: "Redactando", "Draft ready": "Borrador listo",
   Exploratory: "Exploratoria", "Source grounded": "Basada en fuentes", "Source-grounded": "Basada en fuentes", Expired: "Caducado",
   "Imported answers": "Respuestas importadas", Proposed: "Propuesta", Planned: "Planificada", Closed: "Cerrada",
+  "Paused — add credits to continue": "En pausa: añade créditos para continuar", "Paused — spending cap reached": "En pausa: límite de gasto alcanzado",
 };
 
 export function tr(text: string): string {

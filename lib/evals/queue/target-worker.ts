@@ -13,13 +13,17 @@ import { runScenario,ScenarioFailure } from "../execution/scenario-runner";
 import { transientErrorReply } from "../scoring/text";
 import { jobSchema,type JobData } from "./boss";
 import { digest,event,projectWorkflow,targetExecutionSchema,type Tenant,type TenantTransaction } from "./store";
+import { chargeMeter,engineBillingMode,meterCovered,questionMeter,type EngineBillingMode } from "../../billing/engine";
+import { pauseWorkflowForCredits } from "./credit-pause";
 import { dispatchTargetCall,markTargetCallUnknown,recordFailedBrowserCalls,recordTargetCall,recoverDispatchedTargetCalls,
   markTargetDispatched,markTargetFailure,recordTargetObservation,
   releaseTargetClaim,reserveTargetInvocation,targetCapacity } from "./target-ledger";
 
 type Step={id:string;workflow_id:string;step_kind:string;input:unknown;input_hash:string;status:string;fence:string;lease_until:Date|null;not_before:Date};
 type Execute=(config:TargetConfig,input:CandidateInput,context:InvocationContext,credential:(versionId:string,attemptId:string)=>Promise<Buffer>)=>Promise<Observation>;
-type Options={tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;leaseSeconds?:number;execute?:Execute;onAttemptFinished?:(attemptId:string)=>Promise<void>};
+type Options={tx:TenantTransaction;keys:Keyring;actorId:string;workerId:string;leaseSeconds?:number;execute?:Execute;onAttemptFinished?:(attemptId:string)=>Promise<void>;
+ /** Credit layer mode (L-11), read per call; defaults to BILLING_CREDITS_ENABLED / BILLING_ENFORCE. */
+ billing?:()=>EngineBillingMode};
 
 async function locked(c:PoolClient,orgId:string,stepId:string){
  const step=(await c.query("SELECT * FROM evals.workflow_step WHERE org_id=$1 AND id=$2 FOR UPDATE",[orgId,stepId])).rows[0] as Step|undefined;
@@ -67,6 +71,7 @@ function failureReason(error:unknown){
 export class TargetExecutionWorker{
  private readonly lease:number;
  constructor(private readonly options:Options){this.lease=options.leaseSeconds??150;if(this.lease<5)throw new Error("lease_too_short");}
+ private mode():EngineBillingMode{return (this.options.billing??engineBillingMode)();}
  async canHandle(raw:JobData){
   const job=jobSchema.parse(raw),tenant={orgId:job.orgId,actorId:this.options.actorId};
   return this.options.tx(tenant,async c=>{const row=(await c.query("SELECT input FROM evals.workflow_step WHERE org_id=$1 AND id=$2",[tenant.orgId,job.stepId])).rows[0];return !!row&&targetExecutionSchema.safeParse(row.input).success;});
@@ -100,6 +105,14 @@ export class TargetExecutionWorker{
     await c.query("UPDATE evals.execution_workflow SET status='paused',reason_code='target_unknown_attempt_review',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.workflow_id]);
     await event(c,tenant.orgId,step.workflow_id,"target_capacity_review","unknown_external_outcome");
     await projectExecutionRun(c,tenant.orgId,input.runId);
+    return;
+   }
+   // Enforce mode (§6.8): a question is charged once answered, so a run whose
+   // credits cannot pay for one more pauses here, before the system is asked.
+   if(!await meterCovered(c,this.mode(),tenant.orgId,questionMeter(config.kind),input.runId)){
+    await c.query("UPDATE evals.workflow_step SET status='paused',reason_code='credits_exhausted',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,step.id]);
+    await c.query("UPDATE evals.case_unit SET status='pending',reason_code='credits_exhausted',updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,input.caseUnitId]);
+    await pauseWorkflowForCredits(c,tenant.orgId,step.workflow_id,"credits_exhausted");
     return;
    }
    const updated=(await c.query("UPDATE evals.workflow_step SET status='running',fence=fence+1,lease_owner=$3,lease_until=now()+$4::int*interval '1 second',updated_at=now() WHERE org_id=$1 AND id=$2 RETURNING *",[tenant.orgId,step.id,this.options.workerId,this.lease])).rows[0] as Step;
@@ -162,7 +175,13 @@ export class TargetExecutionWorker{
    const reply=answered.messages.at(-1);
    if(claimed.config.kind==="website"&&claimed.ordinal<3&&reply?.role==="assistant"&&transientErrorReply(reply.content))throw new Error("target_reply_error");
    const observation=answered;
-   await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;await c.query("INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[observation.observation_id,tenant.orgId,claimed.input.runId,claimed.input.caseUnitId,claimed.attemptId,observation.content_hash,observation,observation.status]);await recordTargetObservation(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},observation);await c.query("UPDATE evals.target_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,observation.status,observation.error?.code??null]);await c.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,observation.error?.code??null]);await event(c,tenant.orgId,claimed.step.workflow_id,observation.status==="succeeded"?"target_completed":"target_observation_incomplete",observation.error?.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);});
+   await this.options.tx(tenant,async c=>{const current=await locked(c,tenant.orgId,claimed.step.id);if(current.step.status!=="running"||current.step.fence!==claimed.step.fence||!current.step.lease_until||current.step.lease_until.getTime()<=Date.now())return;await c.query("INSERT INTO evals.observation(id,org_id,run_id,case_unit_id,attempt_id,content_hash,document,execution_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[observation.observation_id,tenant.orgId,claimed.input.runId,claimed.input.caseUnitId,claimed.attemptId,observation.content_hash,observation,observation.status]);await recordTargetObservation(c,{orgId:tenant.orgId,runId:claimed.input.runId,attemptId:claimed.attemptId,targetRevisionId:claimed.input.targetRevisionId},observation);await c.query("UPDATE evals.target_attempt SET status='completed',finished_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.attemptId]);await c.query("UPDATE evals.case_unit SET status=$3,reason_code=$4,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.input.caseUnitId,observation.status,observation.error?.code??null]);
+    // §6.8 step 5: the question's platform meter, only for a captured (succeeded) answer.
+    const mode=this.mode();
+    const charged=observation.status==="succeeded"?await chargeMeter(c,mode,{orgId:tenant.orgId,key:`unit:${claimed.input.caseUnitId}`,meter:questionMeter(claimed.config.kind),quantity:1,runId:claimed.input.runId,caseUnitId:claimed.input.caseUnitId}):null;
+    await c.query("UPDATE evals.workflow_step SET status='completed',lease_until=NULL,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[tenant.orgId,claimed.step.id,observation.error?.code??null]);await event(c,tenant.orgId,claimed.step.workflow_id,observation.status==="succeeded"?"target_completed":"target_observation_incomplete",observation.error?.code);await projectExecutionRun(c,tenant.orgId,claimed.input.runId);await projectWorkflow(c,tenant.orgId,claimed.step.workflow_id);
+    // Enforce mode charged what the balance covered: the answer is kept and the run pauses.
+    if(mode==="enforce"&&charged&&charged.shortfallUcr>BigInt(0))await pauseWorkflowForCredits(c,tenant.orgId,claimed.step.workflow_id,"credits_exhausted");});
   }catch(error){
    const failure=failureReason(error);
    const website=claimed.config.kind==="website";

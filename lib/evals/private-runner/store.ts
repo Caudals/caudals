@@ -10,6 +10,7 @@ import { caseSchema } from "../contracts/cases";
 import { targetConfigSchema } from "../contracts/connectors";
 import { EvalError } from "../domain/errors";
 import { lockRunQueue, startQueuedRun } from "../repositories/run-capacity";
+import { chargeMeter, engineBillingMode } from "../../billing/engine";
 import { withTenant, type TenantContext } from "../repositories/db";
 import { newRunnerToken, publicKeyFor, runnerBundleSchema, runnerCompletionStatus, runnerUploadSchema, signPayload, tokenHash, verifyPayload, type RunnerBundle } from "./protocol";
 
@@ -201,6 +202,8 @@ export async function submitRunnerResult(db:PoolClient,runner:Record<string,unkn
   await db.query(`INSERT INTO evals.runner_submission(id,org_id,job_id,case_unit_id,observation_id,payload_hash,signature)
     VALUES($1,$2,$3,$4,$5,$6,$7)`,[submissionId,runner.org_id,job.id,unit.id,id,payloadHash,upload.signature]);
   await db.query("UPDATE evals.case_unit SET status=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[runner.org_id,unit.id,document.status]);
+  // §6.3: an answered question on the customer's own runner is an API question, charged once captured.
+  if(document.status==="succeeded")await chargeMeter(db,engineBillingMode(),{orgId:String(runner.org_id),key:`unit:${unit.id}`,meter:"api_question",quantity:1,runId:job.run_id,caseUnitId:unit.id});
   const remaining=Number((await db.query("SELECT count(*)::int AS n FROM evals.case_unit WHERE org_id=$1 AND run_id=$2 AND status='pending'",[runner.org_id,job.run_id])).rows[0].n);
   if(!remaining) {
     const counts=(await db.query("SELECT count(*)::int AS total,count(*) FILTER(WHERE status='succeeded')::int AS succeeded FROM evals.case_unit WHERE org_id=$1 AND run_id=$2",[runner.org_id,job.run_id])).rows[0];

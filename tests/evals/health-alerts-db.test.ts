@@ -154,14 +154,14 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
   });
 
   it("drills every launch alert in one email and resolves it on the next run", async () => {
-    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=7");
+    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=8");
     const drill = sent.at(-1)!;
     expect(drill.subject).toBe("Caudals platform alert (drill)");
     for (const anchor of ["#15-demo-failures-or-queue", "#13-queue-age", "#1-dgx-down", "#11-disk-or-memory-pressure", "#16-webhook-failures", "#17-billing-incident"]) {
       expect(drill.text).toContain(anchor);
     }
-    expect(await check()).toContain("alerts_sent=7");
-    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(7);
+    expect(await check()).toContain("alerts_sent=8");
+    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(8);
   });
 
   it("rejects malformed drill keys", async () => {
