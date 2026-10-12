@@ -1,126 +1,780 @@
 {
-  "cookies": {
-    "title": "Política de cookies",
-    "description": "Fecha de vigencia: 1 de marzo de 2026. Esta política describe cómo usamos cookies y tecnologías similares.",
-    "metaTitle": "Política de cookies",
-    "metaDescription": "Cómo utiliza Caudals las cookies esenciales, las analíticas opcionales y otras tecnologías similares, y cómo puedes gestionar tus preferencias.",
+  "terms": {
+    "title": "Términos del servicio",
+    "description": "Las condiciones para usar Caudals: la web, la prueba pública gratuita, la aplicación de evaluación y su API, el plan gratuito y los créditos.",
+    "metaTitle": "Términos del servicio",
+    "metaDescription": "Las condiciones para usar Caudals: solo para empresas, plan gratuito, créditos y reembolsos, uso aceptable, responsabilidad y ley española.",
     "sections": [
       {
-        "title": "Cookies esenciales",
-        "body": "Necesarias para la autenticación, la gestión de sesiones, las preferencias de idioma y el comportamiento básico de seguridad de la plataforma. Están siempre activas y no se pueden desactivar."
+        "id": "scope",
+        "title": "Sobre estos términos",
+        "body": [
+          "Estos términos regulan el uso de Caudals: la web caudals.com, la prueba pública gratuita (la demo), la aplicación de evaluación en app.caudals.com y su API (en conjunto, el Servicio). Son un contrato entre la sociedad que opera Caudals, identificada en nuestro Aviso legal (Caudals o nosotros), y la empresa a la que representas (tú).",
+          "Al crear una cuenta, comprar créditos o usar el Servicio, aceptas estos términos en nombre de esa empresa y confirmas que tienes facultades para hacerlo. Si no los aceptas, no uses el Servicio.",
+          "Los pilotos, las suscripciones, la revisión por expertos y los conjuntos de datos a medida se acuerdan en un pedido o contrato aparte. Si ese pedido o contrato difiere de estos términos, prevalece para el trabajo que cubre."
+        ],
+        "links": [{ "label": "Aviso legal", "href": "/legal/notice" }]
       },
       {
-        "title": "Cookies analíticas",
-        "body": "Analíticas opcionales y respetuosas con la privacidad que nos ayudan a entender el uso del producto y mejorar la experiencia. Solo se cargan después de que aceptes las cookies opcionales en el aviso de cookies."
+        "id": "business",
+        "title": "Solo para empresas",
+        "body": [
+          "El Servicio está dirigido a empresas y profesionales que actúan en el ámbito de su actividad empresarial o profesional. No se ofrece a consumidores.",
+          "Cuando compras créditos, te pedimos la razón social, la dirección y el número de identificación fiscal de tu empresa (un NIF español o un número de IVA de la UE). Confirmas que estos datos son exactos y que compras con fines empresariales."
+        ]
       },
       {
-        "title": "Gestión de tus preferencias",
-        "body": "Puedes aceptar o rechazar las cookies opcionales en el aviso y cambiar tu elección en cualquier momento desde el enlace «Preferencias de cookies» del pie de página. También puedes controlar las cookies desde la configuración de tu navegador."
+        "id": "service",
+        "title": "Qué hace Caudals",
+        "body": [
+          "Caudals prueba sistemas de IA, como asistentes, chatbots, agentes y herramientas internas basadas en modelos de lenguaje. Redacta preguntas de prueba a partir de documentación, se las hace al sistema, califica las respuestas frente a su fuente e informa de lo que ha encontrado, con las evidencias de cada resultado.",
+          "Un informe describe las respuestas observadas en una ejecución concreta y en sus condiciones. Es una evidencia, no una garantía de cómo se comportará el sistema más adelante, y no es una certificación ni una evaluación de la conformidad conforme a ninguna ley, incluido el Reglamento Europeo de IA. La calificación automática puede equivocarse: revisa las evidencias antes de basarte en un resultado.",
+          "Desarrollamos el Servicio de forma continua y podemos cambiar sus funciones. Te avisaremos con antelación antes de retirar una función de pago que utilices."
+        ]
       },
       {
-        "title": "Servicios de terceros",
-        "body": "Algunas páginas incorporan servicios de terceros, como el programador de Cal.com o los proveedores de pago, que pueden instalar sus propias cookies, regidas por sus respectivas políticas."
-      }
-    ]
-  },
-  "notice": {
-    "title": "Aviso legal",
-    "description": "Fecha de entrada en vigor: 1 de marzo de 2026. Información sobre la titularidad y los datos legales de este sitio web conforme a la Ley española 34/2002 (LSSI-CE).",
-    "metaTitle": "Aviso legal",
-    "metaDescription": "Aviso legal, titularidad, propiedad intelectual y condiciones de uso del sitio web de Caudals conforme a la legislación española y la LSSI-CE.",
-    "sections": [
-      {
-        "title": "Titular del sitio",
-        "body": "Este sitio web es operado por Caudals ([razón social]), con NIF/CIF [NIF/CIF], domicilio social en [domicilio social] e inscrita en el [Registro Mercantil] [datos de inscripción]. Contacto: hello@caudals.com."
+        "id": "demo",
+        "title": "La prueba pública gratuita",
+        "body": [
+          "La prueba pública de caudals.com/demo no necesita cuenta. Lee hasta seis páginas públicas de la web que indiques, redacta ocho preguntas a partir de ellas, se las hace al sistema que señales y califica las respuestas. Cada visitante puede completar una prueba al día.",
+          "Usa la prueba pública solo con un sistema que sea tuyo o que estés autorizado a probar, y con una web pública como fuente. No introduzcas material confidencial. Si introduces una clave de API o cabeceras para acceder a tu sistema, las usamos solo para esa prueba y nunca las guardamos.",
+          "El material y los resultados de la prueba se eliminan siete días después de hacerla, salvo que crees una cuenta desde su informe; en ese caso se copian en tu nuevo espacio de trabajo. Normalmente la prueba la ejecuta nuestro propio modelo de IA. Cuando está ocupado o no está disponible, el texto de las páginas públicas, las preguntas y las respuestas pueden tratarse por un proveedor comercial de modelos de IA, como se explica en la Política de privacidad."
+        ],
+        "links": [{ "label": "Política de privacidad", "href": "/legal/privacy" }]
       },
       {
-        "title": "Objeto",
-        "body": "Caudals evalúa los sistemas de IA de las empresas con conjuntos de pruebas construidos a partir de su documentación y expertos de dominio, entrega informes con puntuación y construye los datos de dominio que cierran los huecos que detecta."
+        "id": "accounts",
+        "title": "Cuentas y espacios de trabajo",
+        "items": [
+          "Facilita información exacta, mantén en secreto tu contraseña y tus tokens de API, y avísanos en hello@caudals.com si sospechas de un uso no autorizado.",
+          "Eres responsable de la actividad de tus espacios de trabajo, incluida la de los miembros que invites, y de los roles que les asignes.",
+          "Cada empresa puede tener un espacio de trabajo gratuito. Podemos rechazar, fusionar o cerrar espacios gratuitos creados para eludir los límites del plan gratuito.",
+          "Puedes cerrar tu cuenta o eliminar un espacio de trabajo en cualquier momento. Al eliminar un espacio de trabajo se elimina su contenido como se describe en la Política de privacidad."
+        ]
       },
       {
-        "title": "Condiciones de uso",
-        "body": "El acceso y el uso de este sitio web implican la aceptación de este aviso legal junto con nuestros Términos del servicio, la Política de privacidad y la Política de cookies. Los usuarios se comprometen a hacer un uso lícito del sitio web y de sus contenidos."
+        "id": "free-plan",
+        "title": "El plan gratuito",
+        "body": [
+          "Un espacio de trabajo gratuito incluye actualmente un sistema, hasta 50 preguntas por conjunto de pruebas, tres ejecuciones al mes y una ejecución a la vez, con nuestro propio modelo de IA. Si un plan incluye una asignación mensual de créditos, la asignación no tiene valor monetario y caduca al final de cada mes natural.",
+          "La aplicación muestra tus límites actuales. Podemos cambiar los límites del plan gratuito avisándote en la aplicación con al menos 30 días de antelación. El plan gratuito no incluye compromisos de disponibilidad ni de tiempos de respuesta del soporte."
+        ]
       },
       {
-        "title": "Propiedad intelectual",
-        "body": "Los contenidos de este sitio web, incluidos textos, diseños, logotipos y software, son titularidad de Caudals o de sus licenciantes y están protegidos por la normativa de propiedad intelectual e industrial. Queda prohibida su reproducción sin autorización."
+        "id": "credits",
+        "title": "Créditos",
+        "body": [
+          "El uso de pago del Servicio se mide en créditos. Un crédito equivale a 0,01 €, IVA no incluido. La aplicación muestra las tarifas en créditos por pregunta, por página leída y por millón de tokens de cada modelo de IA, y una estimación antes de cada ejecución. Cada ejecución usa las tarifas vigentes cuando empieza."
+        ],
+        "items": [
+          "Solo se cobra el trabajo completado. Las llamadas fallidas, reintentadas o canceladas no se cobran, y los créditos reservados para una ejecución se liberan si no se usan.",
+          "Los créditos comprados, incluidos los créditos de bonificación que acompañen a la compra, caducan 24 meses después de la compra.",
+          "Los créditos promocionales, como concesiones, códigos o créditos de bienvenida, caducan 30 días después de su emisión, salvo que la oferta indique otra fecha.",
+          "Una asignación mensual caduca al final del mes natural, y una asignación prevista en un contrato termina con el periodo del contrato.",
+          "Se usan primero los créditos que caducan antes.",
+          "Los créditos no tienen valor monetario. No se pueden transferir entre espacios de trabajo, revender ni canjear por dinero, y no son dinero electrónico."
+        ],
+        "after": [
+          "Podemos bajar las tarifas en créditos en cualquier momento. Anunciamos las subidas con al menos 30 días de antelación, en la aplicación y por correo electrónico a los propietarios de los espacios de trabajo que hayan usado el modelo afectado en los 90 días anteriores.",
+          "Puedes fijar límites de gasto mensuales y por ejecución. Si activas las recargas automáticas, nos autorizas a cobrar en tu tarjeta guardada el paquete que elijas cada vez que tu saldo baje del umbral que fijes, hasta el límite mensual que establezcas. Puedes desactivarlas en cualquier momento."
+        ]
       },
       {
+        "id": "payment",
+        "title": "Pagos, facturas e impuestos",
+        "items": [
+          "Los pagos con tarjeta los procesa Stripe. Nunca vemos ni guardamos los datos completos de tu tarjeta.",
+          "Los precios no incluyen IVA. Añadimos el IVA español a las empresas establecidas en España. A las empresas de otros países de la UE con un número de IVA válido se les aplica la inversión del sujeto pasivo. Para las empresas de fuera de la UE, el servicio no está sujeto al IVA español.",
+          "Emitimos una factura por cada compra. Las compras de 1.000 € o más se pueden presupuestar, facturar y pagar por transferencia bancaria.",
+          "Si un pago se impugna o se revierte, podemos suspender el espacio de trabajo y retener sus créditos restantes hasta que se resuelva la disputa."
+        ]
+      },
+      {
+        "id": "refunds",
+        "title": "Reembolsos",
+        "body": [
+          "Puedes pedir el reembolso de una compra de créditos en los 14 días siguientes a la compra, siempre que no se haya usado ningún crédito de esa compra. Devolvemos el importe pagado al medio de pago original y emitimos una factura rectificativa. Para pedir un reembolso, escribe a hello@caudals.com.",
+          "Fuera de ese caso, los créditos comprados no son reembolsables, salvo que la ley disponga otra cosa. Los créditos de bonificación, promocionales y de asignación nunca son reembolsables."
+        ]
+      },
+      {
+        "id": "acceptable-use",
+        "title": "Uso aceptable",
+        "body": [
+          "Estas normas protegen los sistemas que pruebas, a las personas que los usan y al propio Servicio. Te comprometes a cumplirlas:"
+        ],
+        "items": [
+          "Prueba solo sistemas de IA que sean tuyos o que operes, o que su titular te haya autorizado a probar.",
+          "Haz preguntas normales: las que haría un usuario real de ese sistema. No uses el Servicio para pruebas de carga ni para enviar grandes volúmenes de peticiones a un sistema.",
+          "No hagas pruebas adversarias, como inyección de instrucciones (prompt injection), jailbreaks, intentos de extraer las instrucciones de un sistema o de eludir sus salvaguardas, contra ningún sistema sin la autorización previa y por escrito de su titular. El Servicio de autoservicio no ejecuta pruebas adversarias; solo las hacemos en un proyecto gestionado y con esa autorización.",
+          "No eludas CAPTCHA, inicios de sesión, muros de pago, límites de peticiones ni otras medidas técnicas, y respeta las condiciones y las reglas de robots de las webs que indiques.",
+          "Sube documentos y conecta fuentes solo si tienes derecho a usarlos. Deja fuera los datos personales que la prueba no necesite y no subas categorías especiales de datos personales, como datos de salud, salvo que lo hayamos acordado por escrito.",
+          "No uses el Servicio para infringir la ley o los derechos de nadie ni para acosar a nadie. No intentes acceder a datos de otros clientes, sondear o sobrecargar el Servicio, ni copiarlo o revenderlo sin nuestro acuerdo."
+        ],
+        "after": [
+          "Podemos limitar el número de ejecuciones contra una misma web, pausar una ejecución o suspender una cuenta que incumpla estas normas. Siempre que podamos, te explicaremos antes el motivo."
+        ]
+      },
+      {
+        "id": "content",
+        "title": "Tu contenido",
+        "body": [
+          "Conservas todos los derechos sobre el material que aportas al Servicio: tus documentos y fuentes, las preguntas que redactes, los datos de conexión y las respuestas de tu sistema (tu contenido). Nos permites alojar, copiar y tratar tu contenido solo para prestarte el Servicio, mantenerlo seguro y evitar abusos.",
+          "Los conjuntos de pruebas, los resultados y los informes que se generan para ti puedes usarlos en tu empresa y compartirlos con tus asesores, socios y autoridades. No compartimos tu contenido con otros clientes ni lo usamos para entrenar modelos de IA.",
+          "Podemos usar métricas agregadas y anonimizadas sobre el funcionamiento del Servicio, como la duración de las ejecuciones o la tasa de errores, para operarlo y mejorarlo. Nunca te identifican a ti, a tus sistemas ni a tu contenido.",
+          "Eres responsable de tener los derechos sobre tu contenido y la autorización para probar los sistemas que conectes."
+        ]
+      },
+      {
+        "id": "personal-data",
+        "title": "Datos personales",
+        "body": [
+          "Cuando tu contenido incluye datos personales, los tratamos por tu cuenta como encargados del tratamiento, conforme al Contrato de encargo del tratamiento, que forma parte de estos términos. La Política de privacidad explica cómo tratamos los datos personales que usamos para nuestros propios fines, como los datos de la cuenta y de facturación."
+        ],
+        "links": [
+          { "label": "Contrato de encargo del tratamiento", "href": "/legal/dpa" },
+          { "label": "Política de privacidad", "href": "/legal/privacy" }
+        ]
+      },
+      {
+        "id": "our-rights",
+        "title": "Nuestro software y confidencialidad",
+        "body": [
+          "El Servicio, su software, sus métodos, rúbricas, plantillas y documentación pertenecen a Caudals o a sus licenciantes. Estos términos te dan derecho a usar el Servicio mientras estén vigentes, y ningún otro derecho. Si nos envías sugerencias, podemos usarlas sin ninguna obligación hacia ti.",
+          "Cada parte mantiene la confidencialidad de la información no pública de la otra, la usa solo para los fines de estos términos y solo la comparte con personas que la necesiten y estén sujetas a deberes similares."
+        ]
+      },
+      {
+        "id": "third-parties",
+        "title": "Sistemas y proveedores fuera de nuestro control",
+        "body": [
+          "Los sistemas que pruebas y los servicios de los que dependen son tuyos o de terceros. No respondemos de su disponibilidad ni de sus respuestas, ni de los cambios en ellos que afecten a una prueba.",
+          "Cuando tu espacio de trabajo elige un modelo comercial de IA, tu contenido lo trata el proveedor de ese modelo, que figura en nuestra página de subencargados."
+        ],
+        "links": [{ "label": "Subencargados", "href": "/legal/subprocessors" }]
+      },
+      {
+        "id": "availability",
+        "title": "Disponibilidad y soporte",
+        "body": [
+          "Trabajamos para que el Servicio esté disponible y sea seguro, pero no garantizamos un funcionamiento ininterrumpido salvo que un pedido diga otra cosa. Podemos interrumpir el Servicio por mantenimiento, preferiblemente en horas de poco uso, y anunciamos con antelación las interrupciones programadas largas. El soporte se presta por correo electrónico en hello@caudals.com."
+        ]
+      },
+      {
+        "id": "liability",
         "title": "Responsabilidad",
-        "body": "Caudals no se hace responsable de los daños derivados de un uso indebido del sitio web ni de su indisponibilidad temporal por mantenimiento o causas técnicas, en la medida en que lo permita la legislación aplicable."
+        "body": [
+          "Salvo lo que estos términos establecen expresamente, el Servicio se presta tal cual. No garantizamos que los resultados estén libres de errores ni que un sistema con buena puntuación siga respondiendo bien. Eres responsable de las decisiones que tomes a partir de un informe.",
+          "Ninguna de las partes responde de daños indirectos o consecuenciales, como el lucro cesante o la pérdida de ingresos, de negocio o de reputación. Nuestra responsabilidad total por todas las reclamaciones derivadas de estos términos en cualquier periodo de 12 meses se limita a la cantidad mayor entre lo que nos hayas pagado por el Servicio en ese periodo y 100 €.",
+          "Nos indemnizarás frente a las reclamaciones de terceros causadas por sistemas que hayas probado sin autorización o por contenido que hayas aportado sin los derechos necesarios.",
+          "Nada de lo dispuesto en estos términos limita la responsabilidad por fraude, dolo o culpa grave, ni ninguna otra responsabilidad que la ley no permita limitar."
+        ]
       },
       {
-        "title": "Ley aplicable y jurisdicción",
-        "body": "Este aviso legal se rige por la legislación española. Cualquier controversia relativa al sitio web se someterá a los juzgados y tribunales competentes de España."
+        "id": "termination",
+        "title": "Suspensión y terminación",
+        "body": [
+          "Puedes dejar de usar el Servicio en cualquier momento. Podemos suspender o terminar tu acceso si incumples estos términos de forma grave o reiterada, no pagas, pones en riesgo el Servicio o a otras personas, o si lo exige la ley. Cuando sea razonable, te avisaremos antes y te daremos tiempo para corregirlo.",
+          "Cuando termina el acceso, los créditos no usados se pierden, sin perjuicio de los reembolsos a los que tengas derecho según estos términos. Antes puedes exportar tus informes y resultados; después, eliminamos tu contenido como se describe en la Política de privacidad."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Cambios en estos términos",
+        "body": [
+          "Podemos actualizar estos términos. Te avisaremos de los cambios importantes con al menos 30 días de antelación a su entrada en vigor, por correo electrónico o en la aplicación. Si sigues usando el Servicio después de esa fecha, se aplican los nuevos términos. La versión y la fecha que aparecen al principio de esta página identifican los términos vigentes."
+        ]
+      },
+      {
+        "id": "law",
+        "title": "Ley aplicable y tribunales",
+        "body": [
+          "Estos términos se rigen por la ley española. Los juzgados y tribunales del domicilio social de Caudals son competentes para cualquier controversia, salvo que la ley disponga otra cosa.",
+          "Estos términos se publican en español y en inglés. Si las dos versiones difieren, prevalece la versión en español. Preguntas sobre estos términos: hello@caudals.com."
+        ]
       }
     ]
   },
   "privacy": {
     "title": "Política de privacidad",
-    "description": "Fecha de vigencia: 1 de marzo de 2026. Esta política explica cómo Caudals gestiona los datos personales en las operaciones de la plataforma.",
+    "description": "Cómo trata Caudals los datos personales en su web, en la prueba pública gratuita y en la aplicación de evaluación, cuánto tiempo los conservamos y cuáles son tus derechos.",
     "metaTitle": "Política de privacidad",
-    "metaDescription": "Cómo recoge, utiliza, protege y conserva Caudals los datos personales, las bases jurídicas del tratamiento y los derechos de las personas usuarias.",
+    "metaDescription": "Cómo recoge, usa y protege Caudals los datos personales: la prueba pública gratuita, las cuentas, los espacios de trabajo, los subencargados, las transferencias internacionales, la conservación y tus derechos.",
     "sections": [
       {
-        "title": "Datos que recopilamos",
-        "body": "Recopilamos datos de la cuenta, información de perfil, actividad en los flujos de trabajo de conjuntos de datos, comunicaciones de soporte y metadatos de las operaciones de pago necesarios para prestar el servicio."
+        "id": "controller",
+        "title": "Quién es responsable de tus datos",
+        "body": [
+          "Caudals, la sociedad identificada en nuestro Aviso legal, es la responsable del tratamiento de los datos personales que se describen en esta política. Para cualquier cuestión sobre tus datos, escribe a privacy@caudals.com.",
+          "Cuando un cliente usa Caudals para probar su propio sistema de IA, los datos personales de sus documentos, de sus preguntas y de las respuestas de su sistema se tratan por cuenta de ese cliente. Para esos datos, el cliente es el responsable y Caudals es su encargado del tratamiento conforme al Contrato de encargo del tratamiento, y se aplica el aviso de privacidad del propio cliente."
+        ],
+        "links": [
+          { "label": "Aviso legal", "href": "/legal/notice" },
+          { "label": "Contrato de encargo del tratamiento", "href": "/legal/dpa" }
+        ]
       },
       {
-        "title": "Cómo usamos los datos",
-        "body": "Usamos los datos para gestionar los flujos de compradores, proveedores y administración interna, dar soporte a las operaciones comerciales, proteger la plataforma y mejorar la fiabilidad del servicio."
+        "id": "data",
+        "title": "Qué datos recogemos",
+        "body": ["Recogemos solo lo que necesita cada actividad."],
+        "items": [
+          "Web: los datos técnicos necesarios para servir las páginas y proteger el sitio, como la dirección IP, el navegador y las páginas solicitadas. Analíticas opcionales solo si las aceptas en el aviso de cookies. También registramos qué pasos de la prueba pública y del registro se completan, asociados a un identificador de sesión aleatorio, para medirlos y mejorarlos.",
+          "Prueba pública gratuita: las direcciones del sistema y de la web que indicas, las páginas públicas que leemos, las preguntas, las respuestas de tu sistema, las calificaciones y el informe. Para aplicar el límite de una prueba al día guardamos un hash con clave de tu dirección IP, nunca la dirección en sí. Las claves de API y las cabeceras que introduces solo están en memoria durante la prueba y nunca se guardan. Si nos pides que te enviemos el informe por correo, guardamos tu dirección cifrada solo hasta que se envía.",
+          "Cuenta: tu nombre, tu correo electrónico, tu contraseña (guardada solo como hash con sal), el nombre del espacio de trabajo, el idioma, las sesiones iniciadas con dirección IP y tipo de navegador, la configuración de doble factor si la usas, y el registro de qué versión de los Términos y de esta política aceptaste y cuándo.",
+          "Espacio de trabajo: los documentos, webs, preguntas, respuestas e informes con los que trabajas. Tratamos estos datos por tu cuenta como encargados, como se explica arriba.",
+          "Contacto y reuniones: los datos que nos das en el formulario de contacto o al reservar una llamada, como tu nombre, correo profesional, empresa, cargo y mensaje.",
+          "Newsletter: tu correo electrónico y el estado de tu suscripción.",
+          "Facturación, cuando compras créditos: la razón social, el NIF, la dirección y el correo de facturación de tu empresa, y el historial de compras. Los datos de la tarjeta van directamente a Stripe y nunca nos llegan.",
+          "Contactos profesionales: si creemos que Caudals puede ser útil para tu empresa, podemos tener tus datos profesionales, como nombre, cargo, empresa y correo profesional, obtenidos de fuentes públicas, como webs corporativas y redes profesionales, o de proveedores de datos empresariales.",
+          "Soporte: lo que nos escribes y nuestras respuestas."
+        ]
       },
       {
-        "title": "Base jurídica",
-        "body": "Tratamos los datos personales para ejecutar nuestro contrato contigo, en nuestro interés legítimo de operar y proteger la plataforma, para cumplir obligaciones legales y, cuando es necesario, sobre la base de tu consentimiento."
+        "id": "purposes",
+        "title": "Para qué los usamos y con qué base jurídica",
+        "items": [
+          "Para prestarte la prueba pública, tu cuenta y el Servicio que has pedido: la ejecución de un contrato o de medidas precontractuales que has solicitado (artículo 6.1.b del RGPD).",
+          "Para mantener la seguridad del Servicio, evitar abusos y aplicar límites de uso: nuestro interés legítimo en proteger el Servicio y a sus usuarios (artículo 6.1.f del RGPD).",
+          "Para facturar, llevar la contabilidad y los registros fiscales y atender a las autoridades: nuestras obligaciones legales (artículo 6.1.c del RGPD).",
+          "Para conservar el registro de los términos que aceptaste: nuestras obligaciones legales y nuestro interés legítimo en poder acreditar el acuerdo.",
+          "Las analíticas web opcionales y la newsletter: tu consentimiento (artículo 6.1.a del RGPD), que puedes retirar en cualquier momento.",
+          "Para medir y mejorar la prueba pública y el registro con nuestros propios registros de eventos: nuestro interés legítimo en mejorar el Servicio.",
+          "Para responder consultas, mantener reuniones y contactar con empresas a las que Caudals puede serles útil: nuestro interés legítimo en desarrollar nuestro negocio. Puedes oponerte en cualquier momento y dejaremos de hacerlo."
+        ],
+        "after": [
+          "No vendemos datos personales ni usamos tu contenido para entrenar modelos de IA. No tomamos decisiones con efectos jurídicos o igualmente significativos sobre las personas basadas únicamente en un tratamiento automatizado: nuestra calificación automática evalúa las respuestas de sistemas de IA, no a personas."
+        ]
       },
       {
-        "title": "Cesión de datos y transferencias internacionales",
-        "body": "Solo compartimos datos con proveedores de servicios necesarios para operar la plataforma (por ejemplo, infraestructura, correo electrónico o pagos) bajo las debidas garantías contractuales. Cuando los datos salen del Espacio Económico Europeo, nos basamos en decisiones de adecuación o en cláusulas contractuales tipo."
+        "id": "models",
+        "title": "Modelos de IA",
+        "body": [
+          "Por defecto, las preguntas de prueba se redactan y las respuestas se califican con un modelo de IA que funciona en hardware que opera Caudals, de modo que el material no sale de nuestra infraestructura.",
+          "En la prueba pública gratuita, cuando nuestro modelo está ocupado o no está disponible, el texto de las páginas públicas que leemos, las preguntas y las respuestas de tu sistema pueden enviarse a un proveedor comercial de modelos de IA para terminar la prueba. Solo se envía ese material de la prueba, nunca las claves de API que hayas introducido.",
+          "En un espacio de trabajo, tu contenido solo se envía a un proveedor comercial de modelos de IA si tu espacio de trabajo elige uno de esos modelos. Los proveedores que usamos figuran en la página de subencargados."
+        ],
+        "links": [{ "label": "Subencargados", "href": "/legal/subprocessors" }]
       },
       {
-        "title": "Seguridad y retención",
-        "body": "Aplicamos controles básicos como limitación de peticiones, protección en las subidas de archivos, registros de auditoría y protección frente a la repetición de webhooks. Conservamos los datos según las exigencias legales, contractuales y operativas."
+        "id": "recipients",
+        "title": "Con quién los compartimos",
+        "body": [
+          "Solo compartimos datos personales con proveedores que los tratan por nuestra cuenta en virtud de un contrato, como los de alojamiento, correo electrónico, pagos, monitorización de errores y modelos de IA, y con las autoridades cuando lo exige la ley. La lista completa, con lo que hace cada proveedor y dónde, está en la página de subencargados.",
+          "Cuando encargas una revisión por expertos o un conjunto de datos a medida, los expertos de dominio autónomos que Caudals contrata, previamente seleccionados, ven solo el material, con los datos personales ocultados, que necesita su tarea, sujetos a condiciones de confidencialidad, de tratamiento de datos y de propiedad intelectual."
+        ]
       },
       {
+        "id": "transfers",
+        "title": "Transferencias internacionales",
+        "body": [
+          "Nuestra aplicación, nuestras bases de datos y nuestros archivos están alojados en Alemania. Algunos proveedores tienen su sede, o pueden tratar datos, en Estados Unidos u otros países fuera del Espacio Económico Europeo. En esos casos nos basamos en una decisión de adecuación, como el Marco de Privacidad de Datos UE-EE. UU. para los proveedores adheridos, o en las cláusulas contractuales tipo de la Comisión Europea."
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "Cuánto tiempo los conservamos",
+        "items": [
+          "Prueba pública gratuita: se elimina siete días después de la prueba, salvo que crees una cuenta desde ella.",
+          "Capturas de pantalla tomadas al probar chats de webs: se eliminan a los siete días.",
+          "Contenido del espacio de trabajo: se conserva mientras existe el espacio de trabajo. Cuando se elimina, nuestro proceso de eliminación borra su contenido de nuestros sistemas activos.",
+          "Las copias de seguridad diarias ordinarias se cifran y se conservan aproximadamente una semana. Los archivos restringidos de recuperación o incidentes pueden conservarse más tiempo para su finalidad documentada.",
+          "Datos de la cuenta: se conservan mientras la cuenta está abierta y se eliminan al cerrarla, salvo los registros que debamos conservar.",
+          "Registros de facturación y fiscales: durante los plazos que exige la normativa mercantil y tributaria española, en general seis años.",
+          "Registros de términos aceptados: mientras exista tu cuenta y, después, mientras pueda presentarse una reclamación relacionada con el acuerdo.",
+          "Datos de contacto, de reuniones y de contactos profesionales: mientras los necesitemos para hacer el seguimiento, y se eliminan cuando nos lo pides.",
+          "Newsletter: hasta que te des de baja."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Seguridad",
+        "body": [
+          "Protegemos los datos personales con medidas técnicas y organizativas adecuadas al riesgo. Nuestra página de seguridad las describe."
+        ],
+        "links": [{ "label": "Seguridad", "href": "/legal/security" }]
+      },
+      {
+        "id": "rights",
         "title": "Tus derechos",
-        "body": "Puedes solicitar el acceso, la rectificación, la supresión, la portabilidad o la limitación del tratamiento de tus datos personales, oponerte al tratamiento y retirar tu consentimiento en cualquier momento escribiendo a privacy@caudals.com. También puedes presentar una reclamación ante tu autoridad de protección de datos."
+        "body": [
+          "Puedes pedirnos el acceso a tus datos personales, su rectificación, supresión o portabilidad, la limitación de su tratamiento u oponerte a él, y puedes retirar cualquier consentimiento que nos hayas dado. Escribe a privacy@caudals.com. Respondemos en el plazo de un mes.",
+          "Si los datos pertenecen al espacio de trabajo de un cliente, le trasladamos tu solicitud y le ayudamos a responderla.",
+          "También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (https://www.aepd.es) o ante la autoridad del lugar donde vives o trabajas."
+        ]
+      },
+      {
+        "id": "children",
+        "title": "Menores",
+        "body": [
+          "El Servicio está dirigido a empresas y no a menores. No recogemos a sabiendas datos personales de menores."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Cambios en esta política",
+        "body": [
+          "Publicamos cualquier cambio en esta página con una nueva fecha. Si un cambio afecta de forma importante al uso de datos personales que nos hayas facilitado, te avisaremos por correo electrónico o en la aplicación antes de que entre en vigor."
+        ]
       }
     ]
   },
-  "terms": {
-    "title": "Términos del servicio",
-    "description": "Fecha de vigencia: 1 de marzo de 2026. Estos términos rigen el uso de los productos y servicios de Caudals.",
-    "metaTitle": "Términos del servicio",
-    "metaDescription": "Condiciones que regulan el acceso y uso de Caudals, las responsabilidades de compradores y proveedores, las licencias, los pagos y la legislación aplicable.",
+  "dpa": {
+    "title": "Contrato de encargo del tratamiento",
+    "description": "Cómo trata Caudals datos personales por tu cuenta cuando usas la aplicación de evaluación, y una plantilla que puedes descargar para firmarla.",
+    "metaTitle": "Contrato de encargo del tratamiento",
+    "metaDescription": "Resumen del contrato de encargo del tratamiento de Caudals conforme al artículo 28 del RGPD: funciones, alcance, seguridad, subencargados, transferencias, brechas y supresión, con una plantilla descargable.",
     "sections": [
       {
-        "title": "Uso de la plataforma",
-        "body": "Te comprometes a usar Caudals únicamente para operaciones de datos lícitas y a evitar cualquier actividad abusiva, fraudulenta o dañina."
+        "id": "applies",
+        "title": "Cuándo se aplica",
+        "body": [
+          "Cuando usas Caudals para probar tu sistema de IA, tus documentos, tus preguntas y las respuestas de tu sistema pueden contener datos personales, como nombres en conversaciones de soporte. Para esos datos, tú eres el responsable del tratamiento y Caudals es tu encargado, conforme al artículo 28 del Reglamento General de Protección de Datos (RGPD) y la Ley Orgánica de Protección de Datos y garantía de los derechos digitales (LOPDGDD).",
+          "El contrato de encargo del tratamiento forma parte de nuestros Términos del servicio, así que se aplica a todos los espacios de trabajo sin necesidad de firma. Si tu proceso de compras necesita una copia firmada, descarga la plantilla de abajo, completa los datos de tu empresa y envíala a privacy@caudals.com. Te la devolveremos firmada."
+        ],
+        "links": [{ "label": "Términos del servicio", "href": "/legal/terms" }]
       },
       {
-        "title": "Responsabilidades de la cuenta",
-        "body": "Eres responsable de mantener la seguridad de tu cuenta, la exactitud de la información de tu perfil y el uso autorizado de tu espacio de trabajo."
+        "id": "scope",
+        "title": "Qué cubre",
+        "items": [
+          "Objeto: alojar y tratar tu contenido para probar tus sistemas de IA y elaborar informes, mientras uses el Servicio.",
+          "Naturaleza y finalidad: almacenar tu contenido, leer documentos y webs, enviar preguntas a tu sistema, registrar y calificar sus respuestas, redactar informes y, cuando lo encargas, la revisión por expertos.",
+          "Datos personales: los que contengan tus documentos, tus webs y las respuestas de tu sistema, normalmente nombres, datos de contacto y el contenido de conversaciones, además del nombre y el correo de los miembros de tu espacio de trabajo.",
+          "Interesados: tus clientes y usuarios, tu personal y otras personas mencionadas en tu material."
+        ]
       },
       {
-        "title": "Conducta de compradores y proveedores",
-        "body": "Los compradores deben aportar requisitos de proyecto claros y casos de uso lícitos. Los proveedores deben facilitar un acceso a los datos lícito, con los permisos adecuados y conforme a las políticas."
+        "id": "commitments",
+        "title": "A qué nos comprometemos",
+        "items": [
+          "Tratar los datos solo siguiendo tus instrucciones documentadas, que son este contrato y tu uso del Servicio, y avisarte si una instrucción parece infringir la normativa de protección de datos.",
+          "Garantizar que todas las personas que los tratan, incluidos los expertos autónomos que contratamos, están sujetas a confidencialidad.",
+          "Aplicar las medidas de seguridad que se describen en nuestra página de seguridad.",
+          "Ayudarte a atender las solicitudes de los interesados y, cuando proceda, con las evaluaciones de impacto y las consultas a las autoridades de control.",
+          "Notificarte sin dilación indebida, en cuanto tengamos conocimiento de ella, cualquier violación de la seguridad que afecte a tus datos, con la información que necesites para cumplir tus propias obligaciones.",
+          "Suprimir tus datos cuando elimines tu espacio de trabajo o termine nuestro contrato, o devolvértelos antes si nos lo pides, salvo que la ley nos obligue a conservarlos.",
+          "Darte la información necesaria para demostrar que cumplimos estas obligaciones y permitir auditorías, incluidas inspecciones, por tu parte o por un auditor que designes, con un preaviso razonable."
+        ],
+        "links": [{ "label": "Seguridad", "href": "/legal/security" }]
       },
       {
-        "title": "Propiedad intelectual",
-        "body": "Caudals conserva todos los derechos sobre la plataforma y su contenido. Los conjuntos de datos y entregables se licencian según las condiciones acordadas en cada pedido o contrato."
+        "id": "subprocessors",
+        "title": "Subencargados",
+        "body": [
+          "Nos autorizas a recurrir a los subencargados que figuran en nuestra página de subencargados. Cada uno está sujeto a condiciones de protección de datos equivalentes a estas. Anunciamos cualquier nuevo subencargado en esa página, y por correo electrónico a los propietarios de los espacios de trabajo, al menos 30 días antes de que empiece a tratar tus datos. Puedes oponerte y, si no podemos resolver tu objeción, puedes dejar de usar el servicio afectado y resolver el contrato."
+        ],
+        "links": [{ "label": "Subencargados", "href": "/legal/subprocessors" }]
       },
       {
-        "title": "Pagos y desembolsos",
-        "body": "Los pagos y las liquidaciones se procesan a través de proveedores de pago integrados. Los plazos de procesamiento, las devoluciones y las disputas se rigen por las normas del proveedor y de la plataforma."
+        "id": "transfers",
+        "title": "Transferencias internacionales",
+        "body": [
+          "Los datos de tu espacio de trabajo se alojan en Alemania. Cuando un subencargado los trata fuera del Espacio Económico Europeo, nos basamos en una decisión de adecuación o en las cláusulas contractuales tipo de la Comisión Europea."
+        ]
       },
       {
-        "title": "Responsabilidad y ley aplicable",
-        "body": "La plataforma se ofrece «tal cual», en la medida en que lo permita la ley. Estas condiciones se rigen por la legislación española y las disputas se someten a los juzgados y tribunales competentes de España."
-      },
-      {
-        "title": "Terminación",
-        "body": "Podemos suspender o cancelar las cuentas que incumplan estas condiciones o que generen riesgos legales, de seguridad u operativos."
+        "id": "template",
+        "title": "Descarga la plantilla",
+        "body": [
+          "La plantilla recoge estas condiciones completas, con anexos que describen el tratamiento, nuestras medidas de seguridad y nuestros subencargados. Es un documento de Word editable, en español o en inglés, y su versión coincide con la de esta página."
+        ],
+        "download": true
       }
     ]
+  },
+  "subprocessors": {
+    "title": "Subencargados del tratamiento",
+    "description": "Los proveedores que tratan datos personales por cuenta de Caudals: qué hace cada uno, qué datos trata y dónde.",
+    "metaTitle": "Subencargados del tratamiento",
+    "metaDescription": "La lista de subencargados de Caudals: alojamiento, red, correo electrónico, pagos, monitorización de errores y proveedores de modelos de IA, con su finalidad, datos y ubicación.",
+    "sections": [
+      {
+        "id": "list",
+        "title": "Subencargados actuales",
+        "body": [
+          "Estos proveedores pueden tratar datos personales cuando usas Caudals. La última columna indica si un proveedor puede recibir contenido de tu espacio de trabajo."
+        ],
+        "table": {
+          "columns": ["Proveedor", "Qué hace", "Datos personales", "Ubicación", "Contenido del espacio de trabajo"],
+          "rows": [
+            ["Hetzner Online GmbH", "Alojamiento de la aplicación, las bases de datos, el almacenamiento de archivos y las copias de seguridad, en servidores que opera Caudals", "Todos los datos del Servicio", "Alemania (UE)", "Sí"],
+            ["Cloudflare, Inc.", "Servicio de nombres de dominio, cifrado en tránsito y protección de nuestras webs frente a ataques", "Tráfico de red, incluidas direcciones IP y peticiones", "Red global, empresa de Estados Unidos", "Solo en tránsito"],
+            ["Amazon Web Services EMEA SARL", "Alojamiento de nuestras analíticas web propias y de nuestras herramientas comerciales, en un servidor que opera Caudals", "Analíticas web, con tu consentimiento, y datos de contactos profesionales", "Alemania (UE)", "No"],
+            ["Resend", "Envío de correos de la cuenta, de notificaciones y de la newsletter", "Direcciones y contenido de los correos", "Estados Unidos", "Solo lo que contiene una notificación, como el nombre de una evaluación"],
+            ["Sentry (Functional Software, Inc.)", "Monitorización de errores de la aplicación", "Informes técnicos de errores, configurados para excluir datos personales por defecto", "Región de datos de la UE (Alemania)", "No"],
+            ["Stripe Payments Europe, Ltd.", "Pagos con tarjeta de compras de créditos y control del fraude", "Datos de la empresa y de contacto de facturación, datos de pago", "Irlanda (UE), con tratamiento en Estados Unidos", "No"],
+            ["Google (API de Gemini)", "Modelo de IA: alternativa para la prueba pública gratuita cuando nuestro modelo está ocupado, y modelo que tu espacio de trabajo puede elegir", "Texto de páginas públicas, preguntas y respuestas de la prueba pública; contenido del espacio de trabajo solo si este elige un modelo de Google", "Estados Unidos y otros países", "Solo si tu espacio de trabajo lo elige"],
+            ["OpenRouter, Inc.", "Acceso a modelos de IA de varios proveedores, que reciben la petición: alternativa para la prueba pública gratuita, y modelos que tu espacio de trabajo puede elegir", "Texto de páginas públicas, preguntas y respuestas de la prueba pública; contenido del espacio de trabajo solo si este elige un modelo a través de OpenRouter", "Estados Unidos y otros países", "Solo si tu espacio de trabajo lo elige"],
+            ["NVIDIA (catálogo de API)", "Modelos de IA que tu espacio de trabajo puede elegir", "Contenido del espacio de trabajo, solo si este elige un modelo alojado por NVIDIA", "Estados Unidos", "Solo si tu espacio de trabajo lo elige"],
+            ["Cal.com, Inc.", "Reserva de reuniones desde nuestra web", "Nombre, correo electrónico y los datos que añadas a la reserva", "Estados Unidos", "No"]
+          ]
+        }
+      },
+      {
+        "id": "own",
+        "title": "Lo que opera la propia Caudals",
+        "body": [
+          "Estas partes del Servicio funcionan en infraestructura que opera Caudals, sin más proveedores que el alojamiento indicado arriba:"
+        ],
+        "items": [
+          "Nuestro modelo de IA por defecto, que funciona en un servidor de GPU que opera Caudals, conectado a nuestro alojamiento mediante un túnel privado cifrado.",
+          "La base de datos, el almacenamiento de archivos, los procesos de navegador y las copias de seguridad.",
+          "Nuestras analíticas web, que alojamos nosotros mismos."
+        ]
+      },
+      {
+        "id": "experts",
+        "title": "Expertos de dominio autónomos",
+        "body": [
+          "Cuando encargas una revisión por expertos o un conjunto de datos a medida, expertos de dominio autónomos que Caudals contrata, previamente seleccionados, trabajan con material de tu espacio de trabajo en el que se han ocultado los datos personales. Solo ven lo que necesita su tarea y trabajan sujetos a condiciones de confidencialidad, de tratamiento de datos y de cesión de la propiedad intelectual. Si nos lo pides, te decimos quiénes son."
+        ]
+      },
+      {
+        "id": "transfers",
+        "title": "Transferencias fuera del Espacio Económico Europeo",
+        "body": [
+          "Con los proveedores de fuera del Espacio Económico Europeo, las transferencias se basan en una decisión de adecuación, como el Marco de Privacidad de Datos UE-EE. UU. cuando el proveedor está adherido, o en las cláusulas contractuales tipo de la Comisión Europea."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Cambios en esta lista",
+        "body": [
+          "Actualizamos esta página antes de que un nuevo subencargado empiece a tratar datos personales. Cuando vaya a tratar contenido de los espacios de trabajo, además avisamos por correo electrónico a sus propietarios con al menos 30 días de antelación. Para oponerte, escribe a privacy@caudals.com."
+        ]
+      }
+    ]
+  },
+  "security": {
+    "title": "Seguridad",
+    "description": "Cómo protege Caudals los datos que le confías: dónde se guardan, cómo se cifran y se mantienen separados, quién puede acceder a ellos y cuánto tiempo los conservamos.",
+    "metaTitle": "Seguridad",
+    "metaDescription": "Cómo protege Caudals los datos de sus clientes: alojamiento en Alemania, cifrado, separación entre clientes con seguridad a nivel de fila, control de acceso, pruebas seguras de sistemas de IA, conservación y copias de seguridad.",
+    "sections": [
+      {
+        "id": "approach",
+        "title": "Nuestro enfoque",
+        "body": [
+          "Esta página describe las medidas de seguridad que aplicamos hoy. Es una descripción sencilla de lo que hacemos, no una certificación. Si tu equipo necesita más detalle para una revisión de seguridad, escribe a hello@caudals.com."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "Dónde se guardan tus datos",
+        "items": [
+          "La aplicación, la base de datos, el almacenamiento de archivos y las copias de seguridad funcionan en servidores que opera Caudals en Hetzner, en Alemania.",
+          "Por defecto, las preguntas de prueba se redactan y las respuestas se califican con un modelo de IA que funciona en nuestro propio servidor de GPU, conectado a nuestro alojamiento mediante un túnel privado cifrado. Tu contenido solo va a un proveedor comercial de IA si tu espacio de trabajo elige uno, o en la prueba pública gratuita cuando nuestro modelo está ocupado.",
+          "La base de datos y el almacenamiento de archivos no son accesibles desde internet."
+        ]
+      },
+      {
+        "id": "encryption",
+        "title": "Cifrado",
+        "items": [
+          "Todo el tráfico con nuestras webs y nuestra API usa HTTPS (TLS).",
+          "Las credenciales que nos das para acceder a tus sistemas, como claves de API y cabeceras, las cifra la aplicación con AES-256-GCM antes de guardarlas, vinculadas a tu espacio de trabajo, y solo las descifra el proceso que las necesita. Las credenciales introducidas en la prueba pública gratuita nunca se guardan.",
+          "Las contraseñas se guardan solo como hashes con sal.",
+          "Las copias de seguridad se cifran con AES-256."
+        ]
+      },
+      {
+        "id": "isolation",
+        "title": "Separación entre clientes",
+        "items": [
+          "Los datos de cada espacio de trabajo se mantienen separados en la base de datos mediante seguridad a nivel de fila. La aplicación se conecta con un rol restringido que no puede saltarse esas reglas, y cada tarea en segundo plano se ejecuta dentro del ámbito de su propio espacio de trabajo.",
+          "Los informes solo se comparten mediante enlaces privados, que puedes hacer caducar y revocar en cualquier momento.",
+          "Los expertos que trabajan en un encargo solo ven el material que necesita su tarea, con los datos personales ocultados."
+        ]
+      },
+      {
+        "id": "access",
+        "title": "Control de acceso",
+        "items": [
+          "Los miembros de un espacio de trabajo tienen el rol de propietario, editor o lector, y el servidor comprueba el rol de la persona en cada acción.",
+          "El acceso del personal de Caudals a los espacios de trabajo de los clientes se limita a roles de plataforma y queda registrado en un registro de auditoría.",
+          "Nuestros servidores solo se pueden administrar a través de una red privada con autenticación por clave. No hay acceso SSH ni a la base de datos desde internet."
+        ]
+      },
+      {
+        "id": "testing",
+        "title": "Probar otros sistemas de forma segura",
+        "items": [
+          "Los chats de webs se prueban en un proceso de navegador aislado cuyo tráfico pasa por un proxy que solo permite destinos HTTPS públicos.",
+          "La prueba pública gratuita comprueba cada dirección y cada redirección, limita el tiempo y el tamaño de cada petición y lee como máximo seis páginas de un sitio.",
+          "Solo hacemos preguntas normales. No eludimos CAPTCHA ni inicios de sesión: cuando una web necesita a una persona, la ejecución la espera. Nunca hacemos pruebas adversarias sin la autorización por escrito del titular del sistema."
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "Conservar solo lo necesario",
+        "items": [
+          "Las pruebas públicas gratuitas se eliminan a los siete días, igual que las capturas de pantalla tomadas al probar chats de webs.",
+          "Al eliminar un espacio de trabajo se revocan sus enlaces compartidos y sus credenciales, se detienen sus tareas y se borra su contenido de nuestros sistemas activos, conservando solo un registro mínimo de que se eliminó.",
+          "Las copias de seguridad diarias ordinarias se cifran y se conservan aproximadamente una semana. Los archivos restringidos de recuperación pueden conservarse más tiempo. Hemos ensayado la restauración en un entorno aislado."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Monitorización y desarrollo",
+        "items": [
+          "La monitorización de errores puede activarse con Sentry en su región de datos de la UE. La integración excluye los datos personales por defecto.",
+          "Los puntos de acceso públicos tienen límites de peticiones, y la prueba pública gratuita usa una prueba de trabajo en lugar de un CAPTCHA de terceros.",
+          "Las acciones importantes, como los cambios de roles, presupuestos, enlaces compartidos y eliminaciones, quedan en un registro de auditoría.",
+          "Nuestro proceso de publicación incluye comprobaciones de tipos, pruebas y revisiones de datos sensibles. Se revisan las actualizaciones de las dependencias."
+        ]
+      },
+      {
+        "id": "report",
+        "title": "Informar de una vulnerabilidad",
+        "body": [
+          "Si encuentras un problema de seguridad, escribe a hello@caudals.com con «Seguridad» en el asunto. Danos un plazo razonable para corregirlo antes de hacerlo público, y no accedas a datos de otras personas ni interrumpas el Servicio mientras lo investigas. Acusaremos recibo de tu aviso y te mantendremos informado."
+        ]
+      }
+    ]
+  },
+  "cookies": {
+    "title": "Política de cookies",
+    "description": "Cómo usamos cookies y tecnologías similares en nuestras webs, y cómo puedes gestionar tus preferencias.",
+    "metaTitle": "Política de cookies",
+    "metaDescription": "Cómo utiliza Caudals las cookies esenciales, las analíticas opcionales y otras tecnologías similares, y cómo puedes gestionar tus preferencias.",
+    "sections": [
+      {
+        "id": "essential",
+        "title": "Cookies esenciales",
+        "body": [
+          "Necesarias para la autenticación, la gestión de sesiones, las preferencias de idioma y el comportamiento básico de seguridad de la plataforma. Están siempre activas y no se pueden desactivar."
+        ]
+      },
+      {
+        "id": "analytics",
+        "title": "Cookies analíticas",
+        "body": [
+          "Analíticas opcionales y respetuosas con la privacidad que nos ayudan a entender el uso del producto y mejorar la experiencia. Solo se cargan después de que aceptes las cookies opcionales en el aviso de cookies."
+        ]
+      },
+      {
+        "id": "choices",
+        "title": "Gestión de tus preferencias",
+        "body": [
+          "Puedes aceptar o rechazar las cookies opcionales en el aviso y cambiar tu elección en cualquier momento desde el enlace «Preferencias de cookies» del pie de página. También puedes controlar las cookies desde la configuración de tu navegador."
+        ]
+      },
+      {
+        "id": "third-parties",
+        "title": "Servicios de terceros",
+        "body": [
+          "Algunas páginas incorporan servicios de terceros, como el programador de Cal.com o los proveedores de pago, que pueden instalar sus propias cookies, regidas por sus respectivas políticas."
+        ]
+      }
+    ]
+  },
+  "notice": {
+    "title": "Aviso legal",
+    "description": "Quién opera esta web y el servicio Caudals, conforme a la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico (LSSI-CE).",
+    "metaTitle": "Aviso legal",
+    "metaDescription": "Aviso legal de la web de Caudals: titular, objeto, condiciones de uso, propiedad intelectual y ley aplicable conforme a la LSSI-CE.",
+    "entity": {
+      "registered": "Esta web y el servicio Caudals los opera {name}, con número de identificación fiscal (NIF) {nif} y domicilio social en {address}.",
+      "registry": "Está inscrita en el {registry}.",
+      "pending": "Esta web y el servicio Caudals se operan con el nombre comercial Caudals. La razón social, el número de identificación fiscal (NIF), el domicilio social y los datos de inscripción registral de la sociedad se publicarán en esta página cuando finalice su inscripción."
+    },
+    "sections": [
+      {
+        "id": "owner",
+        "title": "Titular de la web",
+        "body": [
+          "{entity}",
+          "Contacto: hello@caudals.com. Protección de datos: privacy@caudals.com."
+        ]
+      },
+      {
+        "id": "purpose",
+        "title": "Objeto",
+        "body": [
+          "Caudals prueba los sistemas de IA de las empresas con preguntas extraídas de su documentación, entrega informes con puntuación y evidencias, y construye los datos de dominio que cierran los huecos que detecta."
+        ]
+      },
+      {
+        "id": "use",
+        "title": "Uso de la web",
+        "body": [
+          "Al usar esta web aceptas este aviso y te comprometes a hacer un uso lícito de ella. El servicio Caudals se rige por los Términos del servicio, y los datos personales por la Política de privacidad y la Política de cookies."
+        ],
+        "links": [
+          { "label": "Términos del servicio", "href": "/legal/terms" },
+          { "label": "Política de privacidad", "href": "/legal/privacy" },
+          { "label": "Política de cookies", "href": "/legal/cookies" }
+        ]
+      },
+      {
+        "id": "ip",
+        "title": "Propiedad intelectual",
+        "body": [
+          "Los contenidos de esta web, incluidos textos, diseños, logotipos y software, pertenecen a Caudals o a sus licenciantes y están protegidos por la normativa de propiedad intelectual e industrial. No se permite reproducirlos sin autorización."
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Responsabilidad",
+        "body": [
+          "Procuramos que esta web sea exacta y esté actualizada, pero su contenido es información general, no asesoramiento. En la medida en que lo permita la ley, no respondemos de los daños causados por un mal uso de la web, por su indisponibilidad temporal por mantenimiento o causas técnicas, ni por el contenido de webs de terceros enlazadas desde ella."
+        ]
+      },
+      {
+        "id": "law",
+        "title": "Ley aplicable",
+        "body": [
+          "Este aviso se rige por la ley española. Las controversias relacionadas con la web se someten a los juzgados y tribunales españoles competentes."
+        ]
+      }
+    ]
+  },
+  "dpaTemplate": {
+    "title": "Contrato de encargo del tratamiento",
+    "subtitle": "Plantilla para firma",
+    "intro": [
+      "Este contrato se celebra entre el cliente identificado a continuación (el Cliente) y la sociedad que opera Caudals (Caudals). Se aplica a los datos personales que Caudals trata por cuenta del Cliente cuando este usa el servicio de evaluación de Caudals, y forma parte de los Términos del servicio de Caudals, publicados en https://caudals.com/es/legal/terminos."
+    ],
+    "partiesTitle": "Las partes",
+    "customerTitle": "El Cliente (responsable del tratamiento)",
+    "processorTitle": "Caudals (encargado del tratamiento)",
+    "partyFields": ["Razón social", "NIF o número de IVA", "Domicilio social", "Representada por (nombre y cargo)", "Contacto de protección de datos"],
+    "processorRegistered": "{name}, con número de identificación fiscal (NIF) {nif} y domicilio social en {address}. Contacto de protección de datos: privacy@caudals.com.",
+    "clauses": [
+      {
+        "title": "Definiciones",
+        "body": [
+          "Datos personales, tratamiento, responsable, encargado, interesado y violación de la seguridad de los datos personales tienen el significado que les da el Reglamento (UE) 2016/679 (RGPD). Normativa de protección de datos significa el RGPD, la Ley Orgánica 3/2018 (LOPDGDD) y cualquier otra norma aplicable al tratamiento."
+        ]
+      },
+      {
+        "title": "Objeto y duración",
+        "body": [
+          "Caudals trata los datos personales contenidos en el contenido del Cliente para prestar el servicio de evaluación: probar los sistemas de IA del Cliente, calificar sus respuestas y elaborar informes y, cuando se encarguen, la revisión por expertos y conjuntos de datos a medida. Este contrato dura mientras Caudals trate datos personales por cuenta del Cliente."
+        ]
+      },
+      {
+        "title": "Naturaleza, finalidad y categorías",
+        "body": [
+          "La naturaleza y la finalidad del tratamiento, los tipos de datos personales y las categorías de interesados se describen en el Anexo 1."
+        ]
+      },
+      {
+        "title": "Instrucciones del Cliente",
+        "body": [
+          "Caudals trata los datos personales solo siguiendo las instrucciones documentadas del Cliente, que son este contrato, los Términos del servicio y el uso y la configuración que el Cliente haga del servicio, incluidos los modelos de IA que elija. Caudals informa al Cliente si considera que una instrucción infringe la normativa de protección de datos. Si la ley obliga a Caudals a tratar los datos con otra finalidad, Caudals lo comunica antes al Cliente, salvo que la ley lo prohíba."
+        ]
+      },
+      {
+        "title": "Obligaciones del Cliente",
+        "body": [
+          "El Cliente es responsable de la licitud del tratamiento que encarga, lo que incluye contar con una base jurídica para los datos personales de su contenido, informar a los interesados y estar facultado para probar los sistemas de IA que conecte. El Cliente no incluye categorías especiales de datos personales en su contenido salvo que las partes lo hayan acordado por escrito."
+        ]
+      },
+      {
+        "title": "Confidencialidad",
+        "body": [
+          "Caudals garantiza que su personal y los expertos autónomos que contrata y que tratan los datos personales están sujetos a obligaciones de confidencialidad y solo ven los datos que necesita su tarea. Los expertos reciben el material con los datos personales ocultados."
+        ]
+      },
+      {
+        "title": "Seguridad",
+        "body": [
+          "Caudals aplica las medidas técnicas y organizativas descritas en el Anexo 2 y las mantiene adecuadas al riesgo, teniendo en cuenta el estado de la técnica, los costes de aplicación y la naturaleza, el alcance, el contexto y los fines del tratamiento. Caudals puede actualizar las medidas siempre que no se reduzca el nivel general de protección."
+        ]
+      },
+      {
+        "title": "Subencargados",
+        "body": [
+          "El Cliente otorga a Caudals una autorización general para recurrir a subencargados. Los subencargados en la fecha de este contrato figuran en el Anexo 3, y la lista vigente se publica en https://caudals.com/es/legal/subencargados. Caudals informa al Cliente de cualquier incorporación o sustitución prevista con al menos 30 días de antelación, por correo electrónico a los propietarios de los espacios de trabajo y en esa página. El Cliente puede oponerse por motivos razonables de protección de datos; si las partes no pueden resolver la objeción, el Cliente puede dejar de usar el servicio afectado y resolver este contrato. Caudals impone a cada subencargado obligaciones de protección de datos equivalentes a las de este contrato y sigue respondiendo ante el Cliente de su cumplimiento."
+        ]
+      },
+      {
+        "title": "Transferencias internacionales",
+        "body": [
+          "Caudals aloja el contenido del Cliente en la Unión Europea. Caudals solo transfiere datos personales fuera del Espacio Económico Europeo cuando se aplica una decisión de adecuación o con garantías adecuadas, como las cláusulas contractuales tipo adoptadas por la Comisión Europea."
+        ]
+      },
+      {
+        "title": "Solicitudes de los interesados",
+        "body": [
+          "Teniendo en cuenta la naturaleza del tratamiento, Caudals asiste al Cliente, mediante medidas técnicas y organizativas apropiadas, para responder a las solicitudes de los interesados que ejerzan sus derechos. Si Caudals recibe directamente una solicitud de este tipo, la traslada al Cliente sin dilación indebida y solo la responde siguiendo las instrucciones del Cliente."
+        ]
+      },
+      {
+        "title": "Violaciones de la seguridad",
+        "body": [
+          "Caudals notifica al Cliente, sin dilación indebida desde que tenga conocimiento de ella, cualquier violación de la seguridad que afecte a los datos personales del Cliente, y le facilita la información razonablemente disponible que necesite para cumplir sus propias obligaciones de notificación. Caudals adopta medidas razonables para contener la violación y mitigar sus efectos."
+        ]
+      },
+      {
+        "title": "Asistencia",
+        "body": [
+          "Teniendo en cuenta la naturaleza del tratamiento y la información de que disponga, Caudals asiste al Cliente en las evaluaciones de impacto relativas a la protección de datos y en las consultas previas a las autoridades de control relacionadas con el servicio."
+        ]
+      },
+      {
+        "title": "Supresión y devolución",
+        "body": [
+          "Cuando el Cliente elimina un espacio de trabajo, o cuando termina el servicio, Caudals suprime de sus sistemas activos los datos personales tratados por cuenta del Cliente, y de sus copias de seguridad cuando estas caducan, salvo que la ley obligue a conservarlos. Antes, el Cliente puede exportar sus informes y resultados, y puede pedir por escrito a Caudals que le devuelva los datos."
+        ]
+      },
+      {
+        "title": "Auditorías e información",
+        "body": [
+          "Caudals pone a disposición del Cliente la información necesaria para demostrar que cumple sus obligaciones conforme a este contrato y al artículo 28 del RGPD, y permite y contribuye a la realización de auditorías, incluidas inspecciones, por parte del Cliente o de un auditor designado por él y sujeto a confidencialidad. Las auditorías requieren un preaviso de al menos 30 días, se realizan en horario laboral y se limitan a una al año, salvo que una violación de la seguridad o una autoridad de control exijan otra cosa. Cada parte asume sus propios costes."
+        ]
+      },
+      {
+        "title": "Responsabilidad",
+        "body": [
+          "La responsabilidad de cada parte conforme a este contrato está sujeta a las limitaciones de los Términos del servicio, en la medida en que lo permita la normativa de protección de datos."
+        ]
+      },
+      {
+        "title": "Prevalencia, ley aplicable y tribunales",
+        "body": [
+          "Si este contrato y los Términos del servicio entran en conflicto en materia de protección de datos personales, prevalece este contrato. Este contrato se rige por la ley española, y los juzgados y tribunales indicados en los Términos del servicio son competentes para cualquier controversia."
+        ]
+      }
+    ],
+    "annexes": [
+      {
+        "title": "Anexo 1. Descripción del tratamiento",
+        "items": [
+          "Interesados: los clientes y usuarios del Cliente cuyos datos aparezcan en los documentos, las webs o las respuestas de los sistemas de IA del Cliente; el personal y los representantes del Cliente; los miembros de los espacios de trabajo del Cliente.",
+          "Tipos de datos personales: nombres, datos de contacto, identificadores y el contenido de documentos, preguntas y respuestas, tal como los aporte el Cliente o los devuelvan sus sistemas de IA; el nombre, el correo electrónico y los registros de actividad de los miembros de los espacios de trabajo. Sin categorías especiales de datos personales salvo acuerdo por escrito.",
+          "Operaciones de tratamiento: almacenamiento; extracción de texto de documentos y webs; redacción de preguntas de prueba; envío de preguntas a los sistemas de IA del Cliente y registro de sus respuestas, incluidas capturas de pantalla de chats de webs; calificación automática; redacción de informes; revisión por expertos cuando se encargue; exportación y supresión.",
+          "Duración: mientras el Cliente use el servicio y, después, hasta la supresión prevista en la cláusula de supresión y devolución.",
+          "Conservación específica: las capturas de pantalla de chats de webs se eliminan a los siete días. Las copias diarias ordinarias se conservan aproximadamente una semana; los archivos restringidos de recuperación o incidentes pueden conservarse más tiempo para su finalidad documentada."
+        ]
+      },
+      {
+        "title": "Anexo 2. Medidas técnicas y organizativas",
+        "items": [
+          "Alojamiento en servidores que opera Caudals en Alemania; base de datos y almacenamiento de archivos no accesibles desde internet.",
+          "Cifrado en tránsito con TLS; cifrado en la aplicación con AES-256-GCM de las credenciales de los sistemas del Cliente; copias de seguridad cifradas; contraseñas guardadas solo como hashes con sal.",
+          "Separación entre clientes con seguridad a nivel de fila en la base de datos, un rol de aplicación restringido y tareas en segundo plano limitadas a cada espacio de trabajo.",
+          "Acceso basado en roles para los miembros de los espacios de trabajo; acceso del personal limitado a roles de plataforma y registrado en un registro de auditoría; administración de servidores solo a través de una red privada con autenticación por clave.",
+          "Tratamiento de IA por defecto en un modelo que opera Caudals; proveedores comerciales de IA solo cuando el Cliente los elige.",
+          "Procesos de navegador aislados cuyo tráfico se limita a destinos HTTPS públicos; sin elusión de CAPTCHA ni de inicios de sesión.",
+          "Límites de peticiones, registros de auditoría de las acciones importantes y comprobaciones de tipos, pruebas y datos sensibles antes de publicar. La monitorización opcional de errores excluye datos personales por defecto.",
+          "Un proceso de eliminación de espacios de trabajo que revoca los enlaces compartidos y las credenciales y borra el contenido de los sistemas activos.",
+          "Obligaciones de confidencialidad para el personal y los expertos; los expertos solo reciben material con los datos personales ocultados."
+        ]
+      },
+      {
+        "title": "Anexo 3. Subencargados",
+        "body": [
+          "Los subencargados en la fecha de este contrato. La lista vigente se publica en https://caudals.com/es/legal/subencargados."
+        ],
+        "subprocessors": true
+      }
+    ],
+    "signaturesTitle": "Firmas",
+    "signatureFields": ["Nombre", "Cargo", "Fecha", "Firma"],
+    "customerSignature": "Por el Cliente",
+    "processorSignature": "Por Caudals",
+    "versionLabel": "Versión"
   }
 }

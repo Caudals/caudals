@@ -1,39 +1,66 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { t } from "@/lib/evals/messages/en";
+import { localizePathname } from "@/lib/i18n/routing";
+import { getLocale, t } from "@/lib/evals/messages/en";
 import { AuthFrame } from "./auth-frame";
 import { betterAuthClient } from "./auth-client";
-import { Action, Field, Status } from "./primitives";
+import { Action, Check, Field, Status } from "./primitives";
 
 type SignupLink = { token: string; email: string; workspaceName: string };
+type Result<T> = { data: T } | { error: string | null };
 
-async function post<T>(body: unknown): Promise<T | null> {
+async function post<T>(body: unknown): Promise<Result<T>> {
   const response = await fetch("/api/evals/v1/signup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  if (!response.ok) return null;
-  return ((await response.json()) as { data: T }).data;
+  const payload = (await response.json().catch(() => null)) as { data?: T; error?: { code?: string } } | null;
+  if (!response.ok || !payload?.data) return { error: payload?.error?.code ?? null };
+  return { data: payload.data };
+}
+
+/** "I accept the {terms} and the {privacy}." with both documents linked on the public site. */
+function TermsLabel({ marketingOrigin }: { marketingOrigin: string }) {
+  const locale = getLocale();
+  const links: Record<string, ReactNode> = {
+    "{terms}": (
+      <a className="p-link" href={`${marketingOrigin}${localizePathname("/legal/terms", locale)}`} target="_blank" rel="noopener noreferrer">
+        {t("signupTermsLink")}
+      </a>
+    ),
+    "{privacy}": (
+      <a className="p-link" href={`${marketingOrigin}${localizePathname("/legal/privacy", locale)}`} target="_blank" rel="noopener noreferrer">
+        {t("signupPrivacyLink")}
+      </a>
+    ),
+  };
+  return t("signupTermsLabel")
+    .split(/(\{terms\}|\{privacy\})/)
+    .map((part, index) => <span key={index}>{links[part] ?? part}</span>);
 }
 
 /**
  * The last step of the public demo's sign-up: the emailed link proves the
  * address, so the person only chooses a name and a password. The token is
  * read from the fragment once and removed from the address bar.
+ *
+ * With `termsRequired` (SIGNUP_TERMS_REQUIRED, read on the server), the person
+ * must accept the Terms and the Privacy Policy; the API records the versions.
  */
-export function SelfServeSignup() {
+export function SelfServeSignup({ termsRequired = false, marketingOrigin }: { termsRequired?: boolean; marketingOrigin: string }) {
   const [link, setLink] = useState<SignupLink | null>(null);
   const [state, setState] = useState<"checking" | "ready" | "invalid" | "creating">("checking");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const token = /^#([A-Za-z0-9_-]{43})$/.exec(window.location.hash)?.[1];
     window.history.replaceState(window.history.state, "", "/workspace/signup");
     const lookup = token ? post<{ email: string; workspaceName: string }>({ token }) : Promise.resolve(null);
-    void lookup.then((data) => {
-      if (!token || !data) { setState("invalid"); return; }
-      setLink({ token, ...data });
+    void lookup.then((result) => {
+      if (!token || !result || !("data" in result)) { setState("invalid"); return; }
+      setLink({ token, ...result.data });
       setState("ready");
     });
   }, []);
@@ -41,11 +68,22 @@ export function SelfServeSignup() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!link || state === "creating") return;
+    if (termsRequired && !accepted) { setError(t("signupTermsRequired")); return; }
     setState("creating");
     setError("");
     try {
-      const created = await post<{ email: string; orgId: string; evaluationId: string | null }>({ token: link.token, name: name.trim(), password });
-      if (!created) { setState("invalid"); return; }
+      const result = await post<{ email: string; orgId: string; evaluationId: string | null }>({
+        token: link.token,
+        name: name.trim(),
+        password,
+        ...(termsRequired ? { acceptTerms: accepted, locale: getLocale() } : {}),
+      });
+      if (!("data" in result)) {
+        if (result.error === "TERMS_REQUIRED") { setError(t("signupTermsRequired")); setState("ready"); return; }
+        setState("invalid");
+        return;
+      }
+      const created = result.data;
       const signedIn = await betterAuthClient.signIn.email({ email: created.email, password, rememberMe: true });
       setPassword("");
       const destination = created.evaluationId
@@ -86,8 +124,19 @@ export function SelfServeSignup() {
             disabled={state === "creating"}
             hint={t("passwordHelp")}
           />
+          {termsRequired ? (
+            <Check
+              id="signup-terms"
+              name="acceptTerms"
+              label={<TermsLabel marketingOrigin={marketingOrigin} />}
+              checked={accepted}
+              onChange={(event) => { setAccepted(event.target.checked); if (event.target.checked) setError(""); }}
+              required
+              disabled={state === "creating"}
+            />
+          ) : null}
           {error ? <Status error>{error}</Status> : null}
-          <Action block type="submit" disabled={state === "creating" || !name.trim() || password.length < 12}>
+          <Action block type="submit" disabled={state === "creating" || !name.trim() || password.length < 12 || (termsRequired && !accepted)}>
             {state === "creating" ? t("signupCreating") : t("signupCreate")}
           </Action>
         </form>

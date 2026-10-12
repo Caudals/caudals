@@ -904,6 +904,13 @@ Operational env controls:
 - Runs: `SELECT phase, error_code, target_kind, target_host, llm_calls, created_at, finished_at FROM demo.run ORDER BY created_at DESC LIMIT 20` (as `postgres`). A run stuck for 25 minutes is failed as `interrupted` by the sweeper; expired runs are deleted.
 - Local end to end: `eval "$(scripts/evals/test-db.sh up)"`, start the "Demo dev" launch configuration (port 3100), and for website chats run the demo browser loop with local Chromium as in `.lab/demo-browser.mts`. Local runs route to the DGX Spark via WireGuard.
 
+## Legal Pages and Terms Acceptance
+
+- Legal texts live in `content/legal/{en,es}.json`; their versions and the internal "pending legal review" mark are in `lib/legal/versions.ts`. Bump a document's version whenever its text changes; sign-up records the Terms and Privacy versions shown.
+- Company data for the legal notice and the DPA template is read at request time from the app's `credentials.env`. Store each of `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_NIF`, `LEGAL_ENTITY_ADDRESS` and `LEGAL_ENTITY_REGISTRY` with `sudo scripts/set-app-credentials.sh KEY` (value on stdin), then redeploy the running image; `scripts/launch/set-app-flag.sh KEY VALUE` does both for one key. Until name, NIF and address are all set, the notice names the trade name and says the details follow on registration. The launch spec's §3.2 placeholder values are ignored at runtime, and `lib/legal/documents.test.ts` fails CI if one, or a bracketed fill-in, appears in `content/legal/*`.
+- `SIGNUP_TERMS_REQUIRED=true` shows the Terms and Privacy checkbox on `/workspace/signup` and makes `/api/evals/v1/signup` refuse to create an account without it. Acceptances: `SELECT document, version, context, locale, count(*) FROM evals.terms_acceptance GROUP BY 1,2,3,4` (as `postgres`; rows are append-only, migration 081).
+- DPA template: `/legal/caudals-dpa-en.docx` and `/legal/caudals-dpa-es.docx`, generated per request from the same content.
+
 ## Troubleshooting Quick Hits
 
 - `permission denied for table ...`:
@@ -913,6 +920,8 @@ Operational env controls:
 - `extension "vector" is not available`:
   - use a Postgres image/runtime with pgvector installed,
   - verify `CREATE EXTENSION vector;` on a disposable database before applying migrations.
+- `Symlink [project]/node_modules is invalid` from Turbopack in a launch worktree (whose `node_modules` links to the main checkout):
+  - start the dev server with `npx next dev --webpack -p 4173` and run Playwright with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173`.
 - `Unable to acquire lock at .next/dev/lock` during Playwright:
   - use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000` if dev server is already running.
 - `browserType.launch: Executable doesn't exist` during Playwright:

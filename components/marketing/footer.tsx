@@ -5,14 +5,10 @@ import { publicNavigationLinks } from "@/lib/navigation/public-links";
 import { useTranslations } from "@/lib/i18n/context";
 import { LocaleLink as Link } from "@/components/i18n/locale-link";
 import { SECTOR_IDS, sectorPath } from "@/lib/public/sectors";
+import { LEGAL_DOCUMENT_IDS, LEGAL_DOCUMENT_PATHS } from "@/lib/legal/versions";
 
-/** Ids match `footer.legalLinks.*` in the message files. */
-const legalLinks = [
-  { href: "/legal/privacy", id: "privacy" },
-  { href: "/legal/terms", id: "terms" },
-  { href: "/legal/cookies", id: "cookies" },
-  { href: "/legal/notice", id: "notice" },
-] as const;
+/** Every legal and trust page; ids match `footer.legalLinks.*` in the message files. */
+const legalLinks = LEGAL_DOCUMENT_IDS.map((id) => ({ id, href: LEGAL_DOCUMENT_PATHS[id] }));
 
 const getAskAiLinks = (prompt: string) => {
   const encodedPrompt = encodeURIComponent(prompt);

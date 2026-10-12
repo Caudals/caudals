@@ -66,8 +66,12 @@ ${sectorLinks}
 
 ## Información legal
 
+- [Términos del servicio](${url("/legal/terms")}): condiciones de uso de Caudals, solo para empresas: plan gratuito, créditos, reembolsos, uso aceptable y ley española.
+- [Política de privacidad](${url("/legal/privacy")}): qué datos personales tratamos, para qué, durante cuánto tiempo y tus derechos.
+- [Contrato de encargo del tratamiento](${url("/legal/dpa")}): cómo tratamos datos personales por cuenta del cliente (artículo 28 del RGPD), con una plantilla descargable.
+- [Subencargados](${url("/legal/subprocessors")}): proveedores que tratan datos personales por cuenta de Caudals, su finalidad y su ubicación.
+- [Seguridad](${url("/legal/security")}): cómo protegemos los datos: alojamiento en Alemania, cifrado, separación entre clientes, control de acceso y conservación.
 - [Política de cookies](${url("/legal/cookies")}): uso de cookies y tecnologías similares.
-- [Política de privacidad](${url("/legal/privacy")}): tratamiento y protección de datos personales.
 - [Aviso legal](${url("/legal/notice")}): titularidad y condiciones legales del sitio.
 
 ## Versión en inglés

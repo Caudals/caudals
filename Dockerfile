@@ -27,6 +27,10 @@ ENV NODE_ENV=production
 
 COPY . .
 
+# Trust-page checks are a release gate even while the general CI workflow is
+# disabled. Never publish placeholder company data or mismatched documents.
+RUN npx vitest run lib/legal
+
 RUN npm run build
 
 FROM base AS runtime

@@ -118,6 +118,9 @@ const PAGE_PATHS: readonly (readonly [string, Record<Locale, string>])[] = [
   ["/legal/privacy", { en: "/legal/privacy", es: "/legal/privacidad" }],
   ["/legal/terms", { en: "/legal/terms", es: "/legal/terminos" }],
   ["/legal/notice", { en: "/legal/notice", es: "/legal/aviso-legal" }],
+  ["/legal/dpa", { en: "/legal/dpa", es: "/legal/encargo-de-tratamiento" }],
+  ["/legal/subprocessors", { en: "/legal/subprocessors", es: "/legal/subencargados" }],
+  ["/legal/security", { en: "/legal/security", es: "/legal/seguridad" }],
 ];
 
 const TRANSLATED_PATHS: ReadonlyMap<string, Record<Locale, string>> = new Map([

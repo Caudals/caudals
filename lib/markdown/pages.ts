@@ -13,6 +13,11 @@ import {
   type SectorId,
 } from "@/lib/public/sectors";
 import { getSectorCopy, type FailureCause } from "@/lib/sectors/content";
+import {
+  LEGAL_DOCUMENT_IDS,
+  LEGAL_DOCUMENT_PATHS,
+  type LegalDocumentId,
+} from "@/lib/legal/versions";
 import { buildMarketingUrl, getIndexableMarketingRoutes } from "@/lib/seo";
 
 /**
@@ -36,12 +41,9 @@ const STATIC_PAGES: Record<string, StaticPageCopy> = {
 };
 
 /** Legal documents render from their own content files rather than messages. */
-const LEGAL_DOCUMENTS = {
-  "/legal/cookies": "cookies",
-  "/legal/notice": "notice",
-  "/legal/privacy": "privacy",
-  "/legal/terms": "terms",
-} as const;
+const LEGAL_DOCUMENTS = new Map<string, LegalDocumentId>(
+  LEGAL_DOCUMENT_IDS.map((id) => [LEGAL_DOCUMENT_PATHS[id], id]),
+);
 
 /** Internal pathname → sector, for the sector pages. */
 const SECTOR_PAGES = new Map<string, SectorId>(
@@ -51,7 +53,7 @@ const SECTOR_PAGES = new Map<string, SectorId>(
 export function isStaticMarkdownPage(pathname: string) {
   return (
     Object.hasOwn(STATIC_PAGES, pathname) ||
-    Object.hasOwn(LEGAL_DOCUMENTS, pathname) ||
+    LEGAL_DOCUMENTS.has(pathname) ||
     pathname === SECTORS_HUB_PATH ||
     SECTOR_PAGES.has(pathname)
   );
@@ -135,7 +137,7 @@ export async function renderStaticPageMarkdown(
   let description: string;
   let body: string | undefined;
 
-  const legalId = LEGAL_DOCUMENTS[pathname as keyof typeof LEGAL_DOCUMENTS];
+  const legalId = LEGAL_DOCUMENTS.get(pathname);
   const sectorId = SECTOR_PAGES.get(pathname);
   if (sectorId) {
     const copy = getSectorCopy(sectorId, locale);
@@ -147,13 +149,12 @@ export async function renderStaticPageMarkdown(
     description = t("sectors.hubSubtitle");
     body = renderSectorsHubBody(locale);
   } else if (legalId) {
-    const { getLegalDocument } = await import("@/lib/legal/documents");
-    const document = getLegalDocument(legalId, locale);
-    title = document.title;
-    description = document.description;
-    body = document.sections
-      .map((section) => `## ${section.title}\n\n${section.body}`)
-      .join("\n\n");
+    const { renderLegalMarkdown } = await import("@/lib/legal/markdown");
+    const { getLegalEntity } = await import("@/lib/legal/entity");
+    const legal = renderLegalMarkdown(legalId, locale, getLegalEntity());
+    title = legal.title;
+    description = legal.description;
+    body = legal.body;
   } else {
     const copy = STATIC_PAGES[pathname];
     if (!copy) return null;

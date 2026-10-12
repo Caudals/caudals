@@ -11,12 +11,32 @@ const publicRoutes = [
   { path: "/legal/privacy", heading: /privacy policy/i },
   { path: "/legal/terms", heading: /terms of service/i },
   { path: "/legal/cookies", heading: /cookie policy/i },
+  { path: "/legal/notice", heading: /legal notice/i },
+  { path: "/legal/dpa", heading: /data processing agreement/i },
+  { path: "/legal/subprocessors", heading: /sub-processors/i },
+  { path: "/legal/security", heading: /^security$/i },
 ];
 
 const spanishRoutes = [
   { path: "/es/contact", heading: /solicita una evaluación|solicitar una evaluación/i },
   { path: "/es/legal/privacy", heading: /política de privacidad/i },
   { path: "/es/legal/cookies", heading: /política de cookies/i },
+  { path: "/es/legal/terminos", heading: /términos del servicio/i },
+  { path: "/es/legal/aviso-legal", heading: /aviso legal/i },
+  { path: "/es/legal/encargo-de-tratamiento", heading: /contrato de encargo del tratamiento/i },
+  { path: "/es/legal/subencargados", heading: /subencargados del tratamiento/i },
+  { path: "/es/legal/seguridad", heading: /^seguridad$/i },
+];
+
+/** Legal pages: internal path and the Spanish public path (launch L-01). */
+const legalPages = [
+  { path: "/legal/terms", es: "/legal/terminos" },
+  { path: "/legal/privacy", es: "/legal/privacidad" },
+  { path: "/legal/dpa", es: "/legal/encargo-de-tratamiento" },
+  { path: "/legal/subprocessors", es: "/legal/subencargados" },
+  { path: "/legal/security", es: "/legal/seguridad" },
+  { path: "/legal/cookies", es: "/legal/cookies" },
+  { path: "/legal/notice", es: "/legal/aviso-legal" },
 ];
 
 // Removed pre-pivot pages and marketplace surfaces.
@@ -108,6 +128,76 @@ test.describe("canonical and hreflang", () => {
       }
     }
   });
+});
+
+test.describe("legal pages (launch L-01)", () => {
+  for (const legal of legalPages) {
+    test(`${legal.path} is published in both locales with hreflang and no placeholders`, async ({ request }) => {
+      for (const [locale, publicPath] of [["en", legal.path], ["es", legal.es]] as const) {
+        const response = await request.get(`/${locale}${publicPath}`);
+        expect(response.status()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain(`<html lang="${locale}"`);
+        expect(html).toMatch(new RegExp(`rel="canonical" href="[^"]*/${locale}${publicPath}"`));
+        expect(html).toMatch(new RegExp(`hreflang="en" href="[^"]*/en${legal.path}"`, "i"));
+        expect(html).toMatch(new RegExp(`hreflang="es" href="[^"]*/es${legal.es}"`, "i"));
+        expect(html).toMatch(/hreflang="x-default"/i);
+        expect(html).not.toMatch(/\[(legal company name|NIF\/CIF|registered address|razón social|domicilio social)\]/i);
+        expect(html).not.toMatch(/B00000000|Calle Ejemplo|Tomo 0000|VA-00000/);
+        expect(html).not.toMatch(/\b(certified|compliant)\b/i);
+      }
+    });
+  }
+
+  test("the internal path redirects to the Spanish slug", async ({ page }) => {
+    await page.goto("/es/legal/dpa");
+    await expect(page).toHaveURL(/\/es\/legal\/encargo-de-tratamiento$/);
+  });
+
+  test("the footer links every legal page", async ({ page }) => {
+    await page.goto("/en/legal/terms");
+    const footer = page.locator("footer");
+    for (const legal of legalPages) {
+      await expect(footer.locator(`a[href="/en${legal.path}"]`)).toHaveCount(1);
+    }
+  });
+
+  test("the legal notice names the trade name until the company data is set", async ({ page }) => {
+    await page.goto("/en/legal/notice");
+    await expect(page.getByText(/operated under the trade name Caudals/)).toBeVisible();
+  });
+
+  test("the DPA template downloads as Word in both languages", async ({ request }) => {
+    for (const locale of ["en", "es"]) {
+      const response = await request.get(`/legal/caudals-dpa-${locale}.docx`);
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toContain("wordprocessingml");
+      expect(response.headers()["content-disposition"]).toContain(`caudals-dpa-2026-10-11-${locale}.docx`);
+    }
+    expect((await request.get("/legal/other.docx")).status()).toBe(404);
+  });
+
+  test("the sitemap lists the legal pages with their Spanish slugs", async ({ request }) => {
+    const xml = await (await request.get("/page-sitemap.xml")).text();
+    for (const legal of legalPages) {
+      expect(xml).toContain(`/en${legal.path}</loc>`);
+      expect(xml).toContain(`/es${legal.es}</loc>`);
+    }
+    const llms = await (await request.get("/llms.txt")).text();
+    expect(llms).toContain("/es/legal/encargo-de-tratamiento");
+    expect(llms).toContain("/es/legal/subencargados");
+    expect(llms).toContain("/es/legal/seguridad");
+  });
+
+  for (const width of [390, 1440]) {
+    test(`legal pages fit a ${width}px screen`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      for (const path of ["/en/legal/subprocessors", "/es/legal/terminos"]) {
+        await page.goto(path);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      }
+    });
+  }
 });
 
 test.describe("language switcher", () => {

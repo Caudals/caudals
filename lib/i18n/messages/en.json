@@ -475,11 +475,20 @@
     "linkedin": "LinkedIn",
     "legalHeading": "Legal",
     "legalLinks": {
+      "terms": {
+        "label": "Terms of Service"
+      },
       "privacy": {
         "label": "Privacy Policy"
       },
-      "terms": {
-        "label": "Terms of Service"
+      "dpa": {
+        "label": "Data Processing Agreement"
+      },
+      "subprocessors": {
+        "label": "Sub-processors"
+      },
+      "security": {
+        "label": "Security"
       },
       "cookies": {
         "label": "Cookie Policy"
@@ -664,6 +673,16 @@
     "policy": "Cookie Policy",
     "decline": "Decline",
     "accept": "Accept"
+  },
+  "legal": {
+    "kicker": "Legal",
+    "lastUpdated": "Last updated {date}",
+    "version": "Version {version}",
+    "contents": "Contents",
+    "documents": "Legal documents",
+    "related": "See also",
+    "downloadEn": "Download the template in English (Word)",
+    "downloadEs": "Download the template in Spanish (Word)"
   },
   "blog": {
     "title": "Blog",

@@ -47,10 +47,13 @@ describe("seo helpers", () => {
         "/sectors/travel",
         "/call",
         "/contact",
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/dpa",
+        "/legal/subprocessors",
+        "/legal/security",
         "/legal/cookies",
         "/legal/notice",
-        "/legal/privacy",
-        "/legal/terms",
       ]
     );
   });

@@ -324,6 +324,8 @@ Two selector techniques appear throughout and are deliberate:
 
 - The demo (`/demo`, `components/demo/demo.css`, scoped `.dm` inside the landing's `.lp` palette) uses the same language: a 760px column, one rounded input bar with the pill CTA, hairline step grid (mono numerals, an ink rule that fills as each step completes, a blinking block caret on the active one), a hairline ledger, the score as one oversized Geist numeral with a Newsreader sentence, and one white sheet for the account offer plus a pinned pill bar that leads to it. Verdict marks are ink only: outlined tick (correct), solid cross (wrong), half disc (partly right), dash (no answer), dotted ring (not scored), always with a word.
 
+- Legal pages (`components/legal/legal-page.tsx`) are reading documents: a quiet list of the legal documents beside one column held to about 70 characters a line (17px Geist, 1.7 line height, secondary ink), a sentence-case "Legal" label, the title in Geist 400, the standfirst, then "Last updated" and the version in muted text. Sections are numbered, anchored and separated by space, not rules; long documents add a two-column contents list under a hairline. Tables (sub-processors) are hairline rows on wide screens and one block per row on a phone. Secondary actions such as the DPA template downloads are ghost pills.
+
 Do not import `platform.css` here, and do not carry Newsreader into the platform.
 
 ---
@@ -332,6 +334,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-12 | Legal pages get a reading layout (document list, version date, numbered sections, contents, responsive tables) for the launch trust pages (L-01). |
 | 2026-10-05 | The public demo joins the Paper language; §13 documents its parts and verdict marks. |
 | 2026-09-27 | Sector pages and the sectors hub join the public site in the Paper language; §13 documents their order. |
 | 2026-09-26 | Public site moves to the Paper language: warm canvas, no colour accent (teal removed), Geist + Newsreader + Geist Mono, shorter landing with five illustrated steps. §13 rewritten. |

@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT ?? 4173);
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+// Match Next's normalized development origin so translated-path rewrites stay
+// internal instead of re-entering the proxy through a second HTTP request.
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,7 +28,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: `npm run dev -- --port ${port}`,
+        command: `npm run dev -- --hostname localhost --port ${port}`,
         url: baseURL,
         timeout: 120_000,
         reuseExistingServer: !process.env.CI,

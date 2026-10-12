@@ -1307,13 +1307,13 @@ test("workspace can browse, fork, edit and freeze a test set", async ({ page }) 
   const originalDocument = {
     title: "Refund window",
     scenario: { messages: [{ role: "user", content: "How long do I have to request a refund?" }] },
-    reference: { expected: "30 days" },
+    reference: { expected: "30 days", graders: [], required_claims: [], acceptable_alternatives: [], answerability: "answerable" },
   };
   const updatedDocument = {
     ...originalDocument,
     title: "Updated refund window",
     scenario: { messages: [{ role: "user", content: "When does the refund period end?" }] },
-    reference: { expected: "Thirty calendar days" },
+    reference: { ...originalDocument.reference, expected: "Thirty calendar days" },
   };
   const released = (suiteId: string, versionId: string, title: string) => ({
     suite_id: suiteId,
@@ -2044,3 +2044,44 @@ for(const reason of ["operator_paused","operator_stopped","model_invocation_fail
   if(reason==="model_invocation_failed")await expect(page.getByText("Check the model in Connect → AI models",{exact:false})).toBeVisible();
  });
 }
+
+test("self-serve sign-up requires Terms and Privacy acceptance and sends it", async ({ page }) => {
+  const bodies: Record<string, unknown>[] = [];
+  await page.route("**/api/evals/v1/signup", async (r) => {
+    const body = r.request().postDataJSON();
+    bodies.push(body);
+    if (!("password" in body)) {
+      await r.fulfill({ json: { data: { email: "ana@acme.example", workspaceName: "Acme", locale: "en" } } });
+      return;
+    }
+    await r.fulfill({ json: { data: { email: "ana@acme.example", orgId: id, evaluationId: null } } });
+  });
+  await page.route("**/api/auth/sign-in/email", (r) => r.fulfill({ json: { user: { id: "ana" }, token: "test-session" } }));
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/workspace/signup#${token}`);
+    const accept = page.getByRole("checkbox", { name: /I accept the Terms of Service and the Privacy Policy/ });
+    await expect(accept).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await expect(page.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "https://caudals.com/en/legal/terms");
+  await expect(page.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "https://caudals.com/en/legal/privacy");
+  await page.getByLabel("Full name").fill("Ana Pérez");
+  await page.getByLabel("Password", { exact: true }).fill("a-long-password-1");
+  const create = page.getByRole("button", { name: "Create account" });
+  await expect(create).toBeDisabled();
+  await page.getByRole("checkbox", { name: /I accept/ }).check();
+  await expect(create).toBeEnabled();
+  await create.click();
+  await expect(page).toHaveURL(/\/workspace\/evaluations\?orgId=/);
+  expect(bodies.at(-1)).toMatchObject({ token, name: "Ana Pérez", acceptTerms: true, locale: "en" });
+});
+
+test("self-serve sign-up without the terms flag keeps the earlier form", async ({ page }) => {
+  await page.route("**/api/evals/v1/signup", (r) =>
+    r.fulfill({ json: { data: { email: "ana@acme.example", workspaceName: "Acme", locale: "en" } } }),
+  );
+  await page.goto(`/workspace/signup?no-terms#${token}`);
+  await expect(page.getByLabel("Full name")).toBeVisible();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+});

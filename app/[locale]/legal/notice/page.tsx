@@ -1,35 +1,19 @@
-import type { Metadata } from "next";
-import { LegalPage } from "@/components/legal/legal-page";
-import { locales } from "@/lib/i18n/config";
-import { resolveLocale } from "@/lib/i18n/server";
-import { getLegalDocument } from "@/lib/legal/documents";
-import { buildPublicMetadata } from "@/lib/seo";
+import {
+  legalMetadata,
+  renderLegalPage,
+  type LegalRouteProps,
+} from "@/components/legal/legal-route";
 
 const DOCUMENT = "notice" as const;
-const PATHNAME = "/legal/notice";
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+// The owner's details are read at request time from LEGAL_ENTITY_* (launch
+// decision I-1), so publishing them needs no rebuild.
+export const dynamic = "force-dynamic";
+
+export function generateMetadata({ params }: LegalRouteProps) {
+  return legalMetadata(DOCUMENT, params);
 }
 
-type LegalPageProps = { params: Promise<{ locale: string }> };
-
-export async function generateMetadata({
-  params,
-}: LegalPageProps): Promise<Metadata> {
-  const { locale: rawLocale } = await params;
-  const locale = resolveLocale(rawLocale);
-  const { metaTitle, metaDescription } = getLegalDocument(DOCUMENT, locale);
-
-  return buildPublicMetadata({
-    title: metaTitle,
-    description: metaDescription,
-    pathname: PATHNAME,
-    locale,
-  });
-}
-
-export default async function Page({ params }: LegalPageProps) {
-  const { locale: rawLocale } = await params;
-  return <LegalPage document={DOCUMENT} locale={resolveLocale(rawLocale)} />;
+export default function Page({ params }: LegalRouteProps) {
+  return renderLegalPage(DOCUMENT, params);
 }

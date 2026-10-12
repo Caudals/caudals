@@ -8,6 +8,8 @@ import { getRun } from "@/lib/demo/store";
 import { isEvaluationHost } from "@/lib/evals/domain/routing";
 import { jsonBody, privateHeaders } from "@/lib/evals/domain/http";
 import { withTenant } from "@/lib/evals/repositories/db";
+import { recordTermsAcceptance, signupTermsRequired } from "@/lib/legal/acceptance";
+import { signupAcceptance } from "@/lib/legal/versions";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
@@ -16,17 +18,29 @@ export const runtime = "nodejs";
 let enrolling = 0;
 
 const lookup = z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) });
-const complete = lookup.extend({ name: z.string().trim().min(1).max(120), password: z.string().min(12).max(128) });
+const complete = lookup.extend({
+  name: z.string().trim().min(1).max(120),
+  password: z.string().min(12).max(128),
+  // Terms and Privacy acceptance (launch L-01): required when SIGNUP_TERMS_REQUIRED=true.
+  acceptTerms: z.boolean().optional(),
+  locale: z.enum(["en", "es"]).optional(),
+});
 
 function denied(requestId: string, status = 400) {
   return Response.json({ error: { code: "SIGNUP_UNAVAILABLE", message: "This link has expired or was already used.", request_id: requestId, retryable: false } }, { status, headers: privateHeaders });
 }
 
+function termsMissing(requestId: string) {
+  return Response.json({ error: { code: "TERMS_REQUIRED", message: "Accept the Terms of Service and the Privacy Policy to create your account.", request_id: requestId, retryable: false } }, { status: 400, headers: privateHeaders });
+}
+
 /**
  * Self-serve sign-up from the public demo (docs/ARCHITECTURE.md, Public demo).
  * `{token}` returns the address and workspace name the link was issued for;
- * `{token, name, password}` creates the account and a free-plan workspace,
- * imports the demo, and returns where to go after signing in.
+ * `{token, name, password, acceptTerms, locale}` creates the account and a
+ * free-plan workspace, records the Terms and Privacy versions accepted
+ * (required when `SIGNUP_TERMS_REQUIRED=true`), imports the demo, and returns
+ * where to go after signing in.
  */
 export async function POST(request: Request) {
   const requestId = randomUUID();
@@ -46,7 +60,8 @@ export async function POST(request: Request) {
       return Response.json({ data: { email: row.email, workspaceName: row.workspace_name, locale: row.locale }, meta: { request_id: requestId } }, { headers: privateHeaders });
     }
 
-    const { token, name, password } = complete.parse(body);
+    const { token, name, password, acceptTerms, locale } = complete.parse(body);
+    if (signupTermsRequired() && acceptTerms !== true) return termsMissing(requestId);
     const live = await withTenant({ orgId: "", actorId: "" }, async (db) => (await db.query("SELECT 1 FROM evals.self_serve_signup_lookup($1)", [digest(token)])).rows[0]);
     if (!live || enrolling >= 2) return denied(requestId, live ? 503 : 404);
     enrolling++;
@@ -54,10 +69,18 @@ export async function POST(request: Request) {
     const userId = String(createBetterAuthId({ model: "user" }));
     try {
       const passwordHash = await hashPassword(password);
-      created = await withTenant({ orgId: "", actorId: "" }, async (db) => (await db.query(
-        "SELECT org_id, demo_run_id, email FROM evals.enroll_self_serve($1, $2, $3, $4, $5)",
-        [digest(token), name, passwordHash, userId, createBetterAuthId({ model: "account" })],
-      )).rows[0]);
+      // The new person is the actor, so the acceptance is recorded for them in
+      // the same transaction that creates the account: no account without it.
+      created = await withTenant({ orgId: "", actorId: userId }, async (db) => {
+        const row = (await db.query(
+          "SELECT org_id, demo_run_id, email FROM evals.enroll_self_serve($1, $2, $3, $4, $5)",
+          [digest(token), name, passwordHash, userId, createBetterAuthId({ model: "account" })],
+        )).rows[0];
+        if (acceptTerms === true) {
+          await recordTermsAcceptance(db, { orgId: row.org_id, documents: signupAcceptance(), context: "signup", locale: locale ?? null, requestId });
+        }
+        return row;
+      });
     } finally {
       enrolling--;
     }

@@ -1,126 +1,780 @@
 {
-  "cookies": {
-    "title": "Cookie Policy",
-    "description": "Effective date: March 1, 2026. This policy describes how we use cookies and similar technologies.",
-    "metaTitle": "Cookie Policy",
-    "metaDescription": "How Caudals uses essential cookies, optional analytics and similar technologies, and how you can manage your preferences.",
+  "terms": {
+    "title": "Terms of Service",
+    "description": "The terms for using Caudals: the website, the free public test, the evaluation app and its API, the free plan and credits.",
+    "metaTitle": "Terms of Service",
+    "metaDescription": "The terms for using Caudals: business customers only, the free plan, credits and refunds, acceptable use, liability and Spanish law.",
     "sections": [
       {
-        "title": "Essential Cookies",
-        "body": "Required to run authentication, session management, language preferences, and core platform security behavior. These are always active and cannot be switched off."
+        "id": "scope",
+        "title": "About these terms",
+        "body": [
+          "These terms govern your use of Caudals: the website at caudals.com, the free public test (the demo), the evaluation application at app.caudals.com and its API (together, the Service). They are a contract between the company that operates Caudals, identified in our Legal Notice (Caudals, we or us), and the business you represent (you).",
+          "By creating an account, buying credits or using the Service, you accept these terms on behalf of that business and confirm that you are authorized to do so. If you do not accept them, do not use the Service.",
+          "Pilots, subscriptions, expert review and custom datasets are agreed in a separate order or contract. Where that order or contract differs from these terms, it prevails for the work it covers."
+        ],
+        "links": [{ "label": "Legal Notice", "href": "/legal/notice" }]
       },
       {
-        "title": "Analytics Cookies",
-        "body": "Optional, privacy-friendly analytics that help us understand product usage and improve the experience. They load only after you accept optional cookies in the cookie banner."
+        "id": "business",
+        "title": "Business customers only",
+        "body": [
+          "The Service is for businesses and professionals acting in the course of their trade, business or profession. It is not offered to consumers.",
+          "When you buy credits, we ask for your company's legal name, address and tax identification number (a Spanish NIF or an EU VAT number). You confirm that this information is accurate and that you are buying for business purposes."
+        ]
       },
       {
-        "title": "Managing Your Choices",
-        "body": "You can accept or decline optional cookies in the banner, and change your choice at any time from the “Cookie preferences” link in the footer. You can also control cookies from your browser settings."
+        "id": "service",
+        "title": "What Caudals does",
+        "body": [
+          "Caudals tests AI systems, such as assistants, chatbots, agents and internal tools built on language models. It writes test questions from documentation, asks the system those questions, grades the answers against their source, and reports what it found, with the evidence behind each result.",
+          "A report describes the answers observed in a specific run, under the conditions of that run. It is evidence, not a guarantee of how the system will behave later, and it is not a certification or a conformity assessment under any law, including the EU AI Act. Automated grading can be wrong: review the evidence before relying on a result.",
+          "We develop the Service continuously and may change its features. We will tell you in advance before we remove a paid feature you use."
+        ]
       },
       {
-        "title": "Third-Party Services",
-        "body": "Some pages embed third-party services such as the Cal.com scheduler and payment providers, which may set their own cookies governed by their respective policies."
-      }
-    ]
-  },
-  "notice": {
-    "title": "Legal Notice",
-    "description": "Effective date: March 1, 2026. Ownership and legal information for this website under Spanish Law 34/2002 (LSSI-CE).",
-    "metaTitle": "Legal Notice",
-    "metaDescription": "Legal notice, ownership, intellectual property and terms of use for the Caudals website under Spanish law and the LSSI-CE.",
-    "sections": [
-      {
-        "title": "Site Owner",
-        "body": "This website is operated by Caudals ([legal company name]), tax ID [NIF/CIF], with registered office at [registered address], registered in the [Commercial Registry] [registry details]. Contact: hello@caudals.com."
+        "id": "demo",
+        "title": "The free public test",
+        "body": [
+          "The public test at caudals.com/demo needs no account. It reads up to six public pages of the website you name, writes eight questions from them, asks the system you point it to, and grades the answers. Each visitor can complete one test a day.",
+          "Only use the public test on a system you own or are authorized to test, with a public website as its source. Do not enter confidential material. If you enter an API key or request headers to reach your system, we use them only for that test and never store them.",
+          "The test's material and results are deleted seven days after the test, unless you create an account from its report, in which case they are copied into your new workspace. Our own AI model normally runs the test. When it is busy or unavailable, the public page text, the questions and the answers may be processed by a commercial AI model provider, as described in the Privacy Policy."
+        ],
+        "links": [{ "label": "Privacy Policy", "href": "/legal/privacy" }]
       },
       {
-        "title": "Purpose",
-        "body": "Caudals evaluates companies' AI systems against test sets built from their documentation and domain experts, delivers scored reports, and builds the domain-specific data that closes the gaps it finds."
+        "id": "accounts",
+        "title": "Accounts and workspaces",
+        "items": [
+          "Give accurate information, keep your password and any API tokens secret, and tell us at hello@caudals.com if you suspect unauthorized use.",
+          "You are responsible for the activity in your workspaces, including that of the members you invite, and for the roles you give them.",
+          "A company may hold one free workspace. We may refuse, merge or close free workspaces created to get around the free plan's limits.",
+          "You can close your account or delete a workspace at any time. Deleting a workspace deletes its content as described in the Privacy Policy."
+        ]
       },
       {
-        "title": "Terms of Use",
-        "body": "Access to and use of this website implies acceptance of these terms together with our Terms of Service, Privacy Policy, and Cookie Policy. Users agree to make lawful use of the website and its content."
+        "id": "free-plan",
+        "title": "The free plan",
+        "body": [
+          "A free workspace currently includes one system, up to 50 questions per test set, three runs a month and one run at a time, using our own AI model. Where a plan includes a monthly credit allowance, the allowance has no cash value and expires at the end of each calendar month.",
+          "The app shows your current limits. We may change the free plan's limits by telling you in the app at least 30 days in advance. The free plan comes without any commitment on availability or support response times."
+        ]
       },
       {
-        "title": "Intellectual Property",
-        "body": "The contents of this website, including texts, designs, logos, and software, are owned by Caudals or its licensors and are protected by intellectual and industrial property law. Reproduction without authorization is prohibited."
+        "id": "credits",
+        "title": "Credits",
+        "body": [
+          "Paid use of the Service is measured in credits. One credit is worth €0.01, excluding VAT. The app shows the credit rates per question, per page read and per million tokens for each AI model, and an estimate before each run. A run uses the rates in force when it starts."
+        ],
+        "items": [
+          "You are charged only for completed work. Failed, retried and cancelled calls are not charged, and credits held for a run are released when they are not used.",
+          "Purchased credits, including any bonus credits that came with the purchase, expire 24 months after the purchase.",
+          "Promotional credits, such as grants, codes and welcome credits, expire 30 days after they are issued, unless the offer states a different date.",
+          "A monthly allowance expires at the end of the calendar month, and an allowance under a contract ends with the contract period.",
+          "The credits that expire first are used first.",
+          "Credits have no cash value. They cannot be transferred between workspaces, resold or exchanged for money, and they are not electronic money."
+        ],
+        "after": [
+          "We may lower credit rates at any time. We announce increases at least 30 days in advance, in the app and by email to the owners of workspaces that used the affected model in the previous 90 days.",
+          "You can set monthly and per-run spending caps. If you turn on automatic top-ups, you authorize us to charge your saved card for the pack you chose whenever your balance falls below your threshold, up to the monthly limit you set. You can turn automatic top-ups off at any time."
+        ]
       },
       {
+        "id": "payment",
+        "title": "Payment, invoices and taxes",
+        "items": [
+          "Card payments are processed by Stripe. We never see or store your full card details.",
+          "Prices exclude VAT. We add Spanish VAT (IVA) for businesses established in Spain. For businesses in other EU countries with a valid VAT number, the reverse-charge rule applies. For businesses outside the EU, the service is not subject to Spanish VAT.",
+          "We issue an invoice for every purchase. Purchases of €1,000 or more can be quoted, invoiced and paid by bank transfer.",
+          "If a payment is disputed or reversed, we may suspend the workspace and hold its remaining credits until the dispute is resolved."
+        ]
+      },
+      {
+        "id": "refunds",
+        "title": "Refunds",
+        "body": [
+          "You can ask for a refund of a credit purchase within 14 days of buying it, as long as none of the credits from that purchase have been used. We refund the amount paid to the original payment method and issue a corrective invoice. To ask for a refund, write to hello@caudals.com.",
+          "Apart from that, purchased credits are not refundable, except where the law requires otherwise. Bonus, promotional and allowance credits are never refundable."
+        ]
+      },
+      {
+        "id": "acceptable-use",
+        "title": "Acceptable use",
+        "body": [
+          "These rules protect the systems you test, the people who use them and the Service itself. You agree to follow them:"
+        ],
+        "items": [
+          "Only test AI systems that you own or operate, or that their owner has authorized you to test.",
+          "Ask ordinary questions: the kind of question a real user of that system would ask. Do not use the Service for load testing or to send large volumes of requests to a system.",
+          "Do not run adversarial tests, such as prompt injection, jailbreaks, attempts to extract a system's instructions or attempts to get around its safeguards, against any system without its owner's prior written authorization. The self-serve Service does not run adversarial tests; we only do so in a managed engagement with that authorization in place.",
+          "Do not get around CAPTCHAs, logins, paywalls, rate limits or other technical measures, and respect the terms and robots rules of the websites you name.",
+          "Only upload documents and connect sources that you have the right to use. Leave out personal data the test does not need, and do not upload special categories of personal data, such as health data, unless we have agreed it in writing.",
+          "Do not use the Service to break the law, infringe anyone's rights or harass anyone. Do not try to access other customers' data, probe or overload the Service, or copy or resell it without our agreement."
+        ],
+        "after": [
+          "We may limit the number of runs against a single website, pause a run, or suspend an account that breaks these rules. Where we can, we will tell you why first."
+        ]
+      },
+      {
+        "id": "content",
+        "title": "Your content",
+        "body": [
+          "You keep all rights in the material you bring to the Service: your documents and sources, the questions you write, your connection details and your system's answers (your content). You allow us to host, copy and process your content only to provide the Service to you, to keep it secure and to prevent abuse.",
+          "The test sets, results and reports produced for you are yours to use within your business and to share with your advisers, partners and authorities. We do not share your content with other customers, and we do not use it to train AI models.",
+          "We may use aggregated, anonymized metrics about how the Service performs, such as run durations and error rates, to operate and improve it. They never identify you, your systems or your content.",
+          "You are responsible for having the rights to your content and the authority to test the systems you connect."
+        ]
+      },
+      {
+        "id": "personal-data",
+        "title": "Personal data",
+        "body": [
+          "When your content includes personal data, we process it on your behalf as a processor, under the Data Processing Agreement, which forms part of these terms. The Privacy Policy explains how we handle the personal data we process for our own purposes, such as account and billing data."
+        ],
+        "links": [
+          { "label": "Data Processing Agreement", "href": "/legal/dpa" },
+          { "label": "Privacy Policy", "href": "/legal/privacy" }
+        ]
+      },
+      {
+        "id": "our-rights",
+        "title": "Our software and confidentiality",
+        "body": [
+          "The Service, its software, methods, rubrics, templates and documentation belong to Caudals or its licensors. These terms give you the right to use the Service while they apply, and no other rights. If you send us suggestions, we may use them without any obligation to you.",
+          "Each party keeps the other's non-public information confidential, uses it only for the purposes of these terms, and shares it only with people who need it and are bound by similar duties."
+        ]
+      },
+      {
+        "id": "third-parties",
+        "title": "Systems and providers outside our control",
+        "body": [
+          "The systems you test and the services they rely on belong to you or to third parties. We are not responsible for their availability or their answers, or for changes to them that affect a test.",
+          "When your workspace chooses a commercial AI model, your content is processed by that model's provider, as listed on our sub-processors page."
+        ],
+        "links": [{ "label": "Sub-processors", "href": "/legal/subprocessors" }]
+      },
+      {
+        "id": "availability",
+        "title": "Availability and support",
+        "body": [
+          "We work to keep the Service available and secure, but we do not guarantee uninterrupted operation unless an order says otherwise. We may interrupt the Service for maintenance, preferably at quiet times, and we announce longer planned interruptions in advance. Support is by email at hello@caudals.com."
+        ]
+      },
+      {
+        "id": "liability",
         "title": "Liability",
-        "body": "Caudals is not liable for damages arising from the misuse of the website or from temporary unavailability due to maintenance or technical causes, to the extent permitted by applicable law."
+        "body": [
+          "Except as these terms expressly state, the Service is provided as it is. We do not promise that results will be free of errors or that a system that scores well will keep answering correctly. You are responsible for the decisions you take on the basis of a report.",
+          "Neither party is liable for indirect or consequential loss, such as lost profits, revenue, business or goodwill. Our total liability for all claims arising from these terms in any 12-month period is limited to the greater of the amounts you paid us for the Service in that period and €100.",
+          "You will compensate us for third-party claims caused by systems you tested without authorization or by content you provided without the necessary rights.",
+          "Nothing in these terms limits liability for fraud, wilful misconduct or gross negligence, or any other liability that the law does not allow to be limited."
+        ]
       },
       {
-        "title": "Applicable Law and Jurisdiction",
-        "body": "This legal notice is governed by Spanish law. Any dispute relating to the website will be subject to the competent courts of Spain."
+        "id": "termination",
+        "title": "Suspension and ending these terms",
+        "body": [
+          "You can stop using the Service at any time. We may suspend or end your access if you seriously or repeatedly break these terms, do not pay, put the Service or other people at risk, or if the law requires it. Where reasonable, we will warn you first and give you time to put things right.",
+          "When access ends, unused credits lapse, without affecting any refund you are entitled to under these terms. You can export your reports and results before then; afterwards, we delete your content as described in the Privacy Policy."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes to these terms",
+        "body": [
+          "We may update these terms. We will tell you about material changes at least 30 days before they take effect, by email or in the app. If you continue to use the Service after that date, the new terms apply. The version and date at the top of this page identify the terms in force."
+        ]
+      },
+      {
+        "id": "law",
+        "title": "Governing law and courts",
+        "body": [
+          "These terms are governed by Spanish law. The courts of the place of Caudals' registered office have jurisdiction over any dispute, unless the law requires otherwise.",
+          "These terms are published in Spanish and English. If the two versions differ, the Spanish version prevails. Questions about these terms: hello@caudals.com."
+        ]
       }
     ]
   },
   "privacy": {
     "title": "Privacy Policy",
-    "description": "Effective date: March 1, 2026. This policy explains how Caudals handles personal data across platform operations.",
+    "description": "How Caudals handles personal data on its website, in the free public test and in the evaluation app, how long we keep it, and your rights.",
     "metaTitle": "Privacy Policy",
-    "metaDescription": "How Caudals collects, uses, protects and retains personal data, the legal bases for processing, and the rights of data subjects.",
+    "metaDescription": "How Caudals collects, uses and protects personal data: the free public test, accounts, workspaces, sub-processors, international transfers, retention and your rights.",
     "sections": [
       {
-        "title": "Data We Collect",
-        "body": "We collect account details, profile information, dataset workflow activity, support communication, and payment operation metadata needed to provide the platform."
+        "id": "controller",
+        "title": "Who is responsible for your data",
+        "body": [
+          "Caudals, the company identified in our Legal Notice, is the controller of the personal data described in this policy. For anything related to your data, write to privacy@caudals.com.",
+          "When a customer uses Caudals to test its own AI system, the personal data in its documents, its questions and its system's answers is processed on that customer's behalf. For that data, the customer is the controller and Caudals is its processor under the Data Processing Agreement, and the customer's own privacy notice applies."
+        ],
+        "links": [
+          { "label": "Legal Notice", "href": "/legal/notice" },
+          { "label": "Data Processing Agreement", "href": "/legal/dpa" }
+        ]
       },
       {
-        "title": "How We Use Data",
-        "body": "We use data to operate buyer, supplier, and internal admin workflows, support commercial operations, secure the platform, and improve service reliability."
+        "id": "data",
+        "title": "What we collect",
+        "body": ["We collect only what each activity needs."],
+        "items": [
+          "Website: the technical data needed to deliver pages and protect the site, such as IP address, browser and the pages requested. Optional analytics only if you accept them in the cookie banner. We also record which steps of the public test and of sign-up are completed, linked to a random session identifier, to measure and improve them.",
+          "Free public test: the addresses of the system and website you name, the public pages we read, the questions, your system's answers, the grades and the report. To apply the limit of one test a day, we keep a keyed hash of your IP address, never the address itself. API keys and headers you enter stay in memory during the test only and are never stored. If you ask us to email you the report, we keep your email address encrypted only until the report is sent.",
+          "Account: your name, email address, password (stored only as a salted hash), workspace name, language, sign-in sessions with IP address and browser type, any two-factor settings, and a record of which version of the Terms and of this policy you accepted, and when.",
+          "Workspace: the documents, websites, questions, answers and reports you work with. We process this data for you as a processor, as explained above.",
+          "Contact and meetings: the details you give in the contact form or when you book a call, such as your name, work email, company, role and message.",
+          "Newsletter: your email address and subscription status.",
+          "Billing, when you buy credits: your company's name, tax ID, address and billing email, and your purchase history. Card details go directly to Stripe and never reach us.",
+          "Business contacts: if we think your company could benefit from Caudals, we may hold your professional details, such as name, role, company and work email, taken from public sources, such as company websites and professional networks, or from business-data providers.",
+          "Support: what you write to us and our replies."
+        ]
       },
       {
-        "title": "Legal Basis",
-        "body": "We process personal data to perform our contract with you, to pursue our legitimate interest in operating and securing the platform, to comply with legal obligations, and on the basis of your consent where required."
+        "id": "purposes",
+        "title": "Why we use it and on what legal basis",
+        "items": [
+          "To provide the public test, your account and the Service you asked for: the performance of a contract, or steps you asked for before entering into one (article 6.1.b GDPR).",
+          "To keep the Service secure, prevent abuse and apply usage limits: our legitimate interest in protecting the Service and its users (article 6.1.f GDPR).",
+          "To invoice, keep accounting and tax records and answer authorities: our legal obligations (article 6.1.c GDPR).",
+          "To keep a record of the terms you accepted: our legal obligations and our legitimate interest in being able to prove the agreement.",
+          "Optional website analytics and the newsletter: your consent (article 6.1.a GDPR), which you can withdraw at any time.",
+          "To measure and improve the public test and sign-up with our own event records: our legitimate interest in improving the Service.",
+          "To answer inquiries, hold meetings and contact businesses that may benefit from Caudals: our legitimate interest in developing our business. You can object at any time and we will stop."
+        ],
+        "after": [
+          "We do not sell personal data, and we do not use your content to train AI models. We do not take decisions with legal or similarly significant effects on people based solely on automated processing: our automated grading assesses the answers of AI systems, not people."
+        ]
       },
       {
-        "title": "Data Sharing and International Transfers",
-        "body": "We share data only with service providers required to run platform operations (for example infrastructure, email, or payment partners) under contractual safeguards. Where data leaves the European Economic Area, we rely on adequacy decisions or standard contractual clauses."
+        "id": "models",
+        "title": "AI models",
+        "body": [
+          "By default, test questions are written and answers are graded by an AI model that runs on hardware Caudals operates, so the material does not leave our infrastructure.",
+          "In the free public test, when our own model is busy or unavailable, the text of the public pages we read, the questions and your system's answers may be sent to a commercial AI model provider to finish the test. Only that test material is sent, never the API keys you entered.",
+          "In a workspace, your content is sent to a commercial AI model provider only if your workspace chooses one of those models. The providers we use are listed on the sub-processors page."
+        ],
+        "links": [{ "label": "Sub-processors", "href": "/legal/subprocessors" }]
       },
       {
-        "title": "Security and Retention",
-        "body": "We apply baseline controls including rate limiting, upload guardrails, audit logs, and webhook replay protection. Data is retained according to legal, contractual, and operational requirements."
+        "id": "recipients",
+        "title": "Who we share it with",
+        "body": [
+          "We share personal data only with service providers that process it on our behalf under contract, such as our hosting, email, payment, error-monitoring and AI model providers, and with authorities when the law requires it. The full list, with what each provider does and where, is on the sub-processors page.",
+          "When you order expert review or a custom dataset, vetted freelance domain experts engaged by Caudals see only the redacted material their task needs, under confidentiality, data-processing and intellectual-property terms."
+        ]
       },
       {
-        "title": "Your Rights",
-        "body": "You can request access, rectification, erasure, portability, restriction, or object to processing of your personal data, and withdraw consent at any time, by contacting privacy@caudals.com. You may also lodge a complaint with your data protection authority."
+        "id": "transfers",
+        "title": "International transfers",
+        "body": [
+          "Our application, databases and files are hosted in Germany. Some providers are based in, or may process data in, the United States or other countries outside the European Economic Area. In those cases we rely on an adequacy decision, such as the EU–US Data Privacy Framework for providers that participate in it, or on the European Commission's standard contractual clauses."
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "How long we keep it",
+        "items": [
+          "Free public test: deleted seven days after the test, unless you create an account from it.",
+          "Screenshots captured while testing website chats: deleted after seven days.",
+          "Workspace content: kept while the workspace exists. When a workspace is deleted, our deletion process removes its content from our live systems.",
+          "Routine daily backups are encrypted and retained for about a week. Restricted recovery or incident archives may be retained longer for their documented purpose.",
+          "Account data: kept while your account is open, and deleted when it is closed, except for the records we must keep.",
+          "Billing and tax records: kept for the periods required by Spanish commercial and tax law, generally six years.",
+          "Records of accepted terms: kept while your account exists and afterwards for as long as a claim relating to the agreement could be brought.",
+          "Contact, meeting and business-contact details: kept for as long as we need them to follow up, and deleted when you ask us to.",
+          "Newsletter: kept until you unsubscribe."
+        ]
+      },
+      {
+        "id": "security",
+        "title": "Security",
+        "body": [
+          "We protect personal data with technical and organizational measures appropriate to the risk. Our security page describes them."
+        ],
+        "links": [{ "label": "Security", "href": "/legal/security" }]
+      },
+      {
+        "id": "rights",
+        "title": "Your rights",
+        "body": [
+          "You can ask us for access to your personal data, and to rectify, erase or port it, to restrict its processing or to object to it, and you can withdraw any consent you gave. Write to privacy@caudals.com. We answer within one month.",
+          "If the data belongs to a customer's workspace, we pass your request to that customer and help them answer it.",
+          "You can also complain to the Spanish Data Protection Agency (Agencia Española de Protección de Datos, https://www.aepd.es) or to the authority where you live or work."
+        ]
+      },
+      {
+        "id": "children",
+        "title": "Children",
+        "body": [
+          "The Service is for businesses and is not directed at children. We do not knowingly collect children's personal data."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes to this policy",
+        "body": [
+          "We publish any change on this page with a new date. If a change materially affects how we use personal data you have given us, we will tell you by email or in the app before it takes effect."
+        ]
       }
     ]
   },
-  "terms": {
-    "title": "Terms of Service",
-    "description": "Effective date: March 1, 2026. These terms govern use of Caudals products and services.",
-    "metaTitle": "Terms of Service",
-    "metaDescription": "The terms governing access to and use of Caudals, the responsibilities of the parties, licences, payments and applicable law.",
+  "dpa": {
+    "title": "Data Processing Agreement",
+    "description": "How Caudals processes personal data on your behalf when you use the evaluation app, and a template you can download for signature.",
+    "metaTitle": "Data Processing Agreement (DPA)",
+    "metaDescription": "Summary of the Caudals data processing agreement under article 28 GDPR: roles, scope, security, sub-processors, transfers, breaches and deletion, with a downloadable template.",
     "sections": [
       {
-        "title": "Platform Use",
-        "body": "You agree to use Caudals only for lawful data operations and to avoid abusive, fraudulent, or harmful activity."
+        "id": "applies",
+        "title": "When it applies",
+        "body": [
+          "When you use Caudals to test your AI system, your documents, your questions and your system's answers can contain personal data, such as names in support conversations. For that data you are the controller and Caudals is your processor, under article 28 of the General Data Protection Regulation (GDPR) and the Spanish Data Protection Act (LOPDGDD).",
+          "The data processing agreement forms part of our Terms of Service, so it applies to every workspace without a signature. If your procurement process needs a signed copy, download the template below, complete your company's details and send it to privacy@caudals.com. We will countersign it."
+        ],
+        "links": [{ "label": "Terms of Service", "href": "/legal/terms" }]
       },
       {
-        "title": "Account Responsibilities",
-        "body": "You are responsible for maintaining account security, accurate profile information, and authorized use of your workspace."
+        "id": "scope",
+        "title": "What it covers",
+        "items": [
+          "Subject matter: hosting and processing your content to test your AI systems and produce reports, for as long as you use the Service.",
+          "Nature and purpose: storing your content, reading documents and websites, sending questions to your system, recording and grading its answers, writing reports and, when you order it, expert review.",
+          "Personal data: whatever your documents, websites and your system's answers contain, typically names, contact details and the content of conversations, plus the names and email addresses of your workspace members.",
+          "Data subjects: your customers and users, your staff, and other people mentioned in your material."
+        ]
       },
       {
-        "title": "Buyer and Supplier Conduct",
-        "body": "Buyers must provide clear project requirements and lawful use cases. Suppliers must provide lawful, permissioned, and policy-compliant data access."
+        "id": "commitments",
+        "title": "What we commit to",
+        "items": [
+          "Process the data only on your documented instructions, which are this agreement and your use of the Service, and tell you if an instruction appears to break data protection law.",
+          "Make sure everyone who processes it, including the freelance experts we engage, is bound by confidentiality.",
+          "Apply the security measures described on our security page.",
+          "Help you answer requests from data subjects and, where relevant, with impact assessments and consultations with supervisory authorities.",
+          "Notify you without undue delay after becoming aware of a personal data breach affecting your data, with the information you need to meet your own obligations.",
+          "Delete your data when you delete your workspace or our contract ends, or return it to you first if you ask, unless the law requires us to keep it.",
+          "Give you the information needed to show that we meet these obligations, and allow audits, including inspections, by you or an auditor you appoint, with reasonable notice."
+        ],
+        "links": [{ "label": "Security", "href": "/legal/security" }]
       },
       {
-        "title": "Intellectual Property",
-        "body": "Caudals retains all rights to the platform and its content. Datasets and deliverables are licensed under the terms agreed in each order or contract."
+        "id": "subprocessors",
+        "title": "Sub-processors",
+        "body": [
+          "You authorize us to use the sub-processors listed on our sub-processors page. Each of them is bound by data protection terms equivalent to these. We announce a new sub-processor on that page, and by email to workspace owners, at least 30 days before it starts processing your data. You can object, and if we cannot resolve your objection, you can stop using the affected service and end the agreement."
+        ],
+        "links": [{ "label": "Sub-processors", "href": "/legal/subprocessors" }]
       },
       {
-        "title": "Payments and Payouts",
-        "body": "Funding and payouts are processed through integrated payment providers. Processing timelines, reversals, and disputes follow provider and platform rules."
+        "id": "transfers",
+        "title": "International transfers",
+        "body": [
+          "Your workspace data is hosted in Germany. When a sub-processor processes it outside the European Economic Area, we rely on an adequacy decision or on the European Commission's standard contractual clauses."
+        ]
       },
       {
-        "title": "Liability and Governing Law",
-        "body": "The platform is provided on an as-is basis to the extent permitted by law. These terms are governed by the laws of Spain, and disputes are subject to the competent courts of Spain."
-      },
-      {
-        "title": "Termination",
-        "body": "We may suspend or terminate accounts that violate these terms or create legal, security, or operational risk."
+        "id": "template",
+        "title": "Download the template",
+        "body": [
+          "The template sets out these terms in full, with annexes that describe the processing, our security measures and our sub-processors. It is an editable Word document, in English or Spanish, and its version matches this page."
+        ],
+        "download": true
       }
     ]
+  },
+  "subprocessors": {
+    "title": "Sub-processors",
+    "description": "The service providers that process personal data on behalf of Caudals: what each one does, what data it handles and where.",
+    "metaTitle": "Sub-processors",
+    "metaDescription": "The list of Caudals sub-processors: hosting, network, email, payments, error monitoring and AI model providers, with their purpose, data and location.",
+    "sections": [
+      {
+        "id": "list",
+        "title": "Current sub-processors",
+        "body": [
+          "These providers may process personal data when you use Caudals. The last column says whether a provider can receive content from your workspace."
+        ],
+        "table": {
+          "columns": ["Provider", "What it does", "Personal data", "Location", "Workspace content"],
+          "rows": [
+            ["Hetzner Online GmbH", "Hosting of the application, databases, file storage and backups, on servers Caudals operates", "All data held in the Service", "Germany (EU)", "Yes"],
+            ["Cloudflare, Inc.", "Domain name service, encryption in transit and protection of our websites against attacks", "Network traffic, including IP addresses and requests", "Global network, United States company", "In transit only"],
+            ["Amazon Web Services EMEA SARL", "Hosting of our self-hosted website analytics and our sales tools, on a server Caudals operates", "Website analytics, with your consent, and business contact details", "Germany (EU)", "No"],
+            ["Resend", "Delivery of account, notification and newsletter emails", "Email addresses and email content", "United States", "Only what a notification contains, such as the name of an evaluation"],
+            ["Sentry (Functional Software, Inc.)", "Error monitoring for the application", "Technical error reports, configured to exclude personal data by default", "EU data region (Germany)", "No"],
+            ["Stripe Payments Europe, Ltd.", "Card payments for credit purchases and fraud screening", "Company and billing contact details, payment details", "Ireland (EU), with processing in the United States", "No"],
+            ["Google (Gemini API)", "AI model: fallback for the free public test when our own model is busy, and a model your workspace can choose", "Public page text, questions and answers from the public test; workspace content only if your workspace chooses a Google model", "United States and other countries", "Only if your workspace chooses it"],
+            ["OpenRouter, Inc.", "Access to AI models from several providers, which receive the request: fallback for the free public test, and models your workspace can choose", "Public page text, questions and answers from the public test; workspace content only if your workspace chooses a model through OpenRouter", "United States and other countries", "Only if your workspace chooses it"],
+            ["NVIDIA (API catalog)", "AI models your workspace can choose", "Workspace content, only if your workspace chooses an NVIDIA-hosted model", "United States", "Only if your workspace chooses it"],
+            ["Cal.com, Inc.", "Booking of meetings from our website", "Name, email address and the details you add to a booking", "United States", "No"]
+          ]
+        }
+      },
+      {
+        "id": "own",
+        "title": "Run by Caudals itself",
+        "body": [
+          "These parts of the Service run on infrastructure Caudals operates, with no provider involved beyond the hosting listed above:"
+        ],
+        "items": [
+          "Our default AI model, which runs on a GPU server Caudals operates and connects to our hosting over a private encrypted tunnel.",
+          "The database, file storage, browser workers and backups.",
+          "Our website analytics, which we host ourselves."
+        ]
+      },
+      {
+        "id": "experts",
+        "title": "Freelance domain experts",
+        "body": [
+          "When you order expert review or a custom dataset, vetted freelance domain experts engaged by Caudals work on redacted material from your workspace. They see only what their task needs and work under confidentiality, data-processing and intellectual-property assignment terms. We tell you who they are on request."
+        ]
+      },
+      {
+        "id": "transfers",
+        "title": "Transfers outside the European Economic Area",
+        "body": [
+          "For providers outside the European Economic Area, transfers rely on an adequacy decision, such as the EU–US Data Privacy Framework where the provider participates in it, or on the European Commission's standard contractual clauses."
+        ]
+      },
+      {
+        "id": "changes",
+        "title": "Changes to this list",
+        "body": [
+          "We update this page before a new sub-processor starts processing personal data. When it will process workspace content, we also email workspace owners at least 30 days in advance. To object, write to privacy@caudals.com."
+        ]
+      }
+    ]
+  },
+  "security": {
+    "title": "Security",
+    "description": "How Caudals protects the data you entrust to it: where it is stored, how it is encrypted and kept separate, who can access it and how long we keep it.",
+    "metaTitle": "Security",
+    "metaDescription": "How Caudals protects customer data: hosting in Germany, encryption, separation between customers with row-level security, access control, safe testing of AI systems, retention and backups.",
+    "sections": [
+      {
+        "id": "approach",
+        "title": "Our approach",
+        "body": [
+          "This page describes the security measures in place today. It is a plain description of what we do, not a certification. If your team needs more detail for a security review, write to hello@caudals.com."
+        ]
+      },
+      {
+        "id": "hosting",
+        "title": "Where your data is stored",
+        "items": [
+          "The application, database, file storage and backups run on servers Caudals operates at Hetzner, in Germany.",
+          "By default, test questions are written and answers graded by an AI model that runs on our own GPU server, connected to our hosting over a private encrypted tunnel. Your content goes to a commercial AI provider only if your workspace chooses one, or in the free public test when our model is busy.",
+          "The database and file storage are not reachable from the public internet."
+        ]
+      },
+      {
+        "id": "encryption",
+        "title": "Encryption",
+        "items": [
+          "All traffic to our websites and API uses HTTPS (TLS).",
+          "The credentials you give us to reach your systems, such as API keys and headers, are encrypted by the application with AES-256-GCM before they are stored, bound to your workspace, and decrypted only by the worker that needs them. Credentials entered in the free public test are never stored.",
+          "Passwords are stored only as salted hashes.",
+          "Backups are encrypted with AES-256."
+        ]
+      },
+      {
+        "id": "isolation",
+        "title": "Separation between customers",
+        "items": [
+          "Each workspace's data is kept separate in the database with row-level security. The application connects with a restricted role that cannot bypass those rules, and every background job runs within the scope of its own workspace.",
+          "Reports are shared only through private links, which you can set to expire and revoke at any time.",
+          "Experts working on an order see only the redacted material their task needs."
+        ]
+      },
+      {
+        "id": "access",
+        "title": "Access control",
+        "items": [
+          "Workspace members have owner, editor or viewer roles, and the server checks the person's role for every action.",
+          "Caudals staff access to customer workspaces is limited to platform roles and recorded in an audit log.",
+          "Our servers can be administered only over a private network with key-based authentication. There is no public SSH or database access."
+        ]
+      },
+      {
+        "id": "testing",
+        "title": "Testing other systems safely",
+        "items": [
+          "Website chats are tested in an isolated browser worker whose network traffic goes through a proxy that allows only public HTTPS destinations.",
+          "The free public test checks every address and redirect, limits the time and size of every request, and reads at most six pages of a site.",
+          "We ask ordinary questions only. We do not get around CAPTCHAs or logins: when a website needs a person, the run waits for one. We never run adversarial tests without the written authorization of the system's owner."
+        ]
+      },
+      {
+        "id": "retention",
+        "title": "Keeping only what is needed",
+        "items": [
+          "Free public tests are deleted after seven days, and so are the screenshots captured while testing website chats.",
+          "Deleting a workspace revokes its share links and credentials, stops its jobs and deletes its content from our live systems, keeping only a minimal record that the deletion took place.",
+          "Routine daily backups are encrypted and retained for about a week. Restricted recovery archives may be retained longer. We have rehearsed restoration in an isolated environment."
+        ]
+      },
+      {
+        "id": "operations",
+        "title": "Monitoring and development",
+        "items": [
+          "Error monitoring can be enabled with Sentry in its EU data region. The integration excludes personal data by default.",
+          "Public endpoints are rate limited, and the free public test uses a proof-of-work check instead of a third-party CAPTCHA.",
+          "Important actions, such as changes to roles, budgets, shares and deletions, are recorded in an audit log.",
+          "Our release process includes type checks, tests and checks for sensitive data. Dependencies are checked for updates."
+        ]
+      },
+      {
+        "id": "report",
+        "title": "Reporting a vulnerability",
+        "body": [
+          "If you find a security issue, write to hello@caudals.com with “Security” in the subject. Please give us reasonable time to fix it before disclosing it, and do not access other people's data or disrupt the Service while you investigate. We will acknowledge your report and keep you informed."
+        ]
+      }
+    ]
+  },
+  "cookies": {
+    "title": "Cookie Policy",
+    "description": "How we use cookies and similar technologies on our websites, and how you can manage your choices.",
+    "metaTitle": "Cookie Policy",
+    "metaDescription": "How Caudals uses essential cookies, optional analytics and similar technologies, and how you can manage your preferences.",
+    "sections": [
+      {
+        "id": "essential",
+        "title": "Essential cookies",
+        "body": [
+          "Required to run authentication, session management, language preferences, and core platform security behavior. These are always active and cannot be switched off."
+        ]
+      },
+      {
+        "id": "analytics",
+        "title": "Analytics cookies",
+        "body": [
+          "Optional, privacy-friendly analytics that help us understand product usage and improve the experience. They load only after you accept optional cookies in the cookie banner."
+        ]
+      },
+      {
+        "id": "choices",
+        "title": "Managing your choices",
+        "body": [
+          "You can accept or decline optional cookies in the banner, and change your choice at any time from the “Cookie preferences” link in the footer. You can also control cookies from your browser settings."
+        ]
+      },
+      {
+        "id": "third-parties",
+        "title": "Third-party services",
+        "body": [
+          "Some pages embed third-party services such as the Cal.com scheduler and payment providers, which may set their own cookies governed by their respective policies."
+        ]
+      }
+    ]
+  },
+  "notice": {
+    "title": "Legal Notice",
+    "description": "Who operates this website and the Caudals service, under the Spanish Information Society Services Act (Law 34/2002, LSSI-CE).",
+    "metaTitle": "Legal Notice",
+    "metaDescription": "Legal notice for the Caudals website: owner, purpose, conditions of use, intellectual property and applicable law under the LSSI-CE.",
+    "entity": {
+      "registered": "This website and the Caudals service are operated by {name}, with tax identification number (NIF) {nif} and registered office at {address}.",
+      "registry": "It is registered in {registry}.",
+      "pending": "This website and the Caudals service are operated under the trade name Caudals. The company's legal name, tax identification number (NIF), registered office and commercial registry details will be published on this page once its registration is complete."
+    },
+    "sections": [
+      {
+        "id": "owner",
+        "title": "Owner of the website",
+        "body": [
+          "{entity}",
+          "Contact: hello@caudals.com. Data protection: privacy@caudals.com."
+        ]
+      },
+      {
+        "id": "purpose",
+        "title": "Purpose",
+        "body": [
+          "Caudals tests companies' AI systems with questions drawn from their documentation, delivers scored, evidence-backed reports, and builds the domain-specific data that closes the gaps it finds."
+        ]
+      },
+      {
+        "id": "use",
+        "title": "Use of the website",
+        "body": [
+          "By using this website you agree to this notice and to use the website lawfully. The Caudals service is governed by the Terms of Service, and personal data by the Privacy Policy and the Cookie Policy."
+        ],
+        "links": [
+          { "label": "Terms of Service", "href": "/legal/terms" },
+          { "label": "Privacy Policy", "href": "/legal/privacy" },
+          { "label": "Cookie Policy", "href": "/legal/cookies" }
+        ]
+      },
+      {
+        "id": "ip",
+        "title": "Intellectual property",
+        "body": [
+          "The contents of this website, including texts, designs, logos and software, belong to Caudals or its licensors and are protected by intellectual and industrial property law. Reproducing them without authorization is not allowed."
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Liability",
+        "body": [
+          "We take care to keep this website accurate and up to date, but its content is general information, not advice. To the extent permitted by law, we are not liable for damage caused by misuse of the website, by its temporary unavailability for maintenance or technical reasons, or by the content of third-party websites linked from it."
+        ]
+      },
+      {
+        "id": "law",
+        "title": "Applicable law",
+        "body": [
+          "This notice is governed by Spanish law. Disputes relating to the website are subject to the competent courts of Spain."
+        ]
+      }
+    ]
+  },
+  "dpaTemplate": {
+    "title": "Data Processing Agreement",
+    "subtitle": "Template for signature",
+    "intro": [
+      "This agreement is entered into between the customer identified below (the Customer) and the company that operates Caudals (Caudals). It applies to the personal data that Caudals processes on the Customer's behalf when the Customer uses the Caudals evaluation service, and it forms part of the Caudals Terms of Service, published at https://caudals.com/en/legal/terms."
+    ],
+    "partiesTitle": "The parties",
+    "customerTitle": "The Customer (controller)",
+    "processorTitle": "Caudals (processor)",
+    "partyFields": ["Company name", "Tax ID (NIF or VAT number)", "Registered address", "Represented by (name and title)", "Data protection contact"],
+    "processorRegistered": "{name}, with tax identification number (NIF) {nif} and registered office at {address}. Data protection contact: privacy@caudals.com.",
+    "clauses": [
+      {
+        "title": "Definitions",
+        "body": [
+          "Personal data, processing, controller, processor, data subject and personal data breach have the meanings given in Regulation (EU) 2016/679 (GDPR). Data protection law means the GDPR, Spanish Organic Law 3/2018 (LOPDGDD) and any other law that applies to the processing."
+        ]
+      },
+      {
+        "title": "Subject matter and duration",
+        "body": [
+          "Caudals processes the personal data contained in the Customer's content in order to provide the evaluation service: testing the Customer's AI systems, grading their answers and producing reports and, when ordered, expert review and custom datasets. This agreement lasts for as long as Caudals processes personal data on the Customer's behalf."
+        ]
+      },
+      {
+        "title": "Nature, purpose and categories",
+        "body": [
+          "The nature and purpose of the processing, the types of personal data and the categories of data subjects are described in Annex 1."
+        ]
+      },
+      {
+        "title": "The Customer's instructions",
+        "body": [
+          "Caudals processes the personal data only on the Customer's documented instructions, which are this agreement, the Terms of Service and the Customer's use and configuration of the service, including the AI models it chooses. Caudals tells the Customer if it believes an instruction infringes data protection law. If the law requires Caudals to process the data for another purpose, Caudals tells the Customer first, unless the law forbids it."
+        ]
+      },
+      {
+        "title": "The Customer's obligations",
+        "body": [
+          "The Customer is responsible for the lawfulness of the processing it instructs, including having a legal basis for the personal data in its content, informing the data subjects, and being entitled to test the AI systems it connects. The Customer does not include special categories of personal data in its content unless the parties have agreed it in writing."
+        ]
+      },
+      {
+        "title": "Confidentiality",
+        "body": [
+          "Caudals ensures that its staff, and the freelance experts it engages, who process the personal data are bound by confidentiality obligations and see only the data their task needs. Experts receive redacted material."
+        ]
+      },
+      {
+        "title": "Security",
+        "body": [
+          "Caudals implements the technical and organizational measures described in Annex 2 and keeps them appropriate to the risk, taking into account the state of the art, the costs of implementation and the nature, scope, context and purposes of the processing. Caudals may update the measures provided that the overall level of protection is not reduced."
+        ]
+      },
+      {
+        "title": "Sub-processors",
+        "body": [
+          "The Customer gives Caudals general authorization to engage sub-processors. The sub-processors at the date of this agreement are listed in Annex 3, and the current list is published at https://caudals.com/en/legal/subprocessors. Caudals informs the Customer of any intended addition or replacement at least 30 days in advance, by email to the workspace owners and on that page. The Customer may object on reasonable data protection grounds; if the parties cannot resolve the objection, the Customer may stop using the affected service and terminate this agreement. Caudals imposes on each sub-processor data protection obligations equivalent to those in this agreement and remains responsible to the Customer for their performance."
+        ]
+      },
+      {
+        "title": "International transfers",
+        "body": [
+          "Caudals hosts the Customer's content in the European Union. Caudals transfers personal data outside the European Economic Area only where an adequacy decision applies or with appropriate safeguards, such as the standard contractual clauses adopted by the European Commission."
+        ]
+      },
+      {
+        "title": "Requests from data subjects",
+        "body": [
+          "Taking into account the nature of the processing, Caudals assists the Customer, by appropriate technical and organizational measures, in responding to requests from data subjects exercising their rights. If Caudals receives such a request directly, it forwards it to the Customer without undue delay and answers it only on the Customer's instructions."
+        ]
+      },
+      {
+        "title": "Personal data breaches",
+        "body": [
+          "Caudals notifies the Customer without undue delay after becoming aware of a personal data breach affecting the Customer's personal data, and provides the information reasonably available to it that the Customer needs to meet its own notification obligations. Caudals takes reasonable steps to contain the breach and mitigate its effects."
+        ]
+      },
+      {
+        "title": "Assistance",
+        "body": [
+          "Taking into account the nature of the processing and the information available to it, Caudals assists the Customer with data protection impact assessments and prior consultations with supervisory authorities that relate to the service."
+        ]
+      },
+      {
+        "title": "Deletion and return",
+        "body": [
+          "When the Customer deletes a workspace, or when the service ends, Caudals deletes the personal data processed on the Customer's behalf from its live systems, and from its backups when they expire, unless the law requires it to be kept. Before that, the Customer can export its reports and results, and may ask Caudals in writing to return the data."
+        ]
+      },
+      {
+        "title": "Audits and information",
+        "body": [
+          "Caudals makes available to the Customer the information necessary to show that it meets its obligations under this agreement and article 28 GDPR, and allows for and contributes to audits, including inspections, carried out by the Customer or by an auditor it appoints who is bound by confidentiality. Audits require at least 30 days' notice, take place during business hours and are limited to once a year, unless a personal data breach or a supervisory authority requires otherwise. Each party bears its own costs."
+        ]
+      },
+      {
+        "title": "Liability",
+        "body": [
+          "Each party's liability under this agreement is subject to the limitations in the Terms of Service, to the extent permitted by data protection law."
+        ]
+      },
+      {
+        "title": "Precedence, law and courts",
+        "body": [
+          "If this agreement and the Terms of Service conflict on the protection of personal data, this agreement prevails. This agreement is governed by Spanish law, and the courts named in the Terms of Service have jurisdiction over any dispute."
+        ]
+      }
+    ],
+    "annexes": [
+      {
+        "title": "Annex 1. Description of the processing",
+        "items": [
+          "Data subjects: the Customer's customers and users whose data appears in the Customer's documents, websites or AI system answers; the Customer's staff and representatives; the members of the Customer's workspaces.",
+          "Types of personal data: names, contact details, identifiers and the content of documents, questions and answers, as provided by the Customer or returned by its AI systems; the names, email addresses and activity records of workspace members. No special categories of personal data unless agreed in writing.",
+          "Processing operations: storage; extraction of text from documents and websites; writing test questions; sending questions to the Customer's AI systems and recording their answers, including screenshots of website chats; automated grading; report writing; expert review when ordered; export and deletion.",
+          "Duration: for as long as the Customer uses the service, and then until deletion as set out in the clause on deletion and return.",
+          "Specific retention: screenshots of website chats are deleted after seven days. Routine daily backups are retained for about a week; restricted recovery or incident archives may be retained longer for their documented purpose."
+        ]
+      },
+      {
+        "title": "Annex 2. Technical and organizational measures",
+        "items": [
+          "Hosting on servers operated by Caudals in Germany; database and file storage not reachable from the public internet.",
+          "Encryption in transit with TLS; application-level AES-256-GCM encryption of the credentials for the Customer's systems; encrypted backups; passwords stored only as salted hashes.",
+          "Separation between customers with database row-level security, a restricted application role and background jobs scoped to each workspace.",
+          "Role-based access for workspace members; staff access limited to platform roles and recorded in an audit log; server administration only over a private network with key-based authentication.",
+          "AI processing by default on a model Caudals operates; commercial AI providers only when the Customer chooses them.",
+          "Isolated browser workers whose traffic is restricted to public HTTPS destinations; no circumvention of CAPTCHAs or logins.",
+          "Rate limiting, audit logs of significant actions, and release checks for types, tests and sensitive data. Optional error monitoring excludes personal data by default.",
+          "A deletion process for workspaces that revokes share links and credentials and deletes content from live systems.",
+          "Confidentiality obligations for staff and experts; experts receive redacted material only."
+        ]
+      },
+      {
+        "title": "Annex 3. Sub-processors",
+        "body": [
+          "The sub-processors at the date of this agreement. The current list is published at https://caudals.com/en/legal/subprocessors."
+        ],
+        "subprocessors": true
+      }
+    ],
+    "signaturesTitle": "Signatures",
+    "signatureFields": ["Name", "Title", "Date", "Signature"],
+    "customerSignature": "For the Customer",
+    "processorSignature": "For Caudals",
+    "versionLabel": "Version"
   }
 }

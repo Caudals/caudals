@@ -475,11 +475,20 @@
     "linkedin": "LinkedIn",
     "legalHeading": "Legal",
     "legalLinks": {
+      "terms": {
+        "label": "Términos del servicio"
+      },
       "privacy": {
         "label": "Política de privacidad"
       },
-      "terms": {
-        "label": "Términos del servicio"
+      "dpa": {
+        "label": "Encargo del tratamiento"
+      },
+      "subprocessors": {
+        "label": "Subencargados"
+      },
+      "security": {
+        "label": "Seguridad"
       },
       "cookies": {
         "label": "Política de cookies"
@@ -664,6 +673,16 @@
     "policy": "Política de cookies",
     "decline": "Rechazar",
     "accept": "Aceptar"
+  },
+  "legal": {
+    "kicker": "Legal",
+    "lastUpdated": "Última actualización: {date}",
+    "version": "Versión {version}",
+    "contents": "Contenido",
+    "documents": "Documentos legales",
+    "related": "Consulta también",
+    "downloadEn": "Descargar la plantilla en inglés (Word)",
+    "downloadEs": "Descargar la plantilla en español (Word)"
   },
   "blog": {
     "title": "Blog",

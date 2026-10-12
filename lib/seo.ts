@@ -7,6 +7,11 @@ import {
 } from "@/lib/i18n/config";
 import { buildAlternates } from "@/lib/i18n/metadata";
 import { localizePathname } from "@/lib/i18n/routing";
+import {
+  LEGAL_DOCUMENT_IDS,
+  LEGAL_DOCUMENT_PATHS,
+  legalDocumentVersion,
+} from "@/lib/legal/versions";
 import { SECTOR_IDS, SECTORS_HUB_PATH, sectorPath } from "@/lib/public/sectors";
 
 export const SITE_NAME = "Caudals";
@@ -100,10 +105,15 @@ const MARKETING_ROUTES: IndexableMarketingRoute[] = [
   // { pathname: "/blog", changeFrequency: "weekly", priority: 0.9 },
   { pathname: "/call", changeFrequency: "monthly", priority: 0.8 },
   { pathname: "/contact", changeFrequency: "monthly", priority: 0.8 },
-  { pathname: "/legal/cookies", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/notice", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },
-  { pathname: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },
+  // Legal pages: lastmod is the document's version date (lib/legal/versions.ts).
+  ...LEGAL_DOCUMENT_IDS.map(
+    (id): IndexableMarketingRoute => ({
+      pathname: LEGAL_DOCUMENT_PATHS[id],
+      changeFrequency: "yearly",
+      priority: 0.3,
+      lastModified: legalDocumentVersion(id),
+    }),
+  ),
   // Temporarily hidden:
   // { pathname: "/newsletter", changeFrequency: "weekly", priority: 0.85 },
 ];

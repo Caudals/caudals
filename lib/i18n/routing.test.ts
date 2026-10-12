@@ -46,13 +46,15 @@ describe("isNonLocalizedPath", () => {
       "/sitemap.xml",
       "/llms.txt",
       "/manifest.webmanifest",
+      // The DPA template download, served outside the locale tree.
+      "/legal/caudals-dpa-en.docx",
     ]) {
       expect(isNonLocalizedPath(pathname), pathname).toBe(true);
     }
   });
 
   it("treats public marketing pages as localizable", () => {
-    for (const pathname of ["/", "/blog", "/contact", "/legal/privacy"]) {
+    for (const pathname of ["/", "/blog", "/contact", "/legal/privacy", "/legal/dpa"]) {
       expect(isNonLocalizedPath(pathname), pathname).toBe(false);
     }
   });
@@ -159,6 +161,10 @@ describe("translated funnel and legal paths", () => {
     expect(localizePathname("/legal/terms", "es")).toBe("/es/legal/terminos");
     expect(localizePathname("/legal/notice", "es")).toBe("/es/legal/aviso-legal");
     expect(localizePathname("/legal/cookies", "es")).toBe("/es/legal/cookies");
+    expect(localizePathname("/legal/dpa", "es")).toBe("/es/legal/encargo-de-tratamiento");
+    expect(localizePathname("/legal/subprocessors", "es")).toBe("/es/legal/subencargados");
+    expect(localizePathname("/legal/security", "es")).toBe("/es/legal/seguridad");
+    expect(localizePathname("/legal/security", "en")).toBe("/en/legal/security");
   });
 
   it("maps the Spanish paths back to their routes", () => {
@@ -166,5 +172,8 @@ describe("translated funnel and legal paths", () => {
     expect(toInternalPathname("/legal/aviso-legal", "es")).toBe("/legal/notice");
     expect(switchLocalePathname("/es/llamada", "en")).toBe("/en/call");
     expect(switchLocalePathname("/en/legal/privacy", "es")).toBe("/es/legal/privacidad");
+    expect(toInternalPathname("/legal/encargo-de-tratamiento", "es")).toBe("/legal/dpa");
+    expect(switchLocalePathname("/es/legal/subencargados", "en")).toBe("/en/legal/subprocessors");
+    expect(switchLocalePathname("/en/legal/security", "es")).toBe("/es/legal/seguridad");
   });
 });
