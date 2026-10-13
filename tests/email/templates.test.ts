@@ -36,6 +36,7 @@ const FIXTURES: { [K in TemplateName]: TemplateProps[K] } = {
   d21_rerun: { workspaceUrl: `${APP}/workspace/evaluations?orgId=${ORG}`, unsubscribe },
   d30_winback: { workspace: "Acme", workspaceUrl: `${APP}/workspace/evaluations?orgId=${ORG}`, callUrl: "https://cal.com/caudals/call", unsubscribe },
   payment_receipt: { workspace: "Acme", amountCents: 12100, currency: "EUR", credits: 10000, paidAt: "2026-10-12T10:00:00Z", reference: "pi_test_123", billingUrl: billing },
+  invoice_available: { workspace: "Acme", kind: "invoice", number: "CAU-2026-0001", issueDate: "2026-10-13", totalCents: 2420, currency: "EUR", billingUrl: billing },
   low_balance: { workspace: "Acme", balance: 420, threshold: 500, topUpUrl: billing, settingsUrl: notice.settingsUrl },
   auto_recharge_succeeded: { workspace: "Acme", amountCents: 6050, currency: "EUR", credits: 5000, threshold: 500, balance: 5420, billingUrl: billing, settingsUrl: notice.settingsUrl },
   auto_recharge_failed: { workspace: "Acme", amountCents: 6050, currency: "EUR", billingUrl: billing, settingsUrl: notice.settingsUrl },

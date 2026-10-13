@@ -26,6 +26,7 @@ import { captureServerError, flushErrors } from "../../lib/observability/capture
 import { initWorkerSentry } from "../../lib/observability/worker-sentry";
 import { runAutoRecharge } from "../../lib/billing/auto-recharge";
 import { runMonthlyAllowance } from "../../lib/billing/allowance";
+import { runInvoicing } from "../../lib/billing/invoicing/jobs";
 
 async function main() {
   initWorkerSentry("evals-scheduler");
@@ -251,6 +252,17 @@ async function main() {
           if (recharge.workspaces) console.info(JSON.stringify({ event: "billing_auto_recharge", ...recharge }));
         } catch {
           console.error(JSON.stringify({ event: "billing_auto_recharge_tick_failed" }));
+        }
+        // Invoicing (spec §6.14, L-13): hands queued invoice and rectifying-invoice
+        // requests to the adapter named by BILLING_INVOICING_PROVIDER ("manual":
+        // pending issue by the accountant) and retries provider failures with a
+        // backoff. Off when the provider is unset; never a scheduler failure.
+        try {
+          const invoicing = await runInvoicing(actorId);
+          if (invoicing.handedOver || invoicing.issued || invoicing.failed) console.info(JSON.stringify({ event: "billing_invoicing", ...invoicing }));
+        } catch (error) {
+          console.error(JSON.stringify({ event: "billing_invoicing_tick_failed" }));
+          captureServerError(error, { service: "evals-scheduler", event: "billing_invoicing_tick_failed" });
         }
         if (healthy) writeFileSync("/tmp/evals-scheduler-heartbeat", String(Date.now()));
       }

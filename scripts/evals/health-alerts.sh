@@ -4,8 +4,9 @@
 # reachability, backup age and evaluation signals (stuck queue, expired leases,
 # unresolved paid attempts, unhealthy providers, budget pauses, failed report
 # rendering), plus the launch signals: demo failure rate, demo and engine
-# queue age, webhook failures, credit holds unresolved for 24 hours and a
-# daily shadow credit report with mismatches (L-11). Each
+# queue age, webhook failures, credit holds unresolved for 24 hours, a
+# daily shadow credit report with mismatches (L-11) and invoice requests the
+# invoicing provider has failed for an hour (L-13). Each
 # alert is emailed once when it opens, repeated at most daily while open, and
 # once when it resolves, with a link to its runbook. Messages carry counts and
 # names only: no prompts, customer content, secrets or private endpoints.
@@ -61,6 +62,7 @@ runbook_for() {
     demo_failure_rate|demo_queue_stale) echo "$runbooks#15-demo-failures-or-queue" ;;
     webhook_failures) echo "$runbooks#16-webhook-failures" ;;
     holds_stale|billing_shadow_drift) echo "$runbooks#17-billing-incident" ;;
+    invoicing_stalled) echo "$runbooks#22-invoicing-backlog" ;;
     database_down|database_unreadable) echo "$runbooks#18-database-unreachable" ;;
     *) echo "$runbooks" ;;
   esac
@@ -153,6 +155,16 @@ if (( ${#psql_cmd[@]} )); then
     (( holds > 0 )) && flag holds_stale "${holds} credit holds are unresolved after 24 hours."
     (( shadow_drift > 0 )) && flag billing_shadow_drift "The daily shadow credit report found ${shadow_drift} mismatches (billing.shadow_report)."
   fi
+  # Invoicing (L-13): a request the provider has failed for over an hour, or
+  # one never attempted for a day (invoicing off while orders are paid).
+  stalled_sql="SELECT count(*) AS c FROM billing.%s WHERE status='queued' AND ((attempts > 0 AND created_at < now()-interval '1 hour') OR created_at < now()-interval '24 hours')"
+  # shellcheck disable=SC2059
+  invoices_stalled=$(sql caudals "SELECT $(optional_count billing.invoice status,attempts,created_at "$(printf "$stalled_sql" invoice)") + $(optional_count billing.credit_note status,attempts,created_at "$(printf "$stalled_sql" credit_note)")" 2>/dev/null || echo x)
+  if [[ $invoices_stalled == x ]]; then
+    flag database_unreadable "Invoicing signals could not be read from PostgreSQL."
+  elif (( invoices_stalled > 0 )); then
+    flag invoicing_stalled "${invoices_stalled} invoice requests are still queued: the invoicing provider has failed for over an hour, or invoicing is off."
+  fi
   engine_waiting=$(sql "$queue_database" "SELECT count(*) FROM ${queue_schema}.job WHERE state IN ('created','retry') AND start_after < now()-interval '${queue_minutes} minutes'" 2>/dev/null || echo x)
   if [[ $engine_waiting == x ]]; then
     flag database_unreadable "Engine queue signals could not be read from PostgreSQL."
@@ -165,7 +177,7 @@ fi
 
 # Drill: open the named alerts (or all launch alerts) without evaluating them.
 if [[ -n $drill ]]; then
-  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift)
+  drill_keys=(demo_failure_rate demo_queue_stale engine_queue_stale dgx_unreachable disk_pressure webhook_failures holds_stale billing_shadow_drift invoicing_stalled)
   [[ $drill == all ]] || IFS=, read -r -a drill_keys <<<"$drill"
   for key in "${drill_keys[@]}"; do
     [[ $key =~ ^[a-z0-9_]+$ ]] || { echo "Invalid drill key: $key" >&2; exit 2; }

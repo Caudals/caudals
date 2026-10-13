@@ -92,6 +92,12 @@ AI_DISCLOSURE_CHECK=$(credential AI_DISCLOSURE_CHECK)
 AI_DISCLOSURE_CHECK=${AI_DISCLOSURE_CHECK:-false}
 [[ $AI_DISCLOSURE_CHECK == true || $AI_DISCLOSURE_CHECK == false ]] || { echo 'AI_DISCLOSURE_CHECK must be true or false' >&2; exit 1; }
 export AI_DISCLOSURE_CHECK
+# Invoicing adapter (L-13): unset/off, manual, or a vendor adapter name. The
+# scheduler hands queued invoice requests to it, like the web app reads it.
+BILLING_INVOICING_PROVIDER=$(credential BILLING_INVOICING_PROVIDER)
+BILLING_INVOICING_PROVIDER=${BILLING_INVOICING_PROVIDER:-off}
+[[ $BILLING_INVOICING_PROVIDER =~ ^[a-z][a-z0-9_]{1,39}$ ]] || { echo 'BILLING_INVOICING_PROVIDER must be off, manual or a provider name' >&2; exit 1; }
+export BILLING_INVOICING_PROVIDER
 
 # Email flags (launch L-07) from the same app credentials, so web and scheduler
 # send the same templates. Lifecycle mail stays off until the founder switches it.

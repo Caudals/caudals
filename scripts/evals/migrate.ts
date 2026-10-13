@@ -67,6 +67,7 @@ const migrations=[
  '086_evals_onboarding.sql',
  '091_billing_payments.sql',
  '093_evals_plans_v2.sql',
+ '092_billing_invoices.sql',
  '107_auth_two_factor_lockout.sql',
 ];
 async function main(){

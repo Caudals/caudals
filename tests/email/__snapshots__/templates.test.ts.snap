@@ -756,6 +756,60 @@ Caudals · caudals.com
 
 exports[`email templates > invitation renders in es 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="es" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Ana García te ha invitado a Acme en Caudals</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">Acepta la invitación para unirte al espacio de trabajo.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Únete a Acme en Caudals</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Ana García te ha invitado al espacio de trabajo Acme como editor. Caudals prueba asistentes de IA con la documentación de cada empresa e informa de qué falla y por qué.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/invitations#token=tok" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">Aceptar la invitación</a></td></tr></tbody></table><p style="margin:0 0 20px;font-size:13px;line-height:1.5;color:#6b6a63;word-break:break-all">Si el botón no funciona, copia este enlace en tu navegador:<br/><a href="https://app.caudals.com/workspace/invitations#token=tok" style="color:#6b6a63">https://app.caudals.com/workspace/invitations#token=tok</a></p><p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#6b6a63;font-weight:400">La invitación solo sirve para esta dirección y caduca en 24 horas. Si no la esperabas, ignora este correo.</p><p style="margin:8px 0 0;font-size:15px;color:#141413">El equipo de Caudals</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">Recibes este correo por una solicitud hecha con esta dirección en Caudals.</p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
 
+exports[`email templates > invoice_available renders in en 1`] = `
+{
+  "subject": "Your Caudals invoice CAU-2026-0001",
+  "text": "Your invoice is ready
+
+We have issued invoice CAU-2026-0001 for the credits bought in Acme. The PDF is attached.
+
+Number: CAU-2026-0001
+Date: 13 October 2026
+Total: €24.20
+
+Keep this email for your records. Workspace owners can download the PDF again from Caudals.
+
+View billing:
+https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=billing
+
+The Caudals team
+
+--
+You receive this email because it is the billing contact of the workspace Acme.
+Caudals · caudals.com
+",
+}
+`;
+
+exports[`email templates > invoice_available renders in en 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="en" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Your Caudals invoice CAU-2026-0001</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">The PDF is attached.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Your invoice is ready</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">We have issued invoice CAU-2026-0001 for the credits bought in Acme. The PDF is attached.</p><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="margin:0 0 20px"><tbody><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Number</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">CAU-2026-0001</td></tr><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Date</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">13 October 2026</td></tr><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Total</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">€24.20</td></tr></tbody></table><p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#6b6a63;font-weight:400">Keep this email for your records. Workspace owners can download the PDF again from Caudals.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=billing" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">View billing</a></td></tr></tbody></table><p style="margin:8px 0 0;font-size:15px;color:#141413">The Caudals team</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">You receive this email because it is the billing contact of the workspace Acme.</p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
+
+exports[`email templates > invoice_available renders in es 1`] = `
+{
+  "subject": "Tu factura de Caudals CAU-2026-0001",
+  "text": "Tu factura está lista
+
+Hemos emitido la factura CAU-2026-0001 por los créditos comprados en Acme. Tienes el PDF adjunto.
+
+Número: CAU-2026-0001
+Fecha: 13 de octubre de 2026
+Total: 24,20 €
+
+Guarda este correo para tus registros. Los propietarios del espacio de trabajo pueden volver a descargar el PDF desde Caudals.
+
+Ver facturación:
+https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&tab=billing
+
+El equipo de Caudals
+
+--
+Recibes este correo porque es el contacto de facturación del espacio de trabajo Acme.
+Caudals · caudals.com
+",
+}
+`;
+
+exports[`email templates > invoice_available renders in es 2`] = `"<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html lang="es" dir="ltr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="color-scheme" content="light"/><title>Tu factura de Caudals CAU-2026-0001</title></head><body style="margin:0;padding:0;background-color:#fafaf8"><div style="display:none;overflow:hidden;max-height:0;opacity:0;font-size:1px;line-height:1;color:#fafaf8">Tienes el PDF adjunto.</div><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="background-color:#fafaf8;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, Helvetica, Arial, sans-serif;color:#141413"><tbody><tr><td style="padding:32px 12px"><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto;background-color:#ffffff;border-radius:14px;border:1px solid #dcdad3"><tbody><tr><td style="padding:32px 32px 28px"><p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#141413">Caudals</p><h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.02em;color:#141413">Tu factura está lista</h1><p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#3b3a36;font-weight:400">Hemos emitido la factura CAU-2026-0001 por los créditos comprados en Acme. Tienes el PDF adjunto.</p><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="margin:0 0 20px"><tbody><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Número</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">CAU-2026-0001</td></tr><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Fecha</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">13 de octubre de 2026</td></tr><tr><td style="padding:9px 12px 9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#6b6a63">Total</td><td style="padding:9px 0;border-top:1px solid #dcdad3;font-size:14px;color:#141413;text-align:right">24,20 €</td></tr></tbody></table><p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#6b6a63;font-weight:400">Guarda este correo para tus registros. Los propietarios del espacio de trabajo pueden volver a descargar el PDF desde Caudals.</p><table cellPadding="0" cellSpacing="0" role="presentation" style="margin:8px 0 20px"><tbody><tr><td style="background-color:#141413;border-radius:999px"><a href="https://app.caudals.com/workspace/settings?orgId=00000000-0000-4000-8000-000000000001&amp;tab=billing" style="display:inline-block;padding:12px 22px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;border-radius:999px">Ver facturación</a></td></tr></tbody></table><p style="margin:8px 0 0;font-size:15px;color:#141413">El equipo de Caudals</p></td></tr></tbody></table><table width="100%" cellPadding="0" cellSpacing="0" role="presentation" style="max-width:560px;margin:0 auto"><tbody><tr><td style="padding:16px 8px 0;font-size:12px;line-height:1.5;color:#6b6a63;text-align:center"><p style="margin:0 0 6px">Recibes este correo porque es el contacto de facturación del espacio de trabajo Acme.</p><p style="margin:0">Caudals · caudals.com</p></td></tr></tbody></table></td></tr></tbody></table></body></html>"`;
+
 exports[`email templates > low_balance renders in en 1`] = `
 {
   "subject": "Your Caudals credit balance is low",

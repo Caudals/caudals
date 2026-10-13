@@ -40,6 +40,11 @@ export type TemplateProps = {
     /** Fiscal lines of a credit top-up (L-12): bonus included in `credits`, net, IVA or the legal mention, and the card. */
     bonusCredits?: number; netCents?: number; vatCents?: number; taxMention?: string | null; card?: { brand: string; last4: string } | null;
   };
+  /** An issued invoice or rectifying invoice (L-13), sent to the billing contact with the PDF attached. */
+  invoice_available: {
+    workspace: string; kind: "invoice" | "credit_note"; number: string; issueDate: string; totalCents: number; currency: string;
+    originalNumber?: string | null; billingUrl: string;
+  };
   low_balance: { workspace: string; balance: number; threshold: number; topUpUrl: string; settingsUrl: string };
   auto_recharge_succeeded: { workspace: string; amountCents: number; currency: string; credits: number; threshold: number; balance: number; billingUrl: string; settingsUrl: string };
   auto_recharge_failed: { workspace: string; amountCents: number; currency: string; billingUrl: string; settingsUrl: string };
@@ -53,7 +58,7 @@ export type TemplateName = keyof TemplateProps;
 
 export const TEMPLATE_CATEGORY: Record<TemplateName, EmailCategory> = {
   signup_link: "essential", signup_existing: "essential", signup_domain_taken: "essential", password_reset: "essential",
-  invitation: "essential", payment_receipt: "essential", demo_report: "essential",
+  invitation: "essential", payment_receipt: "essential", invoice_available: "essential", demo_report: "essential",
   test_set_ready: "notification", report_published: "notification", run_failed: "notification", input_required: "notification",
   export_failed: "notification", generation_failed: "notification", website_failed: "notification", document_failed: "notification",
   low_balance: "billing", auto_recharge_succeeded: "billing", auto_recharge_failed: "billing", credits_expiring: "billing", cap_reached: "billing",
@@ -256,6 +261,22 @@ function draft<T extends TemplateName>(name: T, c: EmailCopy, locale: EmailLocal
           { kind: "text", tone: "muted", text: c.paymentReceipt.note }, { kind: "action", label: c.paymentReceipt.action, url: props.billingUrl },
         ],
         footer: [fill(c.footer.receipt, { workspace: props.workspace })],
+      };
+    }
+    case "invoice_available": {
+      const props = p as TemplateProps["invoice_available"];
+      const copy = c.invoiceAvailable;
+      const rectifying = props.kind === "credit_note";
+      const values = { number: props.number, workspace: props.workspace, original: props.originalNumber ?? "—" };
+      return {
+        subject: fill(rectifying ? copy.subjectCreditNote : copy.subjectInvoice, values), preview: copy.preview,
+        heading: rectifying ? copy.headingCreditNote : copy.headingInvoice,
+        blocks: [
+          { kind: "text", text: fill(rectifying ? copy.bodyCreditNote : copy.bodyInvoice, values) },
+          { kind: "facts", rows: [[copy.number, props.number], [copy.date, date(locale, `${props.issueDate}T12:00:00Z`)], [copy.total, money(locale, props.totalCents, props.currency)]] },
+          { kind: "text", tone: "muted", text: copy.note }, { kind: "action", label: copy.action, url: props.billingUrl },
+        ],
+        footer: [fill(copy.footer, { workspace: props.workspace })],
       };
     }
     case "low_balance": {

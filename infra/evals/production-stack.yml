@@ -82,6 +82,9 @@ services:
       # Plans v2 (L-14): the monthly allowance and free → PAYG on auto-recharge
       # payments, from the app credentials; off until Gate B.
       PLANS_V2_ENABLED: "${PLANS_V2_ENABLED:-false}"
+      # Invoicing (L-13): the adapter the invoicing job hands requests to
+      # (off, manual), from the app credentials like the web app.
+      BILLING_INVOICING_PROVIDER: "${BILLING_INVOICING_PROVIDER:-off}"
       # Retention and workspace deletion remove expired private objects.
       DO_SPACES_ENDPOINT: http://caudals-object-storage-minio:9000
       DO_SPACES_REGION: us-east-1

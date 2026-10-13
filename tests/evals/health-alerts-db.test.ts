@@ -153,15 +153,35 @@ describe.skipIf(!ownerUrl)("health alerts on the production schema", () => {
     expect(readdirSync(state)).toEqual([]);
   });
 
+  it("alerts when an invoice request has waited an hour after provider failures, or a day unattempted (L-13)", async () => {
+    // Fixture documents without their order and account: foreign keys off for these statements.
+    const invoice = async (attempts: number, hoursAgo: number) => (await replica(
+      `INSERT INTO billing.invoice(org_id,order_id,livemode,series_code,operation_date,locale,net_cents,vat_rate_bp,vat_cents,gross_cents,
+         tax_treatment,tax_mention,customer,lines,attempts,last_error_code,created_at)
+       VALUES($1,$2,false,'CAU',current_date-1,'en',2000,0,0,2000,'non_eu_not_subject','Operación no sujeta','{}'::jsonb,
+         '[{"item":"credits"}]'::jsonb,$3,CASE WHEN $3>0 THEN 'provider_error' END,now()-make_interval(hours=>$4)) RETURNING id`,
+      [randomUUID(), randomUUID(), attempts, hoursAgo])).rows[0].id as string;
+    // Quiet: failing for 30 minutes only, or never attempted for 2 hours (invoicing just switched on).
+    const fresh = [await invoice(3, 0), await invoice(0, 2)];
+    expect(await check({ CAUDALS_ALERT_DRY_RUN: "true" })).toBe("");
+    const stalled = [await invoice(4, 2), await invoice(0, 25)];
+    expect(await check()).toContain("alerts_sent=1");
+    expect(sent.at(-1)!.text).toContain("2 invoice requests are still queued");
+    expect(sent.at(-1)!.text).toContain("#22-invoicing-backlog");
+    await replica("DELETE FROM billing.invoice WHERE id = ANY($1::uuid[])", [[...fresh, ...stalled]]);
+    expect(await check()).toContain("alerts_sent=1");
+    expect(sent.at(-1)!.text).toContain("RESOLVED invoicing stalled");
+  });
+
   it("drills every launch alert in one email and resolves it on the next run", async () => {
-    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=8");
+    expect(await check({ CAUDALS_ALERT_DRILL: "all" })).toContain("alerts_sent=9");
     const drill = sent.at(-1)!;
     expect(drill.subject).toBe("Caudals platform alert (drill)");
-    for (const anchor of ["#15-demo-failures-or-queue", "#13-queue-age", "#1-dgx-down", "#11-disk-or-memory-pressure", "#16-webhook-failures", "#17-billing-incident"]) {
+    for (const anchor of ["#15-demo-failures-or-queue", "#13-queue-age", "#1-dgx-down", "#11-disk-or-memory-pressure", "#16-webhook-failures", "#17-billing-incident", "#22-invoicing-backlog"]) {
       expect(drill.text).toContain(anchor);
     }
-    expect(await check()).toContain("alerts_sent=8");
-    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(8);
+    expect(await check()).toContain("alerts_sent=9");
+    expect(sent.at(-1)!.text.match(/RESOLVED/g)).toHaveLength(9);
   });
 
   it("rejects malformed drill keys", async () => {

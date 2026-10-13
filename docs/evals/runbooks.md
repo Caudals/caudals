@@ -212,11 +212,20 @@ Platform admins, platform operators and workspace operators must use TOTP once `
 4. Lost authenticator and recovery codes: after confirming the person's identity out of band, a founder on atlantic resets them as the database owner, in one transaction: `DELETE FROM auth_two_factor WHERE "userId"=$1; UPDATE auth_user SET "twoFactorEnabled"=false WHERE id=$1; DELETE FROM auth_session WHERE "userId"=$1;` and `INSERT INTO evals.audit_event(actor_id,action,subject_id) VALUES(<founder user id>,'security.two_factor_reset',$1)`. With enforcement on, the person must enrol again at their next sign-in.
 5. Ten wrong codes in a row lock verification for 15 minutes (`auth_two_factor."lockedUntil"`, migration 107). Sign-in is also limited to 20 attempts per visitor and 10 per account every 15 minutes, and two-factor checks to 20 per visitor.
 
+## 22. Invoicing backlog
+
+Signal: `invoicing_stalled` (an invoice or rectifying-invoice request has stayed `queued` for an hour after a provider failure, or for a day without any attempt). Launch L-13; docs/TOOLS.md → Invoicing.
+
+1. What is stuck: `SELECT kind, livemode, attempts, last_error_code, next_attempt_at, created_at FROM billing.invoice_document WHERE status='queued' ORDER BY created_at` (as `postgres`).
+2. No attempts at all: invoicing is off. Check `BILLING_INVOICING_PROVIDER` in the app credentials and on the scheduler (`sudo docker service inspect caudals-evals_scheduler --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}' | tr ',' '\n' | grep INVOICING`); set it to `manual` with `scripts/launch/set-app-flag.sh` and redeploy the workers.
+3. Attempts with an error code: the provider refused or was down. `provider_unavailable`/`provider_error` retry by themselves (backoff up to an hour); `original_not_issued` waits for the original invoice; anything else (`customer_invalid`, `wrong_document_kind`…) needs the request's data or the adapter fixed. The scheduler's `billing_invoicing_failed` lines name the document.
+4. Never edit document rows or make up a number. With the manual adapter, the accountant issues pending requests from the monthly export and ops attach number and PDF through `POST /api/evals/v1/billing/admin/invoices/:id`.
+
 ## Alert drills
 
 Each alert must fire once in a drill and link to its runbook (L-08 acceptance).
 
-- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds), each with its runbook link. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
+- Platform alerts: `sudo CAUDALS_ALERT_DRILL=all /usr/local/sbin/caudals-evals-health` sends one email marked "(drill)" that opens every launch alert (demo failure rate, demo and engine queue age, DGX, disk, webhook failures, stale holds, shadow drift, invoicing backlog), each with its runbook link. The next timer run sends RESOLVED. `CAUDALS_ALERT_DRILL=demo_failure_rate,disk_pressure` drills a subset. Detection itself is covered against the real schema by `tests/evals/health-alerts-db.test.ts`.
 - Uptime: runbook 19.
 - Sentry: runbook 20, step 2.
 - The production drills are recorded in `docs/launch/L-08.md`.

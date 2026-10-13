@@ -9,9 +9,12 @@ import {
   getLegalDocument,
   resolveLegalDocument,
 } from "./documents";
+import { renderExport, type AccountantExport } from "@/lib/billing/invoicing/export";
+import { getLegalEntity } from "./entity";
 import {
   findLegalPlaceholders,
   isPlaceholderEntityValue,
+  LEGAL_CONTENT_BANNED,
   LEGAL_ENTITY_PLACEHOLDERS,
 } from "./placeholders";
 import {
@@ -239,5 +242,50 @@ describe("acceptance versions", () => {
     for (const id of ACCEPTABLE_DOCUMENTS) {
       expect(LEGAL_DOCUMENT_VERSIONS[id]).toEqual({ version: "2026-10-11", review: "pending_legal_review" });
     }
+  });
+});
+
+/**
+ * Invoice templates (launch L-13, decision I-1): the code that words invoices,
+ * the accountant export and the "invoice available" email must never carry the
+ * §3.2 placeholder company data. The issuer comes from LEGAL_ENTITY_* at
+ * runtime, and placeholder values there are ignored.
+ */
+describe("invoice templates (CI placeholder check, launch spec §3.2)", () => {
+  const sources = [
+    ...readdirSync(path.join(process.cwd(), "lib", "billing", "invoicing"))
+      .filter((name) => /\.tsx?$/.test(name) && !name.includes(".test."))
+      .map((name) => path.join("lib", "billing", "invoicing", name)),
+    path.join("scripts", "billing", "monthly-export.ts"),
+    path.join("lib", "email", "copy.ts"),
+    path.join("lib", "email", "templates.tsx"),
+  ];
+
+  it("cover the invoicing module, the export and the invoice email", () => {
+    expect(sources.map((file) => path.basename(file))).toEqual(expect.arrayContaining(["index.ts", "manual.ts", "copy.ts", "export.ts", "monthly-export.ts", "templates.tsx"]));
+  });
+
+  for (const file of sources) {
+    it(`${file} has no placeholder company data`, () => {
+      const text = readFileSync(path.join(process.cwd(), file), "utf8").toLowerCase();
+      expect(LEGAL_CONTENT_BANNED.filter((value) => text.includes(value.toLowerCase()))).toEqual([]);
+    });
+  }
+
+  it("the accountant export never shows placeholder data as the issuer", () => {
+    const placeholders = {
+      LEGAL_ENTITY_NAME: "Caudals, S.L.",
+      LEGAL_ENTITY_NIF: "B00000000",
+      LEGAL_ENTITY_ADDRESS: "Calle Ejemplo 1, 47001 Valladolid, España",
+      LEGAL_ENTITY_REGISTRY: "Registro Mercantil de Valladolid, Tomo 0000, Folio 0, Hoja VA-00000",
+    };
+    const data: AccountantExport = {
+      month: "2026-10", livemode: true, time_zone: "Europe/Madrid", from: "2026-09-30T22:00:00Z", to: "2026-10-31T23:00:00Z",
+      generated_at: "2026-11-01T08:00:00Z", complete: true, sales: [], refunds: [], chargebacks: [], purchased_credits: {}, free_credits: {},
+      orders: [], documents: [], checks: { paid_orders_without_invoice: 0 },
+    };
+    const files = renderExport(data, { issuer: getLegalEntity(placeholders) });
+    for (const content of Object.values(files)) expect(findLegalPlaceholders(content)).toEqual([]);
+    expect(files["summary.md"]).toContain("not configured yet");
   });
 });
