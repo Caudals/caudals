@@ -11,14 +11,14 @@ import { createPrefixedId } from "../../lib/operator/ids";
  * (claims + llm_judge graders), a DGX judge/report-writer route, budgets, and
  * an imported-response run whose two answers are already applied.
  */
-export async function importedJudgeRunFixture(owner: Pool, runtimeUrl: string) {
+export async function importedJudgeRunFixture(owner: Pool, runtimeUrl: string, options: { caseExtensions?: Record<string, Record<string, string | boolean | null>> } = {}) {
   process.env.EVALS_DATABASE_URL = runtimeUrl;
     const actorId = createPrefixedId("au");
     const orgId = randomUUID(), projectId = randomUUID(), targetId = randomUUID(), targetRevisionId = randomUUID();
     const suiteId = randomUUID(), suiteVersionId = randomUUID(), evaluationId = randomUUID();
     const scope = { orgId, actorId };
     const { source } = syntheticAccountingFixture(actorId);
-    const pack = genericGroundedQaPack({ source, authorId: actorId, questions: [
+    const pack = genericGroundedQaPack({ source, authorId: actorId, ...(options.caseExtensions ? { extensions: options.caseExtensions } : {}), questions: [
       { question: "What fee applies under policy A?", expected: "10% service fee", anchor: source.anchors[0].id, severity: "medium" },
       { question: "How is policy A rounded?", expected: "round once to two decimals", anchor: source.anchors[0].id, severity: "medium" },
     ] });

@@ -113,12 +113,26 @@ const SERVER_ES: Record<string, string> = {
   "Payments are temporarily unavailable. Nothing was charged. Try again in a few minutes.": "Los pagos no están disponibles en este momento. No se ha cobrado nada. Vuelve a intentarlo dentro de unos minutos.",
   "Payments are temporarily unavailable. Try again in a few minutes.": "Los pagos no están disponibles en este momento. Vuelve a intentarlo dentro de unos minutos.",
   "The monthly limit must cover at least one recharge.": "El límite mensual debe cubrir al menos una recarga.",
+  // Better document intake (launch L-34).
+  "Use a path such as /help, without a query or spaces.": "Usa una ruta como /help, sin parámetros ni espacios.",
+  "The sitemap must be on the same website as the help centre.": "El sitemap debe estar en el mismo sitio web que el centro de ayuda.",
+  "The page list is not ready yet.": "La lista de páginas aún no está lista.",
+  "Choose at least one page.": "Elige al menos una página.",
+  "Choose pages from the list.": "Elige páginas de la lista.",
+  "This context has already been confirmed or skipped.": "Este contexto ya se ha confirmado u omitido.",
+  "Enter the reference date as a date such as 2026-10-01.": "Escribe la fecha de referencia como una fecha, por ejemplo 2026-10-01.",
+  "Enter languages such as English, Spanish or es-ES.": "Escribe idiomas como español, inglés o es-ES.",
+  "Choose one of this test set's sources.": "Elige una de las fuentes de este conjunto de pruebas.",
+  "Check the corrected fields and try again.": "Revisa los campos corregidos y vuelve a intentarlo.",
+  "Choose between one and sixty source revisions.": "Elige entre una y sesenta fuentes.",
 };
 
 /** Translate a curated server sentence; evaluation- or model-specific details keep their wording. */
 export function trServer(message: string): string {
   if (getLocale() !== "es") return message;
   if (SERVER_ES[message]) return SERVER_ES[message];
+  const pages = message.match(/^Choose at most (\d+) pages\.$/);
+  if (pages) return `Elige como máximo ${pages[1]} páginas.`;
   const inUse = message.match(/^The evaluation “(.+)” (tests this system|uses this test set)\. Delete that evaluation first\.$/);
   if (inUse) return `La evaluación «${inUse[1]}» ${inUse[2] === "tests this system" ? "prueba este sistema" : "usa este conjunto de pruebas"}. Elimina antes esa evaluación.`;
   return message;

@@ -72,12 +72,13 @@ function useElapsed(since: string | null | undefined, active: boolean) {
   return minutes ? `${minutes} min ${seconds % 60} s` : `${seconds} s`;
 }
 
-export function EvaluationJourney({ evaluationId }: { evaluationId: string }) {
+/** `intakeV2`: better document intake (launch L-34), INTAKE_V2_ENABLED read on the server. */
+export function EvaluationJourney({ evaluationId, intakeV2 = false }: { evaluationId: string; intakeV2?: boolean }) {
   const { orgId } = useWorkspace();
-  return <EvaluationJourneyContent key={`${orgId}-${evaluationId}`} evaluationId={evaluationId} />;
+  return <EvaluationJourneyContent key={`${orgId}-${evaluationId}`} evaluationId={evaluationId} intakeV2={intakeV2} />;
 }
 
-function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
+function EvaluationJourneyContent({ evaluationId, intakeV2 }: { evaluationId: string; intakeV2: boolean }) {
   const { orgId, workspace, canWrite, canManage, operator, platformAdmin, withOrg } = useWorkspace();
   const { summary, error, reload, retry } = useWorkspaceSummary(orgId);
   const [loadedRun, setRun] = useState<RunView | null>(null);
@@ -404,7 +405,7 @@ function EvaluationJourneyContent({ evaluationId }: { evaluationId: string }) {
       <div hidden={connectOpen}>
       {!run && !evaluation.selected_suite_version_id ? (
         canWrite ? (
-          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} reviewMode={reviewModeForPlan(summary.entitlement.plan)} onRun={async () => requestStart()} />
+          <PrepareEvaluation key={controls.state?.subject?.kind === "generation" ? controls.state.subject.id : "preparation"} orgId={orgId} evaluation={evaluation} executionMode={executionMode} controlUpdatedAt={controls.state?.subject?.updatedAt} onReady={reload} autoStartCases={autoStarting ? firstRun.state?.autostart?.maxCases ?? null : null} reviewMode={reviewModeForPlan(summary.entitlement.plan)} onRun={async () => requestStart()} intakeV2={intakeV2} canWrite={canWrite} />
         ) : (
           <Panel title={stage.label} live={stage.live}>
             <p>{t("viewerPreparationHelp")}</p>

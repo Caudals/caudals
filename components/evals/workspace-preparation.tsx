@@ -9,7 +9,7 @@
  * or retrying a step never duplicates work.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FileText, Globe, Plus, Search, Sparkles, Upload, X } from "lucide-react";
+import { BookOpen, FileText, Globe, Plus, Search, Sparkles, Upload, X } from "lucide-react";
 import { generationStartIdempotencyKey } from "@/lib/evals/domain/generation-idempotency";
 import { AUTOMATIC_PROMPT_REVISION } from "@/lib/evals/onboarding/config";
 import { evalRequest } from "./api";
@@ -20,6 +20,8 @@ import { HelpLink } from "./help";
 import { DeleteDialog, itemRequest } from "./item-actions";
 import { ContextQuestionsForm, ExcerptBrowser, ScopePicker, TestSetReview, type CasePreview, type Complexity, type ContextQuestion, type ReviewRecord } from "./preparation-parts";
 import type { ReviewMode } from "@/lib/evals/review/spot-check";
+import { ContextConfirmation, DocumentIntake, HelpCentreImport, ScanNotice, scanInfo, type ScanInfo } from "./intake";
+import { CONFIRMATION_REASON } from "@/lib/evals/intake/constants";
 import { getLocale, t, tv, type MessageKey } from "@/lib/evals/messages/en";
 
 type Evaluation = {
@@ -37,12 +39,13 @@ type SourceDetail = {
   chunks: Array<{ id: string; excerpt: string }>;
   chunkCount?: number;
   revisions?: Array<{ id: string }>;
-  ingestion?: { status: string; source_revision_id: string | null; reason_code: string | null } | null;
-  websiteCapture?: { id: string; start_url: string; status: string; reason_code: string | null; source_revision_id: string | null } | null;
+  ingestion?: { status: string; source_revision_id: string | null; reason_code: string | null; scan_suspected?: boolean; page_count?: number | null; text_chars?: number | null; empty_pages?: number | null } | null;
+  websiteCapture?: { id: string; start_url: string; status: string; reason_code: string | null; source_revision_id: string | null; selected_pages?: number | null; pages_read?: number | null } | null;
 };
-type PreparedSource = { id: string; title: string; revisionId: string; chunks: SourceDetail["chunks"]; chunkCount: number; kind: "document" | "website" };
+/** A ready source; intake v2 (launch L-34) adds the scan flag and, for an imported help centre, the pages read. */
+type PreparedSource = { id: string; title: string; revisionId: string; chunks: SourceDetail["chunks"]; chunkCount: number; kind: "document" | "website"; scan?: ScanInfo | null; pages?: { read: number | null; selected: number } | null };
 /** Material that is still being read (a website capture or document extraction), or that failed. */
-type PendingSource = { id: string; title: string; kind: "document" | "website"; state: "reading" | "failed"; reason: string | null };
+type PendingSource = { id: string; title: string; kind: "document" | "website"; state: "reading" | "failed"; reason: string | null; pages?: number | null };
 
 /** Ready, still reading, or failed — from one source detail. */
 function sourceState(id: string, detail: SourceDetail, fallbackRevision: string | null): { ready: PreparedSource } | { pending: PendingSource } {
@@ -52,9 +55,10 @@ function sourceState(id: string, detail: SourceDetail, fallbackRevision: string 
   const revisionId = detail.websiteCapture
     ? (detail.websiteCapture.status === "completed" && detail.ingestion?.status === "completed" ? detail.revisions?.[0]?.id ?? detail.websiteCapture.source_revision_id ?? detail.ingestion.source_revision_id : null)
     : detail.revisions?.[0]?.id ?? detail.ingestion?.source_revision_id ?? fallbackRevision;
-  if (revisionId) return { ready: { id, title, revisionId, chunks: detail.chunks, chunkCount: detail.chunkCount ?? detail.chunks.length, kind } };
+  const selected = detail.websiteCapture?.selected_pages ?? null;
+  if (revisionId) return { ready: { id, title, revisionId, chunks: detail.chunks, chunkCount: detail.chunkCount ?? detail.chunks.length, kind, scan: kind === "document" ? scanInfo(detail.ingestion) : null, pages: selected ? { read: detail.websiteCapture?.pages_read ?? null, selected } : null } };
   const failed = detail.websiteCapture?.status === "failed" || detail.ingestion?.status === "failed";
-  return { pending: { id, title, kind, state: failed ? "failed" : "reading", reason: detail.websiteCapture?.reason_code ?? detail.ingestion?.reason_code ?? null } };
+  return { pending: { id, title, kind, state: failed ? "failed" : "reading", reason: detail.websiteCapture?.reason_code ?? detail.ingestion?.reason_code ?? null, pages: selected } };
 }
 type Draft = { suiteId: string; suiteVersionId: string; suiteDraftVersion: number };
 type GenerationProgress = { written: number; target: number; rounds?: number };
@@ -99,6 +103,8 @@ export function PrepareEvaluation({
   autoStartCases = null,
   reviewMode = "full",
   onRun,
+  intakeV2 = false,
+  canWrite = true,
 }: {
   orgId: string;
   evaluation: Evaluation;
@@ -111,6 +117,10 @@ export function PrepareEvaluation({
   reviewMode?: ReviewMode;
   /** Starts the run after "Approve and run" (launch L-22). */
   onRun?: () => Promise<void>;
+  /** Better document intake (launch L-34): INTAKE_V2_ENABLED, read on the server. */
+  intakeV2?: boolean;
+  /** Owners, editors and operators may confirm the context. */
+  canWrite?: boolean;
 }) {
   const [sources, setSources] = useState<PreparedSource[]>([]);
   const [pendingSources, setPendingSources] = useState<PendingSource[]>([]);
@@ -121,6 +131,9 @@ export function PrepareEvaluation({
   const [files, setFiles] = useState<File[]>([]);
   const [showWebsite, setShowWebsite] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  /** The generation waiting on "What we understood about your assistant" (launch L-34). */
+  const [confirmationJob, setConfirmationJob] = useState<string | null>(null);
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [pending, setPending] = useState<"" | "upload" | "website" | "generate" | "manual" | "context" | "approve">("");
   const [error, setError] = useState("");
@@ -347,6 +360,10 @@ export function PrepareEvaluation({
               setStopReason((prepared as { reasonCode?: string }).reasonCode ?? null);
               return;
             }
+          } else if (state.status === "needs_input" && state.job?.reasonCode === CONFIRMATION_REASON) {
+            // Launch L-34: the person confirms or corrects the context on one screen; nothing else moves it on.
+            setConfirmationJob(jobId);
+            return;
           } else if (state.status === "needs_input") {
             const context = await evalRequest<{ questions: ContextQuestion[] }>(`/evaluations/${evaluation.id}/context?orgId=${orgId}`);
             const questions = (context.questions ?? []).filter((item) => !item.jobId || item.jobId === jobId);
@@ -410,6 +427,7 @@ export function PrepareEvaluation({
         setAutoJobId(state.job.id);
         setGeneration(state.status);
         setStopReason(state.job.reasonCode ?? null);
+        if (state.status === "needs_input" && state.job.reasonCode === CONFIRMATION_REASON) setConfirmationJob(state.job.id);
         if (state.status === "needs_input") return;
         if (
           ["profiling", "profile_ready", "drafting", "draft_ready"].includes(state.status) ||
@@ -573,35 +591,48 @@ export function PrepareEvaluation({
         <SectionHeading title={t("referenceMaterial")} actions={<HelpLink topic="sources" />}>{t("referenceMaterialHelp")}</SectionHeading>
         {sources.length + pendingSources.length > 0 && (
           <ul className="p-files">
-            {sources.map((item) => (
-              <li key={item.id}>
-                {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
-                <span className="p-files-name">{item.title}</span>
-                <button type="button" className="p-files-excerpts" onClick={() => setExcerptSource(item)} disabled={!!pending}>
-                  {item.chunkCount} {item.chunkCount === 1 ? t("excerpt") : t("excerpts")}
-                  <span className="sr-only">: {t("viewExcerpts")}</span>
-                </button>
-                <Badge tone="pass" dot>
-                  {t("ready")}
-                </Badge>
-                <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
-              </li>
-            ))}
-            {pendingSources.map((item) => (
-              <li key={item.id}>
-                {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
-                <span className="p-files-name">{item.title}</span>
-                <span className="p-cell-meta">
-                  {item.state === "failed" ? (item.reason ? humanizeReason(item.reason) : t("websiteCaptureFailed")) : item.kind === "website" ? t("websiteReadingHelp") : t("documentReadingHelp")}
-                </span>
-                {item.state === "failed" ? (
-                  <Badge tone="fail" dot>{t("failedLabel")}</Badge>
-                ) : (
-                  <Badge tone="info" dot live>{item.kind === "website" ? t("readingWebsite") : t("readingDocument")}</Badge>
-                )}
-                <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
-              </li>
-            ))}
+            {sources.map((item) => {
+              const scanned = intakeV2 && item.kind === "document" && !!item.scan?.suspected;
+              return (
+                <li key={item.id} data-notice={scanned ? "true" : undefined}>
+                  {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                  <span className="p-files-name">{item.title}</span>
+                  {intakeV2 && item.pages && <span className="p-cell-meta">{tv("importSourceMeta", { read: item.pages.read ?? item.chunkCount, selected: item.pages.selected })}</span>}
+                  <button type="button" className="p-files-excerpts" onClick={() => setExcerptSource(item)} disabled={!!pending}>
+                    {item.chunkCount} {item.chunkCount === 1 ? t("excerpt") : t("excerpts")}
+                    <span className="sr-only">: {t("viewExcerpts")}</span>
+                  </button>
+                  {scanned ? <Badge tone="warn" dot>{t("scanBadge")}</Badge> : <Badge tone="pass" dot>{t("ready")}</Badge>}
+                  <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
+                  {scanned && item.scan && (
+                    <ScanNotice scan={item.scan} title={item.title} disabled={!!pending} onLeaveOut={() => setRemoving(item)} onUploadText={() => fileInput.current?.click()} onAddPage={() => setShowWebsite(true)} />
+                  )}
+                </li>
+              );
+            })}
+            {pendingSources.map((item) => {
+              const scanned = intakeV2 && item.state === "failed" && item.reason === "pdf_scanned";
+              return (
+                <li key={item.id} data-notice={scanned ? "true" : undefined}>
+                  {item.kind === "website" ? <Globe aria-hidden="true" /> : <FileText aria-hidden="true" />}
+                  <span className="p-files-name">{item.title}</span>
+                  <span className="p-cell-meta">
+                    {item.state === "failed" ? (item.reason ? humanizeReason(item.reason, intakeV2) : t("websiteCaptureFailed")) : item.kind === "website" ? (intakeV2 && item.pages ? tv("importSourceReading", { selected: item.pages }) : t("websiteReadingHelp")) : t("documentReadingHelp")}
+                  </span>
+                  {scanned ? (
+                    <Badge tone="warn" dot>{t("scanBadge")}</Badge>
+                  ) : item.state === "failed" ? (
+                    <Badge tone="fail" dot>{t("failedLabel")}</Badge>
+                  ) : (
+                    <Badge tone="info" dot live>{item.kind === "website" ? t("readingWebsite") : t("readingDocument")}</Badge>
+                  )}
+                  <RemoveSourceButton title={item.title} disabled={!!pending} onClick={() => setRemoving(item)} />
+                  {scanned && (
+                    <ScanNotice scan={{ suspected: true, pages: null, chars: null, empty: null }} title={item.title} disabled={!!pending} onLeaveOut={() => setRemoving(item)} onUploadText={() => fileInput.current?.click()} onAddPage={() => setShowWebsite(true)} />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
         <ExcerptBrowser
@@ -619,6 +650,45 @@ export function PrepareEvaluation({
           <DeleteDialog kind="sources" name={removing.title} onClose={() => setRemoving(null)} onConfirm={() => removeSource(removing.id)} />
         )}
         {!sources.length && sourcesLoading && <p className="p-cell-meta">{t("loading")}</p>}
+        {intakeV2 ? (
+          <>
+            <DocumentIntake
+              orgId={orgId}
+              evaluationId={evaluation.id}
+              projectId={evaluation.project_id}
+              existingFiles={sources.filter((item) => item.kind === "document").length + pendingSources.filter((item) => item.kind === "document").length}
+              inputRef={fileInput}
+              onReady={(item) => remember(item)}
+              onPending={(item) => setPendingSources((current) => [...current.filter((existing) => existing.id !== item.id), item])}
+              onChanged={() => void onReady()}
+            />
+            <div className="p-drop-actions">
+              <Action variant="ghost" size="sm" onClick={() => setShowWebsite((value) => !value)} aria-expanded={showWebsite}>
+                <Globe aria-hidden="true" />
+                {t("addWebsite")}
+              </Action>
+              <Action variant="ghost" size="sm" onClick={() => setShowImport(true)} aria-haspopup="dialog">
+                <BookOpen aria-hidden="true" />
+                {t("importHelpCentre")}
+              </Action>
+              <Action variant="ghost" size="sm" onClick={() => setShowDiscovery((value) => !value)} aria-expanded={showDiscovery}>
+                <Search aria-hidden="true" />
+                {t("findWebSources")}
+              </Action>
+            </div>
+            <HelpCentreImport
+              orgId={orgId}
+              evaluationId={evaluation.id}
+              projectId={evaluation.project_id}
+              open={showImport}
+              onOpenChange={setShowImport}
+              onStarted={(started) => {
+                setPendingSources((current) => [...current.filter((item) => item.id !== started.id), { id: started.id, title: started.title, kind: "website", state: "reading", reason: null, pages: started.pages }]);
+                void onReady();
+              }}
+            />
+          </>
+        ) : (
         <form className="p-drop" onSubmit={upload}>
           <label className="p-drop-zone" data-has-files={files.length ? "true" : undefined}>
             <Upload aria-hidden="true" />
@@ -641,6 +711,7 @@ export function PrepareEvaluation({
             </Action>
           </div>
         </form>
+        )}
         <WebDiscovery
           orgId={orgId}
           evaluationId={evaluation.id}
@@ -667,7 +738,25 @@ export function PrepareEvaluation({
 
       <section className="p-section">
         <SectionHeading title={t("testSet")} actions={<HelpLink topic="prepare" />}>{t("testSetHelp")}</SectionHeading>
-        {openQuestions.length > 0 ? (
+        {intakeV2 && confirmationJob && !draft ? (
+          <ContextConfirmation
+            key={confirmationJob}
+            orgId={orgId}
+            evaluationId={evaluation.id}
+            jobId={confirmationJob}
+            canWrite={canWrite}
+            onDecided={() => {
+              const jobId = confirmationJob;
+              setConfirmationJob(null);
+              setStopReason(null);
+              setGeneration("profile_ready");
+              void onReady();
+              void continueAutomaticGeneration(jobId);
+            }}
+          />
+        ) : generation === "needs_input" && stopReason === CONFIRMATION_REASON ? (
+          <Status tone="info">{t("ctxWaitingFlagOff")}</Status>
+        ) : openQuestions.length > 0 ? (
           <ContextQuestionsForm key={openQuestions.map((item) => item.id).join()} questions={openQuestions} pending={pending === "context"} error={contextError} onSubmit={(answers) => void submitContext(answers)} />
         ) : generating ? (
           <div className="p-working" role="status">
@@ -716,7 +805,7 @@ export function PrepareEvaluation({
           </div>
         )}
 
-        {!generating && !openQuestions.length && source && (
+        {!generating && !openQuestions.length && !confirmationJob && source && (
           <div className="p-disclosure">
             <button type="button" className="p-disclosure-trigger" aria-expanded={showManual} onClick={() => setShowManual((value) => !value)}>
               <Plus aria-hidden="true" />
@@ -808,8 +897,10 @@ export function generationStopMessage(reason: string | null | undefined) {
   }
 }
 
-function humanizeReason(reason: string) {
+function humanizeReason(reason: string, intakeV2 = false) {
+  if (reason === "pdf_scanned") return intakeV2 ? t("reasonPdfScanned") : t("extractionFailed");
   const known: Record<string, MessageKey> = {
+    website_robots_unavailable: "importReason_website_robots_unavailable",
     website_capture_unavailable: "reasonWebsiteUnavailable",
     website_page_unavailable: "reasonWebsitePage",
     website_text_unavailable: "reasonWebsiteText",

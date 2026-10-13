@@ -3,6 +3,7 @@ import { api, jsonBody, requireWorkspace } from "@/lib/evals/domain/http";
 import { prepareGroundedSuiteOnce } from "@/lib/evals/repositories/managed";
 import { locateManualQuestions } from "@/lib/evals/repositories/manual-questions";
 import { getAutomaticGeneration, MAX_GENERATED_CASES, startAutomaticGeneration } from "@/lib/evals/repositories/automatic-generation";
+import { intakeV2Enabled } from "@/lib/evals/intake/flags";
 
 export const runtime = "nodejs";
 function evaluationId(request: Request) { return z.uuid().parse(new URL(request.url).pathname.split("/").at(-2)); }
@@ -21,7 +22,7 @@ const manual = z.strictObject({
   promptRevision:z.string().min(1).max(200),
 });
 const automatic = z.strictObject({
-  mode:z.literal("automatic"), orgId:z.uuid(), sourceRevisionIds:z.array(z.uuid()).min(1).max(21),
+  mode:z.literal("automatic"), orgId:z.uuid(), sourceRevisionIds:z.array(z.uuid()).min(1).max(60),
   title:z.string().min(1).max(200), executionMode:z.enum(["deployed_system","controlled_model","imported_responses"]),
   promptRevision:z.string().min(1).max(100), maxCases:z.number().int().min(1).max(MAX_GENERATED_CASES).optional(),
   complexity:z.enum(["foundational","balanced","expert"]).optional(), locale:z.enum(["en","es"]).optional(),
@@ -36,7 +37,8 @@ export const POST=api(async(request,identity)=>{
  if(raw&&typeof raw==="object"&&!Array.isArray(raw)&&"mode" in raw&&raw.mode==="automatic"){
   const input=automatic.parse(raw);await requireWorkspace(identity,input.orgId,"write");
   const {mode:_mode,orgId,...generation}=input;
-  return startAutomaticGeneration({orgId,actorId:identity.user.id},id,generation,request.headers.get("Idempotency-Key")??"");
+  // Intake v2 (launch L-34): the person confirms "What we understood" before the tests are written.
+  return startAutomaticGeneration({orgId,actorId:identity.user.id},id,generation,request.headers.get("Idempotency-Key")??"",{confirmContext:intakeV2Enabled()});
  }
  const input=manual.parse(raw);await requireWorkspace(identity,input.orgId,"write");
  const {orgId,sourceRevisionId,questions,...generation}=input;

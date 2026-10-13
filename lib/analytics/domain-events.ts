@@ -14,7 +14,10 @@ export async function recordDomainCreation(db: PoolClient, scope: Scope, route: 
   else if ((["runs", "self-service-runs"].includes(route) || route.startsWith("graded-results/"))) { eventName = "run_started"; runId = resource; payload = { questions: typeof data.units === "number" ? data.units : typeof data.cases === "number" ? data.cases : null, models: null }; }
   else if (route.startsWith("freeze/") || route.startsWith("evaluation-generation/")) { eventName = "test_set_ready"; const manifest = object(data.manifest); payload = { question_count: Array.isArray(manifest.case_revisions) ? manifest.case_revisions.length : null }; }
   else if (route === "monitor-schedules") { eventName = "schedule_created"; payload = { destination_type: "scheduled_run" }; }
-  else if (route === "uploads" || route.startsWith("website-source/")) { eventName = "sources_added"; payload = { source_kind: route === "uploads" ? "file" : "website", count: 1 }; }
+  else if ((route === "uploads" && !data.duplicate) || route.startsWith("website-source/")) {
+    // Launch L-34: an imported help centre is one website source of the selected pages; a duplicate file adds nothing.
+    eventName = "sources_added"; payload = { source_kind: route === "uploads" ? "file" : object(args.import).previewId ? "help_centre" : "website", count: 1 };
+  }
   if (!eventName || !resource) return;
   await db.query("SAVEPOINT analytics_dimensions");
   try {

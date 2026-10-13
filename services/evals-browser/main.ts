@@ -12,7 +12,7 @@ import {
 import { BrowserJobWorker } from "../../lib/evals/queue/browser-worker";
 import { loadKeyring } from "../../lib/evals/security/envelope";
 import { checkBrowserDestination } from "./egress-client";
-import { processWebsiteSourceOne } from "./website-source-worker";
+import { processWebsitePreviewOne, processWebsiteSourceOne } from "./website-source-worker";
 import { BrowserControl } from "./control";
 import { startBrowserControl } from "./control-server";
 import { workerWorkspaces } from "../../lib/evals/queue/workspaces";
@@ -93,6 +93,14 @@ async function main() {
         await worker.recover(tenant);
         startupPhase = "outbox_dispatch";
         await dispatchOutbox(boss, withTenant, tenant, 10);
+        if (!browserBusy && !control.active) {
+          // A help-centre page list is short work a person is waiting for: list pages first (launch L-34).
+          startupPhase = "website_page_preview";
+          await withBrowserSlot(() => processWebsitePreviewOne({
+            orgId, actorId, browser,
+            destinationCheck: (url) => checkBrowserDestination(url, egressHost, egressPort),
+          }));
+        }
         if (!browserBusy && !control.active) {
           startupPhase = "website_source_capture";
           await withBrowserSlot(() => processWebsiteSourceOne({

@@ -47,19 +47,35 @@ export interface PlanLimits {
   members: number | null;
   connectionTypes: readonly ConnectionType[];
   schedules: boolean;
+  /** Pages one website source may read, e.g. an imported help centre (§6.5, P-56; launch L-34). */
+  websitePages: number;
 }
 
 /** The free plan as enrolled by evals.enroll_self_serve (migrations 075, 085). */
 export const FREE_LIMITS: PlanLimits = Object.freeze({
   systems: 1, questionsPerSet: 50, runsPerMonth: 3, activeRuns: 1, members: null,
   connectionTypes: Object.freeze(["website", "openai_compatible", "https_json"] as ConnectionType[]), schedules: false,
+  websitePages: 50,
 });
 
 /** Pay as you go (§6.5), as evals.upgrade_plan_on_purchase sets it (migration 093). */
 export const PAYG_LIMITS: PlanLimits = Object.freeze({
   systems: 10, questionsPerSet: 500, runsPerMonth: null, activeRuns: 2, members: 10,
   connectionTypes: Object.freeze(["https_json", "imported_responses", "openai_compatible", "website"] as ConnectionType[]), schedules: true,
+  websitePages: 200,
 });
+
+/**
+ * Pages one website source may read (launch L-34). Plans v2 sets 50 on free
+ * and 200 on pay as you go; managed and partner workspaces get the PAYG cap
+ * (their contracts set the volume). Without plans v2 every workspace keeps
+ * today's 50-page reader cap.
+ */
+export const DEFAULT_WEBSITE_PAGE_CAP = 50;
+export function websitePageCap(plan: string | null | undefined, plansV2: boolean): number {
+  if (!plansV2) return DEFAULT_WEBSITE_PAGE_CAP;
+  return plan === "free" ? FREE_LIMITS.websitePages : PAYG_LIMITS.websitePages;
+}
 
 /* ------------------------------------------------------- limit errors --- */
 

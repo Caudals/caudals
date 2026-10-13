@@ -124,6 +124,8 @@ const FIXED_ES: Record<string, string> = {
   "Apply the supported change and rerun the same frozen case revisions.": "Aplica el cambio respaldado y vuelve a ejecutar las mismas revisiones congeladas de los casos.",
   "Coverage is incomplete; the headline score does not describe unassessed eligible tests.": "La cobertura es incompleta; la puntuación principal no describe las pruebas elegibles sin evaluar.",
   "Frozen suite membership; no post-result selection.": "Composición del conjunto congelada; sin selección posterior a los resultados.",
+  // Launch L-34: the customer skipped "What we understood about your assistant" (or it timed out).
+  "Context not confirmed by the customer.": "El cliente no ha confirmado el contexto.",
   "Evaluation of the agreed system behavior.": "Evaluación del comportamiento acordado del sistema.",
   // Methodology sentences the report builder writes (lib/evals/repositories/managed.ts).
   "All scored results were individually approved or disputed by the assigned reviewer.":

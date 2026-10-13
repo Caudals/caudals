@@ -14,7 +14,8 @@ import { EvalError } from '../domain/errors';
 import type { PoolClient } from 'pg';
 import { withTenant } from './db';
 import { chargeMeter, engineBillingMode, sourcePageCount } from '../../billing/engine';
-import { extractText, MAX_SOURCE_BYTES } from '../storage/text';
+import { extractText, MAX_SOURCE_BYTES, type PdfScanStats } from '../storage/text';
+import { recordProductEvent } from '@/lib/analytics/funnel-events-server';
 import { objectKey, readVerified, sealObject, writeUpload } from '../storage/private';
 
 const uuidSchema = z.uuid();
@@ -55,18 +56,34 @@ export function listSuiteVersions(scope: EvidenceScope, projectId?: string) {
 export function createProject(scope: EvidenceScope, input: {title: string; description: string}, key: string) {
   return withTenant(scope, db => idempotent(db,scope,'projects',key,input,async () => (await db.query('INSERT INTO evals.project(org_id,title,description) VALUES($1,$2,$3) RETURNING id,title,description,created_at',[scope.orgId,input.title,input.description])).rows[0]));
 }
-export function createUpload(scope: EvidenceScope, input: {projectId: string; evaluationId?:string; title: string; mediaType: string; byteSize: number; sha256: string; rights: 'customer_owned'|'licensed'|'public_domain'|'caudals_owned'; visibility?: 'internal'|'candidate'|'judge'|'customer'; exportPath?:string}, key: string) {
+/**
+ * Documents per evaluation: 20 files and 100 MB, or with intake v2 (launch
+ * L-34) 50 files and 200 MB, where a file whose bytes are already in the
+ * evaluation is skipped: the existing source is returned as a duplicate.
+ */
+export const UPLOAD_LIMITS = { classic: { files: 20, bytes: 100_000_000 }, intakeV2: { files: 50, bytes: 200_000_000 } } as const;
+export function createUpload(scope: EvidenceScope, input: {projectId: string; evaluationId?:string; title: string; mediaType: string; byteSize: number; sha256: string; rights: 'customer_owned'|'licensed'|'public_domain'|'caudals_owned'; visibility?: 'internal'|'candidate'|'judge'|'customer'; exportPath?:string}, key: string, options: { intakeV2?: boolean } = {}) {
   return withTenant(scope, db => idempotent(db,scope,'uploads',key,input,async () => {
     required((await db.query('SELECT id FROM evals.project WHERE org_id=$1 AND id=$2',[scope.orgId,input.projectId])).rows[0]);
     if(input.evaluationId){
       const evaluation=required((await db.query('SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2 FOR UPDATE',[scope.orgId,input.evaluationId])).rows[0]);
       if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,'Source project does not match evaluation');
+      if(options.intakeV2){
+        const duplicate=(await db.query(`SELECT s.id AS source_id,a.id AS artifact_id,a.export_path FROM evals.source s
+          JOIN evals.source_upload u ON u.org_id=s.org_id AND u.source_id=s.id JOIN evals.artifact a ON a.org_id=u.org_id AND a.id=u.artifact_id
+          WHERE s.org_id=$1 AND s.evaluation_id=$2 AND s.archived_at IS NULL AND a.sha256=$3 AND a.state<>'deleted'
+            AND NOT EXISTS (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=s.org_id AND w.source_id=s.id)
+            AND NOT EXISTS (SELECT 1 FROM evals.source_ingestion_job j WHERE j.org_id=s.org_id AND j.source_id=s.id AND j.status='failed')
+          ORDER BY s.created_at LIMIT 1`,[scope.orgId,input.evaluationId,input.sha256])).rows[0];
+        if(duplicate)return { duplicate: true, sourceId: duplicate.source_id, artifactId: duplicate.artifact_id, artifactPath: duplicate.export_path };
+      }
       const usage=(await db.query(`SELECT count(*)::int AS files,COALESCE(sum(a.byte_size),0)::bigint AS bytes
         FROM evals.source s JOIN evals.source_upload u ON u.org_id=s.org_id AND u.source_id=s.id
         JOIN evals.artifact a ON a.org_id=u.org_id AND a.id=u.artifact_id
         WHERE s.org_id=$1 AND s.evaluation_id=$2 AND NOT EXISTS
-          (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=s.org_id AND w.source_id=s.id)` ,[scope.orgId,input.evaluationId])).rows[0];
-      if(usage.files>=20||Number(usage.bytes)+input.byteSize>100_000_000)throw new EvidenceError(413,'Evaluation source limit exceeded');
+          (SELECT 1 FROM evals.website_source_job w WHERE w.org_id=s.org_id AND w.source_id=s.id)${options.intakeV2?" AND s.archived_at IS NULL":""}` ,[scope.orgId,input.evaluationId])).rows[0];
+      const limits=options.intakeV2?UPLOAD_LIMITS.intakeV2:UPLOAD_LIMITS.classic;
+      if(usage.files>=limits.files||Number(usage.bytes)+input.byteSize>limits.bytes)throw new EvidenceError(413,'Evaluation source limit exceeded');
     }
     const id = randomUUID(); const storageKey = objectKey(scope.orgId,id);
     const extensions:Record<string,string>={'text/plain':'txt','text/markdown':'md','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/pdf':'pdf','text/csv':'csv','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx'}; const exportPath=input.exportPath??('sources/'+id+'.'+(extensions[input.mediaType]??'bin'));
@@ -98,13 +115,21 @@ export async function finalizeSource(scope: EvidenceScope, sourceId: string, key
     return {status:"extracting",sourceId,artifactId:artifact.id,ingestionJobId:job.id};
   }));
 }
-export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:string;projectId:string;url:string;title:string;rights:"customer_owned"|"licensed"|"public_domain";pageLimit?:number},key:string){
+/**
+ * A website source. Without `import`, the reader samples up to 25 pages from
+ * the URL (the original website source). With `import` (an imported help
+ * centre, launch L-34) it reads exactly the selected pages of a preview; the
+ * caller has checked them against the preview and the plan's page cap.
+ */
+export function createWebsiteSource(scope:EvidenceScope,input:{evaluationId:string;projectId:string;url:string;title:string;rights:"customer_owned"|"licensed"|"public_domain";pageLimit?:number;import?:{previewId:string;selectedUrls:string[];sitemapUrl:string|null;pathPrefix:string|null}},key:string){
  return withTenant(scope,db=>idempotent(db,scope,"website-source/"+input.evaluationId,key,input,async()=>{
   const evaluation=required((await db.query("SELECT id,project_id FROM evals.evaluation WHERE org_id=$1 AND id=$2",[scope.orgId,input.evaluationId])).rows[0]);
   if(evaluation.project_id!==input.projectId)throw new EvidenceError(422,"Website source project does not match evaluation");
   const source=required((await db.query("INSERT INTO evals.source(org_id,project_id,evaluation_id,title,rights) VALUES($1,$2,$3,$4,$5) RETURNING id",[scope.orgId,input.projectId,input.evaluationId,input.title,input.rights])).rows[0]);
-  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,Math.min(25,Math.max(1,input.pageLimit??25)),scope.actorId])).rows[0]);
-  return {sourceId:source.id,jobId:job.id,status:job.status};
+  const selected=input.import?.selectedUrls??null;
+  const pageLimit=selected?selected.length:Math.min(25,Math.max(1,input.pageLimit??25));
+  const job=required((await db.query("INSERT INTO evals.website_source_job(org_id,evaluation_id,source_id,start_url,page_limit,created_by,selected_urls,sitemap_url,path_prefix,preview_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,status",[scope.orgId,input.evaluationId,source.id,input.url,pageLimit,scope.actorId,selected,input.import?.sitemapUrl??null,input.import?.pathPrefix??null,input.import?.previewId??null])).rows[0]);
+  return {sourceId:source.id,jobId:job.id,status:job.status,...(selected?{pages:selected.length}:{})};
  }));
 }
 
@@ -153,8 +178,8 @@ export function getSource(scope: EvidenceScope, id: string) {
     const revisions = (await db.query('SELECT id,artifact_id,content_hash,extraction_version FROM evals.source_revision WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 20',[scope.orgId,id])).rows;
     const chunks = revisions.length ? (await db.query('SELECT id,source_revision_id,ordinal,excerpt,anchor FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2 ORDER BY ordinal LIMIT 500',[scope.orgId,revisions[0].id])).rows : [];
     const chunkCount = revisions.length ? Number((await db.query('SELECT count(*)::int AS count FROM evals.source_chunk WHERE org_id=$1 AND source_revision_id=$2',[scope.orgId,revisions[0].id])).rows[0].count) : 0;
-    const ingestion=(await db.query('SELECT id,status,attempt_count,reason_code,source_revision_id,updated_at FROM evals.source_ingestion_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
-    const websiteCapture=(await db.query('SELECT id,start_url,status,reason_code,source_revision_id,updated_at FROM evals.website_source_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
+    const ingestion=(await db.query('SELECT id,status,attempt_count,reason_code,source_revision_id,updated_at,page_count,text_chars,empty_pages,scan_suspected FROM evals.source_ingestion_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
+    const websiteCapture=(await db.query('SELECT id,start_url,status,reason_code,source_revision_id,updated_at,page_limit,pages_read,sitemap_url,path_prefix,cardinality(selected_urls) AS selected_pages FROM evals.website_source_job WHERE org_id=$1 AND source_id=$2 ORDER BY created_at DESC,id DESC LIMIT 1',[scope.orgId,id])).rows[0]??null;
     return { ...source, revisions, chunks, chunkCount, ingestion, websiteCapture };
   });
 }
@@ -416,6 +441,8 @@ export async function completeSourceIngestion(scope:EvidenceScope,jobId:string,s
   await db.query("UPDATE evals.artifact SET state='ready',object_key=$3,expires_at=now()+interval '90 days' WHERE org_id=$1 AND id=$2",[scope.orgId,artifact.id,sealedObjectKey]);
   const revision=await persistSourceRevision(db,scope,job.source_id,{id:artifact.id,sha256:artifact.sha256,byte_size:artifact.byte_size,media_type:artifact.media_type,export_path:artifact.export_path,visibility:artifact.visibility},extraction);
   await db.query("UPDATE evals.source_ingestion_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND id=$2",[scope.orgId,job.id,revision.revisionId]);
+  // Launch L-34: the per-file scan flag, from the Poppler page statistics.
+  if(extraction.scan)await recordScanStats(db,scope,job.id,extraction.scan);
   const website=(await db.query("UPDATE evals.website_source_job SET status='completed',reason_code=NULL,source_revision_id=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=$2 RETURNING page_limit",[scope.orgId,artifact.id,revision.revisionId])).rows[0];
   // §6.3: a finalized source is metered once (source:<revision_id>): pages read for a website, pages extracted for a document.
   const billing=engineBillingMode();
@@ -425,9 +452,15 @@ export async function completeSourceIngestion(scope:EvidenceScope,jobId:string,s
  });
 }
 
-export function failSourceIngestion(scope:EvidenceScope,jobId:string,reasonCode:string,retryable=false){
+/** Page statistics and the scan flag of one extracted PDF; a flagged file is counted once as scan_detected. */
+async function recordScanStats(db:PoolClient,scope:EvidenceScope,jobId:string,scan:PdfScanStats){
+ await db.query("UPDATE evals.source_ingestion_job SET page_count=$3,text_chars=$4,empty_pages=$5,scan_suspected=$6 WHERE org_id=$1 AND id=$2",[scope.orgId,jobId,scan.pageCount,Math.min(scan.textChars,2_000_000_000),scan.emptyPages,scan.suspected]);
+ if(scan.suspected)await recordProductEvent({eventName:"scan_detected",source:"server",orgId:scope.orgId,eventKey:`scan:${jobId}`,payload:{source_kind:"pdf",count:1}},db);
+}
+export function failSourceIngestion(scope:EvidenceScope,jobId:string,reasonCode:string,retryable=false,scan?:PdfScanStats){
  return withTenant(scope,async db=>{
   const result=await db.query("UPDATE evals.source_ingestion_job SET status=CASE WHEN $4 AND attempt_count<3 THEN 'queued' ELSE 'failed' END,reason_code=$3,updated_at=now() WHERE org_id=$1 AND id=$2 AND status='running' RETURNING id,status,reason_code",[scope.orgId,jobId,reasonCode,retryable]);
+  if(scan&&result.rows[0])await recordScanStats(db,scope,jobId,scan);
   if(result.rows[0]?.status==="failed")await db.query("UPDATE evals.website_source_job SET status='failed',reason_code=$3,updated_at=now() WHERE org_id=$1 AND artifact_id=(SELECT artifact_id FROM evals.source_ingestion_job WHERE org_id=$1 AND id=$2)",[scope.orgId,jobId,reasonCode]);
   return result.rows[0]??null;
  });

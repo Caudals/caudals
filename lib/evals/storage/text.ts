@@ -24,27 +24,53 @@ function runPoppler(command:string,args:string[],input:Buffer,maxOutput:number,t
   });
 }
 
-async function extractPdf(bytes:Buffer):Promise<string>{
+/** Average extracted characters a page below which a PDF looks scanned (launch L-34, P-56). */
+export const SCAN_MIN_CHARS_PER_PAGE = 50;
+/** Text per page of a PDF, from the Poppler extraction: the basis of the scan flag. */
+export type PdfScanStats = { pageCount: number; textChars: number; emptyPages: number; suspected: boolean };
+
+/**
+ * A PDF looks scanned when its pages average under about 50 extracted
+ * characters or more than half of them are empty. No OCR: the person is asked
+ * for a text version instead.
+ */
+export function pdfScanStats(pageTexts: string[]): PdfScanStats {
+  const pageCount = pageTexts.length;
+  const lengths = pageTexts.map((text) => text.replace(/\s+/g, " ").trim().length);
+  const textChars = lengths.reduce((sum, value) => sum + value, 0);
+  const emptyPages = lengths.filter((value) => value === 0).length;
+  const suspected = pageCount > 0 && (textChars / pageCount < SCAN_MIN_CHARS_PER_PAGE || emptyPages > pageCount / 2);
+  return { pageCount, textChars, emptyPages, suspected };
+}
+
+/** A PDF without any extractable text: almost always a scan. Carries its page statistics. */
+export class ScannedPdfError extends Error {
+  constructor(readonly stats: PdfScanStats) { super("pdf_no_extractable_text"); }
+}
+
+async function extractPdf(bytes:Buffer):Promise<{text:string;scan:PdfScanStats}>{
   const metadata=(await runPoppler("pdfinfo",["-"],bytes,32_000,10_000)).toString("utf8");
   const pageCount=Number(/^Pages:\s+(\d+)$/m.exec(metadata)?.[1]);
   if(!Number.isInteger(pageCount)||pageCount<1||pageCount>500)throw new Error("pdf_page_limit");
   const text=(await runPoppler("pdftotext",["-layout","-enc","UTF-8","-","-"],bytes,MAX_SOURCE_EXTRACTED_CHARS*4,20_000)).toString("utf8");
   const pages=text.split("\f");
   if(pages.length>pageCount+1)throw new Error("pdf_page_count_mismatch");
-  const normalized=pages.slice(0,pageCount).map((page,index)=>"Page "+(index+1)+":\n"+page.trim()).filter((page)=>page.endsWith(":\n")===false).join("\n\n");
-  if(!normalized.trim())throw new Error("pdf_no_extractable_text");
-  return normalized;
+  const pageTexts=Array.from({length:pageCount},(_,index)=>pages[index]??"");
+  const scan=pdfScanStats(pageTexts);
+  const normalized=pageTexts.map((page,index)=>"Page "+(index+1)+":\n"+page.trim()).filter((page)=>page.endsWith(":\n")===false).join("\n\n");
+  if(!normalized.trim())throw new ScannedPdfError(scan);
+  return {text:normalized,scan};
 }
 
 /** Source extraction runs in the resource-limited document worker. */
-export async function extractText(bytes: Uint8Array, mediaType: string):Promise<{extractionVersion:string;chunks:Array<{ordinal:number;excerpt:string;anchor:{kind:"character_range";start:number;end:number;unit:"utf16_code_unit"}}>}> {
+export async function extractText(bytes: Uint8Array, mediaType: string):Promise<{extractionVersion:string;chunks:Array<{ordinal:number;excerpt:string;anchor:{kind:"character_range";start:number;end:number;unit:"utf16_code_unit"}}>;scan?:PdfScanStats}> {
   if (!TEXT_TYPES.includes(mediaType as typeof TEXT_TYPES[number])) throw new Error("unsupported_source_type");
   if (!bytes.length || bytes.length > MAX_SOURCE_BYTES) throw new Error("source_size_out_of_bounds");
-  let text:string,extractionVersion:string;
+  let text:string,extractionVersion:string,scan:PdfScanStats|undefined;
   if(mediaType===DOCX_TYPE){text=extractDocx(bytes);extractionVersion="docx-text-v1";}
   else if(mediaType===CSV_TYPE){text=await extractTabularText(bytes,"csv");extractionVersion="csv-table-v1";}
   else if(mediaType===XLSX_TYPE){text=await extractTabularText(bytes,"xlsx");extractionVersion="xlsx-table-v1";}
-  else if(mediaType===PDF_TYPE){text=await extractPdf(Buffer.from(bytes));extractionVersion="pdf-text-v1";}
+  else if(mediaType===PDF_TYPE){({text,scan}=await extractPdf(Buffer.from(bytes)));extractionVersion="pdf-text-v1";}
   else{text=new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(bytes);extractionVersion="utf8-text-v1";}
   if(text.length>MAX_SOURCE_EXTRACTED_CHARS||/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(text)||/<\s*(?:!doctype|html|script|iframe)\b/i.test(text))throw new Error("source_text_unsupported_or_too_large");
   const chunks=[];
@@ -55,5 +81,5 @@ export async function extractText(bytes: Uint8Array, mediaType: string):Promise<
     offset=end;
   }
   if(!chunks.length)throw new Error("source_text_empty");
-  return {extractionVersion,chunks};
+  return scan?{extractionVersion,chunks,scan}:{extractionVersion,chunks};
 }

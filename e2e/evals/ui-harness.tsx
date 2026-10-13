@@ -259,7 +259,7 @@ const content =
   ) : location.pathname.startsWith("/workspace/test-sets/") ? (
     <WorkspaceTestSetEditor suiteId={location.pathname.split("/").at(-1)!} />
   ) : location.pathname.startsWith("/workspace/evaluations/") ? (
-    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} />
+    <EvaluationJourney evaluationId={location.pathname.split("/").at(-1)!} intakeV2={params.has("intake")} />
   ) : location.pathname === "/ops/platform" ? (
     <PlatformConsole section="providers" admin={!location.search.includes("readonly")} />
   ) : location.pathname === "/ops/platform/usage" ? (

@@ -359,6 +359,7 @@ Do not import `platform.css` here, and do not carry Newsreader into the platform
 
 | Date | Change |
 | --- | --- |
+| 2026-10-13 | Better document intake (L-34): the drop zone answers a drag (`data-dragging`) and lists every file of a batch with its own badge, progress and retry (`.p-intake-*`); the scanned-PDF ask under its source row (`.p-files-notice`); the help-centre page list with checkboxes and the estimate (`.p-import-*`); "What we understood about your assistant" (`.p-ctx-*`: one row per field, low confidence flagged by a "Check this" badge and a warn edge, sources one click away, inline edits marked "Corrected"). |
 | 2026-10-13 | Billing and usage (L-15): `DayBars` (one series in `--p-chart-1`, ≤ 24px columns, 2px gaps, only the peak labelled, a table under it), the sidebar plan-and-balance pill (a nav row), the low-balance banner, the run estimate (`.p-estimate`: facts as a definition list, the cost as one subtitle-size sentence), model rates; figures under billing stats use `--p-text-secondary` for contrast. |
 | 2026-10-13 | Help centre, API reference and methodology (L-20): `HelpLink`, `HelpBody` prose (`.p-article`), the help list (`.p-help-item`), `CodeBlock` and the API reference blocks (`.p-api-*`); the Paper methodology page in §13. |
 | 2026-10-13 | Public site refresh (L-30): step 1 and FAQ name the free test, the closing card's pilot line, sector heroes' pilot link, the footer's Trust column, the five-field contact form, the call agenda and confirmation, the 404's test pill; the Settings DPA row (platform kit). |

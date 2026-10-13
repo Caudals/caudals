@@ -3,7 +3,7 @@
 // commit the immutable source revision. Exported so fixtures can drive it.
 import { withTenant } from "../../lib/evals/repositories/db";
 import { completeSourceIngestion, failSourceIngestion } from "../../lib/evals/repositories/evidence";
-import { extractText } from "../../lib/evals/storage/text";
+import { extractText, ScannedPdfError } from "../../lib/evals/storage/text";
 import { deletePrivateObject, objectKey, readVerified, sealObject } from "../../lib/evals/storage/private";
 
 type SourceJob={
@@ -32,7 +32,11 @@ export async function processSourceOne(orgId:string,actorId:string){
  catch{await failSourceIngestion(scope,job.id,"source_storage_unavailable",true);return true;}
  let extraction:Awaited<ReturnType<typeof extractText>>;
  try{extraction=await extractText(bytes,job.media_type);}
- catch{await failSourceIngestion(scope,job.id,"source_extraction_failed");return true;}
+ catch(error){
+  // A PDF without any text is almost always a scan (launch L-34): say so, with its page statistics.
+  if(error instanceof ScannedPdfError){await failSourceIngestion(scope,job.id,"pdf_scanned",false,error.stats);return true;}
+  await failSourceIngestion(scope,job.id,"source_extraction_failed");return true;
+ }
  try{
   try{await sealObject(job.sealed_object_key!,bytes,job.media_type);}
   catch(error){

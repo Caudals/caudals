@@ -6183,3 +6183,266 @@ button.p-nav-item {
 .p-model-rates-list > summary { cursor: pointer; font-size: var(--p-text-label); color: var(--p-text-secondary); }
 .p-model-rates-list > summary:focus-visible { outline: 2px solid var(--p-focus); outline-offset: 2px; border-radius: var(--p-radius-sm); }
 .p-model-rates-list[open] > .p-plain-list { margin-block: 8px; }
+
+/* --- Better document intake (launch L-34) ----------------------------------- */
+/* Drag and drop: the zone answers a drag over it; every file of the batch gets its own row. */
+.p-drop-zone[data-dragging="true"] {
+  border-style: solid;
+  border-color: var(--p-text);
+  background: var(--p-surface-3);
+}
+.p-drop-zone[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+.p-intake {
+  display: grid;
+  gap: 8px;
+}
+.p-intake-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 420px;
+  overflow-y: auto;
+  border-top: 1px solid var(--p-border-hairline);
+}
+.p-intake-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--p-border-hairline);
+}
+.p-intake-list li > svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+  color: var(--p-text-secondary);
+}
+.p-intake-name {
+  display: grid;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.p-intake-name .p-cell-meta {
+  overflow-wrap: anywhere;
+}
+.p-intake-progress {
+  flex: 0 1 140px;
+  min-width: 96px;
+}
+.p-intake-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* A source whose PDF looks scanned: the row wraps and the ask sits under it. */
+.p-files li[data-notice="true"] {
+  flex-wrap: wrap;
+}
+.p-files-notice {
+  display: grid;
+  flex-basis: 100%;
+  gap: 8px;
+  margin-left: 26px;
+  padding: 12px 14px;
+  border: 1px solid var(--p-warn-border);
+  border-radius: var(--p-radius-md);
+  background: var(--p-warn-soft);
+}
+.p-files-notice-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--p-warn);
+}
+.p-files-notice-title svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+@media (max-width: 639px) {
+  .p-files-notice {
+    margin-left: 0;
+  }
+}
+/* "Import help centre": the page list to include or exclude, then the estimate. */
+.p-import-form {
+  margin-top: 0;
+}
+.p-import {
+  display: grid;
+  gap: 12px;
+}
+.p-import-summary {
+  display: grid;
+  gap: 4px;
+}
+.p-import-summary strong {
+  font-weight: 600;
+}
+.p-import-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.p-import-list {
+  display: grid;
+  max-height: min(48vh, 360px);
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+}
+.p-import-page {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: var(--p-text-label);
+  cursor: pointer;
+}
+.p-import-page span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.p-import-page input {
+  accent-color: var(--p-action);
+}
+.p-import-page input:focus-visible {
+  outline: 2px solid var(--p-focus);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .p-import-page:hover {
+    background: var(--p-surface-2);
+  }
+}
+.p-import-estimate {
+  display: grid;
+  gap: 4px;
+}
+/* "What we understood about your assistant": one row per field, low confidence flagged in words and colour. */
+.p-ctx {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: var(--p-radius-lg);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-border);
+}
+.p-ctx-head {
+  display: grid;
+  gap: 6px;
+}
+.p-ctx-title {
+  font-size: var(--p-text-subtitle);
+  font-weight: 600;
+  letter-spacing: var(--p-tracking-title);
+}
+.p-ctx-rows {
+  display: grid;
+  border-top: 1px solid var(--p-border-hairline);
+}
+.p-ctx-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.6fr) minmax(0, 2fr) auto;
+  align-items: start;
+  gap: 8px 16px;
+  padding: 12px 0 12px 10px;
+  border-bottom: 1px solid var(--p-border-hairline);
+  border-left: 2px solid transparent;
+}
+.p-ctx-row[data-low="true"] {
+  border-left-color: var(--p-warn);
+}
+.p-ctx-label {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  font-size: var(--p-text-label);
+  font-weight: 500;
+}
+.p-ctx-value {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.p-ctx-action {
+  display: flex;
+  justify-content: flex-end;
+}
+.p-ctx-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc outside;
+}
+ol.p-ctx-list {
+  list-style: decimal outside;
+}
+.p-ctx-evidence {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+.p-ctx-excerpts {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.p-ctx-excerpt {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 2px solid var(--p-border-strong);
+  border-radius: var(--p-radius-xs);
+  background: var(--p-surface-2);
+  font-size: var(--p-text-label);
+  white-space: pre-line;
+}
+.p-ctx-excerpt footer {
+  margin-top: 4px;
+}
+.p-ctx-conflicts {
+  display: grid;
+  gap: 4px;
+}
+.p-ctx-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.p-ctx-foot .p-field-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+@media (max-width: 767px) {
+  .p-ctx {
+    padding: 14px;
+  }
+  .p-ctx-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .p-ctx-label {
+    grid-column: 1;
+  }
+  .p-ctx-action {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .p-ctx-value {
+    grid-column: 1 / -1;
+  }
+}
