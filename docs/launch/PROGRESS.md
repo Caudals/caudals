@@ -8,6 +8,7 @@ The founder approved `docs/product-specs/spec-v2.md` on 2026-10-11. The latest i
 2. `scripts/launch/merge-lock.sh status`. A lock held by a package whose agent is no longer running is released with `release <owner>` after you check that package's state.
 3. For each package marked **in progress**: if `.worktrees/launch-L-xx` exists, resume it with a package agent (do not duplicate one that is still running); if it merged but the handoff is missing, finish verification and the handoff.
 4. Start agents for the next packages whose dependencies have landed (§2), at most 4 at a time.
+5. Resume safety net: `scripts/launch/resume-watchdog.sh` runs from the host crontab every 20 minutes. When the orchestrator session's transcript has been quiet for 50 minutes and packages remain, it sends that session one cross-session "continue" message through a headless `claude -p --model haiku` (at most one nudge per 55 minutes). Config: `~/.config/caudals-launch/watchdog.env` (session file and name); log: `~/.cache/caudals-launch/watchdog.log`. It stops itself once no package is `todo` or `in progress`. If a new orchestrator session takes over, update the config.
 
 ## 2. Packages
 
@@ -143,3 +144,4 @@ Things only the founder can do. Agents add to this list; they never do these the
 | 2026-10-13 | L-29 done (`2ed6c5a`, no migration): AI-disclosure check (Art. 50 evidence) in demo and product runs, stored beside the answers (demo) and on the first case observation and report snapshot (product), never in the score. App and workers deployed; one production demo against our synthetic API with `AI_DISCLOSURE_CHECK=true` for the check (Disclosed by the judge, shown on the report, score 0/8 as before), then off. `DEMO_RUNS_PER_VISITOR` and `DEMO_RUNS_PER_SITE` raised to 5 for it and restored to 1 and 3. Founder action extended: lawyer review of the wording, then switch on. |
 | 2026-10-13 | Usage limits hit at ~21:00 and ~02:00 UTC; agents resumed at 01:11 and 07:25. L-17, L-12 and L-06 done; Gate A packages all deployed. Agents started for L-13, L-14 and L-22. Brief: merge lock is acquired only in the foreground. |
 | 2026-10-13 | L-30 done (`7151995`). Migration 108 reserved for the countersigned-DPA upload, built with L-32. Agent started for L-35. |
+| 2026-10-13 | The in-session hourly cron did not fire after the 08:57 usage limit (session stalled until 17:11). Added the host watchdog `scripts/launch/resume-watchdog.sh` (crontab, every 20 min), tested end to end. Agents resumed at 17:11. |
